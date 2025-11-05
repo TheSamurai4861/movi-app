@@ -1,0 +1,100 @@
+MOVI - Plan de développement par étapes
+======================================
+
+1. Cadre du projet et préparation
+   1.1 Définir la vision produit, les profils d’utilisateurs et les cas d’usage principaux. OK
+   1.2 Lister les sources de contenu IPTV et clarifier les contraintes techniques (API, formats, DRM). OK
+   1.3 Choisir l’architecture de l’application (couches, navigation, gestion d’état, modularisation). OK
+   1.4 Mettre en place l’environnement de développement (Flutter, CI/CD, qualité du code). OK
+   1.5 Établir la charte graphique initiale et les fondations UI (thème, typographies, couleurs). OK
+
+2. Infrastructure applicative
+   2.1 Créer le squelette Flutter (modules core, features, routing, theming).
+   2.2 Configurer la navigation (GoRouter, gestion des routes, transitions).
+   2.3 Mettre en place la gestion des dépendances (injecteur, services partagés).
+   2.4 Définir les modèles de données (films, séries, épisodes, sagas, personnes, playlists).
+   2.5 Préparer la couche d’accès aux données (sources locales, réseau, mocks).
+
+3. Page d’accueil (Home)
+   3.1 Concevoir le hero (visuel principal, accroche, CTA éventuels).
+   3.2 Implémenter la section « Reprendre la lecture » (listes horizontales, états de chargement).
+   3.3 Implémenter les listes d’abonnement (nouveautés, tendances, recommandations).
+   3.4 Gérer la navigation vers les détails (film, série, saga, playlists).
+   3.5 Ajouter l’état vide, les pseudo-données et les tests widget/interaction.
+
+4. Page de recherche
+   4.1 Définir le champ de recherche (suggestions, debouncing, historique).
+   4.2 Construire les listes de résultats (films, séries) avec pagination.
+   4.3 Gérer l’historique des recherches (stockage local, suppression).
+   4.4 Ajouter les filtres avancés (genres, disponibilité, statut).
+  4.5 Prévoir les états (chargement, aucun résultat, erreurs).
+
+5. Détail d’un film
+   5.1 Structurer la présentation (affiche, métadonnées, synopsis, actions principales).
+   5.2 Mettre en place la section distribution et les liens vers les fiches artistes.
+   5.3 Ajouter les recommandations et contenus similaires.
+   5.4 Gérer les actions utilisateur (ajout à la watchlist, notation, partage).
+   5.5 Tester l’accessibilité (lecteurs d’écran, contrastes, navigation clavier).
+
+6. Détail d’une série
+   6.1 Mettre en page les informations globales (saisons, épisodes, statut).
+   6.2 Implémenter la navigation par saisons et épisodes.
+   6.3 Afficher les épisodes récents et les actions rapides (reprendre, reprendre saison).
+   6.4 Intégrer la distribution, les créateurs et les liens croisés.
+   6.5 Gérer les états spéciaux (série en cours, terminée, non disponible).
+
+7. Détail d’une saga
+   7.1 Définir la structure (présentation générale, chronologie, films).
+   7.2 Ajouter les ressources associées (guides, discussions, bonus).
+   7.3 Mettre en avant les playlists liées ou les extensions TV.
+   7.4 Gérer les progressions utilisateur (films vus, progression globale).
+   7.5 Tester l’affichage multi-appareils (mobile, tablette, desktop).
+
+8. Détail d’une personne (acteur, réalisateur, etc.)
+   8.1 Créer la fiche d’identité (photo, bio, principaux rôles).
+   8.2 Lister la filmographie avec filtres (films, séries, rôle).
+   8.3 Ajouter les actualités et liens externes (réseaux sociaux, interviews).
+   8.4 Connecter les fiches aux contenus correspondants (film, série, saga).
+   8.5 Gérer l’état de suivi (ajout aux favoris, notifications).
+
+9. Page bibliothèque
+   9.1 Construire la vue playlists (création, tri, gestion, partage).
+   9.2 Ajouter la section sagas enregistrées.
+   9.3 Intégrer les personnes suivies et la reprise de lecture globale.
+   9.4 Prévoir la gestion des contenus téléchargés ou marqués.
+   9.5 Créer les états vides et onboarding pour guider l’utilisateur.
+
+10. Page paramètres
+    10.1 Mettre en place les préférences générales (thème, langue, notifications).
+    10.2 Gérer les paramètres de compte et de profil.
+    10.3 Ajouter la gestion des appareils, de l’abonnement et des limites.
+    10.4 Intégrer les informations légales et politiques.
+    10.5 Tester la cohérence multi-plateforme (Android, iOS, Web, Desktop).
+
+11. Expérience utilisateur continue
+    11.1 Ajouter la navigation globale (bottom navigation, shortcuts, deep links).
+    11.2 Mettre en place la gestion des états (loading global, erreurs, offline).
+    11.3 Concevoir les animations et micro-interactions.
+    11.4 Travailler l’accessibilité et l’internationalisation.
+    11.5 Réaliser des tests utilisateurs et ajustements UX.
+
+12. Données et synchronisation
+    12.1 Implémenter la persistance locale (watchlist, préférences, historique).
+    12.2 Intégrer les APIs IPTV (authentification, catalogue, streaming).
+    12.3 Assurer la synchronisation multi-appareils.
+    12.4 Gérer les erreurs réseau et la reprise hors ligne.
+    12.5 Surveiller la qualité des données (logs, métriques, analytics).
+
+13. Qualité, tests et déploiement
+    13.1 Mettre en place les tests unitaires, widget et intégration.
+    13.2 Configurer l’automatisation (CI/CD, builds multi-plateformes).
+    13.3 Préparer les environnements de staging et de production.
+    13.4 Réaliser les revues de performance (optimisations, taille de build).
+    13.5 Planifier le support post-lancement (monitoring, feedback, roadmap).
+
+14. Lancements incrémentaux
+    14.1 Définir les jalons (MVP, bêta interne, bêta publique, release).
+    14.2 Organiser la communication et le marketing produit.
+    14.3 Collecter les retours utilisateur (in-app, analytics, support).
+    14.4 Itérer sur la roadmap en fonction des données collectées.
+    14.5 Documenter les apprentissages et actualiser le backlog.

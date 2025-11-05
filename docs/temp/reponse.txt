@@ -1,0 +1,15 @@
+Les plus utiles dans le cadre de l'application MoviScaffold
+
+Je viens de commencer le projet. J'utilise une espacement multiple de 4px : 16px, 20px, 24px, 32px, 48px,... chemins d'assets : icônes de l'app, mock de films et séries. 
+
+Dans plusieus fichiers pour meilleur lisibilité
+
+Les plus intéressantes
+
+Oui
+
+Non je fais pas encore
+
+Oui
+
+Oui
