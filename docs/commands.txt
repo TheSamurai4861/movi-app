@@ -1,0 +1,21 @@
+# Dev
+flutter run --flavor dev -t lib/main.dart \
+  --dart-define=FLAVOR=dev \
+  --dart-define=API_BASE_URL=https://api.dev.example.com
+
+# Stage
+flutter run --flavor stage -t lib/main.dart \
+  --dart-define=FLAVOR=stage \
+  --dart-define=API_BASE_URL=https://api.stage.example.com
+
+# Prod
+flutter run --flavor prod -t lib/main.dart \
+  --dart-define=FLAVOR=prod \
+  --dart-define=API_BASE_URL=https://api.example.com
+
+# APK de test rapide
+flutter build apk --flavor dev -t lib/main.dart --dart-define=FLAVOR=dev --dart-define=API_BASE_URL=https://api.dev.example.com
+
+# AAB prod (pour Play Console)
+flutter build appbundle --flavor prod -t lib/main.dart \
+  --dart-define=FLAVOR=prod --dart-define=API_BASE_URL=https://api.example.com
