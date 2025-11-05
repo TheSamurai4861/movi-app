@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/utils/utils.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -17,26 +18,25 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(title: const Text('Accueil')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.page,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Bienvenue sur MOVI',
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: context.textTheme.headlineSmall,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 'Retrouvez rapidement vos films, séries et artistes favoris.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colorScheme.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
                 children: _quickLinks
                     .map(
                       (item) => FilledButton.tonal(
@@ -46,27 +46,27 @@ class HomePage extends StatelessWidget {
                     )
                     .toList(),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.sectionGap),
               _HomeSection(
                 title: 'Continuer le visionnage',
                 child: _PosterStrip(
-                  itemCount: 6,
+                  titles: MockData.continueWatching,
                   onTap: () => context.push(AppRouteNames.movie),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.sectionGap),
               _HomeSection(
                 title: 'À la une cette semaine',
                 child: _PosterStrip(
-                  itemCount: 5,
+                  titles: MockData.featuredSeries,
                   onTap: () => context.push(AppRouteNames.tv),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppSpacing.sectionGap),
               _HomeSection(
                 title: 'Suggestions de playlists',
                 child: _PosterStrip(
-                  itemCount: 4,
+                  titles: MockData.playlists,
                   aspectRatio: 1.2,
                   onTap: () => context.push(AppRouteNames.playlist),
                 ),
@@ -95,9 +95,9 @@ class _HomeSection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: context.textTheme.titleLarge,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.sm),
         child,
       ],
     );
@@ -106,12 +106,12 @@ class _HomeSection extends StatelessWidget {
 
 class _PosterStrip extends StatelessWidget {
   const _PosterStrip({
-    required this.itemCount,
+    required this.titles,
     required this.onTap,
     this.aspectRatio = 0.7,
   });
 
-  final int itemCount;
+  final List<String> titles;
   final double aspectRatio;
   final VoidCallback onTap;
 
@@ -121,8 +121,8 @@ class _PosterStrip extends StatelessWidget {
       height: 200,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: itemCount,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemCount: titles.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) => AspectRatio(
           aspectRatio: aspectRatio,
           child: InkWell(
@@ -131,12 +131,13 @@ class _PosterStrip extends StatelessWidget {
             child: Ink(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                color: Theme.of(context).colorScheme.surfaceVariant,
+                color: context.colorScheme.surfaceContainerHighest,
               ),
               child: Center(
                 child: Text(
-                  'Item ${index + 1}',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  titles[index],
+                  textAlign: TextAlign.center,
+                  style: context.textTheme.titleMedium,
                 ),
               ),
             ),

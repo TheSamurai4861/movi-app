@@ -36,7 +36,7 @@ Livrables clés
    3.1 `core/router/` : créer `app_router.dart` avec `GoRouter`, centraliser les routes et définir une classe `AppRouteNames`. OK 
    3.2 `core/theme/` : créer `app_theme.dart` avec `ThemeData` light/dark, palettes de couleurs, textes, formes, `ThemeExtension` éventuelles. OK
    3.3 `core/di/` : mettre en place un injecteur (ex. `GetIt` ou `Riverpod ProviderContainer`) pour enregistrer les services partagés (API client, cache, repositories). OK
-   3.4 `core/utils/` : ajouter des helpers de base (constantes, extensions) à utiliser partout dans l’app.
+   3.4 `core/utils/` : ajouter des helpers de base (constantes, extensions) à utiliser partout dans l’app. OK
    3.5 `core/widgets/` : poser les premières briques réutilisables (boutons, cartes, loaders, placeholders).
    3.6 Documenter le point d’entrée (`app.dart`) qui assemble thème, routeur et localisation.
 

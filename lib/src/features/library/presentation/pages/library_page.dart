@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/utils.dart';
+
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
 
@@ -9,37 +11,39 @@ class LibraryPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Bibliothèque')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.page,
           children: [
             Text(
               'Votre vidéothèque',
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: context.textTheme.headlineSmall,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'Retrouvez toutes vos listes et contenus enregistrés.',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              style: context.textTheme.bodyMedium?.copyWith(
+                color: context.colorScheme.onSurfaceVariant,
+              ),
             ),
-            const SizedBox(height: 24),
-            const _LibrarySection(
-              title: 'En cours',
-              subtitle: 'Reprenez vos lectures là où vous les avez laissées.',
+            const SizedBox(height: AppSpacing.lg),
+            _LibrarySection(
+              title: 'Reprendre la lecture',
+              subtitle: 'Continuez vos contenus inachevés.',
               icon: Icons.play_arrow_rounded,
+              items: MockData.continueWatching,
             ),
-            const SizedBox(height: 16),
-            const _LibrarySection(
+            const SizedBox(height: AppSpacing.sm),
+            _LibrarySection(
               title: 'Favoris',
               subtitle: 'Vos films et séries préférés en un clin d’œil.',
               icon: Icons.favorite_rounded,
+              items: MockData.featuredMovies,
             ),
-            const SizedBox(height: 16),
-            const _LibrarySection(
-              title: 'Listes personnalisées',
-              subtitle: 'Créez des playlists pour organiser vos thématiques.',
+            const SizedBox(height: AppSpacing.sm),
+            _LibrarySection(
+              title: 'Playlists et sagas',
+              subtitle: 'Organisez vos univers MOVI.',
               icon: Icons.playlist_add_check_rounded,
+              items: MockData.playlists,
             ),
           ],
         ),
@@ -53,38 +57,53 @@ class _LibrarySection extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    required this.items,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
+  final List<String> items;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       borderRadius: BorderRadius.circular(20),
-      color: Theme.of(context).colorScheme.surfaceVariant,
+      color: context.colorScheme.surfaceContainerHighest,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {},
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Row(
             children: [
               Icon(icon, size: 32),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: context.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.xxxs),
                     Text(
                       subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: context.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
+                      children: items
+                          .take(3)
+                          .map(
+                            (item) => Chip(
+                              label: Text(item),
+                            ),
+                          )
+                          .toList(),
                     ),
                   ],
                 ),

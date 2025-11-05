@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/utils.dart';
+
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key});
 
@@ -9,7 +11,7 @@ class SearchPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Recherche')),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.page,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -22,9 +24,9 @@ class SearchPage extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
-                spacing: 8,
+                spacing: AppSpacing.xs,
                 children: const [
                   _SearchFilterChip(label: 'Films'),
                   _SearchFilterChip(label: 'Séries'),
@@ -32,18 +34,18 @@ class SearchPage extends StatelessWidget {
                   _SearchFilterChip(label: 'Playlists'),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.lg),
               Expanded(
                 child: ListView.separated(
-                  itemCount: 6,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemCount: MockData.featuredMovies.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
                   itemBuilder: (context, index) => ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                      backgroundColor: context.colorScheme.surfaceContainerHighest,
                       child: Text('${index + 1}'),
                     ),
-                    title: Text('Résultat ${index + 1}'),
-                    subtitle: const Text('Description ou type de résultat'),
+                    title: Text(MockData.featuredMovies[index]),
+                    subtitle: const Text('Résultat mock – contenu réel à venir'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {},
                   ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/utils.dart';
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -9,13 +11,13 @@ class SettingsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Paramètres')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.page,
           children: [
             Text(
               'Préférences générales',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: context.textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.sm),
             SwitchListTile(
               value: true,
               title: const Text('Mode sombre'),
@@ -28,12 +30,12 @@ class SettingsPage extends StatelessWidget {
               subtitle: const Text('Soyez averti des nouvelles sorties.'),
               onChanged: (_) {},
             ),
-            const Divider(height: 32),
+            const Divider(height: AppSpacing.sectionGap),
             Text(
               'Compte',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: context.textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.sm),
             const ListTile(
               leading: Icon(Icons.person_outline),
               title: Text('Informations du profil'),
@@ -46,12 +48,12 @@ class SettingsPage extends StatelessWidget {
               subtitle: Text('Français (France)'),
               trailing: Icon(Icons.chevron_right),
             ),
-            const Divider(height: 32),
+            const Divider(height: AppSpacing.sectionGap),
             Text(
               'À propos',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: context.textTheme.titleLarge,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.sm),
             const ListTile(
               leading: Icon(Icons.info_outline),
               title: Text('Mentions légales'),
