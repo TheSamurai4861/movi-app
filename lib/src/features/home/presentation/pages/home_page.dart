@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/utils.dart';
-import '../../../../core/utils/app_assets.dart';
 import '../../../../core/widgets/movi_bottom_nav_bar.dart';
 import '../../../../core/widgets/movi_favorite_button.dart';
 import '../../../../core/mock/mock_home_content.dart';
