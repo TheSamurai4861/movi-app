@@ -1,15 +1,20 @@
-Les plus utiles dans le cadre de l'application MoviScaffold
+Ok on a le terreau pour commencer à coder la page d'accueil.
 
-Je viens de commencer le projet. J'utilise une espacement multiple de 4px : 16px, 20px, 24px, 32px, 48px,... chemins d'assets : icônes de l'app, mock de films et séries. 
+Dans la page d'accueil on a tout en haut un élément qui est fixed comme le bottom nav bar, ATTENTION cet élément ne se trouve que sur la page Home
 
-Dans plusieus fichiers pour meilleur lisibilité
+C'est donc un bloc de 150 de haut avec, sur tout la hauteur un triple overlay surperposé de haut en bas avec 141414 (voir couleur theme)
 
-Les plus intéressantes
+Puis à Y 60 en partant du haut tu mets le logo.png centré au milieu de l'écran horizontalement en 72x72
 
-Oui
+Un autre élément fixed est la bottom nav bar qui reste tel quel
 
-Non je fais pas encore
+Dans la partie scroll, tu as d'abord le Hero qui passe derrière l'élément fixed d'en haut et commence en Y 0. 
 
-Oui
+Il est composé comme ceci : 
+Stack de 650 de haut avec en fond cover l'image du media présenté dans le hero, tout en bas un double overlay de bas en haut de 125px puis tout en bas du hero tu mets un bouton primaire avec play arrow et Regarder et un bouton étoile favoris à côté (16px de gap). 
 
-Oui
+32 px au dessus des boutons tu mets le bloc avec les données qui contient en colonne : 
+Un logo du film en image hauteur max 100px et largeur maximale largeur écran - padding en contain centré horizontalement. Puis 16px en dessous 3 pills avec année, durée, note
+Puis 16px en dessous texte normal 16px largeur max sur 3lignes sinon troncqué avec ... le synospsis du média aligné à gauche le texte.
+
+48px en dessous hero tu mets un MoviItemList avec des films connus que tu mock dans un fichier avec des objets Movie où je peux renseigner une url d'internet vers l'affiche.

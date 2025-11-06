@@ -154,7 +154,6 @@ class AppTheme {
         ),
         behavior: SnackBarBehavior.floating,
       ),
-      colorSchemeSeed: colorScheme.primary,
     );
   }
 
@@ -213,6 +212,7 @@ class AppTheme {
     return base.copyWith(
       headlineSmall: headline(24),
       titleLarge: headline(20),
+      titleMedium: headline(18),
       bodyLarge: body(16, FontWeight.w500, primary),
       bodyMedium: body(14, FontWeight.w500, secondary),
       bodySmall: body(12, FontWeight.w400, secondary),
