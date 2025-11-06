@@ -17,4 +17,8 @@ workflows:
     publishing:
       email:
         recipients:
-          - ""
+          - "ton.email@exemple.com"
+        # Optionnel :
+        # notify:
+        #   success: true
+        #   failure: true
