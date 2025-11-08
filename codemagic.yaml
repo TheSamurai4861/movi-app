@@ -8,15 +8,19 @@ workflows:
     scripts:
       - name: Install dependencies
         script: flutter pub get
-      - name: Build unsigned IPA
+      - name: Run widget tests
+        script: flutter test
+      - name: Build unsigned IPA (archive)
         script: flutter build ipa --release --no-codesign
+      - name: Package unsigned IPA from .xcarchive
+        script: |
+          set -euxo pipefail
+          ARCHIVE="build/ios/archive/Runner.xcarchive"
+          OUTDIR="build/ios/ipa"
+          rm -rf "$OUTDIR"
+          mkdir -p "$OUTDIR/Payload"
+          cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
+          (cd "$OUTDIR" && zip -r "Runner-unsigned.ipa" "Payload")
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      email:
-        recipients:
-          - "ton.email@exemple.com"
-        # Optionnel :
-        # notify:
-        #   success: true
-        #   failure: true
+      - build/ios/archive/*.xcarchive
