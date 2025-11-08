@@ -35,22 +35,7 @@ class SearchPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: MockData.featuredMovies.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
-                  itemBuilder: (context, index) => ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: context.colorScheme.surfaceContainerHighest,
-                      child: Text('${index + 1}'),
-                    ),
-                    title: Text(MockData.featuredMovies[index]),
-                    subtitle: const Text('Résultat mock – contenu réel à venir'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {},
-                  ),
-                ),
-              ),
+              const Expanded(child: _EmptyResultsPlaceholder()),
             ],
           ),
         ),
@@ -69,6 +54,24 @@ class _SearchFilterChip extends StatelessWidget {
     return FilterChip(
       label: Text(label),
       onSelected: (_) {},
+    );
+  }
+}
+
+class _EmptyResultsPlaceholder extends StatelessWidget {
+  const _EmptyResultsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Text(
+          'La recherche sera connectée aux données réelles prochainement.',
+          style: context.textTheme.bodyLarge,
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }

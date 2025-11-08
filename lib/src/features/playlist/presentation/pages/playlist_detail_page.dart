@@ -21,7 +21,7 @@ class PlaylistDetailPage extends StatelessWidget {
                     width: 100,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                     child: const Icon(Icons.queue_music_rounded, size: 42),
                   ),
@@ -80,7 +80,7 @@ class PlaylistDetailPage extends StatelessWidget {
                       width: 32,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
-                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       ),
                       child: Center(child: Text('${index + 1}')),
                     ),

@@ -27,7 +27,7 @@ class SagaDetailPage extends StatelessWidget {
                 height: 180,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
                 child: const Center(child: Icon(Icons.auto_awesome, size: 48)),
               ),
@@ -55,8 +55,9 @@ class SagaDetailPage extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor:
-                            Theme.of(context).colorScheme.surfaceVariant,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                         child: Text('${index + 1}'),
                       ),
                       title: Text('Titre ${index + 1}'),
@@ -111,7 +112,7 @@ class _ResourceCard extends StatelessWidget {
       width: 180,
       child: Material(
         borderRadius: BorderRadius.circular(16),
-        color: Theme.of(context).colorScheme.surfaceVariant,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {},

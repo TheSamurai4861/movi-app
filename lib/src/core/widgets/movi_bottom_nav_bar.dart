@@ -68,7 +68,7 @@ class MoviBottomNavBar extends StatelessWidget {
         'selectedIndex ($selectedIndex) must be within the items list.');
 
     final theme = Theme.of(context);
-    final unselectedTextColor = Colors.white.withOpacity(0.7);
+    final unselectedTextColor = Colors.white.withValues(alpha: 0.7);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),

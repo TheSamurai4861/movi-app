@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart' show WidgetState, WidgetStateProperty;
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
@@ -22,7 +21,7 @@ class AppTheme {
         isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final secondaryTextColor =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final surfaceVariant =
+    final surfaceContainer =
         isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
 
     return ThemeData(
@@ -58,7 +57,7 @@ class AppTheme {
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: surfaceVariant,
+        backgroundColor: surfaceContainer,
         labelStyle: textTheme.labelLarge?.copyWith(
           color: secondaryTextColor,
         ),
@@ -139,7 +138,7 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
           }
-          return surfaceVariant;
+          return surfaceContainer;
         }),
         checkColor: WidgetStateProperty.all(colorScheme.onPrimary),
       ),

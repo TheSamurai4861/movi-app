@@ -1,0 +1,43 @@
+import 'package:equatable/equatable.dart';
+
+class XtreamEndpoint extends Equatable {
+  const XtreamEndpoint({
+    required this.host,
+    required this.port,
+    this.useHttps = false,
+    this.path = '/player_api.php',
+  });
+
+  factory XtreamEndpoint.parse(String rawUrl) {
+    final uri = Uri.parse(rawUrl);
+    return XtreamEndpoint(
+      host: uri.host.isEmpty ? rawUrl : uri.host,
+      port: uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80),
+      useHttps: uri.scheme == 'https',
+      path: uri.path.isEmpty ? '/player_api.php' : uri.path,
+    );
+  }
+
+  final String host;
+  final int port;
+  final bool useHttps;
+  final String path;
+
+  Uri buildUri(Map<String, dynamic> query) {
+    final uri = Uri(
+      scheme: useHttps ? 'https' : 'http',
+      host: host,
+      port: port,
+      path: path.startsWith('/') ? path : '/$path',
+      queryParameters: query.map((key, value) => MapEntry(key, '$value')),
+    );
+    return uri;
+  }
+
+  String get baseUrl => '${useHttps ? 'https' : 'http'}://$host:$port';
+
+  String toRawUrl() => '${useHttps ? 'https' : 'http'}://$host:$port$path';
+
+  @override
+  List<Object?> get props => [host, port, useHttps, path];
+}

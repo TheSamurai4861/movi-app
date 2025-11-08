@@ -26,7 +26,8 @@ class MovieDetailPage extends StatelessWidget {
                     child: Container(
                       height: 180,
                       width: 120,
-                      color: Theme.of(context).colorScheme.surfaceVariant,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       child: const Center(child: Icon(Icons.movie, size: 48)),
                     ),
                   ),
@@ -102,7 +103,8 @@ class MovieDetailPage extends StatelessWidget {
                 (index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: Text('${index + 1}'),
                   ),
                   title: Text('Acteur ${index + 1}'),
@@ -128,7 +130,9 @@ class MovieDetailPage extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: Theme.of(context).colorScheme.surfaceVariant,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
                       ),
                       child: Center(
                         child: Text('Film ${index + 1}'),

@@ -17,7 +17,8 @@ class PersonDetailPage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 48,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: const Icon(Icons.person, size: 42),
                   ),
                   const SizedBox(width: 24),
@@ -72,7 +73,8 @@ class PersonDetailPage extends StatelessWidget {
                 (index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: Text('${index + 1}'),
                   ),
                   title: Text('Projet ${index + 1}'),

@@ -1,4 +1,3 @@
-/// Basic data for a person (actor, director...).
 class MoviPerson {
   const MoviPerson({
     required this.id,
@@ -12,4 +11,3 @@ class MoviPerson {
   final String role;
   final String poster;
 }
-

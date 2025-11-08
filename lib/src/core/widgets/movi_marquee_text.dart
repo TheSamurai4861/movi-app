@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 /// Scrolling text with gradient fade on both sides, used for titles and labels.
@@ -231,4 +229,3 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
     }
   }
 }
-

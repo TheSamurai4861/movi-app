@@ -92,7 +92,7 @@ class MoviPrimaryButton extends StatelessWidget {
             child: CircularProgressIndicator(
               strokeWidth: 2,
               valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
-              backgroundColor: scheme.onPrimary.withOpacity(0.2),
+              backgroundColor: scheme.onPrimary.withValues(alpha: 0.2),
             ),
           ),
           const SizedBox(width: 12),

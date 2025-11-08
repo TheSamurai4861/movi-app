@@ -1,16 +1,20 @@
+// lib/src/features/home/presentation/pages/home_page.dart
 import 'package:flutter/material.dart';
-import '../../../../core/router/app_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+import '../providers/home_providers.dart' as hp;
+
 import '../../../../core/utils/utils.dart';
+import '../../../../core/utils/app_spacing.dart';
 import '../../../../core/widgets/movi_bottom_nav_bar.dart';
-import '../../../../core/widgets/movi_favorite_button.dart';
-import '../../../../core/mock/mock_home_content.dart';
 import '../../../../core/widgets/movi_items_list.dart';
 import '../../../../core/widgets/movi_media_card.dart';
-import '../../../../core/widgets/movi_person_card.dart';
-import '../../../../core/widgets/movi_pill.dart';
-import '../../../../core/widgets/movi_primary_button.dart';
+import '../../../../core/models/movi_media.dart';
+import '../widgets/home_hero_section.dart';
+import '../widgets/continue_watching_card.dart';
 
-/// Écran réduit pour tester uniquement les boutons
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -20,9 +24,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const _fadeDuration = Duration(milliseconds: 300);
-  static const _navBottomOffset = 40.0;
+  // Spec: bottom nav 24px from bottom edge
+  static const _navBottomOffset = 24.0;
 
-  bool _isHeroFavorite = false;
   int _selectedIndex = 0;
 
   void _handleNavTap(int index) {
@@ -36,41 +40,11 @@ class _HomePageState extends State<HomePage> {
     final navHeight = moviNavBarHeight();
     final bottomPadding = navHeight + _navBottomOffset + media.padding.bottom;
 
-    final heroData = MockHomeContent.hero;
-    final mediaCards = MockHomeContent.knownMovies
-        .map<Widget>((media) => MoviMediaCard(media: media))
-        .toList();
-    final personCards = MockHomeContent.featuredPeople
-        .map<Widget>((person) => MoviPersonCard(person: person))
-        .toList();
-
     final pages = <Widget>[
-      KeyedSubtree(
-        key: const ValueKey('home'),
-        child: _HomeContent(
-          hero: heroData,
-          mediaCards: mediaCards,
-          personCards: personCards,
-          bottomPadding: bottomPadding,
-          isFavorite: _isHeroFavorite,
-          onToggleFavorite: () => setState(() => _isHeroFavorite = !_isHeroFavorite),
-        ),
-      ),
-      _NavPlaceholder(
-        key: ValueKey('search'),
-        title: 'Recherche',
-        bottomPadding: bottomPadding,
-      ),
-      _NavPlaceholder(
-        key: ValueKey('library'),
-        title: 'Bibliothèque',
-        bottomPadding: bottomPadding,
-      ),
-      _NavPlaceholder(
-        key: ValueKey('settings'),
-        title: 'Paramètres',
-        bottomPadding: bottomPadding,
-      ),
+      const _HomeContent(),
+      _NavPlaceholder(title: 'Recherche', bottomPadding: bottomPadding),
+      _NavPlaceholder(title: 'Bibliothèque', bottomPadding: bottomPadding),
+      _NavPlaceholder(title: 'Paramètres', bottomPadding: bottomPadding),
     ];
 
     return Scaffold(
@@ -82,10 +56,8 @@ class _HomePageState extends State<HomePage> {
           children: [
             AnimatedSwitcher(
               duration: _fadeDuration,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: child,
-              ),
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
               child: pages[_selectedIndex],
             ),
             Positioned(
@@ -104,12 +76,176 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+class _HomeContent extends StatelessWidget {
+  const _HomeContent();
+
+  static const double _mediaCardWidth =
+      150; // doit rester aligné avec MoviMediaCard par défaut
+  static const double _itemSpacing = 32; // espace horizontal entre items
+  static const double _sectionGap =
+      32; // espace VERTICAL entre sections MoviItemsList
+
+  // Afficher uniquement le libellé catégorie (sans "serveur/")
+  String _displayCategoryTitle(String raw) {
+    final idx = raw.indexOf('/');
+    return (idx >= 0 && idx < raw.length - 1) ? raw.substring(idx + 1) : raw;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Consumer(
+      builder: (context, ref, _) {
+        final state = ref.watch(hp.homeControllerProvider);
+        final controller = ref.read(hp.homeControllerProvider.notifier);
+
+        return RefreshIndicator(
+          onRefresh: controller.refresh,
+          child: CustomScrollView(
+            slivers: [
+              if (state.error != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              'Une erreur est survenue. Balayez vers le bas pour réessayer.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.red,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // On rend le vrai hero avec le state (évite les rebuilds visibles)
+              SliverToBoxAdapter(
+                child: HomeHeroSection(
+                  movie: state.hero.isNotEmpty ? state.hero.first : null,
+                ),
+              ),
+
+              // Marge après le hero (libre, non concernée par "32px entre MoviItemsList")
+              const SliverToBoxAdapter(child: SizedBox(height: 54)),
+
+              // ===== Section "En cours" =====
+              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: 'En cours',
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
+                    items: [
+                      ...state.cwMovies.map(
+                        (m) => ContinueWatchingCard.movie(
+                          title: m.title.value,
+                          poster: (m.backdrop ?? m.poster).toString(),
+                          year: m.releaseYear?.toString() ?? '',
+                          progress: 0,
+                          onTap: () => context.push('/movie'),
+                        ),
+                      ),
+                      ...state.cwShows.map(
+                        (s) => ContinueWatchingCard.episode(
+                          title: s.title.value,
+                          seriesTitle: s.title.value,
+                          poster: (s.backdrop ?? s.poster).toString(),
+                          seasonEpisode: 'S?? E??',
+                          progress: 0,
+                          onTap: () => context.push('/tv'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // 32 px après "En cours"
+              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+
+              if (state.iptvLists.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    child: Text(
+                      'Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+
+              // ===== Sections IPTV ===== (enrichissement à la volée)
+              for (final entry in state.iptvLists.entries) ...[
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: _displayCategoryTitle(entry.key), // ← étiquette propre
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    // → Notifie le contrôleur d’enrichir le batch visible (+preload)
+                    onViewportChanged: (start, count) {
+                      controller.enrichCategoryBatch(entry.key, start, count);
+                    },
+                    items: entry.value.take(40).map((r) {
+                      // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
+                      final poster = r.poster?.toString() ?? '';
+
+                      // Fournir des Strings non nulles pour respecter la signature de MoviMedia
+                      final yearStr = r.year != null ? r.year!.toString() : '';
+                      final ratingStr = r.rating != null
+                          ? (r.rating! >= 10 ? '10' : r.rating!.toStringAsFixed(1))
+                          : '';
+
+                      final media = MoviMedia(
+                        id: r.id,
+                        title: r.title.value,
+                        poster: poster,
+                        year: yearStr,      // <-- String non nulle
+                        rating: ratingStr,  // <-- String non nulle
+                        type: r.type == ContentType.series
+                            ? MoviMediaType.series
+                            : MoviMediaType.movie,
+                      );
+                      return MoviMediaCard(media: media);
+                    }).toList(),
+                  ),
+                ),
+                // 32 px entre *chaque* section MoviItemsList IPTV
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+              ],
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _NavPlaceholder extends StatelessWidget {
-  const _NavPlaceholder({
-    required this.title,
-    required this.bottomPadding,
-    super.key,
-  });
+  const _NavPlaceholder({required this.title, required this.bottomPadding});
 
   final String title;
   final double bottomPadding;
@@ -124,274 +260,8 @@ class _NavPlaceholder extends StatelessWidget {
         bottomPadding,
       ),
       child: Center(
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
+        child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
       ),
     );
   }
-}
-
-class _HomeContent extends StatelessWidget {
-  const _HomeContent({
-    required this.hero,
-    required this.mediaCards,
-    required this.personCards,
-    required this.bottomPadding,
-    required this.isFavorite,
-    required this.onToggleFavorite,
-  });
-
-  final HomeHeroData hero;
-  final List<Widget> mediaCards;
-  final List<Widget> personCards;
-  final double bottomPadding;
-  final bool isFavorite;
-  final VoidCallback onToggleFavorite;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(bottom: bottomPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _HomeHeroSection(
-            hero: hero,
-            isFavorite: isFavorite,
-            onToggleFavorite: onToggleFavorite,
-          ),
-          const SizedBox(height: 48),
-          MoviItemsList(
-            title: 'Films à (re)découvrir',
-            items: mediaCards,
-            subtitle: '(${mediaCards.length} résultats)',
-          ),
-          if (personCards.isNotEmpty) ...[
-            const SizedBox(height: 32),
-            MoviItemsList(
-              title: 'Distribution',
-              subtitle: '(${personCards.length} personnes)',
-              items: personCards,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeHeroSection extends StatelessWidget {
-  const _HomeHeroSection({
-    required this.hero,
-    required this.isFavorite,
-    required this.onToggleFavorite,
-  });
-
-  final HomeHeroData hero;
-  final bool isFavorite;
-  final VoidCallback onToggleFavorite;
-
-  @override
-  Widget build(BuildContext context) {
-    final base = const Color(0xFF141414);
-    final media = MediaQuery.of(context);
-
-    return SizedBox(
-      height: 650,
-      width: double.infinity,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: _buildPosterImage(
-              hero.backgroundImage,
-              media.size.width,
-              650,
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    base.withOpacity(0.75),
-                    base.withOpacity(0.15),
-                  ],
-                  stops: const [0.0, 0.6],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SizedBox(
-              height: 180,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          base.withOpacity(0.9),
-                          base.withOpacity(0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          base.withOpacity(0.7),
-                          base.withOpacity(0.0),
-                        ],
-                        stops: const [0.0, 0.7],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _HeroInfoBlock(hero: hero),
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: MoviPrimaryButton(
-                        label: 'Regarder',
-                        routeName: AppRouteNames.movie,
-                        replace: false,
-                        assetIcon: AppAssets.iconPlay,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    MoviFavoriteButton(
-                      isFavorite: isFavorite,
-                      onPressed: onToggleFavorite,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroInfoBlock extends StatelessWidget {
-  const _HeroInfoBlock({required this.hero});
-
-  final HomeHeroData hero;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final synopsisStyle = theme.textTheme.bodyMedium?.copyWith(
-          fontSize: 16,
-          color: Colors.white.withOpacity(0.85),
-        ) ??
-        const TextStyle(fontSize: 16, color: Colors.white70);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 100),
-            child: _buildPosterImage(
-              hero.logoImage,
-              300,
-              100,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              MoviPill(hero.media.year),
-              MoviPill(hero.duration),
-              MoviPill(
-                hero.media.rating,
-                trailingIcon: Image.asset(
-                  AppAssets.iconStarFilled,
-                  width: 18,
-                  height: 18,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          hero.synopsis,
-          style: synopsisStyle,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.left,
-        ),
-      ],
-    );
-  }
-}
-
-Widget _buildPosterImage(String source, double width, double height,
-    {BoxFit fit = BoxFit.cover}) {
-  final fallback = Container(
-    width: width,
-    height: height,
-    color: const Color(0xFF222222),
-    child:
-        const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 32)),
-  );
-
-  if (source.startsWith('http')) {
-    return Image.network(
-      source,
-      width: width,
-      height: height,
-      fit: fit,
-      errorBuilder: (_, __, ___) => fallback,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return SizedBox(
-          width: width,
-          height: height,
-          child: const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-        );
-      },
-    );
-  }
-
-  return Image.asset(
-    source,
-    width: width,
-    height: height,
-    fit: fit,
-    errorBuilder: (_, __, ___) => fallback,
-  );
 }

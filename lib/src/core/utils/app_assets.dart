@@ -17,12 +17,4 @@ class AppAssets {
   static const String navSettings = 'assets/icons/settings.png';
   static const String navSettingsActive = 'assets/icons/settings_activated.png';
   static const String iconPlay = 'assets/icons/play_arrow.png';
-
-  // Mock images
-  static const String posterPlaceholder = 'assets/mock/poster_placeholder.jpg';
-  static const String actorPlaceholder = 'assets/mock/actor_placeholder.jpg';
-  static const String sagaPlaceholder = 'assets/mock/saga_placeholder.jpg';
-
-  // Backgrounds / hero
-  static const String heroBackground = 'assets/mock/home_hero.jpg';
 }

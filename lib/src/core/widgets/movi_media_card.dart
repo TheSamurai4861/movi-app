@@ -7,13 +7,18 @@ import '../utils/app_assets.dart';
 import 'movi_marquee_text.dart';
 import 'movi_pill.dart';
 
-Image _buildPosterImage(String source, double width, double height) {
-  final errorPlaceholder = Container(
+Widget _buildPosterImage(String source, double width, double height) {
+  final placeholder = Container(
     width: width,
     height: height,
     color: const Color(0xFF222222),
-    child: const Center(child: Icon(Icons.broken_image, size: 32, color: Colors.white54)),
+    child: const Center(
+      child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+    ),
   );
+
+  // Si source vide → placeholder direct (pas d’essai asset/network)
+  if (source.trim().isEmpty) return placeholder;
 
   if (source.startsWith('http')) {
     return Image.network(
@@ -21,7 +26,7 @@ Image _buildPosterImage(String source, double width, double height) {
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => errorPlaceholder,
+      errorBuilder: (_, __, ___) => placeholder,
       loadingBuilder: (context, child, progress) {
         if (progress == null) return child;
         return SizedBox(
@@ -38,7 +43,7 @@ Image _buildPosterImage(String source, double width, double height) {
     width: width,
     height: height,
     fit: BoxFit.cover,
-    errorBuilder: (_, __, ___) => errorPlaceholder,
+    errorBuilder: (_, __, ___) => placeholder,
   );
 }
 
@@ -122,8 +127,20 @@ class _PosterWithOverlay extends StatelessWidget {
   final double width;
   final double height;
 
+  bool get _hasYear {
+    final y = media.year.trim();
+    return y.isNotEmpty && y != '—';
+  }
+
+  bool get _hasRating {
+    final r = media.rating.trim();
+    return r.isNotEmpty && r != '—';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final showAnyPill = _hasYear || _hasRating;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Stack(
@@ -134,6 +151,7 @@ class _PosterWithOverlay extends StatelessWidget {
             height: height,
             child: _buildPosterImage(media.poster, width, height),
           ),
+          // Dégradé bas pour lisibilité
           Positioned.fill(
             child: Align(
               alignment: Alignment.bottomCenter,
@@ -152,28 +170,31 @@ class _PosterWithOverlay extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                MoviPill(media.year, large: false),
-                const SizedBox(width: 4),
-                MoviPill(
-                  media.rating,
-                  large: false,
-                  trailingIcon: Image.asset(
-                    AppAssets.iconStarFilled,
-                    width: 18,
-                    height: 18,
-                    fit: BoxFit.contain,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+          // Pills conditionnelles (Patch 6)
+          if (showAnyPill)
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_hasYear) MoviPill(media.year, large: false),
+                  if (_hasYear && _hasRating) const SizedBox(width: 4),
+                  if (_hasRating)
+                    MoviPill(
+                      media.rating,
+                      large: false,
+                      trailingIcon: Image.asset(
+                        AppAssets.iconStarFilled,
+                        width: 18,
+                        height: 18,
+                        fit: BoxFit.contain,
+                        color: Colors.white,
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
