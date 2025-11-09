@@ -1,5 +1,5 @@
 // lib/src/features/home/presentation/providers/home_providers.dart
-import 'dart:async' show unawaited;
+import 'dart:async'; // unawaited, Future.wait
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -54,6 +54,9 @@ class HomeController extends StateNotifier<HomeState> {
   /// Clé = "sectionKey#index"
   final Set<String> _inflight = {};
 
+  /// Plafond de concurrence pour limiter la pression sur TMDB.
+  static const int _maxConcurrent = 6;
+
   /// Chargement prioritaire :
   /// 1) Hero (await) → premier paint rapide
   /// 2) Le reste en arrière-plan (lists & continue watching)
@@ -64,7 +67,7 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final hero = await _repo.getHeroMovies();
       state = state.copyWith(hero: hero, isLoading: false);
-    } catch (e) {
+    } catch (_) {
       // On ne bloque pas l'UI pour autant
       state = state.copyWith(isLoading: false, error: 'Échec du chargement du Hero');
     }
@@ -97,6 +100,7 @@ class HomeController extends StateNotifier<HomeState> {
 
   /// Appelée par l’UI quand une section horizontale fait défiler des cartes.
   /// Enrichit les items [start .. start+count-1] s'ils sont encore “légers”.
+  /// → Limite la concurrence à [_maxConcurrent] pour éviter une rafale de requêtes.
   Future<void> enrichCategoryBatch(String key, int start, int count) async {
     final list = state.iptvLists[key];
     if (list == null || list.isEmpty) return;
@@ -104,40 +108,54 @@ class HomeController extends StateNotifier<HomeState> {
 
     final end = (start + count - 1).clamp(0, list.length - 1);
 
+    Future<void> _enrichOne(int index, ContentReference ref) async {
+      final keyIndex = '$key#$index';
+      if (_inflight.contains(keyIndex)) return;
+      _inflight.add(keyIndex);
+      try {
+        final enriched = await _repo.enrichReference(ref);
+
+        // Remplacement immuable dans l’état (section peut avoir bougé entre-temps)
+        final current = state.iptvLists[key];
+        if (current == null || index >= current.length) return;
+
+        final nextList = List<ContentReference>.from(current);
+        nextList[index] = enriched;
+
+        final nextMap = Map<String, List<ContentReference>>.from(state.iptvLists);
+        nextMap[key] = nextList;
+
+        state = state.copyWith(iptvLists: nextMap);
+      } finally {
+        _inflight.remove(keyIndex);
+      }
+    }
+
+    final futures = <Future<void>>[];
+
     for (int i = start; i <= end; i++) {
       final ref = list[i];
 
-      // Heuristique "léger" : pas d'année ou pas de note ou pas de poster TMDB
+      // Heuristique "léger" : pas d'année, pas de note, pas de poster TMDB (souvent IPTV)
       final needsEnrich = ref.year == null ||
           ref.rating == null ||
           ref.poster == null ||
-          // Si poster existe mais n'est pas un visuel TMDB (souvent IPTV)
           !(ref.poster.toString().contains('image.tmdb.org'));
 
       if (!needsEnrich) continue;
 
-      final keyIndex = '$key#$i';
-      if (_inflight.contains(keyIndex)) continue;
-      _inflight.add(keyIndex);
+      futures.add(_enrichOne(i, ref));
 
-      unawaited(
-        _repo.enrichReference(ref).then((enriched) {
-          _inflight.remove(keyIndex);
-          // Remplacement immuable dans l’état
-          final current = state.iptvLists[key];
-          if (current == null || i >= current.length) return;
+      // Plafond de concurrence : on attend dès qu’on atteint le cap
+      if (futures.length >= _maxConcurrent) {
+        await Future.wait(futures);
+        futures.clear();
+      }
+    }
 
-          final nextList = List<ContentReference>.from(current);
-          nextList[i] = enriched;
-
-          final nextMap = Map<String, List<ContentReference>>.from(state.iptvLists);
-          nextMap[key] = nextList;
-
-          state = state.copyWith(iptvLists: nextMap);
-        }).catchError((_) {
-          _inflight.remove(keyIndex);
-        }),
-      );
+    // Termine les restes
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
     }
   }
 }

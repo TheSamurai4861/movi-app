@@ -38,6 +38,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   final TmdbImageResolver _images;
   final AppStateController _appState;
   final TmdbCacheDataSource _tmdbCache;
+  final Set<String> _enrichedIds = <String>{};
 
   // Limite de pré-chargement TMDB par catégorie
   static const int _preloadPerCategory = 5;
@@ -61,7 +62,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       if (trendingPage.isEmpty) break;
 
       final pageMatches = trendingPage
-          .where((dto) => dto.posterPath != null && availableTmdb.contains(dto.id))
+          .where(
+            (dto) => dto.posterPath != null && availableTmdb.contains(dto.id),
+          )
           .toList();
       if (pageMatches.isNotEmpty) {
         matchedDtos = pageMatches;
@@ -71,7 +74,10 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
     // Si match → mappage + pre-cache Full pour le 1er héro
     if (matchedDtos.isNotEmpty) {
-      final list = matchedDtos.map(_mapMovie).whereType<MovieSummary>().toList();
+      final list = matchedDtos
+          .map(_mapMovie)
+          .whereType<MovieSummary>()
+          .toList();
       if (list.isNotEmpty) {
         final first = list.first;
         if (first.tmdbId != null) {
@@ -79,7 +85,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
             // Hero = DÉTAIL COMPLET (images/credits/reco)
             final detail = await _moviesRemote.fetchMovieFull(first.tmdbId!);
             await _tmdbCache.putMovieDetail(first.tmdbId!, detail.toCache());
-          } catch (_) {/* no-op */}
+          } catch (_) {
+            /* no-op */
+          }
         }
         return list.length > 20 ? list.sublist(0, 20) : list;
       }
@@ -94,10 +102,14 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
     // Ultime garde-fou : revenir sur la première page Trending mappée
     final fallbackTrending = await _fetchTrendingMoviesPage(1);
-    final fallbackList =
-        fallbackTrending.map(_mapMovie).whereType<MovieSummary>().toList();
+    final fallbackList = fallbackTrending
+        .map(_mapMovie)
+        .whereType<MovieSummary>()
+        .toList();
     return fallbackList.isNotEmpty
-        ? (fallbackList.length > 20 ? fallbackList.sublist(0, 20) : fallbackList)
+        ? (fallbackList.length > 20
+              ? fallbackList.sublist(0, 20)
+              : fallbackList)
         : <MovieSummary>[];
   }
 
@@ -120,6 +132,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   @override
   Future<Map<String, List<ContentReference>>> getIptvCategoryLists() async {
     final result = <String, List<ContentReference>>{};
+    _enrichedIds.clear(); // nouveau cycle d’écran → on repart propre
 
     final accounts = await _safeGetAccounts();
     if (accounts.isEmpty) return result;
@@ -186,6 +199,10 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   Future<ContentReference> enrichReference(ContentReference ref) async {
     final idNum = int.tryParse(ref.id);
     if (idNum == null) return ref;
+
+    if (!_enrichedIds.add(ref.id)) {
+      return ref;
+    }
 
     Map<String, dynamic>? data;
     final isSeries = ref.type == ContentType.series;
@@ -333,7 +350,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
           final dto = await _tvRemote.fetchShowLite(tmdbId);
           data = dto.toCache();
           await _tmdbCache.putTvDetail(tmdbId, data);
-        } catch (_) {/* no-op */}
+        } catch (_) {
+          /* no-op */
+        }
       }
     } else {
       // Films : cache, puis réseau (LITE) si manquant
@@ -343,7 +362,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
           final dto = await _moviesRemote.fetchMovieLite(tmdbId);
           data = dto.toCache();
           await _tmdbCache.putMovieDetail(tmdbId, data);
-        } catch (_) {/* no-op */}
+        } catch (_) {
+          /* no-op */
+        }
       }
     }
 
@@ -419,18 +440,20 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (noLang.isNotEmpty) return pathOf(noLang.first);
 
-    final en = list
-        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-        .toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    final en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (en.isNotEmpty) return pathOf(en.first);
 
     list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     return pathOf(list.first);
   }
 
-  int? _parseYear(String? raw) =>
-      (raw != null && raw.isNotEmpty) ? int.tryParse(raw.substring(0, 4)) : null;
+  int? _parseYear(String? raw) => (raw != null && raw.isNotEmpty)
+      ? int.tryParse(raw.substring(0, 4))
+      : null;
 
   // ---------------------------
   // Safe wrappers
@@ -443,7 +466,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     } catch (_) {
       return const <dynamic>[];
     }
-    }
+  }
 
   Future<List<dynamic>> _safeGetPlaylists(dynamic accountId) async {
     try {

@@ -1,13 +1,33 @@
+// lib/src/features/welcome/presentation/widgets/welcome_form.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 
 import '../providers/welcome_providers.dart';
 import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
 import '../../../settings/presentation/providers/iptv_connect_providers.dart';
 
+typedef ConnectCallback =
+    Future<void> Function(
+      String serverUrl,
+      String username,
+      String password,
+      String alias,
+    );
+
 class WelcomeForm extends ConsumerStatefulWidget {
-  const WelcomeForm({super.key});
+  const WelcomeForm({
+    super.key,
+    this.onConnect, // <- ajouté pour correspondre à WelcomePage
+    this.isLoading, // <- ajouté pour correspondre à WelcomePage
+  });
+
+  /// Si fourni, c’est le parent (WelcomePage) qui gère la connexion + navigation.
+  final ConnectCallback? onConnect;
+
+  /// Si fourni, force l’état de chargement (sinon on lit le provider interne).
+  final bool? isLoading;
 
   @override
   ConsumerState<WelcomeForm> createState() => _WelcomeFormState();
@@ -30,11 +50,18 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
   void initState() {
     super.initState();
     _focusUrl.requestFocus();
+
+    // URL: conserve l’aperçu + force le rebuild pour le bouton
     _urlCtrl.addListener(() {
       ref
           .read(welcomeControllerProvider.notifier)
           .updateUrlPreview(_urlCtrl.text);
+      _recompute();
     });
+
+    // NEW: force le rebuild quand user/password changent
+    _userCtrl.addListener(_recompute);
+    _passCtrl.addListener(_recompute);
   }
 
   @override
@@ -48,6 +75,10 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     _focusPass.dispose();
     _focusAlias.dispose();
     super.dispose();
+  }
+
+  void _recompute() {
+    if (mounted) setState(() {});
   }
 
   bool get _isFormValid {
@@ -68,13 +99,25 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     final state = ref.read(welcomeControllerProvider);
     final msg = ok
         ? 'Connexion réussie ✅'
-        : presentFailureMessage(state.errorMessage);
+        : _presentFailureMessage(state.errorMessage);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    // Si le parent fournit onConnect, on délègue (il gère la nav et le snackBar).
+    if (widget.onConnect != null) {
+      await widget.onConnect!(
+        _urlCtrl.text.trim(),
+        _userCtrl.text.trim(),
+        _passCtrl.text,
+        _aliasCtrl.text.trim(),
+      );
+      return;
+    }
+
+    // Sinon, on utilise le provider interne + nav directe.
     final ctrl = ref.read(iptvConnectControllerProvider.notifier);
     final ok = await ctrl.connect(
       serverUrl: _urlCtrl.text.trim(),
@@ -85,10 +128,15 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
 
     if (!mounted) return;
     if (ok) {
+      // ✅ Nav immédiate — la synchro tourne en arrière-plan (voir iptv_connect_providers)
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Source IPTV ajoutée et synchronisée')),
+        const SnackBar(
+          content: Text(
+            'Source IPTV ajoutée. Synchronisation en arrière-plan…',
+          ),
+        ),
       );
-      Navigator.of(context).popUntil((r) => r.isFirst);
+      context.go('/'); // aller directement à l’accueil
     } else {
       final err =
           ref.read(iptvConnectControllerProvider).error ?? 'Échec de connexion';
@@ -96,15 +144,18 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     }
   }
 
-  String presentFailureMessage(String? raw) {
+  String _presentFailureMessage(String? raw) {
     if (raw == null || raw.isEmpty) return 'Échec de connexion';
-    // Raw vient du Failure.message ; tu peux affiner via presentFailure si tu stockes le Failure au lieu de son message.
     return raw;
   }
 
   @override
   Widget build(BuildContext context) {
     final ui = ref.watch(welcomeControllerProvider);
+    final connectState = ref.watch(iptvConnectControllerProvider);
+    // isLoading effectif : priorité au paramètre venant du parent (WelcomePage)
+    final isLoading = widget.isLoading ?? connectState.isLoading;
+
     final t = Theme.of(context).textTheme;
     final c = Theme.of(context).colorScheme;
 
@@ -127,6 +178,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             child: TextFormField(
               controller: _urlCtrl,
               focusNode: _focusUrl,
+              readOnly: isLoading,
               autofillHints: const [AutofillHints.url],
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.next,
@@ -147,6 +199,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             child: TextFormField(
               controller: _userCtrl,
               focusNode: _focusUser,
+              readOnly: isLoading,
               autofillHints: const [AutofillHints.username],
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusPass.requestFocus(),
@@ -163,15 +216,18 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             child: TextFormField(
               controller: _passCtrl,
               focusNode: _focusPass,
+              readOnly: isLoading,
               autofillHints: const [AutofillHints.password],
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusAlias.requestFocus(),
               decoration: InputDecoration(
                 hintText: 'Mot de passe Xtream',
                 suffixIcon: IconButton(
-                  onPressed: () => ref
-                      .read(welcomeControllerProvider.notifier)
-                      .toggleObscure(),
+                  onPressed: isLoading
+                      ? null
+                      : () => ref
+                            .read(welcomeControllerProvider.notifier)
+                            .toggleObscure(),
                   icon: Icon(
                     ui.isObscured ? Icons.visibility_off : Icons.visibility,
                   ),
@@ -189,9 +245,10 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             child: TextFormField(
               controller: _aliasCtrl,
               focusNode: _focusAlias,
+              readOnly: isLoading,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) {
-                if (_isFormValid) _onSubmit();
+                if (_isFormValid && !isLoading) _onSubmit();
               },
               decoration: const InputDecoration(
                 hintText: 'Nom d’affichage dans l’app',
@@ -200,14 +257,20 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
           ),
           const SizedBox(height: AppSpacing.xl),
 
-          // Nouveau bloc d’action unique ✅
+          // Actions
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: _isFormValid ? _onSubmit : null,
-                child: const Text('Ajouter la source'),
+                onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
+                child: isLoading
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Ajouter la source'),
               ),
             ),
           ),
@@ -217,7 +280,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Text(
-                presentFailureMessage(ui.errorMessage),
+                _presentFailureMessage(ui.errorMessage),
                 style: t.bodyMedium?.copyWith(color: Colors.redAccent),
               ),
             ),

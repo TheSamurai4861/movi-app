@@ -1,472 +1,4 @@
 ================================================================================
-ARCHITECTURE
-================================================================================
-
-C:\USERS\BERNY\DEV\FLUTTER\MOVI\LIB
-│   main.dart
-│   
-└───src
-    │   app.dart
-    │   
-    ├───core
-    │   ├───config
-    │   │   │   config_module.dart
-    │   │   │   
-    │   │   ├───env
-    │   │   │       dev_environment.dart
-    │   │   │       environment.dart
-    │   │   │       environment_loader.dart
-    │   │   │       
-    │   │   ├───models
-    │   │   │       app_config.dart
-    │   │   │       app_metadata.dart
-    │   │   │       feature_flags.dart
-    │   │   │       network_endpoints.dart
-    │   │   │       
-    │   │   ├───providers
-    │   │   │       config_provider.dart
-    │   │   │       overrides.dart
-    │   │   │       
-    │   │   └───services
-    │   │           platform_selector.dart
-    │   │           secret_store.dart
-    │   │
-    │   ├───di
-    │   │   │   injector.dart
-    │   │   │   test_injector.dart
-    │   │   │
-    │   │   └───services
-    │   │           content_repository.dart
-    │   │           preferences_service.dart
-    │   │
-    │   ├───iptv
-    │   │   ├───application
-    │   │   │   ├───services
-    │   │   │   │       playlist_mapper.dart
-    │   │   │   │       xtream_sync_service.dart
-    │   │   │   │
-    │   │   │   └───usecases
-    │   │   │           add_xtream_source.dart
-    │   │   │           list_xtream_playlists.dart
-    │   │   │           refresh_xtream_catalog.dart
-    │   │   │
-    │   │   ├───config
-    │   │   │       iptv_module.dart
-    │   │   │
-    │   │   ├───data
-    │   │   │   ├───datasources
-    │   │   │   │       xtream_cache_data_source.dart
-    │   │   │   │       xtream_remote_data_source.dart
-    │   │   │   │
-    │   │   │   ├───dtos
-    │   │   │   │       xtream_auth_dto.dart
-    │   │   │   │       xtream_category_dto.dart
-    │   │   │   │       xtream_stream_dto.dart
-    │   │   │   │
-    │   │   │   └───repositories
-    │   │   │           iptv_repository_impl.dart
-    │   │   │
-    │   │   └───domain
-    │   │       ├───entities
-    │   │       │       xtream_account.dart
-    │   │       │       xtream_catalog_snapshot.dart
-    │   │       │       xtream_playlist.dart
-    │   │       │       xtream_playlist_item.dart
-    │   │       │
-    │   │       ├───repositories
-    │   │       │       iptv_repository.dart
-    │   │       │
-    │   │       └───value_objects
-    │   │               xtream_endpoint.dart
-    │   │
-    │   ├───models
-    │   │       movi_media.dart
-    │   │       movi_person.dart
-    │   │
-    │   ├───network
-    │   │   │   http_client_factory.dart
-    │   │   │   network_exceptions.dart
-    │   │   │   network_executor.dart
-    │   │   │
-    │   │   ├───config
-    │   │   │       network_module.dart
-    │   │   │
-    │   │   └───interceptors
-    │   │           auth_interceptor.dart
-    │   │           locale_interceptor.dart
-    │   │           retry_interceptor.dart
-    │   │           telemetry_interceptor.dart
-    │   │
-    │   ├───preferences
-    │   │       locale_preferences.dart
-    │   │
-    │   ├───router
-    │   │       app_router.dart
-    │   │
-    │   ├───state
-    │   │       app_state.dart
-    │   │       app_state_controller.dart
-    │   │       app_state_provider.dart
-    │   │
-    │   ├───storage
-    │   │   ├───database
-    │   │   │   │   sqlite_database.dart
-    │   │   │   │
-    │   │   │   └───models
-    │   │   ├───repositories
-    │   │   │       content_cache_repository.dart
-    │   │   │       continue_watching_local_repository.dart
-    │   │   │       history_local_repository.dart
-    │   │   │       iptv_local_repository.dart
-    │   │   │       playlist_local_repository.dart
-    │   │   │       watchlist_local_repository.dart
-    │   │   │
-    │   │   └───services
-    │   │           cache_policy.dart
-    │   │           storage_module.dart
-    │   │
-    │   ├───theme
-    │   │       app_colors.dart
-    │   │       app_theme.dart
-    │   │
-    │   ├───utils
-    │   │       app_assets.dart
-    │   │       app_spacing.dart
-    │   │       context_extensions.dart
-    │   │       logger.dart
-    │   │       logger_utils.dart
-    │   │       utils.dart
-    │   │
-    │   └───widgets
-    │           movi_bottom_nav_bar.dart
-    │           movi_favorite_button.dart
-    │           movi_items_list.dart
-    │           movi_marquee_text.dart
-    │           movi_media_card.dart
-    │           movi_person_card.dart
-    │           movi_pill.dart
-    │           movi_primary_button.dart
-    │
-    ├───features
-    │   ├───home
-    │   │   ├───data
-    │   │   │   │   home_feed_data_module.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   ├───dtos
-    │   │   │   └───repositories
-    │   │   │           home_feed_repository_impl.dart
-    │   │   │
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   ├───repositories
-    │   │   │   │       home_feed_repository.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       home_page.dart
-    │   │       │
-    │   │       ├───providers
-    │   │       │       home_providers.dart
-    │   │       │
-    │   │       └───widgets
-    │   │               continue_watching_card.dart
-    │   │               home_hero_section.dart
-    │   │
-    │   ├───library
-    │   │   ├───data
-    │   │   │   │   library_data_module.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   ├───dtos
-    │   │   │   └───repositories
-    │   │   │           library_repository_impl.dart
-    │   │   │
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   ├───repositories
-    │   │   │   │       library_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       like_person.dart
-    │   │   │   │       unlike_person.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       library_page.dart
-    │   │       │
-    │   │       ├───providers
-    │   │       │       library_providers.dart
-    │   │       │
-    │   │       └───widgets
-    │   ├───movie
-    │   │   ├───data
-    │   │   │   │   movie_data_module.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   │       movie_local_data_source.dart
-    │   │   │   │       tmdb_movie_remote_data_source.dart
-    │   │   │   │
-    │   │   │   ├───dtos
-    │   │   │   │       tmdb_movie_detail_dto.dart
-    │   │   │   │
-    │   │   │   └───repositories
-    │   │   │           movie_repository_impl.dart
-    │   │   │
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   │       movie.dart
-    │   │   │   │       movie_credit.dart
-    │   │   │   │       movie_summary.dart
-    │   │   │   │
-    │   │   │   ├───repositories
-    │   │   │   │       movie_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       get_continue_watching_movies.dart
-    │   │   │   │       get_movie_credits.dart
-    │   │   │   │       get_movie_detail.dart
-    │   │   │   │       get_movie_recommendations.dart
-    │   │   │   │       is_in_watchlist.dart
-    │   │   │   │       search_movies.dart
-    │   │   │   │       toggle_watchlist.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       movie_detail_page.dart
-    │   │       │
-    │   │       └───widgets
-    │   ├───person
-    │   │   ├───data
-    │   │   │   │   person_data_module.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   │       person_local_data_source.dart
-    │   │   │   │       tmdb_person_remote_data_source.dart
-    │   │   │   │
-    │   │   │   ├───dtos
-    │   │   │   │       tmdb_person_detail_dto.dart
-    │   │   │   │
-    │   │   │   └───repositories
-    │   │   │           person_repository_impl.dart
-    │   │   │
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   │       person.dart
-    │   │   │   │
-    │   │   │   ├───repositories
-    │   │   │   │       person_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       get_featured_people.dart
-    │   │   │   │       get_person_detail.dart
-    │   │   │   │       get_person_filmography.dart
-    │   │   │   │       search_people.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       person_detail_page.dart
-    │   │       │
-    │   │       └───widgets
-    │   ├───playlist
-    │   │   ├───data
-    │   │   │   │   playlist_data_module.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   ├───dtos
-    │   │   │   ├───repositories
-    │   │   │   │       playlist_repository_impl.dart
-    │   │   │   │
-    │   │   │   └───services
-    │   │   │           playlist_filter_service.dart
-    │   │   │           playlist_ordering_service.dart
-    │   │   │
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   │       playlist.dart
-    │   │   │   │
-    │   │   │   ├───repositories
-    │   │   │   │       playlist_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       add_playlist_item.dart
-    │   │   │   │       create_playlist.dart
-    │   │   │   │       delete_playlist.dart
-    │   │   │   │       get_featured_playlists.dart
-    │   │   │   │       get_playlist_detail.dart
-    │   │   │   │       get_user_playlists.dart
-    │   │   │   │       remove_playlist_item.dart
-    │   │   │   │       rename_playlist.dart
-    │   │   │   │       reorder_playlist_item.dart
-    │   │   │   │       search_playlists.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       playlist_detail_page.dart
-    │   │       │
-    │   │       └───widgets
-    │   ├───saga
-    │   │   ├───data
-    │   │   │   │   saga_data_module.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   │       saga_local_data_source.dart
-    │   │   │   │       tmdb_saga_remote_data_source.dart
-    │   │   │   │
-    │   │   │   ├───dtos
-    │   │   │   │       tmdb_saga_detail_dto.dart
-    │   │   │   │
-    │   │   │   └───repositories
-    │   │   │           saga_repository_impl.dart
-    │   │   │
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   │       saga.dart
-    │   │   │   │
-    │   │   │   ├───repositories
-    │   │   │   │       saga_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       get_saga_detail.dart
-    │   │   │   │       get_user_sagas.dart
-    │   │   │   │       search_sagas.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       saga_detail_page.dart
-    │   │       │
-    │   │       └───widgets
-    │   ├───search
-    │   │   ├───data
-    │   │   │   │   search_data_module.dart
-    │   │   │   │   search_repository_impl.dart
-    │   │   │   │
-    │   │   │   ├───datasources
-    │   │   │   │       tmdb_search_remote_data_source.dart
-    │   │   │   │
-    │   │   │   ├───dtos
-    │   │   │   └───repositories
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   │       search_page.dart
-    │   │   │   │
-    │   │   │   ├───repositories
-    │   │   │   │       search_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       search_movies.dart
-    │   │   │   │       search_people.dart
-    │   │   │   │       search_shows.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       search_page.dart
-    │   │       │
-    │   │       └───widgets
-    │   ├───settings
-    │   │   ├───data
-    │   │   │   ├───datasources
-    │   │   │   ├───dtos
-    │   │   │   └───repositories
-    │   │   ├───domain
-    │   │   │   ├───entities
-    │   │   │   │       user_preferences.dart
-    │   │   │   │       user_profile.dart
-    │   │   │   │
-    │   │   │   ├───repositories
-    │   │   │   │       settings_repository.dart
-    │   │   │   │
-    │   │   │   ├───usecases
-    │   │   │   │       get_user_preferences.dart
-    │   │   │   │       get_user_profile.dart
-    │   │   │   │       update_user_preferences.dart
-    │   │   │   │       update_user_profile.dart
-    │   │   │   │
-    │   │   │   └───value_objects
-    │   │   └───presentation
-    │   │       ├───controllers
-    │   │       ├───pages
-    │   │       │       iptv_connect_page.dart
-    │   │       │       settings_page.dart
-    │   │       │
-    │   │       ├───providers
-    │   │       │       iptv_connect_providers.dart
-    │   │       │
-    │   │       └───widgets
-    │   └───tv
-    │       ├───data
-    │       │   │   tv_data_module.dart
-    │       │   │
-    │       │   ├───datasources
-    │       │   │       tmdb_tv_remote_data_source.dart
-    │       │   │       tv_local_data_source.dart
-    │       │   │
-    │       │   ├───dtos
-    │       │   │       tmdb_tv_detail_dto.dart
-    │       │   │       tmdb_tv_season_detail_dto.dart
-    │       │   │
-    │       │   └───repositories
-    │       │           tv_repository_impl.dart
-    │       │
-    │       ├───domain
-    │       │   ├───entities
-    │       │   │       tv_show.dart
-    │       │   │
-    │       │   ├───repositories
-    │       │   │       tv_repository.dart
-    │       │   │
-    │       │   ├───usecases
-    │       │   │       get_continue_watching_tv.dart
-    │       │   │       get_featured_tv_shows.dart
-    │       │   │       get_season_episodes.dart
-    │       │   │       get_tv_seasons.dart
-    │       │   │       get_tv_show_detail.dart
-    │       │   │       get_tv_watchlist.dart
-    │       │   │       is_tv_show_in_watchlist.dart
-    │       │   │       search_tv_shows.dart
-    │       │   │       toggle_tv_watchlist.dart
-    │       │   │
-    │       │   └───value_objects
-    │       └───presentation
-    │           ├───controllers
-    │           ├───pages
-    │           │       tv_detail_page.dart
-    │           │
-    │           └───widgets
-    └───shared
-        ├───data
-        │   ├───dtos
-        │   └───services
-        │           tmdb_cache_data_source.dart
-        │           tmdb_client.dart
-        │           tmdb_image_resolver.dart
-        │
-        └───domain
-            ├───entities
-            │       person_summary.dart
-            │
-            └───value_objects
-                    content_rating.dart
-                    content_reference.dart
-                    media_id.dart
-                    media_title.dart
-                    synopsis.dart
-
-================================================================================
 FILE: main.dart
 ================================================================================
 import 'package:flutter/material.dart';
@@ -2099,24 +1631,71 @@ abstract class IptvRepository {
 ================================================================================
 FILE: src/core/iptv/domain/value_objects/xtream_endpoint.dart
 ================================================================================
+// lib/src/core/iptv/domain/value_objects/xtream_endpoint.dart
 import 'package:equatable/equatable.dart';
 
+/// Value Object IPTV — XtreamEndpoint
+/// Normalise une entrée utilisateur vers un endpoint canonique `player_api.php`.
+///
+/// Règles :
+/// - Si le schéma est absent, on suppose `http`.
+/// - Si le path est vide, "/", ou autre chose que `player_api.php`, on impose `/player_api.php`.
+/// - Le port par défaut dépend du schéma (http=80, https=443).
+/// - Aucune logique UI / pas de logs de credentials ici.
 class XtreamEndpoint extends Equatable {
+  static const String defaultPath = '/player_api.php';
+
   const XtreamEndpoint({
     required this.host,
     required this.port,
     this.useHttps = false,
-    this.path = '/player_api.php',
+    this.path = defaultPath,
   });
 
+  /// Parse robuste :
+  /// - tolère les entrées sans schéma (ex: "example.com:8080")
+  /// - remet le path sur `/player_api.php` si besoin
   factory XtreamEndpoint.parse(String rawUrl) {
-    final uri = Uri.parse(rawUrl);
-    return XtreamEndpoint(
-      host: uri.host.isEmpty ? rawUrl : uri.host,
-      port: uri.hasPort ? uri.port : (uri.scheme == 'https' ? 443 : 80),
-      useHttps: uri.scheme == 'https',
-      path: uri.path.isEmpty ? '/player_api.php' : uri.path,
-    );
+    final trimmed = rawUrl.trim();
+    if (trimmed.isEmpty) {
+      throw const FormatException('URL vide');
+    }
+
+    // 1) Préfixe schéma si absent
+    final hasScheme = trimmed.toLowerCase().startsWith('http://') ||
+        trimmed.toLowerCase().startsWith('https://');
+    final toParse = hasScheme ? trimmed : 'http://$trimmed';
+
+    final uri = Uri.tryParse(toParse);
+    if (uri == null) {
+      throw const FormatException('URL invalide');
+    }
+
+    // 2) Host/authority
+    if (uri.host.isEmpty && uri.authority.isEmpty) {
+      throw const FormatException('Hôte manquant');
+    }
+    final host = uri.host.isNotEmpty ? uri.host : uri.authority.split(':').first;
+
+    // 3) Schéma + port
+    final https = uri.scheme.toLowerCase() == 'https';
+    final port = uri.hasPort ? uri.port : (https ? 443 : 80);
+
+    // 4) Path => force player_api.php
+    final path = (uri.path.isEmpty || uri.path == '/' || !uri.path.endsWith('player_api.php'))
+        ? defaultPath
+        : (uri.path.startsWith('/') ? uri.path : '/${uri.path}');
+
+    return XtreamEndpoint(host: host, port: port, useHttps: https, path: path);
+  }
+
+  /// Variante sûre : retourne `null` si invalide.
+  static XtreamEndpoint? tryParse(String rawUrl) {
+    try {
+      return XtreamEndpoint.parse(rawUrl);
+    } catch (_) {
+      return null;
+    }
   }
 
   final String host;
@@ -2124,23 +1703,46 @@ class XtreamEndpoint extends Equatable {
   final bool useHttps;
   final String path;
 
-  Uri buildUri(Map<String, dynamic> query) {
-    final uri = Uri(
-      scheme: useHttps ? 'https' : 'http',
+  bool get isDefaultPort => port == (useHttps ? 443 : 80);
+  String get scheme => useHttps ? 'https' : 'http';
+
+  /// Base sans path (inclut le port pour éviter l’ambiguïté)
+  String get baseUrl => '$scheme://$host:$port';
+
+  /// URL canonique complète (inclut path)
+  String toRawUrl() => '$baseUrl${path.startsWith('/') ? path : '/$path'}';
+
+  /// Construit une Uri avec query string (valeurs converties en String).
+  Uri buildUri([Map<String, dynamic>? query]) {
+    return Uri(
+      scheme: scheme,
       host: host,
       port: port,
       path: path.startsWith('/') ? path : '/$path',
-      queryParameters: query.map((key, value) => MapEntry(key, '$value')),
+      queryParameters: query?.map((k, v) => MapEntry(k, '$v')),
     );
-    return uri;
   }
 
-  String get baseUrl => '${useHttps ? 'https' : 'http'}://$host:$port';
-
-  String toRawUrl() => '${useHttps ? 'https' : 'http'}://$host:$port$path';
+  /// Copie immuable
+  XtreamEndpoint copyWith({
+    String? host,
+    int? port,
+    bool? useHttps,
+    String? path,
+  }) {
+    return XtreamEndpoint(
+      host: host ?? this.host,
+      port: port ?? this.port,
+      useHttps: useHttps ?? this.useHttps,
+      path: path ?? this.path,
+    );
+  }
 
   @override
   List<Object?> get props => [host, port, useHttps, path];
+
+  @override
+  String toString() => toRawUrl();
 }
 
 ================================================================================
@@ -2225,6 +1827,41 @@ class NetworkModule {
     final dio = factory.create();
     sl.registerSingleton<Dio>(dio);
     sl.registerSingleton<NetworkExecutor>(NetworkExecutor(dio, logger: logger));
+  }
+}
+
+================================================================================
+FILE: src/core/network/dio_failure_mapper.dart
+================================================================================
+// lib/src/core/network/dio_failure_mapper.dart
+import 'package:dio/dio.dart';
+import 'network_failures.dart';
+
+NetworkFailure mapDioToFailure(DioException e) {
+  switch (e.type) {
+    case DioExceptionType.connectionTimeout:
+    case DioExceptionType.sendTimeout:
+    case DioExceptionType.receiveTimeout:
+      return const TimeoutFailure();
+
+    case DioExceptionType.badResponse:
+      final status = e.response?.statusCode ?? 0;
+      if (status == 401) return const UnauthorizedFailure();
+      if (status == 403) return const ForbiddenFailure();
+      if (status == 404) return const NotFoundFailure();
+      if (status == 429) return const RateLimitedFailure();
+      return ServerFailure('Server error', statusCode: status);
+
+    case DioExceptionType.badCertificate:
+    case DioExceptionType.connectionError:
+      return const ConnectionFailure();
+
+    case DioExceptionType.cancel:
+      return const CancelledFailure();
+
+    case DioExceptionType.unknown:
+      final msg = (e.error?.toString() ?? e.message) ?? 'Unknown error';
+      return UnknownFailure(msg);
   }
 }
 
@@ -2436,49 +2073,59 @@ class TelemetryInterceptor extends Interceptor {
 }
 
 ================================================================================
-FILE: src/core/network/network_exceptions.dart
+FILE: src/core/network/network_executor.dart
 ================================================================================
+// lib/src/core/network/network_executor.dart
 import 'package:dio/dio.dart';
+import 'package:movi/src/core/network/network_failures.dart';
+import 'package:movi/src/core/network/dio_failure_mapper.dart';
 
-sealed class NetworkFailure implements Exception {
+import '../utils/logger.dart';
+
+typedef NetworkCall<T> = Future<Response<T>> Function(Dio client);
+
+class NetworkExecutor {
+  NetworkExecutor(this._client, {this.logger});
+
+  final Dio _client;
+  final AppLogger? logger;
+
+  Future<R> run<T, R>({
+    required NetworkCall<T> request,
+    required R Function(T data) mapper,
+  }) async {
+    try {
+      final Response<T> response = await request(_client);
+      final T? data = response.data;
+
+      if (data == null) {
+        throw const EmptyResponseFailure();
+      }
+      return mapper(data);
+    } on DioException catch (e, st) {
+      logger?.error('Network call failed', e, st);
+      throw mapDioToFailure(e);
+    } catch (e, st) {
+      logger?.error('Unexpected network error', e, st);
+      throw UnknownFailure(e.toString());
+    }
+  }
+}
+
+================================================================================
+FILE: src/core/network/network_failures.dart
+================================================================================
+// lib/src/core/network/network_failures.dart
+import 'package:equatable/equatable.dart';
+
+/// Modèle d’échecs réseau neutre (domaine) à mapper côté UI.
+abstract class NetworkFailure extends Equatable {
   const NetworkFailure(this.message, {this.statusCode});
-
   final String message;
   final int? statusCode;
 
-  static NetworkFailure fromDioException(DioException exception) {
-    switch (exception.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return const NetworkFailure.timeout();
-      case DioExceptionType.badResponse:
-        final status = exception.response?.statusCode ?? 0;
-        if (status == 401) return const NetworkFailure.unauthorized();
-        if (status == 403) return const NetworkFailure.forbidden();
-        if (status == 404) return const NetworkFailure.notFound();
-        if (status == 429) return const NetworkFailure.rateLimited();
-        return NetworkFailure.server('Server error', statusCode: status);
-      case DioExceptionType.badCertificate:
-      case DioExceptionType.connectionError:
-        return const NetworkFailure.connection();
-      case DioExceptionType.cancel:
-        return const NetworkFailure.cancelled();
-      case DioExceptionType.unknown:
-        return NetworkFailure.unknown(exception.error);
-    }
-  }
-
-  const factory NetworkFailure.timeout() = TimeoutFailure;
-  const factory NetworkFailure.connection() = ConnectionFailure;
-  const factory NetworkFailure.unauthorized() = UnauthorizedFailure;
-  const factory NetworkFailure.forbidden() = ForbiddenFailure;
-  const factory NetworkFailure.notFound() = NotFoundFailure;
-  const factory NetworkFailure.rateLimited() = RateLimitedFailure;
-  const factory NetworkFailure.server(String message, {int? statusCode}) = ServerFailure;
-  const factory NetworkFailure.emptyResponse() = EmptyResponseFailure;
-  factory NetworkFailure.unknown(Object? error) => UnknownFailure(error?.toString() ?? 'Unknown error');
-  const factory NetworkFailure.cancelled() = CancelledFailure;
+  @override
+  List<Object?> get props => [message, statusCode];
 }
 
 class TimeoutFailure extends NetworkFailure {
@@ -2506,7 +2153,8 @@ class RateLimitedFailure extends NetworkFailure {
 }
 
 class ServerFailure extends NetworkFailure {
-  const ServerFailure(super.message, {super.statusCode});
+  const ServerFailure(String message, {int? statusCode})
+      : super(message, statusCode: statusCode);
 }
 
 class EmptyResponseFailure extends NetworkFailure {
@@ -2514,48 +2162,11 @@ class EmptyResponseFailure extends NetworkFailure {
 }
 
 class UnknownFailure extends NetworkFailure {
-  const UnknownFailure(super.message);
+  const UnknownFailure([String message = 'Unknown error']) : super(message);
 }
 
 class CancelledFailure extends NetworkFailure {
   const CancelledFailure() : super('Request cancelled');
-}
-
-================================================================================
-FILE: src/core/network/network_executor.dart
-================================================================================
-import 'package:dio/dio.dart';
-
-import '../utils/logger.dart';
-import 'network_exceptions.dart';
-
-typedef NetworkCall<T> = Future<Response<T>> Function(Dio client);
-
-class NetworkExecutor {
-  NetworkExecutor(this._client, {this.logger});
-
-  final Dio _client;
-  final AppLogger? logger;
-
-  Future<R> run<T, R>({
-    required NetworkCall<T> request,
-    required R Function(T data) mapper,
-  }) async {
-    try {
-      final response = await request(_client);
-      final data = response.data;
-      if (data == null) {
-        throw const NetworkFailure.emptyResponse();
-      }
-      return mapper(data as T);
-    } on DioException catch (error, stackTrace) {
-      logger?.error('Network call failed', error, stackTrace);
-      throw NetworkFailure.fromDioException(error);
-    } catch (error, stackTrace) {
-      logger?.error('Unexpected network error', error, stackTrace);
-      throw NetworkFailure.unknown(error);
-    }
-  }
 }
 
 ================================================================================
@@ -2580,6 +2191,8 @@ FILE: src/core/router/app_router.dart
 // lib/src/core/router/app_router.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:movi/src/features/welcome/presentation/pages/welcome_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
 
 import '../../features/home/presentation/pages/home_page.dart';
@@ -2597,6 +2210,7 @@ import '../storage/repositories/iptv_local_repository.dart';
 
 class AppRouteNames {
   static const launch = '/launch';
+  static const welcome = '/welcome';
   static const home = '/';
   static const search = '/search';
   static const library = '/library';
@@ -2616,6 +2230,13 @@ final appRouter = GoRouter(
       path: AppRouteNames.launch,
       name: 'launch',
       pageBuilder: (context, state) => const MaterialPage(child: _LaunchGate()),
+    ),
+
+    // --- WELCOME ---
+    GoRoute(
+      path: AppRouteNames.welcome,
+      name: 'welcome',
+      pageBuilder: (context, state) => const MaterialPage(child: WelcomePage()),
     ),
 
     // --- HOME / TABS ---
@@ -2673,6 +2294,8 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) =>
           const MaterialPage(child: TvDetailPage()),
     ),
+
+    // --- SETTINGS: IPTV CONNECT (toujours accessible depuis Settings)
     GoRoute(
       path: '/settings/iptv/connect',
       name: 'iptv_connect',
@@ -2687,7 +2310,7 @@ final appRouter = GoRouter(
   ),
 );
 
-/// Page de garde qui choisit Home vs Settings au démarrage.
+/// Page de garde qui choisit Welcome vs Home au démarrage.
 class _LaunchGate extends StatefulWidget {
   const _LaunchGate();
 
@@ -2709,8 +2332,8 @@ class _LaunchGateState extends State<_LaunchGate> {
 
     if (!mounted) return;
     if (accounts.isEmpty) {
-      // Pas de compte → Settings d'abord
-      GoRouter.of(context).go('/settings/iptv/connect');
+      // Pas de compte → Welcome
+      GoRouter.of(context).go(AppRouteNames.welcome);
     } else {
       // Il y a un compte → Home
       GoRouter.of(context).go(AppRouteNames.home);
@@ -4315,6 +3938,27 @@ export 'logger.dart';
 export 'logger_utils.dart';
 
 ================================================================================
+FILE: src/core/utils/validators.dart
+================================================================================
+// lib/src/core/utils/validators.dart
+
+/// Vérifie grossièrement si une chaîne ressemble à une URL http(s).
+/// - Tolère l’absence de schéma (ex: "example.com:8080").
+/// - Ne garantit pas la joignabilité.
+bool looksLikeHttpUrl(String input) {
+  final v = input.trim();
+  if (v.isEmpty) return false;
+  if (v.contains(RegExp(r'\s'))) return false;
+
+  final hasScheme = v.toLowerCase().startsWith('http://') ||
+      v.toLowerCase().startsWith('https://');
+
+  final toParse = hasScheme ? v : 'http://$v';
+  final uri = Uri.tryParse(toParse);
+  return uri != null && (uri.host.isNotEmpty || uri.authority.isNotEmpty);
+}
+
+================================================================================
 FILE: src/core/widgets/movi_bottom_nav_bar.dart
 ================================================================================
 import 'dart:ui';
@@ -4591,15 +4235,17 @@ FILE: src/core/widgets/movi_items_list.dart
 ================================================================================
 // lib/src/core/widgets/movi_items_list.dart
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
-/// Horizontal list section with a title aligned to the left edge,
-/// capable of notifying the visible range on horizontal scroll to enable
-/// lazy enrichment of items (TMDB fetch on demand).
+/// Section horizontale avec titre aligné à gauche.
+/// Notifie la plage approximative d’items visibles sur le scroll horizontal
+/// pour permettre un enrichissement paresseux (TMDB on-demand).
 ///
-/// Patch:
-/// - Garde de visibilité VERTICALE (évite d’enrichir des sections lointaines)
-/// - Déduplication des callbacks (ne renvoie pas 20x la même plage)
+/// Corrections intégrées :
+/// - Garde de visibilité VERTICALE (n’enrichit pas les sections hors écran)
+/// - Déduplication des callbacks (évite d’envoyer 20x la même plage)
 class MoviItemsList extends StatefulWidget {
   const MoviItemsList({
     super.key,
@@ -4609,38 +4255,39 @@ class MoviItemsList extends StatefulWidget {
     this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
     this.titlePadding = 20,
     this.subtitle,
-    // Lazy-enrich hooks:
+    // Hooks lazy-enrich :
     this.onViewportChanged,
     this.estimatedItemWidth,
     this.preloadAhead = 2,
   }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
 
-  /// Section title displayed above the list.
+  /// Titre de la section.
   final String title;
 
-  /// Optional secondary label displayed to the right of the title.
+  /// Surtitre optionnel affiché à droite.
   final String? subtitle;
 
-  /// Cards/widgets displayed horizontally.
+  /// Cartes/widgets affichés horizontalement.
   final List<Widget> items;
 
-  /// Spacing between each card in the horizontal list.
+  /// Espacement entre cartes.
   final double itemSpacing;
 
-  /// Padding applied to the horizontal list.
+  /// Padding horizontal de la liste.
   final EdgeInsetsGeometry horizontalPadding;
 
-  /// Left/right padding applied to the title text row.
+  /// Padding gauche/droite de la ligne de titre.
   final double titlePadding;
 
-  /// Called when the horizontal viewport likely exposes a new range.
-  /// Signature: (startIndex, countVisibleApprox).
+  /// Callback quand le viewport horizontal expose une nouvelle plage.
+  /// Signature: (startIndex, countApprox).
   final void Function(int start, int count)? onViewportChanged;
 
-  /// Estimated width of a single card (for range calc). If null, no callback.
+  /// Largeur estimée d’une carte (incluant son contenu, hors spacing).
+  /// Si null, aucun callback n’est émis.
   final double? estimatedItemWidth;
 
-  /// How many items to preload ahead of viewport on each side.
+  /// Nombre d’items à précharger de chaque côté du viewport.
   final int preloadAhead;
 
   @override
@@ -4648,29 +4295,24 @@ class MoviItemsList extends StatefulWidget {
 }
 
 class _MoviItemsListState extends State<MoviItemsList> {
-  final _ctrl = ScrollController();
+  final ScrollController _ctrl = ScrollController();
   Timer? _debounce;
 
   int? _lastStart;
   int? _lastCount;
 
   double get _hPadStart {
-    if (widget.horizontalPadding is EdgeInsets) {
-      return (widget.horizontalPadding as EdgeInsets).left;
-    }
-    if (widget.horizontalPadding is EdgeInsetsDirectional) {
-      return (widget.horizontalPadding as EdgeInsetsDirectional).start;
-    }
+    final p = widget.horizontalPadding;
+    if (p is EdgeInsets) return p.left;
+    if (p is EdgeInsetsDirectional) return p.start;
     return 0;
+    // (Si autre type d’EdgeInsetsGeometry, on retourne 0 par défaut.)
   }
 
   double get _hPadEnd {
-    if (widget.horizontalPadding is EdgeInsets) {
-      return (widget.horizontalPadding as EdgeInsets).right;
-    }
-    if (widget.horizontalPadding is EdgeInsetsDirectional) {
-      return (widget.horizontalPadding as EdgeInsetsDirectional).end;
-    }
+    final p = widget.horizontalPadding;
+    if (p is EdgeInsets) return p.right;
+    if (p is EdgeInsetsDirectional) return p.end;
     return 0;
   }
 
@@ -4680,54 +4322,66 @@ class _MoviItemsListState extends State<MoviItemsList> {
     _debounce = Timer(const Duration(milliseconds: 120), _notifyViewportChangedNow);
   }
 
+  /// Renvoie true si la section est grossièrement visible verticalement
+  /// (avec une marge pour précharger un peu avant/après).
   bool _isRoughlyVerticallyVisible() {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return false;
+    final ro = context.findRenderObject();
+    if (ro is! RenderBox || !ro.hasSize) return false;
 
-    final size = box.size;
-    final pos = box.localToGlobal(Offset.zero);
+    final size = ro.size;
+    final topLeft = ro.localToGlobal(Offset.zero);
     final screenH = MediaQuery.of(context).size.height;
 
-    const double margin = 150; // marge pour précharger un peu avant/après
-    final top = pos.dy;
+    const margin = 150.0;
+    final top = topLeft.dy;
     final bottom = top + size.height;
 
+    // visible si pas entièrement au-dessus ni entièrement en-dessous,
+    // avec une marge pour le préchargement.
     return bottom > -margin && top < screenH + margin;
   }
 
   void _notifyViewportChangedNow() {
     if (!mounted) return;
-    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) return;
+    final cb = widget.onViewportChanged;
+    final cardW = widget.estimatedItemWidth;
+    if (cb == null || cardW == null) return;
 
-    // Garde verticale : ne notifie pas si la section est loin de l'écran.
+    // Garde verticale : éviter le travail pour les sections hors écran.
     if (!_isRoughlyVerticallyVisible()) return;
 
-    // Largeur disponible pour les cartes, hors padding horizontal.
-    final viewportWidth = context.size?.width ?? 0;
-    final effectiveWidth = (viewportWidth - _hPadStart - _hPadEnd).clamp(0, double.infinity);
+    // Largeur utile pour les cartes (hors padding horizontal).
+    final viewportWidth = (context.size?.width ?? 0);
+    double effectiveWidth = viewportWidth - _hPadStart - _hPadEnd;
     if (effectiveWidth <= 0) return;
 
-    final unit = widget.estimatedItemWidth! + widget.itemSpacing;
+    final unit = cardW + widget.itemSpacing;
     if (unit <= 0) return;
 
-    // Position actuelle (offset) -> index de départ approximatif.
-    final start = (_ctrl.offset / unit).floor().clamp(0, widget.items.length - 1);
+    if (widget.items.isEmpty) return;
+
+    // Index de départ approximatif selon l’offset horizontal.
+    int start = (_ctrl.hasClients ? (_ctrl.offset / unit).floor() : 0);
+    final maxIndex = widget.items.length - 1;
+    if (start < 0) start = 0;
+    if (start > maxIndex) start = maxIndex;
+
     // Nombre d’éléments visibles approximatif.
-    final visible = (effectiveWidth / unit).ceil().clamp(1, widget.items.length);
+    int visible = (effectiveWidth / unit).ceil();
+    if (visible < 1) visible = 1;
+    if (visible > widget.items.length) visible = widget.items.length;
+
     final preload = widget.preloadAhead;
+    final startWithPreload = math.max(0, start - preload);
+    final endWithPreload = math.min(maxIndex, start + visible - 1 + preload);
+    final count = math.max(0, endWithPreload - startWithPreload + 1);
 
-    final startWithPreload =
-        (start - preload).clamp(0, (widget.items.length - 1).clamp(0, 1 << 30));
-    final endWithPreload =
-        (start + visible - 1 + preload).clamp(0, widget.items.length - 1);
-    final count = (endWithPreload - startWithPreload + 1).clamp(0, widget.items.length);
-
-    // Dédup : n'appelle pas si on renvoie la même plage
+    // Déduplication : ne pas rappeler si la même plage a déjà été envoyée.
     if (_lastStart == startWithPreload && _lastCount == count) return;
     _lastStart = startWithPreload;
     _lastCount = count;
 
-    widget.onViewportChanged!.call(startWithPreload, count);
+    cb(startWithPreload, count);
   }
 
   @override
@@ -4735,7 +4389,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
     super.initState();
     _ctrl.addListener(_notifyViewportChangedDebounced);
 
-    // Appel initial (post-frame) SI la section est visible.
+    // Premier calcul post-build, si la section est visible.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _notifyViewportChangedNow();
     });
@@ -4744,8 +4398,10 @@ class _MoviItemsListState extends State<MoviItemsList> {
   @override
   void didUpdateWidget(covariant MoviItemsList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Si le nombre d’items change, renvoyer une info de viewport (si visible).
-    if (oldWidget.items.length != widget.items.length) {
+    // Si la taille de la liste change, recalcul post-frame (si visible).
+    if (oldWidget.items.length != widget.items.length ||
+        oldWidget.estimatedItemWidth != widget.estimatedItemWidth ||
+        oldWidget.itemSpacing != widget.itemSpacing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _notifyViewportChangedNow();
       });
@@ -4813,7 +4469,8 @@ class _MoviItemsListState extends State<MoviItemsList> {
             children: [
               for (int i = 0; i < widget.items.length; i++) ...[
                 widget.items[i],
-                if (i != widget.items.length - 1) SizedBox(width: widget.itemSpacing),
+                if (i != widget.items.length - 1)
+                  SizedBox(width: widget.itemSpacing),
               ],
             ],
           ),
@@ -6094,7 +5751,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     } catch (_) {
       return const <dynamic>[];
     }
-  }
+    }
 
   Future<List<dynamic>> _safeGetPlaylists(dynamic accountId) async {
     try {
@@ -6158,6 +5815,7 @@ FILE: src/features/home/presentation/pages/home_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 import '../providers/home_providers.dart' as hp;
 
@@ -6234,27 +5892,16 @@ class _HomePageState extends State<HomePage> {
 class _HomeContent extends StatelessWidget {
   const _HomeContent();
 
-  static const double _mediaCardWidth = 150; // doit rester aligné avec MoviMediaCard par défaut
-  static const double _itemSpacing = 32;    // espace horizontal entre items
-  static const double _sectionGap = 32;     // espace VERTICAL entre sections MoviItemsList
+  static const double _mediaCardWidth =
+      150; // doit rester aligné avec MoviMediaCard par défaut
+  static const double _itemSpacing = 32; // espace horizontal entre items
+  static const double _sectionGap =
+      32; // espace VERTICAL entre sections MoviItemsList
 
   // Afficher uniquement le libellé catégorie (sans "serveur/")
   String _displayCategoryTitle(String raw) {
     final idx = raw.indexOf('/');
     return (idx >= 0 && idx < raw.length - 1) ? raw.substring(idx + 1) : raw;
-  }
-
-  // Fallback IPTV : essaye de lire dynamiquement `posterUrl` si présent.
-  String? _posterFromIptv(dynamic item) {
-    try {
-      // ignore: avoid_dynamic_calls
-      final v = item.posterUrl;
-      if (v == null) return null;
-      final s = v.toString();
-      return s.isEmpty ? null : s;
-    } catch (_) {
-      return null;
-    }
   }
 
   @override
@@ -6328,7 +5975,7 @@ class _HomeContent extends StatelessWidget {
                         (m) => ContinueWatchingCard.movie(
                           title: m.title.value,
                           poster: (m.backdrop ?? m.poster).toString(),
-                          year: m.releaseYear?.toString() ?? '—',
+                          year: m.releaseYear?.toString() ?? '',
                           progress: 0,
                           onTap: () => context.push('/movie'),
                         ),
@@ -6347,7 +5994,7 @@ class _HomeContent extends StatelessWidget {
                   ),
                 ),
 
-              // Patch 2 (espacement entre sections MoviItemsList) : 32 px après "En cours"
+              // 32 px après "En cours"
               if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
                 const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
 
@@ -6374,23 +6021,22 @@ class _HomeContent extends StatelessWidget {
                       controller.enrichCategoryBatch(entry.key, start, count);
                     },
                     items: entry.value.take(40).map((r) {
-                      // Patch 5 : fallback IPTV si poster TMDB manquant
-                      final posterTmdb = r.poster?.toString();
-                      final fallbackIptv = _posterFromIptv(r);
-                      final poster = (posterTmdb != null && posterTmdb.isNotEmpty)
-                          ? posterTmdb
-                          : (fallbackIptv ?? '');
+                      // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
+                      final poster = r.poster?.toString() ?? '';
 
-                      // NB : les pills (année/note) vides seront masquées dans MoviMediaCard (Patch 6 côté widget)
+                      // Fournir des Strings non nulles pour respecter la signature de MoviMedia
+                      final yearStr = r.year != null ? r.year!.toString() : '';
+                      final ratingStr = r.rating != null
+                          ? (r.rating! >= 10 ? '10' : r.rating!.toStringAsFixed(1))
+                          : '';
+
                       final media = MoviMedia(
                         id: r.id,
                         title: r.title.value,
                         poster: poster,
-                        year: r.year?.toString() ?? '—',
-                        rating: (r.rating != null)
-                            ? (r.rating! >= 10 ? '10' : r.rating!.toStringAsFixed(1))
-                            : '—',
-                        type: r.type.name == 'series'
+                        year: yearStr,      // <-- String non nulle
+                        rating: ratingStr,  // <-- String non nulle
+                        type: r.type == ContentType.series
                             ? MoviMediaType.series
                             : MoviMediaType.movie,
                       );
@@ -6398,7 +6044,7 @@ class _HomeContent extends StatelessWidget {
                     }).toList(),
                   ),
                 ),
-                // Patch 2 : 32 px entre *chaque* section MoviItemsList IPTV
+                // 32 px entre *chaque* section MoviItemsList IPTV
                 const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
               ],
 
@@ -6437,7 +6083,7 @@ class _NavPlaceholder extends StatelessWidget {
 FILE: src/features/home/presentation/providers/home_providers.dart
 ================================================================================
 // lib/src/features/home/presentation/providers/home_providers.dart
-import 'dart:async' show unawaited;
+import 'dart:async'; // unawaited, Future.wait
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -6492,6 +6138,9 @@ class HomeController extends StateNotifier<HomeState> {
   /// Clé = "sectionKey#index"
   final Set<String> _inflight = {};
 
+  /// Plafond de concurrence pour limiter la pression sur TMDB.
+  static const int _maxConcurrent = 6;
+
   /// Chargement prioritaire :
   /// 1) Hero (await) → premier paint rapide
   /// 2) Le reste en arrière-plan (lists & continue watching)
@@ -6502,7 +6151,7 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final hero = await _repo.getHeroMovies();
       state = state.copyWith(hero: hero, isLoading: false);
-    } catch (e) {
+    } catch (_) {
       // On ne bloque pas l'UI pour autant
       state = state.copyWith(isLoading: false, error: 'Échec du chargement du Hero');
     }
@@ -6535,6 +6184,7 @@ class HomeController extends StateNotifier<HomeState> {
 
   /// Appelée par l’UI quand une section horizontale fait défiler des cartes.
   /// Enrichit les items [start .. start+count-1] s'ils sont encore “légers”.
+  /// → Limite la concurrence à [_maxConcurrent] pour éviter une rafale de requêtes.
   Future<void> enrichCategoryBatch(String key, int start, int count) async {
     final list = state.iptvLists[key];
     if (list == null || list.isEmpty) return;
@@ -6542,40 +6192,54 @@ class HomeController extends StateNotifier<HomeState> {
 
     final end = (start + count - 1).clamp(0, list.length - 1);
 
+    Future<void> _enrichOne(int index, ContentReference ref) async {
+      final keyIndex = '$key#$index';
+      if (_inflight.contains(keyIndex)) return;
+      _inflight.add(keyIndex);
+      try {
+        final enriched = await _repo.enrichReference(ref);
+
+        // Remplacement immuable dans l’état (section peut avoir bougé entre-temps)
+        final current = state.iptvLists[key];
+        if (current == null || index >= current.length) return;
+
+        final nextList = List<ContentReference>.from(current);
+        nextList[index] = enriched;
+
+        final nextMap = Map<String, List<ContentReference>>.from(state.iptvLists);
+        nextMap[key] = nextList;
+
+        state = state.copyWith(iptvLists: nextMap);
+      } finally {
+        _inflight.remove(keyIndex);
+      }
+    }
+
+    final futures = <Future<void>>[];
+
     for (int i = start; i <= end; i++) {
       final ref = list[i];
 
-      // Heuristique "léger" : pas d'année ou pas de note ou pas de poster TMDB
+      // Heuristique "léger" : pas d'année, pas de note, pas de poster TMDB (souvent IPTV)
       final needsEnrich = ref.year == null ||
           ref.rating == null ||
           ref.poster == null ||
-          // Si poster existe mais n'est pas un visuel TMDB (souvent IPTV)
           !(ref.poster.toString().contains('image.tmdb.org'));
 
       if (!needsEnrich) continue;
 
-      final keyIndex = '$key#$i';
-      if (_inflight.contains(keyIndex)) continue;
-      _inflight.add(keyIndex);
+      futures.add(_enrichOne(i, ref));
 
-      unawaited(
-        _repo.enrichReference(ref).then((enriched) {
-          _inflight.remove(keyIndex);
-          // Remplacement immuable dans l’état
-          final current = state.iptvLists[key];
-          if (current == null || i >= current.length) return;
+      // Plafond de concurrence : on attend dès qu’on atteint le cap
+      if (futures.length >= _maxConcurrent) {
+        await Future.wait(futures);
+        futures.clear();
+      }
+    }
 
-          final nextList = List<ContentReference>.from(current);
-          nextList[i] = enriched;
-
-          final nextMap = Map<String, List<ContentReference>>.from(state.iptvLists);
-          nextMap[key] = nextList;
-
-          state = state.copyWith(iptvLists: nextMap);
-        }).catchError((_) {
-          _inflight.remove(keyIndex);
-        }),
-      );
+    // Termine les restes
+    if (futures.isNotEmpty) {
+      await Future.wait(futures);
     }
   }
 }
@@ -11056,8 +10720,12 @@ class SettingsPage extends StatelessWidget {
 ================================================================================
 FILE: src/features/settings/presentation/providers/iptv_connect_providers.dart
 ================================================================================
+// lib/src/features/settings/presentation/providers/iptv_connect_providers.dart
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+
 import '../../../../core/di/injector.dart';
 import '../../../../core/iptv/application/usecases/add_xtream_source.dart';
 import '../../../../core/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -11070,9 +10738,17 @@ class IptvConnectState {
   final String? error;
 
   IptvConnectState copyWith({bool? isLoading, String? error}) =>
-      IptvConnectState(isLoading: isLoading ?? this.isLoading, error: error);
+      IptvConnectState(
+        isLoading: isLoading ?? this.isLoading,
+        error: error,
+      );
 }
 
+/// Contrôleur de connexion IPTV.
+/// Objectif : **ne pas bloquer la navigation**.
+/// - Crée et active la source IPTV.
+/// - Lance la synchronisation **en arrière-plan** (fire-and-forget).
+/// - À la fin de la synchro, déclenche un refresh de la Home.
 class IptvConnectController extends StateNotifier<IptvConnectState> {
   IptvConnectController(this._add, this._refresh, this._appState, this._ref)
       : super(const IptvConnectState());
@@ -11090,7 +10766,7 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // 1) créer la source
+      // 1) Créer la source (auth + enregistrement)
       final account = await _add(
         serverUrl: serverUrl,
         username: username,
@@ -11098,20 +10774,29 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
         alias: alias,
       );
 
-      // 2) activer la source pour l’app (si AppState ne le fait pas déjà)
+      // 2) Activer la source pour l’app (si logique d’état globale)
       _appState.addIptvSource(account.id);
 
-      // 3) synchroniser le catalogue
-      await _refresh(account.id);
+      // 3) Synchroniser le catalogue **sans bloquer l’UI**
+      unawaited(_runBackgroundSync(account.id));
 
-      // 4) rafraîchir la Home (iptvLists)
-      await _ref.read(homeControllerProvider.notifier).refresh();
-
+      // 4) Rendre la main immédiatement pour permettre la navigation vers Home
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
+    }
+  }
+
+  Future<void> _runBackgroundSync(String accountId) async {
+    try {
+      await _refresh(accountId);
+      // Une fois la synchro terminée, on rafraîchit la Home.
+      await _ref.read(homeControllerProvider.notifier).refresh();
+    } catch (_) {
+      // On ignore ici les erreurs de background pour ne pas perturber l’UI.
+      // (Elles pourront être remontées par la Home si nécessaire.)
     }
   }
 }
@@ -12301,6 +11986,620 @@ class TvDetailPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+================================================================================
+FILE: src/features/welcome/presentation/pages/welcome_page.dart
+================================================================================
+// lib/src/features/welcome/presentation/pages/welcome_page.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+
+import '../widgets/welcome_header.dart';
+import '../widgets/welcome_form.dart';
+import '../widgets/welcome_faq_row.dart';
+import '../../../settings/presentation/providers/iptv_connect_providers.dart';
+
+class WelcomePage extends ConsumerWidget {
+  const WelcomePage({super.key});
+
+  Future<void> _onConnect(
+    BuildContext context,
+    WidgetRef ref, {
+    required String serverUrl,
+    required String username,
+    required String password,
+    required String alias,
+  }) async {
+    final controller = ref.read(iptvConnectControllerProvider.notifier);
+    final success = await controller.connect(
+      serverUrl: serverUrl,
+      username: username,
+      password: password,
+      alias: alias,
+    );
+
+    if (success && context.mounted) {
+      // ✅ Navigation immédiate vers la page d’accueil
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Source IPTV ajoutée. La synchronisation démarre en arrière-plan…',
+          ),
+        ),
+      );
+      context.go('/'); // Aller directement à l'accueil
+    } else if (!success && context.mounted) {
+      final error =
+          ref.read(iptvConnectControllerProvider).error ?? 'Erreur inconnue';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Échec de la connexion : $error')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(iptvConnectControllerProvider);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const WelcomeHeader(),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // 🔸 On passe la fonction _onConnect au formulaire
+                  WelcomeForm(
+                    onConnect: (serverUrl, username, password, alias) {
+                      // ⬅️ Corrigé : on RETOURNE le Future pour éviter l’avertissement
+                      return _onConnect(
+                        context,
+                        ref,
+                        serverUrl: serverUrl,
+                        username: username,
+                        password: password,
+                        alias: alias,
+                      );
+                    },
+                    isLoading: state.isLoading,
+                  ),
+
+                  const SizedBox(height: AppSpacing.xl),
+                  const WelcomeFaqRow(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+================================================================================
+FILE: src/features/welcome/presentation/providers/welcome_providers.dart
+================================================================================
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/legacy.dart';
+
+import '../../../../core/di/injector.dart';
+import '../../../../core/network/network_executor.dart';
+import '../../../../core/network/dio_failure_mapper.dart';
+import '../../../../core/network/network_failures.dart';
+import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
+
+/// État minimal pour l'écran Welcome (UI uniquement)
+class WelcomeUiState {
+  const WelcomeUiState({
+    this.isTesting = false,
+    this.isObscured = true,
+    this.errorMessage,
+    this.endpointPreview,
+  });
+
+  final bool isTesting;
+  final bool isObscured;
+  final String? errorMessage;
+  final String? endpointPreview;
+
+  WelcomeUiState copyWith({
+    bool? isTesting,
+    bool? isObscured,
+    String? errorMessage, // passer explicitement null pour effacer
+    String? endpointPreview,
+  }) {
+    return WelcomeUiState(
+      isTesting: isTesting ?? this.isTesting,
+      isObscured: isObscured ?? this.isObscured,
+      errorMessage: errorMessage,
+      endpointPreview: endpointPreview,
+    );
+  }
+}
+
+/// Contrôleur UI pour Welcome
+class WelcomeController extends StateNotifier<WelcomeUiState> {
+  WelcomeController(this._dio) : super(const WelcomeUiState());
+
+  final Dio _dio;
+
+  void toggleObscure() {
+    state = state.copyWith(isObscured: !state.isObscured);
+  }
+
+  /// Met à jour l’aperçu de l’endpoint en validant l’URL (sans lever d’exception UI)
+  void updateUrlPreview(String raw) {
+    final ep = XtreamEndpoint.tryParse(raw);
+    state = state.copyWith(
+      endpointPreview: ep?.toRawUrl(),
+      errorMessage: null,
+    );
+  }
+
+  /// Teste la connexion Xtream sans rien créer dans l’app (ping rapide).
+  /// S’appuie sur NetworkExecutor pour map les erreurs Dio -> Failures propres.
+  Future<bool> testConnection({
+    required String serverUrl,
+    required String username,
+    required String password,
+  }) async {
+    if (state.isTesting) return false;
+    state = state.copyWith(isTesting: true, errorMessage: null);
+
+    try {
+      final endpoint = XtreamEndpoint.parse(serverUrl);
+      final uri = endpoint.buildUri({
+        'username': username,
+        'password': password,
+      });
+
+      final executor = NetworkExecutor(_dio);
+      // On ne se fie pas au shape exact du JSON (fournisseurs variés) :
+      // succès HTTP + corps non nul = OK
+      final ok = await executor.run<dynamic, bool>(
+        request: (c) => c.getUri<dynamic>(uri),
+        mapper: (_) => true,
+      );
+
+      state = state.copyWith(isTesting: false, errorMessage: null);
+      return ok;
+    } on NetworkFailure catch (f) {
+      state = state.copyWith(isTesting: false, errorMessage: f.message);
+      return false;
+    } on DioException catch (e) {
+      final f = mapDioToFailure(e);
+      state = state.copyWith(isTesting: false, errorMessage: f.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(isTesting: false, errorMessage: 'Erreur inattendue');
+      return false;
+    }
+  }
+
+  void clearError() {
+    if (state.errorMessage != null) {
+      state = state.copyWith(errorMessage: null);
+    }
+  }
+}
+
+/// Fournit un Dio depuis le conteneur d’injection (network_module)
+final _dioProvider = Provider<Dio>((ref) => sl<Dio>());
+
+/// Provider principal du contrôleur UI
+final welcomeControllerProvider =
+    StateNotifierProvider<WelcomeController, WelcomeUiState>(
+  (ref) => WelcomeController(ref.watch(_dioProvider)),
+);
+
+================================================================================
+FILE: src/features/welcome/presentation/utils/error_presenter.dart
+================================================================================
+import '../../../../core/network/network_failures.dart';
+
+/// Traduit un NetworkFailure en message FR court et cohérent pour l’UI.
+String presentFailure(NetworkFailure f) {
+  if (f is TimeoutFailure) return 'La connexion a expiré. Réessaie plus tard.';
+  if (f is ConnectionFailure) return 'Impossible de se connecter au serveur.';
+  if (f is UnauthorizedFailure) return 'Identifiants incorrects (401).';
+  if (f is ForbiddenFailure) return 'Accès refusé (403).';
+  if (f is NotFoundFailure) return 'Endpoint introuvable (404).';
+  if (f is RateLimitedFailure) return 'Trop de requêtes. Réessaie plus tard.';
+  if (f is ServerFailure) return 'Erreur serveur (${f.statusCode ?? ''}).';
+  if (f is EmptyResponseFailure) return 'Réponse vide du serveur.';
+  if (f is CancelledFailure) return 'Requête annulée.';
+  return 'Erreur inconnue.';
+}
+
+================================================================================
+FILE: src/features/welcome/presentation/widgets/welcome_faq_row.dart
+================================================================================
+import 'package:flutter/material.dart';
+
+class WelcomeFaqRow extends StatelessWidget {
+  const WelcomeFaqRow({super.key, this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Text('Des questions ?', style: t.bodyLarge),
+          const SizedBox(width: 12),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text('FAQ', style: t.bodyLarge?.copyWith(color: c.primary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+================================================================================
+FILE: src/features/welcome/presentation/widgets/welcome_form.dart
+================================================================================
+// lib/src/features/welcome/presentation/widgets/welcome_form.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+
+import '../providers/welcome_providers.dart';
+import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
+import '../../../settings/presentation/providers/iptv_connect_providers.dart';
+
+typedef ConnectCallback = Future<void> Function(
+  String serverUrl,
+  String username,
+  String password,
+  String alias,
+);
+
+class WelcomeForm extends ConsumerStatefulWidget {
+  const WelcomeForm({
+    super.key,
+    this.onConnect,   // <- ajouté pour correspondre à WelcomePage
+    this.isLoading,   // <- ajouté pour correspondre à WelcomePage
+  });
+
+  /// Si fourni, c’est le parent (WelcomePage) qui gère la connexion + navigation.
+  final ConnectCallback? onConnect;
+
+  /// Si fourni, force l’état de chargement (sinon on lit le provider interne).
+  final bool? isLoading;
+
+  @override
+  ConsumerState<WelcomeForm> createState() => _WelcomeFormState();
+}
+
+class _WelcomeFormState extends ConsumerState<WelcomeForm> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _urlCtrl = TextEditingController();
+  final _userCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _aliasCtrl = TextEditingController();
+
+  final _focusUrl = FocusNode();
+  final _focusUser = FocusNode();
+  final _focusPass = FocusNode();
+  final _focusAlias = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusUrl.requestFocus();
+    _urlCtrl.addListener(() {
+      ref.read(welcomeControllerProvider.notifier).updateUrlPreview(_urlCtrl.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _urlCtrl.dispose();
+    _userCtrl.dispose();
+    _passCtrl.dispose();
+    _aliasCtrl.dispose();
+    _focusUrl.dispose();
+    _focusUser.dispose();
+    _focusPass.dispose();
+    _focusAlias.dispose();
+    super.dispose();
+  }
+
+  bool get _isFormValid {
+    final ep = XtreamEndpoint.tryParse(_urlCtrl.text);
+    return ep != null &&
+        _userCtrl.text.trim().isNotEmpty &&
+        _passCtrl.text.isNotEmpty;
+  }
+
+  Future<void> _onTest() async {
+    final ui = ref.read(welcomeControllerProvider.notifier);
+    final ok = await ui.testConnection(
+      serverUrl: _urlCtrl.text.trim(),
+      username: _userCtrl.text.trim(),
+      password: _passCtrl.text,
+    );
+    if (!mounted) return;
+    final state = ref.read(welcomeControllerProvider);
+    final msg = ok ? 'Connexion réussie ✅' : _presentFailureMessage(state.errorMessage);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _onSubmit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    // Si le parent fournit onConnect, on délègue (il gère la nav et le snackBar).
+    if (widget.onConnect != null) {
+      await widget.onConnect!(
+        _urlCtrl.text.trim(),
+        _userCtrl.text.trim(),
+        _passCtrl.text,
+        _aliasCtrl.text.trim(),
+      );
+      return;
+    }
+
+    // Sinon, on utilise le provider interne + nav directe.
+    final ctrl = ref.read(iptvConnectControllerProvider.notifier);
+    final ok = await ctrl.connect(
+      serverUrl: _urlCtrl.text.trim(),
+      username: _userCtrl.text.trim(),
+      password: _passCtrl.text,
+      alias: _aliasCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    if (ok) {
+      // ✅ Nav immédiate — la synchro tourne en arrière-plan (voir iptv_connect_providers)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Source IPTV ajoutée. Synchronisation en arrière-plan…'),
+        ),
+      );
+      context.go('/'); // aller directement à l’accueil
+    } else {
+      final err = ref.read(iptvConnectControllerProvider).error ?? 'Échec de connexion';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    }
+  }
+
+  String _presentFailureMessage(String? raw) {
+    if (raw == null || raw.isEmpty) return 'Échec de connexion';
+    return raw;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = ref.watch(welcomeControllerProvider);
+    final connectState = ref.watch(iptvConnectControllerProvider);
+    // isLoading effectif : priorité au paramètre venant du parent (WelcomePage)
+    final isLoading = widget.isLoading ?? connectState.isLoading;
+
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          // URL
+          _LabeledField(
+            label: 'URL du serveur',
+            footer: ui.endpointPreview != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Endpoint détecté : ${ui.endpointPreview}',
+                      style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant),
+                    ),
+                  )
+                : null,
+            child: TextFormField(
+              controller: _urlCtrl,
+              focusNode: _focusUrl,
+              readOnly: isLoading,
+              autofillHints: const [AutofillHints.url],
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => _focusUser.requestFocus(),
+              decoration: const InputDecoration(
+                hintText: 'http(s)://host[:port]/player_api.php',
+              ),
+              validator: (v) =>
+                  (XtreamEndpoint.tryParse(v ?? '') == null) ? 'URL invalide' : null,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Username
+          _LabeledField(
+            label: 'Nom d’utilisateur',
+            child: TextFormField(
+              controller: _userCtrl,
+              focusNode: _focusUser,
+              readOnly: isLoading,
+              autofillHints: const [AutofillHints.username],
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => _focusPass.requestFocus(),
+              decoration: const InputDecoration(hintText: 'Identifiant Xtream'),
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requis' : null,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Password
+          _LabeledField(
+            label: 'Mot de passe',
+            child: TextFormField(
+              controller: _passCtrl,
+              focusNode: _focusPass,
+              readOnly: isLoading,
+              autofillHints: const [AutofillHints.password],
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => _focusAlias.requestFocus(),
+              decoration: InputDecoration(
+                hintText: 'Mot de passe Xtream',
+                suffixIcon: IconButton(
+                  onPressed: isLoading
+                      ? null
+                      : () => ref.read(welcomeControllerProvider.notifier).toggleObscure(),
+                  icon: Icon(ui.isObscured ? Icons.visibility_off : Icons.visibility),
+                ),
+              ),
+              obscureText: ui.isObscured,
+              validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Alias (optionnel)
+          _LabeledField(
+            label: 'Nom de la source (Optionnel)',
+            child: TextFormField(
+              controller: _aliasCtrl,
+              focusNode: _focusAlias,
+              readOnly: isLoading,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) {
+                if (_isFormValid && !isLoading) _onSubmit();
+              },
+              decoration: const InputDecoration(
+                hintText: 'Nom d’affichage dans l’app',
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          // Actions
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: isLoading ? null : _onTest,
+                    child: const Text('Tester la connexion'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text('Ajouter la source'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (ui.errorMessage != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              child: Text(
+                _presentFailureMessage(ui.errorMessage),
+                style: t.bodyMedium?.copyWith(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LabeledField extends StatelessWidget {
+  const _LabeledField({required this.label, required this.child, this.footer});
+
+  final String label;
+  final Widget child;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: t.labelLarge),
+          const SizedBox(height: AppSpacing.xs),
+          child,
+          if (footer != null) footer!,
+        ],
+      ),
+    );
+  }
+}
+
+================================================================================
+FILE: src/features/welcome/presentation/widgets/welcome_header.dart
+================================================================================
+// lib/src/features/welcome/presentation/widgets/welcome_header.dart
+import 'package:flutter/material.dart';
+import '../../../../core/utils/app_assets.dart'; // <-- importe tes assets
+
+class WelcomeHeader extends StatelessWidget {
+  const WelcomeHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Image.asset(
+            AppAssets.iconAppLogo,
+            width: 100,
+            height: 100,
+            fit: BoxFit.contain,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text('Bienvenue !', style: t.headlineSmall, textAlign: TextAlign.center),
+        ),
+        const SizedBox(height: 10),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Text(
+            'Ajouter votre première source',
+            style: t.bodyLarge,
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,4 +1,6 @@
 // lib/src/features/settings/presentation/providers/iptv_connect_providers.dart
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -14,9 +16,17 @@ class IptvConnectState {
   final String? error;
 
   IptvConnectState copyWith({bool? isLoading, String? error}) =>
-      IptvConnectState(isLoading: isLoading ?? this.isLoading, error: error);
+      IptvConnectState(
+        isLoading: isLoading ?? this.isLoading,
+        error: error,
+      );
 }
 
+/// Contrôleur de connexion IPTV.
+/// Objectif : **ne pas bloquer la navigation**.
+/// - Crée et active la source IPTV.
+/// - Lance la synchronisation **en arrière-plan** (fire-and-forget).
+/// - À la fin de la synchro, déclenche un refresh de la Home.
 class IptvConnectController extends StateNotifier<IptvConnectState> {
   IptvConnectController(this._add, this._refresh, this._appState, this._ref)
       : super(const IptvConnectState());
@@ -26,8 +36,6 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
   final AppStateController _appState;
   final Ref _ref;
 
-  /// Crée la source IPTV, l’active, synchronise le catalogue puis
-  /// déclenche un refresh de la Home (qui utilisera le chargement paresseux).
   Future<bool> connect({
     required String serverUrl,
     required String username,
@@ -36,7 +44,7 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // 1) Créer la source
+      // 1) Créer la source (auth + enregistrement)
       final account = await _add(
         serverUrl: serverUrl,
         username: username,
@@ -44,20 +52,29 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
         alias: alias,
       );
 
-      // 2) Activer la source pour l’app (au cas où AppState ne le ferait pas déjà)
+      // 2) Activer la source pour l’app (si logique d’état globale)
       _appState.addIptvSource(account.id);
 
-      // 3) Synchroniser le catalogue
-      await _refresh(account.id);
+      // 3) Synchroniser le catalogue **sans bloquer l’UI**
+      unawaited(_runBackgroundSync(account.id));
 
-      // 4) Rafraîchir la Home (iptvLists seront peuplées puis enrichies à la volée)
-      await _ref.read(homeControllerProvider.notifier).refresh();
-
+      // 4) Rendre la main immédiatement pour permettre la navigation vers Home
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
+    }
+  }
+
+  Future<void> _runBackgroundSync(String accountId) async {
+    try {
+      await _refresh(accountId);
+      // Une fois la synchro terminée, on rafraîchit la Home.
+      await _ref.read(homeControllerProvider.notifier).refresh();
+    } catch (_) {
+      // On ignore ici les erreurs de background pour ne pas perturber l’UI.
+      // (Elles pourront être remontées par la Home si nécessaire.)
     }
   }
 }
