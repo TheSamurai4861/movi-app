@@ -1,4 +1,472 @@
 ================================================================================
+ARCHITECTURE
+================================================================================
+
+C:\USERS\BERNY\DEV\FLUTTER\MOVI\LIB
+│   main.dart
+│   
+└───src
+    │   app.dart
+    │   
+    ├───core
+    │   ├───config
+    │   │   │   config_module.dart
+    │   │   │   
+    │   │   ├───env
+    │   │   │       dev_environment.dart
+    │   │   │       environment.dart
+    │   │   │       environment_loader.dart
+    │   │   │       
+    │   │   ├───models
+    │   │   │       app_config.dart
+    │   │   │       app_metadata.dart
+    │   │   │       feature_flags.dart
+    │   │   │       network_endpoints.dart
+    │   │   │       
+    │   │   ├───providers
+    │   │   │       config_provider.dart
+    │   │   │       overrides.dart
+    │   │   │       
+    │   │   └───services
+    │   │           platform_selector.dart
+    │   │           secret_store.dart
+    │   │
+    │   ├───di
+    │   │   │   injector.dart
+    │   │   │   test_injector.dart
+    │   │   │
+    │   │   └───services
+    │   │           content_repository.dart
+    │   │           preferences_service.dart
+    │   │
+    │   ├───iptv
+    │   │   ├───application
+    │   │   │   ├───services
+    │   │   │   │       playlist_mapper.dart
+    │   │   │   │       xtream_sync_service.dart
+    │   │   │   │
+    │   │   │   └───usecases
+    │   │   │           add_xtream_source.dart
+    │   │   │           list_xtream_playlists.dart
+    │   │   │           refresh_xtream_catalog.dart
+    │   │   │
+    │   │   ├───config
+    │   │   │       iptv_module.dart
+    │   │   │
+    │   │   ├───data
+    │   │   │   ├───datasources
+    │   │   │   │       xtream_cache_data_source.dart
+    │   │   │   │       xtream_remote_data_source.dart
+    │   │   │   │
+    │   │   │   ├───dtos
+    │   │   │   │       xtream_auth_dto.dart
+    │   │   │   │       xtream_category_dto.dart
+    │   │   │   │       xtream_stream_dto.dart
+    │   │   │   │
+    │   │   │   └───repositories
+    │   │   │           iptv_repository_impl.dart
+    │   │   │
+    │   │   └───domain
+    │   │       ├───entities
+    │   │       │       xtream_account.dart
+    │   │       │       xtream_catalog_snapshot.dart
+    │   │       │       xtream_playlist.dart
+    │   │       │       xtream_playlist_item.dart
+    │   │       │
+    │   │       ├───repositories
+    │   │       │       iptv_repository.dart
+    │   │       │
+    │   │       └───value_objects
+    │   │               xtream_endpoint.dart
+    │   │
+    │   ├───models
+    │   │       movi_media.dart
+    │   │       movi_person.dart
+    │   │
+    │   ├───network
+    │   │   │   http_client_factory.dart
+    │   │   │   network_exceptions.dart
+    │   │   │   network_executor.dart
+    │   │   │
+    │   │   ├───config
+    │   │   │       network_module.dart
+    │   │   │
+    │   │   └───interceptors
+    │   │           auth_interceptor.dart
+    │   │           locale_interceptor.dart
+    │   │           retry_interceptor.dart
+    │   │           telemetry_interceptor.dart
+    │   │
+    │   ├───preferences
+    │   │       locale_preferences.dart
+    │   │
+    │   ├───router
+    │   │       app_router.dart
+    │   │
+    │   ├───state
+    │   │       app_state.dart
+    │   │       app_state_controller.dart
+    │   │       app_state_provider.dart
+    │   │
+    │   ├───storage
+    │   │   ├───database
+    │   │   │   │   sqlite_database.dart
+    │   │   │   │
+    │   │   │   └───models
+    │   │   ├───repositories
+    │   │   │       content_cache_repository.dart
+    │   │   │       continue_watching_local_repository.dart
+    │   │   │       history_local_repository.dart
+    │   │   │       iptv_local_repository.dart
+    │   │   │       playlist_local_repository.dart
+    │   │   │       watchlist_local_repository.dart
+    │   │   │
+    │   │   └───services
+    │   │           cache_policy.dart
+    │   │           storage_module.dart
+    │   │
+    │   ├───theme
+    │   │       app_colors.dart
+    │   │       app_theme.dart
+    │   │
+    │   ├───utils
+    │   │       app_assets.dart
+    │   │       app_spacing.dart
+    │   │       context_extensions.dart
+    │   │       logger.dart
+    │   │       logger_utils.dart
+    │   │       utils.dart
+    │   │
+    │   └───widgets
+    │           movi_bottom_nav_bar.dart
+    │           movi_favorite_button.dart
+    │           movi_items_list.dart
+    │           movi_marquee_text.dart
+    │           movi_media_card.dart
+    │           movi_person_card.dart
+    │           movi_pill.dart
+    │           movi_primary_button.dart
+    │
+    ├───features
+    │   ├───home
+    │   │   ├───data
+    │   │   │   │   home_feed_data_module.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   ├───dtos
+    │   │   │   └───repositories
+    │   │   │           home_feed_repository_impl.dart
+    │   │   │
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   ├───repositories
+    │   │   │   │       home_feed_repository.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       home_page.dart
+    │   │       │
+    │   │       ├───providers
+    │   │       │       home_providers.dart
+    │   │       │
+    │   │       └───widgets
+    │   │               continue_watching_card.dart
+    │   │               home_hero_section.dart
+    │   │
+    │   ├───library
+    │   │   ├───data
+    │   │   │   │   library_data_module.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   ├───dtos
+    │   │   │   └───repositories
+    │   │   │           library_repository_impl.dart
+    │   │   │
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   ├───repositories
+    │   │   │   │       library_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       like_person.dart
+    │   │   │   │       unlike_person.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       library_page.dart
+    │   │       │
+    │   │       ├───providers
+    │   │       │       library_providers.dart
+    │   │       │
+    │   │       └───widgets
+    │   ├───movie
+    │   │   ├───data
+    │   │   │   │   movie_data_module.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   │       movie_local_data_source.dart
+    │   │   │   │       tmdb_movie_remote_data_source.dart
+    │   │   │   │
+    │   │   │   ├───dtos
+    │   │   │   │       tmdb_movie_detail_dto.dart
+    │   │   │   │
+    │   │   │   └───repositories
+    │   │   │           movie_repository_impl.dart
+    │   │   │
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   │       movie.dart
+    │   │   │   │       movie_credit.dart
+    │   │   │   │       movie_summary.dart
+    │   │   │   │
+    │   │   │   ├───repositories
+    │   │   │   │       movie_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       get_continue_watching_movies.dart
+    │   │   │   │       get_movie_credits.dart
+    │   │   │   │       get_movie_detail.dart
+    │   │   │   │       get_movie_recommendations.dart
+    │   │   │   │       is_in_watchlist.dart
+    │   │   │   │       search_movies.dart
+    │   │   │   │       toggle_watchlist.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       movie_detail_page.dart
+    │   │       │
+    │   │       └───widgets
+    │   ├───person
+    │   │   ├───data
+    │   │   │   │   person_data_module.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   │       person_local_data_source.dart
+    │   │   │   │       tmdb_person_remote_data_source.dart
+    │   │   │   │
+    │   │   │   ├───dtos
+    │   │   │   │       tmdb_person_detail_dto.dart
+    │   │   │   │
+    │   │   │   └───repositories
+    │   │   │           person_repository_impl.dart
+    │   │   │
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   │       person.dart
+    │   │   │   │
+    │   │   │   ├───repositories
+    │   │   │   │       person_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       get_featured_people.dart
+    │   │   │   │       get_person_detail.dart
+    │   │   │   │       get_person_filmography.dart
+    │   │   │   │       search_people.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       person_detail_page.dart
+    │   │       │
+    │   │       └───widgets
+    │   ├───playlist
+    │   │   ├───data
+    │   │   │   │   playlist_data_module.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   ├───dtos
+    │   │   │   ├───repositories
+    │   │   │   │       playlist_repository_impl.dart
+    │   │   │   │
+    │   │   │   └───services
+    │   │   │           playlist_filter_service.dart
+    │   │   │           playlist_ordering_service.dart
+    │   │   │
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   │       playlist.dart
+    │   │   │   │
+    │   │   │   ├───repositories
+    │   │   │   │       playlist_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       add_playlist_item.dart
+    │   │   │   │       create_playlist.dart
+    │   │   │   │       delete_playlist.dart
+    │   │   │   │       get_featured_playlists.dart
+    │   │   │   │       get_playlist_detail.dart
+    │   │   │   │       get_user_playlists.dart
+    │   │   │   │       remove_playlist_item.dart
+    │   │   │   │       rename_playlist.dart
+    │   │   │   │       reorder_playlist_item.dart
+    │   │   │   │       search_playlists.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       playlist_detail_page.dart
+    │   │       │
+    │   │       └───widgets
+    │   ├───saga
+    │   │   ├───data
+    │   │   │   │   saga_data_module.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   │       saga_local_data_source.dart
+    │   │   │   │       tmdb_saga_remote_data_source.dart
+    │   │   │   │
+    │   │   │   ├───dtos
+    │   │   │   │       tmdb_saga_detail_dto.dart
+    │   │   │   │
+    │   │   │   └───repositories
+    │   │   │           saga_repository_impl.dart
+    │   │   │
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   │       saga.dart
+    │   │   │   │
+    │   │   │   ├───repositories
+    │   │   │   │       saga_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       get_saga_detail.dart
+    │   │   │   │       get_user_sagas.dart
+    │   │   │   │       search_sagas.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       saga_detail_page.dart
+    │   │       │
+    │   │       └───widgets
+    │   ├───search
+    │   │   ├───data
+    │   │   │   │   search_data_module.dart
+    │   │   │   │   search_repository_impl.dart
+    │   │   │   │
+    │   │   │   ├───datasources
+    │   │   │   │       tmdb_search_remote_data_source.dart
+    │   │   │   │
+    │   │   │   ├───dtos
+    │   │   │   └───repositories
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   │       search_page.dart
+    │   │   │   │
+    │   │   │   ├───repositories
+    │   │   │   │       search_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       search_movies.dart
+    │   │   │   │       search_people.dart
+    │   │   │   │       search_shows.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       search_page.dart
+    │   │       │
+    │   │       └───widgets
+    │   ├───settings
+    │   │   ├───data
+    │   │   │   ├───datasources
+    │   │   │   ├───dtos
+    │   │   │   └───repositories
+    │   │   ├───domain
+    │   │   │   ├───entities
+    │   │   │   │       user_preferences.dart
+    │   │   │   │       user_profile.dart
+    │   │   │   │
+    │   │   │   ├───repositories
+    │   │   │   │       settings_repository.dart
+    │   │   │   │
+    │   │   │   ├───usecases
+    │   │   │   │       get_user_preferences.dart
+    │   │   │   │       get_user_profile.dart
+    │   │   │   │       update_user_preferences.dart
+    │   │   │   │       update_user_profile.dart
+    │   │   │   │
+    │   │   │   └───value_objects
+    │   │   └───presentation
+    │   │       ├───controllers
+    │   │       ├───pages
+    │   │       │       iptv_connect_page.dart
+    │   │       │       settings_page.dart
+    │   │       │
+    │   │       ├───providers
+    │   │       │       iptv_connect_providers.dart
+    │   │       │
+    │   │       └───widgets
+    │   └───tv
+    │       ├───data
+    │       │   │   tv_data_module.dart
+    │       │   │
+    │       │   ├───datasources
+    │       │   │       tmdb_tv_remote_data_source.dart
+    │       │   │       tv_local_data_source.dart
+    │       │   │
+    │       │   ├───dtos
+    │       │   │       tmdb_tv_detail_dto.dart
+    │       │   │       tmdb_tv_season_detail_dto.dart
+    │       │   │
+    │       │   └───repositories
+    │       │           tv_repository_impl.dart
+    │       │
+    │       ├───domain
+    │       │   ├───entities
+    │       │   │       tv_show.dart
+    │       │   │
+    │       │   ├───repositories
+    │       │   │       tv_repository.dart
+    │       │   │
+    │       │   ├───usecases
+    │       │   │       get_continue_watching_tv.dart
+    │       │   │       get_featured_tv_shows.dart
+    │       │   │       get_season_episodes.dart
+    │       │   │       get_tv_seasons.dart
+    │       │   │       get_tv_show_detail.dart
+    │       │   │       get_tv_watchlist.dart
+    │       │   │       is_tv_show_in_watchlist.dart
+    │       │   │       search_tv_shows.dart
+    │       │   │       toggle_tv_watchlist.dart
+    │       │   │
+    │       │   └───value_objects
+    │       └───presentation
+    │           ├───controllers
+    │           ├───pages
+    │           │       tv_detail_page.dart
+    │           │
+    │           └───widgets
+    └───shared
+        ├───data
+        │   ├───dtos
+        │   └───services
+        │           tmdb_cache_data_source.dart
+        │           tmdb_client.dart
+        │           tmdb_image_resolver.dart
+        │
+        └───domain
+            ├───entities
+            │       person_summary.dart
+            │
+            └───value_objects
+                    content_rating.dart
+                    content_reference.dart
+                    media_id.dart
+                    media_title.dart
+                    synopsis.dart
+
+================================================================================
 FILE: main.dart
 ================================================================================
 import 'package:flutter/material.dart';

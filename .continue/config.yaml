@@ -1,0 +1,89 @@
+name: Local Agent
+version: 1.2.0
+schema: v1
+
+# -------------------------
+# MODELS (Ollama local)
+# -------------------------
+models:
+  - name: Qwen2.5 Coder 14B — Primary
+    provider: ollama
+    model: qwen2.5-coder:14b
+    apiBase: http://localhost:11434
+    roles: [chat, edit, apply]
+    defaultCompletionOptions:
+      temperature: 0.20
+      topP: 0.90
+      maxTokens: 8192
+    chatOptions:
+      baseSystemMessage: |
+        Tu es un assistant Flutter local.
+        Travaille par étapes : (1) lecture via outils fichiers, (2) plan, (3) patch (diff unifié), (4) auto-review.
+        Toujours en français. Cite les **chemins réels**.
+        Respect strict Clean Architecture : UI → VM/UseCase → Repository → DataSource.
+      baseAgentSystemMessage: |
+        Tu UTILISES les outils de fichiers (list/read/search) pour explorer le code.
+        Tu n’inventes AUCUN chemin : si non trouvé, écris « (non trouvé) ».
+        Ne renvoie JAMAIS d’objets JSON d’outil dans la réponse finale (réponse texte).
+      basePlanSystemMessage: |
+        Plan : Objectif, Fichiers à lire (≤ 12), Étapes, Risques, Sortie attendue.
+
+  - name: Qwen2.5 32B — Architect
+    provider: ollama
+    model: qwen2.5:32b-instruct
+    apiBase: http://localhost:11434
+    roles: [chat]
+    defaultCompletionOptions:
+      temperature: 0.25
+      topP: 0.95
+      maxTokens: 16384
+    chatOptions:
+      baseSystemMessage: |
+        Rôle architecte Flutter : cartographie globale, dettes, refactors macro.
+        Donne des décisions argumentées et concises.
+
+  - name: Qwen2.5 Coder 7B — Autocomplete
+    provider: ollama
+    model: qwen2.5-coder:7b
+    apiBase: http://localhost:11434
+    roles: [autocomplete]
+    defaultCompletionOptions:
+      temperature: 0.10
+      topP: 0.90
+      stop: ["\n\n\n", "```"]
+      maxTokens: 64
+    autocompleteOptions:
+      debounceDelay: 140
+      maxPrefixPercentage: 0.60
+      maxSuffixPercentage: 0.25
+
+  - name: Nomic Embed
+    provider: ollama
+    model: nomic-embed-text
+    apiBase: http://localhost:11434
+    roles: [embed]
+    embedOptions:
+      maxChunkSize: 1024
+      maxBatchSize: 16
+
+# -------------------------
+# TOOLS (fichiers activés)
+# -------------------------
+tools:
+  - name: file
+    type: file
+    enabled: true
+    # l’Agent pourra lister / lire / chercher dans le workspace
+
+# -------------------------
+# RULES globales
+# -------------------------
+rules:
+  - name: Style
+    rule: "Français clair et concis. Étapes numérotées si pertinent."
+  - name: Code-first
+    rule: "Quand un patch est demandé : fournir d’abord un **diff unifié**, puis une brève explication."
+  - name: Clean Arch
+    rule: "Séparation stricte UI → VM/UseCase → Repo → DS. Pas de cross-import toxique."
+  - name: Sécurité
+    rule: "Aucun secret en dur. Utiliser les variables d’environnement."

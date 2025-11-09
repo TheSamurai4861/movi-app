@@ -1,0 +1,53 @@
+// lib/src/core/network/network_failures.dart
+import 'package:equatable/equatable.dart';
+
+/// Modèle d’échecs réseau neutre (domaine) à mapper côté UI.
+abstract class NetworkFailure extends Equatable {
+  const NetworkFailure(this.message, {this.statusCode});
+  final String message;
+  final int? statusCode;
+
+  @override
+  List<Object?> get props => [message, statusCode];
+}
+
+class TimeoutFailure extends NetworkFailure {
+  const TimeoutFailure() : super('Request timed out');
+}
+
+class ConnectionFailure extends NetworkFailure {
+  const ConnectionFailure() : super('Connection error');
+}
+
+class UnauthorizedFailure extends NetworkFailure {
+  const UnauthorizedFailure() : super('Unauthorized', statusCode: 401);
+}
+
+class ForbiddenFailure extends NetworkFailure {
+  const ForbiddenFailure() : super('Forbidden', statusCode: 403);
+}
+
+class NotFoundFailure extends NetworkFailure {
+  const NotFoundFailure() : super('Not found', statusCode: 404);
+}
+
+class RateLimitedFailure extends NetworkFailure {
+  const RateLimitedFailure() : super('Rate limited', statusCode: 429);
+}
+
+class ServerFailure extends NetworkFailure {
+  const ServerFailure(String message, {int? statusCode})
+      : super(message, statusCode: statusCode);
+}
+
+class EmptyResponseFailure extends NetworkFailure {
+  const EmptyResponseFailure() : super('Empty response');
+}
+
+class UnknownFailure extends NetworkFailure {
+  const UnknownFailure([String message = 'Unknown error']) : super(message);
+}
+
+class CancelledFailure extends NetworkFailure {
+  const CancelledFailure() : super('Request cancelled');
+}

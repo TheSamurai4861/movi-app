@@ -1,0 +1,25 @@
+{
+  "$schema": "",
+  "slashCommands": [
+    {
+      "name": "map-project",
+      "description": "Cartographie du projet Flutter avec chemins réels",
+      "prompt": "Rôle: Architecte Flutter.\nTu as accès aux outils de fichiers (list/read/search). N’invente aucun fichier.\nSi un dossier n’existe pas → écris « (non trouvé) ».\n\nObjectif: cartographier rapidement le projet.\n\nLivrer :\n1) Carte par couches (UI / Application / Domaine / Données) en listant des **chemins réels**.\n2) Fichiers noyaux (points d’entrée : main, router, DI, entités clés) avec chemins.\n3) Patterns détectés (DI, router, state mgmt) avec références de fichiers.\n4) Dettes techniques → priorité, avec liens de fichiers."
+    },
+    {
+      "name": "plan-feature",
+      "description": "Plan précis avant patch",
+      "prompt": "Objectif : proposer un plan minimal pour appliquer la feature.\n\nFormat :\n- But utilisateur (1 phrase)\n- **Fichiers à lire** (≤ 12) – chemins **réels** obligatoires\n- Étapes (ordonnées, 5–9 max)\n- Risques (3–5)\n- Sortie attendue (résumé concret)\n\nNe produis pas le patch tant que le plan n’est pas validé."
+    },
+    {
+      "name": "patch",
+      "description": "Génère un diff unifié + tests",
+      "prompt": "Objectif : produire un **patch (diff unifié)** pour la feature **validée**.\n\nContraintes :\n- Clean Architecture stricte\n- Null-safety stricte\n- Pas d’appel réseau dans la UI\n- Chemins **réels** uniquement\n- Inclure **1–2 tests unitaires** pertinents\n\nDonner :\n- fichiers créés / modifiés / supprimés\n- le diff unifié\n- un court message de commit"
+    },
+    {
+      "name": "auto-review",
+      "description": "Relecture sénior avec micro-correctifs",
+      "prompt": "Rôle : Reviewer Flutter sénior.\n\nVérifie :\n- Séparation des couches + imports corrects\n- Null-safety, erreurs typées\n- Perf listes/images\n- Cohérence thème/styles\n\nRends :\n- Liste de remarques (numérotées)\n- **Mini-diffs** correctifs si nécessaire"
+    }
+  ]
+}

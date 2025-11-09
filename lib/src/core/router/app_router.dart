@@ -1,6 +1,8 @@
 // lib/src/core/router/app_router.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import 'package:movi/src/features/welcome/presentation/pages/welcome_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
 
 import '../../features/home/presentation/pages/home_page.dart';
@@ -18,6 +20,7 @@ import '../storage/repositories/iptv_local_repository.dart';
 
 class AppRouteNames {
   static const launch = '/launch';
+  static const welcome = '/welcome';
   static const home = '/';
   static const search = '/search';
   static const library = '/library';
@@ -37,6 +40,13 @@ final appRouter = GoRouter(
       path: AppRouteNames.launch,
       name: 'launch',
       pageBuilder: (context, state) => const MaterialPage(child: _LaunchGate()),
+    ),
+
+    // --- WELCOME ---
+    GoRoute(
+      path: AppRouteNames.welcome,
+      name: 'welcome',
+      pageBuilder: (context, state) => const MaterialPage(child: WelcomePage()),
     ),
 
     // --- HOME / TABS ---
@@ -94,6 +104,8 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) =>
           const MaterialPage(child: TvDetailPage()),
     ),
+
+    // --- SETTINGS: IPTV CONNECT (toujours accessible depuis Settings)
     GoRoute(
       path: '/settings/iptv/connect',
       name: 'iptv_connect',
@@ -108,7 +120,7 @@ final appRouter = GoRouter(
   ),
 );
 
-/// Page de garde qui choisit Home vs Settings au démarrage.
+/// Page de garde qui choisit Welcome vs Home au démarrage.
 class _LaunchGate extends StatefulWidget {
   const _LaunchGate();
 
@@ -130,8 +142,8 @@ class _LaunchGateState extends State<_LaunchGate> {
 
     if (!mounted) return;
     if (accounts.isEmpty) {
-      // Pas de compte → Settings d'abord
-      GoRouter.of(context).go('/settings/iptv/connect');
+      // Pas de compte → Welcome
+      GoRouter.of(context).go(AppRouteNames.welcome);
     } else {
       // Il y a un compte → Home
       GoRouter.of(context).go(AppRouteNames.home);

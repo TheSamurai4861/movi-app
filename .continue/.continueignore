@@ -1,0 +1,26 @@
+# Artefacts & dossiers lourds
+build/
+.dart_tool/
+.android/
+.ios/
+linux/
+macos/
+windows/
+web/
+assets/**
+
+# IDE / outillage
+.idea/
+.vscode/
+*.iml
+
+# Binaires & médias
+**/*.png
+**/*.jpg
+**/*.webp
+**/*.ico
+**/*.mp4
+**/*.svg
+
+# Locks
+**/*.lock

@@ -1,0 +1,30 @@
+import 'package:flutter/material.dart';
+
+class WelcomeFaqRow extends StatelessWidget {
+  const WelcomeFaqRow({super.key, this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Text('Des questions ?', style: t.bodyLarge),
+          const SizedBox(width: 12),
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(6),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: Text('FAQ', style: t.bodyLarge?.copyWith(color: c.primary)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
