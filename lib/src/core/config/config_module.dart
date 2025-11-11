@@ -15,7 +15,8 @@ class AppConfigFactory {
     FeatureFlags? featureOverrides,
     AppMetadata? metadataOverride,
   }) async {
-    final tmdbKey = await _secretStore.read('TMDB_API_KEY');
+    // Préférence au tmdbApiKey fourni par le flavor (compile-time via dart-define).
+    final tmdbKey = flavor.network.tmdbApiKey ?? await _secretStore.read('TMDB_API_KEY');
     final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
     final flags = featureOverrides ?? flavor.defaultFlags;
     final metadata = metadataOverride ?? flavor.metadata;

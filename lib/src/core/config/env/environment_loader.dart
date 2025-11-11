@@ -8,6 +8,10 @@ class EnvironmentLoader {
 
   final PlatformSelector platformSelector;
 
+  // Précompute compile-time defines to avoid runtime fromEnvironment calls on web.
+  static const String _defineAppEnv = String.fromEnvironment('APP_ENV');
+  static const String _defineFlutterAppEnv = String.fromEnvironment('FLUTTER_APP_ENV');
+
   EnvironmentFlavor load({AppEnvironment? override}) {
     final resolved = override ?? _resolveFromBuild();
     return createEnvironmentFlavor(resolved);
@@ -22,10 +26,12 @@ class EnvironmentLoader {
   }
 
   AppEnvironment? _readDefine(String key) {
-    final value = String.fromEnvironment(key);
-    if (value.isEmpty) {
-      return null;
-    }
+    final value = switch (key) {
+      'APP_ENV' => _defineAppEnv,
+      'FLUTTER_APP_ENV' => _defineFlutterAppEnv,
+      _ => '',
+    };
+    if (value.isEmpty) return null;
     return _parse(value);
   }
 

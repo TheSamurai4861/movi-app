@@ -36,8 +36,7 @@ class RateLimitedFailure extends NetworkFailure {
 }
 
 class ServerFailure extends NetworkFailure {
-  const ServerFailure(String message, {int? statusCode})
-      : super(message, statusCode: statusCode);
+  const ServerFailure(super.message, {super.statusCode});
 }
 
 class EmptyResponseFailure extends NetworkFailure {
@@ -45,7 +44,7 @@ class EmptyResponseFailure extends NetworkFailure {
 }
 
 class UnknownFailure extends NetworkFailure {
-  const UnknownFailure([String message = 'Unknown error']) : super(message);
+  const UnknownFailure([super.message = 'Unknown error']);
 }
 
 class CancelledFailure extends NetworkFailure {

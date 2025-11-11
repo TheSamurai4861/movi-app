@@ -1,137 +1,137 @@
-// lib/src/core/widgets/movi_items_list.dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
-/// Section horizontale avec titre aligné à gauche.
-/// Notifie la plage approximative d’items visibles sur le scroll horizontal
-/// pour permettre un enrichissement paresseux (TMDB on-demand).
-///
-/// Corrections intégrées :
-/// - Garde de visibilité VERTICALE (n’enrichit pas les sections hors écran)
-/// - Déduplication des callbacks (évite d’envoyer 20x la même plage)
+/// Liste horizontale avec titre et sous-titre optionnel.
+/// Émet des fenêtres d'index visibles (start, count) pour l’enrichissement paresseux.
+/// Optimisations :
+/// - garde de visibilité verticale,
+/// - debounce des notifications,
+/// - déduplication des fenêtres envoyées,
+/// - calcul robuste du padding horizontal (RTL/LTR),
+/// - prise en compte des changements de largeur via LayoutBuilder.
 class MoviItemsList extends StatefulWidget {
   const MoviItemsList({
     super.key,
     required this.title,
     required this.items,
+    this.subtitle,
     this.itemSpacing = 16,
     this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
     this.titlePadding = 20,
-    this.subtitle,
-    // Hooks lazy-enrich :
     this.onViewportChanged,
     this.estimatedItemWidth,
     this.preloadAhead = 2,
+    this.verticalPreloadMargin = 150,
+    this.debounceMs = 240,
   }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
 
-  /// Titre de la section.
   final String title;
-
-  /// Surtitre optionnel affiché à droite.
   final String? subtitle;
-
-  /// Cartes/widgets affichés horizontalement.
   final List<Widget> items;
 
   /// Espacement entre cartes.
   final double itemSpacing;
 
-  /// Padding horizontal de la liste.
+  /// Padding horizontal appliqué sur la rangée de cartes.
   final EdgeInsetsGeometry horizontalPadding;
 
-  /// Padding gauche/droite de la ligne de titre.
+  /// Padding appliqué à la ligne de titre.
   final double titlePadding;
 
-  /// Callback quand le viewport horizontal expose une nouvelle plage.
-  /// Signature: (startIndex, countApprox).
+  /// Callback lorsque la fenêtre visible a potentiellement changé.
+  /// Signature: (startIndexInclus, count>=1).
   final void Function(int start, int count)? onViewportChanged;
 
-  /// Largeur estimée d’une carte (incluant son contenu, hors spacing).
-  /// Si null, aucun callback n’est émis.
+  /// Largeur estimée d’une carte (hors spacing). Sans valeur, aucun callback n’est émis.
   final double? estimatedItemWidth;
 
-  /// Nombre d’items à précharger de chaque côté du viewport.
+  /// Marge de préchargement verticale (px) avant/après l’entrée à l’écran.
+  final double verticalPreloadMargin;
+
+  /// Nombre d’items à précharger de chaque côté de la fenêtre visible.
   final int preloadAhead;
+
+  /// Durée du debounce des notifications de viewport.
+  final int debounceMs;
 
   @override
   State<MoviItemsList> createState() => _MoviItemsListState();
 }
 
 class _MoviItemsListState extends State<MoviItemsList> {
-  final ScrollController _ctrl = ScrollController();
+  final ScrollController _hCtrl = ScrollController();
+  ScrollPosition? _vpos; // position du scroll vertical parent
   Timer? _debounce;
 
   int? _lastStart;
   int? _lastCount;
+  double? _lastViewportWidth;
 
-  double get _hPadStart {
-    final p = widget.horizontalPadding;
-    if (p is EdgeInsets) return p.left;
-    if (p is EdgeInsetsDirectional) return p.start;
-    return 0;
-    // (Si autre type d’EdgeInsetsGeometry, on retourne 0 par défaut.)
+  // ---- Utilities
+
+  EdgeInsets _resolvedHorizontalPadding(BuildContext context) {
+    return widget.horizontalPadding.resolve(Directionality.of(context));
   }
 
-  double get _hPadEnd {
-    final p = widget.horizontalPadding;
-    if (p is EdgeInsets) return p.right;
-    if (p is EdgeInsetsDirectional) return p.end;
-    return 0;
+  double _effectiveViewportWidth(BoxConstraints constraints) {
+    final pads = _resolvedHorizontalPadding(context);
+    final width = constraints.maxWidth.isFinite ? constraints.maxWidth : (context.size?.width ?? 0);
+    final effective = width - pads.left - pads.right;
+    return effective > 0 ? effective : 0;
   }
 
-  void _notifyViewportChangedDebounced() {
+  void _scheduleNotify() {
     if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) return;
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 120), _notifyViewportChangedNow);
+    _debounce = Timer(Duration(milliseconds: widget.debounceMs), _notifyNow);
   }
 
-  /// Renvoie true si la section est grossièrement visible verticalement
-  /// (avec une marge pour précharger un peu avant/après).
+  void _attachVerticalListener() {
+    final pos = Scrollable.maybeOf(context)?.position;
+    if (_vpos == pos) return;
+    _vpos?.isScrollingNotifier.removeListener(_scheduleNotify);
+    _vpos = pos;
+    _vpos?.isScrollingNotifier.addListener(_scheduleNotify);
+  }
+
   bool _isRoughlyVerticallyVisible() {
     final ro = context.findRenderObject();
     if (ro is! RenderBox || !ro.hasSize) return false;
-
     final size = ro.size;
     final topLeft = ro.localToGlobal(Offset.zero);
     final screenH = MediaQuery.of(context).size.height;
-
-    const margin = 150.0;
+    final margin = widget.verticalPreloadMargin;
     final top = topLeft.dy;
     final bottom = top + size.height;
-
-    // visible si pas entièrement au-dessus ni entièrement en-dessous,
-    // avec une marge pour le préchargement.
     return bottom > -margin && top < screenH + margin;
   }
 
-  void _notifyViewportChangedNow() {
+  void _notifyNow() {
     if (!mounted) return;
     final cb = widget.onViewportChanged;
     final cardW = widget.estimatedItemWidth;
     if (cb == null || cardW == null) return;
-
-    // Garde verticale : éviter le travail pour les sections hors écran.
     if (!_isRoughlyVerticallyVisible()) return;
+    if (!_hCtrl.hasClients) return;
+    if (widget.items.isEmpty) return;
 
-    // Largeur utile pour les cartes (hors padding horizontal).
-    final viewportWidth = (context.size?.width ?? 0);
-    double effectiveWidth = viewportWidth - _hPadStart - _hPadEnd;
-    if (effectiveWidth <= 0) return;
+    // On récupère la largeur connue via _lastViewportWidth (mise à jour par LayoutBuilder).
+    final viewportWidth = _lastViewportWidth ?? (context.size?.width ?? 0);
+    if (viewportWidth <= 0) return;
 
     final unit = cardW + widget.itemSpacing;
     if (unit <= 0) return;
 
-    if (widget.items.isEmpty) return;
+    final pads = _resolvedHorizontalPadding(context);
+    final effectiveWidth = viewportWidth - pads.left - pads.right;
+    if (effectiveWidth <= 0) return;
 
-    // Index de départ approximatif selon l’offset horizontal.
-    int start = (_ctrl.hasClients ? (_ctrl.offset / unit).floor() : 0);
     final maxIndex = widget.items.length - 1;
+    int start = (_hCtrl.offset / unit).floor();
     if (start < 0) start = 0;
     if (start > maxIndex) start = maxIndex;
 
-    // Nombre d’éléments visibles approximatif.
     int visible = (effectiveWidth / unit).ceil();
     if (visible < 1) visible = 1;
     if (visible > widget.items.length) visible = widget.items.length;
@@ -141,7 +141,6 @@ class _MoviItemsListState extends State<MoviItemsList> {
     final endWithPreload = math.min(maxIndex, start + visible - 1 + preload);
     final count = math.max(0, endWithPreload - startWithPreload + 1);
 
-    // Déduplication : ne pas rappeler si la même plage a déjà été envoyée.
     if (_lastStart == startWithPreload && _lastCount == count) return;
     _lastStart = startWithPreload;
     _lastCount = count;
@@ -149,46 +148,52 @@ class _MoviItemsListState extends State<MoviItemsList> {
     cb(startWithPreload, count);
   }
 
+  // ---- Lifecycle
+
   @override
   void initState() {
     super.initState();
-    _ctrl.addListener(_notifyViewportChangedDebounced);
-
-    // Premier calcul post-build, si la section est visible.
+    _hCtrl.addListener(_scheduleNotify);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _notifyViewportChangedNow();
+      _attachVerticalListener();
+      _notifyNow();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _attachVerticalListener();
   }
 
   @override
   void didUpdateWidget(covariant MoviItemsList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Si la taille de la liste change, recalcul post-frame (si visible).
     if (oldWidget.items.length != widget.items.length ||
         oldWidget.estimatedItemWidth != widget.estimatedItemWidth ||
-        oldWidget.itemSpacing != widget.itemSpacing) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _notifyViewportChangedNow();
-      });
+        oldWidget.itemSpacing != widget.itemSpacing ||
+        oldWidget.horizontalPadding != widget.horizontalPadding) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _notifyNow());
     }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    _ctrl
-      ..removeListener(_notifyViewportChangedDebounced)
+    _vpos?.isScrollingNotifier.removeListener(_scheduleNotify);
+    _vpos = null;
+    _hCtrl
+      ..removeListener(_scheduleNotify)
       ..dispose();
     super.dispose();
   }
 
+  // ---- UI
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-
-    if (widget.items.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (widget.items.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,20 +230,32 @@ class _MoviItemsListState extends State<MoviItemsList> {
           ),
         ),
         const SizedBox(height: 16),
-        SingleChildScrollView(
-          controller: _ctrl,
-          scrollDirection: Axis.horizontal,
-          clipBehavior: Clip.none,
-          padding: widget.horizontalPadding,
-          child: Row(
-            children: [
-              for (int i = 0; i < widget.items.length; i++) ...[
-                widget.items[i],
-                if (i != widget.items.length - 1)
-                  SizedBox(width: widget.itemSpacing),
-              ],
-            ],
-          ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = _effectiveViewportWidth(constraints) + // largeur utile (sans padding)
+                _resolvedHorizontalPadding(context).left +
+                _resolvedHorizontalPadding(context).right;
+            if (_lastViewportWidth != width) {
+              _lastViewportWidth = width;
+              // On notifie avec debounce pour limiter la pression en cas de resize.
+              _scheduleNotify();
+            }
+            return SingleChildScrollView(
+              controller: _hCtrl,
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              padding: widget.horizontalPadding,
+              child: Row(
+                children: [
+                  for (int i = 0; i < widget.items.length; i++) ...[
+                    widget.items[i],
+                    if (i != widget.items.length - 1)
+                      SizedBox(width: widget.itemSpacing),
+                  ],
+                ],
+              ),
+            );
+          },
         ),
       ],
     );

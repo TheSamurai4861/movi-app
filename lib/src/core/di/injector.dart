@@ -62,13 +62,28 @@ void _registerNetwork({LocaleCodeProvider? localeProvider}) {
 
 void _registerTmdb() {
   if (!sl.isRegistered<TmdbImageResolver>()) {
-    sl.registerLazySingleton<TmdbImageResolver>(() => const TmdbImageResolver());
+    sl.registerLazySingleton<TmdbImageResolver>(
+      () => const TmdbImageResolver(),
+    );
   }
+
+  // Si déjà enregistré, ne rien faire.
   if (sl.isRegistered<TmdbClient>()) return;
-  if (!sl.isRegistered<NetworkExecutor>()) return;
+
+  // On ne peut pas créer TmdbClient si les dépendances ne sont pas prêtes.
+  if (!sl.isRegistered<NetworkExecutor>() || !sl.isRegistered<AppConfig>()) {
+    return;
+  }
+
+  // TmdbClient attend des paramètres NOMMÉS :
+  // TmdbClient({ required NetworkExecutor executor, required NetworkEndpoints endpoints })
   sl.registerLazySingleton<TmdbClient>(
-    () => TmdbClient(sl<NetworkExecutor>(), sl<AppConfig>(), sl<LocalePreferences>()),
+    () => TmdbClient(
+      executor: sl<NetworkExecutor>(),
+      endpoints: sl<AppConfig>().network,
+    ),
   );
+
   MovieDataModule.register();
   TvDataModule.register();
   PersonDataModule.register();

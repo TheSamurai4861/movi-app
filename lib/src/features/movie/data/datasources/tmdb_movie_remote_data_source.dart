@@ -1,73 +1,123 @@
 // lib/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+import 'package:dio/dio.dart';
+
 import '../../../../shared/data/services/tmdb_client.dart';
 import '../dtos/tmdb_movie_detail_dto.dart';
 
-/// TMDB Movies remote datasource
-/// - "Lite" = sans append_to_response (léger, pour cartes/listes)
-/// - "Full" = avec append (images/credits/recommendations) pour les pages détail/Hero
+/// Remote data source pour les FILMS TMDB.
+/// - Tout l’I/O réseau + gestion d’erreurs est délégué à [TmdbClient].
+/// - Cette couche ne manipule **que** des `Map<String, dynamic>` décodés.
+/// - Aucune dépendance à `Response`, uniquement mapping en DTOs.
 class TmdbMovieRemoteDataSource {
-  TmdbMovieRemoteDataSource(this._client);
+  const TmdbMovieRemoteDataSource(this._client);
 
   final TmdbClient _client;
 
-  /// DÉFAUT allégé (préférer pour l'enrichissement des cartes)
-  /// Note: alias de fetchMovieLite pour compat ascendante.
-  Future<TmdbMovieDetailDto> fetchMovie(int id) => fetchMovieLite(id);
-
-  /// Détail LÉGER (sans append)
-  Future<TmdbMovieDetailDto> fetchMovieLite(int id) {
-    return _client.get(
-      path: 'movie/$id',
-      mapper: (json) => TmdbMovieDetailDto.fromJson(json),
+  /// Détail léger (sans `append_to_response`).
+  Future<TmdbMovieDetailDto> fetchMovieLite(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/$id',
+      language: language,
+      cancelToken: cancelToken,
     );
+    return TmdbMovieDetailDto.fromJson(json);
   }
 
-  /// Détail COMPLET (append images/credits/recommendations)
-  Future<TmdbMovieDetailDto> fetchMovieFull(int id) {
-    return _client.get(
-      path: 'movie/$id',
-      query: const {'append_to_response': 'images,credits,recommendations'},
-      mapper: (json) => TmdbMovieDetailDto.fromJson(json),
-    );
+  /// Alias de compatibilité vers [fetchMovieLite].
+  Future<TmdbMovieDetailDto> fetchMovie(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) {
+    return fetchMovieLite(id, language: language, cancelToken: cancelToken);
   }
 
-  Future<List<TmdbMovieSummaryDto>> searchMovies(String query) {
-    return _client.get(
-      path: 'search/movie',
-      query: {'query': query},
-      mapper: (json) => ((json['results'] as List<dynamic>? ?? const [])
-          .map(
-            (item) =>
-                TmdbMovieSummaryDto.fromJson(item as Map<String, dynamic>),
-          )
-          .toList()),
+  /// Détail complet avec `append_to_response` (images/credits/recommendations).
+  Future<TmdbMovieDetailDto> fetchMovieFull(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/$id',
+      query: const {
+        'append_to_response': 'images,credits,recommendations',
+      },
+      language: language,
+      cancelToken: cancelToken,
     );
+    return TmdbMovieDetailDto.fromJson(json);
   }
 
-  Future<List<TmdbMovieSummaryDto>> fetchPopular() {
-    return _client.get(
-      path: 'movie/popular',
-      mapper: (json) => ((json['results'] as List<dynamic>? ?? const [])
-          .map(
-            (item) =>
-                TmdbMovieSummaryDto.fromJson(item as Map<String, dynamic>),
-          )
-          .toList()),
+  /// Recherche de films (paginée côté TMDB).
+  Future<List<TmdbMovieSummaryDto>> searchMovies(
+    String query, {
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return const <TmdbMovieSummaryDto>[];
+    final json = await _client.getJson(
+      'search/movie',
+      query: {
+        'query': q,
+        'page': page.clamp(1, 1000),
+      },
+      language: language,
+      cancelToken: cancelToken,
     );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
   }
 
-  /// Trending movies for the hero section (TMDB), paginable.
+  /// Films populaires (paginé).
+  Future<List<TmdbMovieSummaryDto>> fetchPopular({
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/popular',
+      query: {'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Trending films (`window`: 'day' ou 'week').
   Future<List<TmdbMovieSummaryDto>> fetchTrendingMovies({
     String window = 'week',
     int page = 1,
+    String? language,
+    CancelToken? cancelToken,
   }) async {
+    final normalizedWindow = (window == 'day') ? 'day' : 'week';
     final json = await _client.getJson(
-      'trending/movie/$window',
-      query: {'page': page},
+      'trending/movie/$normalizedWindow',
+      query: {'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
     );
-    final results = (json['results'] as List<dynamic>? ?? const []);
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
     return results
-        .map((e) => TmdbMovieSummaryDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
   }
 }

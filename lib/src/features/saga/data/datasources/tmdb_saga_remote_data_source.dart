@@ -6,11 +6,9 @@ class TmdbSagaRemoteDataSource {
 
   final TmdbClient _client;
 
-  Future<TmdbSagaDetailDto> fetchSaga(int id) {
-    return _client.get(
-      path: 'collection/$id',
-      mapper: (json) => TmdbSagaDetailDto.fromJson(json),
-    );
+  Future<TmdbSagaDetailDto> fetchSaga(int id) async {
+    final json = await _client.getJson('collection/$id');
+    return TmdbSagaDetailDto.fromJson(json);
   }
 
   Future<int?> fetchMovieRuntime(int id) async {
@@ -19,8 +17,13 @@ class TmdbSagaRemoteDataSource {
   }
 
   Future<List<TmdbSagaDetailDto>> searchSagas(String query) async {
-    final json = await _client.getJson('search/collection', query: {'query': query});
+    final json = await _client.getJson(
+      'search/collection',
+      query: {'query': query},
+    );
     final results = json['results'] as List<dynamic>? ?? const [];
-    return results.map((item) => TmdbSagaDetailDto.fromJson(item as Map<String, dynamic>)).toList();
+    return results
+        .map((item) => TmdbSagaDetailDto.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 }

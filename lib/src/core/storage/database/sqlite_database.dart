@@ -4,26 +4,36 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// SQLite singleton (sqflite / sqflite_ffi) avec migrations.
+/// - Version 5 (indexes ajoutés)
+/// - Desktop (Windows/Linux) utilise sqflite_common_ffi
 class LocalDatabase {
   LocalDatabase._();
 
   static Database? _instance;
 
+  /// Retourne l'instance unique de la base (créée au besoin).
   static Future<Database> instance() async {
     if (_instance != null) return _instance!;
 
+    // Initialisation FFI pour desktop.
     if (Platform.isWindows || Platform.isLinux) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
 
     final dir = await getApplicationDocumentsDirectory();
+    // S’assure que le dossier existe (surtout côté desktop portable).
+    try {
+      await Directory(dir.path).create(recursive: true);
+    } catch (_) {}
     final path = p.join(dir.path, 'movi.db');
 
     _instance = await openDatabase(
       path,
-      version: 4,
+      version: 5, // ↑ 4 -> 5
       onCreate: (db, version) async {
+        // --- Tables de base ---
         await db.execute('''
           CREATE TABLE watchlist (
             content_id TEXT NOT NULL,
@@ -34,6 +44,7 @@ class LocalDatabase {
             PRIMARY KEY (content_id, content_type)
           );
         ''');
+
         await db.execute('''
           CREATE TABLE content_cache (
             cache_key TEXT PRIMARY KEY,
@@ -42,6 +53,7 @@ class LocalDatabase {
             updated_at INTEGER NOT NULL
           );
         ''');
+
         await db.execute('''
           CREATE TABLE iptv_accounts (
             account_id TEXT PRIMARY KEY,
@@ -55,6 +67,7 @@ class LocalDatabase {
             last_error TEXT
           );
         ''');
+
         await db.execute('''
           CREATE TABLE iptv_playlists (
             account_id TEXT NOT NULL,
@@ -64,6 +77,7 @@ class LocalDatabase {
             PRIMARY KEY (account_id, category_id)
           );
         ''');
+
         await db.execute('''
           CREATE TABLE continue_watching (
             content_id TEXT NOT NULL,
@@ -78,6 +92,7 @@ class LocalDatabase {
             PRIMARY KEY (content_id, content_type)
           );
         ''');
+
         await db.execute('''
           CREATE TABLE history (
             content_id TEXT NOT NULL,
@@ -107,6 +122,7 @@ class LocalDatabase {
             updated_at INTEGER NOT NULL
           );
         ''');
+
         await db.execute('''
           CREATE TABLE playlist_items (
             playlist_id TEXT NOT NULL,
@@ -121,6 +137,14 @@ class LocalDatabase {
             PRIMARY KEY (playlist_id, position)
           );
         ''');
+
+        // --- Indexes (installations fraîches v5+) ---
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
+        );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
+        );
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -183,6 +207,15 @@ class LocalDatabase {
               PRIMARY KEY (playlist_id, position)
             );
           ''');
+        }
+        if (oldVersion < 5) {
+          // Ajout des indexes pour accélérer les accès fréquents
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
+          );
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
+          );
         }
       },
     );

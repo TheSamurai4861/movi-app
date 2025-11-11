@@ -20,14 +20,8 @@ Image _buildPersonImage(String source, double width, double height) {
       height: height,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => errorPlaceholder,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return SizedBox(
-          width: width,
-          height: height,
-          child: const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-        );
-      },
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.low,
     );
   }
 

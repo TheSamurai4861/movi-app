@@ -15,9 +15,14 @@ class TmdbTvDetailDto {
     required this.creators,
     required this.seasons,
     required this.recommendations,
+    required this.isFullPayload,
   });
 
   factory TmdbTvDetailDto.fromJson(Map<String, dynamic> json) {
+    // Détermine si le payload est "full" (append_to_response: images/credits/recommendations)
+    final bool isFull = json.containsKey('images') ||
+        json.containsKey('credits') ||
+        json.containsKey('recommendations');
     final images = json['images'] as Map<String, dynamic>?;
     final logos = images?['logos'] as List<dynamic>? ?? const [];
     final logoPath = _selectLogo(logos);
@@ -59,6 +64,7 @@ class TmdbTvDetailDto {
           .map((season) => TmdbTvSeasonDto.fromJson(season as Map<String, dynamic>))
           .toList(),
       recommendations: recommendations,
+      isFullPayload: isFull,
     );
   }
 
@@ -77,6 +83,7 @@ class TmdbTvDetailDto {
   final List<TmdbTvCrewDto> creators;
   final List<TmdbTvSeasonDto> seasons;
   final List<TmdbTvSummaryDto> recommendations;
+  final bool isFullPayload;
 
   Map<String, dynamic> toCache() => {
         'id': id,

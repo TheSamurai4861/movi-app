@@ -1,23 +1,32 @@
-// lib/src/features/home/data/repositories/home_feed_repository_impl.dart
+// ignore_for_file: public_member_api_docs
+
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:movi/src/core/di/injector.dart';
 import 'package:movi/src/core/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/core/iptv/domain/entities/xtream_playlist_item.dart';
 
+import '../../../../core/state/app_state_controller.dart';
+import '../../../../core/storage/repositories/iptv_local_repository.dart';
+import '../../../../shared/data/services/tmdb_cache_data_source.dart';
+import '../../../../shared/data/services/tmdb_image_resolver.dart';
+import '../../../../shared/domain/value_objects/content_reference.dart';
+import '../../../../shared/domain/value_objects/media_id.dart';
+import '../../../../shared/domain/value_objects/media_title.dart';
+import '../../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import '../../../movie/domain/entities/movie_summary.dart';
 import '../../../movie/domain/repositories/movie_repository.dart';
-import '../../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import '../../../tv/domain/entities/tv_show.dart';
 import '../../../tv/domain/repositories/tv_repository.dart';
-import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../../core/state/app_state_controller.dart';
 import '../../domain/repositories/home_feed_repository.dart';
-import '../../../../shared/data/services/tmdb_cache_data_source.dart';
+import '../../../../core/storage/services/cache_policy.dart';
 
+/// Repository de flux Home.
+/// Règles :
+/// - Aucun pré-enrichissement réseau non initié par l’UI.
+/// - Le Hero reste LITE ; l’UI peut déclencher du « full » ailleurs si besoin.
+/// - Enrichissement on-demand : Cache → Réseau (LITE), idempotent par cycle d’écran.
 class HomeFeedRepositoryImpl implements HomeFeedRepository {
   HomeFeedRepositoryImpl(
     this._moviesRemote,
@@ -38,71 +47,60 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   final TmdbImageResolver _images;
   final AppStateController _appState;
   final TmdbCacheDataSource _tmdbCache;
+
+  /// Garde d’idempotence pour l’enrichissement on-demand (par cycle d’écran).
   final Set<String> _enrichedIds = <String>{};
 
-  // Limite de pré-chargement TMDB par catégorie
-  static const int _preloadPerCategory = 5;
-
-  // Nombre max de pages "tendances" à parcourir avant fallback playlist
+  /// Nombre max de pages "trending" parcourues pour construire le Hero.
   static const int _maxTrendingPages = 3;
 
-  // ---------------------------
-  // HERO (tendances → match IPTV → fallback premier stream VOD)
-  // ---------------------------
+  // ---------------------------------------------------------------------------
+  // HERO (tendances → match IPTV → fallback VOD → fallback trending simple)
+  // ---------------------------------------------------------------------------
 
   @override
   Future<List<MovieSummary>> getHeroMovies() async {
-    // Ensemble des TMDB IDs présents dans la playlist (pour matcher rapidement)
-    final availableTmdb = await _collectAvailableTmdbIds();
+    final Set<int> availableTmdb = await _collectAvailableTmdbIds();
 
-    // Parcours des pages de tendances
-    List<dynamic> matchedDtos = [];
-    for (int page = 1; page <= _maxTrendingPages; page++) {
-      final trendingPage = await _fetchTrendingMoviesPage(page);
-      if (trendingPage.isEmpty) break;
+    // 1) Chercher des tendances TMDB qui matchent la playlist locale.
+    List<dynamic> matchedDtos = <dynamic>[];
+    for (var page = 1; page <= _maxTrendingPages; page++) {
+      final List<dynamic> pageDtos = await _fetchTrendingMoviesPage(page);
+      if (pageDtos.isEmpty) break;
 
-      final pageMatches = trendingPage
+      final List<dynamic> pageMatches = pageDtos
           .where(
-            (dto) => dto.posterPath != null && availableTmdb.contains(dto.id),
+            (dto) => (dto.posterPath != null) && availableTmdb.contains(dto.id),
           )
           .toList();
+
       if (pageMatches.isNotEmpty) {
         matchedDtos = pageMatches;
         break;
       }
     }
 
-    // Si match → mappage + pre-cache Full pour le 1er héro
+    // 2) Mapping (posters requis) et limitation.
     if (matchedDtos.isNotEmpty) {
-      final list = matchedDtos
+      final List<MovieSummary> list = matchedDtos
           .map(_mapMovie)
           .whereType<MovieSummary>()
           .toList();
       if (list.isNotEmpty) {
-        final first = list.first;
-        if (first.tmdbId != null) {
-          try {
-            // Hero = DÉTAIL COMPLET (images/credits/reco)
-            final detail = await _moviesRemote.fetchMovieFull(first.tmdbId!);
-            await _tmdbCache.putMovieDetail(first.tmdbId!, detail.toCache());
-          } catch (_) {
-            /* no-op */
-          }
-        }
         return list.length > 20 ? list.sublist(0, 20) : list;
       }
     }
 
-    // Fallback : aucun match → premier stream VOD de la/les playlists
-    final firstVod = await _pickFirstVodStream();
+    // 3) Fallback: utiliser le premier stream VOD dispo dans les playlists.
+    final XtreamPlaylistItem? firstVod = await _pickFirstVodStream();
     if (firstVod != null) {
-      final synthetic = _fromPlaylistItemToMovieSummary(firstVod);
-      if (synthetic != null) return [synthetic];
+      final MovieSummary? synthetic = _fromPlaylistItemToMovieSummary(firstVod);
+      if (synthetic != null) return <MovieSummary>[synthetic];
     }
 
-    // Ultime garde-fou : revenir sur la première page Trending mappée
-    final fallbackTrending = await _fetchTrendingMoviesPage(1);
-    final fallbackList = fallbackTrending
+    // 4) Ultime fallback: première page trending mappée (avec poster).
+    final List<dynamic> fallbackDtos = await _fetchTrendingMoviesPage(1);
+    final List<MovieSummary> fallbackList = fallbackDtos
         .map(_mapMovie)
         .whereType<MovieSummary>()
         .toList();
@@ -113,74 +111,70 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         : <MovieSummary>[];
   }
 
-  // ---------------------------
+  // ---------------------------------------------------------------------------
   // CONTINUE WATCHING
-  // ---------------------------
+  // ---------------------------------------------------------------------------
 
   @override
-  Future<List<MovieSummary>> getContinueWatchingMovies() =>
-      _movieRepository.getContinueWatching();
+  Future<List<MovieSummary>> getContinueWatchingMovies() {
+    return _movieRepository.getContinueWatching();
+  }
 
   @override
-  Future<List<TvShowSummary>> getContinueWatchingShows() =>
-      _tvRepository.getContinueWatching();
+  Future<List<TvShowSummary>> getContinueWatchingShows() {
+    return _tvRepository.getContinueWatching();
+  }
 
-  // ---------------------------
-  // IPTV CATÉGORIES (pré-charge 5, reste léger)
-  // ---------------------------
+  // ---------------------------------------------------------------------------
+  // IPTV CATÉGORIES (LITE)
+  // ---------------------------------------------------------------------------
 
   @override
   Future<Map<String, List<ContentReference>>> getIptvCategoryLists() async {
-    final result = <String, List<ContentReference>>{};
-    _enrichedIds.clear(); // nouveau cycle d’écran → on repart propre
+    final Map<String, List<ContentReference>> result =
+        <String, List<ContentReference>>{};
+    _enrichedIds.clear(); // Nouveau cycle d’écran.
 
-    final accounts = await _safeGetAccounts();
+    final List<XtreamAccountLite> accounts = await _safeGetAccounts();
     if (accounts.isEmpty) return result;
 
-    for (final account in accounts) {
+    for (final XtreamAccountLite account in accounts) {
+      // Filtrage par sources actives si applicable.
       if (_appState.activeIptvSourceIds.isNotEmpty &&
           !_appState.activeIptvSourceIds.contains(account.id)) {
         continue;
       }
 
-      final playlists = await _safeGetPlaylists(account.id);
-      for (final pl in playlists) {
-        final visibleKey = '${account.alias}/${_cleanCategoryTitle(pl.title)}';
+      final List<XtreamPlaylist> playlists = await _safeGetPlaylists(
+        account.id,
+      );
 
-        // Pré-sélection des items avec tmdbId pour pré-enrichir les N premiers
-        final withTmdbId = pl.items.where((i) => i.tmdbId != null).toList();
-        final firstBatch = withTmdbId.take(_preloadPerCategory).toList();
+        for (final XtreamPlaylist pl in playlists) {
+          final String visibleKey =
+              '${account.alias}/${_cleanCategoryTitle(pl.title)}';
 
-        // 1) Pré-enrichir (films: réseau autorisé en Lite ; séries: désormais réseau autorisé aussi)
-        final enriched = <ContentReference>[];
-        for (final item in firstBatch) {
-          final ref = await _enrichFirstBatchItem(item);
-          if (ref != null) enriched.add(ref);
-        }
-        final enrichedById = {for (final r in enriched) r.id: r};
-
-        // 2) Construire la liste finale dans l’ordre de la playlist
-        final items = <ContentReference>[];
-        for (final it in pl.items) {
-          final keyId = (it.tmdbId ?? it.streamId).toString();
-          final maybeEnriched = enrichedById[keyId];
-          if (maybeEnriched != null) {
-            items.add(maybeEnriched);
-            continue;
-          }
-          items.add(
-            ContentReference(
-              id: keyId,
+          // Construction LITE: aucun appel TMDB ici, l’UI déclenchera l’enrichissement.
+          final List<ContentReference> items = <ContentReference>[];
+          for (final XtreamPlaylistItem it in pl.items) {
+            // IMPORTANT: ne jamais confondre streamId IPTV avec tmdbId.
+            // Si tmdbId est absent, utiliser un identifiant non-numérique pour forcer
+            // le fallback par titre côté enrichissement.
+            final String refId = (it.tmdbId != null && it.tmdbId! > 0)
+                ? it.tmdbId!.toString()
+                : 'xtream:${it.streamId}';
+            items.add(
+              ContentReference(
+              id: refId,
               title: MediaTitle(it.title),
               type: it.type == XtreamPlaylistItemType.series
                   ? ContentType.series
                   : ContentType.movie,
-              poster: (it.posterUrl != null && it.posterUrl!.isNotEmpty)
-                  ? Uri.tryParse(it.posterUrl!)
-                  : null,
-            ),
-          );
-        }
+              poster: _safePosterUri(it.posterUrl),
+              year: it.releaseYear,
+              rating: it.rating,
+              ),
+            );
+          }
 
         if (items.isNotEmpty) {
           result[visibleKey] = items;
@@ -191,106 +185,172 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     return result;
   }
 
-  // ---------------------------
-  // ENRICHISSEMENT "à la volée" d’un ContentReference léger (LITE)
-  // ---------------------------
+  // ---------------------------------------------------------------------------
+  // ENRICHISSEMENT à la demande (Cache → Réseau LITE)
+  // ---------------------------------------------------------------------------
 
   @override
-  Future<ContentReference> enrichReference(ContentReference ref) async {
-    final idNum = int.tryParse(ref.id);
-    if (idNum == null) return ref;
+  Future<ContentReference> enrichReference(
+    ContentReference ref, {
+    CancelToken? cancelToken,
+  }) async {
+    int? idNum = int.tryParse(ref.id);
+    final bool isSeries = ref.type == ContentType.series;
 
-    if (!_enrichedIds.add(ref.id)) {
-      return ref;
+    // Idempotence: si déjà enrichi avec succès pendant ce cycle, renvoyer tel quel.
+    if (_enrichedIds.contains(ref.id)) return ref;
+
+    // Fallback titre → id si l'ID n’est pas numérique (souvent streamId IPTV).
+    if (idNum == null) {
+      try {
+        if (isSeries) {
+          final results = await _tvRemote.searchShows(ref.title.value, cancelToken: cancelToken);
+          final match = results.isNotEmpty ? results.first : null;
+          idNum = match?.id;
+          if (kDebugMode) {
+            debugPrint(
+              '[HomeFeed] TV search fallback for "${ref.title.value}" → id=$idNum',
+            );
+          }
+        } else {
+          final results = await _moviesRemote.searchMovies(ref.title.value, cancelToken: cancelToken);
+          final match = results.isNotEmpty ? results.first : null;
+          idNum = match?.id;
+          if (kDebugMode) {
+            debugPrint(
+              '[HomeFeed] MOVIE search fallback for "${ref.title.value}" → id=$idNum',
+            );
+          }
+        }
+      } catch (_) {
+        // Ignorer les erreurs de recherche fallback.
+      }
     }
 
-    Map<String, dynamic>? data;
-    final isSeries = ref.type == ContentType.series;
+    if (idNum == null) return ref;
 
-    if (isSeries) {
-      // TV: cache d'abord, puis réseau (LITE) si nécessaire
-      data = await _tmdbCache.getTvDetail(idNum);
-      if (data == null) {
-        try {
-          final dto = await _tvRemote.fetchShowLite(idNum);
-          data = dto.toCache();
-          await _tmdbCache.putTvDetail(idNum, data);
-        } catch (_) {
-          return ref;
+    try {
+      if (isSeries) {
+        // TV: d’abord cache, sinon réseau LITE puis mise en cache.
+        Map<String, dynamic>? cached = await _tmdbCache.getTvDetail(
+          idNum,
+          policyOverride: const CachePolicy(ttl: Duration(days: 3)),
+        );
+        if (cached == null) {
+          final dto = await _tvRemote.fetchShowLite(idNum, cancelToken: cancelToken);
+          final Map<String, dynamic> json = dto.toCache();
+          await _tmdbCache.putTvDetail(idNum, json);
+          cached = json;
         }
-      }
+        final Map<String, dynamic> data = cached;
 
-      final images = (data['images'] as Map<String, dynamic>?) ?? const {};
-      final posters = (images['posters'] as List<dynamic>? ?? const []);
-      final posterPath =
-          _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
-      final tmdbTitle =
-          (data['name']?.toString() ?? data['original_name']?.toString());
+        final Map<String, dynamic> imagesMap =
+            (data['images'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{};
+        final List<dynamic> posters =
+            (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
+        final String? posterPath =
+            _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
+        final String? tmdbTitle =
+            (data['name']?.toString() ?? data['original_name']?.toString());
 
-      return ContentReference(
-        id: ref.id,
-        title: MediaTitle(
-          (tmdbTitle != null && tmdbTitle.isNotEmpty)
-              ? tmdbTitle
-              : ref.title.value,
-        ),
-        type: ref.type,
-        poster: _images.poster(posterPath),
-        year: _parseYear(data['first_air_date']?.toString()),
-        rating: (data['vote_average'] as num?)?.toDouble(),
-      );
-    } else {
-      // Movie: cache d'abord, puis réseau (LITE) si nécessaire
-      data = await _tmdbCache.getMovieDetail(idNum);
-      if (data == null) {
-        try {
-          final dto = await _moviesRemote.fetchMovieLite(idNum);
-          data = dto.toCache();
-          await _tmdbCache.putMovieDetail(idNum, data);
-        } catch (_) {
-          return ref;
+        final result = ContentReference(
+          id: ref.id,
+          title: MediaTitle(
+            (tmdbTitle != null && tmdbTitle.isNotEmpty)
+                ? tmdbTitle
+                : ref.title.value,
+          ),
+          type: ref.type,
+          // TMDB d’abord, sinon conserver le poster IPTV en fallback.
+          poster: _images.poster(posterPath) ?? ref.poster, // w500 par défaut côté resolver
+          year: _parseYear(data['first_air_date']?.toString()) ?? ref.year,
+          rating: (data['vote_average'] as num?)?.toDouble() ?? ref.rating,
+        );
+
+        if (kDebugMode) {
+          debugPrint(
+            '[HomeFeed] Enriched TV id=${ref.id} year=${result.year} rating=${result.rating} posterPresent=${result.poster != null}',
+          );
         }
+
+        _enrichedIds.add(ref.id); // marquer après succès
+        return result;
+      } else {
+        // Movie: d’abord cache, sinon réseau LITE puis mise en cache.
+        Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(
+          idNum,
+          policyOverride: const CachePolicy(ttl: Duration(days: 3)),
+        );
+        if (cached == null) {
+          final dto = await _moviesRemote.fetchMovieLite(idNum, cancelToken: cancelToken);
+          final Map<String, dynamic> json = dto.toCache();
+          await _tmdbCache.putMovieDetail(idNum, json);
+          cached = json;
+        }
+        final Map<String, dynamic> data = cached;
+
+        final Map<String, dynamic> imagesMap =
+            (data['images'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{};
+        final List<dynamic> posters =
+            (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
+        final String? posterPath =
+            _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
+        final String? tmdbTitle =
+            (data['title']?.toString() ?? data['original_title']?.toString());
+
+        final result = ContentReference(
+          id: ref.id,
+          title: MediaTitle(
+            (tmdbTitle != null && tmdbTitle.isNotEmpty)
+                ? tmdbTitle
+                : ref.title.value,
+          ),
+          type: ref.type,
+          // TMDB d’abord, sinon conserver le poster IPTV en fallback.
+          poster: _images.poster(posterPath) ?? ref.poster, // w500 par défaut côté resolver
+          year: _parseYear(data['release_date']?.toString()) ?? ref.year,
+          rating: (data['vote_average'] as num?)?.toDouble() ?? ref.rating,
+        );
+
+        if (kDebugMode) {
+          debugPrint(
+            '[HomeFeed] Enriched MOVIE id=${ref.id} year=${result.year} rating=${result.rating} posterPresent=${result.poster != null}',
+          );
+        }
+
+        _enrichedIds.add(ref.id); // marquer après succès
+        return result;
       }
-
-      final images = (data['images'] as Map<String, dynamic>?) ?? const {};
-      final posters = (images['posters'] as List<dynamic>? ?? const []);
-      final posterPath =
-          _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
-      final tmdbTitle =
-          (data['title']?.toString() ?? data['original_title']?.toString());
-
-      return ContentReference(
-        id: ref.id,
-        title: MediaTitle(
-          (tmdbTitle != null && tmdbTitle.isNotEmpty)
-              ? tmdbTitle
-              : ref.title.value,
-        ),
-        type: ref.type,
-        poster: _images.poster(posterPath),
-        year: _parseYear(data['release_date']?.toString()),
-        rating: (data['vote_average'] as num?)?.toDouble(),
-      );
+    } catch (e) {
+      // Défensif : conserver la carte existante en cas d’erreur réseau/parsing.
+      assert(() {
+        debugPrint('[HomeFeedRepositoryImpl] enrichReference error: $e');
+        return true;
+      }());
+      // Ne pas marquer comme enrichi en cas d’échec, pour permettre un nouvel essai.
+      return ref;
     }
   }
 
-  // ---------------------------
-  // Helpers HERO / enrich / mapping
-  // ---------------------------
+  // ---------------------------------------------------------------------------
+  // Helpers HERO / mapping
+  // ---------------------------------------------------------------------------
 
   Future<Set<int>> _collectAvailableTmdbIds() async {
     try {
-      final ids = await _iptvLocal.getAvailableTmdbIds();
-      return ids.toSet();
+      final Set<int> ids = await _iptvLocal.getAvailableTmdbIds();
+      return ids;
     } catch (_) {
-      // fallback : reconstituer via accounts/playlists
-      final accs = await _safeGetAccounts();
-      final set = <int>{};
-      for (final acc in accs) {
-        final pls = await _safeGetPlaylists(acc.id);
-        for (final pl in pls) {
-          for (final it in pl.items) {
-            final id = it.tmdbId;
+      // Fallback: reconstitution via accounts/playlists si l'API dédiée n’est pas disponible.
+      final List<XtreamAccountLite> accs = await _safeGetAccounts();
+      final Set<int> set = <int>{};
+      for (final XtreamAccountLite acc in accs) {
+        final List<XtreamPlaylist> pls = await _safeGetPlaylists(acc.id);
+        for (final XtreamPlaylist pl in pls) {
+          for (final XtreamPlaylistItem it in pl.items) {
+            final int? id = it.tmdbId;
             if (id != null) set.add(id);
           }
         }
@@ -300,17 +360,17 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   Future<XtreamPlaylistItem?> _pickFirstVodStream() async {
-    final accs = await _safeGetAccounts();
+    final List<XtreamAccountLite> accs = await _safeGetAccounts();
     if (accs.isEmpty) return null;
 
-    for (final acc in accs) {
-      // films d'abord, puis séries
-      final pls = await _safeGetPlaylists(acc.id);
-      final moviesFirst = [
+    for (final XtreamAccountLite acc in accs) {
+      // Films d’abord, puis séries.
+      final List<XtreamPlaylist> pls = await _safeGetPlaylists(acc.id);
+      final List<XtreamPlaylist> moviesFirst = <XtreamPlaylist>[
         ...pls.where((p) => p.type == XtreamPlaylistType.movies),
         ...pls.where((p) => p.type == XtreamPlaylistType.series),
       ];
-      for (final pl in moviesFirst) {
+      for (final XtreamPlaylist pl in moviesFirst) {
         if (pl.items.isNotEmpty) return pl.items.first;
       }
     }
@@ -318,9 +378,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   MovieSummary? _fromPlaylistItemToMovieSummary(XtreamPlaylistItem item) {
-    final poster = (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-        ? Uri.tryParse(item.posterUrl!)
-        : null;
+    final Uri? poster = _safePosterUri(item.posterUrl);
     if (poster == null) return null;
 
     return MovieSummary(
@@ -328,101 +386,37 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       tmdbId: item.tmdbId,
       title: MediaTitle(item.title),
       poster: poster,
-      backdrop: poster, // fallback si pas de backdrop dédié
+      backdrop: poster, // Fallback si pas de backdrop dédié.
       releaseYear: item.releaseYear,
     );
   }
 
-  Future<ContentReference?> _enrichFirstBatchItem(
-    XtreamPlaylistItem item,
-  ) async {
-    final tmdbId = item.tmdbId;
-    if (tmdbId == null) return null;
-
-    Map<String, dynamic>? data;
-    final isSeries = item.type == XtreamPlaylistItemType.series;
-
-    if (isSeries) {
-      // Séries : d'abord cache, puis réseau (LITE) si manquant — alignement avec films
-      data = await _tmdbCache.getTvDetail(tmdbId);
-      if (data == null) {
-        try {
-          final dto = await _tvRemote.fetchShowLite(tmdbId);
-          data = dto.toCache();
-          await _tmdbCache.putTvDetail(tmdbId, data);
-        } catch (_) {
-          /* no-op */
-        }
-      }
-    } else {
-      // Films : cache, puis réseau (LITE) si manquant
-      data = await _tmdbCache.getMovieDetail(tmdbId);
-      if (data == null) {
-        try {
-          final dto = await _moviesRemote.fetchMovieLite(tmdbId);
-          data = dto.toCache();
-          await _tmdbCache.putMovieDetail(tmdbId, data);
-        } catch (_) {
-          /* no-op */
-        }
-      }
-    }
-
-    Uri? posterUri;
-    int? year;
-    double? rating;
-    String? tmdbTitle;
-
-    if (data != null) {
-      final images = (data['images'] as Map<String, dynamic>?) ?? const {};
-      final posters = (images['posters'] as List<dynamic>? ?? const []);
-      final posterPath =
-          _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
-      posterUri = _images.poster(posterPath);
-      year = _parseYear(
-        isSeries
-            ? data['first_air_date']?.toString()
-            : data['release_date']?.toString(),
-      );
-      rating = (data['vote_average'] as num?)?.toDouble();
-      // Titre TMDB prioritaire
-      tmdbTitle = isSeries
-          ? (data['name']?.toString() ?? data['original_name']?.toString())
-          : (data['title']?.toString() ?? data['original_title']?.toString());
-    } else {
-      posterUri = (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-          ? Uri.tryParse(item.posterUrl!)
-          : null;
-    }
-
-    return ContentReference(
-      id: tmdbId.toString(),
-      title: MediaTitle(
-        (tmdbTitle != null && tmdbTitle.isNotEmpty) ? tmdbTitle : item.title,
-      ),
-      type: isSeries ? ContentType.series : ContentType.movie,
-      poster: posterUri,
-      year: year,
-      rating: rating,
-    );
-  }
-
   MovieSummary? _mapMovie(dynamic dto) {
-    final poster = _images.poster(dto.posterPath);
+    final Uri? poster = _images.poster(dto.posterPath); // w500 par défaut
     if (poster == null) return null;
     return MovieSummary(
       id: MovieId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.title),
+      tmdbId: dto.id as int?,
+      title: MediaTitle(dto.title as String),
       poster: poster,
-      backdrop: _images.backdrop(dto.backdropPath),
-      releaseYear: _parseYear(dto.releaseDate),
+      backdrop: _images.backdrop(dto.backdropPath), // w780 par défaut
+      releaseYear: _parseYear(dto.releaseDate as String?),
     );
+  }
+
+  /// Vérifie et filtre les URLs de posters IPTV (autorise http/https sans blacklist d'hôtes).
+  Uri? _safePosterUri(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final Uri? u = Uri.tryParse(raw);
+    if (u == null) return null;
+    final String scheme = u.scheme.toLowerCase();
+    if (scheme != 'http' && scheme != 'https') return null;
+    return u;
   }
 
   String _cleanCategoryTitle(String raw) {
     // Ex: "premium-ott.com/Action" -> "Action"
-    final idx = raw.indexOf('/');
+    final int idx = raw.indexOf('/');
     if (idx >= 0 && idx < raw.length - 1) {
       return raw.substring(idx + 1);
     }
@@ -434,13 +428,15 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
     num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
 
-    final list = posters.cast<Map<String, dynamic>>();
+    final List<Map<String, dynamic>> list = posters
+        .cast<Map<String, dynamic>>();
 
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (noLang.isNotEmpty) return pathOf(noLang.first);
 
-    final en =
+    final List<Map<String, dynamic>> en =
         list
             .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
             .toList()
@@ -451,43 +447,78 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     return pathOf(list.first);
   }
 
-  int? _parseYear(String? raw) => (raw != null && raw.isNotEmpty)
-      ? int.tryParse(raw.substring(0, 4))
-      : null;
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.isEmpty || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
 
-  // ---------------------------
-  // Safe wrappers
-  // ---------------------------
+  // ---------------------------------------------------------------------------
+  // Safe wrappers (résilients)
+  // ---------------------------------------------------------------------------
 
-  Future<List<dynamic>> _safeGetAccounts() async {
+  /// Version légère de compte pour itération UI (id/alias uniquement).
+  Future<List<XtreamAccountLite>> _safeGetAccounts() async {
     try {
       final accounts = await _iptvLocal.getAccounts();
-      return accounts;
-    } catch (_) {
-      return const <dynamic>[];
+      // Projection minimale (évite d’exposer tout l’objet si lourd)
+      return accounts
+          .map((a) => XtreamAccountLite(id: a.id, alias: a.alias))
+          .toList(growable: false);
+    } catch (e) {
+      assert(() {
+        debugPrint('[HomeFeedRepositoryImpl] getAccounts error: $e');
+        return true;
+      }());
+      return const <XtreamAccountLite>[];
     }
   }
 
-  Future<List<dynamic>> _safeGetPlaylists(dynamic accountId) async {
+  Future<List<XtreamPlaylist>> _safeGetPlaylists(String accountId) async {
     try {
-      final playlists = await _iptvLocal.getPlaylists(accountId);
+      final List<XtreamPlaylist> playlists = await _iptvLocal.getPlaylists(
+        accountId,
+      );
       return playlists;
-    } catch (_) {
-      return const <dynamic>[];
+    } catch (e) {
+      assert(() {
+        debugPrint('[HomeFeedRepositoryImpl] getPlaylists error: $e');
+        return true;
+      }());
+      return const <XtreamPlaylist>[];
     }
   }
 
   Future<List<dynamic>> _fetchTrendingMoviesPage(int page) async {
     try {
-      final dynamic any = _moviesRemote;
-      final res = await any.fetchTrendingMovies(window: 'week', page: page);
-      return res as List<dynamic>;
-    } catch (_) {
+      final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
+        window: 'week',
+        page: page,
+      );
+      return res;
+    } catch (e) {
+      assert(() {
+        debugPrint(
+          '[HomeFeedRepositoryImpl] fetchTrendingMovies(page: $page) error: $e',
+        );
+        return true;
+      }());
+      // En cas d'échec > page 1 on coupe court ; pour page 1 on tente un dernier essai.
       if (page == 1) {
-        final res = await _moviesRemote.fetchTrendingMovies(window: 'week');
-        return res;
+        try {
+          final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
+            window: 'week',
+          );
+          return res;
+        } catch (_) {}
       }
       return const <dynamic>[];
     }
   }
+}
+
+/// Projection minimale d’un compte pour itération UI.
+class XtreamAccountLite {
+  const XtreamAccountLite({required this.id, required this.alias});
+  final String id;
+  final String alias;
 }

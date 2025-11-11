@@ -21,7 +21,7 @@ class XtreamRemoteDataSource {
           'password': password,
         }),
       ),
-      mapper: XtreamAuthDto.fromJson,
+      mapper: (response) => XtreamAuthDto.fromJson(response.data!),
     );
   }
 
@@ -53,8 +53,10 @@ class XtreamRemoteDataSource {
           'action': action,
         }),
       ),
-      mapper: (json) =>
-          json.map((item) => XtreamCategoryDto.fromJson(item as Map<String, dynamic>)).toList(growable: false),
+      mapper: (response) =>
+          response.data!
+              .map((item) => XtreamCategoryDto.fromJson(item as Map<String, dynamic>))
+              .toList(growable: false),
     );
   }
 
@@ -76,8 +78,10 @@ class XtreamRemoteDataSource {
       request: (client) => client.getUri<List<dynamic>>(
         request.endpoint.buildUri(query),
       ),
-      mapper: (json) =>
-          json.map((item) => XtreamStreamDto.fromJson(item as Map<String, dynamic>)).toList(growable: false),
+      mapper: (response) =>
+          response.data!
+              .map((item) => XtreamStreamDto.fromJson(item as Map<String, dynamic>))
+              .toList(growable: false),
     );
   }
 }

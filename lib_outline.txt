@@ -1,0 +1,2583 @@
+================================================================================
+ARBORESCENCE DU PROJET
+================================================================================
+
+--------------------------------------------------------------------------------
+Structure du dossier: C:\Users\berny\DEV\Flutter\movi\assets
+--------------------------------------------------------------------------------
+assets/
+└── icons/
+    ├── app_logo.png
+    ├── home.png
+    ├── home_activated.png
+    ├── library.png
+    ├── library_activated.png
+    ├── play_arrow.png
+    ├── search.png
+    ├── search_activated.png
+    ├── settings.png
+    ├── settings_activated.png
+    ├── star_filled.png
+    └── star_unfilled.png
+
+--------------------------------------------------------------------------------
+Structure du dossier: C:\Users\berny\DEV\Flutter\movi\lib
+--------------------------------------------------------------------------------
+lib/
+├── src/
+│   ├── core/
+│   │   ├── config/
+│   │   │   ├── env/
+│   │   │   │   ├── dev_environment.dart
+│   │   │   │   ├── environment.dart
+│   │   │   │   └── environment_loader.dart
+│   │   │   ├── models/
+│   │   │   │   ├── app_config.dart
+│   │   │   │   ├── app_metadata.dart
+│   │   │   │   ├── feature_flags.dart
+│   │   │   │   └── network_endpoints.dart
+│   │   │   ├── providers/
+│   │   │   │   ├── config_provider.dart
+│   │   │   │   └── overrides.dart
+│   │   │   ├── services/
+│   │   │   │   ├── platform_selector.dart
+│   │   │   │   └── secret_store.dart
+│   │   │   └── config_module.dart
+│   │   ├── di/
+│   │   │   ├── services/
+│   │   │   │   ├── content_repository.dart
+│   │   │   │   └── preferences_service.dart
+│   │   │   ├── injector.dart
+│   │   │   └── test_injector.dart
+│   │   ├── iptv/
+│   │   │   ├── application/
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── playlist_mapper.dart
+│   │   │   │   │   └── xtream_sync_service.dart
+│   │   │   │   └── usecases/
+│   │   │   │       ├── add_xtream_source.dart
+│   │   │   │       ├── list_xtream_playlists.dart
+│   │   │   │       └── refresh_xtream_catalog.dart
+│   │   │   ├── config/
+│   │   │   │   └── iptv_module.dart
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── xtream_cache_data_source.dart
+│   │   │   │   │   └── xtream_remote_data_source.dart
+│   │   │   │   ├── dtos/
+│   │   │   │   │   ├── xtream_auth_dto.dart
+│   │   │   │   │   ├── xtream_category_dto.dart
+│   │   │   │   │   └── xtream_stream_dto.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── iptv_repository_impl.dart
+│   │   │   └── domain/
+│   │   │       ├── entities/
+│   │   │       │   ├── xtream_account.dart
+│   │   │       │   ├── xtream_catalog_snapshot.dart
+│   │   │       │   ├── xtream_playlist.dart
+│   │   │       │   └── xtream_playlist_item.dart
+│   │   │       ├── repositories/
+│   │   │       │   └── iptv_repository.dart
+│   │   │       └── value_objects/
+│   │   │           └── xtream_endpoint.dart
+│   │   ├── models/
+│   │   │   ├── movi_media.dart
+│   │   │   └── movi_person.dart
+│   │   ├── network/
+│   │   │   ├── config/
+│   │   │   │   └── network_module.dart
+│   │   │   ├── interceptors/
+│   │   │   │   ├── auth_interceptor.dart
+│   │   │   │   ├── locale_interceptor.dart
+│   │   │   │   ├── retry_interceptor.dart
+│   │   │   │   └── telemetry_interceptor.dart
+│   │   │   ├── dio_failure_mapper.dart
+│   │   │   ├── http_client_factory.dart
+│   │   │   ├── network_executor.dart
+│   │   │   └── network_failures.dart
+│   │   ├── preferences/
+│   │   │   └── locale_preferences.dart
+│   │   ├── router/
+│   │   │   └── app_router.dart
+│   │   ├── state/
+│   │   │   ├── app_state.dart
+│   │   │   ├── app_state_controller.dart
+│   │   │   └── app_state_provider.dart
+│   │   ├── storage/
+│   │   │   ├── database/
+│   │   │   │   ├── models/
+│   │   │   │   └── sqlite_database.dart
+│   │   │   ├── repositories/
+│   │   │   │   ├── content_cache_repository.dart
+│   │   │   │   ├── continue_watching_local_repository.dart
+│   │   │   │   ├── history_local_repository.dart
+│   │   │   │   ├── iptv_local_repository.dart
+│   │   │   │   ├── playlist_local_repository.dart
+│   │   │   │   └── watchlist_local_repository.dart
+│   │   │   └── services/
+│   │   │       ├── cache_policy.dart
+│   │   │       └── storage_module.dart
+│   │   ├── theme/
+│   │   │   ├── app_colors.dart
+│   │   │   └── app_theme.dart
+│   │   ├── utils/
+│   │   │   ├── app_assets.dart
+│   │   │   ├── app_spacing.dart
+│   │   │   ├── context_extensions.dart
+│   │   │   ├── logger.dart
+│   │   │   ├── logger_utils.dart
+│   │   │   ├── utils.dart
+│   │   │   └── validators.dart
+│   │   └── widgets/
+│   │       ├── movi_bottom_nav_bar.dart
+│   │       ├── movi_favorite_button.dart
+│   │       ├── movi_items_list.dart
+│   │       ├── movi_marquee_text.dart
+│   │       ├── movi_media_card.dart
+│   │       ├── movi_person_card.dart
+│   │       ├── movi_pill.dart
+│   │       └── movi_primary_button.dart
+│   ├── features/
+│   │   ├── home/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   ├── dtos/
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── home_feed_repository_impl.dart
+│   │   │   │   └── home_feed_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── home_feed_repository.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── home_page.dart
+│   │   │       ├── providers/
+│   │   │       │   └── home_providers.dart
+│   │   │       └── widgets/
+│   │   │           ├── continue_watching_card.dart
+│   │   │           └── home_hero_section.dart
+│   │   ├── library/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   ├── dtos/
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── library_repository_impl.dart
+│   │   │   │   └── library_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── library_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── like_person.dart
+│   │   │   │   │   └── unlike_person.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── library_page.dart
+│   │   │       ├── providers/
+│   │   │       │   └── library_providers.dart
+│   │   │       └── widgets/
+│   │   ├── movie/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── movie_local_data_source.dart
+│   │   │   │   │   └── tmdb_movie_remote_data_source.dart
+│   │   │   │   ├── dtos/
+│   │   │   │   │   └── tmdb_movie_detail_dto.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── movie_repository_impl.dart
+│   │   │   │   └── movie_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── movie.dart
+│   │   │   │   │   ├── movie_credit.dart
+│   │   │   │   │   └── movie_summary.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── movie_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── get_continue_watching_movies.dart
+│   │   │   │   │   ├── get_movie_credits.dart
+│   │   │   │   │   ├── get_movie_detail.dart
+│   │   │   │   │   ├── get_movie_recommendations.dart
+│   │   │   │   │   ├── is_in_watchlist.dart
+│   │   │   │   │   ├── search_movies.dart
+│   │   │   │   │   └── toggle_watchlist.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── movie_detail_page.dart
+│   │   │       └── widgets/
+│   │   ├── person/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── person_local_data_source.dart
+│   │   │   │   │   └── tmdb_person_remote_data_source.dart
+│   │   │   │   ├── dtos/
+│   │   │   │   │   └── tmdb_person_detail_dto.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── person_repository_impl.dart
+│   │   │   │   └── person_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── person.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── person_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── get_featured_people.dart
+│   │   │   │   │   ├── get_person_detail.dart
+│   │   │   │   │   ├── get_person_filmography.dart
+│   │   │   │   │   └── search_people.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── person_detail_page.dart
+│   │   │       └── widgets/
+│   │   ├── playlist/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   ├── dtos/
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── playlist_repository_impl.dart
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── playlist_filter_service.dart
+│   │   │   │   │   └── playlist_ordering_service.dart
+│   │   │   │   └── playlist_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── playlist.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── playlist_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── add_playlist_item.dart
+│   │   │   │   │   ├── create_playlist.dart
+│   │   │   │   │   ├── delete_playlist.dart
+│   │   │   │   │   ├── get_featured_playlists.dart
+│   │   │   │   │   ├── get_playlist_detail.dart
+│   │   │   │   │   ├── get_user_playlists.dart
+│   │   │   │   │   ├── remove_playlist_item.dart
+│   │   │   │   │   ├── rename_playlist.dart
+│   │   │   │   │   ├── reorder_playlist_item.dart
+│   │   │   │   │   └── search_playlists.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── playlist_detail_page.dart
+│   │   │       └── widgets/
+│   │   ├── saga/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── saga_local_data_source.dart
+│   │   │   │   │   └── tmdb_saga_remote_data_source.dart
+│   │   │   │   ├── dtos/
+│   │   │   │   │   └── tmdb_saga_detail_dto.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── saga_repository_impl.dart
+│   │   │   │   └── saga_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── saga.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── saga_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── get_saga_detail.dart
+│   │   │   │   │   ├── get_user_sagas.dart
+│   │   │   │   │   └── search_sagas.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── saga_detail_page.dart
+│   │   │       └── widgets/
+│   │   ├── search/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   │   └── tmdb_search_remote_data_source.dart
+│   │   │   │   ├── dtos/
+│   │   │   │   ├── repositories/
+│   │   │   │   ├── search_data_module.dart
+│   │   │   │   └── search_repository_impl.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── search_page.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── search_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── search_movies.dart
+│   │   │   │   │   ├── search_people.dart
+│   │   │   │   │   └── search_shows.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── search_page.dart
+│   │   │       └── widgets/
+│   │   ├── settings/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   ├── dtos/
+│   │   │   │   └── repositories/
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── user_preferences.dart
+│   │   │   │   │   └── user_profile.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── settings_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── get_user_preferences.dart
+│   │   │   │   │   ├── get_user_profile.dart
+│   │   │   │   │   ├── update_user_preferences.dart
+│   │   │   │   │   └── update_user_profile.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   ├── iptv_connect_page.dart
+│   │   │       │   └── settings_page.dart
+│   │   │       ├── providers/
+│   │   │       │   └── iptv_connect_providers.dart
+│   │   │       └── widgets/
+│   │   ├── tv/
+│   │   │   ├── data/
+│   │   │   │   ├── datasources/
+│   │   │   │   │   ├── tmdb_tv_remote_data_source.dart
+│   │   │   │   │   └── tv_local_data_source.dart
+│   │   │   │   ├── dtos/
+│   │   │   │   │   ├── tmdb_tv_detail_dto.dart
+│   │   │   │   │   └── tmdb_tv_season_detail_dto.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── tv_repository_impl.dart
+│   │   │   │   └── tv_data_module.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   └── tv_show.dart
+│   │   │   │   ├── repositories/
+│   │   │   │   │   └── tv_repository.dart
+│   │   │   │   ├── usecases/
+│   │   │   │   │   ├── get_continue_watching_tv.dart
+│   │   │   │   │   ├── get_featured_tv_shows.dart
+│   │   │   │   │   ├── get_season_episodes.dart
+│   │   │   │   │   ├── get_tv_seasons.dart
+│   │   │   │   │   ├── get_tv_show_detail.dart
+│   │   │   │   │   ├── get_tv_watchlist.dart
+│   │   │   │   │   ├── is_tv_show_in_watchlist.dart
+│   │   │   │   │   ├── search_tv_shows.dart
+│   │   │   │   │   └── toggle_tv_watchlist.dart
+│   │   │   │   └── value_objects/
+│   │   │   └── presentation/
+│   │   │       ├── controllers/
+│   │   │       ├── pages/
+│   │   │       │   └── tv_detail_page.dart
+│   │   │       └── widgets/
+│   │   └── welcome/
+│   │       └── presentation/
+│   │           ├── pages/
+│   │           │   └── welcome_page.dart
+│   │           ├── providers/
+│   │           │   └── welcome_providers.dart
+│   │           ├── utils/
+│   │           │   └── error_presenter.dart
+│   │           └── widgets/
+│   │               ├── welcome_faq_row.dart
+│   │               ├── welcome_form.dart
+│   │               └── welcome_header.dart
+│   ├── shared/
+│   │   ├── data/
+│   │   │   ├── dtos/
+│   │   │   └── services/
+│   │   │       ├── tmdb_cache_data_source.dart
+│   │   │       ├── tmdb_client.dart
+│   │   │       └── tmdb_image_resolver.dart
+│   │   └── domain/
+│   │       ├── entities/
+│   │       │   └── person_summary.dart
+│   │       └── value_objects/
+│   │           ├── content_rating.dart
+│   │           ├── content_reference.dart
+│   │           ├── media_id.dart
+│   │           ├── media_title.dart
+│   │           └── synopsis.dart
+│   └── app.dart
+└── main.dart
+
+================================================================================
+INDEX DES FICHIERS LIB/ (numéroté)
+================================================================================
+   1. main.dart  (20 lignes, 571 octets) *
+   2. src/app.dart  (20 lignes, 537 octets) *
+   3. src/core/config/config_module.dart  (56 lignes, 1520 octets) *
+   4. src/core/config/env/dev_environment.dart  (144 lignes, 4258 octets) *
+   5. src/core/config/env/environment.dart  (15 lignes, 413 octets) *
+   6. src/core/config/env/environment_loader.dart  (64 lignes, 1916 octets) *
+   7. src/core/config/models/app_config.dart  (91 lignes, 3152 octets) *
+   8. src/core/config/models/app_metadata.dart  (23 lignes, 521 octets) *
+   9. src/core/config/models/feature_flags.dart  (27 lignes, 731 octets) *
+  10. src/core/config/models/network_endpoints.dart  (106 lignes, 3350 octets) *
+  11. src/core/config/providers/config_provider.dart  (15 lignes, 481 octets) *
+  12. src/core/config/providers/overrides.dart  (22 lignes, 666 octets) *
+  13. src/core/config/services/platform_selector.dart  (35 lignes, 928 octets) *
+  14. src/core/config/services/secret_store.dart  (113 lignes, 3347 octets) *
+  15. src/core/di/injector.dart  (103 lignes, 3368 octets) *
+  16. src/core/di/services/content_repository.dart  (6 lignes, 244 octets) *
+  17. src/core/di/services/preferences_service.dart  (5 lignes, 183 octets) *
+  18. src/core/di/test_injector.dart  (28 lignes, 754 octets) *
+  19. src/core/iptv/application/services/playlist_mapper.dart  (83 lignes, 2754 octets) *
+  20. src/core/iptv/application/services/xtream_sync_service.dart  (76 lignes, 1947 octets) *
+  21. src/core/iptv/application/usecases/add_xtream_source.dart  (24 lignes, 688 octets) *
+  22. src/core/iptv/application/usecases/list_xtream_playlists.dart  (12 lignes, 335 octets) *
+  23. src/core/iptv/application/usecases/refresh_xtream_catalog.dart  (12 lignes, 347 octets) *
+  24. src/core/iptv/config/iptv_module.dart  (50 lignes, 2084 octets) *
+  25. src/core/iptv/data/datasources/xtream_cache_data_source.dart  (63 lignes, 2460 octets) *
+  26. src/core/iptv/data/datasources/xtream_remote_data_source.dart  (99 lignes, 3024 octets) *
+  27. src/core/iptv/data/dtos/xtream_auth_dto.dart  (29 lignes, 890 octets) *
+  28. src/core/iptv/data/dtos/xtream_category_dto.dart  (16 lignes, 360 octets) *
+  29. src/core/iptv/data/dtos/xtream_stream_dto.dart  (58 lignes, 1729 octets) *
+  30. src/core/iptv/data/repositories/iptv_repository_impl.dart  (109 lignes, 3307 octets) *
+  31. src/core/iptv/domain/entities/xtream_account.dart  (65 lignes, 1563 octets) *
+  32. src/core/iptv/domain/entities/xtream_catalog_snapshot.dart  (35 lignes, 911 octets) *
+  33. src/core/iptv/domain/entities/xtream_playlist.dart  (24 lignes, 544 octets) *
+  34. src/core/iptv/domain/entities/xtream_playlist_item.dart  (46 lignes, 975 octets) *
+  35. src/core/iptv/domain/repositories/iptv_repository.dart  (21 lignes, 612 octets) *
+  36. src/core/iptv/domain/value_objects/xtream_endpoint.dart  (113 lignes, 3461 octets) *
+  37. src/core/models/movi_media.dart  (19 lignes, 368 octets) *
+  38. src/core/models/movi_person.dart  (13 lignes, 229 octets) *
+  39. src/core/network/config/network_module.dart  (44 lignes, 1375 octets) *
+  40. src/core/network/dio_failure_mapper.dart  (31 lignes, 1083 octets) *
+  41. src/core/network/http_client_factory.dart  (59 lignes, 1888 octets) *
+  42. src/core/network/interceptors/auth_interceptor.dart  (20 lignes, 546 octets) *
+  43. src/core/network/interceptors/locale_interceptor.dart  (18 lignes, 540 octets) *
+  44. src/core/network/interceptors/retry_interceptor.dart  (65 lignes, 1849 octets) *
+  45. src/core/network/interceptors/telemetry_interceptor.dart  (35 lignes, 1104 octets) *
+  46. src/core/network/network_executor.dart  (231 lignes, 7028 octets) *
+  47. src/core/network/network_failures.dart  (52 lignes, 1513 octets) *
+  48. src/core/preferences/locale_preferences.dart  (12 lignes, 286 octets) *
+  49. src/core/router/app_router.dart  (158 lignes, 4838 octets) *
+  50. src/core/state/app_state.dart  (33 lignes, 909 octets) *
+  51. src/core/state/app_state_controller.dart  (87 lignes, 3232 octets) *
+  52. src/core/state/app_state_provider.dart  (9 lignes, 268 octets) *
+  53. src/core/storage/database/sqlite_database.dart  (225 lignes, 7044 octets) *
+  54. src/core/storage/repositories/content_cache_repository.dart  (52 lignes, 1706 octets) *
+  55. src/core/storage/repositories/continue_watching_local_repository.dart  (99 lignes, 2957 octets) *
+  56. src/core/storage/repositories/history_local_repository.dart  (154 lignes, 4221 octets) *
+  57. src/core/storage/repositories/iptv_local_repository.dart  (314 lignes, 9602 octets) *
+  58. src/core/storage/repositories/playlist_local_repository.dart  (260 lignes, 8585 octets) *
+  59. src/core/storage/repositories/watchlist_local_repository.dart  (95 lignes, 2613 octets) *
+  60. src/core/storage/services/cache_policy.dart  (7 lignes, 172 octets) *
+  61. src/core/storage/services/storage_module.dart  (38 lignes, 1449 octets) *
+  62. src/core/theme/app_colors.dart  (23 lignes, 833 octets) *
+  63. src/core/theme/app_theme.dart  (223 lignes, 7911 octets) *
+  64. src/core/utils/app_assets.dart  (20 lignes, 1070 octets) *
+  65. src/core/utils/app_spacing.dart  (30 lignes, 938 octets) *
+  66. src/core/utils/context_extensions.dart  (22 lignes, 543 octets) *
+  67. src/core/utils/logger.dart  (30 lignes, 679 octets) *
+  68. src/core/utils/logger_utils.dart  (13 lignes, 387 octets) *
+  69. src/core/utils/utils.dart  (5 lignes, 137 octets) *
+  70. src/core/utils/validators.dart  (17 lignes, 627 octets) *
+  71. src/core/widgets/movi_bottom_nav_bar.dart  (184 lignes, 5758 octets) *
+  72. src/core/widgets/movi_favorite_button.dart  (80 lignes, 2423 octets) *
+  73. src/core/widgets/movi_items_list.dart  (263 lignes, 8645 octets) *
+  74. src/core/widgets/movi_marquee_text.dart  (231 lignes, 6344 octets) *
+  75. src/core/widgets/movi_media_card.dart  (202 lignes, 5428 octets) *
+  76. src/core/widgets/movi_person_card.dart  (113 lignes, 3100 octets) *
+  77. src/core/widgets/movi_pill.dart  (73 lignes, 2138 octets) *
+  78. src/core/widgets/movi_primary_button.dart  (152 lignes, 4416 octets) *
+  79. src/features/home/data/home_feed_data_module.dart  (28 lignes, 1070 octets) *
+  80. src/features/home/data/repositories/home_feed_repository_impl.dart  (485 lignes, 18018 octets) *
+  81. src/features/home/domain/repositories/home_feed_repository.dart  (27 lignes, 1208 octets) *
+  82. src/features/home/presentation/pages/home_page.dart  (310 lignes, 11096 octets) *
+  83. src/features/home/presentation/providers/home_providers.dart  (196 lignes, 5787 octets) *
+  84. src/features/home/presentation/widgets/continue_watching_card.dart  (191 lignes, 6083 octets) *
+  85. src/features/home/presentation/widgets/home_hero_section.dart  (569 lignes, 20449 octets) *
+  86. src/features/library/data/library_data_module.dart  (20 lignes, 699 octets) *
+  87. src/features/library/data/repositories/library_repository_impl.dart  (130 lignes, 4295 octets) *
+  88. src/features/library/domain/repositories/library_repository.dart  (32 lignes, 1233 octets) *
+  89. src/features/library/domain/usecases/like_person.dart  (25 lignes, 637 octets) *
+  90. src/features/library/domain/usecases/unlike_person.dart  (13 lignes, 431 octets) *
+  91. src/features/library/presentation/pages/library_page.dart  (46 lignes, 1378 octets) *
+  92. src/features/library/presentation/providers/library_providers.dart  (10 lignes, 327 octets) *
+  93. src/features/movie/data/datasources/movie_local_data_source.dart  (44 lignes, 1771 octets) *
+  94. src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart  (123 lignes, 3718 octets) *
+  95. src/features/movie/data/dtos/tmdb_movie_detail_dto.dart  (290 lignes, 9436 octets) *
+  96. src/features/movie/data/movie_data_module.dart  (30 lignes, 1134 octets) *
+  97. src/features/movie/data/repositories/movie_repository_impl.dart  (178 lignes, 6085 octets) *
+  98. src/features/movie/domain/entities/movie.dart  (60 lignes, 1488 octets) *
+  99. src/features/movie/domain/entities/movie_credit.dart  (19 lignes, 427 octets) *
+ 100. src/features/movie/domain/entities/movie_summary.dart  (27 lignes, 667 octets) *
+ 101. src/features/movie/domain/repositories/movie_repository.dart  (28 lignes, 965 octets) *
+ 102. src/features/movie/domain/usecases/get_continue_watching_movies.dart  (10 lignes, 292 octets) *
+ 103. src/features/movie/domain/usecases/get_movie_credits.dart  (11 lignes, 364 octets) *
+ 104. src/features/movie/domain/usecases/get_movie_detail.dart  (11 lignes, 314 octets) *
+ 105. src/features/movie/domain/usecases/get_movie_recommendations.dart  (11 lignes, 363 octets) *
+ 106. src/features/movie/domain/usecases/is_in_watchlist.dart  (10 lignes, 293 octets) *
+ 107. src/features/movie/domain/usecases/search_movies.dart  (11 lignes, 289 octets) *
+ 108. src/features/movie/domain/usecases/toggle_watchlist.dart  (12 lignes, 337 octets) *
+ 109. src/features/movie/presentation/pages/movie_detail_page.dart  (150 lignes, 5865 octets) *
+ 110. src/features/person/data/datasources/person_local_data_source.dart  (30 lignes, 1102 octets) *
+ 111. src/features/person/data/datasources/tmdb_person_remote_data_source.dart  (25 lignes, 897 octets) *
+ 112. src/features/person/data/dtos/tmdb_person_detail_dto.dart  (122 lignes, 4094 octets) *
+ 113. src/features/person/data/person_data_module.dart  (31 lignes, 1107 octets) *
+ 114. src/features/person/data/repositories/person_repository_impl.dart  (91 lignes, 3090 octets) *
+ 115. src/features/person/domain/entities/person.dart  (60 lignes, 1300 octets) *
+ 116. src/features/person/domain/repositories/person_repository.dart  (18 lignes, 710 octets) *
+ 117. src/features/person/domain/usecases/get_featured_people.dart  (10 lignes, 301 octets) *
+ 118. src/features/person/domain/usecases/get_person_detail.dart  (11 lignes, 322 octets) *
+ 119. src/features/person/domain/usecases/get_person_filmography.dart  (11 lignes, 349 octets) *
+ 120. src/features/person/domain/usecases/search_people.dart  (11 lignes, 316 octets) *
+ 121. src/features/person/presentation/pages/person_detail_page.dart  (122 lignes, 4302 octets) *
+ 122. src/features/playlist/data/playlist_data_module.dart  (13 lignes, 544 octets) *
+ 123. src/features/playlist/data/repositories/playlist_repository_impl.dart  (173 lignes, 5278 octets) *
+ 124. src/features/playlist/data/services/playlist_filter_service.dart  (35 lignes, 1392 octets) *
+ 125. src/features/playlist/data/services/playlist_ordering_service.dart  (36 lignes, 986 octets) *
+ 126. src/features/playlist/domain/entities/playlist.dart  (86 lignes, 1922 octets) *
+ 127. src/features/playlist/domain/repositories/playlist_repository.dart  (30 lignes, 1148 octets) *
+ 128. src/features/playlist/domain/usecases/add_playlist_item.dart  (13 lignes, 419 octets) *
+ 129. src/features/playlist/domain/usecases/create_playlist.dart  (28 lignes, 658 octets) *
+ 130. src/features/playlist/domain/usecases/delete_playlist.dart  (11 lignes, 296 octets) *
+ 131. src/features/playlist/domain/usecases/get_featured_playlists.dart  (10 lignes, 287 octets) *
+ 132. src/features/playlist/domain/usecases/get_playlist_detail.dart  (11 lignes, 338 octets) *
+ 133. src/features/playlist/domain/usecases/get_user_playlists.dart  (11 lignes, 300 octets) *
+ 134. src/features/playlist/domain/usecases/remove_playlist_item.dart  (13 lignes, 428 octets) *
+ 135. src/features/playlist/domain/usecases/rename_playlist.dart  (14 lignes, 433 octets) *
+ 136. src/features/playlist/domain/usecases/reorder_playlist_item.dart  (21 lignes, 502 octets) *
+ 137. src/features/playlist/domain/usecases/search_playlists.dart  (11 lignes, 302 octets) *
+ 138. src/features/playlist/presentation/pages/playlist_detail_page.dart  (105 lignes, 4002 octets) *
+ 139. src/features/saga/data/datasources/saga_local_data_source.dart  (30 lignes, 1086 octets) *
+ 140. src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart  (29 lignes, 880 octets) *
+ 141. src/features/saga/data/dtos/tmdb_saga_detail_dto.dart  (101 lignes, 2771 octets) *
+ 142. src/features/saga/data/repositories/saga_repository_impl.dart  (106 lignes, 3551 octets) *
+ 143. src/features/saga/data/saga_data_module.dart  (28 lignes, 995 octets) *
+ 144. src/features/saga/domain/entities/saga.dart  (67 lignes, 1554 octets) *
+ 145. src/features/saga/domain/repositories/saga_repository.dart  (8 lignes, 278 octets) *
+ 146. src/features/saga/domain/usecases/get_saga_detail.dart  (11 lignes, 306 octets) *
+ 147. src/features/saga/domain/usecases/get_user_sagas.dart  (11 lignes, 272 octets) *
+ 148. src/features/saga/domain/usecases/search_sagas.dart  (11 lignes, 274 octets) *
+ 149. src/features/saga/presentation/pages/saga_detail_page.dart  (138 lignes, 4567 octets) *
+ 150. src/features/search/data/datasources/tmdb_search_remote_data_source.dart  (38 lignes, 1883 octets) *
+ 151. src/features/search/data/search_data_module.dart  (28 lignes, 1045 octets) *
+ 152. src/features/search/data/search_repository_impl.dart  (94 lignes, 3603 octets) *
+ 153. src/features/search/domain/entities/search_page.dart  (14 lignes, 239 octets) *
+ 154. src/features/search/domain/repositories/search_repository.dart  (10 lignes, 490 octets) *
+ 155. src/features/search/domain/usecases/search_movies.dart  (14 lignes, 405 octets) *
+ 156. src/features/search/domain/usecases/search_people.dart  (14 lignes, 411 octets) *
+ 157. src/features/search/domain/usecases/search_shows.dart  (14 lignes, 394 octets) *
+ 158. src/features/search/presentation/pages/search_page.dart  (77 lignes, 2131 octets) *
+ 159. src/features/settings/domain/entities/user_preferences.dart  (38 lignes, 1014 octets) *
+ 160. src/features/settings/domain/entities/user_profile.dart  (20 lignes, 424 octets) *
+ 161. src/features/settings/domain/repositories/settings_repository.dart  (9 lignes, 321 octets) *
+ 162. src/features/settings/domain/usecases/get_user_preferences.dart  (10 lignes, 279 octets) *
+ 163. src/features/settings/domain/usecases/get_user_profile.dart  (10 lignes, 263 octets) *
+ 164. src/features/settings/domain/usecases/update_user_preferences.dart  (12 lignes, 329 octets) *
+ 165. src/features/settings/domain/usecases/update_user_profile.dart  (12 lignes, 301 octets) *
+ 166. src/features/settings/presentation/pages/iptv_connect_page.dart  (145 lignes, 5257 octets) *
+ 167. src/features/settings/presentation/pages/settings_page.dart  (72 lignes, 2416 octets) *
+ 168. src/features/settings/presentation/providers/iptv_connect_providers.dart  (90 lignes, 3001 octets) *
+ 169. src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart  (53 lignes, 1725 octets) *
+ 170. src/features/tv/data/datasources/tv_local_data_source.dart  (47 lignes, 1807 octets) *
+ 171. src/features/tv/data/dtos/tmdb_tv_detail_dto.dart  (261 lignes, 8033 octets) *
+ 172. src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart  (79 lignes, 2232 octets) *
+ 173. src/features/tv/data/repositories/tv_repository_impl.dart  (246 lignes, 8548 octets) *
+ 174. src/features/tv/data/tv_data_module.dart  (34 lignes, 1205 octets) *
+ 175. src/features/tv/domain/entities/tv_show.dart  (146 lignes, 3116 octets) *
+ 176. src/features/tv/domain/repositories/tv_repository.dart  (14 lignes, 606 octets) *
+ 177. src/features/tv/domain/usecases/get_continue_watching_tv.dart  (10 lignes, 273 octets) *
+ 178. src/features/tv/domain/usecases/get_featured_tv_shows.dart  (10 lignes, 264 octets) *
+ 179. src/features/tv/domain/usecases/get_season_episodes.dart  (13 lignes, 379 octets) *
+ 180. src/features/tv/domain/usecases/get_tv_seasons.dart  (11 lignes, 316 octets) *
+ 181. src/features/tv/domain/usecases/get_tv_show_detail.dart  (11 lignes, 313 octets) *
+ 182. src/features/tv/domain/usecases/get_tv_watchlist.dart  (10 lignes, 256 octets) *
+ 183. src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart  (10 lignes, 290 octets) *
+ 184. src/features/tv/domain/usecases/search_tv_shows.dart  (11 lignes, 279 octets) *
+ 185. src/features/tv/domain/usecases/toggle_tv_watchlist.dart  (12 lignes, 336 octets) *
+ 186. src/features/tv/presentation/pages/tv_detail_page.dart  (122 lignes, 4561 octets) *
+ 187. src/features/welcome/presentation/pages/welcome_page.dart  (93 lignes, 3096 octets) *
+ 188. src/features/welcome/presentation/providers/welcome_providers.dart  (113 lignes, 3527 octets) *
+ 189. src/features/welcome/presentation/utils/error_presenter.dart  (15 lignes, 852 octets) *
+ 190. src/features/welcome/presentation/widgets/welcome_faq_row.dart  (30 lignes, 861 octets) *
+ 191. src/features/welcome/presentation/widgets/welcome_form.dart  (302 lignes, 9800 octets) *
+ 192. src/features/welcome/presentation/widgets/welcome_header.dart  (40 lignes, 1173 octets) *
+ 193. src/shared/data/services/tmdb_cache_data_source.dart  (26 lignes, 975 octets) *
+ 194. src/shared/data/services/tmdb_client.dart  (139 lignes, 4045 octets) *
+ 195. src/shared/data/services/tmdb_image_resolver.dart  (16 lignes, 640 octets) *
+ 196. src/shared/domain/entities/person_summary.dart  (22 lignes, 433 octets) *
+ 197. src/shared/domain/value_objects/content_rating.dart  (1 lignes, 53 octets) *
+ 198. src/shared/domain/value_objects/content_reference.dart  (26 lignes, 535 octets) *
+ 199. src/shared/domain/value_objects/media_id.dart  (48 lignes, 797 octets) *
+ 200. src/shared/domain/value_objects/media_title.dart  (11 lignes, 176 octets) *
+ 201. src/shared/domain/value_objects/synopsis.dart  (8 lignes, 134 octets) *
+
+Total indexés: 201
+Marqués '*' = sélection actuelle (201 fichiers)
+
+================================================================================
+OUTLINE DES FICHIERS SÉLECTIONNÉS (201)
+================================================================================
+
+--------------------------------------------------------------------------------
+FILE #1: main.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #2: src/app.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: MyApp
+[METHODS MyApp]
+  L   7: MyApp — (…)
+  L  10: build — (BuildContext context, WidgetRef ref)
+
+--------------------------------------------------------------------------------
+FILE #3: src/core/config/config_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: AppConfigFactory
+[METHODS AppConfigFactory]
+  L   9: AppConfigFactory — (…)
+
+--------------------------------------------------------------------------------
+FILE #4: src/core/config/env/dev_environment.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  42: DevEnvironment
+  L  76: StagingEnvironment
+  L 109: ProdEnvironment
+
+--------------------------------------------------------------------------------
+FILE #5: src/core/config/env/environment.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: EnvironmentFlavor
+
+--------------------------------------------------------------------------------
+FILE #6: src/core/config/env/environment_loader.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: EnvironmentLoader
+[METHODS EnvironmentLoader]
+  L   6: EnvironmentLoader — ({PlatformSelector? platformSelector})
+  L  15: load — ({AppEnvironment? override})
+  L  20: _resolveFromBuild — ()
+  L  28: _readDefine — (String key)
+  L  38: _parse — (String raw)
+
+--------------------------------------------------------------------------------
+FILE #7: src/core/config/models/app_config.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: AppConfig
+[METHODS AppConfig]
+  L  12: AppConfig — (…)
+  L  46: ensureValid — ()
+
+--------------------------------------------------------------------------------
+FILE #8: src/core/config/models/app_metadata.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: AppMetadata
+
+--------------------------------------------------------------------------------
+FILE #9: src/core/config/models/feature_flags.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: FeatureFlags
+
+--------------------------------------------------------------------------------
+FILE #10: src/core/config/models/network_endpoints.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: NetworkTimeouts
+  L  45: NetworkEndpoints
+
+--------------------------------------------------------------------------------
+FILE #11: src/core/config/providers/config_provider.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #12: src/core/config/providers/overrides.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #13: src/core/config/services/platform_selector.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: PlatformSelector
+[METHODS PlatformSelector]
+  L   6: PlatformSelector — (…)
+
+--------------------------------------------------------------------------------
+FILE #14: src/core/config/services/secret_store.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: SecretStore
+
+--------------------------------------------------------------------------------
+FILE #15: src/core/di/injector.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #16: src/core/di/services/content_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: ContentRepository
+[METHODS ContentRepository]
+  L   4: fetchContinueWatching — ()
+  L   5: fetchFeatured — ()
+
+--------------------------------------------------------------------------------
+FILE #17: src/core/di/services/preferences_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   2: PreferencesService
+[METHODS PreferencesService]
+  L   3: setDarkMode — (bool enabled)
+  L   4: isDarkModeEnabled — ()
+
+--------------------------------------------------------------------------------
+FILE #18: src/core/di/test_injector.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #19: src/core/iptv/application/services/playlist_mapper.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: PlaylistMapper
+[METHODS PlaylistMapper]
+  L   7: PlaylistMapper — (…)
+
+--------------------------------------------------------------------------------
+FILE #20: src/core/iptv/application/services/xtream_sync_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: XtreamSyncService
+
+--------------------------------------------------------------------------------
+FILE #21: src/core/iptv/application/usecases/add_xtream_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: AddXtreamSource
+[METHODS AddXtreamSource]
+  L   6: AddXtreamSource — (…)
+
+--------------------------------------------------------------------------------
+FILE #22: src/core/iptv/application/usecases/list_xtream_playlists.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: ListXtreamPlaylists
+[METHODS ListXtreamPlaylists]
+  L   5: ListXtreamPlaylists — (…)
+  L   9: call — (String accountId)
+
+--------------------------------------------------------------------------------
+FILE #23: src/core/iptv/application/usecases/refresh_xtream_catalog.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: RefreshXtreamCatalog
+[METHODS RefreshXtreamCatalog]
+  L   5: RefreshXtreamCatalog — (…)
+  L   9: call — (String accountId)
+
+--------------------------------------------------------------------------------
+FILE #24: src/core/iptv/config/iptv_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  17: IptvModule
+[METHODS IptvModule]
+  L  18: register — ()
+
+--------------------------------------------------------------------------------
+FILE #25: src/core/iptv/data/datasources/xtream_cache_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: XtreamCacheDataSource
+[METHODS XtreamCacheDataSource]
+  L   9: XtreamCacheDataSource — (…)
+  L  17: getAccounts — () => _localRepository.getAccounts()
+  L  19: saveAccount — (XtreamAccount account) => _localRepository.saveAccount(account)
+  L  21: removeAccount — (String id) => _localRepository.removeAccount(id)
+  L  23: getAccount — (String id)
+  L  31: saveSnapshot — (XtreamCatalogSnapshot snapshot)
+  L  44: getSnapshot — (String accountId, {CachePolicy? policy})
+  L  59: savePlaylists — (String accountId, List<XtreamPlaylist> playlists)
+  L  62: getPlaylists — (String accountId) => _localRepository.getPlaylists(accountId)
+
+--------------------------------------------------------------------------------
+FILE #26: src/core/iptv/data/datasources/xtream_remote_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: XtreamRemoteDataSource
+[METHODS XtreamRemoteDataSource]
+  L   8: XtreamRemoteDataSource — (…)
+  L  89: XtreamAccountRequest
+
+--------------------------------------------------------------------------------
+FILE #27: src/core/iptv/data/dtos/xtream_auth_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: XtreamAuthDto
+
+--------------------------------------------------------------------------------
+FILE #28: src/core/iptv/data/dtos/xtream_category_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: XtreamCategoryDto
+
+--------------------------------------------------------------------------------
+FILE #29: src/core/iptv/data/dtos/xtream_stream_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: XtreamStreamDto
+
+--------------------------------------------------------------------------------
+FILE #30: src/core/iptv/data/repositories/iptv_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: IptvRepositoryImpl
+[METHODS IptvRepositoryImpl]
+  L  11: IptvRepositoryImpl — (…)
+
+--------------------------------------------------------------------------------
+FILE #31: src/core/iptv/domain/entities/xtream_account.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: XtreamAccount
+
+--------------------------------------------------------------------------------
+FILE #32: src/core/iptv/domain/entities/xtream_catalog_snapshot.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: XtreamCatalogSnapshot
+
+--------------------------------------------------------------------------------
+FILE #33: src/core/iptv/domain/entities/xtream_playlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: XtreamPlaylist
+
+--------------------------------------------------------------------------------
+FILE #34: src/core/iptv/domain/entities/xtream_playlist_item.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: XtreamPlaylistItem
+
+--------------------------------------------------------------------------------
+FILE #35: src/core/iptv/domain/repositories/iptv_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: IptvRepository
+[METHODS IptvRepository]
+  L   7: getAccounts — ()
+
+--------------------------------------------------------------------------------
+FILE #36: src/core/iptv/domain/value_objects/xtream_endpoint.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  12: XtreamEndpoint
+
+--------------------------------------------------------------------------------
+FILE #37: src/core/models/movi_media.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: MoviMedia
+
+--------------------------------------------------------------------------------
+FILE #38: src/core/models/movi_person.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: MoviPerson
+
+--------------------------------------------------------------------------------
+FILE #39: src/core/network/config/network_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  13: NetworkModule
+[METHODS NetworkModule]
+  L  14: register — ({LocaleCodeProvider? localeProvider})
+
+--------------------------------------------------------------------------------
+FILE #40: src/core/network/dio_failure_mapper.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #41: src/core/network/http_client_factory.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  14: HttpClientFactory
+
+--------------------------------------------------------------------------------
+FILE #42: src/core/network/interceptors/auth_interceptor.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: AuthInterceptor
+[METHODS AuthInterceptor]
+  L   8: AuthInterceptor — (…)
+  L  13: onRequest — (RequestOptions options, RequestInterceptorHandler handler)
+
+--------------------------------------------------------------------------------
+FILE #43: src/core/network/interceptors/locale_interceptor.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: LocaleInterceptor
+[METHODS LocaleInterceptor]
+  L  11: onRequest — (RequestOptions options, RequestInterceptorHandler handler)
+
+--------------------------------------------------------------------------------
+FILE #44: src/core/network/interceptors/retry_interceptor.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: RetryInterceptor
+
+--------------------------------------------------------------------------------
+FILE #45: src/core/network/interceptors/telemetry_interceptor.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: TelemetryInterceptor
+[METHODS TelemetryInterceptor]
+  L   6: TelemetryInterceptor — (…)
+  L  11: onRequest — (RequestOptions options, RequestInterceptorHandler handler)
+  L  17: onResponse — (Response response, ResponseInterceptorHandler handler)
+  L  23: onError — (DioException err, ErrorInterceptorHandler handler)
+  L  28: _logLatency — (RequestOptions options, int? statusCode)
+
+--------------------------------------------------------------------------------
+FILE #46: src/core/network/network_executor.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  21: NetworkExecutor
+  L 196: _Limiter
+[METHODS _Limiter]
+  L 197: _Limiter — (…)
+  L 203: capacity — (int value)
+  L 212: acquire — ()
+  L 222: release — ()
+
+--------------------------------------------------------------------------------
+FILE #47: src/core/network/network_failures.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: NetworkFailure
+[METHODS NetworkFailure]
+  L   6: NetworkFailure — (…)
+  L  14: TimeoutFailure
+[METHODS TimeoutFailure]
+  L  15: TimeoutFailure — (…)
+  L  18: ConnectionFailure
+[METHODS ConnectionFailure]
+  L  19: ConnectionFailure — (…)
+  L  22: UnauthorizedFailure
+[METHODS UnauthorizedFailure]
+  L  23: UnauthorizedFailure — (…)
+  L  26: ForbiddenFailure
+[METHODS ForbiddenFailure]
+  L  27: ForbiddenFailure — (…)
+  L  30: NotFoundFailure
+[METHODS NotFoundFailure]
+  L  31: NotFoundFailure — (…)
+  L  34: RateLimitedFailure
+[METHODS RateLimitedFailure]
+  L  35: RateLimitedFailure — (…)
+  L  38: ServerFailure
+[METHODS ServerFailure]
+  L  39: ServerFailure — (…)
+  L  42: EmptyResponseFailure
+[METHODS EmptyResponseFailure]
+  L  43: EmptyResponseFailure — (…)
+  L  46: UnknownFailure
+[METHODS UnknownFailure]
+  L  47: UnknownFailure — (…)
+  L  50: CancelledFailure
+[METHODS CancelledFailure]
+  L  51: CancelledFailure — (…)
+
+--------------------------------------------------------------------------------
+FILE #48: src/core/preferences/locale_preferences.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: LocalePreferences
+[METHODS LocalePreferences]
+  L   9: setLanguageCode — (String code)
+
+--------------------------------------------------------------------------------
+FILE #49: src/core/router/app_router.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  21: AppRouteNames
+  L 124: _LaunchGate
+[METHODS _LaunchGate]
+  L 125: _LaunchGate — (…)
+  L 128: createState — () => _LaunchGateState()
+  L 131: _LaunchGateState
+[METHODS _LaunchGateState]
+  L 133: initState — ()
+  L 138: _decide — ()
+  L 154: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #50: src/core/state/app_state.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: AppState
+
+--------------------------------------------------------------------------------
+FILE #51: src/core/state/app_state_controller.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  15: AppStateController
+[METHODS AppStateController]
+  L  16: AppStateController — (…)
+  L  33: setThemeMode — (ThemeMode mode)
+  L  39: setConnectivity — (bool isOnline)
+  L  45: setActiveIptvSources — (List<String> sources)
+  L  52: setPreferredLocale — (String locale)
+  L  60: addIptvSource — (String accountId)
+  L  68: removeIptvSource — (String accountId)
+  L  79: _listsEqual — (List<String> a, List<String> b)
+
+--------------------------------------------------------------------------------
+FILE #52: src/core/state/app_state_provider.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #53: src/core/storage/database/sqlite_database.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: LocalDatabase
+[METHODS LocalDatabase]
+  L  11: LocalDatabase._ — (…)
+  L  16: instance — ()
+
+--------------------------------------------------------------------------------
+FILE #54: src/core/storage/repositories/content_cache_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: ContentCacheRepository
+
+--------------------------------------------------------------------------------
+FILE #55: src/core/storage/repositories/continue_watching_local_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: ContinueWatchingEntry
+  L  30: ContinueWatchingLocalRepository
+[METHODS ContinueWatchingLocalRepository]
+  L  31: upsert — (ContinueWatchingEntry entry)
+  L  32: remove — (String contentId, ContentType type)
+  L  33: readAll — (ContentType type)
+  L  36: ContinueWatchingLocalRepositoryImpl
+[METHODS ContinueWatchingLocalRepositoryImpl]
+  L  37: ContinueWatchingLocalRepositoryImpl — (…)
+  L  42: upsert — (ContinueWatchingEntry entry)
+  L  62: remove — (String contentId, ContentType type)
+  L  72: readAll — (ContentType type)
+
+--------------------------------------------------------------------------------
+FILE #56: src/core/storage/repositories/history_local_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: HistoryEntry
+  L  32: HistoryLocalRepository
+  L  49: HistoryLocalRepositoryImpl
+[METHODS HistoryLocalRepositoryImpl]
+  L  50: HistoryLocalRepositoryImpl — (…)
+
+--------------------------------------------------------------------------------
+FILE #57: src/core/storage/repositories/iptv_local_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  14: IptvLocalRepository
+[METHODS IptvLocalRepository]
+  L  21: saveAccount — (XtreamAccount account)
+  L  41: getAccounts — ()
+  L  48: removeAccount — (String id)
+  L  63: savePlaylists — (String accountId, List<XtreamPlaylist> playlists,)
+  L 106: getPlaylists — (String accountId)
+  L 171: getAvailableTmdbIds — ({XtreamPlaylistItemType? type})
+  L 194: _parseAccountRow — (Map<String, Object?> row)
+  L 225: _decodeMap — (Object? raw)
+  L 239: _asList — (Object? v)
+  L 244: _asString — (Object? v) => v == null ? null : v.toString()
+  L 246: _asNum — (Object? v)
+  L 252: _normalizePlaylistType — (String? raw)
+  L 277: _normalizeItemType — (String raw, XtreamPlaylistType playlistType,)
+
+--------------------------------------------------------------------------------
+FILE #58: src/core/storage/repositories/playlist_local_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: PlaylistHeader
+  L  29: PlaylistItemRow
+  L  45: PlaylistDetailRow
+[METHODS PlaylistDetailRow]
+  L  46: PlaylistDetailRow — (…)
+  L  51: PlaylistLocalRepository
+[METHODS PlaylistLocalRepository]
+  L  54: createPlaylist — (PlaylistHeader header)
+  L  58: upsertHeader — (PlaylistHeader header)
+  L  76: renamePlaylist — (String playlistId, String newTitle)
+  L  89: setOwner — (String playlistId, String owner)
+  L 102: deletePlaylist — (String playlistId)
+  L 110: addItem — (String playlistId, PlaylistItemRow item)
+  L 129: removeItem — (String playlistId, int position)
+  L 138: reorderItem — (String playlistId, {required int fromPosition, required int toPosition})
+  L 178: getPlaylist — (String playlistId)
+  L 218: getUserPlaylists — (String owner)
+  L 237: searchByTitle — (String query)
+
+--------------------------------------------------------------------------------
+FILE #59: src/core/storage/repositories/watchlist_local_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: WatchlistEntry
+  L  22: WatchlistLocalRepository
+[METHODS WatchlistLocalRepository]
+  L  23: exists — (String contentId, ContentType type)
+  L  24: upsert — (WatchlistEntry entry)
+  L  25: remove — (String contentId, ContentType type)
+  L  26: readAll — (ContentType type)
+  L  29: WatchlistLocalRepositoryImpl
+[METHODS WatchlistLocalRepositoryImpl]
+  L  30: WatchlistLocalRepositoryImpl — (…)
+  L  35: exists — (String contentId, ContentType type)
+  L  47: readAll — (ContentType type)
+  L  71: remove — (String contentId, ContentType type)
+  L  81: upsert — (WatchlistEntry entry)
+
+--------------------------------------------------------------------------------
+FILE #60: src/core/storage/services/cache_policy.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: CachePolicy
+[METHODS CachePolicy]
+  L   2: CachePolicy — (…)
+
+--------------------------------------------------------------------------------
+FILE #61: src/core/storage/services/storage_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: StorageModule
+[METHODS StorageModule]
+  L  12: register — ()
+
+--------------------------------------------------------------------------------
+FILE #62: src/core/theme/app_colors.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: AppColors
+[METHODS AppColors]
+  L   5: AppColors._ — (…)
+
+--------------------------------------------------------------------------------
+FILE #63: src/core/theme/app_theme.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: AppTheme
+[METHODS AppTheme]
+  L   7: AppTheme._ — (…)
+  L  13: _buildTheme — (Brightness brightness)
+  L 159: _buildColorScheme — (bool isDark)
+  L 190: _buildTextTheme — (bool isDark)
+
+--------------------------------------------------------------------------------
+FILE #64: src/core/utils/app_assets.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   2: AppAssets
+[METHODS AppAssets]
+  L   3: AppAssets._ — (…)
+
+--------------------------------------------------------------------------------
+FILE #65: src/core/utils/app_spacing.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: AppSpacing
+[METHODS AppSpacing]
+  L   5: AppSpacing._ — (…)
+  L  26: vertical — (double value) => SizedBox(height: value)
+  L  29: horizontal — (double value) => SizedBox(width: value)
+
+--------------------------------------------------------------------------------
+FILE #66: src/core/utils/context_extensions.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #67: src/core/utils/logger.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   2: AppLogger
+[METHODS AppLogger]
+  L   3: debug — (String message)
+  L   8: info — (String message)
+  L  13: warn — (String message)
+  L  18: error — (String message, [Object? error, StackTrace? stackTrace])
+
+--------------------------------------------------------------------------------
+FILE #68: src/core/utils/logger_utils.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #69: src/core/utils/utils.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #70: src/core/utils/validators.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #71: src/core/widgets/movi_bottom_nav_bar.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  14: MoviBottomNavItem
+  L  27: MoviBottomNavBar
+  L 108: _MoviBottomNavItemWidget
+
+--------------------------------------------------------------------------------
+FILE #72: src/core/widgets/movi_favorite_button.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: MoviFavoriteButton
+
+--------------------------------------------------------------------------------
+FILE #73: src/core/widgets/movi_items_list.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  13: MoviItemsList
+  L  62: _MoviItemsListState
+[METHODS _MoviItemsListState]
+  L  73: _resolvedHorizontalPadding — (BuildContext context)
+  L  77: _effectiveViewportWidth — (BoxConstraints constraints)
+  L  84: _scheduleNotify — ()
+  L  90: _attachVerticalListener — ()
+  L  98: _isRoughlyVerticallyVisible — ()
+  L 110: _notifyNow — ()
+  L 154: initState — ()
+  L 164: didChangeDependencies — ()
+  L 170: didUpdateWidget — (covariant MoviItemsList oldWidget)
+  L 181: dispose — ()
+  L 194: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #74: src/core/widgets/movi_marquee_text.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: MoviMarqueeText
+  L  25: _MoviMarqueeTextState
+[METHODS _MoviMarqueeTextState]
+  L  36: initState — ()
+  L  46: didUpdateWidget — (covariant MoviMarqueeText oldWidget)
+  L  56: dispose — ()
+  L  65: build — (BuildContext context)
+  L 126: _updateMetrics — ()
+  L 145: _startLoop — ()
+  L 155: _resetScroll — ()
+  L 166: _runLoop — ()
+  L 182: _maxExtent — () => (_textWidth - widget.maxWidth).clamp(0.0, double.infinity)
+  L 184: _animateTo — (double target)
+  L 212: _measureTextWidth — (String text, TextStyle style)
+  L 221: _setGradient — (bool show)
+
+--------------------------------------------------------------------------------
+FILE #75: src/core/widgets/movi_media_card.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  51: MoviMediaCard
+  L  67: _MoviMediaCardState
+[METHODS _MoviMediaCardState]
+  L  69: build — (BuildContext context)
+  L 107: _handleTap — (BuildContext context, MoviMedia media)
+  L 119: _PosterWithOverlay
+
+--------------------------------------------------------------------------------
+FILE #76: src/core/widgets/movi_person_card.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  44: MoviPersonCard
+
+--------------------------------------------------------------------------------
+FILE #77: src/core/widgets/movi_pill.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: MoviPill
+
+--------------------------------------------------------------------------------
+FILE #78: src/core/widgets/movi_primary_button.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: MoviPrimaryButton
+
+--------------------------------------------------------------------------------
+FILE #79: src/features/home/data/home_feed_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  12: HomeFeedDataModule
+[METHODS HomeFeedDataModule]
+  L  13: register — ()
+
+--------------------------------------------------------------------------------
+FILE #80: src/features/home/data/repositories/home_feed_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  28: HomeFeedRepositoryImpl
+[METHODS HomeFeedRepositoryImpl]
+  L  29: HomeFeedRepositoryImpl — (…)
+  L  60: getHeroMovies — ()
+  L 111: getContinueWatchingMovies — ()
+  L 116: getContinueWatchingShows — ()
+  L 125: getIptvCategoryLists — ()
+  L 180: enrichReference — (ContentReference ref)
+  L 311: _collectAvailableTmdbIds — ()
+  L 332: _pickFirstVodStream — ()
+  L 350: _fromPlaylistItemToMovieSummary — (XtreamPlaylistItem item)
+  L 366: _mapMovie — (dynamic dto)
+  L 379: _cleanCategoryTitle — (String raw)
+  L 388: _selectPosterNoLang — (List<dynamic> posters)
+  L 410: _parseYear — (String? raw)
+  L 420: _safeGetAccounts — ()
+  L 438: _safeGetPlaylists — (String accountId)
+  L 452: _fetchTrendingMoviesPage — (int page)
+  L 481: XtreamAccountLite
+[METHODS XtreamAccountLite]
+  L 482: XtreamAccountLite — (…)
+
+--------------------------------------------------------------------------------
+FILE #81: src/features/home/domain/repositories/home_feed_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: HomeFeedRepository
+[METHODS HomeFeedRepository]
+  L   8: getHeroMovies — ()
+  L  11: getContinueWatchingMovies — ()
+  L  14: getContinueWatchingShows — ()
+  L  22: getIptvCategoryLists — ()
+  L  26: enrichReference — (ContentReference ref)
+
+--------------------------------------------------------------------------------
+FILE #82: src/features/home/presentation/pages/home_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  18: HomePage
+[METHODS HomePage]
+  L  19: HomePage — (…)
+  L  22: createState — () => _HomePageState()
+  L  25: _HomePageState
+[METHODS _HomePageState]
+  L  32: _handleNavTap — (int index)
+  L  38: build — (BuildContext context)
+  L  79: _HomeContent
+[METHODS _HomeContent]
+  L  80: _HomeContent — (…)
+  L  83: createState — () => _HomeContentState()
+  L  86: _HomeContentState
+[METHODS _HomeContentState]
+  L  91: _postFrame — (VoidCallback fn)
+  L 107: _displayCategoryTitle — (String raw)
+  L 113: build — (BuildContext context)
+  L 277: _ViewportReq
+[METHODS _ViewportReq]
+  L 280: _ViewportReq — (…)
+  L 283: contains — (_ViewportReq other)
+  L 290: _NavPlaceholder
+[METHODS _NavPlaceholder]
+  L 291: _NavPlaceholder — (…)
+  L 297: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #83: src/features/home/presentation/providers/home_providers.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  14: HomeState
+  L  51: HomeController
+[METHODS HomeController]
+  L  52: HomeController — (…)
+  L  65: load — ()
+  L  84: refresh — () => load()
+  L  86: _loadIptvLists — ()
+  L  99: _loadCwMovies — ()
+  L 112: _loadCwShows — ()
+  L 127: enrichCategoryBatch — (String key, int start, int count)
+  L 160: _enrichOne — (String key, int index, ContentReference ref, String inflightKey,)
+
+--------------------------------------------------------------------------------
+FILE #84: src/features/home/presentation/widgets/continue_watching_card.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: ContinueWatchingCard
+
+--------------------------------------------------------------------------------
+FILE #85: src/features/home/presentation/widgets/home_hero_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  24: HomeHeroSection
+[METHODS HomeHeroSection]
+  L  25: HomeHeroSection — (…)
+  L  31: createState — () => _HomeHeroSectionState()
+  L  34: _HomeHeroSectionState
+[METHODS _HomeHeroSectionState]
+  L  51: initState — ()
+  L  57: didUpdateWidget — (covariant HomeHeroSection oldWidget)
+  L  65: dispose — ()
+  L  70: _primeMeta — ()
+  L  82: _coerceUrl — (dynamic v)
+  L  89: _loadMeta — (MovieSummary m)
+  L 152: _hydrateMetaIfNeeded — (MovieSummary m)
+  L 224: _safeGetMovieDetail — (int id)
+  L 236: _safeGetTvDetail — (int id)
+  L 247: _selectPosterNoLang — (List<dynamic> posters)
+  L 268: _selectLogoFrEnNoLang — (List<dynamic> logos)
+  L 295: _parseYear — (String? raw)
+  L 301: build — (BuildContext context)
+  L 460: _BottomOverlay
+[METHODS _BottomOverlay]
+  L 461: _BottomOverlay — (…)
+  L 465: build — (BuildContext context)
+  L 479: _TitleFallback
+[METHODS _TitleFallback]
+  L 480: _TitleFallback — (…)
+  L 484: build — (BuildContext context)
+  L 500: _HeroMeta
+  L 522: _HeroSkeleton
+[METHODS _HeroSkeleton]
+  L 523: _HeroSkeleton — (…)
+  L 527: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #86: src/features/library/data/library_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: LibraryDataModule
+[METHODS LibraryDataModule]
+  L   9: register — ()
+
+--------------------------------------------------------------------------------
+FILE #87: src/features/library/data/repositories/library_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  14: LibraryRepositoryImpl
+[METHODS LibraryRepositoryImpl]
+  L  15: LibraryRepositoryImpl — (…)
+  L  22: getLikedMovies — ()
+  L  35: getLikedShows — ()
+  L  48: getLikedSagas — ()
+  L  61: getLikedPersons — ()
+  L  74: getHistoryCompleted — ()
+  L  84: getHistoryInProgress — ()
+  L  94: getUserPlaylists — (String userId)
+  L  98: _filterCompleted — (List<HistoryEntry> entries)
+  L 110: _filterInProgress — (List<HistoryEntry> entries)
+  L 125: _progress — (HistoryEntry e)
+
+--------------------------------------------------------------------------------
+FILE #88: src/features/library/domain/repositories/library_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: LibraryRepository
+[METHODS LibraryRepository]
+  L  12: getLikedMovies — ()
+  L  15: getLikedShows — ()
+  L  18: getLikedSagas — ()
+  L  21: getLikedPersons — ()
+  L  24: getHistoryCompleted — ()
+  L  27: getHistoryInProgress — ()
+  L  30: getUserPlaylists — (String userId)
+
+--------------------------------------------------------------------------------
+FILE #89: src/features/library/domain/usecases/like_person.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: LikePerson
+[METHODS LikePerson]
+  L   6: LikePerson — (…)
+
+--------------------------------------------------------------------------------
+FILE #90: src/features/library/domain/usecases/unlike_person.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: UnlikePerson
+[METHODS UnlikePerson]
+  L   6: UnlikePerson — (…)
+  L  10: call — (PersonId id)
+
+--------------------------------------------------------------------------------
+FILE #91: src/features/library/presentation/pages/library_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: LibraryPage
+[METHODS LibraryPage]
+  L   6: LibraryPage — (…)
+  L   9: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #92: src/features/library/presentation/providers/library_providers.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #93: src/features/movie/data/datasources/movie_local_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: MovieLocalDataSource
+[METHODS MovieLocalDataSource]
+  L   6: MovieLocalDataSource — (…)
+  L  14: saveMovieDetail — ({required TmdbMovieDetailDto dto})
+  L  22: getMovieDetail — (int movieId)
+  L  28: saveRecommendations — ({required int movieId, required List<TmdbMovieSummaryDto> summaries})
+  L  36: getRecommendations — (int movieId)
+
+--------------------------------------------------------------------------------
+FILE #94: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: TmdbMovieRemoteDataSource
+[METHODS TmdbMovieRemoteDataSource]
+  L  12: TmdbMovieRemoteDataSource — (…)
+
+--------------------------------------------------------------------------------
+FILE #95: src/features/movie/data/dtos/tmdb_movie_detail_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: TmdbMovieDetailDto
+  L 153: TmdbCollectionRefDto
+  L 177: TmdbMovieCastDto
+  L 205: TmdbMovieCrewDto
+  L 229: TmdbMovieSummaryDto
+
+--------------------------------------------------------------------------------
+FILE #96: src/features/movie/data/movie_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: MovieDataModule
+[METHODS MovieDataModule]
+  L  12: register — ()
+
+--------------------------------------------------------------------------------
+FILE #97: src/features/movie/data/repositories/movie_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  18: MovieRepositoryImpl
+[METHODS MovieRepositoryImpl]
+  L  19: MovieRepositoryImpl — (…)
+  L  28: getMovie — (MovieId id)
+  L  40: getCredits — (MovieId id)
+  L  46: getRecommendations — (MovieId id)
+  L  59: getContinueWatching — ()
+  L  74: searchMovies — (String query)
+  L  80: isInWatchlist — (MovieId id) async => _watchlist.exists(id.value, ContentType.movie)
+  L  83: setWatchlist — (MovieId id, {required bool saved})
+  L 100: _mapDetail — (TmdbMovieDetailDto dto)
+  L 128: _mapSagaLink — (TmdbMovieDetailDto dto)
+  L 141: _mapCast — (TmdbMovieCastDto cast)
+  L 151: _mapSummary — (TmdbMovieSummaryDto summary)
+  L 165: _parseDate — (String? date)
+  L 172: _mapRating — (double? voteAverage)
+
+--------------------------------------------------------------------------------
+FILE #98: src/features/movie/domain/entities/movie.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: Movie
+
+--------------------------------------------------------------------------------
+FILE #99: src/features/movie/domain/entities/movie_credit.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: MovieCredit
+
+--------------------------------------------------------------------------------
+FILE #100: src/features/movie/domain/entities/movie_summary.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: MovieSummary
+
+--------------------------------------------------------------------------------
+FILE #101: src/features/movie/domain/repositories/movie_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: MovieRepository
+[METHODS MovieRepository]
+  L   9: getMovie — (MovieId id)
+  L  12: getCredits — (MovieId id)
+  L  15: getRecommendations — (MovieId id)
+  L  18: getContinueWatching — ()
+  L  21: searchMovies — (String query)
+  L  24: isInWatchlist — (MovieId id)
+  L  27: setWatchlist — (MovieId id, {required bool saved})
+
+--------------------------------------------------------------------------------
+FILE #102: src/features/movie/domain/usecases/get_continue_watching_movies.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetContinueWatchingMovies
+[METHODS GetContinueWatchingMovies]
+  L   5: GetContinueWatchingMovies — (…)
+  L   9: call — () => _repository.getContinueWatching()
+
+--------------------------------------------------------------------------------
+FILE #103: src/features/movie/domain/usecases/get_movie_credits.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetMovieCredits
+[METHODS GetMovieCredits]
+  L   6: GetMovieCredits — (…)
+  L  10: call — (MovieId id) => _repository.getCredits(id)
+
+--------------------------------------------------------------------------------
+FILE #104: src/features/movie/domain/usecases/get_movie_detail.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetMovieDetail
+[METHODS GetMovieDetail]
+  L   6: GetMovieDetail — (…)
+  L  10: call — (MovieId id) => _repository.getMovie(id)
+
+--------------------------------------------------------------------------------
+FILE #105: src/features/movie/domain/usecases/get_movie_recommendations.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetMovieRecommendations
+[METHODS GetMovieRecommendations]
+  L   6: GetMovieRecommendations — (…)
+  L  10: call — (MovieId id) => _repository.getRecommendations(id)
+
+--------------------------------------------------------------------------------
+FILE #106: src/features/movie/domain/usecases/is_in_watchlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: IsMovieInWatchlist
+[METHODS IsMovieInWatchlist]
+  L   5: IsMovieInWatchlist — (…)
+  L   9: call — (MovieId id) => _repository.isInWatchlist(id)
+
+--------------------------------------------------------------------------------
+FILE #107: src/features/movie/domain/usecases/search_movies.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SearchMovies
+[METHODS SearchMovies]
+  L   5: SearchMovies — (…)
+  L   9: call — (String query)
+
+--------------------------------------------------------------------------------
+FILE #108: src/features/movie/domain/usecases/toggle_watchlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: ToggleWatchlist
+[METHODS ToggleWatchlist]
+  L   5: ToggleWatchlist — (…)
+  L   9: call — (MovieId id, {required bool saved})
+
+--------------------------------------------------------------------------------
+FILE #109: src/features/movie/presentation/pages/movie_detail_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: MovieDetailPage
+[METHODS MovieDetailPage]
+  L   4: MovieDetailPage — (…)
+  L   7: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #110: src/features/person/data/datasources/person_local_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: PersonLocalDataSource
+[METHODS PersonLocalDataSource]
+  L   7: PersonLocalDataSource — (…)
+  L  17: savePersonDetail — (TmdbPersonDetailDto dto)
+  L  25: getPersonDetail — (int id)
+
+--------------------------------------------------------------------------------
+FILE #111: src/features/person/data/datasources/tmdb_person_remote_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: TmdbPersonRemoteDataSource
+[METHODS TmdbPersonRemoteDataSource]
+  L   5: TmdbPersonRemoteDataSource — (…)
+  L   9: fetchPerson — (int id)
+  L  15: searchPeople — (String query)
+
+--------------------------------------------------------------------------------
+FILE #112: src/features/person/data/dtos/tmdb_person_detail_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: TmdbPersonDetailDto
+  L  82: TmdbPersonCreditDto
+
+--------------------------------------------------------------------------------
+FILE #113: src/features/person/data/person_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: PersonDataModule
+[METHODS PersonDataModule]
+  L  12: register — ()
+
+--------------------------------------------------------------------------------
+FILE #114: src/features/person/data/repositories/person_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  13: PersonRepositoryImpl
+[METHODS PersonRepositoryImpl]
+  L  14: PersonRepositoryImpl — (…)
+  L  21: getPerson — (PersonId id)
+  L  27: getFilmography — (PersonId id)
+  L  33: searchPeople — (String query)
+  L  46: getFeaturedPeople — ()
+  L  50: _mapPerson — (TmdbPersonDetailDto dto)
+  L  65: _mapCredit — (TmdbPersonCreditDto dto)
+  L  81: _parseDate — (String? date) => date == null || date.isEmpty ? null : DateTime.tryParse(date)
+  L  83: _loadPerson — (PersonId id)
+
+--------------------------------------------------------------------------------
+FILE #115: src/features/person/domain/entities/person.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: Person
+  L  47: PersonCredit
+
+--------------------------------------------------------------------------------
+FILE #116: src/features/person/domain/repositories/person_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: PersonRepository
+[METHODS PersonRepository]
+  L   8: getPerson — (PersonId id)
+  L  11: getFilmography — (PersonId id)
+  L  14: searchPeople — (String query)
+  L  17: getFeaturedPeople — ()
+
+--------------------------------------------------------------------------------
+FILE #117: src/features/person/domain/usecases/get_featured_people.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetFeaturedPeople
+[METHODS GetFeaturedPeople]
+  L   5: GetFeaturedPeople — (…)
+  L   9: call — () => _repository.getFeaturedPeople()
+
+--------------------------------------------------------------------------------
+FILE #118: src/features/person/domain/usecases/get_person_detail.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetPersonDetail
+[METHODS GetPersonDetail]
+  L   6: GetPersonDetail — (…)
+  L  10: call — (PersonId id) => _repository.getPerson(id)
+
+--------------------------------------------------------------------------------
+FILE #119: src/features/person/domain/usecases/get_person_filmography.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetPersonFilmography
+[METHODS GetPersonFilmography]
+  L   6: GetPersonFilmography — (…)
+  L  10: call — (PersonId id) => _repository.getFilmography(id)
+
+--------------------------------------------------------------------------------
+FILE #120: src/features/person/domain/usecases/search_people.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SearchPeople
+[METHODS SearchPeople]
+  L   5: SearchPeople — (…)
+  L   9: call — (String query)
+
+--------------------------------------------------------------------------------
+FILE #121: src/features/person/presentation/pages/person_detail_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: PersonDetailPage
+[METHODS PersonDetailPage]
+  L   4: PersonDetailPage — (…)
+  L   7: build — (BuildContext context)
+  L 108: _SocialChip
+[METHODS _SocialChip]
+  L 109: _SocialChip — (…)
+  L 115: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #122: src/features/playlist/data/playlist_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: PlaylistDataModule
+[METHODS PlaylistDataModule]
+  L   7: register — ()
+
+--------------------------------------------------------------------------------
+FILE #123: src/features/playlist/data/repositories/playlist_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: PlaylistRepositoryImpl
+[METHODS PlaylistRepositoryImpl]
+  L   9: PlaylistRepositoryImpl — (…)
+
+--------------------------------------------------------------------------------
+FILE #124: src/features/playlist/data/services/playlist_filter_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: PlaylistFilterService
+[METHODS PlaylistFilterService]
+  L   7: PlaylistFilterService — (…)
+  L  11: filterUnavailable — (Playlist playlist)
+
+--------------------------------------------------------------------------------
+FILE #125: src/features/playlist/data/services/playlist_ordering_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: PlaylistOrderingService
+[METHODS PlaylistOrderingService]
+  L   4: PlaylistOrderingService — (…)
+  L   6: normalizePositions — (Playlist playlist)
+
+--------------------------------------------------------------------------------
+FILE #126: src/features/playlist/domain/entities/playlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: Playlist
+  L  50: PlaylistItem
+  L  69: PlaylistSummary
+
+--------------------------------------------------------------------------------
+FILE #127: src/features/playlist/domain/repositories/playlist_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: PlaylistRepository
+[METHODS PlaylistRepository]
+  L   6: getPlaylist — (PlaylistId id)
+  L   7: getUserPlaylists — (String userId)
+  L   8: getFeaturedPlaylists — ()
+  L   9: searchPlaylists — (String query)
+
+--------------------------------------------------------------------------------
+FILE #128: src/features/playlist/domain/usecases/add_playlist_item.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: AddPlaylistItem
+[METHODS AddPlaylistItem]
+  L   6: AddPlaylistItem — (…)
+  L  10: call — ({required PlaylistId playlistId, required PlaylistItem item})
+
+--------------------------------------------------------------------------------
+FILE #129: src/features/playlist/domain/usecases/create_playlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: CreatePlaylist
+[METHODS CreatePlaylist]
+  L   6: CreatePlaylist — (…)
+
+--------------------------------------------------------------------------------
+FILE #130: src/features/playlist/domain/usecases/delete_playlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: DeletePlaylist
+[METHODS DeletePlaylist]
+  L   5: DeletePlaylist — (…)
+  L   9: call — (PlaylistId id) => _repository.deletePlaylist(id)
+
+--------------------------------------------------------------------------------
+FILE #131: src/features/playlist/domain/usecases/get_featured_playlists.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetFeaturedPlaylists
+[METHODS GetFeaturedPlaylists]
+  L   5: GetFeaturedPlaylists — (…)
+  L   9: call — () => _repository.getFeaturedPlaylists()
+
+--------------------------------------------------------------------------------
+FILE #132: src/features/playlist/domain/usecases/get_playlist_detail.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetPlaylistDetail
+[METHODS GetPlaylistDetail]
+  L   6: GetPlaylistDetail — (…)
+  L  10: call — (PlaylistId id) => _repository.getPlaylist(id)
+
+--------------------------------------------------------------------------------
+FILE #133: src/features/playlist/domain/usecases/get_user_playlists.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetUserPlaylists
+[METHODS GetUserPlaylists]
+  L   5: GetUserPlaylists — (…)
+  L   9: call — (String userId)
+
+--------------------------------------------------------------------------------
+FILE #134: src/features/playlist/domain/usecases/remove_playlist_item.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: RemovePlaylistItem
+[METHODS RemovePlaylistItem]
+  L   6: RemovePlaylistItem — (…)
+  L  10: call — ({required PlaylistId playlistId, required PlaylistItem item})
+
+--------------------------------------------------------------------------------
+FILE #135: src/features/playlist/domain/usecases/rename_playlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: RenamePlaylist
+[METHODS RenamePlaylist]
+  L   6: RenamePlaylist — (…)
+  L  10: call — ({required PlaylistId id, required MediaTitle title})
+
+--------------------------------------------------------------------------------
+FILE #136: src/features/playlist/domain/usecases/reorder_playlist_item.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: ReorderPlaylistItem
+[METHODS ReorderPlaylistItem]
+  L   5: ReorderPlaylistItem — (…)
+
+--------------------------------------------------------------------------------
+FILE #137: src/features/playlist/domain/usecases/search_playlists.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SearchPlaylists
+[METHODS SearchPlaylists]
+  L   5: SearchPlaylists — (…)
+  L   9: call — (String query)
+
+--------------------------------------------------------------------------------
+FILE #138: src/features/playlist/presentation/pages/playlist_detail_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: PlaylistDetailPage
+[METHODS PlaylistDetailPage]
+  L   4: PlaylistDetailPage — (…)
+  L   7: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #139: src/features/saga/data/datasources/saga_local_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: SagaLocalDataSource
+[METHODS SagaLocalDataSource]
+  L   7: SagaLocalDataSource — (…)
+  L  17: saveSagaDetail — (TmdbSagaDetailDto dto)
+  L  25: getSagaDetail — (int sagaId)
+
+--------------------------------------------------------------------------------
+FILE #140: src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: TmdbSagaRemoteDataSource
+[METHODS TmdbSagaRemoteDataSource]
+  L   5: TmdbSagaRemoteDataSource — (…)
+  L   9: fetchSaga — (int id)
+  L  14: fetchMovieRuntime — (int id)
+  L  19: searchSagas — (String query)
+
+--------------------------------------------------------------------------------
+FILE #141: src/features/saga/data/dtos/tmdb_saga_detail_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: TmdbSagaDetailDto
+  L  54: TmdbSagaPartDto
+
+--------------------------------------------------------------------------------
+FILE #142: src/features/saga/data/repositories/saga_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  12: SagaRepositoryImpl
+[METHODS SagaRepositoryImpl]
+  L  13: SagaRepositoryImpl — (…)
+  L  21: getSaga — (SagaId id)
+  L  74: getUserSagas — (String userId)
+  L  90: searchSagas — (String query)
+  L 105: _parseDate — (String? date) => date == null || date.isEmpty ? null : DateTime.tryParse(date)
+
+--------------------------------------------------------------------------------
+FILE #143: src/features/saga/data/saga_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: SagaDataModule
+[METHODS SagaDataModule]
+  L  11: register — ()
+
+--------------------------------------------------------------------------------
+FILE #144: src/features/saga/domain/entities/saga.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: Saga
+  L  33: SagaEntry
+  L  50: SagaSummary
+
+--------------------------------------------------------------------------------
+FILE #145: src/features/saga/domain/repositories/saga_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SagaRepository
+[METHODS SagaRepository]
+  L   5: getSaga — (SagaId id)
+  L   6: getUserSagas — (String userId)
+  L   7: searchSagas — (String query)
+
+--------------------------------------------------------------------------------
+FILE #146: src/features/saga/domain/usecases/get_saga_detail.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetSagaDetail
+[METHODS GetSagaDetail]
+  L   6: GetSagaDetail — (…)
+  L  10: call — (SagaId id) => _repository.getSaga(id)
+
+--------------------------------------------------------------------------------
+FILE #147: src/features/saga/domain/usecases/get_user_sagas.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetUserSagas
+[METHODS GetUserSagas]
+  L   5: GetUserSagas — (…)
+  L   9: call — (String userId)
+
+--------------------------------------------------------------------------------
+FILE #148: src/features/saga/domain/usecases/search_sagas.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SearchSagas
+[METHODS SearchSagas]
+  L   5: SearchSagas — (…)
+  L   9: call — (String query)
+
+--------------------------------------------------------------------------------
+FILE #149: src/features/saga/presentation/pages/saga_detail_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: SagaDetailPage
+[METHODS SagaDetailPage]
+  L   4: SagaDetailPage — (…)
+  L   7: build — (BuildContext context)
+  L 103: _ResourceCard
+[METHODS _ResourceCard]
+  L 104: _ResourceCard — (…)
+  L 110: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #150: src/features/search/data/datasources/tmdb_search_remote_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: TmdbSearchRemoteDataSource
+[METHODS TmdbSearchRemoteDataSource]
+  L   7: TmdbSearchRemoteDataSource — (…)
+  L  11: searchMovies — (String query, {int page = 1})
+  L  20: searchShows — (String query, {int page = 1})
+  L  29: searchPeople — (String query, {int page = 1})
+
+--------------------------------------------------------------------------------
+FILE #151: src/features/search/data/search_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: SearchDataModule
+[METHODS SearchDataModule]
+  L  10: register — ()
+
+--------------------------------------------------------------------------------
+FILE #152: src/features/search/data/search_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  16: SearchRepositoryImpl
+[METHODS SearchRepositoryImpl]
+  L  17: SearchRepositoryImpl — (…)
+  L  28: searchMovies — (String query, {int page = 1})
+  L  40: searchShows — (String query, {int page = 1})
+  L  52: searchPeople — (String query, {int page = 1})
+  L  58: _mapMovie — (TmdbMovieSummaryDto dto)
+  L  71: _mapShow — (TmdbTvSummaryDto dto)
+  L  84: _mapPerson — (TmdbPersonDetailDto dto)
+
+--------------------------------------------------------------------------------
+FILE #153: src/features/search/domain/entities/search_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: SearchPage
+
+--------------------------------------------------------------------------------
+FILE #154: src/features/search/domain/repositories/search_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: SearchRepository
+[METHODS SearchRepository]
+  L   7: searchMovies — (String query, {int page = 1})
+  L   8: searchShows — (String query, {int page = 1})
+  L   9: searchPeople — (String query, {int page = 1})
+
+--------------------------------------------------------------------------------
+FILE #155: src/features/search/domain/usecases/search_movies.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: SearchMovies
+[METHODS SearchMovies]
+  L   6: SearchMovies — (…)
+  L  10: call — (String query, {int page = 1})
+
+--------------------------------------------------------------------------------
+FILE #156: src/features/search/domain/usecases/search_people.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: SearchPeople
+[METHODS SearchPeople]
+  L   6: SearchPeople — (…)
+  L  10: call — (String query, {int page = 1})
+
+--------------------------------------------------------------------------------
+FILE #157: src/features/search/domain/usecases/search_shows.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: SearchShows
+[METHODS SearchShows]
+  L   6: SearchShows — (…)
+  L  10: call — (String query, {int page = 1})
+
+--------------------------------------------------------------------------------
+FILE #158: src/features/search/presentation/pages/search_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: SearchPage
+[METHODS SearchPage]
+  L   6: SearchPage — (…)
+  L   9: build — (BuildContext context)
+  L  47: _SearchFilterChip
+[METHODS _SearchFilterChip]
+  L  48: _SearchFilterChip — (…)
+  L  53: build — (BuildContext context)
+  L  61: _EmptyResultsPlaceholder
+[METHODS _EmptyResultsPlaceholder]
+  L  62: _EmptyResultsPlaceholder — (…)
+  L  65: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #159: src/features/settings/domain/entities/user_preferences.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: UserPreferences
+
+--------------------------------------------------------------------------------
+FILE #160: src/features/settings/domain/entities/user_profile.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: UserProfile
+
+--------------------------------------------------------------------------------
+FILE #161: src/features/settings/domain/repositories/settings_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SettingsRepository
+[METHODS SettingsRepository]
+  L   5: getPreferences — ()
+  L   6: updatePreferences — (UserPreferences preferences)
+  L   7: getUserProfile — ()
+  L   8: updateProfile — (UserProfile profile)
+
+--------------------------------------------------------------------------------
+FILE #162: src/features/settings/domain/usecases/get_user_preferences.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetUserPreferences
+[METHODS GetUserPreferences]
+  L   5: GetUserPreferences — (…)
+  L   9: call — () => _repository.getPreferences()
+
+--------------------------------------------------------------------------------
+FILE #163: src/features/settings/domain/usecases/get_user_profile.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetUserProfile
+[METHODS GetUserProfile]
+  L   5: GetUserProfile — (…)
+  L   9: call — () => _repository.getUserProfile()
+
+--------------------------------------------------------------------------------
+FILE #164: src/features/settings/domain/usecases/update_user_preferences.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: UpdateUserPreferences
+[METHODS UpdateUserPreferences]
+  L   5: UpdateUserPreferences — (…)
+  L   9: call — (UserPreferences preferences)
+
+--------------------------------------------------------------------------------
+FILE #165: src/features/settings/domain/usecases/update_user_profile.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: UpdateUserProfile
+[METHODS UpdateUserProfile]
+  L   5: UpdateUserProfile — (…)
+  L   9: call — (UserProfile profile)
+
+--------------------------------------------------------------------------------
+FILE #166: src/features/settings/presentation/pages/iptv_connect_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: IptvConnectPage
+[METHODS IptvConnectPage]
+  L   8: IptvConnectPage — (…)
+  L  11: createState — () => _IptvConnectPageState()
+  L  14: _IptvConnectPageState
+[METHODS _IptvConnectPageState]
+  L  22: dispose — ()
+  L  30: _submit — ()
+  L  53: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #167: src/features/settings/presentation/pages/settings_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: SettingsPage
+[METHODS SettingsPage]
+  L   6: SettingsPage — (…)
+  L   9: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #168: src/features/settings/presentation/providers/iptv_connect_providers.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  13: IptvConnectState
+[METHODS IptvConnectState]
+  L  14: IptvConnectState — (…)
+  L  18: copyWith — ({bool? isLoading, String? error})
+  L  19: IptvConnectState — (…)
+  L  30: IptvConnectController
+[METHODS IptvConnectController]
+  L  31: IptvConnectController — (…)
+
+--------------------------------------------------------------------------------
+FILE #169: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: TmdbTvRemoteDataSource
+[METHODS TmdbTvRemoteDataSource]
+  L   7: TmdbTvRemoteDataSource — (…)
+  L  10: fetchShow — (int id) => fetchShowLite(id)
+  L  12: fetchShowLite — (int id)
+  L  20: fetchShowFull — (int id)
+  L  28: fetchSeason — (int showId, int seasonNumber,)
+  L  36: searchShows — (String query)
+  L  45: fetchPopular — ()
+
+--------------------------------------------------------------------------------
+FILE #170: src/features/tv/data/datasources/tv_local_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: TvLocalDataSource
+[METHODS TvLocalDataSource]
+  L   8: TvLocalDataSource — (…)
+  L  20: saveShowDetail — (TmdbTvDetailDto dto)
+  L  28: getShowDetail — (int id)
+  L  34: saveSeason — (int showId, int seasonNumber, TmdbTvSeasonDetailDto dto)
+  L  42: getSeason — (int showId, int seasonNumber)
+
+--------------------------------------------------------------------------------
+FILE #171: src/features/tv/data/dtos/tmdb_tv_detail_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: TmdbTvDetailDto
+  L 127: TmdbTvCastDto
+  L 157: TmdbTvCrewDto
+  L 183: TmdbTvSeasonDto
+  L 225: TmdbTvSummaryDto
+
+--------------------------------------------------------------------------------
+FILE #172: src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: TmdbTvSeasonDetailDto
+  L  35: TmdbTvEpisodeDto
+
+--------------------------------------------------------------------------------
+FILE #173: src/features/tv/data/repositories/tv_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  17: TvRepositoryImpl
+[METHODS TvRepositoryImpl]
+  L  18: TvRepositoryImpl — (…)
+  L  27: getShow — (SeriesId id)
+  L  35: getSeasons — (SeriesId id)
+  L  43: getEpisodes — (SeriesId id, SeasonId seasonId)
+  L  50: getFeaturedShows — ()
+  L  56: getUserWatchlist — ()
+  L  71: getContinueWatching — ()
+  L  86: searchShows — (String query)
+  L  92: isInWatchlist — (SeriesId id) async => _watchlist.exists(id.value, ContentType.series)
+  L  95: setWatchlist — (SeriesId id, {required bool saved})
+  L 112: _loadShowDto — (int showId)
+  L 120: _loadSeasons — (int showId, List<TmdbTvSeasonDto> seasons)
+  L 132: _loadSeasonDto — (int showId, int seasonNumber)
+  L 140: _mapShow — (TmdbTvDetailDto dto, Map<int, TmdbTvSeasonDetailDto> seasonDetails)
+  L 161: _mapSeasons — (List<TmdbTvSeasonDto> seasons, Map<int, TmdbTvSeasonDetailDto> details)
+  L 176: _mapEpisodes — (TmdbTvSeasonDetailDto detail)
+  L 192: _emptySeasonDetail — (TmdbTvSeasonDto season)
+  L 201: _mapSummary — (TmdbTvSummaryDto dto)
+  L 215: _mapCast — (TmdbTvCastDto cast)
+  L 225: _parseDate — (String? date) => date == null || date.isEmpty ? null : DateTime.tryParse(date)
+  L 227: _mapStatus — (String? status)
+  L 240: _mapRating — (double? voteAverage)
+
+--------------------------------------------------------------------------------
+FILE #174: src/features/tv/data/tv_data_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  12: TvDataModule
+[METHODS TvDataModule]
+  L  13: register — ()
+
+--------------------------------------------------------------------------------
+FILE #175: src/features/tv/domain/entities/tv_show.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: TvShow
+  L  61: Season
+  L  92: Episode
+  L 123: TvShowSummary
+
+--------------------------------------------------------------------------------
+FILE #176: src/features/tv/domain/repositories/tv_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: TvRepository
+[METHODS TvRepository]
+  L   5: getShow — (SeriesId id)
+  L   6: getSeasons — (SeriesId id)
+  L   7: getEpisodes — (SeriesId id, SeasonId seasonId)
+  L   8: getFeaturedShows — ()
+  L   9: getUserWatchlist — ()
+  L  10: getContinueWatching — ()
+  L  11: searchShows — (String query)
+  L  12: isInWatchlist — (SeriesId id)
+  L  13: setWatchlist — (SeriesId id, {required bool saved})
+
+--------------------------------------------------------------------------------
+FILE #177: src/features/tv/domain/usecases/get_continue_watching_tv.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetContinueWatchingTv
+[METHODS GetContinueWatchingTv]
+  L   5: GetContinueWatchingTv — (…)
+  L   9: call — () => _repository.getContinueWatching()
+
+--------------------------------------------------------------------------------
+FILE #178: src/features/tv/domain/usecases/get_featured_tv_shows.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetFeaturedTvShows
+[METHODS GetFeaturedTvShows]
+  L   5: GetFeaturedTvShows — (…)
+  L   9: call — () => _repository.getFeaturedShows()
+
+--------------------------------------------------------------------------------
+FILE #179: src/features/tv/domain/usecases/get_season_episodes.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetSeasonEpisodes
+[METHODS GetSeasonEpisodes]
+  L   6: GetSeasonEpisodes — (…)
+  L  10: call — (SeriesId showId, SeasonId seasonId)
+
+--------------------------------------------------------------------------------
+FILE #180: src/features/tv/domain/usecases/get_tv_seasons.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetTvSeasons
+[METHODS GetTvSeasons]
+  L   6: GetTvSeasons — (…)
+  L  10: call — (SeriesId id) => _repository.getSeasons(id)
+
+--------------------------------------------------------------------------------
+FILE #181: src/features/tv/domain/usecases/get_tv_show_detail.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: GetTvShowDetail
+[METHODS GetTvShowDetail]
+  L   6: GetTvShowDetail — (…)
+  L  10: call — (SeriesId id) => _repository.getShow(id)
+
+--------------------------------------------------------------------------------
+FILE #182: src/features/tv/domain/usecases/get_tv_watchlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: GetTvWatchlist
+[METHODS GetTvWatchlist]
+  L   5: GetTvWatchlist — (…)
+  L   9: call — () => _repository.getUserWatchlist()
+
+--------------------------------------------------------------------------------
+FILE #183: src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: IsTvShowInWatchlist
+[METHODS IsTvShowInWatchlist]
+  L   5: IsTvShowInWatchlist — (…)
+  L   9: call — (SeriesId id) => _repository.isInWatchlist(id)
+
+--------------------------------------------------------------------------------
+FILE #184: src/features/tv/domain/usecases/search_tv_shows.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SearchTvShows
+[METHODS SearchTvShows]
+  L   5: SearchTvShows — (…)
+  L   9: call — (String query)
+
+--------------------------------------------------------------------------------
+FILE #185: src/features/tv/domain/usecases/toggle_tv_watchlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: ToggleTvWatchlist
+[METHODS ToggleTvWatchlist]
+  L   5: ToggleTvWatchlist — (…)
+  L   9: call — (SeriesId id, {required bool saved})
+
+--------------------------------------------------------------------------------
+FILE #186: src/features/tv/presentation/pages/tv_detail_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: TvDetailPage
+[METHODS TvDetailPage]
+  L   4: TvDetailPage — (…)
+  L   7: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #187: src/features/welcome/presentation/pages/welcome_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  12: WelcomePage
+[METHODS WelcomePage]
+  L  13: WelcomePage — (…)
+
+--------------------------------------------------------------------------------
+FILE #188: src/features/welcome/presentation/providers/welcome_providers.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  12: WelcomeUiState
+  L  41: WelcomeController
+[METHODS WelcomeController]
+  L  42: WelcomeController — (…)
+  L  46: toggleObscure — ()
+  L  51: updateUrlPreview — (String raw)
+
+--------------------------------------------------------------------------------
+FILE #189: src/features/welcome/presentation/utils/error_presenter.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #190: src/features/welcome/presentation/widgets/welcome_faq_row.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: WelcomeFaqRow
+[METHODS WelcomeFaqRow]
+  L   4: WelcomeFaqRow — (…)
+  L   9: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #191: src/features/welcome/presentation/widgets/welcome_form.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  19: WelcomeForm
+  L  36: _WelcomeFormState
+[METHODS _WelcomeFormState]
+  L  50: initState — ()
+  L  68: dispose — ()
+  L  80: _recompute — ()
+  L  91: _onSubmit — ()
+  L 132: _presentFailureMessage — (String? raw)
+  L 138: build — (BuildContext context)
+  L 279: _LabeledField
+[METHODS _LabeledField]
+  L 280: _LabeledField — (…)
+  L 287: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #192: src/features/welcome/presentation/widgets/welcome_header.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: WelcomeHeader
+[METHODS WelcomeHeader]
+  L   6: WelcomeHeader — (…)
+  L   9: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #193: src/shared/data/services/tmdb_cache_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: TmdbCacheDataSource
+[METHODS TmdbCacheDataSource]
+  L   5: TmdbCacheDataSource — (…)
+  L  15: getMovieDetail — (int id)
+  L  18: getTvDetail — (int id)
+  L  21: putMovieDetail — (int id, Map<String, dynamic> json)
+  L  24: putTvDetail — (int id, Map<String, dynamic> json)
+
+--------------------------------------------------------------------------------
+FILE #194: src/shared/data/services/tmdb_client.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  13: TmdbClient
+  L 121: TmdbClientError
+
+--------------------------------------------------------------------------------
+FILE #195: src/shared/data/services/tmdb_image_resolver.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: TmdbImageResolver
+[METHODS TmdbImageResolver]
+  L   2: TmdbImageResolver — (…)
+  L   6: poster — (String? path, {String size = }) => _build(path, size)
+  L   7: backdrop — (String? path, {String size = }) => _build(path, size)
+  L   8: logo — (String? path, {String size = }) => _build(path, size)
+  L   9: still — (String? path, {String size = }) => _build(path, size)
+  L  11: _build — (String? path, String size)
+
+--------------------------------------------------------------------------------
+FILE #196: src/shared/domain/entities/person_summary.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: PersonSummary
+
+--------------------------------------------------------------------------------
+FILE #197: src/shared/domain/value_objects/content_rating.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #198: src/shared/domain/value_objects/content_reference.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: ContentReference
+
+--------------------------------------------------------------------------------
+FILE #199: src/shared/domain/value_objects/media_id.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: MovieId
+[METHODS MovieId]
+  L   2: MovieId — (…)
+  L   8: SeriesId
+[METHODS SeriesId]
+  L   9: SeriesId — (…)
+  L  15: EpisodeId
+[METHODS EpisodeId]
+  L  16: EpisodeId — (…)
+  L  22: SeasonId
+[METHODS SeasonId]
+  L  23: SeasonId — (…)
+  L  29: PersonId
+[METHODS PersonId]
+  L  30: PersonId — (…)
+  L  36: SagaId
+[METHODS SagaId]
+  L  37: SagaId — (…)
+  L  43: PlaylistId
+[METHODS PlaylistId]
+  L  44: PlaylistId — (…)
+
+--------------------------------------------------------------------------------
+FILE #200: src/shared/domain/value_objects/media_title.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: MediaTitle
+[METHODS MediaTitle]
+  L   2: MediaTitle — (…)
+
+--------------------------------------------------------------------------------
+FILE #201: src/shared/domain/value_objects/synopsis.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: Synopsis
+[METHODS Synopsis]
+  L   2: Synopsis — (…)
+

@@ -1,0 +1,12 @@
+#95 — src/features/movie/data/dtos/tmdb_movie_detail_dto.dart. 
+#97 — src/features/movie/data/repositories/movie_repository_impl.dart. 
+#80 — src/features/home/data/repositories/home_feed_repository_impl.dart. 
+#83 — src/features/home/presentation/providers/home_providers.dart. 
+#10 — src/core/config/models/network_endpoints.dart. 
+#4 — src/core/config/env/dev_environment.dart. 
+#193 — src/shared/data/services/tmdb_cache_data_source.dart. 
+#41 — src/core/network/http_client_factory.dart. 
+#40 — src/core/network/dio_failure_mapper.dart. 
+#42 — src/core/network/interceptors/auth_interceptor.dart. 
+#18 — src/core/network/interceptors/retry_interceptor.dart. 
+#45 — src/core/network/interceptors/telemetry_interceptor.dart. 

@@ -1,3 +1,0 @@
-Corrige ces problèmes. Dans ma welcome page quand j'ai rempli les champs obligatoires, je ne peux pas ajouter une source tant que je n'ai pas afficher le mot de passe alors qu'il est rempli. 
-
-Le bouton tester une source doit être enlever et Ajouter la source doit rester.

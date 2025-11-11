@@ -88,21 +88,6 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
         _passCtrl.text.isNotEmpty;
   }
 
-  Future<void> _onTest() async {
-    final ui = ref.read(welcomeControllerProvider.notifier);
-    final ok = await ui.testConnection(
-      serverUrl: _urlCtrl.text.trim(),
-      username: _userCtrl.text.trim(),
-      password: _passCtrl.text,
-    );
-    if (!mounted) return;
-    final state = ref.read(welcomeControllerProvider);
-    final msg = ok
-        ? 'Connexion réussie ✅'
-        : _presentFailureMessage(state.errorMessage);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 

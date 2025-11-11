@@ -1,7 +1,5 @@
 # Dev
-flutter run --flavor dev -t lib/main.dart \
-  --dart-define=FLAVOR=dev \
-  --dart-define=API_BASE_URL=https://api.dev.example.com
+flutter run --flavor dev -t lib/main.dart --dart-define=TMDB_API_KEY_DEV=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8
 
 # Stage
 flutter run --flavor stage -t lib/main.dart \

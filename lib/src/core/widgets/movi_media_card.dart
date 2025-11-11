@@ -27,14 +27,9 @@ Widget _buildPosterImage(String source, double width, double height) {
       height: height,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => placeholder,
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return SizedBox(
-          width: width,
-          height: height,
-          child: const Center(child: CircularProgressIndicator(strokeWidth: 1.5)),
-        );
-      },
+      // Supprime le loadingBuilder pour éviter des reconstructions fréquentes.
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.low,
     );
   }
 

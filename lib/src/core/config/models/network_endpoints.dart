@@ -1,3 +1,12 @@
+/// src/core/config/models/network_endpoints.dart
+///
+/// Décrit l'ensemble des points d'accès et paramètres réseau utilisés par l'app.
+/// Cette version introduit explicitement la configuration TMDB (host + version)
+/// et fournit des getters résolus avec des valeurs par défaut sûres.
+///
+/// - Aucune clé secrète n'est codée en dur.
+/// - Null-safety, API claire, champs immuables.
+/// - Compatible avec les lints `flutter_lints`.
 class NetworkTimeouts {
   const NetworkTimeouts({
     this.connect = const Duration(seconds: 10),
@@ -5,8 +14,13 @@ class NetworkTimeouts {
     this.send = const Duration(seconds: 10),
   });
 
+  /// Timeout de connexion.
   final Duration connect;
+
+  /// Timeout de réception.
   final Duration receive;
+
+  /// Timeout d’envoi.
   final Duration send;
 
   NetworkTimeouts copyWith({
@@ -22,29 +36,70 @@ class NetworkTimeouts {
   }
 }
 
+/// Configuration des endpoints réseau de l'application.
+/// - [restBaseUrl] : base URL du backend/app interne (ex: https://api.example.com)
+/// - [imageBaseUrl] : base URL d'images/CDN interne
+/// - [tmdbApiKey] : clé/jeton TMDB injectée via l'env (peut être v3 api_key ou v4 bearer)
+/// - [tmdbBaseHost] : hôte TMDB (optionnel, par défaut api.themoviedb.org)
+/// - [tmdbApiVersion] : version d'API TMDB (optionnel, par défaut "3")
 class NetworkEndpoints {
   const NetworkEndpoints({
     required this.restBaseUrl,
     required this.imageBaseUrl,
     this.tmdbApiKey,
+    this.tmdbBaseHost,
+    this.tmdbApiVersion,
     this.timeouts = const NetworkTimeouts(),
   });
 
+  /// Base URL principale pour les appels REST de votre backend.
   final String restBaseUrl;
+
+  /// Base URL pour les ressources images de votre backend/CDN.
   final String imageBaseUrl;
+
+  /// Clé/jeton TMDB (v3 ou v4). Doit être injectée via la configuration d'environnement.
   final String? tmdbApiKey;
+
+  /// Hôte TMDB optionnel (ex: "api.themoviedb.org").
+  final String? tmdbBaseHost;
+
+  /// Version d'API TMDB optionnelle (ex: "3" ou "4").
+  final String? tmdbApiVersion;
+
+  /// Timeouts réseau.
   final NetworkTimeouts timeouts;
+
+  /// Getter résolu : renvoie l'hôte TMDB à utiliser.
+  /// Par défaut : "api.themoviedb.org".
+  String get resolvedTmdbBaseHost {
+    final value = tmdbBaseHost?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    return 'api.themoviedb.org';
+  }
+
+  /// Getter résolu : renvoie la version d'API TMDB à utiliser.
+  /// Par défaut : "3".
+  String get resolvedTmdbApiVersion {
+    final value = tmdbApiVersion?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    return '3';
+  }
 
   NetworkEndpoints copyWith({
     String? restBaseUrl,
     String? imageBaseUrl,
     String? tmdbApiKey,
+    String? tmdbBaseHost,
+    String? tmdbApiVersion,
     NetworkTimeouts? timeouts,
   }) {
     return NetworkEndpoints(
       restBaseUrl: restBaseUrl ?? this.restBaseUrl,
       imageBaseUrl: imageBaseUrl ?? this.imageBaseUrl,
       tmdbApiKey: tmdbApiKey ?? this.tmdbApiKey,
+      tmdbBaseHost: tmdbBaseHost ?? this.tmdbBaseHost,
+      tmdbApiVersion: tmdbApiVersion ?? this.tmdbApiVersion,
       timeouts: timeouts ?? this.timeouts,
     );
   }

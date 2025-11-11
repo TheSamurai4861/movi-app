@@ -14,18 +14,18 @@ class XtreamStreamDto {
 
   factory XtreamStreamDto.fromJson(Map<String, dynamic> json) {
     // Récupère la valeur TMDB quel que soit le nom employé par le panel
-    dynamic _tmdbRaw =
+    dynamic tmdbRaw =
         json['tmdb'] ?? json['tmdb_id'] ?? json['tmdbId'] ?? json['tmdbID'];
 
-    int? _tmdbParsed;
-    if (_tmdbRaw is num) {
-      _tmdbParsed = _tmdbRaw.toInt();
-    } else if (_tmdbRaw is String) {
-      _tmdbParsed = int.tryParse(_tmdbRaw);
+    int? tmdbParsed;
+    if (tmdbRaw is num) {
+      tmdbParsed = tmdbRaw.toInt();
+    } else if (tmdbRaw is String) {
+      tmdbParsed = int.tryParse(tmdbRaw);
     }
 
     // Variantes possibles du champ date
-    final _released =
+    final released =
         (json['releasedate'] ?? json['releaseDate'] ?? json['release_date'])
             ?.toString();
 
@@ -36,12 +36,12 @@ class XtreamStreamDto {
       name: json['name']?.toString() ?? 'Untitled',
       streamType: json['stream_type']?.toString() ?? 'vod',
       categoryId: json['category_id']?.toString() ?? '',
-      streamIcon: json['stream_icon']?.toString(),
+      streamIcon: (json['stream_icon'] ?? json['cover'])?.toString(),
       rating: double.tryParse('${json['rating']}'),
       rating5Based: double.tryParse('${json['rating_5based']}'),
       plot: json['plot']?.toString(),
-      released: _released,
-      tmdbId: _tmdbParsed,
+      released: released,
+      tmdbId: tmdbParsed,
     );
   }
 

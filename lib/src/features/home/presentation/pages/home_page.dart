@@ -1,8 +1,10 @@
 // lib/src/features/home/presentation/pages/home_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'dart:async';
 
 import '../providers/home_providers.dart' as hp;
 
@@ -77,7 +79,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _HomeContent extends ConsumerStatefulWidget {
-  const _HomeContent({super.key});
+  const _HomeContent();
 
   @override
   ConsumerState<_HomeContent> createState() => _HomeContentState();
@@ -87,6 +89,10 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
   // --- Mémo anti-doublons par catégorie (évite les relances inutiles)
   final Map<String, _ViewportReq> _lastReq = {};
 
+  // Vérification périodique : re-scanne le viewport et ré-enrichit si besoin
+  static const Duration _recheckEvery = Duration(seconds: 8);
+  Timer? _recheckTimer;
+
   bool _isScheduled = false;
   void _postFrame(VoidCallback fn) {
     if (_isScheduled) return;
@@ -94,6 +100,34 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       fn();
       _isScheduled = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _recheckTimer = Timer.periodic(_recheckEvery, (_) => _recheckVisible());
+  }
+
+  @override
+  void dispose() {
+    _recheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _recheckVisible() {
+    if (_lastReq.isEmpty) return;
+    final controller = ref.read(hp.homeControllerProvider.notifier);
+    // Copie snapshot pour éviter les modifications concurrentes pendant l’itération
+    final current = Map<String, _ViewportReq>.from(_lastReq);
+    _postFrame(() {
+      for (final entry in current.entries) {
+        controller.enrichCategoryBatch(
+          entry.key,
+          entry.value.start,
+          entry.value.count,
+        );
+      }
     });
   }
 
@@ -219,6 +253,9 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                 title: _displayCategoryTitle(entry.key), // ← étiquette propre
                 itemSpacing: _itemSpacing,
                 estimatedItemWidth: _mediaCardWidth,
+                // Paramètres dépendants plateforme pour stabilité Windows.
+                debounceMs: defaultTargetPlatform == TargetPlatform.windows ? 240 : 160,
+                preloadAhead: defaultTargetPlatform == TargetPlatform.windows ? 2 : 3,
                 // → Notifie le contrôleur d’enrichir le batch visible (+preload)
                 onViewportChanged: (start, count) {
                   // On ajoute un petit buffer pour éviter de recalculer à chaque pixel
@@ -231,6 +268,12 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                   // Mémorise la nouvelle plage puis déclenche en post-frame (throttle)
                   _lastReq[entry.key] = buffered;
                   _postFrame(() {
+                    // Annule les requêtes hors écran pour libérer la concurrence
+                    controller.cancelOffscreen(
+                      entry.key,
+                      buffered.start,
+                      buffered.count,
+                    );
                     controller.enrichCategoryBatch(
                       entry.key,
                       buffered.start,
