@@ -91,24 +91,28 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       }
     }
 
-    // 3) Fallback: utiliser le premier stream VOD dispo dans les playlists.
+    // 3) Fallback prioritaire: première page trending mappée (avec poster, tmdbId présent).
+    final List<dynamic> fallbackDtos = await _fetchTrendingMoviesPage(1);
+    final List<MovieSummary> fallbackList = fallbackDtos
+        .map(_mapMovie)
+        .whereType<MovieSummary>()
+        .toList();
+    if (fallbackList.isNotEmpty) {
+      return fallbackList.length > 20
+          ? fallbackList.sublist(0, 20)
+          : fallbackList;
+    }
+
+    // 4) Ultime fallback: utiliser le premier stream VOD dispo dans les playlists.
+    // Note: peut ne pas disposer d’un tmdbId → héro non hydraté; on ne l’utilise
+    // qu’en dernier recours.
     final XtreamPlaylistItem? firstVod = await _pickFirstVodStream();
     if (firstVod != null) {
       final MovieSummary? synthetic = _fromPlaylistItemToMovieSummary(firstVod);
       if (synthetic != null) return <MovieSummary>[synthetic];
     }
 
-    // 4) Ultime fallback: première page trending mappée (avec poster).
-    final List<dynamic> fallbackDtos = await _fetchTrendingMoviesPage(1);
-    final List<MovieSummary> fallbackList = fallbackDtos
-        .map(_mapMovie)
-        .whereType<MovieSummary>()
-        .toList();
-    return fallbackList.isNotEmpty
-        ? (fallbackList.length > 20
-              ? fallbackList.sublist(0, 20)
-              : fallbackList)
-        : <MovieSummary>[];
+    return <MovieSummary>[];
   }
 
   // ---------------------------------------------------------------------------

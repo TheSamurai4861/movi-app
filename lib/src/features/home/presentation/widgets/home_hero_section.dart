@@ -22,10 +22,12 @@ import '../../../movie/domain/entities/movie_summary.dart';
 /// - Hydratation asynchrone (cache→réseau) si des métadonnées essentielles manquent.
 /// - Résout les images via [TmdbImageResolver] avec des tailles adaptées (w780/w500).
 class HomeHeroSection extends StatefulWidget {
-  const HomeHeroSection({super.key, required this.movie});
+  const HomeHeroSection({super.key, required this.movie, this.onBackgroundReady});
 
   /// Résumé du contenu sélectionné pour le hero (MovieSummary minimal).
   final MovieSummary? movie;
+  /// Callback déclenché dès que le backdrop rend sa première frame.
+  final VoidCallback? onBackgroundReady;
 
   @override
   State<HomeHeroSection> createState() => _HomeHeroSectionState();
@@ -34,6 +36,8 @@ class HomeHeroSection extends StatefulWidget {
 class _HomeHeroSectionState extends State<HomeHeroSection> {
   static const double _totalHeight = 690;
   static const double _overlayHeight = 125;
+  // Plafond sécurité pour la taille décodée du backdrop (en pixels @device)
+  static const int _maxHeroCachePx = 1440;
 
   final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
 
@@ -47,6 +51,7 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
   final Set<int> _hydratedIds = <int>{};
 
   Future<_HeroMeta?>? _metaFuture;
+  bool _backdropNotified = false; // évite les notifications multiples
 
   @override
   void initState() {
@@ -113,14 +118,17 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     final logoPath = _selectLogoFrEnNoLang(logos);
 
     // ✅ Utiliser des tailles adaptées pour réduire la pression mémoire/CPU
+    // Spécification: réduire la taille de l'image du hero et optimiser le poids.
+    // - Poster: passer de w500 à w342 (moins lourd, suffisant pour ce contexte)
+    // - Backdrop: conserver w780 (compromis qualité/poids pour fond plein écran)
     final posterUri = _images.poster(
       posterNoLangPath,
-      size: 'w500',
-    ); // was 'original'
+      size: 'w342',
+    );
     final backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
       size: 'w780',
-    ); // was 'original'
+    );
     final logoUri = _images.logo(logoPath);
 
     final overview = (data['overview']?.toString() ?? '').trim();
@@ -188,8 +196,12 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
           isTvData = true;
         }
         if (!mounted) return;
-        setState(() {
-          _metaFuture = _loadMeta(m);
+        // Décaler la mise à jour en post-frame pour ne pas perturber la première peinture
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _metaFuture = _loadMeta(m);
+          });
         });
       } catch (e, st) {
         if (kDebugMode) {
@@ -229,9 +241,12 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
         await _cache.putTvDetail(id, dto.toCache());
       }
       if (!mounted) return;
-      // Recalculer les métadonnées à partir du cache hydraté.
-      setState(() {
-        _metaFuture = _loadMeta(m);
+      // Recalculer les métadonnées à partir du cache hydraté en post-frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          _metaFuture = _loadMeta(m);
+        });
       });
     } catch (e, st) {
       if (kDebugMode) {
@@ -360,8 +375,14 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
 
                 final hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
 
+                // Construit le fond du hero en limitant la résolution décodée côté client (cacheWidth)
+                // afin de réduire la consommation mémoire/CPU et accélérer le premier rendu.
                 Widget buildBackground() {
                   if (bgSrc != null) {
+                    final mq = MediaQuery.of(context);
+                    final rawPx = (mq.size.width * mq.devicePixelRatio).round();
+                    // Évite les décodages géants sur desktop lors des resizes
+                    final cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
                     return Image.network(
                       bgSrc,
                       fit: BoxFit.cover,
@@ -369,9 +390,26 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                       height: double.infinity,
                       // ✅ réduit le churn d’images et la charge sur le main thread (Windows)
                       gaplessPlayback: true,
+                      // Réduit le poids décodé en adaptant à la largeur réelle de l’écran
+                      cacheWidth: cacheWidth,
                       filterQuality: FilterQuality.low,
-                      errorBuilder: (_, __, ___) =>
-                          const ColoredBox(color: Color(0xFF222222)),
+                      errorBuilder: (_, __, ___) {
+                        // Si l’image échoue, on ne bloque pas l’UI :
+                        // on signale le “ready” pour que l’overlay se ferme.
+                        if (!_backdropNotified) {
+                          _backdropNotified = true;
+                          widget.onBackgroundReady?.call();
+                        }
+                        return const ColoredBox(color: Color(0xFF222222));
+                      },
+                      // Fermer l’overlay dès la première frame du backdrop
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (frame != null && !_backdropNotified) {
+                          _backdropNotified = true;
+                          widget.onBackgroundReady?.call();
+                        }
+                        return child;
+                      },
                     );
                   }
                   return const ColoredBox(color: Color(0xFF222222));
@@ -411,6 +449,8 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                                             meta!.logo!,
                                             height: 100,
                                             gaplessPlayback: true,
+                                            // Limite la résolution décodée du logo (~300px @1x)
+                                            cacheWidth: (300 * MediaQuery.of(context).devicePixelRatio).round(),
                                             filterQuality: FilterQuality.low,
                                             errorBuilder: (_, __, ___) =>
                                                 _TitleFallback(

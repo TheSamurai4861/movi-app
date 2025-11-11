@@ -1,1120 +1,9 @@
 ================================================================================
-EXPORT CONTENU — 20 fichier(s)
+EXPORT CONTENU — 7 fichier(s)
 ================================================================================
 
 --------------------------------------------------------------------------------
-FILE #10: src/core/config/models/network_endpoints.dart
---------------------------------------------------------------------------------
-/// src/core/config/models/network_endpoints.dart
-///
-/// Décrit l'ensemble des points d'accès et paramètres réseau utilisés par l'app.
-/// Cette version introduit explicitement la configuration TMDB (host + version)
-/// et fournit des getters résolus avec des valeurs par défaut sûres.
-///
-/// - Aucune clé secrète n'est codée en dur.
-/// - Null-safety, API claire, champs immuables.
-/// - Compatible avec les lints `flutter_lints`.
-class NetworkTimeouts {
-  const NetworkTimeouts({
-    this.connect = const Duration(seconds: 10),
-    this.receive = const Duration(seconds: 15),
-    this.send = const Duration(seconds: 10),
-  });
-
-  /// Timeout de connexion.
-  final Duration connect;
-
-  /// Timeout de réception.
-  final Duration receive;
-
-  /// Timeout d’envoi.
-  final Duration send;
-
-  NetworkTimeouts copyWith({
-    Duration? connect,
-    Duration? receive,
-    Duration? send,
-  }) {
-    return NetworkTimeouts(
-      connect: connect ?? this.connect,
-      receive: receive ?? this.receive,
-      send: send ?? this.send,
-    );
-  }
-}
-
-/// Configuration des endpoints réseau de l'application.
-/// - [restBaseUrl] : base URL du backend/app interne (ex: https://api.example.com)
-/// - [imageBaseUrl] : base URL d'images/CDN interne
-/// - [tmdbApiKey] : clé/jeton TMDB injectée via l'env (peut être v3 api_key ou v4 bearer)
-/// - [tmdbBaseHost] : hôte TMDB (optionnel, par défaut api.themoviedb.org)
-/// - [tmdbApiVersion] : version d'API TMDB (optionnel, par défaut "3")
-class NetworkEndpoints {
-  const NetworkEndpoints({
-    required this.restBaseUrl,
-    required this.imageBaseUrl,
-    this.tmdbApiKey,
-    this.tmdbBaseHost,
-    this.tmdbApiVersion,
-    this.timeouts = const NetworkTimeouts(),
-  });
-
-  /// Base URL principale pour les appels REST de votre backend.
-  final String restBaseUrl;
-
-  /// Base URL pour les ressources images de votre backend/CDN.
-  final String imageBaseUrl;
-
-  /// Clé/jeton TMDB (v3 ou v4). Doit être injectée via la configuration d'environnement.
-  final String? tmdbApiKey;
-
-  /// Hôte TMDB optionnel (ex: "api.themoviedb.org").
-  final String? tmdbBaseHost;
-
-  /// Version d'API TMDB optionnelle (ex: "3" ou "4").
-  final String? tmdbApiVersion;
-
-  /// Timeouts réseau.
-  final NetworkTimeouts timeouts;
-
-  /// Getter résolu : renvoie l'hôte TMDB à utiliser.
-  /// Par défaut : "api.themoviedb.org".
-  String get resolvedTmdbBaseHost {
-    final value = tmdbBaseHost?.trim();
-    if (value != null && value.isNotEmpty) return value;
-    return 'api.themoviedb.org';
-  }
-
-  /// Getter résolu : renvoie la version d'API TMDB à utiliser.
-  /// Par défaut : "3".
-  String get resolvedTmdbApiVersion {
-    final value = tmdbApiVersion?.trim();
-    if (value != null && value.isNotEmpty) return value;
-    return '3';
-  }
-
-  NetworkEndpoints copyWith({
-    String? restBaseUrl,
-    String? imageBaseUrl,
-    String? tmdbApiKey,
-    String? tmdbBaseHost,
-    String? tmdbApiVersion,
-    NetworkTimeouts? timeouts,
-  }) {
-    return NetworkEndpoints(
-      restBaseUrl: restBaseUrl ?? this.restBaseUrl,
-      imageBaseUrl: imageBaseUrl ?? this.imageBaseUrl,
-      tmdbApiKey: tmdbApiKey ?? this.tmdbApiKey,
-      tmdbBaseHost: tmdbBaseHost ?? this.tmdbBaseHost,
-      tmdbApiVersion: tmdbApiVersion ?? this.tmdbApiVersion,
-      timeouts: timeouts ?? this.timeouts,
-    );
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #39: src/core/network/config/network_module.dart
---------------------------------------------------------------------------------
-// lib/src/core/network/config/network_module.dart
-import 'package:dio/dio.dart';
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
-import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
-
-import '../../config/models/app_config.dart';
-import '../../config/services/secret_store.dart';
-import '../../di/injector.dart';
-import '../../utils/logger.dart';
-import '../http_client_factory.dart';
-import '../network_executor.dart';
-
-class NetworkModule {
-  static void register({LocaleCodeProvider? localeProvider}) {
-    if (sl.isRegistered<NetworkExecutor>()) return;
-
-    if (!sl.isRegistered<AppConfig>()) {
-      throw StateError('AppConfig must be registered before NetworkModule.');
-    }
-
-    if (!sl.isRegistered<TmdbCacheDataSource>()) {
-      sl.registerLazySingleton<TmdbCacheDataSource>(
-        () => TmdbCacheDataSource(sl<ContentCacheRepository>()),
-      );
-    }
-
-    final config = sl<AppConfig>();
-    final logger = sl<AppLogger>();
-    final secretStore = sl<SecretStore>();
-
-    final factory = HttpClientFactory(
-      config: config,
-      logger: logger,
-      secretStore: secretStore,
-      localeProvider: localeProvider,
-    );
-
-    final dio = factory.create();
-    sl.registerSingleton<Dio>(dio);
-    sl.registerSingleton<NetworkExecutor>(
-      NetworkExecutor(dio, logger: logger),
-    );
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #41: src/core/network/http_client_factory.dart
---------------------------------------------------------------------------------
-// lib/src/core/network/http_client_factory.dart
-import 'package:dio/dio.dart';
-
-import '../config/models/app_config.dart';
-import '../config/services/secret_store.dart';
-import '../utils/logger.dart';
-import 'interceptors/auth_interceptor.dart';
-import 'interceptors/locale_interceptor.dart';
-import 'interceptors/retry_interceptor.dart';
-import 'interceptors/telemetry_interceptor.dart';
-
-typedef LocaleCodeProvider = String? Function();
-
-class HttpClientFactory {
-  const HttpClientFactory({
-    required this.config,
-    required this.logger,
-    required this.secretStore,
-    this.localeProvider,
-  });
-
-  final AppConfig config;
-  final AppLogger logger;
-  final SecretStore secretStore;
-  final LocaleCodeProvider? localeProvider;
-
-  Dio create() {
-    final baseUrl = config.network.restBaseUrl.trim();
-    final options = BaseOptions(
-      baseUrl: baseUrl.isNotEmpty == true ? baseUrl : '',
-      connectTimeout: config.network.timeouts.connect,
-      receiveTimeout: config.network.timeouts.receive,
-      sendTimeout: config.network.timeouts.send,
-      responseType: ResponseType.json,
-      followRedirects: true,
-      headers: <String, Object?>{
-        'Accept': 'application/json',
-        'User-Agent':
-            'MOVI/${config.metadata.version} (${config.environment.label})',
-      },
-      // N'autorise pas les 200-299 uniquement, le mapper gérera l'erreur typée.
-      validateStatus: (status) => status != null && status >= 200 && status < 600,
-    );
-
-    final dio = Dio(options);
-
-    dio.interceptors.addAll(<Interceptor>[
-      AuthInterceptor(
-        tokenResolver: () async =>
-            config.network.tmdbApiKey ?? await secretStore.read('TMDB_API_KEY'),
-      ),
-      LocaleInterceptor(localeProvider: localeProvider),
-      RetryInterceptor(dio: dio, logger: logger),
-      TelemetryInterceptor(logger: logger),
-    ]);
-
-    return dio;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #44: src/core/network/interceptors/retry_interceptor.dart
---------------------------------------------------------------------------------
-import 'dart:async';
-
-import 'package:dio/dio.dart';
-
-import '../../utils/logger.dart';
-
-typedef RetryEvaluator = bool Function(DioException exception);
-
-class RetryInterceptor extends Interceptor {
-  RetryInterceptor({
-    required Dio dio,
-    this.maxAttempts = 3,
-    this.delay = const Duration(milliseconds: 500),
-    this.retryEvaluator,
-    this.logger,
-  }) : _dio = dio;
-
-  final Dio _dio;
-  final int maxAttempts;
-  final Duration delay;
-  final RetryEvaluator? retryEvaluator;
-  final AppLogger? logger;
-
-  @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
-    var attempt = (err.requestOptions.extra['retry_attempt'] as int?) ?? 0;
-    final shouldRetry = _shouldRetry(err) && attempt < maxAttempts;
-
-    if (!shouldRetry) {
-      handler.next(err);
-      return;
-    }
-
-    attempt += 1;
-    err.requestOptions.extra['retry_attempt'] = attempt;
-    logger?.warn('Retrying ${err.requestOptions.uri} (attempt $attempt)');
-
-    await Future.delayed(delay * attempt);
-
-    try {
-      final response = await _dio.fetch(
-        err.requestOptions.copyWith(
-          data: err.requestOptions.data,
-          headers: err.requestOptions.headers,
-          queryParameters: err.requestOptions.queryParameters,
-        ),
-      );
-      handler.resolve(response);
-    } on DioException catch (error) {
-      handler.next(error);
-    }
-  }
-
-  bool _shouldRetry(DioException error) {
-    if (retryEvaluator != null) return retryEvaluator!(error);
-    if (error.type == DioExceptionType.connectionTimeout ||
-        error.type == DioExceptionType.receiveTimeout ||
-        error.type == DioExceptionType.sendTimeout ||
-        error.type == DioExceptionType.connectionError) {
-      return true;
-    }
-    final status = error.response?.statusCode ?? 0;
-    return status == 429 || status >= 500;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #45: src/core/network/interceptors/telemetry_interceptor.dart
---------------------------------------------------------------------------------
-import 'package:dio/dio.dart';
-
-import '../../utils/logger.dart';
-
-class TelemetryInterceptor extends Interceptor {
-  TelemetryInterceptor({required this.logger});
-
-  final AppLogger logger;
-
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.extra['request-start'] = DateTime.now().millisecondsSinceEpoch;
-    handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    _logLatency(response.requestOptions, response.statusCode);
-    handler.next(response);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    _logLatency(err.requestOptions, err.response?.statusCode);
-    handler.next(err);
-  }
-
-  void _logLatency(RequestOptions options, int? statusCode) {
-    final start = options.extra['request-start'] as int?;
-    if (start == null) return;
-    final duration = DateTime.now().millisecondsSinceEpoch - start;
-    logger.debug('[HTTP] ${options.method} ${options.path} ($statusCode) - ${duration}ms');
-    options.extra.remove('request-start');
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #46: src/core/network/network_executor.dart
---------------------------------------------------------------------------------
-import 'dart:async';
-import 'dart:collection';
-import 'dart:math';
-
-import 'package:dio/dio.dart';
-import 'package:movi/src/core/network/dio_failure_mapper.dart';
-import 'package:movi/src/core/network/network_failures.dart';
-import '../utils/logger.dart'; // <-- utilise AppLogger défini ici
-
-typedef NetworkCall<T> = Future<Response<T>> Function(Dio client);
-typedef RetryEvaluator = bool Function(DioException error, int attempt);
-typedef AttemptHook = void Function(int attempt, DioException? error);
-
-/// Exécuteur générique et résilient pour les appels réseau (Dio).
-///
-/// Principes:
-/// - Le `request` retourne un `Response<T>` complet.
-/// - Gestion centralisée des erreurs (typed failures).
-/// - Backoff exponentiel avec jitter.
-/// - Limitation de concurrence par clé logique (ex: "tmdb") partagée globalement.
-class NetworkExecutor {
-  NetworkExecutor(
-    this._client, {
-    this.logger,
-    this.defaultConcurrencyKey,
-    this.defaultMaxConcurrent = 6,
-  }) : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0');
-
-  final Dio _client;
-  final AppLogger? logger;
-
-  /// Clé de concurrence appliquée si `concurrencyKey` n’est pas fournie à `run`.
-  final String? defaultConcurrencyKey;
-
-  /// Plafond par défaut utilisé lors de la création d’un nouveau limiteur.
-  final int defaultMaxConcurrent;
-
-  /// Limiteurs partagés par clé (ex.: "tmdb") pour lisser l’ensemble des appels.
-  static final Map<String, _Limiter> _limiters = <String, _Limiter>{};
-
-  /// Configure/ajuste dynamiquement la concurrence max pour une [key].
-  static void configureConcurrency(String key, int maxConcurrent) {
-    assert(maxConcurrent > 0, 'maxConcurrent must be > 0');
-    final existing = _limiters[key];
-    if (existing == null) {
-      _limiters[key] = _Limiter(maxConcurrent);
-    } else {
-      existing.capacity = maxConcurrent;
-    }
-  }
-
-  /// Efface tous les limiteurs (utile en tests).
-  static void resetLimiters() => _limiters.clear();
-
-  /// Exécute [request] puis mappe la réponse via [mapper].
-  Future<R> run<T, R>({
-    required NetworkCall<T> request,
-    required R Function(Response<T> response) mapper,
-    int retries = 0,
-    RetryEvaluator? retryIf,
-    Duration baseDelay = const Duration(milliseconds: 300),
-    Duration maxDelay = const Duration(seconds: 5),
-    bool jitter = true,
-    String? concurrencyKey,
-    int? maxConcurrent,
-    CancelToken? cancelToken,
-    AttemptHook? onAttemptStart,
-    AttemptHook? onAttemptEnd,
-  }) async {
-    final key = concurrencyKey ?? defaultConcurrencyKey;
-    _Limiter? limiter;
-
-    if (key != null) {
-      limiter = _limiters.putIfAbsent(
-        key,
-        () => _Limiter(maxConcurrent ?? defaultMaxConcurrent),
-      );
-      if (maxConcurrent != null && maxConcurrent > 0) {
-        limiter.capacity = maxConcurrent;
-      }
-    }
-
-    for (int attempt = 0;; attempt++) {
-      if (limiter != null) {
-        await limiter.acquire();
-      }
-
-      DioException? dioErr;
-      onAttemptStart?.call(attempt, null);
-
-      try {
-        final Response<T> response = await request(_client).timeout(
-          _timeoutFromDio(),
-          onTimeout: () {
-            throw DioException(
-              requestOptions: RequestOptions(path: _client.options.baseUrl),
-              type: DioExceptionType.receiveTimeout,
-            );
-          },
-        );
-
-        if (cancelToken?.isCancelled == true) {
-          throw DioException(
-            requestOptions: response.requestOptions,
-            type: DioExceptionType.cancel,
-            error: 'Canceled by caller',
-          );
-        }
-
-        if (response.data == null) {
-          throw const EmptyResponseFailure();
-        }
-
-        final out = mapper(response);
-        onAttemptEnd?.call(attempt, null);
-        return out;
-      } on DioException catch (e, st) {
-        dioErr = e;
-        logger?.error('Network call failed', e, st);
-
-        final shouldRetry = attempt < retries && _shouldRetry(e, attempt, retryIf);
-        if (shouldRetry) {
-          final delay = _computeBackoff(
-            attempt: attempt,
-            base: baseDelay,
-            max: maxDelay,
-            jitter: jitter,
-          );
-          onAttemptEnd?.call(attempt, e);
-          await Future.delayed(delay);
-          continue;
-        }
-
-        onAttemptEnd?.call(attempt, e);
-        throw mapDioToFailure(e);
-      } catch (e, st) {
-        logger?.error('Unexpected network error', e, st);
-        onAttemptEnd?.call(attempt, dioErr);
-        throw UnknownFailure(e.toString());
-      } finally {
-        limiter?.release();
-      }
-    }
-  }
-
-  Duration _timeoutFromDio() {
-    final receive = _client.options.receiveTimeout;
-    if (receive != null && receive > Duration.zero) return receive;
-    final connect = _client.options.connectTimeout;
-    if (connect != null && connect > Duration.zero) return connect;
-    return const Duration(seconds: 30);
-  }
-
-  bool _shouldRetry(
-    DioException error,
-    int attempt,
-    RetryEvaluator? customEvaluator,
-  ) {
-    if (customEvaluator != null) return customEvaluator(error, attempt);
-
-    const retryableStatus = <int>{408, 425, 429, 500, 502, 503, 504};
-    final status = error.response?.statusCode;
-    if (status != null && retryableStatus.contains(status)) return true;
-
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-      case DioExceptionType.connectionError:
-      case DioExceptionType.unknown:
-        return true;
-      case DioExceptionType.badCertificate:
-      case DioExceptionType.badResponse:
-      case DioExceptionType.cancel:
-        return false;
-    }
-  }
-
-  Duration _computeBackoff({
-    required int attempt,
-    required Duration base,
-    required Duration max,
-    required bool jitter,
-  }) {
-    final factor = 1 << attempt; // 2^attempt
-    final ms = base.inMilliseconds * factor;
-    final clamped = min(ms, max.inMilliseconds);
-    if (!jitter) return Duration(milliseconds: clamped);
-
-    final rnd = Random();
-    return Duration(milliseconds: rnd.nextInt(clamped + 1));
-  }
-}
-
-/// Sémaphore FIFO simple pour plafonner la concurrence par clé.
-class _Limiter {
-  _Limiter(this._capacity) : assert(_capacity > 0);
-
-  int _capacity;
-  int _permitsInUse = 0;
-  final Queue<Completer<void>> _waiters = Queue<Completer<void>>();
-
-  set capacity(int value) {
-    assert(value > 0);
-    _capacity = value;
-    while (_waiters.isNotEmpty && _permitsInUse < _capacity) {
-      _permitsInUse++;
-      _waiters.removeFirst().complete();
-    }
-  }
-
-  Future<void> acquire() {
-    if (_permitsInUse < _capacity) {
-      _permitsInUse++;
-      return Future.value();
-    }
-    final c = Completer<void>();
-    _waiters.addLast(c);
-    return c.future;
-  }
-
-  void release() {
-    if (_waiters.isNotEmpty) {
-      _waiters.removeFirst().complete();
-      return; // transfert direct du permis
-    }
-    if (_permitsInUse > 0) {
-      _permitsInUse--;
-    }
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #53: src/core/storage/database/sqlite_database.dart
---------------------------------------------------------------------------------
-import 'dart:io';
-
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-
-/// SQLite singleton (sqflite / sqflite_ffi) avec migrations.
-/// - Version 5 (indexes ajoutés)
-/// - Desktop (Windows/Linux) utilise sqflite_common_ffi
-class LocalDatabase {
-  LocalDatabase._();
-
-  static Database? _instance;
-
-  /// Retourne l'instance unique de la base (créée au besoin).
-  static Future<Database> instance() async {
-    if (_instance != null) return _instance!;
-
-    // Initialisation FFI pour desktop.
-    if (Platform.isWindows || Platform.isLinux) {
-      sqfliteFfiInit();
-      databaseFactory = databaseFactoryFfi;
-    }
-
-    final dir = await getApplicationDocumentsDirectory();
-    // S’assure que le dossier existe (surtout côté desktop portable).
-    try {
-      await Directory(dir.path).create(recursive: true);
-    } catch (_) {}
-    final path = p.join(dir.path, 'movi.db');
-
-    _instance = await openDatabase(
-      path,
-      version: 5, // ↑ 4 -> 5
-      onCreate: (db, version) async {
-        // --- Tables de base ---
-        await db.execute('''
-          CREATE TABLE watchlist (
-            content_id TEXT NOT NULL,
-            content_type TEXT NOT NULL,
-            title TEXT NOT NULL,
-            poster TEXT,
-            added_at INTEGER NOT NULL,
-            PRIMARY KEY (content_id, content_type)
-          );
-        ''');
-
-        await db.execute('''
-          CREATE TABLE content_cache (
-            cache_key TEXT PRIMARY KEY,
-            cache_type TEXT NOT NULL,
-            payload TEXT NOT NULL,
-            updated_at INTEGER NOT NULL
-          );
-        ''');
-
-        await db.execute('''
-          CREATE TABLE iptv_accounts (
-            account_id TEXT PRIMARY KEY,
-            alias TEXT NOT NULL,
-            endpoint TEXT NOT NULL,
-            username TEXT NOT NULL,
-            password TEXT NOT NULL,
-            status TEXT NOT NULL,
-            expiration INTEGER,
-            created_at INTEGER NOT NULL,
-            last_error TEXT
-          );
-        ''');
-
-        await db.execute('''
-          CREATE TABLE iptv_playlists (
-            account_id TEXT NOT NULL,
-            category_id TEXT NOT NULL,
-            payload TEXT NOT NULL,
-            updated_at INTEGER NOT NULL,
-            PRIMARY KEY (account_id, category_id)
-          );
-        ''');
-
-        await db.execute('''
-          CREATE TABLE continue_watching (
-            content_id TEXT NOT NULL,
-            content_type TEXT NOT NULL,
-            title TEXT NOT NULL,
-            poster TEXT,
-            position INTEGER NOT NULL,
-            duration INTEGER,
-            season INTEGER,
-            episode INTEGER,
-            updated_at INTEGER NOT NULL,
-            PRIMARY KEY (content_id, content_type)
-          );
-        ''');
-
-        await db.execute('''
-          CREATE TABLE history (
-            content_id TEXT NOT NULL,
-            content_type TEXT NOT NULL,
-            title TEXT NOT NULL,
-            poster TEXT,
-            last_played_at INTEGER NOT NULL,
-            play_count INTEGER NOT NULL DEFAULT 1,
-            last_position INTEGER,
-            duration INTEGER,
-            season INTEGER,
-            episode INTEGER,
-            PRIMARY KEY (content_id, content_type)
-          );
-        ''');
-
-        // User playlists
-        await db.execute('''
-          CREATE TABLE playlists (
-            playlist_id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            description TEXT,
-            cover TEXT,
-            owner TEXT NOT NULL,
-            is_public INTEGER NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-          );
-        ''');
-
-        await db.execute('''
-          CREATE TABLE playlist_items (
-            playlist_id TEXT NOT NULL,
-            position INTEGER NOT NULL,
-            content_id TEXT NOT NULL,
-            content_type TEXT NOT NULL,
-            title TEXT NOT NULL,
-            poster TEXT,
-            runtime INTEGER,
-            notes TEXT,
-            added_at INTEGER NOT NULL,
-            PRIMARY KEY (playlist_id, position)
-          );
-        ''');
-
-        // --- Indexes (installations fraîches v5+) ---
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
-        );
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
-        );
-      },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('''
-            CREATE TABLE continue_watching (
-              content_id TEXT NOT NULL,
-              content_type TEXT NOT NULL,
-              title TEXT NOT NULL,
-              poster TEXT,
-              position INTEGER NOT NULL,
-              duration INTEGER,
-              season INTEGER,
-              episode INTEGER,
-              updated_at INTEGER NOT NULL,
-              PRIMARY KEY (content_id, content_type)
-            );
-          ''');
-        }
-        if (oldVersion < 3) {
-          await db.execute('''
-            CREATE TABLE history (
-              content_id TEXT NOT NULL,
-              content_type TEXT NOT NULL,
-              title TEXT NOT NULL,
-              poster TEXT,
-              last_played_at INTEGER NOT NULL,
-              play_count INTEGER NOT NULL DEFAULT 1,
-              last_position INTEGER,
-              duration INTEGER,
-              season INTEGER,
-              episode INTEGER,
-              PRIMARY KEY (content_id, content_type)
-            );
-          ''');
-        }
-        if (oldVersion < 4) {
-          await db.execute('''
-            CREATE TABLE playlists (
-              playlist_id TEXT PRIMARY KEY,
-              title TEXT NOT NULL,
-              description TEXT,
-              cover TEXT,
-              owner TEXT NOT NULL,
-              is_public INTEGER NOT NULL,
-              created_at INTEGER NOT NULL,
-              updated_at INTEGER NOT NULL
-            );
-          ''');
-          await db.execute('''
-            CREATE TABLE playlist_items (
-              playlist_id TEXT NOT NULL,
-              position INTEGER NOT NULL,
-              content_id TEXT NOT NULL,
-              content_type TEXT NOT NULL,
-              title TEXT NOT NULL,
-              poster TEXT,
-              runtime INTEGER,
-              notes TEXT,
-              added_at INTEGER NOT NULL,
-              PRIMARY KEY (playlist_id, position)
-            );
-          ''');
-        }
-        if (oldVersion < 5) {
-          // Ajout des indexes pour accélérer les accès fréquents
-          await db.execute(
-            'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
-          );
-          await db.execute(
-            'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
-          );
-        }
-      },
-    );
-
-    return _instance!;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #57: src/core/storage/repositories/iptv_local_repository.dart
---------------------------------------------------------------------------------
-import 'dart:convert';
-
-import 'package:sqflite/sqflite.dart';
-
-import 'package:movi/src/core/iptv/domain/entities/xtream_account.dart';
-import 'package:movi/src/core/iptv/domain/entities/xtream_playlist.dart';
-import 'package:movi/src/core/iptv/domain/entities/xtream_playlist_item.dart';
-import 'package:movi/src/core/iptv/domain/value_objects/xtream_endpoint.dart';
-
-import '../../storage/database/sqlite_database.dart';
-
-/// Repository local pour la persistance des comptes et playlists IPTV.
-/// Implémentation basée sur `sqflite` avec conversions typées et garde-fous.
-class IptvLocalRepository {
-  static const String _tblAccounts = 'iptv_accounts';
-  static const String _tblPlaylists = 'iptv_playlists';
-
-  Future<Database> get _db => LocalDatabase.instance();
-
-  /// Enregistre ou met à jour un [XtreamAccount].
-  Future<void> saveAccount(XtreamAccount account) async {
-    final db = await _db;
-    await db.insert(
-      _tblAccounts,
-      <String, Object?>{
-        'account_id': account.id,
-        'alias': account.alias,
-        'endpoint': account.endpoint.toRawUrl(),
-        'username': account.username,
-        'password': account.password,
-        'status': account.status.name,
-        'expiration': account.expirationDate?.millisecondsSinceEpoch,
-        'created_at': account.createdAt.millisecondsSinceEpoch,
-        'last_error': account.lastError,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  /// Récupère tous les comptes IPTV persistés.
-  Future<List<XtreamAccount>> getAccounts() async {
-    final db = await _db;
-    final rows = await db.query(_tblAccounts);
-    return rows.map(_parseAccountRow).toList(growable: false);
-  }
-
-  /// Supprime un compte et ses playlists associées.
-  Future<void> removeAccount(String id) async {
-    final db = await _db;
-    await db.delete(
-      _tblAccounts,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
-    );
-    await db.delete(
-      _tblPlaylists,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
-    );
-  }
-
-  /// Sauvegarde les playlists d'un compte sous forme de payload JSON.
-  Future<void> savePlaylists(
-    String accountId,
-    List<XtreamPlaylist> playlists,
-  ) async {
-    final db = await _db;
-    final batch = db.batch();
-    final now = DateTime.now().millisecondsSinceEpoch;
-
-    for (final playlist in playlists) {
-      final payload = <String, Object?>{
-        'title': playlist.title,
-        'type': playlist.type.name,
-        'categoryId': playlist.id,
-        'items': playlist.items
-            .map(
-              (XtreamPlaylistItem item) => <String, Object?>{
-                'streamId': item.streamId,
-                'title': item.title,
-                'poster': item.posterUrl,
-                'categoryName': item.categoryName,
-                'tmdbId': item.tmdbId,
-                'type': item.type.name,
-              },
-            )
-            .toList(growable: false),
-      };
-
-      batch.insert(
-        _tblPlaylists,
-        <String, Object?>{
-          'account_id': accountId,
-          'category_id': playlist.id,
-          'payload': jsonEncode(payload),
-          'updated_at': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-
-    await batch.commit(noResult: true);
-  }
-
-  /// Récupère les playlists d'un compte (décodage défensif + normalisation).
-  Future<List<XtreamPlaylist>> getPlaylists(String accountId) async {
-    final db = await _db;
-    final rows = await db.query(
-      _tblPlaylists,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[accountId],
-    );
-
-    final result = <XtreamPlaylist>[];
-    for (final row in rows) {
-      final payload = _decodeMap(row['payload']);
-      if (payload == null) continue;
-
-      final String title = _asString(payload['title']) ?? '';
-      final String categoryId = _asString(payload['categoryId']) ?? '';
-      final XtreamPlaylistType playlistType =
-          _normalizePlaylistType(_asString(payload['type']));
-
-      final List<dynamic> itemsList = _asList(payload['items']);
-
-      final items = <XtreamPlaylistItem>[];
-      for (final dynamic item in itemsList) {
-        if (item is! Map<String, dynamic>) continue;
-
-        final String categoryName = _asString(item['categoryName']) ?? '';
-        final int? streamId = _asNum(item['streamId'])?.toInt();
-        final String itemTitle = _asString(item['title']) ?? '';
-        final String? posterUrl = _asString(item['poster']);
-        final int? tmdbId = _asNum(item['tmdbId'])?.toInt();
-
-        final String rawType = (_asString(item['type']) ?? '').toLowerCase().trim();
-        final XtreamPlaylistItemType itemType =
-            _normalizeItemType(rawType, playlistType);
-
-        if (streamId == null) continue;
-
-        items.add(
-          XtreamPlaylistItem(
-            accountId: accountId,
-            categoryId: categoryId,
-            categoryName: categoryName,
-            streamId: streamId,
-            title: itemTitle,
-            type: itemType,
-            tmdbId: tmdbId,
-            posterUrl: posterUrl,
-          ),
-        );
-      }
-
-      result.add(
-        XtreamPlaylist(
-          id: categoryId,
-          accountId: accountId,
-          title: title,
-          type: playlistType,
-          items: items,
-        ),
-      );
-    }
-
-    return result;
-  }
-
-  /// Construit l'ensemble des TMDB IDs disponibles localement.
-  Future<Set<int>> getAvailableTmdbIds({XtreamPlaylistItemType? type}) async {
-    final accounts = await getAccounts();
-    final ids = <int>{};
-
-    for (final account in accounts) {
-      final playlists = await getPlaylists(account.id);
-      for (final playlist in playlists) {
-        for (final item in playlist.items) {
-          final int? tmdbId = item.tmdbId;
-          if (tmdbId == null) continue;
-          if (type != null && item.type != type) continue;
-          ids.add(tmdbId);
-        }
-      }
-    }
-
-    return ids;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
-
-  XtreamAccount _parseAccountRow(Map<String, Object?> row) {
-    final String id = (row['account_id'] as String?) ?? '';
-    final String alias = (row['alias'] as String?) ?? '';
-    final String endpointRaw = (row['endpoint'] as String?) ?? '';
-    final String username = (row['username'] as String?) ?? '';
-    final String password = (row['password'] as String?) ?? '';
-    final String statusStr =
-        (row['status'] as String?) ?? XtreamAccountStatus.pending.name;
-    final int createdAtMs = (row['created_at'] as int?) ?? 0;
-    final int? expirationMs = row['expiration'] as int?;
-    final String? lastError = row['last_error'] as String?;
-
-    final XtreamAccountStatus status = XtreamAccountStatus.values.firstWhere(
-      (s) => s.name == statusStr,
-      orElse: () => XtreamAccountStatus.pending,
-    );
-
-    return XtreamAccount(
-      id: id,
-      alias: alias,
-      endpoint: XtreamEndpoint.parse(endpointRaw),
-      username: username,
-      password: password,
-      status: status,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(createdAtMs),
-      expirationDate:
-          expirationMs != null ? DateTime.fromMillisecondsSinceEpoch(expirationMs) : null,
-      lastError: lastError,
-    );
-  }
-
-  Map<String, dynamic>? _decodeMap(Object? raw) {
-    if (raw is String) {
-      try {
-        final decoded = jsonDecode(raw);
-        if (decoded is Map<String, dynamic>) return decoded;
-      } catch (_) {
-        return null;
-      }
-      return null;
-    }
-    if (raw is Map<String, dynamic>) return raw;
-    return null;
-  }
-
-  List<dynamic> _asList(Object? v) {
-    if (v is List) return List<dynamic>.from(v);
-    return const <dynamic>[];
-  }
-
-  String? _asString(Object? v) => v == null ? null : v.toString();
-
-  num? _asNum(Object? v) {
-    if (v == null) return null;
-    if (v is num) return v;
-    return num.tryParse(v.toString());
-  }
-
-  XtreamPlaylistType _normalizePlaylistType(String? raw) {
-    final r = (raw ?? '').toLowerCase().trim();
-    for (final t in XtreamPlaylistType.values) {
-      if (t.name == r) return t;
-    }
-    // Tentatives de normalisation simples
-    const moviesTokens = <String>{'movie', 'movies', 'vod', 'films'};
-    const seriesTokens = <String>{
-      'tv',
-      'tvshow',
-      'tvshows',
-      'show',
-      'shows',
-      'serie',
-      'series',
-      'tv_series',
-      'series_tv',
-      'série',
-      'séries',
-    };
-    if (seriesTokens.contains(r)) return XtreamPlaylistType.series;
-    if (moviesTokens.contains(r)) return XtreamPlaylistType.movies;
-    return XtreamPlaylistType.movies;
-  }
-
-  XtreamPlaylistItemType _normalizeItemType(
-    String raw,
-    XtreamPlaylistType playlistType,
-  ) {
-    if (raw.isEmpty || raw == 'null') {
-      return playlistType == XtreamPlaylistType.series
-          ? XtreamPlaylistItemType.series
-          : XtreamPlaylistItemType.movie;
-    }
-
-    final r = raw.replaceAll('-', '_');
-
-    for (final t in XtreamPlaylistItemType.values) {
-      if (t.name == r) return t;
-    }
-
-    const seriesTokens = <String>{
-      'tv',
-      'tvshow',
-      'tvshows',
-      'show',
-      'shows',
-      'serie',
-      'series',
-      'tv_series',
-      'series_tv',
-      'série',
-      'séries',
-      'epg_series',
-    };
-
-    if (seriesTokens.contains(r)) return XtreamPlaylistItemType.series;
-
-    return playlistType == XtreamPlaylistType.series
-        ? XtreamPlaylistItemType.series
-        : XtreamPlaylistItemType.movie;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #73: src/core/widgets/movi_items_list.dart
+FILE #76: src/core/widgets/movi_items_list.dart
 --------------------------------------------------------------------------------
 import 'dart:async';
 import 'dart:math' as math;
@@ -1381,42 +270,72 @@ class _MoviItemsListState extends State<MoviItemsList> {
 }
 
 --------------------------------------------------------------------------------
-FILE #79: src/features/home/data/home_feed_data_module.dart
+FILE #82: src/core/widgets/overlay_splash.dart
 --------------------------------------------------------------------------------
-import '../../../core/di/injector.dart';
-import '../../../core/state/app_state_controller.dart';
-import '../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import '../../movie/domain/repositories/movie_repository.dart';
-import '../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../tv/domain/repositories/tv_repository.dart';
-import '../domain/repositories/home_feed_repository.dart';
-import 'repositories/home_feed_repository_impl.dart';
+// Reusable overlay splash widget matching Bootstrap design
+// - Centered app logo
+// - Bottom spinner with safe-area padding
+// - Surface-colored background
+// Use across Bootstrap and Home to ensure consistent UX.
 
-class HomeFeedDataModule {
-  static void register() {
-    if (sl.isRegistered<HomeFeedRepository>()) return;
+import 'package:flutter/material.dart';
 
-    sl.registerLazySingleton<HomeFeedRepository>(
-      () => HomeFeedRepositoryImpl(
-        sl<TmdbMovieRemoteDataSource>(),
-        sl<TmdbTvRemoteDataSource>(),
-        sl<IptvLocalRepository>(),
-        sl<MovieRepository>(),
-        sl<TvRepository>(),
-        sl<TmdbImageResolver>(),
-        sl<AppStateController>(),
+class OverlaySplash extends StatelessWidget {
+  const OverlaySplash({super.key, this.message});
+
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottom = 30.0 + MediaQuery.of(context).padding.bottom;
+
+    return Container(
+      color: theme.colorScheme.surface,
+      child: Stack(
+        children: [
+          Center(
+            child: Image.asset(
+              'assets/icons/app_logo.png',
+              height: 120,
+              fit: BoxFit.contain,
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: bottom,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (message != null && message!.isNotEmpty) ...[
+                  Text(
+                    message!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 --------------------------------------------------------------------------------
-FILE #80: src/features/home/data/repositories/home_feed_repository_impl.dart
+FILE #84: src/features/home/data/repositories/home_feed_repository_impl.dart
 --------------------------------------------------------------------------------
 // ignore_for_file: public_member_api_docs
 
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:movi/src/core/di/injector.dart';
 import 'package:movi/src/core/iptv/domain/entities/xtream_playlist.dart';
@@ -1436,6 +355,7 @@ import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import '../../../tv/domain/entities/tv_show.dart';
 import '../../../tv/domain/repositories/tv_repository.dart';
 import '../../domain/repositories/home_feed_repository.dart';
+import '../../../../core/storage/services/cache_policy.dart';
 
 /// Repository de flux Home.
 /// Règles :
@@ -1497,8 +417,10 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
     // 2) Mapping (posters requis) et limitation.
     if (matchedDtos.isNotEmpty) {
-      final List<MovieSummary> list =
-          matchedDtos.map(_mapMovie).whereType<MovieSummary>().toList();
+      final List<MovieSummary> list = matchedDtos
+          .map(_mapMovie)
+          .whereType<MovieSummary>()
+          .toList();
       if (list.isNotEmpty) {
         return list.length > 20 ? list.sublist(0, 20) : list;
       }
@@ -1513,10 +435,14 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
     // 4) Ultime fallback: première page trending mappée (avec poster).
     final List<dynamic> fallbackDtos = await _fetchTrendingMoviesPage(1);
-    final List<MovieSummary> fallbackList =
-        fallbackDtos.map(_mapMovie).whereType<MovieSummary>().toList();
+    final List<MovieSummary> fallbackList = fallbackDtos
+        .map(_mapMovie)
+        .whereType<MovieSummary>()
+        .toList();
     return fallbackList.isNotEmpty
-        ? (fallbackList.length > 20 ? fallbackList.sublist(0, 20) : fallbackList)
+        ? (fallbackList.length > 20
+              ? fallbackList.sublist(0, 20)
+              : fallbackList)
         : <MovieSummary>[];
   }
 
@@ -1554,31 +480,36 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         continue;
       }
 
-      final List<XtreamPlaylist> playlists =
-          await _safeGetPlaylists(account.id);
+      final List<XtreamPlaylist> playlists = await _safeGetPlaylists(
+        account.id,
+      );
 
-      for (final XtreamPlaylist pl in playlists) {
-        final String visibleKey =
-            '${account.alias}/${_cleanCategoryTitle(pl.title)}';
+        for (final XtreamPlaylist pl in playlists) {
+          final String visibleKey =
+              '${account.alias}/${_cleanCategoryTitle(pl.title)}';
 
-        // Construction LITE: aucun appel TMDB ici, l’UI déclenchera l’enrichissement.
-        final List<ContentReference> items = <ContentReference>[];
-        for (final XtreamPlaylistItem it in pl.items) {
-          items.add(
-            ContentReference(
-              id: (it.tmdbId ?? it.streamId).toString(),
+          // Construction LITE: aucun appel TMDB ici, l’UI déclenchera l’enrichissement.
+          final List<ContentReference> items = <ContentReference>[];
+          for (final XtreamPlaylistItem it in pl.items) {
+            // IMPORTANT: ne jamais confondre streamId IPTV avec tmdbId.
+            // Si tmdbId est absent, utiliser un identifiant non-numérique pour forcer
+            // le fallback par titre côté enrichissement.
+            final String refId = (it.tmdbId != null && it.tmdbId! > 0)
+                ? it.tmdbId!.toString()
+                : 'xtream:${it.streamId}';
+            items.add(
+              ContentReference(
+              id: refId,
               title: MediaTitle(it.title),
               type: it.type == XtreamPlaylistItemType.series
                   ? ContentType.series
                   : ContentType.movie,
-              poster: (it.posterUrl != null && it.posterUrl!.isNotEmpty)
-                  ? Uri.tryParse(it.posterUrl!)
-                  : null,
+              poster: _safePosterUri(it.posterUrl),
               year: it.releaseYear,
               rating: it.rating,
-            ),
-          );
-        }
+              ),
+            );
+          }
 
         if (items.isNotEmpty) {
           result[visibleKey] = items;
@@ -1594,7 +525,10 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   // ---------------------------------------------------------------------------
 
   @override
-  Future<ContentReference> enrichReference(ContentReference ref) async {
+  Future<ContentReference> enrichReference(
+    ContentReference ref, {
+    CancelToken? cancelToken,
+  }) async {
     int? idNum = int.tryParse(ref.id);
     final bool isSeries = ref.type == ContentType.series;
 
@@ -1605,7 +539,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     if (idNum == null) {
       try {
         if (isSeries) {
-          final results = await _tvRemote.searchShows(ref.title.value);
+          final results = await _tvRemote.searchShows(ref.title.value, cancelToken: cancelToken);
           final match = results.isNotEmpty ? results.first : null;
           idNum = match?.id;
           if (kDebugMode) {
@@ -1614,7 +548,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
             );
           }
         } else {
-          final results = await _moviesRemote.searchMovies(ref.title.value);
+          final results = await _moviesRemote.searchMovies(ref.title.value, cancelToken: cancelToken);
           final match = results.isNotEmpty ? results.first : null;
           idNum = match?.id;
           if (kDebugMode) {
@@ -1633,9 +567,12 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     try {
       if (isSeries) {
         // TV: d’abord cache, sinon réseau LITE puis mise en cache.
-        Map<String, dynamic>? cached = await _tmdbCache.getTvDetail(idNum);
+        Map<String, dynamic>? cached = await _tmdbCache.getTvDetail(
+          idNum,
+          policyOverride: const CachePolicy(ttl: Duration(days: 3)),
+        );
         if (cached == null) {
-          final dto = await _tvRemote.fetchShowLite(idNum);
+          final dto = await _tvRemote.fetchShowLite(idNum, cancelToken: cancelToken);
           final Map<String, dynamic> json = dto.toCache();
           await _tmdbCache.putTvDetail(idNum, json);
           cached = json;
@@ -1643,7 +580,8 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         final Map<String, dynamic> data = cached;
 
         final Map<String, dynamic> imagesMap =
-            (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+            (data['images'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{};
         final List<dynamic> posters =
             (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
         final String? posterPath =
@@ -1654,10 +592,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         final result = ContentReference(
           id: ref.id,
           title: MediaTitle(
-            (tmdbTitle != null && tmdbTitle.isNotEmpty) ? tmdbTitle : ref.title.value,
+            (tmdbTitle != null && tmdbTitle.isNotEmpty)
+                ? tmdbTitle
+                : ref.title.value,
           ),
           type: ref.type,
-          poster: _images.poster(posterPath), // w500 par défaut côté resolver
+          // TMDB d’abord, sinon conserver le poster IPTV en fallback.
+          poster: _images.poster(posterPath) ?? ref.poster, // w500 par défaut côté resolver
           year: _parseYear(data['first_air_date']?.toString()) ?? ref.year,
           rating: (data['vote_average'] as num?)?.toDouble() ?? ref.rating,
         );
@@ -1672,9 +613,12 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         return result;
       } else {
         // Movie: d’abord cache, sinon réseau LITE puis mise en cache.
-        Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(idNum);
+        Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(
+          idNum,
+          policyOverride: const CachePolicy(ttl: Duration(days: 3)),
+        );
         if (cached == null) {
-          final dto = await _moviesRemote.fetchMovieLite(idNum);
+          final dto = await _moviesRemote.fetchMovieLite(idNum, cancelToken: cancelToken);
           final Map<String, dynamic> json = dto.toCache();
           await _tmdbCache.putMovieDetail(idNum, json);
           cached = json;
@@ -1682,7 +626,8 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         final Map<String, dynamic> data = cached;
 
         final Map<String, dynamic> imagesMap =
-            (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+            (data['images'] as Map<String, dynamic>?) ??
+            const <String, dynamic>{};
         final List<dynamic> posters =
             (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
         final String? posterPath =
@@ -1693,10 +638,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         final result = ContentReference(
           id: ref.id,
           title: MediaTitle(
-            (tmdbTitle != null && tmdbTitle.isNotEmpty) ? tmdbTitle : ref.title.value,
+            (tmdbTitle != null && tmdbTitle.isNotEmpty)
+                ? tmdbTitle
+                : ref.title.value,
           ),
           type: ref.type,
-          poster: _images.poster(posterPath), // w500 par défaut côté resolver
+          // TMDB d’abord, sinon conserver le poster IPTV en fallback.
+          poster: _images.poster(posterPath) ?? ref.poster, // w500 par défaut côté resolver
           year: _parseYear(data['release_date']?.toString()) ?? ref.year,
           rating: (data['vote_average'] as num?)?.toDouble() ?? ref.rating,
         );
@@ -1765,9 +713,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   MovieSummary? _fromPlaylistItemToMovieSummary(XtreamPlaylistItem item) {
-    final Uri? poster = (item.posterUrl != null && item.posterUrl!.isNotEmpty)
-        ? Uri.tryParse(item.posterUrl!)
-        : null;
+    final Uri? poster = _safePosterUri(item.posterUrl);
     if (poster == null) return null;
 
     return MovieSummary(
@@ -1793,6 +739,16 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     );
   }
 
+  /// Vérifie et filtre les URLs de posters IPTV (autorise http/https sans blacklist d'hôtes).
+  Uri? _safePosterUri(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final Uri? u = Uri.tryParse(raw);
+    if (u == null) return null;
+    final String scheme = u.scheme.toLowerCase();
+    if (scheme != 'http' && scheme != 'https') return null;
+    return u;
+  }
+
   String _cleanCategoryTitle(String raw) {
     // Ex: "premium-ott.com/Action" -> "Action"
     final int idx = raw.indexOf('/');
@@ -1807,17 +763,19 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
     num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
 
-    final List<Map<String, dynamic>> list = posters.cast<Map<String, dynamic>>();
+    final List<Map<String, dynamic>> list = posters
+        .cast<Map<String, dynamic>>();
 
     final List<Map<String, dynamic>> noLang =
         list.where((m) => m['iso_639_1'] == null).toList()
           ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (noLang.isNotEmpty) return pathOf(noLang.first);
 
-    final List<Map<String, dynamic>> en = list
-        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-        .toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    final List<Map<String, dynamic>> en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (en.isNotEmpty) return pathOf(en.first);
 
     list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
@@ -1839,9 +797,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       final accounts = await _iptvLocal.getAccounts();
       // Projection minimale (évite d’exposer tout l’objet si lourd)
       return accounts
-          .map(
-            (a) => XtreamAccountLite(id: a.id, alias: a.alias),
-          )
+          .map((a) => XtreamAccountLite(id: a.id, alias: a.alias))
           .toList(growable: false);
     } catch (e) {
       assert(() {
@@ -1854,8 +810,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
   Future<List<XtreamPlaylist>> _safeGetPlaylists(String accountId) async {
     try {
-      final List<XtreamPlaylist> playlists =
-          await _iptvLocal.getPlaylists(accountId);
+      final List<XtreamPlaylist> playlists = await _iptvLocal.getPlaylists(
+        accountId,
+      );
       return playlists;
     } catch (e) {
       assert(() {
@@ -1902,15 +859,555 @@ class XtreamAccountLite {
 }
 
 --------------------------------------------------------------------------------
-FILE #83: src/features/home/presentation/providers/home_providers.dart
+FILE #86: src/features/home/presentation/pages/home_page.dart
 --------------------------------------------------------------------------------
-// ignore_for_file: public_member_api_docs
-
-import 'dart:async' show unawaited;
+// lib/src/features/home/presentation/pages/home_page.dart
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'dart:async';
+
+import '../providers/home_providers.dart' as hp;
+
+import '../../../../core/utils/utils.dart';
+import '../../../../core/utils/app_spacing.dart';
+import '../../../../core/widgets/movi_bottom_nav_bar.dart';
+import '../../../../core/widgets/movi_items_list.dart';
+import '../../../../core/widgets/movi_media_card.dart';
+import '../../../../core/models/movi_media.dart';
+import '../widgets/home_hero_section.dart';
+import '../widgets/continue_watching_card.dart';
+import '../../../../core/logging/logging_service.dart';
+import '../../../../core/widgets/overlay_splash.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  static const _fadeDuration = Duration(milliseconds: 500);
+  // Spec: bottom nav 24px from bottom edge
+  static const _navBottomOffset = 24.0;
+
+  int _selectedIndex = 0;
+  // Overlay global (recouvre aussi la barre de navigation)
+  bool _overlayVisible = true;
+  bool _overlayMounted = true; // retiré du tree après le fade
+
+  void _hideOverlay() {
+    if (!_overlayVisible) return;
+    setState(() => _overlayVisible = false);
+    unawaited(LoggingService.log('HomeOverlay: hide (triggered by content)'));
+  }
+
+  void _handleNavTap(int index) {
+    if (_selectedIndex == index) return;
+    setState(() => _selectedIndex = index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final navHeight = moviNavBarHeight();
+    final bottomPadding = navHeight + _navBottomOffset + media.padding.bottom;
+
+    final pages = <Widget>[
+      _HomeContent(onOverlayHide: _hideOverlay),
+      _NavPlaceholder(title: 'Recherche', bottomPadding: bottomPadding),
+      _NavPlaceholder(title: 'Bibliothèque', bottomPadding: bottomPadding),
+      _NavPlaceholder(title: 'Paramètres', bottomPadding: bottomPadding),
+    ];
+
+    return Scaffold(
+      extendBody: true,
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Stack(
+          children: [
+            AnimatedSwitcher(
+              duration: _fadeDuration,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: pages[_selectedIndex],
+            ),
+            Positioned(
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              bottom: _navBottomOffset + media.padding.bottom,
+              child: MoviBottomNavBar(
+                selectedIndex: _selectedIndex,
+                onItemSelected: _handleNavTap,
+              ),
+            ),
+            // Overlay global placé au-dessus pour masquer aussi la barre de navigation
+            if (_overlayMounted)
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  opacity: _overlayVisible ? 1.0 : 0.0,
+                  duration: _fadeDuration,
+                  onEnd: () {
+                    if (!_overlayVisible && _overlayMounted) {
+                      setState(() => _overlayMounted = false);
+                    }
+                  },
+                  child: IgnorePointer(
+                    ignoring: !_overlayVisible,
+                    child: const OverlaySplash(),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeContent extends ConsumerStatefulWidget {
+  const _HomeContent({required this.onOverlayHide});
+
+  final VoidCallback onOverlayHide;
+
+  @override
+  ConsumerState<_HomeContent> createState() => _HomeContentState();
+}
+
+/// Gère le contenu Home avec overlay de démarrage.
+///
+/// Comportement de l’overlay:
+/// - Démarre visible et se masque dès que le hero ou le premier viewport
+///   d’items est précaché (premier à terminer gagne).
+/// - Timeout doux de 5 secondes pour éviter de bloquer l’UI en cas de réseau lent.
+class _HomeContentState extends ConsumerState<_HomeContent> {
+  // --- Mémo anti-doublons par catégorie (évite les relances inutiles)
+  final Map<String, _ViewportReq> _lastReq = {};
+
+  // Vérification périodique : re-scanne le viewport et ré-enrichit si besoin
+  static const Duration _recheckEvery = Duration(seconds: 8);
+  Timer? _recheckTimer;
+
+  bool _isScheduled = false;
+  void _postFrame(VoidCallback fn) {
+    if (_isScheduled) return;
+    _isScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fn();
+      _isScheduled = false;
+    });
+  }
+
+  // --- Overlay & précache iOS-first paint ---
+  bool _overlayActive = true; // état interne pour éviter les doublons
+  bool _precacheStarted = false;
+  // Soft timeout: fermeture automatique au bout de 5 secondes pour éviter les blocages
+  static const Duration _softTimeout = Duration(seconds: 5);
+  Timer? _softTimeoutTimer;
+
+  // Gate: fermeture overlay seulement quand héro ET premières listes sont prêtes
+  bool _heroReady = false;
+  bool _listsReady = false;
+  bool _hideNotified = false;
+  bool _didInitialViewport = false;
+
+  void _maybeNotifyOverlayHide() {
+    if (_hideNotified) return;
+    if (_heroReady && _listsReady) {
+      widget.onOverlayHide();
+      _hideNotified = true;
+      _overlayActive = false;
+      // Annule le soft timeout si la fermeture s'est produite avant
+      _softTimeoutTimer?.cancel();
+      _softTimeoutTimer = null;
+      unawaited(LoggingService.log('HomeOverlay: close (hero+lists ready)'));
+    }
+  }
+
+  Future<void> _precacheImageUrl(String url) async {
+    if (url.isEmpty) return;
+    try {
+      await precacheImage(NetworkImage(url), context);
+    } catch (_) {
+      // ignore erreurs réseau; l’overlay ne doit pas bloquer
+    }
+  }
+
+  Future<void> _precacheMany(List<String> urls) async {
+    final futures = urls.map(_precacheImageUrl);
+    await Future.wait(futures);
+  }
+
+  // Supprimé: l’overlay ne se ferme plus sur précache; il se ferme
+  // exclusivement à la première frame du backdrop héro.
+
+  @override
+  void initState() {
+    super.initState();
+    // Écoute HomeState: bascule listsReady dès que l’une des sections a des items
+    ref.listen<hp.HomeState>(hp.homeControllerProvider, (prev, next) {
+      if (_listsReady) return;
+      final hasInitialItems = next.cwMovies.isNotEmpty ||
+          next.cwShows.isNotEmpty ||
+          next.iptvLists.values.any((l) => l.isNotEmpty);
+      if (hasInitialItems) {
+        _listsReady = true;
+        _maybeNotifyOverlayHide();
+      }
+    });
+    _recheckTimer = Timer.periodic(_recheckEvery, (_) => _recheckVisible());
+    unawaited(LoggingService.log('HomeOverlay: start'));
+    // Lance le soft timeout pour garantir la fermeture si hero/lists ne deviennent pas prêts
+    _softTimeoutTimer = Timer(_softTimeout, () {
+      if (_overlayActive && !_hideNotified) {
+        widget.onOverlayHide();
+        _hideNotified = true;
+        _overlayActive = false;
+        unawaited(LoggingService.log('HomeOverlay: close (soft-timeout 5s)'));
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _recheckTimer?.cancel();
+    _softTimeoutTimer?.cancel();
+    super.dispose();
+  }
+
+  void _recheckVisible() {
+    if (_lastReq.isEmpty) return;
+    final controller = ref.read(hp.homeControllerProvider.notifier);
+    // Copie snapshot pour éviter les modifications concurrentes pendant l’itération
+    final current = Map<String, _ViewportReq>.from(_lastReq);
+    _postFrame(() {
+      for (final entry in current.entries) {
+        controller.enrichCategoryBatch(
+          entry.key,
+          entry.value.start,
+          entry.value.count,
+        );
+      }
+    });
+  }
+
+  static const double _mediaCardWidth =
+      150; // doit rester aligné avec MoviMediaCard par défaut
+  static const double _itemSpacing = 32; // espace horizontal entre items
+  static const double _sectionGap =
+      32; // espace VERTICAL entre sections MoviItemsList
+
+  // Afficher uniquement le libellé catégorie (sans "serveur/")
+  String _displayCategoryTitle(String raw) {
+    final idx = raw.indexOf('/');
+    return (idx >= 0 && idx < raw.length - 1) ? raw.substring(idx + 1) : raw;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final state = ref.watch(hp.homeControllerProvider);
+    final controller = ref.read(hp.homeControllerProvider.notifier);
+
+    // Détecte que les premières listes ont des items (chargement minimal, sans enrichissement)
+    if (!_listsReady) {
+      final hasInitialItems = state.iptvLists.values.any((list) => list.isNotEmpty);
+      if (hasInitialItems) {
+        _postFrame(() {
+          if (!_listsReady) {
+            _listsReady = true;
+            _maybeNotifyOverlayHide();
+          }
+        });
+      }
+    }
+
+    // Si aucune interaction n'a encore déclenché onViewportChanged, force un enrichissement
+    // du premier viewport de la première section visible dès le premier layout.
+    if (!_didInitialViewport && state.iptvLists.isNotEmpty) {
+      _postFrame(() {
+        if (_didInitialViewport) return;
+        final mediaSize = MediaQuery.of(context).size;
+        final horizontalPadding = AppSpacing.lg * 2; // approximation de padding horizontal
+        final perItem = _mediaCardWidth + _itemSpacing;
+        final visibleCount = perItem > 0
+            ? (((mediaSize.width - horizontalPadding) / perItem).ceil() + 1)
+            : 6;
+
+        final firstKey = state.iptvLists.keys.first;
+        final firstList = state.iptvLists[firstKey] ?? const [];
+        final start = 0;
+        final count = visibleCount.clamp(1, firstList.length);
+
+        // Mémorise et enrichit ce premier viewport pour avoir des items rapidement
+        _lastReq[firstKey] = _ViewportReq(start, count + 8);
+        controller.enrichCategoryBatch(firstKey, start, count + 8);
+        _didInitialViewport = true;
+      });
+    }
+
+    // Précache héro (sans fermer l’overlay) pour accélérer les réaffichages
+    _postFrame(() {
+      if (!_precacheStarted && state.hero.isNotEmpty) {
+        var heroUrl = ((state.hero.first.backdrop) ?? (state.hero.first.poster)).toString();
+        if (heroUrl == 'null') heroUrl = '';
+        if (heroUrl.isNotEmpty) {
+          _precacheStarted = true;
+          unawaited(_precacheImageUrl(heroUrl));
+        }
+      }
+    });
+
+    return Stack(
+      children: [
+        RefreshIndicator(
+      onRefresh: controller.refresh,
+      child: CustomScrollView(
+        slivers: [
+          if (state.error != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Une erreur est survenue. Balayez vers le bas pour réessayer.',
+                          style: (theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.red,
+                              )) ??
+                              theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // On rend le vrai hero avec le state (évite les rebuilds visibles)
+          SliverToBoxAdapter(
+            child: HomeHeroSection(
+              movie: state.hero.isNotEmpty ? state.hero.first : null,
+              onBackgroundReady: () {
+                if (_overlayActive && !_heroReady) {
+                  _heroReady = true;
+                  // Fallback: si aucune liste n'est disponible, on ne bloque pas l'overlay.
+                  final noListsConfigured = state.iptvLists.isEmpty &&
+                      state.cwMovies.isEmpty &&
+                      state.cwShows.isEmpty;
+                  if (noListsConfigured) {
+                    _listsReady = true;
+                  }
+                  _maybeNotifyOverlayHide();
+                }
+              },
+            ),
+          ),
+
+          // Marge après le hero (libre, non concernée par "32px entre MoviItemsList")
+          const SliverToBoxAdapter(child: SizedBox(height: 54)),
+
+          // ===== Section "En cours" =====
+          if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+            SliverToBoxAdapter(
+              child: MoviItemsList(
+                title: 'En cours',
+                itemSpacing: _itemSpacing,
+                estimatedItemWidth: _mediaCardWidth,
+                // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
+                items: [
+                  ...state.cwMovies.map(
+                    (m) => ContinueWatchingCard.movie(
+                      title: m.title.value,
+                      poster: (m.backdrop ?? m.poster).toString(),
+                      year: m.releaseYear?.toString() ?? '',
+                      progress: 0,
+                      onTap: () => context.push('/movie'),
+                    ),
+                  ),
+                  ...state.cwShows.map(
+                    (s) => ContinueWatchingCard.episode(
+                      title: s.title.value,
+                      seriesTitle: s.title.value,
+                      poster: (s.backdrop ?? s.poster).toString(),
+                      seasonEpisode: 'S?? E??',
+                      progress: 0,
+                      onTap: () => context.push('/tv'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // 32 px après "En cours"
+          if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+            const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+
+          if (state.iptvLists.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Text(
+                  'Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            ),
+
+          // ===== Sections IPTV ===== (enrichissement à la volée)
+          for (final entry in state.iptvLists.entries) ...[
+            SliverToBoxAdapter(
+              child: MoviItemsList(
+                title: _displayCategoryTitle(entry.key), // ← étiquette propre
+                itemSpacing: _itemSpacing,
+                estimatedItemWidth: _mediaCardWidth,
+                // Paramètres dépendants plateforme pour stabilité Windows.
+                debounceMs: defaultTargetPlatform == TargetPlatform.windows ? 240 : 160,
+                preloadAhead: defaultTargetPlatform == TargetPlatform.windows ? 2 : 3,
+                // → Notifie le contrôleur d’enrichir le batch visible (+preload)
+                onViewportChanged: (start, count) {
+                  // On ajoute un petit buffer pour éviter de recalculer à chaque pixel
+                  final buffered = _ViewportReq(start, count + 8);
+                  final last = _lastReq[entry.key];
+
+                  // Si la nouvelle zone est incluse dans la précédente → on ne relance pas
+                  if (last != null && last.contains(buffered)) return;
+
+                  // Mémorise la nouvelle plage puis déclenche en post-frame (throttle)
+                  _lastReq[entry.key] = buffered;
+                  _postFrame(() {
+                    // Annule les requêtes hors écran pour libérer la concurrence
+                    controller.cancelOffscreen(
+                      entry.key,
+                      buffered.start,
+                      buffered.count,
+                    );
+                    controller.enrichCategoryBatch(
+                      entry.key,
+                      buffered.start,
+                      buffered.count,
+                    );
+                  });
+
+                  // Précache premier viewport (sans fermer l’overlay) pour fluidifier le scroll
+                  if (!_precacheStarted) {
+                    _precacheStarted = true;
+                    final visible = entry.value
+                        .skip(start)
+                        .take(count)
+                        .map((r) => r.poster?.toString() ?? '')
+                        .where((u) => u.isNotEmpty)
+                        .toList();
+                    unawaited(_precacheMany(visible));
+                  }
+                },
+
+                items: entry.value.take(40).map((r) {
+                  // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
+                  final poster = r.poster?.toString() ?? '';
+
+                  // Fournir des Strings non nulles pour respecter la signature de MoviMedia
+                  final yearStr = r.year != null ? r.year!.toString() : '';
+                  final ratingStr = r.rating != null
+                      ? (r.rating! >= 10 ? '10' : r.rating!.toStringAsFixed(1))
+                      : '';
+
+                  final media = MoviMedia(
+                    id: r.id,
+                    title: r.title.value,
+                    poster: poster,
+                    year: yearStr, // <-- String non nulle
+                    rating: ratingStr, // <-- String non nulle
+                    type: r.type == ContentType.series
+                        ? MoviMediaType.series
+                        : MoviMediaType.movie,
+                  );
+                  return MoviMediaCard(media: media);
+                }).toList(),
+              ),
+            ),
+            // 32 px entre *chaque* section MoviItemsList IPTV
+            const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+          ],
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ViewportReq {
+  final int start;
+  final int count;
+  const _ViewportReq(this.start, this.count);
+
+  // Retourne true si `other` est entièrement inclus dans cette plage
+  bool contains(_ViewportReq other) {
+    final end = start + count;
+    final oEnd = other.start + other.count;
+    return other.start >= start && oEnd <= end;
+  }
+}
+
+class _NavPlaceholder extends StatelessWidget {
+  const _NavPlaceholder({required this.title, required this.bottomPadding});
+
+  final String title;
+  final double bottomPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        bottomPadding,
+      ),
+      child: Center(
+        child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
+      ),
+    );
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #87: src/features/home/presentation/providers/home_providers.dart
+--------------------------------------------------------------------------------
+// lib/src/features/home/presentation/providers/home_providers.dart
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/logging/logging_service.dart';
 import '../../../movie/domain/entities/movie_summary.dart';
 import '../../../tv/domain/entities/tv_show.dart';
 import '../../../../shared/domain/value_objects/content_reference.dart';
@@ -1953,38 +1450,45 @@ class HomeState {
   }
 }
 
-/// Contrôleur orchestrant le chargement et l’enrichissement des sections Home.
+/// Contrôleur Home avec enrichissement batché + annulation propre.
 class HomeController extends StateNotifier<HomeState> {
   HomeController(this._repo) : super(const HomeState());
 
   final HomeFeedRepository _repo;
 
-  /// Empêche les doublons d’enrichissement sur une même carte (clé = "section#index").
-  final Set<String> _inflight = <String>{};
-
-  /// Plafond de requêtes simultanées pour limiter la pression sur TMDB.
+  /// Concurrence maximale d’enrichissements en parallèle.
   static const int _maxConcurrent = 6;
 
-  /// Chargement initial :
-  /// 1) Hero (await) pour un premier rendu rapide
-  /// 2) Autres sections en parallèle
+  /// Requêtes en cours par carte (clé "section#index") → CancelToken.
+  final Map<String, CancelToken> _inflight = <String, CancelToken>{};
+
+  /// Buffer de patches UI: section → (index → ref enrichie).
+  final Map<String, Map<int, ContentReference>> _pendingPatches = {};
+
+  /// Timer de coalescence UI.
+  Timer? _flushTimer;
+
+  /// Démarrage: charge le hero synchronement, le reste en asynchrone.
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
+    unawaited(LoggingService.log('Home: load start'));
 
     try {
       final hero = await _repo.getHeroMovies();
       state = state.copyWith(hero: hero, isLoading: false);
+      unawaited(LoggingService.log('Home: hero loaded count=${hero.length}'));
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Échec du chargement du hero : $e',
-      );
+      state = state.copyWith(isLoading: false, error: 'Échec du chargement du hero : $e');
+      unawaited(LoggingService.log('Home: hero load error=$e'));
     }
 
-    // Lancer les chargements secondaires sans bloquer l’UI
+    // Laisser respirer un frame pour afficher le Hero avant de lancer les listes.
+    await Future.delayed(const Duration(milliseconds: 48));
+
     unawaited(_loadIptvLists());
     unawaited(_loadCwMovies());
     unawaited(_loadCwShows());
+    unawaited(LoggingService.log('Home: async sections loading started'));
   }
 
   Future<void> refresh() => load();
@@ -1993,64 +1497,59 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final lists = await _repo.getIptvCategoryLists();
       state = state.copyWith(iptvLists: lists);
-    } catch (e) {
-      assert(() {
-        // ignore: avoid_print
-        print('[HomeController] getIptvCategoryLists error: $e');
-        return true;
-      }());
-    }
+      unawaited(LoggingService.log('Home: iptv lists loaded sections=${lists.length}'));
+    } catch (_) {}
   }
 
   Future<void> _loadCwMovies() async {
     try {
       final cw = await _repo.getContinueWatchingMovies();
       state = state.copyWith(cwMovies: cw);
-    } catch (e) {
-      assert(() {
-        // ignore: avoid_print
-        print('[HomeController] getContinueWatchingMovies error: $e');
-        return true;
-      }());
-    }
+      unawaited(LoggingService.log('Home: cw movies loaded count=${cw.length}'));
+    } catch (_) {}
   }
 
   Future<void> _loadCwShows() async {
     try {
       final cw = await _repo.getContinueWatchingShows();
       state = state.copyWith(cwShows: cw);
-    } catch (e) {
-      assert(() {
-        // ignore: avoid_print
-        print('[HomeController] getContinueWatchingShows error: $e');
-        return true;
-      }());
-    }
+      unawaited(LoggingService.log('Home: cw shows loaded count=${cw.length}'));
+    } catch (_) {}
   }
 
-  /// Enrichit une plage d’éléments d’une section IPTV au scroll.
-  /// Concurrency bornée pour éviter les rafales.
+  /// Enrichit une fenêtre visible [start..start+count-1] pour la section [key].
+  /// - Lance au plus [_maxConcurrent] jobs simultanés.
+  /// - Déduplique par carte (section#index).
+  /// - Bufferise les mises à jour UI (flush toutes ~24ms).
   Future<void> enrichCategoryBatch(String key, int start, int count) async {
-    final items = state.iptvLists[key];
-    if (items == null || items.isEmpty || start < 0 || count <= 0) return;
+    final list = state.iptvLists[key];
+    if (list == null || list.isEmpty || count <= 0) return;
+    unawaited(LoggingService.log('Home: enrich start key=$key start=$start count=$count'));
 
-    final end = (start + count - 1).clamp(0, items.length - 1);
+    final clampedStart = start.clamp(0, list.length - 1);
+    final end = (clampedStart + count - 1).clamp(0, list.length - 1);
+
     final tasks = <Future<void>>[];
+    for (var i = clampedStart; i <= end; i++) {
+      final ref = list[i];
+      final cardKey = '$key#$i';
 
-    for (var i = start; i <= end; i++) {
-      final ref = items[i];
-      final inflightKey = '$key#$i';
-      if (_inflight.contains(inflightKey)) continue;
+      if (_inflight.containsKey(cardKey)) continue;
 
+      // Accepter les posters IPTV http(s) s’ils sont compatibles avec la plateforme.
+      // Sur le Web, les images http peuvent être bloquées (mixed content) → enrichissement pour obtenir un poster TMDB https.
+      final bool isHttpPosterOnWeb = kIsWeb && ref.poster != null && ref.poster!.scheme == 'http';
       final needsEnrich = ref.year == null ||
           ref.rating == null ||
           ref.poster == null ||
-          !ref.poster.toString().contains('image.tmdb.org');
+          isHttpPosterOnWeb;
 
       if (!needsEnrich) continue;
 
-      _inflight.add(inflightKey);
-      tasks.add(_enrichOne(key, i, ref, inflightKey));
+      final token = CancelToken();
+      _inflight[cardKey] = token;
+
+      tasks.add(_enrichOne(key, i, ref, cardKey, token));
 
       if (tasks.length >= _maxConcurrent) {
         await Future.wait(tasks);
@@ -2063,33 +1562,107 @@ class HomeController extends StateNotifier<HomeState> {
     }
   }
 
+  /// Annule toutes les requêtes en cours **hors** de la fenêtre [start..start+count-1].
+  /// À appeler lors d’un gros scroll pour relâcher la pression réseau.
+  void cancelOffscreen(String key, int start, int count) {
+    final list = state.iptvLists[key];
+    if (list == null || list.isEmpty || count <= 0) return;
+
+    final clampedStart = start.clamp(0, list.length - 1);
+    final end = (clampedStart + count - 1).clamp(0, list.length - 1);
+
+    final keysToCancel = <String>[];
+    _inflight.forEach((k, token) {
+      final parts = k.split('#');
+      if (parts.length != 2 || parts.first != key) return;
+      final idx = int.tryParse(parts.last);
+      if (idx == null) return;
+      if (idx < clampedStart || idx > end) {
+        keysToCancel.add(k);
+      }
+    });
+
+    for (final k in keysToCancel) {
+      _inflight[k]?.cancel('Offscreen');
+      _inflight.remove(k);
+    }
+    if (keysToCancel.isNotEmpty) {
+      unawaited(LoggingService.log('Home: canceled offscreen requests key=$key count=${keysToCancel.length}'));
+    }
+  }
+
   Future<void> _enrichOne(
     String key,
     int index,
     ContentReference ref,
     String inflightKey,
+    CancelToken token,
   ) async {
     try {
-      final enriched = await _repo.enrichReference(ref);
+      // IMPORTANT: nécessite que HomeFeedRepository.enrichReference supporte CancelToken?.
+      final enriched = await _repo.enrichReference(ref, cancelToken: token);
 
-      // Remplacement immuable (défensif si la liste a évolué entre-temps)
-      final current = state.iptvLists[key];
-      if (current == null || index >= current.length) return;
+      // Si annulé entre-temps, on évite de bufferiser.
+      if (token.isCancelled) return;
 
-      final updated = List<ContentReference>.from(current)..[index] = enriched;
-      final map = Map<String, List<ContentReference>>.from(state.iptvLists)
-        ..[key] = updated;
-
-      state = state.copyWith(iptvLists: map);
-    } catch (e) {
-      assert(() {
-        // ignore: avoid_print
-        print('[HomeController] enrichOne error: $e');
-        return true;
-      }());
+      _bufferPatch(key, index, enriched);
+    } catch (_) {
+      // Silencieux en prod, logs côté repo/executor.
     } finally {
       _inflight.remove(inflightKey);
     }
+  }
+
+  void _bufferPatch(String key, int index, ContentReference enriched) {
+    final byIndex = _pendingPatches.putIfAbsent(key, () => <int, ContentReference>{});
+    byIndex[index] = enriched;
+
+    // Augmente légèrement l’intervalle pour réduire la pression sur le thread UI Windows.
+    final ms = defaultTargetPlatform == TargetPlatform.windows ? 64 : 48;
+    _flushTimer ??= Timer(Duration(milliseconds: ms), _flushPatches);
+  }
+
+  void _flushPatches() {
+    _flushTimer?.cancel();
+    _flushTimer = null;
+
+    if (_pendingPatches.isEmpty) return;
+
+    final current = Map<String, List<ContentReference>>.from(state.iptvLists);
+
+    _pendingPatches.forEach((section, patches) {
+      final list = current[section];
+      if (list == null || list.isEmpty) return;
+
+      final copy = List<ContentReference>.from(list);
+      patches.forEach((idx, ref) {
+        if (idx >= 0 && idx < copy.length) {
+          copy[idx] = ref;
+        }
+      });
+      current[section] = copy;
+    });
+
+    _pendingPatches.clear();
+    state = state.copyWith(iptvLists: current);
+  }
+
+  @override
+  void dispose() {
+    // Annule le timer de coalescence UI
+    _flushTimer?.cancel();
+    _flushTimer = null;
+
+    // Annule toutes les requêtes réseau encore en vol
+    for (final token in _inflight.values) {
+      token.cancel('Dispose');
+    }
+    _inflight.clear();
+
+    // Vide les patches en attente pour éviter des setState post-destruction
+    _pendingPatches.clear();
+
+    super.dispose();
   }
 }
 
@@ -2102,7 +1675,7 @@ final homeControllerProvider =
 );
 
 --------------------------------------------------------------------------------
-FILE #85: src/features/home/presentation/widgets/home_hero_section.dart
+FILE #89: src/features/home/presentation/widgets/home_hero_section.dart
 --------------------------------------------------------------------------------
 // ignore_for_file: public_member_api_docs
 
@@ -2128,10 +1701,12 @@ import '../../../movie/domain/entities/movie_summary.dart';
 /// - Hydratation asynchrone (cache→réseau) si des métadonnées essentielles manquent.
 /// - Résout les images via [TmdbImageResolver] avec des tailles adaptées (w780/w500).
 class HomeHeroSection extends StatefulWidget {
-  const HomeHeroSection({super.key, required this.movie});
+  const HomeHeroSection({super.key, required this.movie, this.onBackgroundReady});
 
   /// Résumé du contenu sélectionné pour le hero (MovieSummary minimal).
   final MovieSummary? movie;
+  /// Callback déclenché dès que le backdrop rend sa première frame.
+  final VoidCallback? onBackgroundReady;
 
   @override
   State<HomeHeroSection> createState() => _HomeHeroSectionState();
@@ -2140,18 +1715,22 @@ class HomeHeroSection extends StatefulWidget {
 class _HomeHeroSectionState extends State<HomeHeroSection> {
   static const double _totalHeight = 690;
   static const double _overlayHeight = 125;
+  // Plafond sécurité pour la taille décodée du backdrop (en pixels @device)
+  static const int _maxHeroCachePx = 1440;
 
   final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
 
   late final TmdbCacheDataSource _cache = sl<TmdbCacheDataSource>();
   late final TmdbImageResolver _images = sl<TmdbImageResolver>();
-  late final TmdbMovieRemoteDataSource _moviesRemote = sl<TmdbMovieRemoteDataSource>();
+  late final TmdbMovieRemoteDataSource _moviesRemote =
+      sl<TmdbMovieRemoteDataSource>();
   late final TmdbTvRemoteDataSource _tvRemote = sl<TmdbTvRemoteDataSource>();
 
   /// Évite les hydrations multiples pour un même identifiant durant le cycle de vie.
   final Set<int> _hydratedIds = <int>{};
 
   Future<_HeroMeta?>? _metaFuture;
+  bool _backdropNotified = false; // évite les notifications multiples
 
   @override
   void initState() {
@@ -2207,21 +1786,34 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     }
     if (data == null) return null;
 
-    final imagesMap = (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final posters = (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final imagesMap =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final posters =
+        (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
     final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
 
-    final posterNoLangPath = _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
+    final posterNoLangPath =
+        _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
     final logoPath = _selectLogoFrEnNoLang(logos);
 
     // ✅ Utiliser des tailles adaptées pour réduire la pression mémoire/CPU
-    final posterUri = _images.poster(posterNoLangPath, size: 'w500'); // was 'original'
-    final backdropUri =
-        _images.backdrop(data['backdrop_path']?.toString(), size: 'w780'); // was 'original'
+    // Spécification: réduire la taille de l'image du hero et optimiser le poids.
+    // - Poster: passer de w500 à w342 (moins lourd, suffisant pour ce contexte)
+    // - Backdrop: conserver w780 (compromis qualité/poids pour fond plein écran)
+    final posterUri = _images.poster(
+      posterNoLangPath,
+      size: 'w342',
+    );
+    final backdropUri = _images.backdrop(
+      data['backdrop_path']?.toString(),
+      size: 'w780',
+    );
     final logoUri = _images.logo(logoPath);
 
     final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num) ? (data['vote_average'] as num).toDouble() : null;
+    final vote = (data['vote_average'] is num)
+        ? (data['vote_average'] as num).toDouble()
+        : null;
 
     // Durée (Movie: runtime en minutes, TV: premier élément de episode_run_time si présent).
     int? runtimeMinutes;
@@ -2239,8 +1831,8 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     // Year depuis release_date (Movie) **ou** first_air_date (TV).
     final String? releaseOrFirstAir =
         (data['release_date']?.toString().trim().isNotEmpty ?? false)
-            ? data['release_date']?.toString()
-            : data['first_air_date']?.toString();
+        ? data['release_date']?.toString()
+        : data['first_air_date']?.toString();
     final year = _parseYear(releaseOrFirstAir) ?? widget.movie?.releaseYear;
 
     return _HeroMeta(
@@ -2288,20 +1880,28 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
         });
       } catch (e, st) {
         if (kDebugMode) {
-          debugPrint('HomeHeroSection: hydration (no cache) failed for $id: $e\n$st');
+          debugPrint(
+            'HomeHeroSection: hydration (no cache) failed for $id: $e\n$st',
+          );
         }
       }
       return;
     }
 
-    final imagesMap = (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final imagesMap =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
     final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
     final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num) ? (data['vote_average'] as num).toDouble() : null;
-    final hasRuntime = data['runtime'] is int ||
-        (data['episode_run_time'] is List && (data['episode_run_time'] as List).isNotEmpty);
+    final vote = (data['vote_average'] is num)
+        ? (data['vote_average'] as num).toDouble()
+        : null;
+    final hasRuntime =
+        data['runtime'] is int ||
+        (data['episode_run_time'] is List &&
+            (data['episode_run_time'] as List).isNotEmpty);
 
-    final needsHydration = logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
+    final needsHydration =
+        logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
     if (!needsHydration) return;
 
     try {
@@ -2361,10 +1961,11 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (noLang.isNotEmpty) return pathOf(noLang.first);
 
-    final en = list
-        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-        .toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    final en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (en.isNotEmpty) return pathOf(en.first);
 
     list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
@@ -2378,16 +1979,18 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
 
     final list = logos.cast<Map<String, dynamic>>();
 
-    final fr = list
-        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'fr'))
-        .toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    final fr =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'fr'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (fr.isNotEmpty) return pathOf(fr.first);
 
-    final en = list
-        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-        .toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    final en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
     if (en.isNotEmpty) return pathOf(en.first);
 
     final noLang = list.where((m) => m['iso_639_1'] == null).toList()
@@ -2423,7 +2026,8 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                 final meta = snap.data;
 
                 // Priorité: backdrop > poster > fallback summary (backdrop/poster).
-                final String? bgSrc = _coerceUrl(meta?.backdrop) ??
+                final String? bgSrc =
+                    _coerceUrl(meta?.backdrop) ??
                     _coerceUrl(meta?.poster) ??
                     _coerceUrl(movie.backdrop) ??
                     _coerceUrl(movie.poster);
@@ -2435,14 +2039,22 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                 final rating = meta?.rating;
                 final String? ratingText = (rating == null)
                     ? null
-                    : (rating >= 10 ? rating.toStringAsFixed(0) : rating.toStringAsFixed(1));
+                    : (rating >= 10
+                          ? rating.toStringAsFixed(0)
+                          : rating.toStringAsFixed(1));
 
                 final String? durationText = _formatDuration(meta?.runtime);
 
                 final hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
 
+                // Construit le fond du hero en limitant la résolution décodée côté client (cacheWidth)
+                // afin de réduire la consommation mémoire/CPU et accélérer le premier rendu.
                 Widget buildBackground() {
                   if (bgSrc != null) {
+                    final mq = MediaQuery.of(context);
+                    final rawPx = (mq.size.width * mq.devicePixelRatio).round();
+                    // Évite les décodages géants sur desktop lors des resizes
+                    final cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
                     return Image.network(
                       bgSrc,
                       fit: BoxFit.cover,
@@ -2450,9 +2062,26 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                       height: double.infinity,
                       // ✅ réduit le churn d’images et la charge sur le main thread (Windows)
                       gaplessPlayback: true,
+                      // Réduit le poids décodé en adaptant à la largeur réelle de l’écran
+                      cacheWidth: cacheWidth,
                       filterQuality: FilterQuality.low,
-                      errorBuilder: (_, __, ___) =>
-                          const ColoredBox(color: Color(0xFF222222)),
+                      errorBuilder: (_, __, ___) {
+                        // Si l’image échoue, on ne bloque pas l’UI :
+                        // on signale le “ready” pour que l’overlay se ferme.
+                        if (!_backdropNotified) {
+                          _backdropNotified = true;
+                          widget.onBackgroundReady?.call();
+                        }
+                        return const ColoredBox(color: Color(0xFF222222));
+                      },
+                      // Fermer l’overlay dès la première frame du backdrop
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (frame != null && !_backdropNotified) {
+                          _backdropNotified = true;
+                          widget.onBackgroundReady?.call();
+                        }
+                        return child;
+                      },
                     );
                   }
                   return const ColoredBox(color: Color(0xFF222222));
@@ -2478,9 +2107,13 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                             bottom: _overlayHeight - 100,
                             child: Center(
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxHeight: 100),
+                                constraints: const BoxConstraints(
+                                  maxHeight: 100,
+                                ),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                  ),
                                   child: FittedBox(
                                     fit: BoxFit.contain,
                                     child: hasLogo
@@ -2488,9 +2121,13 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                                             meta!.logo!,
                                             height: 100,
                                             gaplessPlayback: true,
+                                            // Limite la résolution décodée du logo (~300px @1x)
+                                            cacheWidth: (300 * MediaQuery.of(context).devicePixelRatio).round(),
                                             filterQuality: FilterQuality.low,
                                             errorBuilder: (_, __, ___) =>
-                                                _TitleFallback(movie.title.value),
+                                                _TitleFallback(
+                                                  movie.title.value,
+                                                ),
                                           )
                                         : _TitleFallback(movie.title.value),
                                   ),
@@ -2505,17 +2142,23 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (durationText != null) MoviPill(durationText, large: true),
-                        if (durationText != null && year != null) const SizedBox(width: 8),
+                        if (durationText != null)
+                          MoviPill(durationText, large: true),
+                        if (durationText != null && year != null)
+                          const SizedBox(width: 8),
                         if (year != null) MoviPill(yearText, large: true),
-                        if (year != null && ratingText != null) const SizedBox(width: 8),
-                        if (ratingText != null) MoviPill(ratingText, large: true),
+                        if (year != null && ratingText != null)
+                          const SizedBox(width: 8),
+                        if (ratingText != null)
+                          MoviPill(ratingText, large: true),
                       ],
                     ),
                     const SizedBox(height: 16),
                     if (hasSynopsis)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
                         child: Text(
                           meta!.overview!,
                           maxLines: 3,
@@ -2530,7 +2173,9 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                       ),
                     if (hasSynopsis) const SizedBox(height: 16),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -2538,7 +2183,8 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                             child: MoviPrimaryButton(
                               label: 'Regarder maintenant',
                               assetIcon: AppAssets.iconPlay,
-                              onPressed: () => context.push(AppRouteNames.movie),
+                              onPressed: () =>
+                                  context.push(AppRouteNames.movie),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -2644,7 +2290,15 @@ class _HeroSkeleton extends StatelessWidget {
                 right: 0,
                 bottom: overlayHeight - 100,
                 child: Center(
-                  child: Image.asset(AppAssets.iconAppLogo, height: 100),
+                  child: SizedBox(
+                    // Bloc: largeur = largeur écran - 40px, hauteur = 120px
+                    width: MediaQuery.of(context).size.width - 40,
+                    height: 120,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Image.asset(AppAssets.iconAppLogo),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -2654,11 +2308,7 @@ class _HeroSkeleton extends StatelessWidget {
         const SizedBox(height: 16),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Row(
-            children: [
-              Expanded(child: SizedBox(height: 48)),
-            ],
-          ),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
         ),
         const SizedBox(height: 12),
       ],
@@ -2675,796 +2325,7 @@ String? _formatDuration(int? minutes) {
 }
 
 --------------------------------------------------------------------------------
-FILE #94: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
---------------------------------------------------------------------------------
-// lib/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
-import 'package:dio/dio.dart';
-
-import '../../../../shared/data/services/tmdb_client.dart';
-import '../dtos/tmdb_movie_detail_dto.dart';
-
-/// Remote data source pour les FILMS TMDB.
-/// - Tout l’I/O réseau + gestion d’erreurs est délégué à [TmdbClient].
-/// - Cette couche ne manipule **que** des `Map<String, dynamic>` décodés.
-/// - Aucune dépendance à `Response`, uniquement mapping en DTOs.
-class TmdbMovieRemoteDataSource {
-  const TmdbMovieRemoteDataSource(this._client);
-
-  final TmdbClient _client;
-
-  /// Détail léger (sans `append_to_response`).
-  Future<TmdbMovieDetailDto> fetchMovieLite(
-    int id, {
-    String? language,
-    CancelToken? cancelToken,
-  }) async {
-    final json = await _client.getJson(
-      'movie/$id',
-      language: language,
-      cancelToken: cancelToken,
-    );
-    return TmdbMovieDetailDto.fromJson(json);
-  }
-
-  /// Alias de compatibilité vers [fetchMovieLite].
-  Future<TmdbMovieDetailDto> fetchMovie(
-    int id, {
-    String? language,
-    CancelToken? cancelToken,
-  }) {
-    return fetchMovieLite(id, language: language, cancelToken: cancelToken);
-  }
-
-  /// Détail complet avec `append_to_response` (images/credits/recommendations).
-  Future<TmdbMovieDetailDto> fetchMovieFull(
-    int id, {
-    String? language,
-    CancelToken? cancelToken,
-  }) async {
-    final json = await _client.getJson(
-      'movie/$id',
-      query: const {
-        'append_to_response': 'images,credits,recommendations',
-      },
-      language: language,
-      cancelToken: cancelToken,
-    );
-    return TmdbMovieDetailDto.fromJson(json);
-  }
-
-  /// Recherche de films (paginée côté TMDB).
-  Future<List<TmdbMovieSummaryDto>> searchMovies(
-    String query, {
-    int page = 1,
-    String? language,
-    CancelToken? cancelToken,
-  }) async {
-    final q = query.trim();
-    if (q.isEmpty) return const <TmdbMovieSummaryDto>[];
-    final json = await _client.getJson(
-      'search/movie',
-      query: {
-        'query': q,
-        'page': page.clamp(1, 1000),
-      },
-      language: language,
-      cancelToken: cancelToken,
-    );
-    final results = json['results'];
-    if (results is! List) return const <TmdbMovieSummaryDto>[];
-    return results
-        .whereType<Map<String, dynamic>>()
-        .map(TmdbMovieSummaryDto.fromJson)
-        .toList(growable: false);
-  }
-
-  /// Films populaires (paginé).
-  Future<List<TmdbMovieSummaryDto>> fetchPopular({
-    int page = 1,
-    String? language,
-    CancelToken? cancelToken,
-  }) async {
-    final json = await _client.getJson(
-      'movie/popular',
-      query: {'page': page.clamp(1, 1000)},
-      language: language,
-      cancelToken: cancelToken,
-    );
-    final results = json['results'];
-    if (results is! List) return const <TmdbMovieSummaryDto>[];
-    return results
-        .whereType<Map<String, dynamic>>()
-        .map(TmdbMovieSummaryDto.fromJson)
-        .toList(growable: false);
-  }
-
-  /// Trending films (`window`: 'day' ou 'week').
-  Future<List<TmdbMovieSummaryDto>> fetchTrendingMovies({
-    String window = 'week',
-    int page = 1,
-    String? language,
-    CancelToken? cancelToken,
-  }) async {
-    final normalizedWindow = (window == 'day') ? 'day' : 'week';
-    final json = await _client.getJson(
-      'trending/movie/$normalizedWindow',
-      query: {'page': page.clamp(1, 1000)},
-      language: language,
-      cancelToken: cancelToken,
-    );
-    final results = json['results'];
-    if (results is! List) return const <TmdbMovieSummaryDto>[];
-    return results
-        .whereType<Map<String, dynamic>>()
-        .map(TmdbMovieSummaryDto.fromJson)
-        .toList(growable: false);
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #97: src/features/movie/data/repositories/movie_repository_impl.dart
---------------------------------------------------------------------------------
-import '../../domain/entities/movie.dart';
-import '../../domain/entities/movie_summary.dart';
-import '../../domain/repositories/movie_repository.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../shared/domain/value_objects/content_rating.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../saga/domain/entities/saga.dart';
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../../../../core/storage/repositories/continue_watching_local_repository.dart';
-import '../datasources/tmdb_movie_remote_data_source.dart';
-import '../datasources/movie_local_data_source.dart';
-import '../dtos/tmdb_movie_detail_dto.dart';
-
-class MovieRepositoryImpl implements MovieRepository {
-  MovieRepositoryImpl(this._remote, this._images, this._watchlist, this._local, this._continueWatching);
-
-  final TmdbMovieRemoteDataSource _remote;
-  final TmdbImageResolver _images;
-  final WatchlistLocalRepository _watchlist;
-  final MovieLocalDataSource _local;
-  final ContinueWatchingLocalRepository _continueWatching;
-
-  @override
-  Future<Movie> getMovie(MovieId id) async {
-    final movieId = int.parse(id.value);
-    final cached = await _local.getMovieDetail(movieId);
-    if (cached != null) {
-      return _mapDetail(cached);
-    }
-    final remote = await _remote.fetchMovie(movieId);
-    await _local.saveMovieDetail(dto: remote);
-    return _mapDetail(remote);
-  }
-
-  @override
-  Future<List<PersonSummary>> getCredits(MovieId id) async {
-    final dto = await getMovie(id);
-    return dto.cast;
-  }
-
-  @override
-  Future<List<MovieSummary>> getRecommendations(MovieId id) async {
-    final movieId = int.parse(id.value);
-    final cached = await _local.getRecommendations(movieId);
-    if (cached != null && cached.isNotEmpty) {
-      return cached.map(_mapSummary).whereType<MovieSummary>().toList();
-    }
-    final dto = await _remote.fetchMovie(movieId);
-    final recommendations = dto.recommendations;
-    await _local.saveRecommendations(movieId: movieId, summaries: recommendations);
-    return recommendations.map(_mapSummary).whereType<MovieSummary>().toList();
-  }
-
-  @override
-  Future<List<MovieSummary>> getContinueWatching() async {
-    final entries = await _continueWatching.readAll(ContentType.movie);
-    return entries
-        .where((e) => e.poster != null)
-        .map(
-          (e) => MovieSummary(
-            id: MovieId(e.contentId),
-            title: MediaTitle(e.title),
-            poster: e.poster!,
-          ),
-        )
-        .toList();
-  }
-
-  @override
-  Future<List<MovieSummary>> searchMovies(String query) async {
-    final results = await _remote.searchMovies(query);
-    return results.map(_mapSummary).whereType<MovieSummary>().toList();
-  }
-
-  @override
-  Future<bool> isInWatchlist(MovieId id) async => _watchlist.exists(id.value, ContentType.movie);
-
-  @override
-  Future<void> setWatchlist(MovieId id, {required bool saved}) async {
-    if (saved) {
-      final summary = await getMovie(id);
-      await _watchlist.upsert(
-        WatchlistEntry(
-          contentId: id.value,
-          type: ContentType.movie,
-          title: summary.title.value,
-          poster: summary.poster,
-          addedAt: DateTime.now(),
-        ),
-      );
-    } else {
-      await _watchlist.remove(id.value, ContentType.movie);
-    }
-  }
-
-  Movie _mapDetail(TmdbMovieDetailDto dto) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
-    final backdrop = _images.backdrop(dto.backdropPath);
-    if (poster == null) {
-      throw StateError('Movie ${dto.id} missing poster');
-    }
-    return Movie(
-      id: MovieId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.title),
-      synopsis: Synopsis(dto.overview),
-      duration: Duration(minutes: dto.runtime ?? 0),
-      poster: poster,
-      backdrop: backdrop,
-      releaseDate: _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
-      rating: _mapRating(dto.voteAverage),
-      genres: dto.genres,
-      cast: dto.cast.take(10).map(_mapCast).toList(),
-      directors: dto.directors.map((crew) => PersonSummary(
-            id: PersonId(crew.id.toString()),
-            tmdbId: crew.id,
-            name: crew.name,
-          )).toList(),
-      tags: dto.genres,
-      sagaLink: _mapSagaLink(dto),
-    );
-  }
-
-  SagaSummary? _mapSagaLink(TmdbMovieDetailDto dto) {
-    final col = dto.belongsToCollection;
-    if (col == null) return null;
-    final cover = _images.poster(col.posterPath);
-    return SagaSummary(
-      id: SagaId(col.id.toString()),
-      tmdbId: col.id,
-      title: MediaTitle(col.name),
-      cover: cover,
-      itemCount: null,
-    );
-  }
-
-  PersonSummary _mapCast(TmdbMovieCastDto cast) {
-    return PersonSummary(
-      id: PersonId(cast.id.toString()),
-      tmdbId: cast.id,
-      name: cast.name,
-      role: cast.character,
-      photo: _images.poster(cast.profilePath),
-    );
-  }
-
-  MovieSummary? _mapSummary(TmdbMovieSummaryDto summary) {
-    final poster = _images.poster(summary.posterPath, size: 'w342');
-    if (poster == null) return null;
-    return MovieSummary(
-      id: MovieId(summary.id.toString()),
-      tmdbId: summary.id,
-      title: MediaTitle(summary.title),
-      poster: poster,
-      backdrop: _images.backdrop(summary.backdropPath),
-      releaseYear: _parseDate(summary.releaseDate)?.year,
-      tags: const [],
-    );
-  }
-
-  DateTime? _parseDate(String? date) {
-    if (date == null || date.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(date);
-  }
-
-  ContentRating? _mapRating(double? voteAverage) {
-    if (voteAverage == null) return null;
-    if (voteAverage >= 8.0) return ContentRating.pg13;
-    if (voteAverage >= 5.0) return ContentRating.pg;
-    return ContentRating.unrated;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #169: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
---------------------------------------------------------------------------------
-// lib/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
-import '../../../../shared/data/services/tmdb_client.dart';
-import '../dtos/tmdb_tv_detail_dto.dart';
-import '../dtos/tmdb_tv_season_detail_dto.dart';
-
-class TmdbTvRemoteDataSource {
-  TmdbTvRemoteDataSource(this._client);
-  final TmdbClient _client;
-
-  Future<TmdbTvDetailDto> fetchShow(int id) => fetchShowLite(id);
-
-  Future<TmdbTvDetailDto> fetchShowLite(int id) async {
-    final json = await _client.getJson(
-      'tv/$id',
-      query: const {'append_to_response': 'images'},
-    );
-    return TmdbTvDetailDto.fromJson(json);
-  }
-
-  Future<TmdbTvDetailDto> fetchShowFull(int id) async {
-    final json = await _client.getJson(
-      'tv/$id',
-      query: const {'append_to_response': 'images,credits,recommendations'},
-    );
-    return TmdbTvDetailDto.fromJson(json);
-  }
-
-  Future<TmdbTvSeasonDetailDto> fetchSeason(
-    int showId,
-    int seasonNumber,
-  ) async {
-    final json = await _client.getJson('tv/$showId/season/$seasonNumber');
-    return TmdbTvSeasonDetailDto.fromJson(json);
-  }
-
-  Future<List<TmdbTvSummaryDto>> searchShows(String query) async {
-    final json = await _client.getJson('search/tv', query: {'query': query});
-    final results = (json['results'] as List<dynamic>? ?? const []);
-    return results
-        .whereType<Map<String, dynamic>>()
-        .map(TmdbTvSummaryDto.fromJson)
-        .toList();
-  }
-
-  Future<List<TmdbTvSummaryDto>> fetchPopular() async {
-    final json = await _client.getJson('tv/popular');
-    final results = (json['results'] as List<dynamic>? ?? const []);
-    return results
-        .whereType<Map<String, dynamic>>()
-        .map(TmdbTvSummaryDto.fromJson)
-        .toList();
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #173: src/features/tv/data/repositories/tv_repository_impl.dart
---------------------------------------------------------------------------------
-import '../../domain/entities/tv_show.dart';
-import '../../domain/repositories/tv_repository.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../shared/domain/value_objects/content_rating.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../../../../core/storage/repositories/continue_watching_local_repository.dart';
-import '../datasources/tmdb_tv_remote_data_source.dart';
-import '../datasources/tv_local_data_source.dart';
-import '../dtos/tmdb_tv_detail_dto.dart';
-import '../dtos/tmdb_tv_season_detail_dto.dart';
-
-class TvRepositoryImpl implements TvRepository {
-  TvRepositoryImpl(this._remote, this._images, this._watchlist, this._local, this._continueWatching);
-
-  final TmdbTvRemoteDataSource _remote;
-  final TmdbImageResolver _images;
-  final WatchlistLocalRepository _watchlist;
-  final TvLocalDataSource _local;
-  final ContinueWatchingLocalRepository _continueWatching;
-
-  @override
-  Future<TvShow> getShow(SeriesId id) async {
-    final showId = int.parse(id.value);
-    final dto = await _loadShowDto(showId);
-    final seasonDetails = await _loadSeasons(showId, dto.seasons);
-    return _mapShow(dto, seasonDetails);
-  }
-
-  @override
-  Future<List<Season>> getSeasons(SeriesId id) async {
-    final showId = int.parse(id.value);
-    final dto = await _loadShowDto(showId);
-    final seasonDetails = await _loadSeasons(showId, dto.seasons);
-    return _mapSeasons(dto.seasons, seasonDetails);
-  }
-
-  @override
-  Future<List<Episode>> getEpisodes(SeriesId id, SeasonId seasonId) async {
-    final seasonNumber = int.parse(seasonId.value);
-    final season = await _loadSeasonDto(int.parse(id.value), seasonNumber);
-    return _mapEpisodes(season);
-  }
-
-  @override
-  Future<List<TvShowSummary>> getFeaturedShows() async {
-    final popular = await _remote.fetchPopular();
-    return popular.map(_mapSummary).whereType<TvShowSummary>().toList();
-  }
-
-  @override
-  Future<List<TvShowSummary>> getUserWatchlist() async {
-    final entries = await _watchlist.readAll(ContentType.series);
-    return entries
-        .where((e) => e.poster != null)
-        .map(
-          (e) => TvShowSummary(
-            id: SeriesId(e.contentId),
-            title: MediaTitle(e.title),
-            poster: e.poster!,
-          ),
-        )
-        .toList();
-  }
-
-  @override
-  Future<List<TvShowSummary>> getContinueWatching() async {
-    final entries = await _continueWatching.readAll(ContentType.series);
-    return entries
-        .where((e) => e.poster != null)
-        .map(
-          (e) => TvShowSummary(
-            id: SeriesId(e.contentId),
-            title: MediaTitle(e.title),
-            poster: e.poster!,
-          ),
-        )
-        .toList();
-  }
-
-  @override
-  Future<List<TvShowSummary>> searchShows(String query) async {
-    final results = await _remote.searchShows(query);
-    return results.map(_mapSummary).whereType<TvShowSummary>().toList();
-  }
-
-  @override
-  Future<bool> isInWatchlist(SeriesId id) async => _watchlist.exists(id.value, ContentType.series);
-
-  @override
-  Future<void> setWatchlist(SeriesId id, {required bool saved}) async {
-    if (saved) {
-      final show = await getShow(id);
-      await _watchlist.upsert(
-        WatchlistEntry(
-          contentId: id.value,
-          type: ContentType.series,
-          title: show.title.value,
-          poster: show.poster,
-          addedAt: DateTime.now(),
-        ),
-      );
-    } else {
-      await _watchlist.remove(id.value, ContentType.series);
-    }
-  }
-
-  Future<TmdbTvDetailDto> _loadShowDto(int showId) async {
-    final cached = await _local.getShowDetail(showId);
-    if (cached != null) return cached;
-    final remote = await _remote.fetchShow(showId);
-    await _local.saveShowDetail(remote);
-    return remote;
-  }
-
-  Future<Map<int, TmdbTvSeasonDetailDto>> _loadSeasons(int showId, List<TmdbTvSeasonDto> seasons) async {
-    final entries = await Future.wait(
-      seasons.map(
-        (season) async => MapEntry(
-          season.seasonNumber,
-          await _loadSeasonDto(showId, season.seasonNumber),
-        ),
-      ),
-    );
-    return Map<int, TmdbTvSeasonDetailDto>.fromEntries(entries);
-  }
-
-  Future<TmdbTvSeasonDetailDto> _loadSeasonDto(int showId, int seasonNumber) async {
-    final cached = await _local.getSeason(showId, seasonNumber);
-    if (cached != null) return cached;
-    final remote = await _remote.fetchSeason(showId, seasonNumber);
-    await _local.saveSeason(showId, seasonNumber, remote);
-    return remote;
-  }
-
-  TvShow _mapShow(TmdbTvDetailDto dto, Map<int, TmdbTvSeasonDetailDto> seasonDetails) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
-    if (poster == null) throw StateError('TV show ${dto.id} missing poster');
-    return TvShow(
-      id: SeriesId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.name),
-      synopsis: Synopsis(dto.overview),
-      poster: poster,
-      backdrop: _images.backdrop(dto.backdropPath),
-      firstAirDate: _parseDate(dto.firstAirDate),
-      lastAirDate: _parseDate(dto.lastAirDate),
-      status: _mapStatus(dto.status),
-      rating: _mapRating(dto.voteAverage),
-      genres: dto.genres,
-      cast: dto.cast.take(10).map(_mapCast).toList(),
-      creators: dto.creators.map((c) => PersonSummary(id: PersonId(c.id.toString()), tmdbId: c.id, name: c.name)).toList(),
-      seasons: _mapSeasons(dto.seasons, seasonDetails),
-    );
-  }
-
-  List<Season> _mapSeasons(List<TmdbTvSeasonDto> seasons, Map<int, TmdbTvSeasonDetailDto> details) {
-    return seasons.map((season) {
-      final detail = details[season.seasonNumber] ?? _emptySeasonDetail(season);
-      return Season(
-        id: SeasonId(season.seasonNumber.toString()),
-        seasonNumber: season.seasonNumber,
-        title: MediaTitle(season.name),
-        overview: season.overview.isEmpty ? null : Synopsis(season.overview),
-        poster: _images.poster(season.posterPath),
-        episodes: _mapEpisodes(detail),
-        airDate: _parseDate(season.airDate),
-      );
-    }).toList();
-  }
-
-  List<Episode> _mapEpisodes(TmdbTvSeasonDetailDto detail) {
-    return detail.episodes
-        .map(
-          (episode) => Episode(
-            id: EpisodeId(episode.id.toString()),
-            episodeNumber: episode.episodeNumber,
-            title: MediaTitle(episode.name),
-            overview: episode.overview.isEmpty ? null : Synopsis(episode.overview),
-            runtime: episode.runtime != null ? Duration(minutes: episode.runtime!) : null,
-            airDate: _parseDate(episode.airDate),
-            still: _images.still(episode.stillPath),
-          ),
-        )
-        .toList();
-  }
-
-  TmdbTvSeasonDetailDto _emptySeasonDetail(TmdbTvSeasonDto season) {
-    return TmdbTvSeasonDetailDto(
-      id: season.id,
-      name: season.name,
-      airDate: season.airDate,
-      episodes: const [],
-    );
-  }
-
-  TvShowSummary? _mapSummary(TmdbTvSummaryDto dto) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
-    if (poster == null) return null;
-    return TvShowSummary(
-      id: SeriesId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.name),
-      poster: poster,
-      backdrop: _images.backdrop(dto.backdropPath),
-      seasonCount: null,
-      status: null,
-    );
-  }
-
-  PersonSummary _mapCast(TmdbTvCastDto cast) {
-    return PersonSummary(
-      id: PersonId(cast.id.toString()),
-      tmdbId: cast.id,
-      name: cast.name,
-      role: cast.character,
-      photo: _images.poster(cast.profilePath),
-    );
-  }
-
-  DateTime? _parseDate(String? date) => date == null || date.isEmpty ? null : DateTime.tryParse(date);
-
-  SeriesStatus? _mapStatus(String? status) {
-    switch (status?.toLowerCase()) {
-      case 'ended':
-        return SeriesStatus.ended;
-      case 'returning series':
-      case 'in production':
-        return SeriesStatus.ongoing;
-      case 'canceled':
-        return SeriesStatus.hiatus;
-    }
-    return null;
-  }
-
-  ContentRating? _mapRating(double? voteAverage) {
-    if (voteAverage == null) return null;
-    if (voteAverage >= 8.0) return ContentRating.pg13;
-    if (voteAverage >= 5.0) return ContentRating.pg;
-    return ContentRating.unrated;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #193: src/shared/data/services/tmdb_cache_data_source.dart
---------------------------------------------------------------------------------
-import '../../../core/storage/repositories/content_cache_repository.dart';
-import '../../../core/storage/services/cache_policy.dart';
-
-class TmdbCacheDataSource {
-  TmdbCacheDataSource(this._cache);
-
-  final ContentCacheRepository _cache;
-
-  // 7 jours de TTL pour les détails TMDB
-  static const CachePolicy detailPolicy = CachePolicy(ttl: Duration(days: 7));
-
-  String _movieKey(int id) => 'tmdb_movie_detail_$id';
-  String _tvKey(int id) => 'tmdb_tv_detail_$id';
-
-  Future<Map<String, dynamic>?> getMovieDetail(int id) =>
-      _cache.getWithPolicy(_movieKey(id), detailPolicy);
-
-  Future<Map<String, dynamic>?> getTvDetail(int id) =>
-      _cache.getWithPolicy(_tvKey(id), detailPolicy);
-
-  Future<void> putMovieDetail(int id, Map<String, dynamic> json) =>
-      _cache.put(key: _movieKey(id), type: 'tmdb_detail', payload: json);
-
-  Future<void> putTvDetail(int id, Map<String, dynamic> json) =>
-      _cache.put(key: _tvKey(id), type: 'tmdb_detail', payload: json);
-}
-
---------------------------------------------------------------------------------
-FILE #194: src/shared/data/services/tmdb_client.dart
---------------------------------------------------------------------------------
-// src/shared/data/services/tmdb_client.dart
-import 'package:dio/dio.dart';
-import 'package:movi/src/core/config/models/network_endpoints.dart';
-import 'package:movi/src/core/network/network_executor.dart';
-
-/// Client HTTP strict pour TMDB.
-///
-/// Règles clés :
-/// - Le `request` fourni à l'executor retourne toujours un `Future<Response<dynamic>>`.
-/// - Le parsing JSON est centralisé ici : on renvoie un `Map<String, dynamic>` propre.
-/// - Jamais de cast d'un `Map` en `Response`.
-/// - Aucune clé en dur : tout provient de la configuration `NetworkEndpoints`.
-class TmdbClient {
-  TmdbClient({
-    required NetworkExecutor executor,
-    required NetworkEndpoints endpoints,
-  })  : _executor = executor,
-        _endpoints = endpoints;
-
-  final NetworkExecutor _executor;
-  final NetworkEndpoints _endpoints;
-
-  /// Récupère un JSON (racine Map) depuis TMDB pour [path] (ex. `movie/550`).
-  ///
-  /// Si l'API renvoie autre chose qu'un objet JSON (ex. liste en racine),
-  /// une erreur typée est levée pour éviter les états silencieux incohérents.
-  Future<Map<String, dynamic>> getJson(
-    String path, {
-    Map<String, Object?>? query,
-    String? language,
-    CancelToken? cancelToken,
-  }) async {
-    final uri = _buildUri(
-      path: path,
-      query: query,
-      language: language,
-    );
-
-    return _executor.run<dynamic, Map<String, dynamic>>(
-      request: (Dio client) => client.getUri<dynamic>(
-        uri,
-        options: Options(
-          responseType: ResponseType.json,
-          headers: const {'Accept': 'application/json'},
-        ),
-        cancelToken: cancelToken,
-      ),
-      mapper: (raw) {
-        final response = raw;
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          return data;
-        }
-        throw TmdbClientError(
-          'Unexpected TMDB payload type: ${data.runtimeType}',
-          uri: uri,
-          statusCode: response.statusCode,
-        );
-      },
-    );
-  }
-
-  /// Construit un URI TMDB valide en injectant `language` et éventuellement `api_key` (v3).
-  Uri _buildUri({
-    required String path,
-    Map<String, Object?>? query,
-    String? language,
-  }) {
-    final host = _resolveHost();
-    final version = _resolveApiVersion();
-    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-
-    final qp = <String, String>{};
-
-    if (query != null && query.isNotEmpty) {
-      query.forEach((k, v) {
-        if (v == null) return;
-        qp[k] = v.toString();
-      });
-    }
-
-    if (language != null && language.isNotEmpty) {
-      qp['language'] = language;
-    }
-
-    final apiKey = _endpoints.tmdbApiKey;
-    if (apiKey != null && apiKey.isNotEmpty && _isV3Key(apiKey)) {
-      qp.putIfAbsent('api_key', () => apiKey);
-    }
-
-    return Uri.https(host, '/$version/$normalizedPath', qp);
-  }
-
-  String _resolveHost() {
-    // Préférence à la config exposée ; fallback par défaut.
-    try {
-      final h = _endpoints.tmdbBaseHost?.trim();
-      if (h != null && h.isNotEmpty) return h;
-      return _endpoints.resolvedTmdbBaseHost;
-    } catch (_) {}
-    return 'api.themoviedb.org';
-  }
-
-  String _resolveApiVersion() {
-    try {
-      final v = _endpoints.tmdbApiVersion?.trim();
-      if (v != null && v.isNotEmpty) return v;
-      return _endpoints.resolvedTmdbApiVersion;
-    } catch (_) {}
-    return '3';
-  }
-
-  /// Heuristique simple : une clé v4 (JWT) commence souvent par "eyJ".
-  bool _isV3Key(String key) {
-    if (key.startsWith('eyJ')) return false;
-    return key.length <= 64;
-  }
-}
-
-/// Erreur spécifique TMDB, pour surface propre côté appelants.
-class TmdbClientError implements Exception {
-  TmdbClientError(
-    this.message, {
-    this.uri,
-    this.statusCode,
-  });
-
-  final String message;
-  final Uri? uri;
-  final int? statusCode;
-
-  @override
-  String toString() {
-    final b = StringBuffer('TmdbClientError: $message');
-    if (statusCode != null) b.write(' (status=$statusCode)');
-    if (uri != null) b.write(' uri=$uri');
-    return b.toString();
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #195: src/shared/data/services/tmdb_image_resolver.dart
+FILE #201: src/shared/data/services/tmdb_image_resolver.dart
 --------------------------------------------------------------------------------
 class TmdbImageResolver {
   const TmdbImageResolver({this.baseUrl = 'https://image.tmdb.org/t/p/'});

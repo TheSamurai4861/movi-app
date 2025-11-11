@@ -21,6 +21,7 @@ class MoviItemsList extends StatefulWidget {
     this.titlePadding = 20,
     this.onViewportChanged,
     this.estimatedItemWidth,
+    this.estimatedItemHeight,
     this.preloadAhead = 2,
     this.verticalPreloadMargin = 150,
     this.debounceMs = 240,
@@ -45,6 +46,10 @@ class MoviItemsList extends StatefulWidget {
 
   /// Largeur estimée d’une carte (hors spacing). Sans valeur, aucun callback n’est émis.
   final double? estimatedItemWidth;
+
+  /// Hauteur estimée d’une carte; utilisée pour contraindre la `ListView` horizontale.
+  /// Si non renseignée, une hauteur par défaut est appliquée.
+  final double? estimatedItemHeight;
 
   /// Marge de préchargement verticale (px) avant/après l’entrée à l’écran.
   final double verticalPreloadMargin;
@@ -240,19 +245,20 @@ class _MoviItemsListState extends State<MoviItemsList> {
               // On notifie avec debounce pour limiter la pression en cas de resize.
               _scheduleNotify();
             }
-            return SingleChildScrollView(
-              controller: _hCtrl,
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              padding: widget.horizontalPadding,
-              child: Row(
-                children: [
-                  for (int i = 0; i < widget.items.length; i++) ...[
-                    widget.items[i],
-                    if (i != widget.items.length - 1)
-                      SizedBox(width: widget.itemSpacing),
-                  ],
-                ],
+            // Liste horizontale construite paresseusement pour éviter le chargement massif d'images.
+            return SizedBox(
+              height: widget.estimatedItemHeight ?? 240,
+              child: ListView.separated(
+                controller: _hCtrl,
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                padding: widget.horizontalPadding,
+                cacheExtent: widget.estimatedItemWidth != null
+                    ? (widget.estimatedItemWidth! * 2)
+                    : null,
+                itemCount: widget.items.length,
+                itemBuilder: (context, i) => widget.items[i],
+                separatorBuilder: (context, _) => SizedBox(width: widget.itemSpacing),
               ),
             );
           },

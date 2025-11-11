@@ -1,7 +1,6 @@
 // lib/src/features/welcome/presentation/providers/bootstrap_providers.dart
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
@@ -69,19 +68,9 @@ class BootstrapController extends StateNotifier<BootstrapState> {
       phase: BootPhase.enriching,
       message: 'Préparation des métadonnées…',
     );
-
-    // Cible: premières sections disponibles.
-    final keys = homeState.iptvLists.keys.take(2).toList(growable: false);
-    unawaited(LoggingService.log('Bootstrap: enriching sections=${keys.join(', ')}'));
-    for (final key in keys) {
-      // Heuristique: préparer la largeur d’écran initiale (12–16 cartes).
-      final count = defaultTargetPlatform == TargetPlatform.windows ? 12 : 16;
-      _ref.read(hp.homeControllerProvider.notifier).enrichCategoryBatch(
-            key,
-            0,
-            count,
-          );
-    }
+    // Désactivation de l’enrichissement des listes au bootstrap.
+    // Spéc: LITE mode pour sections sous le héros (poster + titre uniquement).
+    unawaited(LoggingService.log('Bootstrap: list enrichment disabled (LITE mode)'));
 
     // Petite attente pour laisser flush les premiers patches.
     Timer(const Duration(milliseconds: 300), () {

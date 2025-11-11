@@ -1,555 +1,84 @@
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[ERROR:flutter/shell/platform/windows/task_runner_window.cc(61)] Failed to post message to main thread.
-[HomeFeed] Enriched TV id=18653 year=2010 rating=7.226 posterPresent=true
-[HomeFeed] Enriched TV id=5829 year=2008 rating=7.287 posterPresent=true
-[HomeFeed] Enriched TV id=45576 year=2012 rating=6.6 posterPresent=true
-[HomeFeed] Enriched TV id=259558 year=2024 rating=7.0 posterPresent=true
-[HomeFeed] Enriched TV id=365 year=2006 rating=7.4 posterPresent=true
-[HomeFeed] Enriched TV id=157744 year=2022 rating=8.2 posterPresent=true
-[HomeFeed] Enriched TV id=67335 year=2016 rating=7.55 posterPresent=true
-[HomeFeed] Enriched TV id=75219 year=2018 rating=8.217 posterPresent=true
-[HomeFeed] Enriched TV id=4600 year=2006 rating=6.8 posterPresent=true
-[HomeFeed] Enriched TV id=1973 year=2001 rating=7.792 posterPresent=true
-[HomeFeed] Enriched TV id=61599 year=2014 rating=7.215 posterPresent=true
-[HomeFeed] Enriched TV id=247704 year=2024 rating=7.2 posterPresent=true
-[HomeFeed] Enriched TV id=34639 year=2011 rating=6.3 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1298472 year=2024 rating=6.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1180767 year=2023 rating=6.125 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1361253 year=2024 rating=5.615 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1310634 year=2024 rating=5.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1363127 year=2024 rating=4.8 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1361210 year=2024 rating=6.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1325917 year=2024 rating=6.118 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1361215 year=2024 rating=5.5 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1360791 year=2024 rating=6.269 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1359867 year=2024 rating=6.8 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1386531 year=2024 rating=3.7 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1386503 year=2024 rating=5.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1361141 year=2024 rating=5.909 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1062722 year=2025 rating=7.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1114967 year=2025 rating=6.7 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1429744 year=2025 rating=6.692 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1328803 year=2025 rating=7.127 posterPresent=true
-[HomeFeed] Enriched MOVIE id=504949 year=2019 rating=7.156 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1388077 year=2025 rating=5.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1001249 year=2025 rating=5.571 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1042834 year=2025 rating=6.732 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1197137 year=2025 rating=7.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1386827 year=2025 rating=5.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1254135 year=2025 rating=6.682 posterPresent=true
-[HomeFeed] Enriched MOVIE id=997113 year=2025 rating=5.148 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1272166 year=2025 rating=5.924 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1122099 year=2025 rating=7.1 posterPresent=true
-[HomeFeed] Enriched MOVIE id=827931 year=2024 rating=5.6 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1284484 year=2025 rating=5.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=760329 year=2025 rating=6.5 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1356670 year=2025 rating=7.971 posterPresent=true
-[HomeFeed] Enriched MOVIE id=970947 year=2025 rating=5.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1001311 year=2024 rating=5.932 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1313144 year=2025 rating=6.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1398911 year=2025 rating=6.5 posterPresent=true
-[HomeFeed] Enriched MOVIE id=262500 year=2015 rating=6.364 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1094473 year=2024 rating=6.074 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1151949 year=2024 rating=7.243 posterPresent=true
-[HomeFeed] Enriched MOVIE id=762975 year=2022 rating=8.058 posterPresent=true
-[HomeFeed] Enriched MOVIE id=927341 year=2022 rating=6.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1442670 year=2025 rating=6.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1516237 year=2025 rating=5.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1233208 year=2024 rating=7.094 posterPresent=true
-[HomeFeed] Enriched MOVIE id=522915 year=2018 rating=5.5 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1335647 year=2024 rating=5.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1229779 year=2024 rating=5.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1449550 year=2025 rating=5.5 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1523038 year=2025 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1010628 year=2022 rating=7.438 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1328773 year=2024 rating=3.75 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1376501 year=2024 rating=7.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1423716 year=2025 rating=6.5 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1087593 year=2024 rating=6.746 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1373445 year=2025 rating=6.283 posterPresent=true
-[HomeFeed] Enriched MOVIE id=61934 year=1955 rating=6.945 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1459725 year=2025 rating=6.1 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1260794 year=2025 rating=8.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=681169 year=2022 rating=6.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1526019 year=2025 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1228682 year=2024 rating=6.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1160026 year=2023 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=481370 year=2018 rating=6.9 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1131759 year=2025 rating=6.8 posterPresent=true
-[HomeFeed] Enriched MOVIE id=729713 year=2025 rating=6.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1245728 year=2025 rating=7.3 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1252382 year=2025 rating=6.125 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1446358 year=2025 rating=5.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1426792 year=2025 rating=7.036 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1049942 year=2025 rating=5.86 posterPresent=true
-[HomeFeed] Enriched MOVIE id=891584 year=2025 rating=6.087 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1013446 year=2025 rating=6.38 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1002158 year=2025 rating=6.81 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1549551 year=2025 rating=8.8 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1425617 year=2025 rating=6.565 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1185719 year=2024 rating=5.614 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1318917 year=2025 rating=6.081 posterPresent=true
-[HomeFeed] Enriched MOVIE id=993693 year=2022 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1048682 year=2022 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1169649 year=2024 rating=1.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=691800 year=2020 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1024179 year=2024 rating=6.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1155739 year=2024 rating=6.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=952063 year=2024 rating=5.1 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1223390 year=2023 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1303233 year=2024 rating=6.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1047020 year=2024 rating=6.961 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1400817 year=2025 rating=4.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=581577 year=2020 rating=7.6 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1025491 year=2023 rating=6.637 posterPresent=true
-[HomeFeed] Enriched MOVIE id=15869 year=2000 rating=6.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1441091 year=2025 rating=7.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1267480 year=2024 rating=6.7 posterPresent=true
-[HomeFeed] Enriched MOVIE id=1366206 year=2024 rating=5.2 posterPresent=true
-[HomeFeed] Enriched MOVIE id=500837 year=2018 rating=5.143 posterPresent=true
-[HomeFeed] Enriched MOVIE id=190851 year=2013 rating=4.725 posterPresent=true
-[HomeFeed] Enriched MOVIE id=616968 year=2021 rating=0.0 posterPresent=true
-[HomeFeed] Enriched MOVIE id=186992 year=2013 rating=6.277 posterPresent=true
-[HomeFeed] Enriched MOVIE id=9366 year=1997 rating=7.535 posterPresent=true
+# Problématiques par fichier
 
+## 82 — `src/core/widgets/overlay_splash.dart`
 
+* **Bug de syntaxe** dans la condition qui affiche le message : ton export montre `if (message != null && message!.isNotEmpty) .[ … ]` au lieu du spread `...[` → ça casse la compilation / hot-reload de manière intermittente (selon l’éditeur) et peut expliquer un overlay « figé » s’il n’est pas reconstruit correctement. 
+* **Pas de fade interne** : l’overlay est « dur » ; tout le fade est géré par la page. Ce n’est pas bloquant, mais un `AnimatedOpacity` interne te donnerait un “fail safe” visuel s’il est ré-utilisé ailleurs. 
+
+## 86 — `src/features/home/presentation/pages/home_page.dart`
+
+* **Retrait différé de l’overlay** : tu fais bien le fade + retrait du tree via `_overlayMounted`, mais l’état de l’overlay n’est **jamais ré-initialisé** sur un retour depuis d’autres onglets ou un pull-to-refresh complet (si tu veux un overlay « de session », c’est OK ; sinon il faut prévoir la ré-apparition sur relance). 
+* **Empilement / z-order** : l’overlay couvre la bottom-bar (volontaire), mais sur appareils lents un `onEnd` de l’`AnimatedOpacity` peut sauter si le widget est disposé trop tôt. Tu mitiges avec `_overlayMounted`, mais garde en tête qu’un rebuild parent agressif peut court-circuiter le callback. 
+
+## 89 — `src/features/home/presentation/widgets/home_hero_section.dart`
+
+* **Plafond de décodage non appliqué** : tu déclares `_maxHeroCachePx = 1440` mais tu **n’appliques pas** de `cacheWidth/cacheHeight`/`ResizeImage` à l’image du backdrop. Sur Windows, un resize de fenêtre peut provoquer un **décodage géant** → frame bloquée et overlay qui tarde (exactement ton symptôme). 
+* **Signal “ready” du backdrop fragile** : selon l’implémentation (tronquée dans l’extrait), si tu relies `onBackgroundReady` à un simple build/resolve sans `frameBuilder/ImageStreamListener`, tu peux notifier trop tôt (avant frame peinte) ou jamais (en cas d’erreur). Ton résumé indique un **fallback ready même en erreur**, mais je ne le vois pas encore dans le code → à sécuriser côté Hero. 
+* **Hydratation** : la logique cache → full network est saine, mais si `vote/overview/logos` manquent, la ré-hydratation peut retarder la première frame si tu re-évalues juste au moment du build (setState immédiat). Un **déclenchement différé** (post-frame) évite de bloquer la peinture initiale. 
+
+## 76 — `src/core/widgets/movi_items_list.dart`
+
+* **Calcul de viewport** : tu sauvegardes une largeur `_lastViewportWidth` recalculée depuis `LayoutBuilder` puis **re-soustrais** le padding plus tard (OK), mais c’est **sensible au mismatch** si le padding change dynamiquement (RTL, tailles adaptatives). Pas bloquant, mais source de notifications de viewport « flottantes ». 
+* **Hook vertical** : l’écoute de `isScrollingNotifier` du parent est bien nettoyée, mais si la liste est rendue dans un `CustomScrollView` ré-attaché, tu peux **manquer** une première notif (d’où l’ajout que tu as fait : enrichissement initial post-layout — très bien). 
+
+## 87 — `src/features/home/presentation/providers/home_providers.dart`
+
+* **Back-pressure** : `_maxConcurrent = 6` + flush 64 ms Windows, top. Mais `cancelOffscreen` annule uniquement **hors fenêtre** : en cas de défilement très rapide, il peut rester des requêtes « ancien viewport mais partiellement chevauchées ». Tu le limites via `_lastReq.contains`, mais une **clé “generation”** par section réduirait encore les races. 
+* **load()** : Hero d’abord, listes ensuite avec `48ms` de respiration — très bien. Prévoir un **reset propre** de l’overlay côté page si tu souhaites rejouer l’expérience au prochain `load()`. 
+
+## 84 — `src/features/home/data/repositories/home_feed_repository_impl.dart`
+
+* **Types dynamiques** : `_fetchTrendingMoviesPage` renvoie `List<dynamic>` puis `_mapMovie` suppose des DTO typés (`dto.posterPath`, etc.). Si un fallback renvoie un `Map`, on obtient un **runtime error**. Il faut **resserrer les types** ou un garde robuste. 
+* **Search fallback** (enrichissement) : bien vu (`title → id`). Sur Web tu forces l’enrichissement si poster http → ok. Rien de bloquant ici. 
+
+---
+
+# Plan de correction (sans bloc de code)
+
+## 1) Sécuriser l’overlay (82, 86)
+
+1. **Corriger la syntaxe du spread** dans `OverlaySplash` (remplacer `.[` par `...[`). 
+2. Ajouter **un fade interne optionnel** (petit `AnimatedOpacity` 300–500 ms) pour rendre le composant autonome si ré-utilisé (non obligatoire si l’overlay est exclusivement piloté par `HomePage`). 
+3. Dans `HomePage`, prévoir un **reset facultatif** de l’état overlay quand `homeController.load()` est relancé (par exemple après un hard refresh ou retour onglet), uniquement si tu veux rejouer l’animation. Sinon, documenter que l’overlay est « one-shot ». 
+
+## 2) Verrouiller le “ready” du Hero + plafonner le décodage (89)
+
+1. **Appliquer `_maxHeroCachePx`** : construire le backdrop via `ResizeImage` / `cacheWidth` pour plafonner le décodage à ~1440 px (côté plus long). Gain net CPU/RAM sur Windows lors des resizes. 
+2. **Notifier `onBackgroundReady` à la première frame rendue** en plaçant un `ImageStreamListener` (ou `frameBuilder` avec contrôle du `wasSynchronouslyLoaded`) et en prévoyant un **fallback “ready” en cas d’erreur** (déjà décrit dans ton résumé, à implémenter ici). 
+3. **Hydratation non bloquante** : si des champs essentiels manquent (`logos`, `overview`, `vote`, `runtime`), déclenche le fetch full mais **décale le setState** à l’issue (ou en post-frame) pour ne pas retarder la première peinture. 
+
+## 3) Gating Overlay côté contenu (86)
+
+1. Conserver la **gate “heroReady && listsReady”** + **soft timeout 5 s** (déjà en place).
+2. S’assurer que `listsReady` passe à `true` **dès la première section non vide** (tu le fais via `ref.listen` et un check en build — nickel).
+3. Logguer l’issue « soft-timeout hit » pour confirmation terrain. 
+
+## 4) Viewport & enrichissement (76, 86, 87)
+
+1. Dans `MoviItemsList`, **verrouiller le calcul de largeur effective** contre les changements dynamiques de padding (garder en cache la forme résolue et re-notifier uniquement si valeur réellement différente). 
+2. Dans `_HomeContent`, garder l’**enrichissement initial post-layout** du premier viewport (déjà fait) et **augmenter légèrement le buffer** `+8` uniquement sur Windows si nécessaire. 
+3. Dans `HomeController`, introduire une **clé “generation”** par section : à chaque nouveau `enrichCategoryBatch` principal, incrémente un compteur et **ignore** les patches dont la génération ne correspond pas au compteur courant → élimine les *races* quand on scroll très vite. 
+
+## 5) Robustesse typage & fallbacks (84)
+
+1. **Spécifier les retours** de `fetchTrendingMovies` (liste de `TmdbMovieSummaryDto`) et forcer `_mapMovie` à ne mapper que ce type (sinon **skip** l’item avec un log `debug`). 
+2. **Garde Map** : si jamais un `Map<String, dynamic>` remonte (edge case), lis `poster_path`, `id`, `title`, `backdrop_path` en fallback « souple » avant de jeter l’élément. 
+
+## 6) QA & validations ciblées
+
+1. **Scénarios Windows** :
+
+   * Démarrage fenêtre large → réduire → agrandir rapidement : vérifier que l’overlay se ferme < 5 s et que le hero affiche une frame.
+   * Déconnexion réseau pendant décodage : vérifier le **fallback ready**.
+2. **Logs** : valider la présence des traces `HomeOverlay: close (hero+lists ready)` et `HomeOverlay: close (soft-timeout 5s)`. 
+3. **`dart analyze`** après correction (surtout la faute de syntaxe d’`OverlaySplash`). 
+
+---
+
+# Résumé actionnable (ordre conseillé)
+
+1. Corriger `OverlaySplash` (syntax spread) et, optionnel, lui donner un fade interne. 
+2. Dans `HomeHeroSection`, plafonner le décodage (`cacheWidth/cacheHeight`) et fiabiliser la notification de **première frame** + fallback error. 
+3. Garder le **soft timeout 5 s** + gate hero/listes ; décider si l’overlay est **one-shot** ou **ré-affichable** sur relance. 
+4. Solidifier les **types** côté repository pour les trending et ajouter un garde map. 
+5. (Optionnel) Ajouter une **génération** par section dans le contrôleur pour tuer les races en scroll ultra-rapide. 

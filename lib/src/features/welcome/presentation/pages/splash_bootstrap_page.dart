@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/router/app_router.dart' as routes;
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/logging/logging_service.dart';
+import 'package:movi/src/core/widgets/overlay_splash.dart';
 
 import '../providers/bootstrap_providers.dart';
 
@@ -27,7 +28,6 @@ class _SplashBootstrapPageState extends ConsumerState<SplashBootstrapPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final state = ref.watch(bootstrapControllerProvider);
 
     // Quand prêt: navigue vers Home.
@@ -40,46 +40,8 @@ class _SplashBootstrapPageState extends ConsumerState<SplashBootstrapPage> {
       });
     }
 
-    final media = MediaQuery.of(context);
-    final bottom = 30.0 + media.padding.bottom;
-
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: Stack(
-        children: [
-          // Logo centré
-          Center(
-            child: Image.asset(
-              'assets/icons/app_logo.png',
-              height: 120,
-              fit: BoxFit.contain,
-            ),
-          ),
-
-          // Message d’état 30 px du bas
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.message,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 8),
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: OverlaySplash(message: state.message),
     );
   }
 }
