@@ -22,6 +22,14 @@ class EnvironmentLoader {
     if (envFromDefine != null) {
       return envFromDefine;
     }
+    // iOS: par défaut, utiliser l'environnement Dev si aucune variable compile-time n'est fournie.
+    // Cela garantit qu'une clé TMDB valable (fallback Dev) est disponible sans --dart-define,
+    // ce qui évite le basculement vers le fallback IPTV pour le Hero.
+    if (platformSelector.currentPlatform == AppPlatform.ios) {
+      return AppEnvironment.dev;
+    }
+
+    // Autres plateformes : prod en release, sinon dev.
     return platformSelector.isReleaseMode ? AppEnvironment.prod : AppEnvironment.dev;
   }
 

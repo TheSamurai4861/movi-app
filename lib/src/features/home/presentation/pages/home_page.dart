@@ -117,7 +117,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
 
   static const double _mediaCardWidth =
       150; // doit rester aligné avec MoviMediaCard par défaut
-  static const double _itemSpacing = 32; // espace horizontal entre items
+  static const double _itemSpacing = 16; // espace horizontal entre items
   static const double _sectionGap = 32; // espace VERTICAL entre sections MoviItemsList
 
   // Afficher uniquement le libellé catégorie (sans "serveur/")
