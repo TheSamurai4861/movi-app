@@ -1,8 +1,11 @@
 // lib/src/core/router/app_router.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/features/welcome/presentation/pages/welcome_page.dart';
+import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
 
 import '../../features/home/presentation/pages/home_page.dart';
@@ -17,10 +20,12 @@ import '../../features/tv/presentation/pages/tv_detail_page.dart';
 
 import '../di/injector.dart';
 import '../storage/repositories/iptv_local_repository.dart';
+import '../logging/logging_service.dart';
 
 class AppRouteNames {
   static const launch = '/launch';
   static const welcome = '/welcome';
+  static const bootstrap = '/bootstrap';
   static const home = '/';
   static const search = '/search';
   static const library = '/library';
@@ -49,12 +54,24 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => const MaterialPage(child: WelcomePage()),
     ),
 
+    // --- BOOTSTRAP (splash) ---
+    GoRoute(
+      path: AppRouteNames.bootstrap,
+      name: 'bootstrap',
+      pageBuilder: (context, state) => const CustomTransitionPage(
+        child: SplashBootstrapPage(),
+        transitionsBuilder: _fadeTransition,
+      ),
+    ),
+
     // --- HOME / TABS ---
     GoRoute(
       path: AppRouteNames.home,
       name: 'home',
-      pageBuilder: (context, state) =>
-          const NoTransitionPage(child: HomePage()),
+      pageBuilder: (context, state) => const CustomTransitionPage(
+        child: HomePage(),
+        transitionsBuilder: _fadeTransition,
+      ),
     ),
     GoRoute(
       path: AppRouteNames.search,
@@ -120,6 +137,15 @@ final appRouter = GoRouter(
   ),
 );
 
+Widget _fadeTransition(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  return FadeTransition(opacity: animation, child: child);
+}
+
 /// Page de garde qui choisit Welcome vs Home au démarrage.
 class _LaunchGate extends StatefulWidget {
   const _LaunchGate();
@@ -143,10 +169,12 @@ class _LaunchGateState extends State<_LaunchGate> {
     if (!mounted) return;
     if (accounts.isEmpty) {
       // Pas de compte → Welcome
+      unawaited(LoggingService.log('LaunchGate: no accounts, go welcome'));
       GoRouter.of(context).go(AppRouteNames.welcome);
     } else {
-      // Il y a un compte → Home
-      GoRouter.of(context).go(AppRouteNames.home);
+      // Il y a un compte → Bootstrap (prépare avant Home)
+      unawaited(LoggingService.log('LaunchGate: accounts found=${accounts.length}, go bootstrap'));
+      GoRouter.of(context).go(AppRouteNames.bootstrap);
     }
   }
 

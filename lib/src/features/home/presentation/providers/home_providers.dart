@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
 import '../../../../core/di/injector.dart';
+import '../../../../core/logging/logging_service.dart';
 import '../../../movie/domain/entities/movie_summary.dart';
 import '../../../tv/domain/entities/tv_show.dart';
 import '../../../../shared/domain/value_objects/content_reference.dart';
@@ -70,12 +71,15 @@ class HomeController extends StateNotifier<HomeState> {
   /// Démarrage: charge le hero synchronement, le reste en asynchrone.
   Future<void> load() async {
     state = state.copyWith(isLoading: true, error: null);
+    unawaited(LoggingService.log('Home: load start'));
 
     try {
       final hero = await _repo.getHeroMovies();
       state = state.copyWith(hero: hero, isLoading: false);
+      unawaited(LoggingService.log('Home: hero loaded count=${hero.length}'));
     } catch (e) {
       state = state.copyWith(isLoading: false, error: 'Échec du chargement du hero : $e');
+      unawaited(LoggingService.log('Home: hero load error=$e'));
     }
 
     // Laisser respirer un frame pour afficher le Hero avant de lancer les listes.
@@ -84,6 +88,7 @@ class HomeController extends StateNotifier<HomeState> {
     unawaited(_loadIptvLists());
     unawaited(_loadCwMovies());
     unawaited(_loadCwShows());
+    unawaited(LoggingService.log('Home: async sections loading started'));
   }
 
   Future<void> refresh() => load();
@@ -92,6 +97,7 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final lists = await _repo.getIptvCategoryLists();
       state = state.copyWith(iptvLists: lists);
+      unawaited(LoggingService.log('Home: iptv lists loaded sections=${lists.length}'));
     } catch (_) {}
   }
 
@@ -99,6 +105,7 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final cw = await _repo.getContinueWatchingMovies();
       state = state.copyWith(cwMovies: cw);
+      unawaited(LoggingService.log('Home: cw movies loaded count=${cw.length}'));
     } catch (_) {}
   }
 
@@ -106,6 +113,7 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final cw = await _repo.getContinueWatchingShows();
       state = state.copyWith(cwShows: cw);
+      unawaited(LoggingService.log('Home: cw shows loaded count=${cw.length}'));
     } catch (_) {}
   }
 
@@ -116,6 +124,7 @@ class HomeController extends StateNotifier<HomeState> {
   Future<void> enrichCategoryBatch(String key, int start, int count) async {
     final list = state.iptvLists[key];
     if (list == null || list.isEmpty || count <= 0) return;
+    unawaited(LoggingService.log('Home: enrich start key=$key start=$start count=$count'));
 
     final clampedStart = start.clamp(0, list.length - 1);
     final end = (clampedStart + count - 1).clamp(0, list.length - 1);
@@ -176,6 +185,9 @@ class HomeController extends StateNotifier<HomeState> {
     for (final k in keysToCancel) {
       _inflight[k]?.cancel('Offscreen');
       _inflight.remove(k);
+    }
+    if (keysToCancel.isNotEmpty) {
+      unawaited(LoggingService.log('Home: canceled offscreen requests key=$key count=${keysToCancel.length}'));
     }
   }
 

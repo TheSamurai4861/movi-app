@@ -1,8 +1,11 @@
 // lib/src/features/welcome/presentation/pages/welcome_page.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/logging/logging_service.dart';
 
 import '../widgets/welcome_header.dart';
 import '../widgets/welcome_form.dart';
@@ -21,6 +24,7 @@ class WelcomePage extends ConsumerWidget {
     required String alias,
   }) async {
     final controller = ref.read(iptvConnectControllerProvider.notifier);
+    unawaited(LoggingService.log('Welcome: connect attempt url=$serverUrl user=$username alias=$alias'));
     final success = await controller.connect(
       serverUrl: serverUrl,
       username: username,
@@ -29,6 +33,7 @@ class WelcomePage extends ConsumerWidget {
     );
 
     if (success && context.mounted) {
+      unawaited(LoggingService.log('Welcome: connect success, go bootstrap'));
       // ✅ Navigation immédiate vers la page d’accueil
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -37,10 +42,11 @@ class WelcomePage extends ConsumerWidget {
           ),
         ),
       );
-      context.go('/'); // Aller directement à l'accueil
+      context.go('/bootstrap'); // Aller d'abord au splash de préparation
     } else if (!success && context.mounted) {
       final error =
           ref.read(iptvConnectControllerProvider).error ?? 'Erreur inconnue';
+      unawaited(LoggingService.log('Welcome: connect failed error=$error'));
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Échec de la connexion : $error')),
       );
