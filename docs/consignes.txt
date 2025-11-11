@@ -1,0 +1,12 @@
+Plusieurs choses : 
+
+- Comment fonctionne le hero carousel pour choisir les films à intégrer ? 
+- J'aimerais créer un Item à la fin MoviItemList sous la formce d'une affiche comme les autres en couleur comme bouton primaire avec à l'intérieur centré : 
+    - grid 4 rectangle même format affiche mais 4x plus petit en 2 * 2 avec 16px entre eux couleur comme bouton primaire plus foncé 
+    - et 16 px en dessous toujours sur affiche "Voir tout" 16px blanc medium
+- En cliquant dessus, cela charge une page avec en colonne scrollable : 
+    - à 70px dessus écran centré milieu : titre playlist dont affiche les éléments entiers en 24px blanc semibold
+    - à 55 px haut de l'écran et 20 px à partir gauche écran : row cliquable retour aligné centre verticalement et à gauche horizontalement : 
+        - assets image back.png en 35 * 35
+        - Texte "Retour" 16px semibold
+    - 32 px en dessous titre playlist grid alignée centre horizontal 2 affiches comme movicard taille par ligne gap horizontal 16px et vertical 12px, lazy loading affiches en descendant

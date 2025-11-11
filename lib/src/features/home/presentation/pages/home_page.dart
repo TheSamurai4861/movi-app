@@ -12,6 +12,7 @@ import '../../../../core/utils/app_spacing.dart';
 import '../../../../core/widgets/movi_bottom_nav_bar.dart';
 import '../../../../core/widgets/movi_items_list.dart';
 import '../../../../core/widgets/movi_media_card.dart';
+import '../../../../core/widgets/movi_see_all_card.dart';
 import '../../../../core/models/movi_media.dart';
 import '../widgets/home_hero_section.dart';
 import '../widgets/home_hero_carousel.dart';
@@ -268,25 +269,33 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     // Hauteur totale carte = poster (225) + titre (≈20) + marge (12)
                     // → 225 + 12 + 20 ≈ 257 ; on sécurise à 270 pour éviter overflow.
                     estimatedItemHeight: 270,
-                    items: entry.value.take(10).map((r) {
-                      // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
-                      final poster = r.poster?.toString() ?? '';
-                      // Désactiver toute pill: ne pas afficher année/score pour les listes
-                      const String yearStr = '';
-                      const String ratingStr = '';
+                    items: [
+                      ...entry.value.take(9).map((r) {
+                        // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
+                        final poster = r.poster?.toString() ?? '';
+                        // Désactiver toute pill: ne pas afficher année/score pour les listes
+                        const String yearStr = '';
+                        const String ratingStr = '';
 
-                      final media = MoviMedia(
-                        id: r.id,
-                        title: r.title.value,
-                        poster: poster,
-                        year: yearStr, // <-- String non nulle
-                        rating: ratingStr, // <-- String non nulle
-                        type: r.type == ContentType.series
-                            ? MoviMediaType.series
-                            : MoviMediaType.movie,
-                      );
-                      return MoviMediaCard(media: media);
-                    }).toList(),
+                        final media = MoviMedia(
+                          id: r.id,
+                          title: r.title.value,
+                          poster: poster,
+                          year: yearStr, // <-- String non nulle
+                          rating: ratingStr, // <-- String non nulle
+                          type: r.type == ContentType.series
+                              ? MoviMediaType.series
+                              : MoviMediaType.movie,
+                        );
+                        return MoviMediaCard(media: media);
+                      }).toList(),
+                      SeeAllCard(
+                        title: _displayCategoryTitle(entry.key),
+                        categoryKey: entry.key,
+                        width: _mediaCardWidth,
+                        posterHeight: 225,
+                      ),
+                    ],
                   ),
                 ),
                 // 32 px entre *chaque* section MoviItemsList IPTV

@@ -223,11 +223,11 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
 
     final posterUri = _images.poster(
       posterNoLangPath,
-      size: 'w342',
+      size: 'w500',
     );
     final backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
-      size: 'w780',
+      size: 'w1280',
     );
     final logoUri = _images.logo(logoPath);
 
