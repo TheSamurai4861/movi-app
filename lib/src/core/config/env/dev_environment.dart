@@ -13,6 +13,11 @@ const String _tmdbApiKeyDev = String.fromEnvironment('TMDB_API_KEY_DEV');
 const String _tmdbApiKeyStaging = String.fromEnvironment('TMDB_API_KEY_STAGING');
 const String _tmdbApiKeyProd = String.fromEnvironment('TMDB_API_KEY_PROD');
 
+/// Fallback explicite pour le flavor Dev (usage local uniquement).
+/// ATTENTION: ne pas utiliser en prod/staging. Cette valeur sera intégrée au binaire.
+const String _tmdbHardcodedKeyDev =
+    'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8';
+
 /// Optionally returns the TMDB API key from compile-time defines.
 /// If no key is provided via --dart-define, returns null to allow
 /// runtime resolution (e.g., via .env or process environment).
@@ -68,7 +73,8 @@ class DevEnvironment implements EnvironmentFlavor {
         restBaseUrl: 'https://api.dev.movi.app',
         imageBaseUrl: 'https://images.dev.movi.app',
         /// TMDB key may be provided via dart-define or deferred to SecretStore (.env).
-        tmdbApiKey: _resolveTmdbKey(environment),
+        /// Fallback local: clé intégrée en dur pour le flavor Dev uniquement.
+        tmdbApiKey: _resolveTmdbKey(environment) ?? _tmdbHardcodedKeyDev,
         timeouts: _defaultTimeouts,
       );
 }

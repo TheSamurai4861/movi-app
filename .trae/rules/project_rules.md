@@ -4,7 +4,6 @@
 
 * **NE JAMAIS** lancer un serveur web, ni proposer de le faire.
 * **PAS de tests** (unitaires/e2e/golden) **sans demande explicite**.
-* **Aucune clé/API en dur**. Toujours via config/env (`--dart-define`, files chiffrés, factory de config).
 
 ## 1) Toujours CLEAN Architecture (non négociable)
 
