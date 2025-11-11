@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
 import '../providers/welcome_providers.dart';
 import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
@@ -39,12 +40,10 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
   final _urlCtrl = TextEditingController();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _aliasCtrl = TextEditingController();
 
   final _focusUrl = FocusNode();
   final _focusUser = FocusNode();
   final _focusPass = FocusNode();
-  final _focusAlias = FocusNode();
 
   @override
   void initState() {
@@ -69,11 +68,9 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     _urlCtrl.dispose();
     _userCtrl.dispose();
     _passCtrl.dispose();
-    _aliasCtrl.dispose();
     _focusUrl.dispose();
     _focusUser.dispose();
     _focusPass.dispose();
-    _focusAlias.dispose();
     super.dispose();
   }
 
@@ -97,7 +94,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
         _urlCtrl.text.trim(),
         _userCtrl.text.trim(),
         _passCtrl.text,
-        _aliasCtrl.text.trim(),
+        '',
       );
       return;
     }
@@ -108,7 +105,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
       serverUrl: _urlCtrl.text.trim(),
       username: _userCtrl.text.trim(),
       password: _passCtrl.text,
-      alias: _aliasCtrl.text.trim(),
+      alias: '',
     );
 
     if (!mounted) return;
@@ -169,7 +166,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusUser.requestFocus(),
               decoration: const InputDecoration(
-                hintText: 'http(s)://host[:port]/player_api.php',
+                hintText: 'URL Serveur',
               ),
               validator: (v) => (XtreamEndpoint.tryParse(v ?? '') == null)
                   ? 'URL invalide'
@@ -203,8 +200,10 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               focusNode: _focusPass,
               readOnly: isLoading,
               autofillHints: const [AutofillHints.password],
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _focusAlias.requestFocus(),
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) {
+                if (_isFormValid && !isLoading) _onSubmit();
+              },
               decoration: InputDecoration(
                 hintText: 'Mot de passe Xtream',
                 suffixIcon: IconButton(
@@ -223,23 +222,6 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-
-          // Alias (optionnel)
-          _LabeledField(
-            label: 'Nom de la source (Optionnel)',
-            child: TextFormField(
-              controller: _aliasCtrl,
-              focusNode: _focusAlias,
-              readOnly: isLoading,
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) {
-                if (_isFormValid && !isLoading) _onSubmit();
-              },
-              decoration: const InputDecoration(
-                hintText: 'Nom d’affichage dans l’app',
-              ),
-            ),
-          ),
           const SizedBox(height: AppSpacing.xl),
 
           // Actions
@@ -247,15 +229,10 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: MoviPrimaryButton(
+                label: 'Ajouter la source',
                 onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
-                child: isLoading
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Ajouter la source'),
+                loading: isLoading,
               ),
             ),
           ),

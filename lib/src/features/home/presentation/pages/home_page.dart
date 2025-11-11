@@ -14,6 +14,7 @@ import '../../../../core/widgets/movi_items_list.dart';
 import '../../../../core/widgets/movi_media_card.dart';
 import '../../../../core/models/movi_media.dart';
 import '../widgets/home_hero_section.dart';
+import '../widgets/home_hero_carousel.dart';
 import '../widgets/continue_watching_card.dart';
 // logging_service n'est plus utilisé sur la page d'accueil
 // overlay_splash supprimé de la page d'accueil
@@ -28,7 +29,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   static const _fadeDuration = Duration(milliseconds: 500);
   // Spec: bottom nav 24px from bottom edge
-  static const _navBottomOffset = 24.0;
+  static const _navBottomOffset = 16.0;
 
   int _selectedIndex = 0;
 
@@ -192,9 +193,13 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
 
               // On rend le vrai hero avec le state (évite les rebuilds visibles)
               SliverToBoxAdapter(
-                child: HomeHeroSection(
-                  movie: state.hero.isNotEmpty ? state.hero.first : null,
-                ),
+                child: (state.hero.length >= 2)
+                    ? HomeHeroCarousel(
+                        movies: state.hero.take(10).toList(growable: false),
+                      )
+                    : HomeHeroSection(
+                        movie: state.hero.isNotEmpty ? state.hero.first : null,
+                      ),
               ),
 
               // Marge après le hero: 32px pour uniformiser l'espacement des sections
