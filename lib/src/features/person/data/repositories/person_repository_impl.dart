@@ -1,14 +1,14 @@
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 
-import '../../domain/entities/person.dart';
-import '../../domain/repositories/person_repository.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../datasources/tmdb_person_remote_data_source.dart';
-import '../datasources/person_local_data_source.dart';
-import '../dtos/tmdb_person_detail_dto.dart';
+import 'package:movi/src/features/person/domain/entities/person.dart';
+import 'package:movi/src/features/person/domain/repositories/person_repository.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/person/data/datasources/tmdb_person_remote_data_source.dart';
+import 'package:movi/src/features/person/data/datasources/person_local_data_source.dart';
+import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
 
 class PersonRepositoryImpl implements PersonRepository {
   PersonRepositoryImpl(this._remote, this._images, this._local);

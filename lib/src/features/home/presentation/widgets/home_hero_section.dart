@@ -4,13 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:movi/src/core/di/injector.dart';
-import 'package:movi/src/core/router/app_router.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/widgets/movi_favorite_button.dart';
-import 'package:movi/src/core/widgets/movi_pill.dart';
-import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -552,8 +550,12 @@ class _ImageSelector {
     double ratioOf(Map<String, dynamic> m) {
       final w = m['width'];
       final h = m['height'];
-      final dw = (w is num) ? w.toDouble() : double.tryParse(w?.toString() ?? '') ?? 0;
-      final dh = (h is num) ? h.toDouble() : double.tryParse(h?.toString() ?? '') ?? 0;
+      final dw = (w is num)
+          ? w.toDouble()
+          : double.tryParse(w?.toString() ?? '') ?? 0;
+      final dh = (h is num)
+          ? h.toDouble()
+          : double.tryParse(h?.toString() ?? '') ?? 0;
       if (dw <= 0 || dh <= 0) return 0;
       return dw / dh;
     }
@@ -579,8 +581,9 @@ class _ImageSelector {
     final enPref = preferWide(en);
     if (enPref.isNotEmpty) return pathOf(enPref.first);
 
-    final List<Map<String, dynamic>> noLang =
-        list.where((m) => m['iso_639_1'] == null).toList();
+    final List<Map<String, dynamic>> noLang = list
+        .where((m) => m['iso_639_1'] == null)
+        .toList();
     final noLangPref = preferWide(noLang);
     if (noLangPref.isNotEmpty) return pathOf(noLangPref.first);
 

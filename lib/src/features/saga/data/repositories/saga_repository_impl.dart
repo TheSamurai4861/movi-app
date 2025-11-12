@@ -1,13 +1,13 @@
-import '../../domain/entities/saga.dart';
-import '../../domain/repositories/saga_repository.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../datasources/tmdb_saga_remote_data_source.dart';
-import '../datasources/saga_local_data_source.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart';
+import 'package:movi/src/features/saga/data/datasources/saga_local_data_source.dart';
 
 class SagaRepositoryImpl implements SagaRepository {
   SagaRepositoryImpl(this._remote, this._images, this._local, this._watchlist);

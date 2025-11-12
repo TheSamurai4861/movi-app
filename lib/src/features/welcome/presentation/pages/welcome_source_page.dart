@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 class WelcomeSourcePage extends StatelessWidget {

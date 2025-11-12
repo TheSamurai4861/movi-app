@@ -1,4 +1,4 @@
-import '../../../domain/services/similarity_service.dart';
+import 'package:movi/src/shared/domain/services/similarity_service.dart';
 
 class HybridSimilarityService implements SimilarityService {
   const HybridSimilarityService();

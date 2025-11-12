@@ -3,12 +3,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/core/router/app_router.dart' as routes;
+import 'package:movi/src/core/router/router.dart' as routes;
 import 'package:go_router/go_router.dart';
-import 'package:movi/src/core/logging/logging_service.dart';
-import 'package:movi/src/core/widgets/overlay_splash.dart';
+import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 
-import '../providers/bootstrap_providers.dart';
+import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
 class SplashBootstrapPage extends ConsumerStatefulWidget {
   const SplashBootstrapPage({super.key});

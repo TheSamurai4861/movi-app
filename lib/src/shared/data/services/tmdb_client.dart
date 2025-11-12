@@ -1,8 +1,8 @@
 // ignore_for_file: public_member_api_docs
 
 import 'package:dio/dio.dart';
-import 'package:movi/src/core/config/models/network_endpoints.dart';
-import 'package:movi/src/core/network/network_executor.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/network/network.dart';
 
 /// Client HTTP strict pour TMDB (v3/v4) basé sur [NetworkExecutor].
 ///

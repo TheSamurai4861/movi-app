@@ -1,7 +1,7 @@
-import '../../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../../core/iptv/domain/entities/xtream_playlist_item.dart';
-import '../../domain/entities/playlist.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
+import 'package:movi/src/features/playlist/domain/entities/playlist.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class PlaylistFilterService {
   const PlaylistFilterService(this._iptvLocal);

@@ -1,4 +1,4 @@
-import '../repositories/search_history_repository.dart';
+import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
 
 class RemoveSearchHistoryItem {
   const RemoveSearchHistoryItem(this._repo);

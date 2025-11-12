@@ -1,10 +1,10 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
 
 class TvShow extends Equatable {
   const TvShow({

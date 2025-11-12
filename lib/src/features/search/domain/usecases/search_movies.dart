@@ -1,6 +1,6 @@
-import '../../domain/repositories/search_repository.dart';
-import '../../domain/entities/search_page.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
+import 'package:movi/src/features/search/domain/entities/search_page.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 
 class SearchMovies {
   const SearchMovies(this._repository);

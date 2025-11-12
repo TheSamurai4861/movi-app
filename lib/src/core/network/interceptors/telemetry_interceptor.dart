@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../../utils/logger.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
 class TelemetryInterceptor extends Interceptor {
   TelemetryInterceptor({required this.logger});

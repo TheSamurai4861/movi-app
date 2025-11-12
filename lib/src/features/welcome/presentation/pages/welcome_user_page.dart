@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/di/injector.dart';
+import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
 import 'package:movi/src/features/settings/domain/value_objects/language_code.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
-import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
 
 class WelcomeUserPage extends ConsumerStatefulWidget {
@@ -71,47 +71,124 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                           items: const [
                             DropdownMenuItem(
                               value: 'en-US',
-                              child: Text('English', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'English',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'fr-FR',
-                              child: Text('Français', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'Français',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'es-ES',
-                              child: Text('Español', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'Español',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'de-DE',
-                              child: Text('Deutsch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'Deutsch',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'it-IT',
-                              child: Text('Italiano', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'Italiano',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'pt-BR',
-                              child: Text('Português', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'Português',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'ja-JP',
-                              child: Text('日本語', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                '日本語',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'ko-KR',
-                              child: Text('한국어', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                '한국어',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'zh-CN',
-                              child: Text('中文', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                '中文',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'ru-RU',
-                              child: Text('Русский', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'Русский',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             DropdownMenuItem(
                               value: 'ar-SA',
-                              child: Text('العربية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
+                              child: Text(
+                                'العربية',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                           ],
                           onChanged: (v) =>
@@ -137,8 +214,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                       _nameCtrl.text,
                                     );
                                     final lc = LanguageCode.tryParse(_lang);
-                                    if (fn == null ||
-                                        lc == null) {
+                                    if (fn == null || lc == null) {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(

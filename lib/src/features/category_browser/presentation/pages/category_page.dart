@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../category_browser/presentation/providers/category_providers.dart';
-import '../../../category_browser/presentation/widgets/category_header.dart';
-import '../../../category_browser/presentation/widgets/category_grid.dart';
-import '../../presentation/models/category_args.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/category_browser/presentation/providers/category_providers.dart';
+import 'package:movi/src/features/category_browser/presentation/widgets/category_header.dart';
+import 'package:movi/src/features/category_browser/presentation/widgets/category_grid.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class CategoryPage extends ConsumerWidget {
   const CategoryPage({super.key, this.args});

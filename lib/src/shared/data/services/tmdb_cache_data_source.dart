@@ -1,7 +1,6 @@
 // ignore_for_file: public_member_api_docs
 
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
-import 'package:movi/src/core/storage/services/cache_policy.dart';
+import 'package:movi/src/core/storage/storage.dart';
 
 /// Data source de cache pour les détails TMDB (films & séries).
 /// Combine :

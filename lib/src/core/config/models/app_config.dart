@@ -1,9 +1,10 @@
 // ignore_for_file: public_member_api_docs
 
-import '../env/environment.dart';
-import 'app_metadata.dart';
-import 'feature_flags.dart';
-import 'network_endpoints.dart';
+import 'package:movi/src/core/config/env/environment.dart';
+import 'package:movi/src/core/config/models/app_metadata.dart';
+import 'package:movi/src/core/config/models/feature_flags.dart';
+import 'package:movi/src/core/config/models/logging_config.dart';
+import 'package:movi/src/core/config/models/network_endpoints.dart';
 
 /// Immutable application configuration assembled at bootstrap.
 /// Contains the current environment, network endpoints (incl. TMDB),
@@ -14,6 +15,7 @@ class AppConfig {
     required this.network,
     required this.featureFlags,
     required this.metadata,
+    required this.logging,
   }) : assert(
          (network.restBaseUrl.isNotEmpty),
          'restBaseUrl must not be empty.',
@@ -41,6 +43,9 @@ class AppConfig {
   /// App metadata (version/build).
   final AppMetadata metadata;
 
+  /// Logging configuration for the current environment.
+  final LoggingConfig logging;
+
   /// Lightweight validity check intended for runtime guards in release builds.
   /// Throws [StateError] with an explicit message when a critical value is invalid.
   void ensureValid() {
@@ -64,12 +69,14 @@ class AppConfig {
     NetworkEndpoints? network,
     FeatureFlags? featureFlags,
     AppMetadata? metadata,
+    LoggingConfig? logging,
   }) {
     return AppConfig(
       environment: environment ?? this.environment,
       network: network ?? this.network,
       featureFlags: featureFlags ?? this.featureFlags,
       metadata: metadata ?? this.metadata,
+      logging: logging ?? this.logging,
     );
   }
 
@@ -80,12 +87,110 @@ class AppConfig {
   bool get hasTmdbKey => (network.tmdbApiKey?.isNotEmpty ?? false);
 
   @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! AppConfig) return false;
+    return environment.environment == other.environment.environment &&
+        environment.label == other.environment.label &&
+        network.restBaseUrl == other.network.restBaseUrl &&
+        network.imageBaseUrl == other.network.imageBaseUrl &&
+        (network.tmdbApiKey ?? '') == (other.network.tmdbApiKey ?? '') &&
+        network.resolvedTmdbBaseHost == other.network.resolvedTmdbBaseHost &&
+        network.resolvedTmdbApiVersion ==
+            other.network.resolvedTmdbApiVersion &&
+        network.timeouts.connect == other.network.timeouts.connect &&
+        network.timeouts.receive == other.network.timeouts.receive &&
+        network.timeouts.send == other.network.timeouts.send &&
+        featureFlags.useRemoteHome == other.featureFlags.useRemoteHome &&
+        featureFlags.enableTelemetry == other.featureFlags.enableTelemetry &&
+        featureFlags.enableDownloads == other.featureFlags.enableDownloads &&
+        featureFlags.enableNewSearch == other.featureFlags.enableNewSearch &&
+        metadata.version == other.metadata.version &&
+        metadata.buildNumber == other.metadata.buildNumber &&
+        metadata.supportEmail == other.metadata.supportEmail &&
+        logging.minLevel == other.logging.minLevel &&
+        logging.enableConsole == other.logging.enableConsole &&
+        logging.enableFile == other.logging.enableFile &&
+        logging.flushInterval == other.logging.flushInterval &&
+        logging.maxFileSizeBytes == other.logging.maxFileSizeBytes &&
+        logging.maxFiles == other.logging.maxFiles &&
+        logging.rotateDaily == other.logging.rotateDaily &&
+        logging.maxDailyFiles == other.logging.maxDailyFiles &&
+        logging.compressOld == other.logging.compressOld &&
+        logging.bufferCapacity == other.logging.bufferCapacity &&
+        logging.dropOldest == other.logging.dropOldest &&
+        _mapEquals(logging.samplingByLevel, other.logging.samplingByLevel) &&
+        _stringIntMapEquals(
+            logging.rateLimitPerCategory, other.logging.rateLimitPerCategory) &&
+        _stringDoubleMapEquals(
+            logging.samplingByCategory, other.logging.samplingByCategory) &&
+        logging.defaultRateLimitPerMinute ==
+            other.logging.defaultRateLimitPerMinute &&
+        logging.exposeMetrics == other.logging.exposeMetrics &&
+        logging.metricsInterval == other.logging.metricsInterval;
+        
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        environment.environment,
+        environment.label,
+        network.restBaseUrl,
+        network.imageBaseUrl,
+        network.tmdbApiKey ?? '',
+        network.resolvedTmdbBaseHost,
+        network.resolvedTmdbApiVersion,
+        network.timeouts.connect,
+        network.timeouts.receive,
+        network.timeouts.send,
+        featureFlags.useRemoteHome,
+        featureFlags.enableTelemetry,
+        featureFlags.enableDownloads,
+        featureFlags.enableNewSearch,
+        metadata.version,
+        metadata.buildNumber,
+        metadata.supportEmail,
+        logging.minLevel,
+        logging.enableConsole,
+        logging.enableFile,
+        logging.flushInterval,
+        logging.maxFileSizeBytes,
+        logging.maxFiles,
+        logging.rotateDaily,
+        logging.maxDailyFiles,
+        logging.compressOld,
+        logging.bufferCapacity,
+        logging.dropOldest,
+        logging.defaultRateLimitPerMinute,
+        logging.exposeMetrics,
+        logging.metricsInterval,
+        logging.samplingByLevel,
+        logging.samplingByCategory,
+        logging.rateLimitPerCategory,
+        logging.minLevelByCategory,
+      ]);
+
+  @override
   String toString() {
     // Do not print secrets.
     final key = network.tmdbApiKey ?? '';
     final maskedKey = key.isEmpty ? '<empty>' : '***${key.hashCode}';
     return 'AppConfig(env: ${environment.label}, '
         'rest: ${network.restBaseUrl}, images: ${network.imageBaseUrl}, '
-        'tmdbKey: $maskedKey, flags: $featureFlags, meta: $metadata)';
+        'tmdbKey: $maskedKey, flags: $featureFlags, meta: $metadata, logging: $logging)';
   }
+
+  bool _mapEquals<K, V>(Map<K, V> a, Map<K, V> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final e in a.entries) {
+      if (b[e.key] != e.value) return false;
+    }
+    return true;
+  }
+
+  bool _stringIntMapEquals(Map<String, int> a, Map<String, int> b) =>
+      _mapEquals<String, int>(a, b);
+  bool _stringDoubleMapEquals(Map<String, double> a, Map<String, double> b) =>
+      _mapEquals<String, double>(a, b);
 }

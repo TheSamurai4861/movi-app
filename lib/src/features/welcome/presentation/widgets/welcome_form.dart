@@ -3,19 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/widgets/movi_primary_button.dart';
-import 'labeled_field.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
 
-import '../providers/welcome_providers.dart';
-import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
-import '../../../settings/presentation/providers/iptv_connect_providers.dart';
+import 'package:movi/src/features/welcome/presentation/providers/welcome_providers.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
+import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 
 typedef ConnectCallback =
-    Future<void> Function(
-      String serverUrl,
-      String username,
-      String password,
-    );
+    Future<void> Function(String serverUrl, String username, String password);
 
 class WelcomeForm extends ConsumerStatefulWidget {
   const WelcomeForm({

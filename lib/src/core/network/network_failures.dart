@@ -1,10 +1,9 @@
 // lib/src/core/network/network_failures.dart
-import 'package:equatable/equatable.dart';
+import 'package:movi/src/core/shared/failure.dart';
 
 /// Modèle d’échecs réseau neutre (domaine) à mapper côté UI.
-abstract class NetworkFailure extends Equatable {
-  const NetworkFailure(this.message, {this.statusCode});
-  final String message;
+abstract class NetworkFailure extends Failure {
+  const NetworkFailure(super.message, {this.statusCode});
   final int? statusCode;
 
   @override

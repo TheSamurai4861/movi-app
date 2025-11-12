@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 class PersonSummary extends Equatable {
   const PersonSummary({

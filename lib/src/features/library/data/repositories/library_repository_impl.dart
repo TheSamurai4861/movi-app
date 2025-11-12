@@ -1,15 +1,13 @@
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../../../../core/storage/repositories/history_local_repository.dart';
-import '../../../playlist/domain/repositories/playlist_repository.dart';
-import '../../../playlist/domain/entities/playlist.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
-import '../../../tv/domain/entities/tv_show.dart';
-import '../../../saga/domain/entities/saga.dart';
-import '../../domain/repositories/library_repository.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/playlist/playlist.dart';
+import 'package:movi/src/features/movie/movie.dart';
+import 'package:movi/src/features/tv/tv.dart';
+import 'package:movi/src/features/saga/saga.dart';
+import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
 
 class LibraryRepositoryImpl implements LibraryRepository {
   LibraryRepositoryImpl(this._watchlist, this._history, this._playlists);

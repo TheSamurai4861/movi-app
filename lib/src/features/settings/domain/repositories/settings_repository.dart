@@ -1,5 +1,5 @@
-import '../entities/user_preferences.dart';
-import '../entities/user_profile.dart';
+import 'package:movi/src/features/settings/domain/entities/user_preferences.dart';
+import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 
 abstract class SettingsRepository {
   Future<UserPreferences> getPreferences();

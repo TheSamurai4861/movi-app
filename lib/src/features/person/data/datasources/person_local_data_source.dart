@@ -1,7 +1,6 @@
-import '../../../../core/preferences/locale_preferences.dart';
-import '../../../../core/storage/repositories/content_cache_repository.dart';
-import '../../../../core/storage/services/cache_policy.dart';
-import '../dtos/tmdb_person_detail_dto.dart';
+import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
 
 class PersonLocalDataSource {
   PersonLocalDataSource(this._cacheRepository, this._localePreferences);

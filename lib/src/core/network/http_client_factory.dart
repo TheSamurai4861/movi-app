@@ -1,15 +1,9 @@
 // lib/src/core/network/http_client_factory.dart
 import 'package:dio/dio.dart';
 
-import '../config/models/app_config.dart';
-import '../config/services/secret_store.dart';
-import '../utils/logger.dart';
-import 'interceptors/auth_interceptor.dart';
-import 'interceptors/locale_interceptor.dart';
-import 'interceptors/retry_interceptor.dart';
-import 'interceptors/telemetry_interceptor.dart';
-
-typedef LocaleCodeProvider = String? Function();
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/network.dart';
 
 class HttpClientFactory {
   const HttpClientFactory({

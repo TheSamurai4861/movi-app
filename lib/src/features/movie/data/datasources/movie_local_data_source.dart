@@ -1,6 +1,5 @@
-import '../../../../core/storage/repositories/content_cache_repository.dart';
-import '../../../../core/storage/services/cache_policy.dart';
-import '../dtos/tmdb_movie_detail_dto.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
 
 class MovieLocalDataSource {
   MovieLocalDataSource(this._cacheRepository);

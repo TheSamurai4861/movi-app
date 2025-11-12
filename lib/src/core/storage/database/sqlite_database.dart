@@ -5,7 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// SQLite singleton (sqflite / sqflite_ffi) avec migrations.
-/// - Version 5 (indexes ajoutés)
+/// - Version 6 (retire colonne password de iptv_accounts)
 /// - Desktop (Windows/Linux) utilise sqflite_common_ffi
 class LocalDatabase {
   LocalDatabase._();
@@ -31,7 +31,7 @@ class LocalDatabase {
 
     _instance = await openDatabase(
       path,
-      version: 5, // ↑ 4 -> 5
+      version: 6,
       onCreate: (db, version) async {
         // --- Tables de base ---
         await db.execute('''
@@ -60,7 +60,6 @@ class LocalDatabase {
             alias TEXT NOT NULL,
             endpoint TEXT NOT NULL,
             username TEXT NOT NULL,
-            password TEXT NOT NULL,
             status TEXT NOT NULL,
             expiration INTEGER,
             created_at INTEGER NOT NULL,
@@ -215,6 +214,31 @@ class LocalDatabase {
           );
           await db.execute(
             'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
+          );
+        }
+        if (oldVersion < 6) {
+          await db.execute('''
+            CREATE TABLE iptv_accounts_new (
+              account_id TEXT PRIMARY KEY,
+              alias TEXT NOT NULL,
+              endpoint TEXT NOT NULL,
+              username TEXT NOT NULL,
+              status TEXT NOT NULL,
+              expiration INTEGER,
+              created_at INTEGER NOT NULL,
+              last_error TEXT
+            );
+          ''');
+          await db.execute('''
+            INSERT INTO iptv_accounts_new (
+              account_id, alias, endpoint, username, status, expiration, created_at, last_error
+            )
+            SELECT account_id, alias, endpoint, username, status, expiration, created_at, last_error
+            FROM iptv_accounts;
+          ''');
+          await db.execute('DROP TABLE iptv_accounts;');
+          await db.execute(
+            'ALTER TABLE iptv_accounts_new RENAME TO iptv_accounts;',
           );
         }
       },

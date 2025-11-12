@@ -86,6 +86,39 @@ class NetworkEndpoints {
     return '3';
   }
 
+  String get restBaseUrlNormalized {
+    final u = restBaseUrl.trim();
+    return u.endsWith('/') ? u.substring(0, u.length - 1) : u;
+  }
+
+  String get imageBaseUrlNormalized {
+    final u = imageBaseUrl.trim();
+    return u.endsWith('/') ? u.substring(0, u.length - 1) : u;
+  }
+
+  Uri get restBaseUri => Uri.parse(restBaseUrlNormalized);
+  Uri get imageBaseUri => Uri.parse(imageBaseUrlNormalized);
+
+  bool get isRestBaseUrlValid {
+    final s = restBaseUri.scheme;
+    return s == 'http' || s == 'https';
+  }
+
+  bool get isImageBaseUrlValid {
+    final s = imageBaseUri.scheme;
+    return s == 'http' || s == 'https';
+  }
+
+  String joinRestPath(String path) {
+    final p = path.startsWith('/') ? path.substring(1) : path;
+    return '$restBaseUrlNormalized/$p';
+  }
+
+  String joinImagePath(String path) {
+    final p = path.startsWith('/') ? path.substring(1) : path;
+    return '$imageBaseUrlNormalized/$p';
+  }
+
   NetworkEndpoints copyWith({
     String? restBaseUrl,
     String? imageBaseUrl,

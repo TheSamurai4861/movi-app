@@ -1,4 +1,4 @@
-import '../../domain/entities/playlist.dart';
+import 'package:movi/src/features/playlist/domain/entities/playlist.dart';
 
 class PlaylistOrderingService {
   const PlaylistOrderingService();

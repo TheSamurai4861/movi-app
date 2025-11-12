@@ -1,9 +1,8 @@
-import '../../../core/di/injector.dart';
-import '../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../../../core/storage/repositories/history_local_repository.dart';
-import '../../playlist/domain/repositories/playlist_repository.dart';
-import '../domain/repositories/library_repository.dart';
-import 'repositories/library_repository_impl.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
+import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
+import 'package:movi/src/features/library/data/repositories/library_repository_impl.dart';
 
 class LibraryDataModule {
   static void register() {

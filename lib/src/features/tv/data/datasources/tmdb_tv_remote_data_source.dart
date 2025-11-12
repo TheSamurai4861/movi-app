@@ -1,9 +1,9 @@
 // lib/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
 import 'package:dio/dio.dart';
 
-import '../../../../shared/data/services/tmdb_client.dart';
-import '../dtos/tmdb_tv_detail_dto.dart';
-import '../dtos/tmdb_tv_season_detail_dto.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
 
 /// Remote data source pour les séries TV TMDB.
 /// - I/O réseau délégué à [TmdbClient] (qui force la clé de concurrence "tmdb").

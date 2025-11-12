@@ -1,5 +1,5 @@
-import '../../../../shared/data/services/tmdb_client.dart';
-import '../dtos/tmdb_person_detail_dto.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
 
 class TmdbPersonRemoteDataSource {
   TmdbPersonRemoteDataSource(this._client);

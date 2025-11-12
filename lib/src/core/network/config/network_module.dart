@@ -1,14 +1,12 @@
 // lib/src/core/network/config/network_module.dart
 import 'package:dio/dio.dart';
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
+import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 
-import '../../config/models/app_config.dart';
-import '../../config/services/secret_store.dart';
-import '../../di/injector.dart';
-import '../../utils/logger.dart';
-import '../http_client_factory.dart';
-import '../network_executor.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/network.dart';
 
 class NetworkModule {
   static void register({LocaleCodeProvider? localeProvider}) {

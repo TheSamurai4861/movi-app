@@ -5,11 +5,18 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      vars:
+        TMDB_API_KEY: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8
     scripts:
       - name: Install dependencies
         script: flutter pub get
+
       - name: Build unsigned IPA (archive)
-        script: flutter build ipa --release --no-codesign
+        script: |
+          echo "Building iOS IPA with injected TMDB API key..."
+          flutter build ipa --release --no-codesign \
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY}
+
       - name: Package unsigned IPA from .xcarchive
         script: |
           set -euxo pipefail
@@ -19,6 +26,7 @@ workflows:
           mkdir -p "$OUTDIR/Payload"
           cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
           (cd "$OUTDIR" && zip -r "Runner-unsigned.ipa" "Payload")
+
     artifacts:
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/utils/app_spacing.dart';
-import '../../../welcome/presentation/widgets/labeled_field.dart';
-import '../../../welcome/presentation/widgets/welcome_header.dart';
-import '../../../../core/widgets/movi_primary_button.dart';
-import '../providers/iptv_connect_providers.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 
 class IptvConnectPage extends ConsumerStatefulWidget {
   const IptvConnectPage({super.key});
@@ -84,8 +84,9 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty)
+                              if (v == null || v.trim().isEmpty) {
                                 return 'Requis';
+                              }
                               return null;
                             },
                             keyboardType: TextInputType.url,

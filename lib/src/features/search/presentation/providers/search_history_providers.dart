@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart'
     show StateNotifier, StateNotifierProvider;
-import 'package:movi/src/core/di/injector.dart';
-import '../../domain/entities/search_history_item.dart';
-import '../../domain/repositories/search_history_repository.dart';
-import '../../domain/usecases/add_search_query_to_history.dart';
-import '../../domain/usecases/list_search_history.dart';
-import '../../domain/usecases/remove_search_history_item.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
+import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
+import 'package:movi/src/features/search/domain/usecases/add_search_query_to_history.dart';
+import 'package:movi/src/features/search/domain/usecases/list_search_history.dart';
+import 'package:movi/src/features/search/domain/usecases/remove_search_history_item.dart';
 
 final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((
   ref,

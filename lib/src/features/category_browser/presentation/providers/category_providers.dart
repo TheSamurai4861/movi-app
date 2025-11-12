@@ -1,10 +1,10 @@
 // lib/src/features/category_browser/presentation/providers/category_providers.dart
 import 'package:flutter_riverpod/legacy.dart';
 
-import '../../../category_browser/domain/repositories/category_repository.dart';
-import '../../../category_browser/domain/value_objects/category_key.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../core/di/injector.dart';
+import 'package:movi/src/features/category_browser/domain/repositories/category_repository.dart';
+import 'package:movi/src/features/category_browser/domain/value_objects/category_key.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/core/di/di.dart';
 
 class CategoryState {
   const CategoryState({

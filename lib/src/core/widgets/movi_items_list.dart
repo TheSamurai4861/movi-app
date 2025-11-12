@@ -93,8 +93,9 @@ class _MoviItemsListState extends State<MoviItemsList> {
   }
 
   void _scheduleNotify() {
-    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null)
+    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) {
       return;
+    }
     _debounce?.cancel();
     _debounce = Timer(Duration(milliseconds: widget.debounceMs), _notifyNow);
   }

@@ -24,4 +24,29 @@ class FeatureFlags {
       enableNewSearch: enableNewSearch ?? this.enableNewSearch,
     );
   }
+
+  HomeFlags get home => HomeFlags(useRemoteHome);
+  TelemetryFlags get telemetry => TelemetryFlags(enableTelemetry);
+  DownloadFlags get downloads => DownloadFlags(enableDownloads);
+  SearchFlags get search => SearchFlags(enableNewSearch);
+}
+
+class HomeFlags {
+  const HomeFlags(this.useRemoteHome);
+  final bool useRemoteHome;
+}
+
+class TelemetryFlags {
+  const TelemetryFlags(this.enableTelemetry);
+  final bool enableTelemetry;
+}
+
+class DownloadFlags {
+  const DownloadFlags(this.enableDownloads);
+  final bool enableDownloads;
+}
+
+class SearchFlags {
+  const SearchFlags(this.enableNewSearch);
+  final bool enableNewSearch;
 }

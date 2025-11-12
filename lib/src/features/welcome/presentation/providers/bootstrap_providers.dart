@@ -4,8 +4,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import '../../../home/presentation/providers/home_providers.dart' as hp;
-import '../../../../core/logging/logging_service.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
+import 'package:movi/src/core/logging/logging.dart';
 
 enum BootPhase { refreshing, enriching, ready }
 

@@ -5,13 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:movi/src/core/di/injector.dart';
-import 'package:movi/src/core/router/app_router.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/widgets/movi_favorite_button.dart';
-import 'package:movi/src/core/widgets/movi_pill.dart';
-import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -364,8 +362,9 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     final int? id = m.tmdbId;
     if (id == null ||
         _hydratedIds.contains(id) ||
-        _fullyHydratedIds.contains(id))
+        _fullyHydratedIds.contains(id)) {
       return;
+    }
     try {
       _hydratedIds.add(id);
       try {
@@ -446,7 +445,6 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                     _coerceHttpUrl(meta?.backdrop) ??
                     _coerceHttpUrl(movie.backdrop?.toString());
 
-                final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
                 final bool hasTitle = meta?.title?.isNotEmpty ?? false;
 
                 final int? year = meta?.year ?? movie.releaseYear;
@@ -562,8 +560,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                                                 meta!.title!,
                                                 textAlign: TextAlign.center,
                                                 maxLines: 2,
-                                                overflow:
-                                                    TextOverflow.ellipsis,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   fontSize: 24,
                                                   fontWeight: FontWeight.w600,
@@ -825,9 +822,7 @@ class _GlobalOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      decoration: const BoxDecoration(
-        color: Color.fromARGB(52, 20, 20, 20),
-      ),
+      decoration: const BoxDecoration(color: Color.fromARGB(52, 20, 20, 20)),
     );
   }
 }
@@ -846,27 +841,6 @@ class _TopOverlay extends StatelessWidget {
           end: Alignment.bottomCenter,
           colors: [Color(0xFF141414), Color(0x00141414)],
         ),
-      ),
-    );
-  }
-}
-
-class _TitleFallback extends StatelessWidget {
-  const _TitleFallback(this.title);
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      textAlign: TextAlign.center,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 32,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
       ),
     );
   }

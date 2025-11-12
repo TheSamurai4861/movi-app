@@ -1,6 +1,6 @@
-import '../../domain/entities/search_history_item.dart';
-import '../../domain/repositories/search_history_repository.dart';
-import '../datasources/search_history_local_data_source.dart';
+import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
+import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
+import 'package:movi/src/features/search/data/datasources/search_history_local_data_source.dart';
 
 class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
   SearchHistoryRepositoryImpl(this._local);

@@ -2,9 +2,15 @@ import 'package:flutter/foundation.dart';
 
 enum AppPlatform { android, ios, macos, windows, linux, web, fuchsia, unknown }
 
-class PlatformSelector {
+abstract class PlatformInfo {
+  AppPlatform get currentPlatform;
+  bool get isReleaseMode;
+}
+
+class PlatformSelector implements PlatformInfo {
   const PlatformSelector();
 
+  @override
   AppPlatform get currentPlatform {
     if (kIsWeb) {
       return AppPlatform.web;
@@ -31,5 +37,6 @@ class PlatformSelector {
     return AppPlatform.unknown;
   }
 
+  @override
   bool get isReleaseMode => kReleaseMode;
 }

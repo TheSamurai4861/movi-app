@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 
 /// Favorite toggle button using asset images.
 /// - Crossfades (opacity) between unfilled and filled stars in 300ms.

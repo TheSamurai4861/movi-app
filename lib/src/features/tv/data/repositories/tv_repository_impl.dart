@@ -3,21 +3,20 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
-import '../../domain/entities/tv_show.dart';
-import '../../domain/repositories/tv_repository.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../shared/domain/value_objects/content_rating.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../../../../core/storage/repositories/continue_watching_local_repository.dart';
-import '../datasources/tmdb_tv_remote_data_source.dart';
-import '../datasources/tv_local_data_source.dart';
-import '../dtos/tmdb_tv_detail_dto.dart';
-import '../dtos/tmdb_tv_season_detail_dto.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
 
 /// Implémentation du repository TV.
 /// Stratégie:

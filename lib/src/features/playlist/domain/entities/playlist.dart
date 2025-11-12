@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class Playlist extends Equatable {
   const Playlist({

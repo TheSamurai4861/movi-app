@@ -1,8 +1,8 @@
 // lib/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
 import 'package:dio/dio.dart';
 
-import '../../../../shared/data/services/tmdb_client.dart';
-import '../dtos/tmdb_movie_detail_dto.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
 
 /// Remote data source pour les FILMS TMDB.
 /// - Tout l’I/O réseau + gestion d’erreurs est délégué à [TmdbClient].
@@ -44,18 +44,14 @@ class TmdbMovieRemoteDataSource {
   }) async {
     final json = await _client.getJson(
       'movie/$id',
-      query: const {
-        'append_to_response': 'credits,recommendations'
-      },
+      query: const {'append_to_response': 'credits,recommendations'},
       language: language,
       cancelToken: cancelToken,
     );
 
     final jsonImages = await _client.getJson(
       'movie/$id/images',
-      query: const {
-        'include_image_language': 'null,en-US'
-      },
+      query: const {'include_image_language': 'null,en-US'},
       cancelToken: cancelToken,
     );
 

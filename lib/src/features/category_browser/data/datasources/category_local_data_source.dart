@@ -1,14 +1,13 @@
 // lib/src/features/category_browser/data/datasources/category_local_data_source.dart
 import 'package:flutter/foundation.dart';
 
-import '../../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../../core/iptv/domain/entities/xtream_playlist.dart';
-import '../../../../core/iptv/domain/entities/xtream_playlist_item.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../home/data/repositories/home_feed_repository_impl.dart'
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/features/home/data/repositories/home_feed_repository_impl.dart'
     show XtreamAccountLite; // reuse lite projection
-import '../../../category_browser/domain/value_objects/category_key.dart';
+import 'package:movi/src/features/category_browser/domain/value_objects/category_key.dart';
 
 class CategoryLocalDataSource {
   CategoryLocalDataSource(this._iptvLocal);

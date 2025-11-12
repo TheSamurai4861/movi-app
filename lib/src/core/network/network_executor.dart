@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 
 import 'package:movi/src/core/network/dio_failure_mapper.dart';
 import 'package:movi/src/core/network/network_failures.dart';
-import '../utils/logger.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
 typedef NetworkCall<T> = Future<Response<T>> Function(Dio client);
 typedef RetryEvaluator = bool Function(DioException error, int attempt);

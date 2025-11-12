@@ -1,15 +1,23 @@
-import '../models/app_metadata.dart';
-import '../models/feature_flags.dart';
-import '../models/network_endpoints.dart';
+import 'package:movi/src/core/config/models/app_metadata.dart';
+import 'package:movi/src/core/config/models/feature_flags.dart';
+import 'package:movi/src/core/config/models/network_endpoints.dart';
 
 enum AppEnvironment { dev, staging, prod }
 
-abstract class EnvironmentFlavor {
-  AppEnvironment get environment;
-  String get label;
-  NetworkEndpoints get network;
-  FeatureFlags get defaultFlags;
-  AppMetadata get metadata;
+class EnvironmentFlavor {
+  const EnvironmentFlavor({
+    required this.environment,
+    required this.label,
+    required this.network,
+    required this.defaultFlags,
+    required this.metadata,
+  });
+
+  final AppEnvironment environment;
+  final String label;
+  final NetworkEndpoints network;
+  final FeatureFlags defaultFlags;
+  final AppMetadata metadata;
 
   bool get isProduction => environment == AppEnvironment.prod;
 }

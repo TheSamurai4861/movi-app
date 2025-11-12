@@ -1,8 +1,7 @@
-import '../../../../core/preferences/locale_preferences.dart';
-import '../../../../core/storage/repositories/content_cache_repository.dart';
-import '../../../../core/storage/services/cache_policy.dart';
-import '../dtos/tmdb_tv_detail_dto.dart';
-import '../dtos/tmdb_tv_season_detail_dto.dart';
+import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
 
 class TvLocalDataSource {
   TvLocalDataSource(this._cacheRepository, this._localePreferences);

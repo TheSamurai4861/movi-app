@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 
 const _kNavHeight = 72.0;
 const _kContainerPadding = 5.0;

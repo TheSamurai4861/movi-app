@@ -5,19 +5,17 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'dart:async';
 
-import '../providers/home_providers.dart' as hp;
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
 
-import '../../../../core/utils/utils.dart';
-import '../../../../core/utils/app_spacing.dart';
-import '../../../../core/widgets/movi_bottom_nav_bar.dart';
-import '../../../../core/widgets/movi_items_list.dart';
-import '../../../../core/widgets/movi_media_card.dart';
-import '../../../../core/widgets/movi_see_all_card.dart';
-import '../../../../core/models/movi_media.dart';
-import '../../../search/presentation/pages/search_page.dart';
-import '../widgets/home_hero_section.dart';
-import '../widgets/home_hero_carousel.dart';
-import '../widgets/continue_watching_card.dart';
+import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
+import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
 // logging_service n'est plus utilisé sur la page d'accueil
 // overlay_splash supprimé de la page d'accueil
 

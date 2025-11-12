@@ -1,6 +1,6 @@
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/core/storage/storage.dart';
 
 class UnlikePerson {
   const UnlikePerson(this._watchlist);

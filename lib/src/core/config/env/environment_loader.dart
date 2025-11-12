@@ -1,12 +1,13 @@
-import '../services/platform_selector.dart';
-import 'dev_environment.dart';
-import 'environment.dart';
+import 'package:movi/src/core/config/services/platform_selector.dart';
+import 'package:movi/src/core/config/env/dev_environment.dart';
+import 'package:movi/src/core/config/env/environment.dart';
 
 class EnvironmentLoader {
-  const EnvironmentLoader({PlatformSelector? platformSelector})
-    : platformSelector = platformSelector ?? const PlatformSelector();
+  EnvironmentLoader({PlatformInfo? platformInfo})
+    : platformInfo = platformInfo ?? const PlatformSelector();
 
-  final PlatformSelector platformSelector;
+  final PlatformInfo platformInfo;
+  EnvironmentFlavor? _cached;
 
   // Précompute compile-time defines to avoid runtime fromEnvironment calls on web.
   static const String _defineAppEnv = String.fromEnvironment('APP_ENV');
@@ -15,8 +16,11 @@ class EnvironmentLoader {
   );
 
   EnvironmentFlavor load({AppEnvironment? override}) {
+    if (override == null && _cached != null) return _cached!;
     final resolved = override ?? _resolveFromBuild();
-    return createEnvironmentFlavor(resolved);
+    final flavor = createEnvironmentFlavor(resolved);
+    if (override == null) _cached = flavor;
+    return flavor;
   }
 
   AppEnvironment _resolveFromBuild() {
@@ -28,12 +32,12 @@ class EnvironmentLoader {
     // iOS: par défaut, utiliser l'environnement Dev si aucune variable compile-time n'est fournie.
     // Cela garantit qu'une clé TMDB valable (fallback Dev) est disponible sans --dart-define,
     // ce qui évite le basculement vers le fallback IPTV pour le Hero.
-    if (platformSelector.currentPlatform == AppPlatform.ios) {
+    if (platformInfo.currentPlatform == AppPlatform.ios) {
       return AppEnvironment.dev;
     }
 
     // Autres plateformes : prod en release, sinon dev.
-    return platformSelector.isReleaseMode
+    return platformInfo.isReleaseMode
         ? AppEnvironment.prod
         : AppEnvironment.dev;
   }
@@ -68,10 +72,10 @@ class EnvironmentLoader {
 EnvironmentFlavor createEnvironmentFlavor(AppEnvironment environment) {
   switch (environment) {
     case AppEnvironment.dev:
-      return DevEnvironment();
+      return createDevEnvironment();
     case AppEnvironment.staging:
-      return StagingEnvironment();
+      return createStagingEnvironment();
     case AppEnvironment.prod:
-      return ProdEnvironment();
+      return createProdEnvironment();
   }
 }

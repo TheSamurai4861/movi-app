@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../models/movi_person.dart';
-import '../router/app_router.dart';
-import 'movi_marquee_text.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/widgets/movi_marquee_text.dart';
 
 Image _buildPersonImage(String source, double width, double height) {
   final errorPlaceholder = Container(

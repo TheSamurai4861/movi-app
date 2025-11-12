@@ -2,11 +2,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:movi/src/core/iptv/domain/entities/xtream_playlist.dart';
-import 'package:movi/src/core/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
-import 'package:movi/src/core/storage/services/cache_policy.dart';
+import 'package:movi/src/core/storage/storage.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -15,12 +13,10 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
-import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/features/movie/movie.dart';
 
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
-import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+import 'package:movi/src/features/tv/tv.dart';
 
 import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
 
