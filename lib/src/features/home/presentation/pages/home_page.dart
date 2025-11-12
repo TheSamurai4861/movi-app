@@ -29,8 +29,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const _fadeDuration = Duration(milliseconds: 500);
-  // Spec: bottom nav 24px from bottom edge
-  static const _navBottomOffset = 16.0;
+  static const _navBottomOffset = 0;
 
   int _selectedIndex = 0;
 
@@ -288,7 +287,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                               : MoviMediaType.movie,
                         );
                         return MoviMediaCard(media: media);
-                      }).toList(),
+                      }),
                       SeeAllCard(
                         title: _displayCategoryTitle(entry.key),
                         categoryKey: entry.key,

@@ -14,8 +14,8 @@ import '../../features/library/presentation/pages/library_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/movie/presentation/pages/movie_detail_page.dart';
 import '../../features/person/presentation/pages/person_detail_page.dart';
-import '../../features/playlist/presentation/pages/playlist_detail_page.dart';
-import '../../features/playlist/presentation/models/playlist_args.dart';
+import '../../features/category_browser/presentation/pages/category_page.dart';
+import '../../features/category_browser/presentation/models/category_args.dart';
 import '../../features/saga/presentation/pages/saga_detail_page.dart';
 import '../../features/tv/presentation/pages/tv_detail_page.dart';
 
@@ -34,6 +34,7 @@ class AppRouteNames {
   static const movie = '/movie';
   static const person = '/person';
   static const playlist = '/playlist';
+  static const category = '/category';
   static const saga = '/saga';
   static const tv = '/tv';
 }
@@ -105,13 +106,13 @@ final appRouter = GoRouter(
           const MaterialPage(child: PersonDetailPage()),
     ),
     GoRoute(
-      path: AppRouteNames.playlist,
-      name: 'playlist_detail',
+      path: AppRouteNames.category,
+      name: 'category_page',
       pageBuilder: (context, state) {
-        final args = state.extra is PlaylistDetailArgs
-            ? state.extra as PlaylistDetailArgs
+        final args = state.extra is CategoryPageArgs
+            ? state.extra as CategoryPageArgs
             : null;
-        return MaterialPage(child: PlaylistDetailPage(args: args));
+        return MaterialPage(child: CategoryPage(args: args));
       },
     ),
     GoRoute(

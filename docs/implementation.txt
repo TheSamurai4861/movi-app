@@ -1,107 +1,97 @@
-Plan d’implémentation — Consignes « Hero Carousel » et Item « Voir tout »
+Plan d’implémentation — Feature dédiée pour la page Playlist
 
 Objectif
-- Documenter le fonctionnement du Hero Carousel.
-- Ajouter un item « Voir tout » en fin de liste (MoviItemList).
-- Créer une page « Playlist détail » respectant la Clean Architecture et les règles projet.
+- Extraire la logique d’affichage et de récupération des éléments d’une playlist (catégorie) hors de la feature `playlist`, en créant une feature dédiée, réutilisable et conforme à la Clean Architecture.
+- La page `PlaylistDetailPage` devient un hôte (shell) qui consomme la nouvelle feature de navigation/affichage des contenus d’une catégorie.
 
-Contraintes & règles (rappel)
-- Clean Architecture stricte : Domain (contrats, UseCases), Data (DTO/Mapper/DataSources), Presentation (UI/Controller/State).
-- Dépendances uniquement vers le bas ; pas de JSON en Domain.
-- Gestion d’erreurs typée (Failure/Result), DI pour repos et clients, null-safety et immutabilité.
-- Qualité : formatage, lints, logs sobres (debug/info/error), pas de payloads sensibles.
-- Réseau : timeouts/retry configurables, parsing centralisé en Data.
-- Performance : pas de préchargement massif, cache dimensionné, pagination/lazy loading.
-- Pas de tests tant que non demandés explicitement.
+Nom de la feature
+- `category_browser` (navigation et affichage des contenus d’une catégorie/playlist)
 
-1) Hero Carousel — fonctionnement et alignement
-- Source des données : utiliser `HomeFeedRepository.getHeroMovies()` (Domain) implémenté par `HomeFeedRepositoryImpl` (Data), s’appuyant sur `TmdbMovieRemoteDataSource.fetchTrendingMovies()` et matching avec playlists locales.
-- Règles de sélection :
-  - Priorité aux tendances TMDB correspondant à la playlist locale courante.
-  - Fallback sur « trending weekly » si peu de correspondances.
-  - Limiter à 10 éléments, ordonnés par pertinence/score.
-- Présentation :
-  - Rotation auto (7s) avec transition en deux phases : fondu vers fond sombre puis retour à 100% opacité pour fond et logo.
-  - Enrichissement du média courant et du suivant (pré-hydratation + précache visuel) via `TmdbCacheDataSource` et `TmdbImageResolver`.
-- Actions : vérifier que `HomeController` charge bien `state.hero` via le repo et que `HomeHeroCarousel` respecte précache/hydratation et transition en deux temps.
+Architecture (Clean)
+- domain
+  - Entities: `Category`, `CategoryItem` (id, title, poster, type, year?, rating?)
+  - Value objects: `CategoryKey`, `Title`
+  - Repository contracts: `CategoryRepository` (obtenir liste par `CategoryKey`, pagination, recherche facultative)
+  - Use cases: `GetCategoryItems`, `PaginateCategoryItems`, `ObserveCategoryItems` (si streaming)
+  - Erreurs typées: `CategoryFailure` (network, parse, empty, unknown)
+- data
+  - Data sources: `CategoryRemoteDataSource` (client HTTP/IPTV), `CategoryCacheDataSource` (cache mémoire optionnel)
+  - DTOs + Mapper: `CategoryItemDto` → `CategoryItem`, parse centralisé
+  - Implémentations: `CategoryRepositoryImpl` (map exceptions → failures, timeouts/retry configurables)
+  - Config: endpoints, timeouts, headers via DI
+- presentation
+  - State: `CategoryState` (loading, data, error, page, hasMore)
+  - Controller: `CategoryController` (Riverpod Notifier), orchestre use cases
+  - Widgets: `CategoryGrid`, `CategoryHeader`, `CategoryErrorView`
+  - Provider: `categoryControllerProvider(CategoryKey)` (family)
 
-2) Item « Voir tout » en fin de MoviItemList
-2.1 Domain
-- Ajouter le contrat `PlaylistRepository` (Domain) si absent :
-  - `Result<List<MovieSummary>, Failure> getPlaylistItems({PlaylistId id, int page, int pageSize})`.
-- UseCase : `GetPlaylistItemsPage` encapsule ce contrat et renvoie `Result<PlaylistPage, Failure>` (items + page info).
+Arborescence de fichiers
+- `lib/src/features/category_browser/`
+  - `domain/`
+    - `entities/category.dart`
+    - `entities/category_item.dart`
+    - `repositories/category_repository.dart`
+    - `usecases/get_category_items.dart`
+    - `usecases/paginate_category_items.dart`
+    - `failures/category_failure.dart`
+  - `data/`
+    - `datasources/category_remote_data_source.dart`
+    - `datasources/category_cache_data_source.dart`
+    - `dtos/category_item_dto.dart`
+    - `mappers/category_item_mapper.dart`
+    - `repositories/category_repository_impl.dart`
+  - `presentation/`
+    - `controllers/category_controller.dart`
+    - `providers/category_providers.dart`
+    - `widgets/category_grid.dart`
+    - `widgets/category_header.dart`
 
-2.2 Data
-- Implémenter `PlaylistRepositoryImpl` (Data) avec :
-  - `LocalPlaylistDataSource` (lecture des playlists locales, ids d’items).
-  - `TmdbMovieRemoteDataSource`/`TmdbTvRemoteDataSource` pour hydrater les métadonnées manquantes.
-  - `Dto` + `Mapper` dédiés : mapping Data→Domain (aucun JSON en Domain).
-- Stratégie de cache via `TmdbCacheDataSource` et `TmdbImageResolver` pour posters/thumbnails ; pas de préchargement massif.
-- Timeouts/retry configurables pour les appels réseau ; mapping d’exceptions en `Failure`.
+Étapes d’implémentation
+1) Domain
+   - Créer `CategoryItem` et `CategoryKey` (immutables, null-safety stricte).
+   - Définir `CategoryRepository` (contrats: `Future<Result<List<CategoryItem>, CategoryFailure>> getItems(CategoryKey, {page, pageSize})`).
+   - Ajouter use cases `GetCategoryItems`, `PaginateCategoryItems` (appellent le repo, renvoient `Result`).
 
-2.3 Presentation — Widget de liste
-- Ajouter un widget `SeeAllCard` (couleur primaire) à la fin de `MoviItemList` :
-  - Layout : affiche au format carte, fond primaire ; contenu centré.
-  - Grid interne 2×2 de 4 mini-affiches (même ratio), chacune 1/4 de la taille d’une affiche standard ; gaps 16px (horizontaux et verticaux) ; teinte primaire plus foncée.
-  - Sous la grille, à 16px : texte « Voir tout » (16px, blanc, medium).
-  - Accessibilité : `InkWell`/`Semantics` pour l’action, focus et hover.
-- Paramètres : `onTapSeeAll`, `thumbnails` (urls pré-résolues via `TmdbImageResolver` en cacheWidth réduit), `primaryColor`.
-- Intégration :
-  - Dans `MoviItemList`, append `SeeAllCard` lorsque `hasPlaylist` et `items.length ≥ 4`.
-  - DI : injection des résolveurs/caches par le Controller/Provider existant.
+2) Data
+   - Ajouter `CategoryItemDto` et `CategoryItemMapper`.
+   - Implémenter `CategoryRemoteDataSource` (HTTP client injecté via DI, timeouts/retry paramétrables, pas de retry infini).
+   - Implémenter `CategoryRepositoryImpl` (map DTO → domain, map exceptions → `CategoryFailure`).
+   - Optionnel: `CategoryCacheDataSource` (mémoire, TTL court) pour UX.
 
-3) Page « Playlist détail »
-3.1 Routing
-- Ajouter une route `AppRouteNames.playlistDetail` via `go_router` (ex: `/playlist/:id`).
-- Navigation : au tap sur `SeeAllCard`, `context.push(AppRouteNames.playlistDetail, extra: PlaylistArgs(id, title))`.
+3) Presentation
+   - Créer `CategoryState` (data, loading, error, page, hasMore).
+   - Créer `CategoryController` (Riverpod Notifier) utilisant les use cases; expose `fetchFirstPage()`, `fetchNextPage()`.
+   - Créer `categoryControllerProvider = NotifierProvider.family` (clé de catégorie en paramètre).
+   - Créer `CategoryGrid` (2 colonnes, centrée, lazy) et `CategoryHeader` (titre + bouton retour aux positions spécifiées).
 
-3.2 Presentation — UI exacte
-- AppBar custom minimal :
-  - À 55px du haut et 20px du bord gauche : row cliquable « Retour » avec `assets/icons/back.png` (35×35) + texte « Retour » (16px, semibold), alignement centré vertical.
-- Titre playlist :
-  - À 70px sous le haut de l’écran, centré horizontalement : titre (24px, blanc, semibold).
-- Contenu :
-  - 32px sous le titre : grille centrée horizontalement, 2 colonnes (comme `MoviCard`), gap horizontal 16px, vertical 12px.
-  - `GridView.builder` ou `SliverGrid` avec `childAspectRatio` aligné à `MoviCard`.
-  - Lazy loading : écoute du scroll (80–90% de la hauteur) pour déclencher `GetPlaylistItemsPage(page++)`.
-  - Placeholders skeleton pour affiches ; on-error fallback.
+4) Intégration dans PlaylistDetailPage
+   - Remplacer l’accès aux providers de home par `categoryControllerProvider(args.categoryKey)`.
+   - Injecter les dépendances via DI (client HTTP, repo) au niveau de l’app.
+   - Conserver le layout (bouton retour à 55px/20px, grille centrée 2 colonnes, gap 24px vertical).
 
-3.3 State & Controller
-- Créer `PlaylistController` (Presentation) avec `PlaylistState` :
-  - Champs : `items`, `page`, `isLoading`, `hasMore`, `error`.
-  - Méthodes : `loadFirstPage(id)`, `loadNextPage()`, `retry()`.
-- DI : injecter `PlaylistRepository` via le container existant ; aucun singleton caché.
-- Logs sobres (info: chargement page, debug: tailles/grille) ; erreurs mappées en `Failure` et affichées non-intrusivement.
+5) DI & config
+   - Enregistrer `CategoryRepositoryImpl` et `CategoryRemoteDataSource` dans le container (Riverpod providers).
+   - Centraliser base URL/IPTV endpoints et timeouts dans un `CoreConfig`.
 
-3.4 Performances & images
-- Thumbnails en `cacheWidth` adapté (ex. selon DPR), `FilterQuality.low` pour la grille.
-- Pas de précache massif : charger pageSize (ex. 20) ; hydrater logos/posters à la demande.
-- Mesures simples (compteurs logs) pour temps de chargement et nombre d’items.
+6) Tests (sur demande uniquement)
+   - Mapper: DTO → Model
+   - Repository: succès/échecs (network, parse)
+   - Controller: pagination et états
 
-4) Styles & accessibilité
-- Respecter couleurs primaires du thème et contrastes (texte blanc sur fond primaire).
-- Touch targets ≥48px ; états focus/hover pour Desktop/Web.
-- Pas de commentaires bruyants ; documenter l’intention via `///` sur publics.
+Règles appliquées (qualité)
+- Clean Architecture stricte: contrats `Repository` dans domain, implémentations dans data.
+- Parsing uniquement en data, types stables en sortie.
+- Gestion d’erreurs typée (Result/Failure), pas d’exceptions qui remontent en UI.
+- DI obligatoire (client HTTP, config, repo), pas d’instances globales cachées.
+- Null-safety, immutabilité par défaut, lints respectés.
+- Logs sobres, pas de payloads sensibles.
 
-5) Sécurité & erreurs
-- `Failure` typé : `NetworkFailure`, `ParsingFailure`, `NotFoundFailure`, `CacheFailure`.
-- Aucun payload sensible dans logs ; masquer ids si nécessaire.
-- Timeouts/retry raisonnables et bornés ; pas de retry infini.
+Livrables attendus
+- Dossiers et fichiers listés ci-dessus avec implémentations minimales.
+- `PlaylistDetailPage` refactorisée pour consommer `category_browser`.
+- Providers DI et config initiale.
 
-6) Étapes concrètes (ordre recommandé)
-1. Domain : créer `PlaylistRepository` + `GetPlaylistItemsPage`.
-2. Data : ajouter `LocalPlaylistDataSource`, implémenter `PlaylistRepositoryImpl` (DTO/Mapper).
-3. DI : enregistrer `PlaylistRepositoryImpl` dans le container.
-4. Presentation : implémenter `SeeAllCard` et l’ajouter dans `MoviItemList`.
-5. Routing : ajouter `playlistDetail` dans `go_router`.
-6. Presentation : créer `PlaylistDetailPage` (+ Controller/State), intégrer lazy loading.
-7. Images : brancher `TmdbImageResolver` pour miniatures, régler `cacheWidth`.
-8. Logs/erreurs : intégrer `Failure` + messages sobres.
-9. Vérifications visuelles : gaps, tailles (35×35, 16px, 12px, 24px), placements (55px, 70px, 20px).
-
-7) Livrables
-- Code formaté et conforme lints ; documentation minimale (`///`) sur contrats et contrôleurs.
-- Aucun test ajouté à ce stade (sauf demande explicite).
-
-Notes
-- Si une Playlist n’existe pas encore dans les données locales, prévoir un fallback : liste des « trending » ou éléments favoris pour nourrir la page, toujours via le repo (pas d’accès direct aux data sources en Presentation).
+Options d’évolution
+- Ajout de recherche dans la catégorie (`SearchCategoryItems` use case).
+- Pagination infinie ou bouton “Voir plus” selon UX finale.
+- Cache disqué (Hive) si nécessaire.

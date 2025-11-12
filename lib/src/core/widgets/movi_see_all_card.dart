@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/playlist/presentation/models/playlist_args.dart';
+import '../../features/category_browser/presentation/models/category_args.dart';
 import '../../core/router/app_router.dart';
 
 /// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
@@ -29,8 +29,8 @@ class SeeAllCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          final args = PlaylistDetailArgs(title: title, categoryKey: categoryKey);
-          context.push(AppRouteNames.playlist, extra: args);
+          final args = CategoryPageArgs(title: title, categoryKey: categoryKey);
+          context.push(AppRouteNames.category, extra: args);
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
