@@ -85,7 +85,8 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Requis';
+                              if (v == null || v.trim().isEmpty)
+                                return 'Requis';
                               return null;
                             },
                             keyboardType: TextInputType.url,
@@ -101,7 +102,8 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               hintText: 'Nom d’utilisateur Xtream',
                               border: OutlineInputBorder(),
                             ),
-                            validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+                            validator: (v) =>
+                                (v == null || v.isEmpty) ? 'Requis' : null,
                             autofillHints: const [AutofillHints.username],
                           ),
                         ),
@@ -114,7 +116,8 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               hintText: 'Mot de passe Xtream',
                               border: OutlineInputBorder(),
                             ),
-                            validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+                            validator: (v) =>
+                                (v == null || v.isEmpty) ? 'Requis' : null,
                             obscureText: true,
                             autofillHints: const [AutofillHints.password],
                           ),
@@ -132,7 +135,9 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
                           child: SizedBox(
                             width: double.infinity,
                             child: MoviPrimaryButton(
@@ -144,7 +149,10 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                         ),
                         if (state.error != null) ...[
                           const SizedBox(height: AppSpacing.sm),
-                          Text(state.error!, style: const TextStyle(color: Colors.red)),
+                          Text(
+                            state.error!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
                         ],
                       ],
                     ),

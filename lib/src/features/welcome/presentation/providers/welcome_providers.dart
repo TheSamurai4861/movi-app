@@ -50,10 +50,7 @@ class WelcomeController extends StateNotifier<WelcomeUiState> {
   /// Met à jour l’aperçu de l’endpoint en validant l’URL (sans lever d’exception UI)
   void updateUrlPreview(String raw) {
     final ep = XtreamEndpoint.tryParse(raw);
-    state = state.copyWith(
-      endpointPreview: ep?.toRawUrl(),
-      errorMessage: null,
-    );
+    state = state.copyWith(endpointPreview: ep?.toRawUrl(), errorMessage: null);
   }
 
   /// Teste la connexion Xtream sans rien créer dans l’app (ping rapide).
@@ -91,7 +88,10 @@ class WelcomeController extends StateNotifier<WelcomeUiState> {
       state = state.copyWith(isTesting: false, errorMessage: f.message);
       return false;
     } catch (e) {
-      state = state.copyWith(isTesting: false, errorMessage: 'Erreur inattendue');
+      state = state.copyWith(
+        isTesting: false,
+        errorMessage: 'Erreur inattendue',
+      );
       return false;
     }
   }
@@ -109,5 +109,5 @@ final _dioProvider = Provider<Dio>((ref) => sl<Dio>());
 /// Provider principal du contrôleur UI
 final welcomeControllerProvider =
     StateNotifierProvider<WelcomeController, WelcomeUiState>(
-  (ref) => WelcomeController(ref.watch(_dioProvider)),
-);
+      (ref) => WelcomeController(ref.watch(_dioProvider)),
+    );

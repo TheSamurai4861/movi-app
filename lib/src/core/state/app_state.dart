@@ -29,5 +29,10 @@ class AppState extends Equatable {
   }
 
   @override
-  List<Object?> get props => [themeMode, isOnline, preferredLocale, activeIptvSources];
+  List<Object?> get props => [
+    themeMode,
+    isOnline,
+    preferredLocale,
+    activeIptvSources,
+  ];
 }

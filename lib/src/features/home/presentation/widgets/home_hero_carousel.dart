@@ -5,23 +5,25 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../../../core/router/app_router.dart';
-import '../../../../core/utils/app_assets.dart';
-import '../../../../core/utils/app_spacing.dart';
-import '../../../../core/widgets/movi_favorite_button.dart';
-import '../../../../core/widgets/movi_pill.dart';
-import '../../../../core/widgets/movi_primary_button.dart';
-import '../../../../shared/data/services/tmdb_cache_data_source.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/core/di/injector.dart';
+import 'package:movi/src/core/router/app_router.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_favorite_button.dart';
+import 'package:movi/src/core/widgets/movi_pill.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
-/// Carrousel Hero: affiche jusqu'à 10 films tendances et fait tourner
-/// automatiquement toutes les 7 secondes, avec un fondu limité au logo et
-/// au backdrop. Les composants textuels restent en place (mise en page stable)
-/// tandis que leur contenu change.
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+
+/// Carrousel du Hero d’accueil.
+/// - Affiche une liste de films/séries en rotation automatique.
+/// - Lit d’abord le cache, puis hydrate si nécessaire (cache → full fetch).
+/// - Sélection d’images centralisée pour éliminer les posters avec texte.
 class HomeHeroCarousel extends StatefulWidget {
   const HomeHeroCarousel({super.key, required this.movies});
 
@@ -33,22 +35,30 @@ class HomeHeroCarousel extends StatefulWidget {
 
 class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  static const double _totalHeight = 690;
-  static const double _overlayHeight = 125;
+  // Mise en page
+  static const double _totalHeight = 790;
+  static const double _overlayHeight = 150;
+
+  // Limite de décodage (px @device) pour soulager CPU/GPU en desktop
   static const int _maxHeroCachePx = 1440;
+
+  // Timings
   static const Duration _rotation = Duration(seconds: 9);
   static const Duration _fade = Duration(milliseconds: 800);
 
-  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
-
+  // DI
   late final TmdbCacheDataSource _cache = sl<TmdbCacheDataSource>();
   late final TmdbImageResolver _images = sl<TmdbImageResolver>();
   late final TmdbMovieRemoteDataSource _moviesRemote =
       sl<TmdbMovieRemoteDataSource>();
   late final TmdbTvRemoteDataSource _tvRemote = sl<TmdbTvRemoteDataSource>();
 
+  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
+
+  // États
   final Set<int> _hydratedIds = <int>{};
-  final Map<int, Future<_HeroMeta?>> _metaFutures = {};
+  final Set<int> _fullyHydratedIds = <int>{};
+  final Map<int, Future<_HeroMeta?>> _metaFutures = <int, Future<_HeroMeta?>>{};
 
   int _index = 0;
   Timer? _timer;
@@ -56,10 +66,14 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
   bool _isTransitioning = false;
   int? _pendingIndex;
 
-  late final AnimationController _transitionCtrl =
-      AnimationController(vsync: this, duration: _fade);
-  late final Animation<double> _darkness =
-      CurvedAnimation(parent: _transitionCtrl, curve: Curves.easeInOut);
+  late final AnimationController _transitionCtrl = AnimationController(
+    vsync: this,
+    duration: _fade,
+  );
+  late final Animation<double> _darkness = CurvedAnimation(
+    parent: _transitionCtrl,
+    curve: Curves.easeInOut,
+  );
 
   @override
   void initState() {
@@ -67,10 +81,11 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     WidgetsBinding.instance.addObserver(this);
     _prepareCurrentMeta();
     _startTimer();
+
     _transitionCtrl.addStatusListener((status) {
       if (!_isTransitioning) return;
       if (status == AnimationStatus.completed) {
-        // Phase 1 terminée (fond foncé). On bascule l’index puis on revient.
+        // Phase 1 terminée (fondu vers sombre) → on bascule l’index puis on revient.
         if (_pendingIndex != null) {
           setState(() {
             _index = _pendingIndex!;
@@ -80,7 +95,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
         }
         _transitionCtrl.reverse();
       } else if (status == AnimationStatus.dismissed) {
-        // Phase 2 terminée (retour à 0). Transition complète.
+        // Phase 2 terminée (retour clair) → transition complète.
         _isTransitioning = false;
         _pendingIndex = null;
       }
@@ -108,6 +123,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     super.dispose();
   }
 
+  // Lifecycle : pause/reprise du timer
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -118,6 +134,10 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
       _timer?.cancel();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Rotation / préparation
+  // ---------------------------------------------------------------------------
 
   void _startTimer() {
     _timer?.cancel();
@@ -133,76 +153,55 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     _startTimer();
   }
 
+  void _triggerNext() {
+    if (_isTransitioning) return;
+    final int len = widget.movies.length;
+    if (len <= 1) return;
+    _pendingIndex = (_index + 1) % len;
+    _isTransitioning = true;
+    _transitionCtrl.forward(from: 0);
+  }
+
   void _prepareCurrentMeta() {
-    final m = _currentMovie;
-    if (m == null) return;
-    final id = m.tmdbId;
-    if (id == null) return;
-    _metaFutures[id] ??= _loadMeta(m);
-    _hydrateMetaIfNeeded(m);
-    // Précache visuel du média courant
+    final MovieSummary? m = _currentMovie;
+    if (m == null || m.tmdbId == null) return;
+
+    // Préparer meta courante (cache→affichage)
+    _metaFutures[m.tmdbId!] ??= _loadMeta(m);
+    if (_index == 0) {
+      _hydrateMetaIfNeeded(m);
+    }
+
+    // Précharger image courante
     _precacheBgFor(m, isNext: false);
-    // Précache image suivante pour lisser la rotation
-    final next = _nextMovie;
+
+    // Préparer meta suivante pour une transition fluide
+    final MovieSummary? next = _nextMovie;
     if (next?.tmdbId != null) {
       _metaFutures[next!.tmdbId!] ??= _loadMeta(next);
-      _hydrateMetaIfNeeded(next);
+      if (!_fullyHydratedIds.contains(next.tmdbId!)) {
+        _hydrateMetaFull(next);
+      }
       _precacheBgFor(next, isNext: true);
     }
   }
 
-  void _triggerNext() {
-    if (_isTransitioning) return;
-    final len = widget.movies.length;
-    if (len <= 1) return;
-    _pendingIndex = (_index + 1) % len;
-    _isTransitioning = true;
-    // Phase 1: aller vers fond foncé
-    _transitionCtrl.forward(from: 0);
-  }
-
-  void _precacheBgFor(MovieSummary m, {required bool isNext}) {
-    final id = m.tmdbId;
-    if (id == null) return;
-    final future = _metaFutures[id];
-    if (future == null) return;
-    future.then((meta) async {
-      if (!mounted) return;
-      final ok = isNext
-          ? (_nextMovie?.tmdbId == id)
-          : (_currentMovie?.tmdbId == id);
-      if (!ok) return;
-
-      final String? bgSrc =
-          _coerceUrl(meta?.backdrop) ??
-          _coerceUrl(meta?.poster) ??
-          _coerceUrl(m.backdrop) ??
-          _coerceUrl(m.poster);
-      if (bgSrc == null) return;
-      try {
-        await precacheImage(NetworkImage(bgSrc), context);
-      } catch (_) {}
-    });
-  }
+  // ---------------------------------------------------------------------------
+  // Helpers de données / cache
+  // ---------------------------------------------------------------------------
 
   MovieSummary? get _currentMovie =>
       (widget.movies.isNotEmpty ? widget.movies[_index] : null);
+
   MovieSummary? get _nextMovie => widget.movies.isNotEmpty
       ? widget.movies[(_index + 1) % widget.movies.length]
       : null;
 
-  // --- Helpers ---
-  String? _coerceUrl(dynamic v) {
-    if (v == null) return null;
-    final s = v is Uri ? v.toString() : v.toString();
-    if (s.isEmpty || s == 'null') return null;
-    return (s.startsWith('http://') || s.startsWith('https://')) ? s : null;
-  }
-
   Future<_HeroMeta?> _loadMeta(MovieSummary m) async {
-    final id = m.tmdbId;
+    final int? id = m.tmdbId;
     if (id == null) return null;
 
+    // 1) Film en cache, sinon 2) Série en cache
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
     bool isTvData = false;
     if (data == null) {
@@ -211,51 +210,55 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     }
     if (data == null) return null;
 
-    final imagesMap =
+    final Map<String, dynamic> images =
         (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final posters =
-        (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
-    final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
 
-    final posterNoLangPath =
-        _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
-    final logoPath = _selectLogoFrEnNoLang(logos);
+    // Sélection centralisée : poster no-lang → en → best ; logo en → no-lang → best
+    final String? posterPath =
+        _ImageSelector.selectPoster(posters) ?? data['poster_path']?.toString();
+    final String? posterBgPath = data['poster_background']?.toString();
+    final String? logoPath = _ImageSelector.selectLogo(logos);
 
-    final posterUri = _images.poster(
-      posterNoLangPath,
-      size: 'w500',
-    );
-    final backdropUri = _images.backdrop(
+    // Tailles standardisées pour stabilité/perf
+    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
+    final Uri? posterBgUri = _images.poster(posterBgPath, size: 'w780');
+    final Uri? backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
-      size: 'w1280',
+      size: 'w780',
     );
-    final logoUri = _images.logo(logoPath);
+    final Uri? logoUri = _images.logo(logoPath);
 
-    final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num)
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
         ? (data['vote_average'] as num).toDouble()
         : null;
 
+    // Durée (film) / durée épisode (série)
     int? runtimeMinutes;
-    final rawRuntime = data['runtime'];
+    final dynamic rawRuntime = data['runtime'];
     if (rawRuntime is int) {
       runtimeMinutes = rawRuntime;
     } else {
-      final ert = data['episode_run_time'];
-      if (ert is List && ert.isNotEmpty) {
-        final first = ert.first;
-        if (first is int) runtimeMinutes = first;
+      final dynamic ert = data['episode_run_time'];
+      if (ert is List && ert.isNotEmpty && ert.first is int) {
+        runtimeMinutes = ert.first as int;
       }
     }
 
-    final String? releaseOrFirstAir =
+    // Année depuis release_date (film) ou first_air_date (série)
+    final String? date =
         (data['release_date']?.toString().trim().isNotEmpty ?? false)
-            ? data['release_date']?.toString()
-            : data['first_air_date']?.toString();
-    final year = _parseYear(releaseOrFirstAir) ?? m.releaseYear;
+        ? data['release_date']?.toString()
+        : data['first_air_date']?.toString();
+    final int? year = _parseYear(date) ?? m.releaseYear;
 
     return _HeroMeta(
       isTv: isTvData,
+      posterBg: posterBgUri?.toString(),
       poster: posterUri?.toString(),
       backdrop: backdropUri?.toString(),
       logo: logoUri?.toString(),
@@ -267,9 +270,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
   }
 
   Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
-    final id = m.tmdbId;
-    if (id == null) return;
-    if (_hydratedIds.contains(id)) return;
+    final int? id = m.tmdbId;
+    if (id == null || _hydratedIds.contains(id)) return;
 
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
     bool isTvData = false;
@@ -278,43 +280,56 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
       isTvData = data != null;
     }
 
+    // Aucune donnée en cache → fetch FULL immédiat
     if (data == null) {
       try {
         _hydratedIds.add(id);
         try {
           final dto = await _moviesRemote.fetchMovieFull(id);
           await _cache.putMovieDetail(id, dto.toCache());
+          _fullyHydratedIds.add(id);
         } catch (_) {
           final dto = await _tvRemote.fetchShowFull(id);
           await _cache.putTvDetail(id, dto.toCache());
+          _fullyHydratedIds.add(id);
         }
         if (!mounted) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          setState(() {});
+          setState(() {}); // relit _metaFutures[id]
         });
       } catch (e, st) {
         if (kDebugMode) {
-          debugPrint('HomeHeroCarousel: hydration (no cache) failed for $id: $e\n$st');
+          debugPrint(
+            'HomeHeroCarousel: hydration (no cache) failed for $id: $e\n$st',
+          );
         }
       }
       return;
     }
 
-    final imagesMap =
+    // Cache présent mais incomplet → hydrate si nécessaire
+    final Map<String, dynamic> images =
         (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
-    final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num)
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
         ? (data['vote_average'] as num).toDouble()
         : null;
-    final hasRuntime =
+    final bool hasRuntime =
         data['runtime'] is int ||
         (data['episode_run_time'] is List &&
             (data['episode_run_time'] as List).isNotEmpty);
 
-    final needsHydration =
-        logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
+    final bool needsHydration =
+        posters.isEmpty ||
+        logos.isEmpty ||
+        overview.isEmpty ||
+        vote == null ||
+        !hasRuntime;
     if (!needsHydration) return;
 
     try {
@@ -322,10 +337,40 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
       if (!isTvData) {
         final dto = await _moviesRemote.fetchMovieFull(id);
         await _cache.putMovieDetail(id, dto.toCache());
+        _fullyHydratedIds.add(id);
       } else {
         final dto = await _tvRemote.fetchShowFull(id);
         await _cache.putTvDetail(id, dto.toCache());
+        _fullyHydratedIds.add(id);
       }
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {}); // rechargera la meta
+      });
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroCarousel: hydration failed for $id: $e\n$st');
+      }
+    }
+  }
+
+  Future<void> _hydrateMetaFull(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null ||
+        _hydratedIds.contains(id) ||
+        _fullyHydratedIds.contains(id))
+      return;
+    try {
+      _hydratedIds.add(id);
+      try {
+        final dto = await _moviesRemote.fetchMovieFull(id);
+        await _cache.putMovieDetail(id, dto.toCache());
+      } catch (_) {
+        final dto = await _tvRemote.fetchShowFull(id);
+        await _cache.putTvDetail(id, dto.toCache());
+      }
+      _fullyHydratedIds.add(id);
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -333,7 +378,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
       });
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('HomeHeroCarousel: hydration failed for $id: $e\n$st');
+        debugPrint('HomeHeroCarousel: hydration full failed for $id: $e\n$st');
       }
     }
   }
@@ -360,70 +405,20 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     }
   }
 
-  String? _selectPosterNoLang(List<dynamic> posters) {
-    if (posters.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = posters.cast<Map<String, dynamic>>();
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  String? _selectLogoFrEnNoLang(List<dynamic> logos) {
-    if (logos.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = logos.cast<Map<String, dynamic>>();
-
-    final fr =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'fr'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (fr.isNotEmpty) return pathOf(fr.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  int? _parseYear(String? raw) {
-    if (raw == null || raw.isEmpty || raw.length < 4) return null;
-    return int.tryParse(raw.substring(0, 4));
-  }
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final movie = _currentMovie;
+    final MovieSummary? movie = _currentMovie;
 
     return SizedBox(
       height: _totalHeight,
       width: double.infinity,
-      child: movie == null
+      child: (widget.movies.isEmpty)
+          ? const _HeroEmpty(overlayHeight: _overlayHeight)
+          : movie == null
           ? const _HeroSkeleton(overlayHeight: _overlayHeight)
           : FutureBuilder<_HeroMeta?>(
               future: _metaFutures[movie.tmdbId!],
@@ -432,19 +427,25 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                   return const _HeroSkeleton(overlayHeight: _overlayHeight);
                 }
 
-                final meta = snap.data;
+                final _HeroMeta? meta = snap.data;
 
+                // Ordre de préférence du fond :
+                // 1) Poster TMDB (no-lang → en → best)
+                // 2) Poster playlist
+                // 3) Backdrop TMDB
+                // 4) Backdrop playlist
                 final String? bgSrc =
-                    _coerceUrl(meta?.backdrop) ??
-                    _coerceUrl(meta?.poster) ??
-                    _coerceUrl(movie.backdrop) ??
-                    _coerceUrl(movie.poster);
+                    _coerceHttpUrl(meta?.posterBg) ??
+                    _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(movie.poster.toString()) ??
+                    _coerceHttpUrl(meta?.backdrop) ??
+                    _coerceHttpUrl(movie.backdrop?.toString());
 
-                final hasLogo = (meta?.logo?.isNotEmpty ?? false);
-                final year = meta?.year ?? movie.releaseYear;
-                final yearText = (year ?? '—').toString();
+                final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
+                final int? year = meta?.year ?? movie.releaseYear;
+                final String yearText = (year ?? '—').toString();
 
-                final rating = meta?.rating;
+                final double? rating = meta?.rating;
                 final String? ratingText = (rating == null)
                     ? null
                     : (rating >= 10
@@ -452,17 +453,19 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                           : rating.toStringAsFixed(1));
 
                 final String? durationText = _formatDuration(meta?.runtime);
-                final hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
+                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
 
                 Widget buildBackground() {
                   if (bgSrc != null) {
                     final mq = MediaQuery.of(context);
-                    final rawPx = (mq.size.width * mq.devicePixelRatio).round();
-                    final cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
+                    final int rawPx = (mq.size.width * mq.devicePixelRatio)
+                        .round();
+                    final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
                     return Image.network(
                       bgSrc,
                       key: ValueKey(bgSrc),
                       fit: BoxFit.cover,
+                      alignment: const Alignment(0.0, -0.5),
                       width: double.infinity,
                       height: double.infinity,
                       gaplessPlayback: true,
@@ -492,8 +495,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          // Backdrop fixe + overlay fondu vers fond foncé puis retour
                           buildBackground(),
+                          // Overlay sombre animé (transition inter-slides)
                           AnimatedBuilder(
                             animation: _darkness,
                             builder: (context, _) {
@@ -511,14 +514,26 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                             bottom: 0,
                             child: _BottomOverlay(height: _overlayHeight),
                           ),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            child: _TopOverlay(height: _overlayHeight),
+                          ),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            child: _TopOverlay(height: _overlayHeight),
+                          ),
                           Positioned(
                             left: 0,
                             right: 0,
-                            bottom: _overlayHeight - 100,
+                            bottom: 0,
                             child: Center(
                               child: ConstrainedBox(
                                 constraints: const BoxConstraints(
-                                  maxHeight: 100,
+                                  maxHeight: 150,
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -535,10 +550,16 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                                                 child: Image.network(
                                                   meta!.logo!,
                                                   key: ValueKey(meta.logo!),
-                                                  height: 100,
+                                                  height: 150,
                                                   gaplessPlayback: true,
-                                                  cacheWidth: (300 * MediaQuery.of(context).devicePixelRatio).round(),
-                                                  filterQuality: FilterQuality.low,
+                                                  cacheWidth:
+                                                      (300 *
+                                                              MediaQuery.of(
+                                                                context,
+                                                              ).devicePixelRatio)
+                                                          .round(),
+                                                  filterQuality:
+                                                      FilterQuality.low,
                                                   errorBuilder: (_, __, ___) =>
                                                       _TitleFallback(
                                                         movie.title.value,
@@ -547,9 +568,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                                               );
                                             },
                                           )
-                                        : _TitleFallback(
-                                            movie.title.value,
-                                          ),
+                                        : _TitleFallback(movie.title.value),
                                   ),
                                 ),
                               ),
@@ -603,7 +622,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                             child: MoviPrimaryButton(
                               label: 'Regarder maintenant',
                               assetIcon: AppAssets.iconPlay,
-                              onPressed: () => context.push(AppRouteNames.movie),
+                              onPressed: () =>
+                                  context.push(AppRouteNames.movie),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -626,6 +646,142 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
             ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Pré-chargement images
+  // ---------------------------------------------------------------------------
+
+  void _precacheBgFor(MovieSummary m, {required bool isNext}) {
+    final int? id = m.tmdbId;
+    if (id == null) return;
+
+    final Future<_HeroMeta?>? future = _metaFutures[id];
+    if (future == null) return;
+
+    future.then((meta) async {
+      if (!mounted) return;
+
+      final bool ok = isNext
+          ? (_nextMovie?.tmdbId == id)
+          : (_currentMovie?.tmdbId == id);
+      if (!ok) return;
+
+      final String? bgSrc =
+          _coerceHttpUrl(meta?.posterBg) ??
+          _coerceHttpUrl(meta?.poster) ??
+          _coerceHttpUrl(m.poster.toString()) ??
+          _coerceHttpUrl(meta?.backdrop) ??
+          _coerceHttpUrl(m.backdrop?.toString());
+
+      if (bgSrc == null) return;
+
+      try {
+        await precacheImage(NetworkImage(bgSrc), context);
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint('HomeHeroCarousel: precache failed for $id: $e\n$st');
+        }
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+
+  String? _coerceHttpUrl(String? value) {
+    if (value == null || value.isEmpty || value == 'null') return null;
+    return (value.startsWith('http://') || value.startsWith('https://'))
+        ? value
+        : null;
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sélecteur d’images centralisé (poster et logo).
+// Poster : priorité **no-lang** → **en** → meilleur score.
+// Logo   : priorité **en** → **no-lang** → meilleur score.
+// -----------------------------------------------------------------------------
+class _ImageSelector {
+  const _ImageSelector._();
+
+  static String? selectPoster(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+
+  static String? selectLogo(List<dynamic> logos) {
+    if (logos.isEmpty) return null;
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+    double ratioOf(Map<String, dynamic> m) {
+      final w = m['width'];
+      final h = m['height'];
+      final dw = (w is num)
+          ? w.toDouble()
+          : double.tryParse(w?.toString() ?? '') ?? 0;
+      final dh = (h is num)
+          ? h.toDouble()
+          : double.tryParse(h?.toString() ?? '') ?? 0;
+      if (dw <= 0 || dh <= 0) return 0;
+      return dw / dh;
+    }
+
+    final List<Map<String, dynamic>> list = logos
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    List<Map<String, dynamic>> sortByScore(List<Map<String, dynamic>> l) =>
+        (l..sort((a, b) => scoreOf(b).compareTo(scoreOf(a))));
+    List<Map<String, dynamic>> preferWide(List<Map<String, dynamic>> l) {
+      final wide = l.where((m) => ratioOf(m) >= 2.0).toList();
+      if (wide.isNotEmpty) return sortByScore(wide);
+      return sortByScore(l);
+    }
+
+    final List<Map<String, dynamic>> en = list
+        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+        .toList();
+    final enPref = preferWide(en);
+    if (enPref.isNotEmpty) return pathOf(enPref.first);
+
+    final List<Map<String, dynamic>> noLang = list
+        .where((m) => m['iso_639_1'] == null)
+        .toList();
+    final noLangPref = preferWide(noLang);
+    if (noLangPref.isNotEmpty) return pathOf(noLangPref.first);
+
+    return pathOf(sortByScore(list).first);
+  }
 }
 
 class _BottomOverlay extends StatelessWidget {
@@ -640,6 +796,25 @@ class _BottomOverlay extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.bottomCenter,
           end: Alignment.topCenter,
+          colors: [Color(0xFF141414), Color(0x00141414)],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopOverlay extends StatelessWidget {
+  const _TopOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [Color(0xFF141414), Color(0x00141414)],
         ),
       ),
@@ -671,6 +846,7 @@ class _TitleFallback extends StatelessWidget {
 class _HeroMeta {
   const _HeroMeta({
     required this.isTv,
+    this.posterBg,
     this.poster,
     this.backdrop,
     this.logo,
@@ -681,6 +857,7 @@ class _HeroMeta {
   });
 
   final bool isTv;
+  final String? posterBg;
   final String? poster;
   final String? backdrop;
   final String? logo;
@@ -734,10 +911,59 @@ class _HeroSkeleton extends StatelessWidget {
   }
 }
 
+class _HeroEmpty extends StatelessWidget {
+  const _HeroEmpty({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: const Text(
+                      'Aucune tendance disponible',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
 String? _formatDuration(int? minutes) {
   if (minutes == null || minutes <= 0) return null;
   if (minutes < 60) return '$minutes min';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
+  final int h = minutes ~/ 60;
+  final int m = minutes % 60;
   return m == 0 ? '$h h' : '$h h $m min';
 }

@@ -8,11 +8,7 @@ import '../datasources/xtream_remote_data_source.dart';
 import '../../application/services/playlist_mapper.dart';
 
 class IptvRepositoryImpl implements IptvRepository {
-  IptvRepositoryImpl(
-    this._remote,
-    this._cache,
-    this._playlistMapper,
-  );
+  IptvRepositoryImpl(this._remote, this._cache, this._playlistMapper);
 
   final XtreamRemoteDataSource _remote;
   final XtreamCacheDataSource _cache;
@@ -30,7 +26,9 @@ class IptvRepositoryImpl implements IptvRepository {
       username: username,
       password: password,
     );
-    final status = auth.isAuthorized ? XtreamAccountStatus.active : XtreamAccountStatus.error;
+    final status = auth.isAuthorized
+        ? XtreamAccountStatus.active
+        : XtreamAccountStatus.error;
     final account = XtreamAccount(
       id: _buildAccountId(endpoint, username),
       alias: alias,

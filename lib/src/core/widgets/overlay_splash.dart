@@ -10,6 +10,7 @@ class OverlaySplash extends StatelessWidget {
   const OverlaySplash({super.key, this.message, this.fadeInDuration});
 
   final String? message;
+
   /// Durée du fade-in interne (optionnel). Par défaut 300 ms.
   final Duration? fadeInDuration;
 

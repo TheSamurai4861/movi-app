@@ -13,10 +13,7 @@ class SettingsPage extends StatelessWidget {
         child: ListView(
           padding: AppSpacing.page,
           children: [
-            Text(
-              'Préférences générales',
-              style: context.textTheme.titleLarge,
-            ),
+            Text('Préférences générales', style: context.textTheme.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             SwitchListTile(
               value: true,
@@ -31,10 +28,7 @@ class SettingsPage extends StatelessWidget {
               onChanged: (_) {},
             ),
             const Divider(height: AppSpacing.sectionGap),
-            Text(
-              'Compte',
-              style: context.textTheme.titleLarge,
-            ),
+            Text('Compte', style: context.textTheme.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             const ListTile(
               leading: Icon(Icons.person_outline),
@@ -49,10 +43,7 @@ class SettingsPage extends StatelessWidget {
               trailing: Icon(Icons.chevron_right),
             ),
             const Divider(height: AppSpacing.sectionGap),
-            Text(
-              'À propos',
-              style: context.textTheme.titleLarge,
-            ),
+            Text('À propos', style: context.textTheme.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             const ListTile(
               leading: Icon(Icons.info_outline),

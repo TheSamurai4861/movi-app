@@ -16,10 +16,7 @@ class IptvConnectState {
   final String? error;
 
   IptvConnectState copyWith({bool? isLoading, String? error}) =>
-      IptvConnectState(
-        isLoading: isLoading ?? this.isLoading,
-        error: error,
-      );
+      IptvConnectState(isLoading: isLoading ?? this.isLoading, error: error);
 }
 
 /// Contrôleur de connexion IPTV.
@@ -29,7 +26,7 @@ class IptvConnectState {
 /// - À la fin de la synchro, déclenche un refresh de la Home.
 class IptvConnectController extends StateNotifier<IptvConnectState> {
   IptvConnectController(this._add, this._refresh, this._appState, this._ref)
-      : super(const IptvConnectState());
+    : super(const IptvConnectState());
 
   final AddXtreamSource _add;
   final RefreshXtreamCatalog _refresh;
@@ -81,10 +78,10 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
 
 final iptvConnectControllerProvider =
     StateNotifierProvider<IptvConnectController, IptvConnectState>(
-  (ref) => IptvConnectController(
-    sl<AddXtreamSource>(),
-    sl<RefreshXtreamCatalog>(),
-    sl<AppStateController>(),
-    ref,
-  ),
-);
+      (ref) => IptvConnectController(
+        sl<AddXtreamSource>(),
+        sl<RefreshXtreamCatalog>(),
+        sl<AppStateController>(),
+        ref,
+      ),
+    );

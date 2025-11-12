@@ -11,4 +11,3 @@ class SearchShows {
     return _repository.searchShows(query, page: page);
   }
 }
-

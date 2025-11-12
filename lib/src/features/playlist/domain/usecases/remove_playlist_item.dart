@@ -7,7 +7,10 @@ class RemovePlaylistItem {
 
   final PlaylistRepository _repository;
 
-  Future<void> call({required PlaylistId playlistId, required PlaylistItem item}) {
+  Future<void> call({
+    required PlaylistId playlistId,
+    required PlaylistItem item,
+  }) {
     return _repository.removeItem(playlistId: playlistId, item: item);
   }
 }

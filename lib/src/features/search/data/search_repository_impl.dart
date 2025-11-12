@@ -8,9 +8,8 @@ import '../../../shared/domain/entities/person_summary.dart';
 import '../domain/entities/search_page.dart';
 import '../domain/repositories/search_repository.dart';
 import 'datasources/tmdb_search_remote_data_source.dart';
-import '../../movie/data/dtos/tmdb_movie_detail_dto.dart';
-import '../../tv/data/dtos/tmdb_tv_detail_dto.dart';
 import '../../../shared/domain/value_objects/media_title.dart';
+import '../../../shared/domain/services/similarity_service.dart';
 import '../../../shared/domain/value_objects/media_id.dart';
 
 class SearchRepositoryImpl implements SearchRepository {
@@ -18,66 +17,161 @@ class SearchRepositoryImpl implements SearchRepository {
     this._remote,
     this._images,
     this._iptvLocal,
+    this._similarity,
   );
 
   final TmdbSearchRemoteDataSource _remote;
   final TmdbImageResolver _images;
   final IptvLocalRepository _iptvLocal;
+  final SimilarityService _similarity;
 
   @override
-  Future<SearchPage<MovieSummary>> searchMovies(String query, {int page = 1}) async {
-    final res = await _remote.searchMovies(query, page: page);
-    final available = await _iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.movie);
-    final items = res.items
-        .where((m) => m.posterPath != null && available.contains(m.id))
-        .map(_mapMovie)
-        .whereType<MovieSummary>()
-        .toList(growable: false);
-    return SearchPage(items: items, page: page, totalPages: res.totalPages);
+  Future<SearchPage<MovieSummary>> searchMovies(
+    String query, {
+    int page = 1,
+  }) async {
+    final accounts = await _iptvLocal.getAccounts();
+    final q = query.trim();
+    final items = <MovieSummary>[];
+    for (final acc in accounts) {
+      final playlists = await _iptvLocal.getPlaylists(acc.id);
+      for (final pl in playlists) {
+        for (final it in pl.items) {
+          if (it.type != XtreamPlaylistItemType.movie) continue;
+          final title = it.title.trim();
+          final posterUrl = it.posterUrl;
+          if (posterUrl == null || posterUrl.isEmpty) continue;
+          // Filtre texte simple (contient) avant scoring
+          if (q.isNotEmpty && !title.toLowerCase().contains(q.toLowerCase())) {
+            // on garde quand même pour scoring si besoin ; ici on skip pour limiter bruit
+            continue;
+          }
+          final poster = Uri.tryParse(posterUrl);
+          if (poster == null) continue;
+          items.add(
+            MovieSummary(
+              id: MovieId((it.tmdbId?.toString()) ?? it.streamId.toString()),
+              tmdbId: it.tmdbId,
+              title: MediaTitle(title),
+              poster: poster,
+              backdrop: null,
+              releaseYear: null,
+            ),
+          );
+        }
+      }
+    }
+    // Déduplication par tmdbId (on garde l'élément le plus proche de la requête)
+    final bestByTmdb = <int, MovieSummary>{};
+    final withoutTmdb = <MovieSummary>[];
+    for (final m in items) {
+      final id = m.tmdbId;
+      if (id == null) {
+        withoutTmdb.add(m);
+        continue;
+      }
+      final current = bestByTmdb[id];
+      if (current == null) {
+        bestByTmdb[id] = m;
+      } else {
+        final scoreNew = _similarity.score(q, m.title.value);
+        final scoreCur = _similarity.score(q, current.title.value);
+        if (scoreNew > scoreCur) {
+          bestByTmdb[id] = m;
+        }
+      }
+    }
+    final unique = <MovieSummary>[...bestByTmdb.values, ...withoutTmdb];
+    // Tri par similarité décroissant
+    unique.sort((a, b) {
+      final sa = _similarity.score(q, a.title.value);
+      final sb = _similarity.score(q, b.title.value);
+      return sb.compareTo(sa);
+    });
+    return SearchPage(items: List.unmodifiable(unique), page: 1, totalPages: 1);
   }
 
   @override
-  Future<SearchPage<TvShowSummary>> searchShows(String query, {int page = 1}) async {
-    final res = await _remote.searchShows(query, page: page);
-    final available = await _iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.series);
-    final items = res.items
-        .where((s) => s.posterPath != null && available.contains(s.id))
-        .map(_mapShow)
-        .whereType<TvShowSummary>()
-        .toList(growable: false);
-    return SearchPage(items: items, page: page, totalPages: res.totalPages);
+  Future<SearchPage<TvShowSummary>> searchShows(
+    String query, {
+    int page = 1,
+  }) async {
+    final accounts = await _iptvLocal.getAccounts();
+    final q = query.trim();
+    final items = <TvShowSummary>[];
+    for (final acc in accounts) {
+      final playlists = await _iptvLocal.getPlaylists(acc.id);
+      for (final pl in playlists) {
+        for (final it in pl.items) {
+          if (it.type != XtreamPlaylistItemType.series) continue;
+          final title = it.title.trim();
+          final posterUrl = it.posterUrl;
+          if (posterUrl == null || posterUrl.isEmpty) continue;
+          if (q.isNotEmpty && !title.toLowerCase().contains(q.toLowerCase())) {
+            continue;
+          }
+          final poster = Uri.tryParse(posterUrl);
+          if (poster == null) continue;
+          items.add(
+            TvShowSummary(
+              id: SeriesId((it.tmdbId?.toString()) ?? it.streamId.toString()),
+              tmdbId: it.tmdbId,
+              title: MediaTitle(title),
+              poster: poster,
+              backdrop: null,
+              seasonCount: null,
+              status: null,
+            ),
+          );
+        }
+      }
+    }
+    // Déduplication par tmdbId (on garde l'élément le plus proche de la requête)
+    final bestByTmdb = <int, TvShowSummary>{};
+    final withoutTmdb = <TvShowSummary>[];
+    for (final s in items) {
+      final id = s.tmdbId;
+      if (id == null) {
+        withoutTmdb.add(s);
+        continue;
+      }
+      final current = bestByTmdb[id];
+      if (current == null) {
+        bestByTmdb[id] = s;
+      } else {
+        final scoreNew = _similarity.score(q, s.title.value);
+        final scoreCur = _similarity.score(q, current.title.value);
+        if (scoreNew > scoreCur) {
+          bestByTmdb[id] = s;
+        }
+      }
+    }
+    final unique = <TvShowSummary>[...bestByTmdb.values, ...withoutTmdb];
+    unique.sort((a, b) {
+      final sa = _similarity.score(q, a.title.value);
+      final sb = _similarity.score(q, b.title.value);
+      return sb.compareTo(sa);
+    });
+    return SearchPage(items: List.unmodifiable(unique), page: 1, totalPages: 1);
   }
 
   @override
-  Future<SearchPage<PersonSummary>> searchPeople(String query, {int page = 1}) async {
+  Future<SearchPage<PersonSummary>> searchPeople(
+    String query, {
+    int page = 1,
+  }) async {
     final res = await _remote.searchPeople(query, page: page);
-    final items = res.items.map(_mapPerson).toList(growable: false);
-    return SearchPage(items: items, page: page, totalPages: res.totalPages);
-  }
-
-  MovieSummary? _mapMovie(TmdbMovieSummaryDto dto) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
-    if (poster == null) return null;
-    return MovieSummary(
-      id: MovieId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.title),
-      poster: poster,
-      backdrop: _images.backdrop(dto.backdropPath),
-      releaseYear: _parseYear(dto.releaseDate),
-    );
-  }
-
-  TvShowSummary? _mapShow(TmdbTvSummaryDto dto) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
-    if (poster == null) return null;
-    return TvShowSummary(
-      id: SeriesId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.name),
-      poster: poster,
-      backdrop: _images.backdrop(dto.backdropPath),
-      seasonCount: null,
+    final mapped = res.items.map(_mapPerson).toList(growable: true);
+    final q = query.trim();
+    mapped.sort((a, b) {
+      final sa = _similarity.score(q, a.name);
+      final sb = _similarity.score(q, b.name);
+      return sb.compareTo(sa);
+    });
+    return SearchPage(
+      items: List.unmodifiable(mapped),
+      page: page,
+      totalPages: res.totalPages,
     );
   }
 
@@ -89,6 +183,4 @@ class SearchRepositoryImpl implements SearchRepository {
       photo: _images.poster(dto.profilePath),
     );
   }
-
-  int? _parseYear(String? raw) => (raw != null && raw.isNotEmpty) ? int.tryParse(raw.substring(0, 4)) : null;
 }

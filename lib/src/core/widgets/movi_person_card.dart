@@ -10,7 +10,9 @@ Image _buildPersonImage(String source, double width, double height) {
     width: width,
     height: height,
     color: const Color(0xFF222222),
-    child: const Center(child: Icon(Icons.broken_image, size: 32, color: Colors.white54)),
+    child: const Center(
+      child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+    ),
   );
 
   if (source.startsWith('http')) {
@@ -50,7 +52,8 @@ class MoviPersonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final nameStyle = theme.textTheme.titleSmall?.copyWith(
+    final nameStyle =
+        theme.textTheme.titleSmall?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ) ??
@@ -59,7 +62,8 @@ class MoviPersonCard extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: Colors.white,
         );
-    final roleStyle = theme.textTheme.bodyMedium?.copyWith(
+    final roleStyle =
+        theme.textTheme.bodyMedium?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: const Color(0xFFA6A6A6),

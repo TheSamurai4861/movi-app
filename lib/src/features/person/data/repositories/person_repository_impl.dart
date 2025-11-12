@@ -33,12 +33,14 @@ class PersonRepositoryImpl implements PersonRepository {
   Future<List<PersonSummary>> searchPeople(String query) async {
     final dtos = await _remote.searchPeople(query);
     return dtos
-        .map((dto) => PersonSummary(
-              id: PersonId(dto.id.toString()),
-              tmdbId: dto.id,
-              name: dto.name,
-              photo: _images.poster(dto.profilePath),
-            ))
+        .map(
+          (dto) => PersonSummary(
+            id: PersonId(dto.id.toString()),
+            tmdbId: dto.id,
+            name: dto.name,
+            photo: _images.poster(dto.profilePath),
+          ),
+        )
         .toList();
   }
 
@@ -78,7 +80,8 @@ class PersonRepositoryImpl implements PersonRepository {
     );
   }
 
-  DateTime? _parseDate(String? date) => date == null || date.isEmpty ? null : DateTime.tryParse(date);
+  DateTime? _parseDate(String? date) =>
+      date == null || date.isEmpty ? null : DateTime.tryParse(date);
 
   Future<TmdbPersonDetailDto> _loadPerson(PersonId id) async {
     final personId = int.parse(id.value);

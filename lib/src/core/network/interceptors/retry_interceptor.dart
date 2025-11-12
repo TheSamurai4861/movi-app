@@ -22,7 +22,10 @@ class RetryInterceptor extends Interceptor {
   final AppLogger? logger;
 
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
     var attempt = (err.requestOptions.extra['retry_attempt'] as int?) ?? 0;
     final shouldRetry = _shouldRetry(err) && attempt < maxAttempts;
 

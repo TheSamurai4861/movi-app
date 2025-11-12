@@ -23,7 +23,10 @@ class SagaLocalDataSource {
   }
 
   Future<TmdbSagaDetailDto?> getSagaDetail(int sagaId) async {
-    final cached = await _cacheRepository.getWithPolicy(_detailKey(sagaId), _detailPolicy);
+    final cached = await _cacheRepository.getWithPolicy(
+      _detailKey(sagaId),
+      _detailPolicy,
+    );
     if (cached == null) return null;
     return TmdbSagaDetailDto.fromCache(cached);
   }

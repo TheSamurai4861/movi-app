@@ -19,7 +19,8 @@ class MoviPrimaryButton extends StatelessWidget {
   // Visuals
   final bool loading;
   final String? assetIcon; // e.g. AppAssets.iconSearch
-  final Widget? leading; // alternative to assetIcon (e.g., Icon(Icons.play_arrow))
+  final Widget?
+  leading; // alternative to assetIcon (e.g., Icon(Icons.play_arrow))
   final double iconSize;
   final double height;
   final EdgeInsetsGeometry padding;
@@ -72,13 +73,13 @@ class MoviPrimaryButton extends StatelessWidget {
     }
 
     Widget buildIcon() => Image.asset(
-          assetIcon!,
-          width: iconSize,
-          height: iconSize,
-          // Tint to keep contrast on primary background (expects monochrome icon)
-          color: scheme.onPrimary,
-          fit: BoxFit.contain,
-        );
+      assetIcon!,
+      width: iconSize,
+      height: iconSize,
+      // Tint to keep contrast on primary background (expects monochrome icon)
+      color: scheme.onPrimary,
+      fit: BoxFit.contain,
+    );
 
     Widget content;
     if (loading) {
@@ -98,7 +99,9 @@ class MoviPrimaryButton extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             label,
-            style: theme.textTheme.labelLarge?.copyWith(color: scheme.onPrimary),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimary,
+            ),
           ),
         ],
       );
@@ -108,10 +111,12 @@ class MoviPrimaryButton extends StatelessWidget {
         children.add(buildIcon());
         children.add(const SizedBox(width: 8));
       } else if (leading != null) {
-        children.add(IconTheme.merge(
-          data: IconThemeData(color: scheme.onPrimary, size: iconSize),
-          child: leading!,
-        ));
+        children.add(
+          IconTheme.merge(
+            data: IconThemeData(color: scheme.onPrimary, size: iconSize),
+            child: leading!,
+          ),
+        );
         children.add(const SizedBox(width: 8));
       }
       children.add(
@@ -119,7 +124,9 @@ class MoviPrimaryButton extends StatelessWidget {
           child: Text(
             label,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelLarge?.copyWith(color: scheme.onPrimary),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimary,
+            ),
           ),
         ),
       );
@@ -142,10 +149,7 @@ class MoviPrimaryButton extends StatelessWidget {
       label: label,
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: height),
-        child: SizedBox(
-          width: double.infinity,
-          child: button,
-        ),
+        child: SizedBox(width: double.infinity, child: button),
       ),
     );
   }

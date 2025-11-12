@@ -23,14 +23,14 @@ class ContinueWatchingCard extends StatelessWidget {
     String? rating,
     VoidCallback? onTap,
   }) => ContinueWatchingCard._(
-        title: title,
-        poster: poster,
-        progress: progress,
-        year: year,
-        duration: duration,
-        rating: rating,
-        onTap: onTap,
-      );
+    title: title,
+    poster: poster,
+    progress: progress,
+    year: year,
+    duration: duration,
+    rating: rating,
+    onTap: onTap,
+  );
 
   factory ContinueWatchingCard.episode({
     required String title,
@@ -42,15 +42,15 @@ class ContinueWatchingCard extends StatelessWidget {
     String? seriesTitle,
     VoidCallback? onTap,
   }) => ContinueWatchingCard._(
-        title: title,
-        poster: poster,
-        progress: progress,
-        duration: duration,
-        rating: rating,
-        seriesTitle: seriesTitle,
-        seasonEpisode: seasonEpisode,
-        onTap: onTap,
-      );
+    title: title,
+    poster: poster,
+    progress: progress,
+    duration: duration,
+    rating: rating,
+    seriesTitle: seriesTitle,
+    seasonEpisode: seasonEpisode,
+    onTap: onTap,
+  );
 
   final String title;
   final String poster;
@@ -78,9 +78,7 @@ class ContinueWatchingCard extends StatelessWidget {
           child: Stack(
             children: [
               // Background image
-              Positioned.fill(
-                child: _buildPosterImage(poster),
-              ),
+              Positioned.fill(child: _buildPosterImage(poster)),
               // Bottom gradient overlay (double overlay 404040)
               Positioned(
                 left: 0,
@@ -125,7 +123,9 @@ class ContinueWatchingCard extends StatelessWidget {
                       FractionallySizedBox(
                         widthFactor: progress.clamp(0.0, 1.0),
                         alignment: Alignment.centerLeft,
-                        child: Container(color: Theme.of(context).colorScheme.primary),
+                        child: Container(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -139,8 +139,12 @@ class ContinueWatchingCard extends StatelessWidget {
                   children: [
                     if (seasonEpisode != null) MoviPill(seasonEpisode!),
                     if (seasonEpisode == null && year != null) MoviPill(year!),
-                    if ((seasonEpisode != null) || (year != null)) const SizedBox(width: 8),
-                    if (duration != null) ...[MoviPill(duration!), const SizedBox(width: 8)],
+                    if ((seasonEpisode != null) || (year != null))
+                      const SizedBox(width: 8),
+                    if (duration != null) ...[
+                      MoviPill(duration!),
+                      const SizedBox(width: 8),
+                    ],
                     if (rating != null) MoviPill(rating!),
                   ],
                 ),
@@ -148,14 +152,23 @@ class ContinueWatchingCard extends StatelessWidget {
               // Title (8px above pills)
               Positioned(
                 left: 16,
-                bottom: 5 + 8 + 24 + 8 + 20, // line + gap + pill + gap + approx title
+                bottom:
+                    5 +
+                    8 +
+                    24 +
+                    8 +
+                    20, // line + gap + pill + gap + approx title
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: width - 32),
                   child: Text(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -170,7 +183,11 @@ class ContinueWatchingCard extends StatelessWidget {
                       seriesTitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -188,4 +205,3 @@ Widget _buildPosterImage(String source) {
   }
   return Image.asset(source, fit: BoxFit.cover);
 }
-

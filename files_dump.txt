@@ -1,367 +1,852 @@
 ================================================================================
-EXPORT CONTENU — 7 fichier(s)
+EXPORT CONTENU — 19 fichier(s)
 ================================================================================
 
 --------------------------------------------------------------------------------
-FILE #76: src/core/widgets/movi_items_list.dart
+FILE #4: src/core/config/env/dev_environment.dart
 --------------------------------------------------------------------------------
-import 'dart:async';
-import 'dart:math' as math;
-import 'package:flutter/material.dart';
+// ignore_for_file: public_member_api_docs
 
-/// Liste horizontale avec titre et sous-titre optionnel.
-/// Émet des fenêtres d'index visibles (start, count) pour l’enrichissement paresseux.
-/// Optimisations :
-/// - garde de visibilité verticale,
-/// - debounce des notifications,
-/// - déduplication des fenêtres envoyées,
-/// - calcul robuste du padding horizontal (RTL/LTR),
-/// - prise en compte des changements de largeur via LayoutBuilder.
-class MoviItemsList extends StatefulWidget {
-  const MoviItemsList({
-    super.key,
-    required this.title,
-    required this.items,
-    this.subtitle,
-    this.itemSpacing = 16,
-    this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
-    this.titlePadding = 20,
-    this.onViewportChanged,
-    this.estimatedItemWidth,
-    this.preloadAhead = 2,
-    this.verticalPreloadMargin = 150,
-    this.debounceMs = 240,
-  }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
+import '../models/app_metadata.dart';
+import '../models/feature_flags.dart';
+import '../models/network_endpoints.dart';
+import 'environment.dart';
 
-  final String title;
-  final String? subtitle;
-  final List<Widget> items;
+/// Compile-time configuration for TMDB access.
+/// Provide with `--dart-define` at build/run time.
+/// Priority order: generic > flavor-specific.
+const String _tmdbApiKeyGeneric = String.fromEnvironment('TMDB_API_KEY');
+const String _tmdbApiKeyDev = String.fromEnvironment('TMDB_API_KEY_DEV');
+const String _tmdbApiKeyStaging = String.fromEnvironment('TMDB_API_KEY_STAGING');
+const String _tmdbApiKeyProd = String.fromEnvironment('TMDB_API_KEY_PROD');
 
-  /// Espacement entre cartes.
-  final double itemSpacing;
+/// Fallback explicite pour le flavor Dev (usage local uniquement).
+/// ATTENTION: ne pas utiliser en prod/staging. Cette valeur sera intégrée au binaire.
+const String _tmdbHardcodedKeyDev =
+    'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8';
 
-  /// Padding horizontal appliqué sur la rangée de cartes.
-  final EdgeInsetsGeometry horizontalPadding;
-
-  /// Padding appliqué à la ligne de titre.
-  final double titlePadding;
-
-  /// Callback lorsque la fenêtre visible a potentiellement changé.
-  /// Signature: (startIndexInclus, count>=1).
-  final void Function(int start, int count)? onViewportChanged;
-
-  /// Largeur estimée d’une carte (hors spacing). Sans valeur, aucun callback n’est émis.
-  final double? estimatedItemWidth;
-
-  /// Marge de préchargement verticale (px) avant/après l’entrée à l’écran.
-  final double verticalPreloadMargin;
-
-  /// Nombre d’items à précharger de chaque côté de la fenêtre visible.
-  final int preloadAhead;
-
-  /// Durée du debounce des notifications de viewport.
-  final int debounceMs;
-
-  @override
-  State<MoviItemsList> createState() => _MoviItemsListState();
+/// Optionally returns the TMDB API key from compile-time defines.
+/// If no key is provided via --dart-define, returns null to allow
+/// runtime resolution (e.g., via .env or process environment).
+String? _resolveTmdbKey(AppEnvironment env) {
+  String candidate;
+  switch (env) {
+    case AppEnvironment.dev:
+      candidate = _tmdbApiKeyDev.isNotEmpty ? _tmdbApiKeyDev : _tmdbApiKeyGeneric;
+      break;
+    case AppEnvironment.staging:
+      candidate = _tmdbApiKeyStaging.isNotEmpty ? _tmdbApiKeyStaging : _tmdbApiKeyGeneric;
+      break;
+    case AppEnvironment.prod:
+      candidate = _tmdbApiKeyProd.isNotEmpty ? _tmdbApiKeyProd : _tmdbApiKeyGeneric;
+      break;
+  }
+  return candidate.isNotEmpty ? candidate : null;
 }
 
-class _MoviItemsListState extends State<MoviItemsList> {
-  final ScrollController _hCtrl = ScrollController();
-  ScrollPosition? _vpos; // position du scroll vertical parent
-  Timer? _debounce;
+/// Default network timeouts used across flavors when not overridden.
+const NetworkTimeouts _defaultTimeouts = NetworkTimeouts(
+  connect: Duration(seconds: 5),
+  receive: Duration(seconds: 10),
+  send: Duration(seconds: 5),
+);
 
-  int? _lastStart;
-  int? _lastCount;
-  double? _lastViewportWidth;
-
-  // ---- Utilities
-
-  EdgeInsets _resolvedHorizontalPadding(BuildContext context) {
-    return widget.horizontalPadding.resolve(Directionality.of(context));
-  }
-
-  double _effectiveViewportWidth(BoxConstraints constraints) {
-    final pads = _resolvedHorizontalPadding(context);
-    final width = constraints.maxWidth.isFinite ? constraints.maxWidth : (context.size?.width ?? 0);
-    final effective = width - pads.left - pads.right;
-    return effective > 0 ? effective : 0;
-  }
-
-  void _scheduleNotify() {
-    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) return;
-    _debounce?.cancel();
-    _debounce = Timer(Duration(milliseconds: widget.debounceMs), _notifyNow);
-  }
-
-  void _attachVerticalListener() {
-    final pos = Scrollable.maybeOf(context)?.position;
-    if (_vpos == pos) return;
-    _vpos?.isScrollingNotifier.removeListener(_scheduleNotify);
-    _vpos = pos;
-    _vpos?.isScrollingNotifier.addListener(_scheduleNotify);
-  }
-
-  bool _isRoughlyVerticallyVisible() {
-    final ro = context.findRenderObject();
-    if (ro is! RenderBox || !ro.hasSize) return false;
-    final size = ro.size;
-    final topLeft = ro.localToGlobal(Offset.zero);
-    final screenH = MediaQuery.of(context).size.height;
-    final margin = widget.verticalPreloadMargin;
-    final top = topLeft.dy;
-    final bottom = top + size.height;
-    return bottom > -margin && top < screenH + margin;
-  }
-
-  void _notifyNow() {
-    if (!mounted) return;
-    final cb = widget.onViewportChanged;
-    final cardW = widget.estimatedItemWidth;
-    if (cb == null || cardW == null) return;
-    if (!_isRoughlyVerticallyVisible()) return;
-    if (!_hCtrl.hasClients) return;
-    if (widget.items.isEmpty) return;
-
-    // On récupère la largeur connue via _lastViewportWidth (mise à jour par LayoutBuilder).
-    final viewportWidth = _lastViewportWidth ?? (context.size?.width ?? 0);
-    if (viewportWidth <= 0) return;
-
-    final unit = cardW + widget.itemSpacing;
-    if (unit <= 0) return;
-
-    final pads = _resolvedHorizontalPadding(context);
-    final effectiveWidth = viewportWidth - pads.left - pads.right;
-    if (effectiveWidth <= 0) return;
-
-    final maxIndex = widget.items.length - 1;
-    int start = (_hCtrl.offset / unit).floor();
-    if (start < 0) start = 0;
-    if (start > maxIndex) start = maxIndex;
-
-    int visible = (effectiveWidth / unit).ceil();
-    if (visible < 1) visible = 1;
-    if (visible > widget.items.length) visible = widget.items.length;
-
-    final preload = widget.preloadAhead;
-    final startWithPreload = math.max(0, start - preload);
-    final endWithPreload = math.min(maxIndex, start + visible - 1 + preload);
-    final count = math.max(0, endWithPreload - startWithPreload + 1);
-
-    if (_lastStart == startWithPreload && _lastCount == count) return;
-    _lastStart = startWithPreload;
-    _lastCount = count;
-
-    cb(startWithPreload, count);
-  }
-
-  // ---- Lifecycle
+class DevEnvironment implements EnvironmentFlavor {
+  @override
+  AppEnvironment get environment => AppEnvironment.dev;
 
   @override
-  void initState() {
-    super.initState();
-    _hCtrl.addListener(_scheduleNotify);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _attachVerticalListener();
-      _notifyNow();
-    });
-  }
+  String get label => 'Development';
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _attachVerticalListener();
-  }
+  bool get isProduction => false;
 
   @override
-  void didUpdateWidget(covariant MoviItemsList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.items.length != widget.items.length ||
-        oldWidget.estimatedItemWidth != widget.estimatedItemWidth ||
-        oldWidget.itemSpacing != widget.itemSpacing ||
-        oldWidget.horizontalPadding != widget.horizontalPadding) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _notifyNow());
-    }
-  }
+  FeatureFlags get defaultFlags => const FeatureFlags(
+        useRemoteHome: false,
+        enableTelemetry: true,
+        enableDownloads: false,
+        enableNewSearch: true,
+      );
 
   @override
-  void dispose() {
-    _debounce?.cancel();
-    _vpos?.isScrollingNotifier.removeListener(_scheduleNotify);
-    _vpos = null;
-    _hCtrl
-      ..removeListener(_scheduleNotify)
-      ..dispose();
-    super.dispose();
-  }
-
-  // ---- UI
+  AppMetadata get metadata => const AppMetadata(
+        version: '0.1.0',
+        buildNumber: 'dev',
+      );
 
   @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    if (widget.items.isEmpty) return const SizedBox.shrink();
+  NetworkEndpoints get network => NetworkEndpoints(
+        restBaseUrl: 'https://api.dev.movi.app',
+        imageBaseUrl: 'https://images.dev.movi.app',
+        /// TMDB key may be provided via dart-define or deferred to SecretStore (.env).
+        /// Fallback local: clé intégrée en dur pour le flavor Dev uniquement.
+        tmdbApiKey: _resolveTmdbKey(environment) ?? _tmdbHardcodedKeyDev,
+        timeouts: _defaultTimeouts,
+      );
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsetsDirectional.only(
-            start: widget.titlePadding,
-            end: widget.titlePadding,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: textTheme.titleLarge,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (widget.subtitle != null)
-                Text(
-                  widget.subtitle!,
-                  style: textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFFA6A6A6),
-                      ) ??
-                      const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFFA6A6A6),
-                      ),
-                ),
-            ],
-          ),
+class StagingEnvironment implements EnvironmentFlavor {
+  @override
+  AppEnvironment get environment => AppEnvironment.staging;
+
+  @override
+  String get label => 'Staging';
+
+  @override
+  bool get isProduction => false;
+
+  @override
+  FeatureFlags get defaultFlags => const FeatureFlags(
+        useRemoteHome: true,
+        enableTelemetry: true,
+        enableDownloads: true,
+        enableNewSearch: true,
+      );
+
+  @override
+  AppMetadata get metadata => const AppMetadata(
+        version: '0.1.0',
+        buildNumber: 'staging',
+      );
+
+  @override
+  NetworkEndpoints get network => NetworkEndpoints(
+        restBaseUrl: 'https://api.staging.movi.app',
+        imageBaseUrl: 'https://images.staging.movi.app',
+        tmdbApiKey: _resolveTmdbKey(environment),
+        timeouts: _defaultTimeouts,
+      );
+}
+
+class ProdEnvironment implements EnvironmentFlavor {
+  @override
+  AppEnvironment get environment => AppEnvironment.prod;
+
+  @override
+  String get label => 'Production';
+
+  @override
+  bool get isProduction => true;
+
+  @override
+  FeatureFlags get defaultFlags => const FeatureFlags(
+        useRemoteHome: true,
+        enableTelemetry: true,
+        enableDownloads: true,
+        enableNewSearch: true,
+      );
+
+  @override
+  AppMetadata get metadata => const AppMetadata(
+        version: '1.0.0',
+        buildNumber: 'prod',
+      );
+
+  @override
+  NetworkEndpoints get network => NetworkEndpoints(
+        restBaseUrl: 'https://api.movi.app',
+        imageBaseUrl: 'https://images.movi.app',
+        tmdbApiKey: _resolveTmdbKey(environment),
+        timeouts: const NetworkTimeouts(
+          connect: Duration(seconds: 10),
+          receive: Duration(seconds: 20),
+          send: Duration(seconds: 10),
         ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final width = _effectiveViewportWidth(constraints) + // largeur utile (sans padding)
-                _resolvedHorizontalPadding(context).left +
-                _resolvedHorizontalPadding(context).right;
-            if (_lastViewportWidth != width) {
-              _lastViewportWidth = width;
-              // On notifie avec debounce pour limiter la pression en cas de resize.
-              _scheduleNotify();
-            }
-            return SingleChildScrollView(
-              controller: _hCtrl,
-              scrollDirection: Axis.horizontal,
-              clipBehavior: Clip.none,
-              padding: widget.horizontalPadding,
-              child: Row(
-                children: [
-                  for (int i = 0; i < widget.items.length; i++) ...[
-                    widget.items[i],
-                    if (i != widget.items.length - 1)
-                      SizedBox(width: widget.itemSpacing),
-                  ],
-                ],
-              ),
-            );
-          },
-        ),
-      ],
+      );
+}
+
+--------------------------------------------------------------------------------
+FILE #10: src/core/config/models/network_endpoints.dart
+--------------------------------------------------------------------------------
+/// src/core/config/models/network_endpoints.dart
+///
+/// Décrit l'ensemble des points d'accès et paramètres réseau utilisés par l'app.
+/// Cette version introduit explicitement la configuration TMDB (host + version)
+/// et fournit des getters résolus avec des valeurs par défaut sûres.
+///
+/// - Aucune clé secrète n'est codée en dur.
+/// - Null-safety, API claire, champs immuables.
+/// - Compatible avec les lints `flutter_lints`.
+class NetworkTimeouts {
+  const NetworkTimeouts({
+    this.connect = const Duration(seconds: 10),
+    this.receive = const Duration(seconds: 15),
+    this.send = const Duration(seconds: 10),
+  });
+
+  /// Timeout de connexion.
+  final Duration connect;
+
+  /// Timeout de réception.
+  final Duration receive;
+
+  /// Timeout d’envoi.
+  final Duration send;
+
+  NetworkTimeouts copyWith({
+    Duration? connect,
+    Duration? receive,
+    Duration? send,
+  }) {
+    return NetworkTimeouts(
+      connect: connect ?? this.connect,
+      receive: receive ?? this.receive,
+      send: send ?? this.send,
+    );
+  }
+}
+
+/// Configuration des endpoints réseau de l'application.
+/// - [restBaseUrl] : base URL du backend/app interne (ex: https://api.example.com)
+/// - [imageBaseUrl] : base URL d'images/CDN interne
+/// - [tmdbApiKey] : clé/jeton TMDB injectée via l'env (peut être v3 api_key ou v4 bearer)
+/// - [tmdbBaseHost] : hôte TMDB (optionnel, par défaut api.themoviedb.org)
+/// - [tmdbApiVersion] : version d'API TMDB (optionnel, par défaut "3")
+class NetworkEndpoints {
+  const NetworkEndpoints({
+    required this.restBaseUrl,
+    required this.imageBaseUrl,
+    this.tmdbApiKey,
+    this.tmdbBaseHost,
+    this.tmdbApiVersion,
+    this.timeouts = const NetworkTimeouts(),
+  });
+
+  /// Base URL principale pour les appels REST de votre backend.
+  final String restBaseUrl;
+
+  /// Base URL pour les ressources images de votre backend/CDN.
+  final String imageBaseUrl;
+
+  /// Clé/jeton TMDB (v3 ou v4). Doit être injectée via la configuration d'environnement.
+  final String? tmdbApiKey;
+
+  /// Hôte TMDB optionnel (ex: "api.themoviedb.org").
+  final String? tmdbBaseHost;
+
+  /// Version d'API TMDB optionnelle (ex: "3" ou "4").
+  final String? tmdbApiVersion;
+
+  /// Timeouts réseau.
+  final NetworkTimeouts timeouts;
+
+  /// Getter résolu : renvoie l'hôte TMDB à utiliser.
+  /// Par défaut : "api.themoviedb.org".
+  String get resolvedTmdbBaseHost {
+    final value = tmdbBaseHost?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    return 'api.themoviedb.org';
+  }
+
+  /// Getter résolu : renvoie la version d'API TMDB à utiliser.
+  /// Par défaut : "3".
+  String get resolvedTmdbApiVersion {
+    final value = tmdbApiVersion?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    return '3';
+  }
+
+  NetworkEndpoints copyWith({
+    String? restBaseUrl,
+    String? imageBaseUrl,
+    String? tmdbApiKey,
+    String? tmdbBaseHost,
+    String? tmdbApiVersion,
+    NetworkTimeouts? timeouts,
+  }) {
+    return NetworkEndpoints(
+      restBaseUrl: restBaseUrl ?? this.restBaseUrl,
+      imageBaseUrl: imageBaseUrl ?? this.imageBaseUrl,
+      tmdbApiKey: tmdbApiKey ?? this.tmdbApiKey,
+      tmdbBaseHost: tmdbBaseHost ?? this.tmdbBaseHost,
+      tmdbApiVersion: tmdbApiVersion ?? this.tmdbApiVersion,
+      timeouts: timeouts ?? this.timeouts,
     );
   }
 }
 
 --------------------------------------------------------------------------------
-FILE #82: src/core/widgets/overlay_splash.dart
+FILE #49: src/core/network/network_executor.dart
 --------------------------------------------------------------------------------
-// Reusable overlay splash widget matching Bootstrap design
-// - Centered app logo
-// - Bottom spinner with safe-area padding
-// - Surface-colored background
-// Use across Bootstrap and Home to ensure consistent UX.
+// lib/src/core/network/network_executor.dart
+import 'dart:async';
+import 'dart:collection';
+import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
-class OverlaySplash extends StatelessWidget {
-  const OverlaySplash({super.key, this.message});
+import 'package:movi/src/core/network/dio_failure_mapper.dart';
+import 'package:movi/src/core/network/network_failures.dart';
+import '../utils/logger.dart';
 
-  final String? message;
+typedef NetworkCall<T> = Future<Response<T>> Function(Dio client);
+typedef RetryEvaluator = bool Function(DioException error, int attempt);
+typedef AttemptHook = void Function(int attempt, DioException? error);
+
+/// Exécuteur générique et résilient pour les appels réseau (Dio).
+/// - Concurrence plafonnée par clé (ex.: "tmdb") avec adaptation dynamique.
+/// - Déduplication "in-flight" par requête pour éviter les doublons simultanés.
+/// - Mini cache mémoire (LRU + TTL) pour réponses chaudes (30–60s).
+/// - Backoff exponentiel + jitter, circuit-breaker 429.
+class NetworkExecutor {
+  NetworkExecutor(
+    this._client, {
+    this.logger,
+    this.defaultConcurrencyKey,
+    this.defaultMaxConcurrent = 6,
+    this.memoryCacheMaxEntries = 256,
+    this.memoryCacheDefaultTtl = const Duration(seconds: 45),
+  }) : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0') {
+    _memoryCache ??=
+        _LruCache<String, Response<dynamic>>(capacity: memoryCacheMaxEntries);
+  }
+
+  final Dio _client;
+  final AppLogger? logger;
+
+  /// Clé de concurrence appliquée si `concurrencyKey` n’est pas fournie à `run`.
+  final String? defaultConcurrencyKey;
+
+  /// Plafond par défaut utilisé lors de la création d’un nouveau limiteur.
+  final int defaultMaxConcurrent;
+
+  /// Paramètres du mini cache mémoire.
+  final int memoryCacheMaxEntries;
+  final Duration memoryCacheDefaultTtl;
+
+  /// Limiteurs partagés par clé (ex.: "tmdb") pour lisser l’ensemble des appels.
+  static final Map<String, _Limiter> _limiters = <String, _Limiter>{};
+
+  /// Déduplication "in-flight": clé → Future en cours.
+  static final Map<String, Future<Response<dynamic>>> _inflight =
+      <String, Future<Response<dynamic>>>{};
+
+  /// Mini cache mémoire partagé (LRU + TTL).
+  static _LruCache<String, Response<dynamic>>? _memoryCache;
+
+  /// Configure/ajuste dynamiquement la concurrence max pour une [key].
+  static void configureConcurrency(String key, int maxConcurrent) {
+    assert(maxConcurrent > 0, 'maxConcurrent must be > 0');
+    final existing = _limiters[key];
+    if (existing == null) {
+      _limiters[key] = _Limiter(maxConcurrent);
+    } else {
+      existing.capacity = maxConcurrent;
+    }
+  }
+
+  /// Récupère quelques stats (utile en debug/telemetry).
+  static LimiterStats? getLimiterStats(String key) => _limiters[key]?.stats;
+
+  /// Efface tous les limiteurs/in-flight/cache (utile en tests).
+  static void resetLimiters() {
+    _limiters.clear();
+    _inflight.clear();
+    _memoryCache?.clear();
+  }
+
+  /// Exécute [request] puis mappe la réponse via [mapper].
+  ///
+  /// [dedupKey] — clé logique (ex.: "GET|/3/tv/123?lang=fr&append=images").
+  /// Si fournie, déduplique les requêtes simultanées **et** permet la lecture/écriture
+  /// du mini cache mémoire. Si omise, la dédup/caching ne s’appliquera pas.
+  Future<R> run<T, R>({
+    required NetworkCall<T> request,
+    required R Function(Response<T> response) mapper,
+    String? concurrencyKey,
+    int? maxConcurrent,
+
+    // Résilience / retry
+    int retries = 0,
+    RetryEvaluator? retryIf,
+    Duration baseDelay = const Duration(milliseconds: 300),
+    Duration maxDelay = const Duration(seconds: 5),
+    bool jitter = true,
+
+    // Dédup & cache mémoire
+    String? dedupKey,
+    Duration? cacheTtl,
+
+    // Annulation & hooks
+    CancelToken? cancelToken,
+    AttemptHook? onAttemptStart,
+    AttemptHook? onAttemptEnd,
+  }) async {
+    final key = concurrencyKey ?? defaultConcurrencyKey;
+    _Limiter? limiter;
+
+    if (key != null) {
+      limiter = _limiters.putIfAbsent(
+        key,
+        () => _Limiter(maxConcurrent ?? defaultMaxConcurrent),
+      );
+      if (maxConcurrent != null && maxConcurrent > 0) {
+        limiter.capacity = maxConcurrent;
+      }
+    }
+
+    // 1) Cache mémoire (hit possible avant tout réseau).
+    if (dedupKey != null) {
+      final cached =
+          _memoryCache?.getIfFresh(dedupKey, now: DateTime.now());
+      if (cached != null) {
+        try {
+          final mapped = mapper(cached as Response<T>);
+          return mapped;
+        } catch (_) {
+          // En cas d’incompatibilité de type, on ignore le cache.
+        }
+      }
+    }
+
+    // 2) Déduplication "in-flight": si une requête identique est en cours, on attend le même Future.
+    if (dedupKey != null) {
+      final inflight = _inflight[dedupKey];
+      if (inflight != null) {
+        try {
+          final resp = await inflight as Response<T>;
+          return mapper(resp);
+        } on DioException catch (e) {
+          throw mapDioToFailure(e);
+        } catch (e) {
+          throw UnknownFailure(e.toString());
+        }
+      }
+    }
+
+    for (int attempt = 0;; attempt++) {
+      // Circuit-breaker/cooldown sur la clé de concurrence (ex.: 429).
+      if (limiter != null) {
+        await limiter.acquire();
+      }
+
+      DioException? dioErr;
+      onAttemptStart?.call(attempt, null);
+      final sw = Stopwatch()..start();
+
+      try {
+        // Crée (ou réutilise) la Future à partager pour la dédup "in-flight".
+        Future<Response<T>> future;
+        if (dedupKey != null) {
+          future = (_inflight[dedupKey] ??=
+                  request(_client) as Future<Response<dynamic>>)
+              as Future<Response<T>>;
+        } else {
+          future = request(_client);
+        }
+
+        // Gère un timeout de secours si non configuré côté Dio.
+        final Response<T> response = await future.timeout(
+          _timeoutFromDio(),
+          onTimeout: () {
+            throw DioException(
+              requestOptions: RequestOptions(path: _client.options.baseUrl),
+              type: DioExceptionType.receiveTimeout,
+            );
+          },
+        );
+
+        if (cancelToken?.isCancelled == true) {
+          throw DioException(
+            requestOptions: response.requestOptions,
+            type: DioExceptionType.cancel,
+            error: 'Canceled by caller',
+          );
+        }
+
+        if (response.data == null) {
+          throw const EmptyResponseFailure();
+        }
+
+        // Enregistre métriques (latence OK).
+        sw.stop();
+        limiter?.recordSuccess(sw.elapsed);
+
+        // 3) Écrit dans le cache mémoire (LRU + TTL).
+        if (dedupKey != null) {
+          final ttl = cacheTtl ?? memoryCacheDefaultTtl;
+          _memoryCache?.put(
+            dedupKey,
+            response as Response<dynamic>,
+            ttl: ttl,
+            now: DateTime.now(),
+          );
+        }
+
+        // 4) Retire la requête de l’in-flight (si présente).
+        if (dedupKey != null) {
+          _inflight.remove(dedupKey);
+        }
+
+        onAttemptEnd?.call(attempt, null);
+        final out = mapper(response);
+        return out;
+      } on DioException catch (e, st) {
+        sw.stop();
+        dioErr = e;
+        logger?.error('Network call failed', e, st);
+
+        final status = e.response?.statusCode;
+
+        // Enregistre métriques (échec).
+        limiter?.recordFailure(sw.elapsed, statusCode: status);
+
+        // Circuit-breaker 429: courte pause pour la clé (ex.: 2s).
+        if (status == 429) {
+          limiter?.cooldown(const Duration(seconds: 2));
+        }
+
+        final shouldRetry =
+            attempt < retries && _shouldRetry(e, attempt, retryIf);
+        if (shouldRetry) {
+          final delay = _computeBackoff(
+            attempt: attempt,
+            base: baseDelay,
+            max: maxDelay,
+            jitter: jitter,
+          );
+          onAttemptEnd?.call(attempt, e);
+          await Future.delayed(delay);
+          continue;
+        }
+
+        onAttemptEnd?.call(attempt, e);
+
+        // Nettoie l’in-flight si c’était la requête partagée qui a échoué.
+        if (dedupKey != null) {
+          _inflight.remove(dedupKey);
+        }
+
+        throw mapDioToFailure(e);
+      } catch (e, st) {
+        sw.stop();
+        logger?.error('Unexpected network error', e, st);
+        onAttemptEnd?.call(attempt, dioErr);
+
+        // Nettoie l’in-flight si c’était la requête partagée qui a échoué.
+        if (dedupKey != null) {
+          _inflight.remove(dedupKey);
+        }
+
+        throw UnknownFailure(e.toString());
+      } finally {
+        limiter?.release();
+      }
+    }
+  }
+
+  Duration _timeoutFromDio() {
+    final receive = _client.options.receiveTimeout;
+    if (receive != null && receive > Duration.zero) return receive;
+    final connect = _client.options.connectTimeout;
+    if (connect != null && connect > Duration.zero) return connect;
+    return const Duration(seconds: 30);
+  }
+
+  bool _shouldRetry(
+    DioException error,
+    int attempt,
+    RetryEvaluator? customEvaluator,
+  ) {
+    if (customEvaluator != null) return customEvaluator(error, attempt);
+
+    const retryableStatus = <int>{408, 425, 429, 500, 502, 503, 504};
+    final status = error.response?.statusCode;
+    if (status != null && retryableStatus.contains(status)) return true;
+
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        return true;
+      case DioExceptionType.badCertificate:
+      case DioExceptionType.badResponse:
+      case DioExceptionType.cancel:
+        return false;
+    }
+  }
+
+  Duration _computeBackoff({
+    required int attempt,
+    required Duration base,
+    required Duration max,
+    required bool jitter,
+  }) {
+    // Backoff exponentiel "full jitter".
+    final factor = 1 << attempt; // 2^attempt
+    final ms = base.inMilliseconds * factor;
+    final clamped = min(ms, max.inMilliseconds);
+    if (!jitter) return Duration(milliseconds: clamped);
+    final rnd = Random();
+    return Duration(milliseconds: rnd.nextInt(clamped + 1));
+  }
+}
+
+/// Stats exposées par le limiteur (à logger/observer).
+class LimiterStats {
+  LimiterStats({
+    required this.capacity,
+    required this.p95,
+    required this.errorRate,
+    required this.windowCount,
+  });
+
+  final int capacity;
+  final Duration p95;
+  final double errorRate; // 0..1
+  final int windowCount;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottom = 30.0 + MediaQuery.of(context).padding.bottom;
+  String toString() =>
+      'cap=$capacity p95=${p95.inMilliseconds}ms err=${(errorRate * 100).toStringAsFixed(1)}% n=$windowCount';
+}
 
-    return Container(
-      color: theme.colorScheme.surface,
-      child: Stack(
-        children: [
-          Center(
-            child: Image.asset(
-              'assets/icons/app_logo.png',
-              height: 120,
-              fit: BoxFit.contain,
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: bottom,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (message != null && message!.isNotEmpty) ...[
-                  Text(
-                    message!,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ],
-            ),
-          ),
-        ],
+/// Sémaphore + métriques + adaptation de capacité.
+class _Limiter {
+  _Limiter(this._capacity)
+      : assert(_capacity > 0),
+        _latencies = Queue<Duration>();
+
+  // Sémaphore FIFO
+  int _capacity;
+  int _permitsInUse = 0;
+  final Queue<Completer<void>> _waiters = Queue<Completer<void>>();
+
+  // Cooldown après 429
+  DateTime? _cooldownUntil;
+
+  // Métriques latence/erreurs (fenêtre glissante ~3s)
+  final Queue<Duration> _latencies;
+  int _errors = 0;
+  DateTime _windowStart = DateTime.now();
+  static const _window = Duration(seconds: 3);
+
+  // Dernière adaptation effectuée
+  DateTime _lastAdjust = DateTime.fromMillisecondsSinceEpoch(0);
+
+  set capacity(int value) {
+    assert(value > 0);
+    _capacity = value;
+    _drain();
+  }
+
+  LimiterStats get stats {
+    final lat = _latencies.toList()..sort((a, b) => a.compareTo(b));
+    final n = lat.length;
+    final p95 = n == 0 ? Duration.zero : lat[(0.95 * (n - 1)).round()];
+    final total = n + _errors;
+    final errRate = total == 0 ? 0.0 : _errors / total;
+    return LimiterStats(
+      capacity: _capacity,
+      p95: p95,
+      errorRate: errRate,
+      windowCount: total,
+    );
+  }
+
+  Future<void> acquire() async {
+    // Respecte un éventuel cooldown (ex.: suite à 429).
+    final now = DateTime.now();
+    final until = _cooldownUntil;
+    if (until != null && now.isBefore(until)) {
+      final wait = until.difference(now);
+      await Future.delayed(wait);
+    }
+
+    if (_permitsInUse < _capacity) {
+      _permitsInUse++;
+      return;
+    }
+    final c = Completer<void>();
+    _waiters.addLast(c);
+    return c.future;
+  }
+
+  void release() {
+    if (_waiters.isNotEmpty && _permitsInUse <= _capacity) {
+      _permitsInUse++; // transfert direct
+      _waiters.removeFirst().complete();
+      return;
+    }
+    if (_permitsInUse > 0) {
+      _permitsInUse--;
+    }
+  }
+
+  void cooldown(Duration d) {
+    final candidate = DateTime.now().add(d);
+    if (_cooldownUntil == null || candidate.isAfter(_cooldownUntil!)) {
+      _cooldownUntil = candidate;
+    }
+  }
+
+  void recordSuccess(Duration latency) {
+    _pushLatency(latency);
+    _maybeAdapt();
+  }
+
+  void recordFailure(Duration latency, {int? statusCode}) {
+    _pushLatency(latency);
+    _errors++;
+    if (statusCode == 429) {
+      cooldown(const Duration(seconds: 2));
+    }
+    _maybeAdapt();
+  }
+
+  void _pushLatency(Duration d) {
+    final now = DateTime.now();
+    // Purge fenêtre glissante
+    if (now.difference(_windowStart) > _window) {
+      _latencies.clear();
+      _errors = 0;
+      _windowStart = now;
+    }
+    _latencies.addLast(d);
+    // Bound pour éviter une croissance illimitée
+    if (_latencies.length > 512) {
+      _latencies.removeFirst();
+    }
+  }
+
+  void _maybeAdapt() {
+    final now = DateTime.now();
+    if (now.difference(_lastAdjust) < _window) return;
+
+    final s = stats;
+    // Règles simples :
+    // - Si p95 > 2500ms ou erreur élevée → on réduit la capacité (min 2).
+    // - Si p95 < 800ms et erreurs basses → on augmente (max 8).
+    if (s.windowCount >= 10) {
+      if (s.p95 > const Duration(milliseconds: 2500) || s.errorRate >= 0.12) {
+        _capacity = max(2, _capacity - 1);
+      } else if (s.p95 < const Duration(milliseconds: 800) &&
+          s.errorRate <= 0.02) {
+        _capacity = min(8, _capacity + 1);
+      }
+      _drain();
+    }
+    _lastAdjust = now;
+  }
+
+  void _drain() {
+    while (_waiters.isNotEmpty && _permitsInUse < _capacity) {
+      _permitsInUse++;
+      _waiters.removeFirst().complete();
+    }
+  }
+}
+
+/// LRU cache avec TTL par entrée.
+class _LruCache<K, V> {
+  _LruCache({required this.capacity}) : assert(capacity > 0);
+
+  final int capacity;
+
+  final Map<K, _Entry<V>> _map = <K, _Entry<V>>{};
+
+  V? getIfFresh(K key, {required DateTime now}) {
+    final e = _map.remove(key);
+    if (e == null) return null;
+    if (e.expiresAt.isBefore(now)) {
+      return null; // expiré
+    }
+    // Réinsère pour marquer l'accès récent.
+    _map[key] = e;
+    return e.value;
+  }
+
+  void put(K key, V value, {required Duration ttl, required DateTime now}) {
+    final expires = now.add(ttl);
+    _map.remove(key); // évite duplicat
+    _map[key] = _Entry(value, expires);
+
+    // Évite la croissance non bornée.
+    while (_map.length > capacity) {
+      _map.remove(_map.keys.first);
+    }
+  }
+
+  void clear() => _map.clear();
+}
+
+class _Entry<V> {
+  _Entry(this.value, this.expiresAt);
+  final V value;
+  final DateTime expiresAt;
+}
+
+--------------------------------------------------------------------------------
+FILE #95: src/features/home/data/home_feed_data_module.dart
+--------------------------------------------------------------------------------
+import '../../../core/di/injector.dart';
+import '../../../core/state/app_state_controller.dart';
+import '../../../core/storage/repositories/iptv_local_repository.dart';
+import '../../../shared/data/services/tmdb_image_resolver.dart';
+import '../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import '../../movie/domain/repositories/movie_repository.dart';
+import '../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import '../../tv/domain/repositories/tv_repository.dart';
+import '../domain/repositories/home_feed_repository.dart';
+import 'repositories/home_feed_repository_impl.dart';
+
+class HomeFeedDataModule {
+  static void register() {
+    if (sl.isRegistered<HomeFeedRepository>()) return;
+
+    sl.registerLazySingleton<HomeFeedRepository>(
+      () => HomeFeedRepositoryImpl(
+        sl<TmdbMovieRemoteDataSource>(),
+        sl<TmdbTvRemoteDataSource>(),
+        sl<IptvLocalRepository>(),
+        sl<MovieRepository>(),
+        sl<TvRepository>(),
+        sl<TmdbImageResolver>(),
+        sl<AppStateController>(),
       ),
     );
   }
 }
 
 --------------------------------------------------------------------------------
-FILE #84: src/features/home/data/repositories/home_feed_repository_impl.dart
+FILE #96: src/features/home/data/repositories/home_feed_repository_impl.dart
 --------------------------------------------------------------------------------
 // ignore_for_file: public_member_api_docs
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+
 import 'package:movi/src/core/di/injector.dart';
 import 'package:movi/src/core/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/core/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
 
-import '../../../../core/state/app_state_controller.dart';
-import '../../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../../shared/data/services/tmdb_cache_data_source.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
-import '../../../movie/domain/repositories/movie_repository.dart';
-import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../../tv/domain/entities/tv_show.dart';
-import '../../../tv/domain/repositories/tv_repository.dart';
-import '../../domain/repositories/home_feed_repository.dart';
-import '../../../../core/storage/services/cache_policy.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
-/// Repository de flux Home.
-/// Règles :
-/// - Aucun pré-enrichissement réseau non initié par l’UI.
-/// - Le Hero reste LITE ; l’UI peut déclencher du « full » ailleurs si besoin.
-/// - Enrichissement on-demand : Cache → Réseau (LITE), idempotent par cycle d’écran.
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+
+/// Repository du flux Home.
+/// Principes :
+/// - Pas de pré-enrichissement réseau implicite.
+/// - Le Hero reste LITE ; l’UI peut déclencher du “full” ailleurs si besoin.
+/// - Enrichissement à la demande : Cache → Réseau (LITE), idempotent par cycle.
 class HomeFeedRepositoryImpl implements HomeFeedRepository {
   HomeFeedRepositoryImpl(
     this._moviesRemote,
@@ -390,7 +875,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   static const int _maxTrendingPages = 3;
 
   // ---------------------------------------------------------------------------
-  // HERO (tendances → match IPTV → fallback VOD → fallback trending simple)
+  // HERO (tendances → match IPTV → fallback trending → fallback VOD)
   // ---------------------------------------------------------------------------
 
   @override
@@ -398,15 +883,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     final Set<int> availableTmdb = await _collectAvailableTmdbIds();
 
     // 1) Chercher des tendances TMDB qui matchent la playlist locale.
-    List<dynamic> matchedDtos = <dynamic>[];
+    List<_MovieLiteDto> matchedDtos = <_MovieLiteDto>[];
     for (var page = 1; page <= _maxTrendingPages; page++) {
-      final List<dynamic> pageDtos = await _fetchTrendingMoviesPage(page);
+      final List<_MovieLiteDto> pageDtos = await _fetchTrendingMoviesPage(page);
       if (pageDtos.isEmpty) break;
 
-      final List<dynamic> pageMatches = pageDtos
-          .where(
-            (dto) => (dto.posterPath != null) && availableTmdb.contains(dto.id),
-          )
+      final List<_MovieLiteDto> pageMatches = pageDtos
+          .where((dto) => dto.posterPath != null && availableTmdb.contains(dto.id))
           .toList();
 
       if (pageMatches.isNotEmpty) {
@@ -417,33 +900,29 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
     // 2) Mapping (posters requis) et limitation.
     if (matchedDtos.isNotEmpty) {
-      final List<MovieSummary> list = matchedDtos
-          .map(_mapMovie)
-          .whereType<MovieSummary>()
-          .toList();
+      final List<MovieSummary> list =
+          matchedDtos.map(_mapMovie).whereType<MovieSummary>().toList();
       if (list.isNotEmpty) {
         return list.length > 20 ? list.sublist(0, 20) : list;
       }
     }
 
-    // 3) Fallback: utiliser le premier stream VOD dispo dans les playlists.
+    // 3) Fallback : première page trending mappée (avec poster).
+    final List<_MovieLiteDto> fallbackDtos = await _fetchTrendingMoviesPage(1);
+    final List<MovieSummary> fallbackList =
+        fallbackDtos.map(_mapMovie).whereType<MovieSummary>().toList();
+    if (fallbackList.isNotEmpty) {
+      return fallbackList.length > 20 ? fallbackList.sublist(0, 20) : fallbackList;
+    }
+
+    // 4) Ultime fallback : premier stream VOD disponible dans les playlists.
     final XtreamPlaylistItem? firstVod = await _pickFirstVodStream();
     if (firstVod != null) {
       final MovieSummary? synthetic = _fromPlaylistItemToMovieSummary(firstVod);
       if (synthetic != null) return <MovieSummary>[synthetic];
     }
 
-    // 4) Ultime fallback: première page trending mappée (avec poster).
-    final List<dynamic> fallbackDtos = await _fetchTrendingMoviesPage(1);
-    final List<MovieSummary> fallbackList = fallbackDtos
-        .map(_mapMovie)
-        .whereType<MovieSummary>()
-        .toList();
-    return fallbackList.isNotEmpty
-        ? (fallbackList.length > 20
-              ? fallbackList.sublist(0, 20)
-              : fallbackList)
-        : <MovieSummary>[];
+    return <MovieSummary>[];
   }
 
   // ---------------------------------------------------------------------------
@@ -480,25 +959,20 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         continue;
       }
 
-      final List<XtreamPlaylist> playlists = await _safeGetPlaylists(
-        account.id,
-      );
+      final List<XtreamPlaylist> playlists = await _safeGetPlaylists(account.id);
 
-        for (final XtreamPlaylist pl in playlists) {
-          final String visibleKey =
-              '${account.alias}/${_cleanCategoryTitle(pl.title)}';
+      for (final XtreamPlaylist pl in playlists) {
+        final String visibleKey = '${account.alias}/${_cleanCategoryTitle(pl.title)}';
 
-          // Construction LITE: aucun appel TMDB ici, l’UI déclenchera l’enrichissement.
-          final List<ContentReference> items = <ContentReference>[];
-          for (final XtreamPlaylistItem it in pl.items) {
-            // IMPORTANT: ne jamais confondre streamId IPTV avec tmdbId.
-            // Si tmdbId est absent, utiliser un identifiant non-numérique pour forcer
-            // le fallback par titre côté enrichissement.
-            final String refId = (it.tmdbId != null && it.tmdbId! > 0)
-                ? it.tmdbId!.toString()
-                : 'xtream:${it.streamId}';
-            items.add(
-              ContentReference(
+        // Construction LITE : aucun appel TMDB ici, l’UI déclenchera l’enrichissement.
+        final List<ContentReference> items = <ContentReference>[];
+        for (final XtreamPlaylistItem it in pl.items) {
+          final String refId = (it.tmdbId != null && it.tmdbId! > 0)
+              ? it.tmdbId!.toString()
+              : 'xtream:${it.streamId}'; // force le fallback par titre à l’enrichissement
+
+          items.add(
+            ContentReference(
               id: refId,
               title: MediaTitle(it.title),
               type: it.type == XtreamPlaylistItemType.series
@@ -507,9 +981,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
               poster: _safePosterUri(it.posterUrl),
               year: it.releaseYear,
               rating: it.rating,
-              ),
-            );
-          }
+            ),
+          );
+        }
 
         if (items.isNotEmpty) {
           result[visibleKey] = items;
@@ -532,29 +1006,26 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     int? idNum = int.tryParse(ref.id);
     final bool isSeries = ref.type == ContentType.series;
 
-    // Idempotence: si déjà enrichi avec succès pendant ce cycle, renvoyer tel quel.
+    // Idempotence : si déjà enrichi pendant ce cycle, renvoyer tel quel.
     if (_enrichedIds.contains(ref.id)) return ref;
 
     // Fallback titre → id si l'ID n’est pas numérique (souvent streamId IPTV).
     if (idNum == null) {
       try {
         if (isSeries) {
-          final results = await _tvRemote.searchShows(ref.title.value, cancelToken: cancelToken);
-          final match = results.isNotEmpty ? results.first : null;
-          idNum = match?.id;
+          final results =
+              await _tvRemote.searchShows(ref.title.value, cancelToken: cancelToken);
+          idNum = results.isNotEmpty ? results.first.id : null;
           if (kDebugMode) {
-            debugPrint(
-              '[HomeFeed] TV search fallback for "${ref.title.value}" → id=$idNum',
-            );
+            debugPrint('[HomeFeed] TV search fallback for "${ref.title.value}" → id=$idNum');
           }
         } else {
-          final results = await _moviesRemote.searchMovies(ref.title.value, cancelToken: cancelToken);
-          final match = results.isNotEmpty ? results.first : null;
-          idNum = match?.id;
+          final results = await _moviesRemote.searchMovies(ref.title.value,
+              cancelToken: cancelToken);
+          idNum = results.isNotEmpty ? results.first.id : null;
           if (kDebugMode) {
             debugPrint(
-              '[HomeFeed] MOVIE search fallback for "${ref.title.value}" → id=$idNum',
-            );
+                '[HomeFeed] MOVIE search fallback for "${ref.title.value}" → id=$idNum');
           }
         }
       } catch (_) {
@@ -566,7 +1037,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
     try {
       if (isSeries) {
-        // TV: d’abord cache, sinon réseau LITE puis mise en cache.
+        // TV : d’abord cache, sinon réseau LITE puis mise en cache.
         Map<String, dynamic>? cached = await _tmdbCache.getTvDetail(
           idNum,
           policyOverride: const CachePolicy(ttl: Duration(days: 3)),
@@ -579,22 +1050,18 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         }
         final Map<String, dynamic> data = cached;
 
-        final Map<String, dynamic> imagesMap =
-            (data['images'] as Map<String, dynamic>?) ??
-            const <String, dynamic>{};
-        final List<dynamic> posters =
-            (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
-        final String? posterPath =
-            _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
+        final String? posterPath = _PosterSelector.selectBestPosterPath(
+              (data['images']?['posters'] as List<dynamic>?) ?? const <dynamic>[],
+            ) ??
+            data['poster_path']?.toString();
+
         final String? tmdbTitle =
             (data['name']?.toString() ?? data['original_name']?.toString());
 
         final result = ContentReference(
           id: ref.id,
           title: MediaTitle(
-            (tmdbTitle != null && tmdbTitle.isNotEmpty)
-                ? tmdbTitle
-                : ref.title.value,
+            (tmdbTitle != null && tmdbTitle.isNotEmpty) ? tmdbTitle : ref.title.value,
           ),
           type: ref.type,
           // TMDB d’abord, sinon conserver le poster IPTV en fallback.
@@ -605,14 +1072,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
         if (kDebugMode) {
           debugPrint(
-            '[HomeFeed] Enriched TV id=${ref.id} year=${result.year} rating=${result.rating} posterPresent=${result.poster != null}',
-          );
+              '[HomeFeed] Enriched TV id=${ref.id} year=${result.year} rating=${result.rating} posterPresent=${result.poster != null}');
         }
 
         _enrichedIds.add(ref.id); // marquer après succès
         return result;
       } else {
-        // Movie: d’abord cache, sinon réseau LITE puis mise en cache.
+        // Movie : d’abord cache, sinon réseau LITE puis mise en cache.
         Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(
           idNum,
           policyOverride: const CachePolicy(ttl: Duration(days: 3)),
@@ -625,22 +1091,18 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         }
         final Map<String, dynamic> data = cached;
 
-        final Map<String, dynamic> imagesMap =
-            (data['images'] as Map<String, dynamic>?) ??
-            const <String, dynamic>{};
-        final List<dynamic> posters =
-            (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
-        final String? posterPath =
-            _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
+        final String? posterPath = _PosterSelector.selectBestPosterPath(
+              (data['images']?['posters'] as List<dynamic>?) ?? const <dynamic>[],
+            ) ??
+            data['poster_path']?.toString();
+
         final String? tmdbTitle =
             (data['title']?.toString() ?? data['original_title']?.toString());
 
         final result = ContentReference(
           id: ref.id,
           title: MediaTitle(
-            (tmdbTitle != null && tmdbTitle.isNotEmpty)
-                ? tmdbTitle
-                : ref.title.value,
+            (tmdbTitle != null && tmdbTitle.isNotEmpty) ? tmdbTitle : ref.title.value,
           ),
           type: ref.type,
           // TMDB d’abord, sinon conserver le poster IPTV en fallback.
@@ -651,8 +1113,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
         if (kDebugMode) {
           debugPrint(
-            '[HomeFeed] Enriched MOVIE id=${ref.id} year=${result.year} rating=${result.rating} posterPresent=${result.poster != null}',
-          );
+              '[HomeFeed] Enriched MOVIE id=${ref.id} year=${result.year} rating=${result.rating} posterPresent=${result.poster != null}');
         }
 
         _enrichedIds.add(ref.id); // marquer après succès
@@ -678,7 +1139,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       final Set<int> ids = await _iptvLocal.getAvailableTmdbIds();
       return ids;
     } catch (_) {
-      // Fallback: reconstitution via accounts/playlists si l'API dédiée n’est pas disponible.
+      // Fallback : reconstitution via accounts/playlists si l'API dédiée n’est pas disponible.
       final List<XtreamAccountLite> accs = await _safeGetAccounts();
       final Set<int> set = <int>{};
       for (final XtreamAccountLite acc in accs) {
@@ -726,20 +1187,20 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     );
   }
 
-  MovieSummary? _mapMovie(dynamic dto) {
+  MovieSummary? _mapMovie(_MovieLiteDto dto) {
     final Uri? poster = _images.poster(dto.posterPath); // w500 par défaut
     if (poster == null) return null;
     return MovieSummary(
       id: MovieId(dto.id.toString()),
-      tmdbId: dto.id as int?,
-      title: MediaTitle(dto.title as String),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.title),
       poster: poster,
       backdrop: _images.backdrop(dto.backdropPath), // w780 par défaut
-      releaseYear: _parseYear(dto.releaseDate as String?),
+      releaseYear: _parseYear(dto.releaseDate),
     );
   }
 
-  /// Vérifie et filtre les URLs de posters IPTV (autorise http/https sans blacklist d'hôtes).
+  /// Vérifie et filtre les URLs de posters IPTV (autorise http/https).
   Uri? _safePosterUri(String? raw) {
     if (raw == null || raw.isEmpty) return null;
     final Uri? u = Uri.tryParse(raw);
@@ -758,30 +1219,6 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     return raw;
   }
 
-  String? _selectPosterNoLang(List<dynamic> posters) {
-    if (posters.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final List<Map<String, dynamic>> list = posters
-        .cast<Map<String, dynamic>>();
-
-    final List<Map<String, dynamic>> noLang =
-        list.where((m) => m['iso_639_1'] == null).toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    final List<Map<String, dynamic>> en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
   int? _parseYear(String? raw) {
     if (raw == null || raw.isEmpty || raw.length < 4) return null;
     return int.tryParse(raw.substring(0, 4));
@@ -795,7 +1232,6 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   Future<List<XtreamAccountLite>> _safeGetAccounts() async {
     try {
       final accounts = await _iptvLocal.getAccounts();
-      // Projection minimale (évite d’exposer tout l’objet si lourd)
       return accounts
           .map((a) => XtreamAccountLite(id: a.id, alias: a.alias))
           .toList(growable: false);
@@ -810,9 +1246,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
   Future<List<XtreamPlaylist>> _safeGetPlaylists(String accountId) async {
     try {
-      final List<XtreamPlaylist> playlists = await _iptvLocal.getPlaylists(
-        accountId,
-      );
+      final List<XtreamPlaylist> playlists = await _iptvLocal.getPlaylists(accountId);
       return playlists;
     } catch (e) {
       assert(() {
@@ -823,31 +1257,95 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     }
   }
 
-  Future<List<dynamic>> _fetchTrendingMoviesPage(int page) async {
+  Future<List<_MovieLiteDto>> _fetchTrendingMoviesPage(int page) async {
     try {
-      final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
-        window: 'week',
-        page: page,
-      );
-      return res;
+      final List<dynamic> res =
+          await _moviesRemote.fetchTrendingMovies(window: 'week', page: page);
+      // Projection minimale sûre.
+      return res
+          .map((e) => _MovieLiteDto.tryParse(e))
+          .whereType<_MovieLiteDto>()
+          .toList(growable: false);
     } catch (e) {
       assert(() {
-        debugPrint(
-          '[HomeFeedRepositoryImpl] fetchTrendingMovies(page: $page) error: $e',
-        );
+        debugPrint('[HomeFeedRepositoryImpl] fetchTrendingMovies(page: $page) error: $e');
         return true;
       }());
-      // En cas d'échec > page 1 on coupe court ; pour page 1 on tente un dernier essai.
       if (page == 1) {
         try {
-          final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
-            window: 'week',
-          );
-          return res;
+          final List<dynamic> res =
+              await _moviesRemote.fetchTrendingMovies(window: 'week');
+          return res
+              .map((e) => _MovieLiteDto.tryParse(e))
+              .whereType<_MovieLiteDto>()
+              .toList(growable: false);
         } catch (_) {}
       }
-      return const <dynamic>[];
+      return const <_MovieLiteDto>[];
     }
+  }
+}
+
+/// Sélection d’image centralisée (priorité : iso_639_1 == null → 'en' → meilleur score).
+class _PosterSelector {
+  const _PosterSelector._();
+
+  static String? selectBestPosterPath(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list =
+        posters.cast<Map<String, dynamic>>().where((m) => m['file_path'] != null).toList();
+
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list.where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en')).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+}
+
+/// Projection minimale d’un film TMDB pour le Hero.
+class _MovieLiteDto {
+  const _MovieLiteDto({
+    required this.id,
+    required this.title,
+    this.posterPath,
+    this.backdropPath,
+    this.releaseDate,
+  });
+
+  final int id;
+  final String title;
+  final String? posterPath;
+  final String? backdropPath;
+  final String? releaseDate;
+
+  static _MovieLiteDto? tryParse(dynamic e) {
+    if (e is Map<String, dynamic>) {
+      final int? id = (e['id'] as num?)?.toInt();
+      final String? title = (e['title'] ?? e['original_title'])?.toString();
+      if (id == null || title == null) return null;
+      return _MovieLiteDto(
+        id: id,
+        title: title,
+        posterPath: e['poster_path']?.toString(),
+        backdropPath: e['backdrop_path']?.toString(),
+        releaseDate: e['release_date']?.toString(),
+      );
+    }
+    return null;
   }
 }
 
@@ -859,11 +1357,45 @@ class XtreamAccountLite {
 }
 
 --------------------------------------------------------------------------------
-FILE #86: src/features/home/presentation/pages/home_page.dart
+FILE #97: src/features/home/domain/repositories/home_feed_repository.dart
+--------------------------------------------------------------------------------
+import 'package:dio/dio.dart';
+
+import '../../../movie/domain/entities/movie_summary.dart';
+import '../../../tv/domain/entities/tv_show.dart';
+import '../../../../shared/domain/value_objects/content_reference.dart';
+
+/// Contract for the Home feed data needed by the Home page (no UI).
+abstract class HomeFeedRepository {
+  /// Trending movies on TMDB intersected with IPTV availability.
+  Future<List<MovieSummary>> getHeroMovies();
+
+  /// Local-only continue watching for movies.
+  Future<List<MovieSummary>> getContinueWatchingMovies();
+
+  /// Local-only continue watching for TV shows.
+  Future<List<TvShowSummary>> getContinueWatchingShows();
+
+  /// IPTV categories aggregated by account alias and category name.
+  /// Key format: `<accountAlias>/<categoryName>`.
+  ///
+  /// IMPORTANT:
+  /// - Chaque section ne doit pré-enrichir que les 5 premiers éléments.
+  /// - Le reste est "léger" (pas d'appel TMDB ici).
+  Future<Map<String, List<ContentReference>>> getIptvCategoryLists();
+
+  /// Enrichit un ContentReference “léger” avec les métadonnées TMDB (poster TMDB,
+  /// year, rating) via cache->réseau si nécessaire, puis renvoie une copie complète.
+  Future<ContentReference> enrichReference(ContentReference ref, {
+    CancelToken? cancelToken,
+  });
+}
+
+--------------------------------------------------------------------------------
+FILE #98: src/features/home/presentation/pages/home_page.dart
 --------------------------------------------------------------------------------
 // lib/src/features/home/presentation/pages/home_page.dart
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -876,11 +1408,14 @@ import '../../../../core/utils/app_spacing.dart';
 import '../../../../core/widgets/movi_bottom_nav_bar.dart';
 import '../../../../core/widgets/movi_items_list.dart';
 import '../../../../core/widgets/movi_media_card.dart';
+import '../../../../core/widgets/movi_see_all_card.dart';
 import '../../../../core/models/movi_media.dart';
+import '../../../search/presentation/pages/search_page.dart';
 import '../widgets/home_hero_section.dart';
+import '../widgets/home_hero_carousel.dart';
 import '../widgets/continue_watching_card.dart';
-import '../../../../core/logging/logging_service.dart';
-import '../../../../core/widgets/overlay_splash.dart';
+// logging_service n'est plus utilisé sur la page d'accueil
+// overlay_splash supprimé de la page d'accueil
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -891,19 +1426,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const _fadeDuration = Duration(milliseconds: 500);
-  // Spec: bottom nav 24px from bottom edge
-  static const _navBottomOffset = 24.0;
+  static const _navBottomOffset = 0;
 
   int _selectedIndex = 0;
-  // Overlay global (recouvre aussi la barre de navigation)
-  bool _overlayVisible = true;
-  bool _overlayMounted = true; // retiré du tree après le fade
-
-  void _hideOverlay() {
-    if (!_overlayVisible) return;
-    setState(() => _overlayVisible = false);
-    unawaited(LoggingService.log('HomeOverlay: hide (triggered by content)'));
-  }
 
   void _handleNavTap(int index) {
     if (_selectedIndex == index) return;
@@ -917,8 +1442,8 @@ class _HomePageState extends State<HomePage> {
     final bottomPadding = navHeight + _navBottomOffset + media.padding.bottom;
 
     final pages = <Widget>[
-      _HomeContent(onOverlayHide: _hideOverlay),
-      _NavPlaceholder(title: 'Recherche', bottomPadding: bottomPadding),
+      const _HomeContent(),
+      const SearchPage(),
       _NavPlaceholder(title: 'Bibliothèque', bottomPadding: bottomPadding),
       _NavPlaceholder(title: 'Paramètres', bottomPadding: bottomPadding),
     ];
@@ -945,23 +1470,7 @@ class _HomePageState extends State<HomePage> {
                 onItemSelected: _handleNavTap,
               ),
             ),
-            // Overlay global placé au-dessus pour masquer aussi la barre de navigation
-            if (_overlayMounted)
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  opacity: _overlayVisible ? 1.0 : 0.0,
-                  duration: _fadeDuration,
-                  onEnd: () {
-                    if (!_overlayVisible && _overlayMounted) {
-                      setState(() => _overlayMounted = false);
-                    }
-                  },
-                  child: IgnorePointer(
-                    ignoring: !_overlayVisible,
-                    child: const OverlaySplash(),
-                  ),
-                ),
-              ),
+            // Overlay supprimé : le contenu est affiché directement.
           ],
         ),
       ),
@@ -970,9 +1479,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _HomeContent extends ConsumerStatefulWidget {
-  const _HomeContent({required this.onOverlayHide});
-
-  final VoidCallback onOverlayHide;
+  const _HomeContent();
 
   @override
   ConsumerState<_HomeContent> createState() => _HomeContentState();
@@ -985,12 +1492,7 @@ class _HomeContent extends ConsumerStatefulWidget {
 ///   d’items est précaché (premier à terminer gagne).
 /// - Timeout doux de 5 secondes pour éviter de bloquer l’UI en cas de réseau lent.
 class _HomeContentState extends ConsumerState<_HomeContent> {
-  // --- Mémo anti-doublons par catégorie (évite les relances inutiles)
-  final Map<String, _ViewportReq> _lastReq = {};
-
-  // Vérification périodique : re-scanne le viewport et ré-enrichit si besoin
-  static const Duration _recheckEvery = Duration(seconds: 8);
-  Timer? _recheckTimer;
+  // Enrichissement TMDB désactivé pour les listes: plus de mémo viewport ni recheck.
 
   bool _isScheduled = false;
   void _postFrame(VoidCallback fn) {
@@ -1002,32 +1504,6 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     });
   }
 
-  // --- Overlay & précache iOS-first paint ---
-  bool _overlayActive = true; // état interne pour éviter les doublons
-  bool _precacheStarted = false;
-  // Soft timeout: fermeture automatique au bout de 5 secondes pour éviter les blocages
-  static const Duration _softTimeout = Duration(seconds: 5);
-  Timer? _softTimeoutTimer;
-
-  // Gate: fermeture overlay seulement quand héro ET premières listes sont prêtes
-  bool _heroReady = false;
-  bool _listsReady = false;
-  bool _hideNotified = false;
-  bool _didInitialViewport = false;
-
-  void _maybeNotifyOverlayHide() {
-    if (_hideNotified) return;
-    if (_heroReady && _listsReady) {
-      widget.onOverlayHide();
-      _hideNotified = true;
-      _overlayActive = false;
-      // Annule le soft timeout si la fermeture s'est produite avant
-      _softTimeoutTimer?.cancel();
-      _softTimeoutTimer = null;
-      unawaited(LoggingService.log('HomeOverlay: close (hero+lists ready)'));
-    }
-  }
-
   Future<void> _precacheImageUrl(String url) async {
     if (url.isEmpty) return;
     try {
@@ -1037,69 +1513,10 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     }
   }
 
-  Future<void> _precacheMany(List<String> urls) async {
-    final futures = urls.map(_precacheImageUrl);
-    await Future.wait(futures);
-  }
-
-  // Supprimé: l’overlay ne se ferme plus sur précache; il se ferme
-  // exclusivement à la première frame du backdrop héro.
-
-  @override
-  void initState() {
-    super.initState();
-    // Écoute HomeState: bascule listsReady dès que l’une des sections a des items
-    ref.listen<hp.HomeState>(hp.homeControllerProvider, (prev, next) {
-      if (_listsReady) return;
-      final hasInitialItems = next.cwMovies.isNotEmpty ||
-          next.cwShows.isNotEmpty ||
-          next.iptvLists.values.any((l) => l.isNotEmpty);
-      if (hasInitialItems) {
-        _listsReady = true;
-        _maybeNotifyOverlayHide();
-      }
-    });
-    _recheckTimer = Timer.periodic(_recheckEvery, (_) => _recheckVisible());
-    unawaited(LoggingService.log('HomeOverlay: start'));
-    // Lance le soft timeout pour garantir la fermeture si hero/lists ne deviennent pas prêts
-    _softTimeoutTimer = Timer(_softTimeout, () {
-      if (_overlayActive && !_hideNotified) {
-        widget.onOverlayHide();
-        _hideNotified = true;
-        _overlayActive = false;
-        unawaited(LoggingService.log('HomeOverlay: close (soft-timeout 5s)'));
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _recheckTimer?.cancel();
-    _softTimeoutTimer?.cancel();
-    super.dispose();
-  }
-
-  void _recheckVisible() {
-    if (_lastReq.isEmpty) return;
-    final controller = ref.read(hp.homeControllerProvider.notifier);
-    // Copie snapshot pour éviter les modifications concurrentes pendant l’itération
-    final current = Map<String, _ViewportReq>.from(_lastReq);
-    _postFrame(() {
-      for (final entry in current.entries) {
-        controller.enrichCategoryBatch(
-          entry.key,
-          entry.value.start,
-          entry.value.count,
-        );
-      }
-    });
-  }
-
   static const double _mediaCardWidth =
       150; // doit rester aligné avec MoviMediaCard par défaut
-  static const double _itemSpacing = 32; // espace horizontal entre items
-  static const double _sectionGap =
-      32; // espace VERTICAL entre sections MoviItemsList
+  static const double _itemSpacing = 16; // espace horizontal entre items
+  static const double _sectionGap = 32; // espace VERTICAL entre sections MoviItemsList
 
   // Afficher uniquement le libellé catégorie (sans "serveur/")
   String _displayCategoryTitle(String raw) {
@@ -1113,50 +1530,13 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
 
-    // Détecte que les premières listes ont des items (chargement minimal, sans enrichissement)
-    if (!_listsReady) {
-      final hasInitialItems = state.iptvLists.values.any((list) => list.isNotEmpty);
-      if (hasInitialItems) {
-        _postFrame(() {
-          if (!_listsReady) {
-            _listsReady = true;
-            _maybeNotifyOverlayHide();
-          }
-        });
-      }
-    }
-
-    // Si aucune interaction n'a encore déclenché onViewportChanged, force un enrichissement
-    // du premier viewport de la première section visible dès le premier layout.
-    if (!_didInitialViewport && state.iptvLists.isNotEmpty) {
-      _postFrame(() {
-        if (_didInitialViewport) return;
-        final mediaSize = MediaQuery.of(context).size;
-        final horizontalPadding = AppSpacing.lg * 2; // approximation de padding horizontal
-        final perItem = _mediaCardWidth + _itemSpacing;
-        final visibleCount = perItem > 0
-            ? (((mediaSize.width - horizontalPadding) / perItem).ceil() + 1)
-            : 6;
-
-        final firstKey = state.iptvLists.keys.first;
-        final firstList = state.iptvLists[firstKey] ?? const [];
-        final start = 0;
-        final count = visibleCount.clamp(1, firstList.length);
-
-        // Mémorise et enrichit ce premier viewport pour avoir des items rapidement
-        _lastReq[firstKey] = _ViewportReq(start, count + 8);
-        controller.enrichCategoryBatch(firstKey, start, count + 8);
-        _didInitialViewport = true;
-      });
-    }
-
     // Précache héro (sans fermer l’overlay) pour accélérer les réaffichages
     _postFrame(() {
-      if (!_precacheStarted && state.hero.isNotEmpty) {
-        var heroUrl = ((state.hero.first.backdrop) ?? (state.hero.first.poster)).toString();
+      if (state.hero.isNotEmpty) {
+        var heroUrl = ((state.hero.first.backdrop) ?? (state.hero.first.poster))
+            .toString();
         if (heroUrl == 'null') heroUrl = '';
         if (heroUrl.isNotEmpty) {
-          _precacheStarted = true;
           unawaited(_precacheImageUrl(heroUrl));
         }
       }
@@ -1165,213 +1545,169 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     return Stack(
       children: [
         RefreshIndicator(
-      onRefresh: controller.refresh,
-      child: CustomScrollView(
-        slivers: [
-          if (state.error != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  AppSpacing.lg,
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
+          onRefresh: () async {
+            await controller.refresh();
+          },
+          child: CustomScrollView(
+            slivers: [
+              if (state.error != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              'Une erreur est survenue. Balayez vers le bas pour réessayer.',
+                              style:
+                                  (theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.red,
+                                  )) ??
+                                  theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.red),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          'Une erreur est survenue. Balayez vers le bas pour réessayer.',
-                          style: (theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.red,
-                              )) ??
-                              theme.textTheme.bodyMedium,
+                ),
+
+              // On rend le vrai hero avec le state (évite les rebuilds visibles)
+              SliverToBoxAdapter(
+                child: (state.hero.length >= 2)
+                    ? HomeHeroCarousel(
+                        movies: state.hero.take(10).toList(growable: false),
+                      )
+                    : HomeHeroSection(
+                        movie: state.hero.isNotEmpty ? state.hero.first : null,
+                      ),
+              ),
+
+              // Marge après le hero: 32px pour uniformiser l'espacement des sections
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+              // ===== Section "En cours" =====
+              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: 'En cours',
+                    itemSpacing: _itemSpacing,
+                    // Cartes "En cours" font 300x165
+                    estimatedItemWidth: 300,
+                    estimatedItemHeight: 165,
+                    // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
+                    items: ([
+                      ...state.cwMovies.map(
+                        (m) => ContinueWatchingCard.movie(
+                          title: m.title.value,
+                          poster: (m.backdrop ?? m.poster).toString(),
+                          year: m.releaseYear?.toString() ?? '',
+                          progress: 0,
+                          onTap: () => context.push('/movie'),
                         ),
+                      ),
+                      ...state.cwShows.map(
+                        (s) => ContinueWatchingCard.episode(
+                          title: s.title.value,
+                          seriesTitle: s.title.value,
+                          poster: (s.backdrop ?? s.poster).toString(),
+                          seasonEpisode: 'S?? E??',
+                          progress: 0,
+                          onTap: () => context.push('/tv'),
+                        ),
+                      ),
+                    ]).take(10).toList(),
+                  ),
+                ),
+
+              // 32 px après "En cours"
+              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+
+              if (state.iptvLists.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: Text(
+                      'Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+
+              // ===== Sections IPTV ===== (enrichissement à la volée)
+              for (final entry in state.iptvLists.entries) ...[
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: _displayCategoryTitle(
+                      entry.key,
+                    ), // ← étiquette propre
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    // Hauteur totale carte = poster (225) + titre (≈20) + marge (12)
+                    // → 225 + 12 + 20 ≈ 257 ; on sécurise à 270 pour éviter overflow.
+                    estimatedItemHeight: 270,
+                    items: [
+                      ...entry.value.take(9).map((r) {
+                        // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
+                        final poster = r.poster?.toString() ?? '';
+                        // Désactiver toute pill: ne pas afficher année/score pour les listes
+                        const String yearStr = '';
+                        const String ratingStr = '';
+
+                        final media = MoviMedia(
+                          id: r.id,
+                          title: r.title.value,
+                          poster: poster,
+                          year: yearStr, // <-- String non nulle
+                          rating: ratingStr, // <-- String non nulle
+                          type: r.type == ContentType.series
+                              ? MoviMediaType.series
+                              : MoviMediaType.movie,
+                        );
+                        return MoviMediaCard(media: media);
+                      }),
+                      SeeAllCard(
+                        title: _displayCategoryTitle(entry.key),
+                        categoryKey: entry.key,
+                        width: _mediaCardWidth,
+                        posterHeight: 225,
                       ),
                     ],
                   ),
                 ),
-              ),
-            ),
+                // 32 px entre *chaque* section MoviItemsList IPTV
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+              ],
 
-          // On rend le vrai hero avec le state (évite les rebuilds visibles)
-          SliverToBoxAdapter(
-            child: HomeHeroSection(
-              movie: state.hero.isNotEmpty ? state.hero.first : null,
-              onBackgroundReady: () {
-                if (_overlayActive && !_heroReady) {
-                  _heroReady = true;
-                  // Fallback: si aucune liste n'est disponible, on ne bloque pas l'overlay.
-                  final noListsConfigured = state.iptvLists.isEmpty &&
-                      state.cwMovies.isEmpty &&
-                      state.cwShows.isEmpty;
-                  if (noListsConfigured) {
-                    _listsReady = true;
-                  }
-                  _maybeNotifyOverlayHide();
-                }
-              },
-            ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
           ),
-
-          // Marge après le hero (libre, non concernée par "32px entre MoviItemsList")
-          const SliverToBoxAdapter(child: SizedBox(height: 54)),
-
-          // ===== Section "En cours" =====
-          if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
-            SliverToBoxAdapter(
-              child: MoviItemsList(
-                title: 'En cours',
-                itemSpacing: _itemSpacing,
-                estimatedItemWidth: _mediaCardWidth,
-                // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
-                items: [
-                  ...state.cwMovies.map(
-                    (m) => ContinueWatchingCard.movie(
-                      title: m.title.value,
-                      poster: (m.backdrop ?? m.poster).toString(),
-                      year: m.releaseYear?.toString() ?? '',
-                      progress: 0,
-                      onTap: () => context.push('/movie'),
-                    ),
-                  ),
-                  ...state.cwShows.map(
-                    (s) => ContinueWatchingCard.episode(
-                      title: s.title.value,
-                      seriesTitle: s.title.value,
-                      poster: (s.backdrop ?? s.poster).toString(),
-                      seasonEpisode: 'S?? E??',
-                      progress: 0,
-                      onTap: () => context.push('/tv'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // 32 px après "En cours"
-          if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
-            const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
-
-          if (state.iptvLists.isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Text(
-                  'Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            ),
-
-          // ===== Sections IPTV ===== (enrichissement à la volée)
-          for (final entry in state.iptvLists.entries) ...[
-            SliverToBoxAdapter(
-              child: MoviItemsList(
-                title: _displayCategoryTitle(entry.key), // ← étiquette propre
-                itemSpacing: _itemSpacing,
-                estimatedItemWidth: _mediaCardWidth,
-                // Paramètres dépendants plateforme pour stabilité Windows.
-                debounceMs: defaultTargetPlatform == TargetPlatform.windows ? 240 : 160,
-                preloadAhead: defaultTargetPlatform == TargetPlatform.windows ? 2 : 3,
-                // → Notifie le contrôleur d’enrichir le batch visible (+preload)
-                onViewportChanged: (start, count) {
-                  // On ajoute un petit buffer pour éviter de recalculer à chaque pixel
-                  final buffered = _ViewportReq(start, count + 8);
-                  final last = _lastReq[entry.key];
-
-                  // Si la nouvelle zone est incluse dans la précédente → on ne relance pas
-                  if (last != null && last.contains(buffered)) return;
-
-                  // Mémorise la nouvelle plage puis déclenche en post-frame (throttle)
-                  _lastReq[entry.key] = buffered;
-                  _postFrame(() {
-                    // Annule les requêtes hors écran pour libérer la concurrence
-                    controller.cancelOffscreen(
-                      entry.key,
-                      buffered.start,
-                      buffered.count,
-                    );
-                    controller.enrichCategoryBatch(
-                      entry.key,
-                      buffered.start,
-                      buffered.count,
-                    );
-                  });
-
-                  // Précache premier viewport (sans fermer l’overlay) pour fluidifier le scroll
-                  if (!_precacheStarted) {
-                    _precacheStarted = true;
-                    final visible = entry.value
-                        .skip(start)
-                        .take(count)
-                        .map((r) => r.poster?.toString() ?? '')
-                        .where((u) => u.isNotEmpty)
-                        .toList();
-                    unawaited(_precacheMany(visible));
-                  }
-                },
-
-                items: entry.value.take(40).map((r) {
-                  // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
-                  final poster = r.poster?.toString() ?? '';
-
-                  // Fournir des Strings non nulles pour respecter la signature de MoviMedia
-                  final yearStr = r.year != null ? r.year!.toString() : '';
-                  final ratingStr = r.rating != null
-                      ? (r.rating! >= 10 ? '10' : r.rating!.toStringAsFixed(1))
-                      : '';
-
-                  final media = MoviMedia(
-                    id: r.id,
-                    title: r.title.value,
-                    poster: poster,
-                    year: yearStr, // <-- String non nulle
-                    rating: ratingStr, // <-- String non nulle
-                    type: r.type == ContentType.series
-                        ? MoviMediaType.series
-                        : MoviMediaType.movie,
-                  );
-                  return MoviMediaCard(media: media);
-                }).toList(),
-              ),
-            ),
-            // 32 px entre *chaque* section MoviItemsList IPTV
-            const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
-          ],
-
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
-      ),
         ),
       ],
     );
   }
 }
 
-class _ViewportReq {
-  final int start;
-  final int count;
-  const _ViewportReq(this.start, this.count);
-
-  // Retourne true si `other` est entièrement inclus dans cette plage
-  bool contains(_ViewportReq other) {
-    final end = start + count;
-    final oEnd = other.start + other.count;
-    return other.start >= start && oEnd <= end;
-  }
-}
+// _ViewportReq supprimé — l’UI n’émet plus de fenêtres de viewport pour enrichir.
 
 class _NavPlaceholder extends StatelessWidget {
   const _NavPlaceholder({required this.title, required this.bottomPadding});
@@ -1396,7 +1732,7 @@ class _NavPlaceholder extends StatelessWidget {
 }
 
 --------------------------------------------------------------------------------
-FILE #87: src/features/home/presentation/providers/home_providers.dart
+FILE #99: src/features/home/presentation/providers/home_providers.dart
 --------------------------------------------------------------------------------
 // lib/src/features/home/presentation/providers/home_providers.dart
 import 'dart:async';
@@ -1675,110 +2011,204 @@ final homeControllerProvider =
 );
 
 --------------------------------------------------------------------------------
-FILE #89: src/features/home/presentation/widgets/home_hero_section.dart
+FILE #101: src/features/home/presentation/widgets/home_hero_carousel.dart
 --------------------------------------------------------------------------------
 // ignore_for_file: public_member_api_docs
 
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../../../core/router/app_router.dart';
-import '../../../../core/utils/app_assets.dart';
-import '../../../../core/utils/app_spacing.dart';
-import '../../../../core/widgets/movi_favorite_button.dart';
-import '../../../../core/widgets/movi_pill.dart';
-import '../../../../core/widgets/movi_primary_button.dart';
-import '../../../../shared/data/services/tmdb_cache_data_source.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/core/di/injector.dart';
+import 'package:movi/src/core/router/app_router.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_favorite_button.dart';
+import 'package:movi/src/core/widgets/movi_pill.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
-/// Hero principal de la page d’accueil.
-/// - Lecture via cache pour l’affichage initial.
-/// - Hydratation asynchrone (cache→réseau) si des métadonnées essentielles manquent.
-/// - Résout les images via [TmdbImageResolver] avec des tailles adaptées (w780/w500).
-class HomeHeroSection extends StatefulWidget {
-  const HomeHeroSection({super.key, required this.movie, this.onBackgroundReady});
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 
-  /// Résumé du contenu sélectionné pour le hero (MovieSummary minimal).
-  final MovieSummary? movie;
-  /// Callback déclenché dès que le backdrop rend sa première frame.
-  final VoidCallback? onBackgroundReady;
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+
+/// Carrousel du Hero d’accueil.
+/// - Affiche une liste de films/séries en rotation automatique.
+/// - Lit d’abord le cache, puis hydrate si nécessaire (cache → full fetch).
+/// - Sélection d’images centralisée pour éliminer les posters avec texte.
+class HomeHeroCarousel extends StatefulWidget {
+  const HomeHeroCarousel({super.key, required this.movies});
+
+  final List<MovieSummary> movies;
 
   @override
-  State<HomeHeroSection> createState() => _HomeHeroSectionState();
+  State<HomeHeroCarousel> createState() => _HomeHeroCarouselState();
 }
 
-class _HomeHeroSectionState extends State<HomeHeroSection> {
-  static const double _totalHeight = 690;
+class _HomeHeroCarouselState extends State<HomeHeroCarousel>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+  // Mise en page
+  static const double _totalHeight = 790;
   static const double _overlayHeight = 125;
-  // Plafond sécurité pour la taille décodée du backdrop (en pixels @device)
+
+  // Limite de décodage (px @device) pour soulager CPU/GPU en desktop
   static const int _maxHeroCachePx = 1440;
 
-  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
+  // Timings
+  static const Duration _rotation = Duration(seconds: 9);
+  static const Duration _fade = Duration(milliseconds: 800);
 
+  // DI
   late final TmdbCacheDataSource _cache = sl<TmdbCacheDataSource>();
   late final TmdbImageResolver _images = sl<TmdbImageResolver>();
   late final TmdbMovieRemoteDataSource _moviesRemote =
       sl<TmdbMovieRemoteDataSource>();
   late final TmdbTvRemoteDataSource _tvRemote = sl<TmdbTvRemoteDataSource>();
 
-  /// Évite les hydrations multiples pour un même identifiant durant le cycle de vie.
-  final Set<int> _hydratedIds = <int>{};
+  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
 
-  Future<_HeroMeta?>? _metaFuture;
-  bool _backdropNotified = false; // évite les notifications multiples
+  // États
+  final Set<int> _hydratedIds = <int>{};
+  final Map<int, Future<_HeroMeta?>> _metaFutures = <int, Future<_HeroMeta?>>{};
+
+  int _index = 0;
+  Timer? _timer;
+  bool _backdropNotified = false;
+  bool _isTransitioning = false;
+  int? _pendingIndex;
+
+  late final AnimationController _transitionCtrl =
+      AnimationController(vsync: this, duration: _fade);
+  late final Animation<double> _darkness =
+      CurvedAnimation(parent: _transitionCtrl, curve: Curves.easeInOut);
 
   @override
   void initState() {
     super.initState();
-    _primeMeta();
+    WidgetsBinding.instance.addObserver(this);
+    _prepareCurrentMeta();
+    _startTimer();
+
+    _transitionCtrl.addStatusListener((status) {
+      if (!_isTransitioning) return;
+      if (status == AnimationStatus.completed) {
+        // Phase 1 terminée (fondu vers sombre) → on bascule l’index puis on revient.
+        if (_pendingIndex != null) {
+          setState(() {
+            _index = _pendingIndex!;
+            _backdropNotified = false;
+          });
+          _prepareCurrentMeta();
+        }
+        _transitionCtrl.reverse();
+      } else if (status == AnimationStatus.dismissed) {
+        // Phase 2 terminée (retour clair) → transition complète.
+        _isTransitioning = false;
+        _pendingIndex = null;
+      }
+    });
   }
 
   @override
-  void didUpdateWidget(covariant HomeHeroSection oldWidget) {
+  void didUpdateWidget(covariant HomeHeroCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final oldId = oldWidget.movie?.tmdbId;
-    final newId = widget.movie?.tmdbId;
-    if (oldId != newId) _primeMeta();
+    if (!listEquals(oldWidget.movies, widget.movies)) {
+      _index = 0;
+      _metaFutures.clear();
+      _backdropNotified = false;
+      _prepareCurrentMeta();
+      _restartTimer();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _favorite.dispose();
+    _transitionCtrl.dispose();
+    _timer?.cancel();
     super.dispose();
   }
 
-  void _primeMeta() {
-    final m = widget.movie;
-    if (m == null) {
-      _metaFuture = null;
-      return;
+  // Lifecycle : pause/reprise du timer
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _restartTimer();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _timer?.cancel();
     }
-    _metaFuture = _loadMeta(m);
-    // Hydrater en arrière-plan si nécessaire (ne bloque pas l'affichage initial).
-    _hydrateMetaIfNeeded(m);
   }
 
-  /// Tente d’extraire une URL http(s) depuis diverses représentations (String / Uri / null).
-  String? _coerceUrl(dynamic v) {
-    if (v == null) return null;
-    final s = v is Uri ? v.toString() : v.toString();
-    if (s.isEmpty || s == 'null') return null;
-    return (s.startsWith('http://') || s.startsWith('https://')) ? s : null;
+  // ---------------------------------------------------------------------------
+  // Rotation / préparation
+  // ---------------------------------------------------------------------------
+
+  void _startTimer() {
+    _timer?.cancel();
+    if (widget.movies.length <= 1) return;
+    _timer = Timer.periodic(_rotation, (_) {
+      if (!mounted) return;
+      _triggerNext();
+    });
   }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _startTimer();
+  }
+
+  void _triggerNext() {
+    if (_isTransitioning) return;
+    final int len = widget.movies.length;
+    if (len <= 1) return;
+    _pendingIndex = (_index + 1) % len;
+    _isTransitioning = true;
+    _transitionCtrl.forward(from: 0);
+  }
+
+  void _prepareCurrentMeta() {
+    final MovieSummary? m = _currentMovie;
+    if (m == null || m.tmdbId == null) return;
+
+    // Préparer meta courante (cache→affichage)
+    _metaFutures[m.tmdbId!] ??= _loadMeta(m);
+    _hydrateMetaIfNeeded(m);
+
+    // Précharger image courante
+    _precacheBgFor(m, isNext: false);
+
+    // Préparer meta suivante pour une transition fluide
+    final MovieSummary? next = _nextMovie;
+    if (next?.tmdbId != null) {
+      _metaFutures[next!.tmdbId!] ??= _loadMeta(next);
+      _hydrateMetaIfNeeded(next);
+      _precacheBgFor(next, isNext: true);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers de données / cache
+  // ---------------------------------------------------------------------------
+
+  MovieSummary? get _currentMovie =>
+      (widget.movies.isNotEmpty ? widget.movies[_index] : null);
+
+  MovieSummary? get _nextMovie => widget.movies.isNotEmpty
+      ? widget.movies[(_index + 1) % widget.movies.length]
+      : null;
 
   Future<_HeroMeta?> _loadMeta(MovieSummary m) async {
-    final id = m.tmdbId;
+    final int? id = m.tmdbId;
     if (id == null) return null;
 
-    // 1) Essai cache Movie
+    // 1) Film en cache, sinon 2) Série en cache
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
-
-    // 2) Fallback cache TV si le hero pointe en réalité vers une série (ou cache movie non hydraté)
     bool isTvData = false;
     if (data == null) {
       data = await _safeGetTvDetail(id);
@@ -1786,54 +2216,46 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     }
     if (data == null) return null;
 
-    final imagesMap =
+    final Map<String, dynamic> images =
         (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final posters =
-        (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
-    final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
 
-    final posterNoLangPath =
-        _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
-    final logoPath = _selectLogoFrEnNoLang(logos);
+    // Sélection centralisée : poster no-lang → en → best ; logo en → no-lang → best
+    final String? posterPath =
+        _ImageSelector.selectPoster(posters) ?? data['poster_path']?.toString();
+    final String? logoPath = _ImageSelector.selectLogo(logos);
 
-    // ✅ Utiliser des tailles adaptées pour réduire la pression mémoire/CPU
-    // Spécification: réduire la taille de l'image du hero et optimiser le poids.
-    // - Poster: passer de w500 à w342 (moins lourd, suffisant pour ce contexte)
-    // - Backdrop: conserver w780 (compromis qualité/poids pour fond plein écran)
-    final posterUri = _images.poster(
-      posterNoLangPath,
-      size: 'w342',
-    );
-    final backdropUri = _images.backdrop(
-      data['backdrop_path']?.toString(),
-      size: 'w780',
-    );
-    final logoUri = _images.logo(logoPath);
+    // Tailles standardisées pour stabilité/perf
+    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
+    final Uri? backdropUri =
+        _images.backdrop(data['backdrop_path']?.toString(), size: 'w780');
+    final Uri? logoUri = _images.logo(logoPath);
 
-    final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num)
-        ? (data['vote_average'] as num).toDouble()
-        : null;
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote =
+        (data['vote_average'] is num) ? (data['vote_average'] as num).toDouble() : null;
 
-    // Durée (Movie: runtime en minutes, TV: premier élément de episode_run_time si présent).
+    // Durée (film) / durée épisode (série)
     int? runtimeMinutes;
-    final rawRuntime = data['runtime'];
+    final dynamic rawRuntime = data['runtime'];
     if (rawRuntime is int) {
       runtimeMinutes = rawRuntime;
     } else {
-      final ert = data['episode_run_time'];
-      if (ert is List && ert.isNotEmpty) {
-        final first = ert.first;
-        if (first is int) runtimeMinutes = first;
+      final dynamic ert = data['episode_run_time'];
+      if (ert is List && ert.isNotEmpty && ert.first is int) {
+        runtimeMinutes = ert.first as int;
       }
     }
 
-    // Year depuis release_date (Movie) **ou** first_air_date (TV).
-    final String? releaseOrFirstAir =
+    // Année depuis release_date (film) ou first_air_date (série)
+    final String? date =
         (data['release_date']?.toString().trim().isNotEmpty ?? false)
-        ? data['release_date']?.toString()
-        : data['first_air_date']?.toString();
-    final year = _parseYear(releaseOrFirstAir) ?? widget.movie?.releaseYear;
+            ? data['release_date']?.toString()
+            : data['first_air_date']?.toString();
+    final int? year = _parseYear(date) ?? m.releaseYear;
 
     return _HeroMeta(
       isTv: isTvData,
@@ -1848,11 +2270,9 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
   }
 
   Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
-    final id = m.tmdbId;
-    if (id == null) return;
-    if (_hydratedIds.contains(id)) return;
+    final int? id = m.tmdbId;
+    if (id == null || _hydratedIds.contains(id)) return;
 
-    // Lire le cache pour décider si une hydratation est nécessaire.
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
     bool isTvData = false;
     if (data == null) {
@@ -1860,69 +2280,65 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       isTvData = data != null;
     }
 
-    // Si aucune entrée de cache, hydrater directement en FULL (film puis fallback série).
+    // Aucune donnée en cache → fetch FULL immédiat
     if (data == null) {
       try {
         _hydratedIds.add(id);
         try {
           final dto = await _moviesRemote.fetchMovieFull(id);
           await _cache.putMovieDetail(id, dto.toCache());
-          isTvData = false;
         } catch (_) {
-          // Fallback série si l’ID correspond à un show.
           final dto = await _tvRemote.fetchShowFull(id);
           await _cache.putTvDetail(id, dto.toCache());
-          isTvData = true;
         }
         if (!mounted) return;
-        setState(() {
-          _metaFuture = _loadMeta(m);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {}); // relit _metaFutures[id]
         });
       } catch (e, st) {
         if (kDebugMode) {
-          debugPrint(
-            'HomeHeroSection: hydration (no cache) failed for $id: $e\n$st',
-          );
+          debugPrint('HomeHeroCarousel: hydration (no cache) failed for $id: $e\n$st');
         }
       }
       return;
     }
 
-    final imagesMap =
+    // Cache présent mais incomplet → hydrate si nécessaire
+    final Map<String, dynamic> images =
         (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
-    final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num)
-        ? (data['vote_average'] as num).toDouble()
-        : null;
-    final hasRuntime =
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote =
+        (data['vote_average'] is num) ? (data['vote_average'] as num).toDouble() : null;
+    final bool hasRuntime =
         data['runtime'] is int ||
-        (data['episode_run_time'] is List &&
-            (data['episode_run_time'] as List).isNotEmpty);
+        (data['episode_run_time'] is List && (data['episode_run_time'] as List).isNotEmpty);
 
-    final needsHydration =
-        logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
+    final bool needsHydration =
+        posters.isEmpty || logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
     if (!needsHydration) return;
 
     try {
       _hydratedIds.add(id);
       if (!isTvData) {
-        // Film: récupérer le détail complet (inclut images/logos, crédits, recommandations).
         final dto = await _moviesRemote.fetchMovieFull(id);
         await _cache.putMovieDetail(id, dto.toCache());
       } else {
-        // Série: détail complet.
         final dto = await _tvRemote.fetchShowFull(id);
         await _cache.putTvDetail(id, dto.toCache());
       }
       if (!mounted) return;
-      // Recalculer les métadonnées à partir du cache hydraté.
-      setState(() {
-        _metaFuture = _loadMeta(m);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {}); // rechargera la meta
       });
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('HomeHeroSection: hydration failed for $id: $e\n$st');
+        debugPrint('HomeHeroCarousel: hydration failed for $id: $e\n$st');
       }
     }
   }
@@ -1932,8 +2348,7 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       return await _cache.getMovieDetail(id);
     } catch (e, st) {
       if (kDebugMode) {
-        // En debug uniquement : signaler une incohérence de cache.
-        debugPrint('HomeHeroSection: getMovieDetail($id) failed: $e\n$st');
+        debugPrint('HomeHeroCarousel: getMovieDetail($id) failed: $e\n$st');
       }
       return null;
     }
@@ -1944,71 +2359,19 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       return await _cache.getTvDetail(id);
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('HomeHeroSection: getTvDetail($id) failed: $e\n$st');
+        debugPrint('HomeHeroCarousel: getTvDetail($id) failed: $e\n$st');
       }
       return null;
     }
   }
 
-  String? _selectPosterNoLang(List<dynamic> posters) {
-    if (posters.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = posters.cast<Map<String, dynamic>>();
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  String? _selectLogoFrEnNoLang(List<dynamic> logos) {
-    if (logos.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = logos.cast<Map<String, dynamic>>();
-
-    final fr =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'fr'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (fr.isNotEmpty) return pathOf(fr.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  int? _parseYear(String? raw) {
-    if (raw == null || raw.isEmpty || raw.length < 4) return null;
-    return int.tryParse(raw.substring(0, 4));
-  }
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final movie = widget.movie;
+    final MovieSummary? movie = _currentMovie;
 
     return SizedBox(
       height: _totalHeight,
@@ -2016,69 +2379,59 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       child: movie == null
           ? const _HeroSkeleton(overlayHeight: _overlayHeight)
           : FutureBuilder<_HeroMeta?>(
-              future: _metaFuture,
+              future: _metaFutures[movie.tmdbId!],
               builder: (context, snap) {
-                // État de chargement initial ou rafraîchissement cible.
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const _HeroSkeleton(overlayHeight: _overlayHeight);
                 }
 
-                final meta = snap.data;
+                final _HeroMeta? meta = snap.data;
 
-                // Priorité: backdrop > poster > fallback summary (backdrop/poster).
-                final String? bgSrc =
-                    _coerceUrl(meta?.backdrop) ??
-                    _coerceUrl(meta?.poster) ??
-                    _coerceUrl(movie.backdrop) ??
-                    _coerceUrl(movie.poster);
+                // Ordre de préférence du fond :
+                // 1) Poster TMDB (no-lang → en → best)
+                // 2) Poster playlist
+                // 3) Backdrop TMDB
+                // 4) Backdrop playlist
+                final String? bgSrc = _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(movie.poster.toString()) ??
+                    _coerceHttpUrl(meta?.backdrop) ??
+                    _coerceHttpUrl(movie.backdrop?.toString());
 
-                final hasLogo = (meta?.logo?.isNotEmpty ?? false);
-                final year = meta?.year ?? movie.releaseYear;
-                final yearText = (year ?? '—').toString();
+                final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
+                final int? year = meta?.year ?? movie.releaseYear;
+                final String yearText = (year ?? '—').toString();
 
-                final rating = meta?.rating;
+                final double? rating = meta?.rating;
                 final String? ratingText = (rating == null)
                     ? null
-                    : (rating >= 10
-                          ? rating.toStringAsFixed(0)
-                          : rating.toStringAsFixed(1));
+                    : (rating >= 10 ? rating.toStringAsFixed(0) : rating.toStringAsFixed(1));
 
                 final String? durationText = _formatDuration(meta?.runtime);
+                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
 
-                final hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
-
-                // Construit le fond du hero en limitant la résolution décodée côté client (cacheWidth)
-                // afin de réduire la consommation mémoire/CPU et accélérer le premier rendu.
                 Widget buildBackground() {
                   if (bgSrc != null) {
                     final mq = MediaQuery.of(context);
-                    final rawPx = (mq.size.width * mq.devicePixelRatio).round();
-                    // Évite les décodages géants sur desktop lors des resizes
-                    final cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
+                    final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
+                    final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
                     return Image.network(
                       bgSrc,
+                      key: ValueKey(bgSrc),
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
-                      // ✅ réduit le churn d’images et la charge sur le main thread (Windows)
                       gaplessPlayback: true,
-                      // Réduit le poids décodé en adaptant à la largeur réelle de l’écran
                       cacheWidth: cacheWidth,
                       filterQuality: FilterQuality.low,
                       errorBuilder: (_, __, ___) {
-                        // Si l’image échoue, on ne bloque pas l’UI :
-                        // on signale le “ready” pour que l’overlay se ferme.
                         if (!_backdropNotified) {
                           _backdropNotified = true;
-                          widget.onBackgroundReady?.call();
                         }
                         return const ColoredBox(color: Color(0xFF222222));
                       },
-                      // Fermer l’overlay dès la première frame du backdrop
                       frameBuilder: (context, child, frame, wasSync) {
                         if (frame != null && !_backdropNotified) {
                           _backdropNotified = true;
-                          widget.onBackgroundReady?.call();
                         }
                         return child;
                       },
@@ -2095,6 +2448,16 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                         fit: StackFit.expand,
                         children: [
                           buildBackground(),
+                          // Overlay sombre animé (transition inter-slides)
+                          AnimatedBuilder(
+                            animation: _darkness,
+                            builder: (context, _) {
+                              return Opacity(
+                                opacity: _darkness.value,
+                                child: const ColoredBox(color: Color(0xFF141414)),
+                              );
+                            },
+                          ),
                           const Positioned(
                             left: 0,
                             right: 0,
@@ -2107,9 +2470,7 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                             bottom: _overlayHeight - 100,
                             child: Center(
                               child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 100,
-                                ),
+                                constraints: const BoxConstraints(maxHeight: 100),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: AppSpacing.lg,
@@ -2117,17 +2478,26 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                                   child: FittedBox(
                                     fit: BoxFit.contain,
                                     child: hasLogo
-                                        ? Image.network(
-                                            meta!.logo!,
-                                            height: 100,
-                                            gaplessPlayback: true,
-                                            // Limite la résolution décodée du logo (~300px @1x)
-                                            cacheWidth: (300 * MediaQuery.of(context).devicePixelRatio).round(),
-                                            filterQuality: FilterQuality.low,
-                                            errorBuilder: (_, __, ___) =>
-                                                _TitleFallback(
-                                                  movie.title.value,
+                                        ? AnimatedBuilder(
+                                            animation: _darkness,
+                                            builder: (context, _) {
+                                              return Opacity(
+                                                opacity: 1.0 - _darkness.value,
+                                                child: Image.network(
+                                                  meta!.logo!,
+                                                  key: ValueKey(meta.logo!),
+                                                  height: 100,
+                                                  gaplessPlayback: true,
+                                                  // ~300px @1x
+                                                  cacheWidth:
+                                                      (300 * MediaQuery.of(context).devicePixelRatio)
+                                                          .round(),
+                                                  filterQuality: FilterQuality.low,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      _TitleFallback(movie.title.value),
                                                 ),
+                                              );
+                                            },
                                           )
                                         : _TitleFallback(movie.title.value),
                                   ),
@@ -2142,23 +2512,17 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (durationText != null)
-                          MoviPill(durationText, large: true),
-                        if (durationText != null && year != null)
-                          const SizedBox(width: 8),
+                        if (durationText != null) MoviPill(durationText, large: true),
+                        if (durationText != null && year != null) const SizedBox(width: 8),
                         if (year != null) MoviPill(yearText, large: true),
-                        if (year != null && ratingText != null)
-                          const SizedBox(width: 8),
-                        if (ratingText != null)
-                          MoviPill(ratingText, large: true),
+                        if (year != null && ratingText != null) const SizedBox(width: 8),
+                        if (ratingText != null) MoviPill(ratingText, large: true),
                       ],
                     ),
                     const SizedBox(height: 16),
                     if (hasSynopsis)
                       Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                         child: Text(
                           meta!.overview!,
                           maxLines: 3,
@@ -2173,9 +2537,7 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                       ),
                     if (hasSynopsis) const SizedBox(height: 16),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -2183,8 +2545,7 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                             child: MoviPrimaryButton(
                               label: 'Regarder maintenant',
                               assetIcon: AppAssets.iconPlay,
-                              onPressed: () =>
-                                  context.push(AppRouteNames.movie),
+                              onPressed: () => context.push(AppRouteNames.movie),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -2206,6 +2567,111 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
               },
             ),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pré-chargement images
+  // ---------------------------------------------------------------------------
+
+  void _precacheBgFor(MovieSummary m, {required bool isNext}) {
+    final int? id = m.tmdbId;
+    if (id == null) return;
+
+    final Future<_HeroMeta?>? future = _metaFutures[id];
+    if (future == null) return;
+
+    future.then((meta) async {
+      if (!mounted) return;
+
+      final bool ok = isNext ? (_nextMovie?.tmdbId == id) : (_currentMovie?.tmdbId == id);
+      if (!ok) return;
+
+      final String? bgSrc = _coerceHttpUrl(meta?.poster) ??
+          _coerceHttpUrl(m.poster.toString()) ??
+          _coerceHttpUrl(meta?.backdrop) ??
+          _coerceHttpUrl(m.backdrop?.toString());
+
+      if (bgSrc == null) return;
+
+      try {
+        await precacheImage(NetworkImage(bgSrc), context);
+      } catch (_) {
+        // On ignore silencieusement : le fond se chargera en direct au besoin.
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+
+  String? _coerceHttpUrl(String? value) {
+    if (value == null || value.isEmpty || value == 'null') return null;
+    return (value.startsWith('http://') || value.startsWith('https://')) ? value : null;
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sélecteur d’images centralisé (poster et logo).
+// Poster : priorité **no-lang** → **en** → meilleur score.
+// Logo   : priorité **en** → **no-lang** → meilleur score.
+// -----------------------------------------------------------------------------
+class _ImageSelector {
+  const _ImageSelector._();
+
+  static String? selectPoster(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list.where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en')).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+
+  static String? selectLogo(List<dynamic> logos) {
+    if (logos.isEmpty) return null;
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = logos
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> en =
+        list.where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en')).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
   }
 }
 
@@ -2291,7 +2757,6 @@ class _HeroSkeleton extends StatelessWidget {
                 bottom: overlayHeight - 100,
                 child: Center(
                   child: SizedBox(
-                    // Bloc: largeur = largeur écran - 40px, hauteur = 120px
                     width: MediaQuery.of(context).size.width - 40,
                     height: 120,
                     child: FittedBox(
@@ -2319,28 +2784,1633 @@ class _HeroSkeleton extends StatelessWidget {
 String? _formatDuration(int? minutes) {
   if (minutes == null || minutes <= 0) return null;
   if (minutes < 60) return '$minutes min';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
+  final int h = minutes ~/ 60;
+  final int m = minutes % 60;
   return m == 0 ? '$h h' : '$h h $m min';
 }
 
 --------------------------------------------------------------------------------
-FILE #201: src/shared/data/services/tmdb_image_resolver.dart
+FILE #102: src/features/home/presentation/widgets/home_hero_section.dart
 --------------------------------------------------------------------------------
-class TmdbImageResolver {
-  const TmdbImageResolver({this.baseUrl = 'https://image.tmdb.org/t/p/'});
+// ignore_for_file: public_member_api_docs
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:movi/src/core/di/injector.dart';
+import 'package:movi/src/core/router/app_router.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_favorite_button.dart';
+import 'package:movi/src/core/widgets/movi_pill.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+
+/// Hero principal de la page d’accueil.
+/// - Affiche d’abord les données disponibles (cache / résumé).
+/// - Hydrate asynchronement le cache si des métadonnées clés manquent.
+/// - Sélection d’image centralisée : poster TMDB **sans langue** en priorité,
+///   sinon EN, sinon meilleur score ; fallback sur poster de la playlist.
+class HomeHeroSection extends StatefulWidget {
+  const HomeHeroSection({
+    super.key,
+    required this.movie,
+    this.onBackgroundReady,
+  });
+
+  /// Résumé minimal pour initialiser le hero.
+  final MovieSummary? movie;
+
+  /// Notifié quand l’image de fond rend sa première frame.
+  final VoidCallback? onBackgroundReady;
+
+  @override
+  State<HomeHeroSection> createState() => _HomeHeroSectionState();
+}
+
+class _HomeHeroSectionState extends State<HomeHeroSection> {
+  // Mise en page
+  static const double _totalHeight = 790;
+  static const double _overlayHeight = 125;
+
+  // Sécurité décodage image (px @device)
+  static const int _maxHeroCachePx = 1440;
+
+  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
+
+  late final TmdbCacheDataSource _cache = sl<TmdbCacheDataSource>();
+  late final TmdbImageResolver _images = sl<TmdbImageResolver>();
+  late final TmdbMovieRemoteDataSource _moviesRemote =
+      sl<TmdbMovieRemoteDataSource>();
+  late final TmdbTvRemoteDataSource _tvRemote = sl<TmdbTvRemoteDataSource>();
+
+  /// Évite hydrations multiples pour un même id durant la vie du widget.
+  final Set<int> _hydratedIds = <int>{};
+
+  Future<_HeroMeta?>? _metaFuture;
+  bool _backdropNotified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _primeMeta();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeHeroSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldId = oldWidget.movie?.tmdbId;
+    final newId = widget.movie?.tmdbId;
+    if (oldId != newId) _primeMeta();
+  }
+
+  @override
+  void dispose() {
+    _favorite.dispose();
+    super.dispose();
+  }
+
+  void _primeMeta() {
+    final movie = widget.movie;
+    if (movie == null) {
+      _metaFuture = null;
+      return;
+    }
+    _metaFuture = _loadMeta(movie);
+    _hydrateMetaIfNeeded(movie); // non bloquant
+  }
+
+  // ---------------------------------------------------------------------------
+  // CHARGEMENT / HYDRATATION
+  // ---------------------------------------------------------------------------
+
+  Future<_HeroMeta?> _loadMeta(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null) return null;
+
+    // 1) Cache film puis fallback cache série (au cas où l’ID pointe vers une série)
+    Map<String, dynamic>? data = await _safeGetMovieDetail(id);
+    bool isTvData = false;
+    if (data == null) {
+      data = await _safeGetTvDetail(id);
+      isTvData = data != null;
+    }
+    if (data == null) return null;
+
+    final Map<String, dynamic> images =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+
+    // Sélection centralisée : poster no-lang → en → best ; pour le logo : en → no-lang → best
+    final String? posterPath = _ImageSelector.selectPoster(posters) ??
+        data['poster_path']?.toString();
+    final String? logoPath = _ImageSelector.selectLogo(logos);
+
+    // Tailles raisonnables pour limiter la pression mémoire CPU/GPU.
+    // - poster : w500 (qualité suffisante pour le hero)
+    // - backdrop : w780 (compromis qualité/poids pour le plein écran)
+    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
+    final Uri? backdropUri =
+        _images.backdrop(data['backdrop_path']?.toString(), size: 'w780');
+    final Uri? logoUri = _images.logo(logoPath); // taille par défaut adaptée
+
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote =
+        (data['vote_average'] is num) ? (data['vote_average'] as num).toDouble() : null;
+
+    // Durée (film) / durée épisode (série)
+    int? runtimeMinutes;
+    final dynamic rawRuntime = data['runtime'];
+    if (rawRuntime is int) {
+      runtimeMinutes = rawRuntime;
+    } else {
+      final dynamic ert = data['episode_run_time'];
+      if (ert is List && ert.isNotEmpty && ert.first is int) {
+        runtimeMinutes = ert.first as int;
+      }
+    }
+
+    // Année (release_date pour film, first_air_date pour série)
+    final String? date =
+        (data['release_date']?.toString().trim().isNotEmpty ?? false)
+            ? data['release_date']?.toString()
+            : data['first_air_date']?.toString();
+    final int? year = _parseYear(date) ?? widget.movie?.releaseYear;
+
+    return _HeroMeta(
+      isTv: isTvData,
+      poster: posterUri?.toString(),
+      backdrop: backdropUri?.toString(),
+      logo: logoUri?.toString(),
+      overview: overview.isEmpty ? null : overview,
+      year: year,
+      rating: vote,
+      runtime: runtimeMinutes,
+    );
+  }
+
+  Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null || _hydratedIds.contains(id)) return;
+
+    Map<String, dynamic>? data = await _safeGetMovieDetail(id);
+    bool isTvData = false;
+    if (data == null) {
+      data = await _safeGetTvDetail(id);
+      isTvData = data != null;
+    }
+
+    // Si pas de cache du tout : fetch FULL immédiatement (film puis fallback série)
+    if (data == null) {
+      try {
+        _hydratedIds.add(id);
+        try {
+          final dto = await _moviesRemote.fetchMovieFull(id);
+          await _cache.putMovieDetail(id, dto.toCache());
+          isTvData = false;
+        } catch (_) {
+          final dto = await _tvRemote.fetchShowFull(id);
+          await _cache.putTvDetail(id, dto.toCache());
+          isTvData = true;
+        }
+        if (!mounted) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _metaFuture = _loadMeta(m));
+        });
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint('HomeHeroSection: hydration (no cache) failed for $id: $e\n$st');
+        }
+      }
+      return;
+    }
+
+    // Cache présent : vérifier si des champs essentiels manquent
+    final Map<String, dynamic> images =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote =
+        (data['vote_average'] is num) ? (data['vote_average'] as num).toDouble() : null;
+    final bool hasRuntime =
+        data['runtime'] is int ||
+        (data['episode_run_time'] is List && (data['episode_run_time'] as List).isNotEmpty);
+
+    final bool needsHydration =
+        posters.isEmpty || logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
+
+    if (!needsHydration) return;
+
+    try {
+      _hydratedIds.add(id);
+      if (!isTvData) {
+        final dto = await _moviesRemote.fetchMovieFull(id);
+        await _cache.putMovieDetail(id, dto.toCache());
+      } else {
+        final dto = await _tvRemote.fetchShowFull(id);
+        await _cache.putTvDetail(id, dto.toCache());
+      }
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _metaFuture = _loadMeta(m));
+      });
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroSection: hydration failed for $id: $e\n$st');
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _safeGetMovieDetail(int id) async {
+    try {
+      return await _cache.getMovieDetail(id);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroSection: getMovieDetail($id) failed: $e\n$st');
+      }
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _safeGetTvDetail(int id) async {
+    try {
+      return await _cache.getTvDetail(id);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroSection: getTvDetail($id) failed: $e\n$st');
+      }
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final MovieSummary? movie = widget.movie;
+
+    return SizedBox(
+      height: _totalHeight,
+      width: double.infinity,
+      child: movie == null
+          ? const _HeroSkeleton(overlayHeight: _overlayHeight)
+          : FutureBuilder<_HeroMeta?>(
+              future: _metaFuture,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const _HeroSkeleton(overlayHeight: _overlayHeight);
+                }
+
+                final _HeroMeta? meta = snap.data;
+
+                // Ordre de préférence du fond :
+                // 1) Poster TMDB sélectionné (no-lang → en → best)
+                // 2) Poster playlist (MovieSummary)
+                // 3) Backdrop TMDB
+                // 4) Backdrop playlist
+                final String? bgSrc = _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(movie.poster.toString()) ??
+                    _coerceHttpUrl(meta?.backdrop) ??
+                    _coerceHttpUrl(movie.backdrop?.toString());
+
+                final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
+                final int? year = meta?.year ?? movie.releaseYear;
+                final String yearText = (year ?? '—').toString();
+
+                final double? rating = meta?.rating;
+                final String? ratingText = (rating == null)
+                    ? null
+                    : (rating >= 10 ? rating.toStringAsFixed(0) : rating.toStringAsFixed(1));
+
+                final String? durationText = _formatDuration(meta?.runtime);
+                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
+
+                Widget buildBackground() {
+                  if (bgSrc != null) {
+                    // Limiter le décodage pour réduire la pression mémoire/CPU (Windows/Desktop).
+                    final mq = MediaQuery.of(context);
+                    final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
+                    final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
+                    return Image.network(
+                      bgSrc,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      gaplessPlayback: true,
+                      cacheWidth: cacheWidth,
+                      filterQuality: FilterQuality.low,
+                      errorBuilder: (_, __, ___) {
+                        if (!_backdropNotified) {
+                          _backdropNotified = true;
+                          widget.onBackgroundReady?.call();
+                        }
+                        return const ColoredBox(color: Color(0xFF222222));
+                      },
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (frame != null && !_backdropNotified) {
+                          _backdropNotified = true;
+                          widget.onBackgroundReady?.call();
+                        }
+                        return child;
+                      },
+                    );
+                  }
+                  return const ColoredBox(color: Color(0xFF222222));
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          buildBackground(),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _BottomOverlay(height: _overlayHeight),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: _overlayHeight - 100,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxHeight: 100),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.contain,
+                                    child: hasLogo
+                                        ? Image.network(
+                                            meta!.logo!,
+                                            height: 100,
+                                            gaplessPlayback: true,
+                                            // ~300px @1x pour limiter le poids décodé
+                                            cacheWidth:
+                                                (300 * MediaQuery.of(context).devicePixelRatio)
+                                                    .round(),
+                                            filterQuality: FilterQuality.low,
+                                            errorBuilder: (_, __, ___) =>
+                                                _TitleFallback(movie.title.value),
+                                          )
+                                        : _TitleFallback(movie.title.value),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (durationText != null) MoviPill(durationText, large: true),
+                        if (durationText != null && year != null) const SizedBox(width: 8),
+                        if (year != null) MoviPill(yearText, large: true),
+                        if (year != null && ratingText != null) const SizedBox(width: 8),
+                        if (ratingText != null) MoviPill(ratingText, large: true),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (hasSynopsis)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        child: Text(
+                          meta!.overview!,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    if (hasSynopsis) const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: MoviPrimaryButton(
+                              label: 'Regarder maintenant',
+                              assetIcon: AppAssets.iconPlay,
+                              onPressed: () => context.push(AppRouteNames.movie),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _favorite,
+                            builder: (_, isFav, __) {
+                              return MoviFavoriteButton(
+                                isFavorite: isFav,
+                                onPressed: () => _favorite.value = !isFav,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+
+  /// Retourne une URL http(s) uniquement, ou null.
+  String? _coerceHttpUrl(String? value) {
+    if (value == null || value.isEmpty || value == 'null') return null;
+    return (value.startsWith('http://') || value.startsWith('https://')) ? value : null;
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sélecteur d’images (centralisé au niveau du widget pour éviter toute
+// divergence interne). Pour une centralisation globale, déplacer ce bloc
+// dans un util partagé et le réutiliser côté repository & widgets.
+// -----------------------------------------------------------------------------
+class _ImageSelector {
+  const _ImageSelector._();
+
+  /// Sélection du poster : priorité **no-lang** → **en** → meilleur score.
+  static String? selectPoster(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list.where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en')).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+
+  /// Sélection du logo : priorité **en** → **no-lang** → meilleur score.
+  static String? selectLogo(List<dynamic> logos) {
+    if (logos.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = logos
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> en =
+        list.where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en')).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+}
+
+class _BottomOverlay extends StatelessWidget {
+  const _BottomOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Color(0xFF141414), Color(0x00141414)],
+        ),
+      ),
+    );
+  }
+}
+
+class _TitleFallback extends StatelessWidget {
+  const _TitleFallback(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      textAlign: TextAlign.center,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+    );
+  }
+}
+
+class _HeroMeta {
+  const _HeroMeta({
+    required this.isTv,
+    this.poster,
+    this.backdrop,
+    this.logo,
+    this.overview,
+    this.year,
+    this.rating,
+    this.runtime,
+  });
+
+  final bool isTv;
+  final String? poster;
+  final String? backdrop;
+  final String? logo;
+  final String? overview;
+  final int? year;
+  final double? rating;
+  final int? runtime;
+}
+
+class _HeroSkeleton extends StatelessWidget {
+  const _HeroSkeleton({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width - 40,
+                    height: 120,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Image.asset(AppAssets.iconAppLogo),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+// Formatage lisible : util libre, pas lié à l’état.
+String? _formatDuration(int? minutes) {
+  if (minutes == null || minutes <= 0) return null;
+  if (minutes < 60) return '$minutes min';
+  final int h = minutes ~/ 60;
+  final int m = minutes % 60;
+  return m == 0 ? '$h h' : '$h h $m min';
+}
+
+--------------------------------------------------------------------------------
+FILE #111: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+--------------------------------------------------------------------------------
+// lib/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+import 'package:dio/dio.dart';
+
+import '../../../../shared/data/services/tmdb_client.dart';
+import '../dtos/tmdb_movie_detail_dto.dart';
+
+/// Remote data source pour les FILMS TMDB.
+/// - Tout l’I/O réseau + gestion d’erreurs est délégué à [TmdbClient].
+/// - Cette couche ne manipule **que** des `Map<String, dynamic>` décodés.
+/// - Aucune dépendance à `Response`, uniquement mapping en DTOs.
+class TmdbMovieRemoteDataSource {
+  const TmdbMovieRemoteDataSource(this._client);
+
+  final TmdbClient _client;
+
+  /// Détail léger (sans `append_to_response`).
+  Future<TmdbMovieDetailDto> fetchMovieLite(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/$id',
+      language: language,
+      cancelToken: cancelToken,
+    );
+    return TmdbMovieDetailDto.fromJson(json);
+  }
+
+  /// Alias de compatibilité vers [fetchMovieLite].
+  Future<TmdbMovieDetailDto> fetchMovie(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) {
+    return fetchMovieLite(id, language: language, cancelToken: cancelToken);
+  }
+
+  /// Détail complet avec `append_to_response` (images/credits/recommendations).
+  Future<TmdbMovieDetailDto> fetchMovieFull(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/$id',
+      query: const {
+        'append_to_response': 'images,credits,recommendations',
+        'include_image_language': 'fr,en,null',
+      },
+      language: language,
+      cancelToken: cancelToken,
+    );
+    return TmdbMovieDetailDto.fromJson(json);
+  }
+
+  /// Recherche de films (paginée côté TMDB).
+  Future<List<TmdbMovieSummaryDto>> searchMovies(
+    String query, {
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return const <TmdbMovieSummaryDto>[];
+    final json = await _client.getJson(
+      'search/movie',
+      query: {'query': q, 'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Films populaires (paginé).
+  Future<List<TmdbMovieSummaryDto>> fetchPopular({
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/popular',
+      query: {'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Trending films (`window`: 'day' ou 'week').
+  Future<List<TmdbMovieSummaryDto>> fetchTrendingMovies({
+    String window = 'week',
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final normalizedWindow = (window == 'day') ? 'day' : 'week';
+    final json = await _client.getJson(
+      'trending/movie/$normalizedWindow',
+      query: {'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #207: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
+--------------------------------------------------------------------------------
+// lib/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
+import 'package:dio/dio.dart';
+
+import '../../../../shared/data/services/tmdb_client.dart';
+import '../dtos/tmdb_tv_detail_dto.dart';
+import '../dtos/tmdb_tv_season_detail_dto.dart';
+
+/// Remote data source pour les séries TV TMDB.
+/// - I/O réseau délégué à [TmdbClient] (qui force la clé de concurrence "tmdb").
+/// - Parsing strict en DTOs, sans manipuler directement `Response`.
+/// - Stratégie "lite-first" : payload minimal en liste, payload complet à l’ouverture de la fiche.
+class TmdbTvRemoteDataSource {
+  TmdbTvRemoteDataSource(this._client);
+
+  final TmdbClient _client;
+
+  /// Raccourci historique — conserve la compat API, mais opte pour la version lite.
+  Future<TmdbTvDetailDto> fetchShow(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) => fetchShowLite(id, language: language, cancelToken: cancelToken);
+
+  /// Détail **léger** d’une série (sans `append_to_response`) pour l’enrichissement en liste.
+  Future<TmdbTvDetailDto> fetchShowLite(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final json = await _client.getJson(
+      'tv/$id',
+      language: language,
+      cancelToken: cancelToken,
+      retries: retries,
+      // cacheTtl: Duration(seconds: 45), // optionnel : TTL custom (sinon défaut executor)
+    );
+    return TmdbTvDetailDto.fromJson(json);
+  }
+
+  /// Détail **complet** d’une série, pour la page fiche.
+  /// Ajoute images, crédits, recommandations et content_ratings (utile pour les badges).
+  Future<TmdbTvDetailDto> fetchShowFull(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final json = await _client.getJson(
+      'tv/$id',
+      language: language,
+      query: const {
+        'append_to_response':
+            'images,credits,recommendations,content_ratings,external_ids',
+        'include_image_language': 'fr,en,null',
+      },
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    return TmdbTvDetailDto.fromJson(json);
+  }
+
+  /// Détail d’une **saison** (payload modéré).
+  Future<TmdbTvSeasonDetailDto> fetchSeason(
+    int showId,
+    int seasonNumber, {
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final json = await _client.getJson(
+      'tv/$showId/season/$seasonNumber',
+      language: language,
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    return TmdbTvSeasonDetailDto.fromJson(json);
+  }
+
+  /// Recherche de séries — renvoie une liste de résumés.
+  Future<List<TmdbTvSummaryDto>> searchShows(
+    String query, {
+    String? language,
+    int page = 1,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return const <TmdbTvSummaryDto>[];
+
+    final safePage = page < 1 ? 1 : page;
+    final json = await _client.getJson(
+      'search/tv',
+      language: language,
+      query: {'query': q, 'page': safePage},
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final results = (json['results'] as List<dynamic>? ?? const []);
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbTvSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Liste des séries populaires (résumés).
+  Future<List<TmdbTvSummaryDto>> fetchPopular({
+    String? language,
+    int page = 1,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final json = await _client.getJson(
+      'tv/popular',
+      language: language,
+      query: {'page': safePage},
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final results = (json['results'] as List<dynamic>? ?? const []);
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbTvSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// (Optionnel) Autres endpoints utiles si besoin de diversité :
+  /// - tv/top_rated
+  /// - tv/airing_today
+  /// - tv/on_the_air
+  Future<List<TmdbTvSummaryDto>> fetchTopRated({
+    String? language,
+    int page = 1,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final json = await _client.getJson(
+      'tv/top_rated',
+      language: language,
+      query: {'page': safePage},
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final results = (json['results'] as List<dynamic>? ?? const []);
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbTvSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #237: src/shared/data/services/tmdb_cache_data_source.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
+
+/// Data source de cache pour les détails TMDB (films & séries).
+/// Combine :
+/// - une mémoïsation mémoire **LRU** à court terme (pour éviter les re-hits
+///   réseau durant les rafales d’accès d’un même écran),
+/// - une **persistance** via [ContentCacheRepository] (TTL étendu).
+///
+/// Contrats publics stables :
+/// - `getMovieDetail`, `putMovieDetail`
+/// - `getTvDetail`, `putTvDetail`
+/// - `clearMemoryMemo`
+///
+/// Les méthodes retournent `Map<String, dynamic>?` afin de laisser les couches
+/// supérieures mapper/valider/extraire les champs utiles.
+///
+/// ⚠️ Aucun parsing métier n’est réalisé ici : *responsabilité unique = cache*.
+class TmdbCacheDataSource {
+  TmdbCacheDataSource(
+    this._cache, {
+    Duration memoTtl = const Duration(seconds: 45),
+    int memoCapacity = 512,
+  })  : assert(memoCapacity > 0),
+        _memoTtl = memoTtl,
+        _memo = _LruMemo<String, Map<String, dynamic>>(memoCapacity);
+
+  final ContentCacheRepository _cache;
+
+  /// TTL par défaut de la couche persistée (peut être surchargé à l’appel).
+  static const CachePolicy detailPolicy = CachePolicy(ttl: Duration(days: 7));
+
+  /// TTL de la mémo en mémoire (process).
+  final Duration _memoTtl;
+
+  /// Mémo LRU (clé → JSON), bornée et expirante.
+  final _LruMemo<String, Map<String, dynamic>> _memo;
+
+  // ---------------------------------------------------------------------------
+  // Clés de cache
+  // ---------------------------------------------------------------------------
+
+  String _movieKey(int id) => 'tmdb_movie_detail_$id';
+  String _tvKey(int id) => 'tmdb_tv_detail_$id';
+
+  // ---------------------------------------------------------------------------
+  // MOVIE
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> getMovieDetail(
+    int id, {
+    Duration? memoTtl,
+    CachePolicy? policyOverride,
+  }) async {
+    final String key = _movieKey(id);
+
+    // 1) Mémo mémoire (rapide, court-terme)
+    final Map<String, dynamic>? memo = _memo.getIfFresh(key);
+    if (memo != null) return memo;
+
+    // 2) Cache persistant (long-terme)
+    final dynamic data =
+        await _cache.getWithPolicy(key, policyOverride ?? detailPolicy);
+
+    if (data is Map<String, dynamic>) {
+      _memo.put(key, data, ttl: memoTtl ?? _memoTtl);
+      return data;
+    }
+
+    // Donnée absente ou illisible → laisser la couche appelante décider du fallback.
+    return null;
+  }
+
+  Future<void> putMovieDetail(
+    int id,
+    Map<String, dynamic> json, {
+    Duration? memoTtl,
+  }) async {
+    final String key = _movieKey(id);
+    // Écrit d’abord en mémo pour lecture immédiate post-écriture.
+    _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
+    await _cache.put(key: key, type: 'tmdb_detail', payload: json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // TV
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> getTvDetail(
+    int id, {
+    Duration? memoTtl,
+    CachePolicy? policyOverride,
+  }) async {
+    final String key = _tvKey(id);
+
+    final Map<String, dynamic>? memo = _memo.getIfFresh(key);
+    if (memo != null) return memo;
+
+    final dynamic data =
+        await _cache.getWithPolicy(key, policyOverride ?? detailPolicy);
+
+    if (data is Map<String, dynamic>) {
+      _memo.put(key, data, ttl: memoTtl ?? _memoTtl);
+      return data;
+    }
+
+    return null;
+  }
+
+  Future<void> putTvDetail(
+    int id,
+    Map<String, dynamic> json, {
+    Duration? memoTtl,
+  }) async {
+    final String key = _tvKey(id);
+    _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
+    await _cache.put(key: key, type: 'tmdb_detail', payload: json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Outils
+  // ---------------------------------------------------------------------------
+
+  /// Vide la mémo mémoire *uniquement* (n’affecte pas la persistance).
+  void clearMemoryMemo() => _memo.clear();
+}
+
+// ============================================================================
+// LRU mémoire simple avec TTL par entrée
+// ============================================================================
+
+class _LruMemo<K, V> {
+  _LruMemo(this.capacity) : assert(capacity > 0);
+
+  final int capacity;
+  final Map<K, _MemoEntry<V>> _map = <K, _MemoEntry<V>>{};
+
+  /// Retourne la valeur si non expirée, en actualisant son ordre LRU.
+  V? getIfFresh(K key) {
+    final _MemoEntry<V>? removed = _map.remove(key);
+    if (removed == null) return null;
+
+    // Expiration
+    if (DateTime.now().isAfter(removed.expiresAt)) {
+      return null;
+    }
+
+    // Réinsère pour marquer l’accès récent
+    _map[key] = removed;
+    return removed.value;
+  }
+
+  /// Insère/actualise une valeur avec son TTL et applique le bornage LRU.
+  void put(K key, V value, {required Duration ttl}) {
+    _map.remove(key);
+    _map[key] = _MemoEntry<V>(value, DateTime.now().add(ttl));
+
+    // Bornage LRU (Map préserve l’ordre d’insertion → clé la plus ancienne = first)
+    while (_map.length > capacity) {
+      _map.remove(_map.keys.first);
+    }
+  }
+
+  void clear() => _map.clear();
+}
+
+class _MemoEntry<V> {
+  const _MemoEntry(this.value, this.expiresAt);
+  final V value;
+  final DateTime expiresAt;
+}
+
+--------------------------------------------------------------------------------
+FILE #238: src/shared/data/services/tmdb_client.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:dio/dio.dart';
+import 'package:movi/src/core/config/models/network_endpoints.dart';
+import 'package:movi/src/core/network/network_executor.dart';
+
+/// Client HTTP strict pour TMDB (v3/v4) basé sur [NetworkExecutor].
+///
+/// Principes :
+/// - Aucune clé en dur : tout provient de [NetworkEndpoints].
+/// - Déduplication et mini-cache via `dedupKey`/`cacheTtl` de l'exécuteur.
+/// - Pas de cast Map→Response : on mappe la réponse **après** l'appel réseau.
+/// - URI canoniques et stables : query triée pour une clé de dédup déterministe.
+class TmdbClient {
+  TmdbClient({
+    required NetworkExecutor executor,
+    required NetworkEndpoints endpoints,
+  })  : _executor = executor,
+        _endpoints = endpoints;
+
+  final NetworkExecutor _executor;
+  final NetworkEndpoints _endpoints;
+
+  /// Récupère un JSON racine **Map** depuis TMDB.
+  ///
+  /// Exemple de `path`: `movie/550`, `tv/1399`, `search/movie`.
+  ///
+  /// - `query` : paramètres additionnels, convertis en String.
+  /// - `language` : ex. `fr-FR` ou `en-US` (non ajouté si vide).
+  /// - `cancelToken` : annulation propre en cas de navigation/scroll.
+  /// - `retries` : tentatives supplémentaires (backoff géré par l’exécuteur).
+  /// - `cacheTtl` : TTL du mini-cache mémoire de l’exécuteur (si null → défaut).
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    Map<String, Object?>? query,
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+    Duration? cacheTtl,
+  }) async {
+    final uri = _buildUri(path: path, query: query, language: language);
+    final dedupKey = _buildDedupKey('GET', uri);
+
+    return _executor.run<dynamic, Map<String, dynamic>>(
+      concurrencyKey: 'tmdb',
+      dedupKey: dedupKey,
+      cacheTtl: cacheTtl,
+      retries: retries,
+      cancelToken: cancelToken,
+      request: (Dio client) => client.getUri<dynamic>(
+        uri,
+        options: Options(
+          responseType: ResponseType.json,
+          headers: _buildHeaders(),
+        ),
+        cancelToken: cancelToken,
+      ),
+      mapper: (response) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) return data;
+        throw TmdbClientError(
+          'Unexpected TMDB payload type: ${data.runtimeType}',
+          uri: uri,
+          statusCode: response.statusCode,
+        );
+      },
+    );
+  }
+
+  /// Récupère un JSON racine **List** depuis TMDB (certaines routes renvoient une liste).
+  ///
+  /// Retourne toujours une liste (vide si le payload est vide/inattendu).
+  Future<List<dynamic>> getJsonList(
+    String path, {
+    Map<String, Object?>? query,
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+    Duration? cacheTtl,
+  }) async {
+    final uri = _buildUri(path: path, query: query, language: language);
+    final dedupKey = _buildDedupKey('GET', uri);
+
+    return _executor.run<dynamic, List<dynamic>>(
+      concurrencyKey: 'tmdb',
+      dedupKey: dedupKey,
+      cacheTtl: cacheTtl,
+      retries: retries,
+      cancelToken: cancelToken,
+      request: (Dio client) => client.getUri<dynamic>(
+        uri,
+        options: Options(
+          responseType: ResponseType.json,
+          headers: _buildHeaders(),
+        ),
+        cancelToken: cancelToken,
+      ),
+      mapper: (response) {
+        final data = response.data;
+        if (data is List<dynamic>) return data;
+        // Certaines routes enveloppent la liste dans "results".
+        if (data is Map<String, dynamic>) {
+          final results = data['results'];
+          if (results is List<dynamic>) return results;
+        }
+        throw TmdbClientError(
+          'Unexpected TMDB list payload type: ${data.runtimeType}',
+          uri: uri,
+          statusCode: response.statusCode,
+        );
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // URI / Headers
+  // ---------------------------------------------------------------------------
+
+  /// Construit un URI TMDB valide en injectant `language` et, si v3, `api_key`.
+  Uri _buildUri({
+    required String path,
+    Map<String, Object?>? query,
+    String? language,
+  }) {
+    final host = _resolveHost();
+    final version = _resolveApiVersion();
+    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+
+    // Query canonique triée pour une dédup stable.
+    final qp = _canonicalizeQuery(query);
+
+    if (language != null && language.isNotEmpty) {
+      qp['language'] = language;
+    }
+
+    // Clé v3 en query (sinon Bearer v4 en header).
+    final apiKey = _endpoints.tmdbApiKey;
+    if (apiKey != null && apiKey.isNotEmpty && _isV3Key(apiKey)) {
+      qp.putIfAbsent('api_key', () => apiKey);
+    }
+
+    return Uri.https(host, '/$version/$normalizedPath', qp.isEmpty ? null : qp);
+  }
+
+  Map<String, String> _canonicalizeQuery(Map<String, Object?>? query) {
+    if (query == null || query.isEmpty) return <String, String>{};
+    final keys = query.keys.where((k) => query[k] != null).toList()..sort();
+    final out = <String, String>{};
+    for (final k in keys) {
+      final v = query[k];
+      if (v == null) continue;
+      out[k] = v.toString();
+    }
+    return out;
+  }
+
+  String _resolveHost() {
+    final fromCfg = _endpoints.tmdbBaseHost?.trim();
+    if (fromCfg != null && fromCfg.isNotEmpty) return fromCfg;
+    try {
+      return _endpoints.resolvedTmdbBaseHost;
+    } catch (_) {
+      return 'api.themoviedb.org';
+    }
+  }
+
+  String _resolveApiVersion() {
+    final fromCfg = _endpoints.tmdbApiVersion?.trim();
+    if (fromCfg != null && fromCfg.isNotEmpty) return fromCfg;
+    try {
+      return _endpoints.resolvedTmdbApiVersion;
+    } catch (_) {
+      return '3';
+    }
+  }
+
+  bool _isV3Key(String key) => !key.startsWith('eyJ') && key.length <= 64;
+
+  Map<String, String> _buildHeaders() {
+    final apiKey = _endpoints.tmdbApiKey;
+    final headers = <String, String>{'Accept': 'application/json'};
+    // Si API v4 : Authorization: Bearer <token>
+    if (apiKey != null && apiKey.isNotEmpty && !_isV3Key(apiKey)) {
+      headers['Authorization'] = 'Bearer $apiKey';
+    }
+    return headers;
+  }
+
+  /// Clé stable pour la déduplication/caching mémoire de l’exécuteur.
+  String _buildDedupKey(String method, Uri uri) {
+    final qp = _canonicalizeQuery(uri.queryParameters);
+    final canonical = Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      path: uri.path,
+      queryParameters: qp.isEmpty ? null : qp,
+    ).toString();
+    return '$method|$canonical';
+  }
+}
+
+/// Erreur spécifique TMDB surfacée aux appelants.
+class TmdbClientError implements Exception {
+  TmdbClientError(
+    this.message, {
+    this.uri,
+    this.statusCode,
+  });
+
+  final String message;
+  final Uri? uri;
+  final int? statusCode;
+
+  @override
+  String toString() {
+    final b = StringBuffer('TmdbClientError: $message');
+    if (statusCode != null) b.write(' (status=$statusCode)');
+    if (uri != null) b.write(' uri=$uri');
+    return b.toString();
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #239: src/shared/data/services/tmdb_image_resolver.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+/// TMDB Image URL resolver.
+/// Responsabilité unique : convertir un `file_path` TMDB (ex: `/abc.jpg`)
+/// en `Uri` consommable par l’application, avec gestion des tailles.
+///
+/// Règles :
+/// - Si `path` est `null`, vide ou égal à la chaîne `"null"`, retourne `null`.
+/// - Si `path` est déjà une URL absolue (http/https), elle est retournée telle quelle.
+/// - Sinon on préfixe avec `baseUrl` et une taille valide (ex: `w500`, `w780`, `original`).
+///
+/// Bonnes pratiques :
+/// - Utiliser des tailles cohérentes par type d’image (défauts fournis).
+/// - Éviter `original` sur mobile/desktop si la performance mémoire est critique.
+class TmdbImageResolver {
+  const TmdbImageResolver({
+    this.baseUrl = 'https://image.tmdb.org/t/p/',
+  });
+
+  /// Base URL du CDN TMDB (se termine toujours par `/t/p/`).
   final String baseUrl;
 
-  Uri? poster(String? path, {String size = 'w342'}) => _build(path, size);
-  Uri? backdrop(String? path, {String size = 'w780'}) => _build(path, size);
-  Uri? logo(String? path, {String size = 'w300'}) => _build(path, size);
-  Uri? still(String? path, {String size = 'w185'}) => _build(path, size);
+  /// Construit l’URL d’un poster (portrait).
+  /// Taille par défaut : `w342`.
+  Uri? poster(String? path, {String size = 'w342'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w342'));
 
-  Uri? _build(String? path, String size) {
-    if (path == null || path.isEmpty) return null;
-    final normalized = path.startsWith('/') ? path : '/$path';
-    return Uri.parse('$baseUrl$size$normalized');
+  /// Construit l’URL d’un backdrop (paysage).
+  /// Taille par défaut : `w780`.
+  Uri? backdrop(String? path, {String size = 'w780'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w780'));
+
+  /// Construit l’URL d’un logo (transparent, centré).
+  /// Taille par défaut : `w300`.
+  Uri? logo(String? path, {String size = 'w300'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w300'));
+
+  /// Construit l’URL d’une image de scène (still).
+  /// Taille par défaut : `w185`.
+  Uri? still(String? path, {String size = 'w185'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w185'));
+
+  // ---------------------------------------------------------------------------
+  // Internals
+  // ---------------------------------------------------------------------------
+
+  /// Normalise la taille. Autorise :
+  ///  - `original`
+  ///  - `w###` ou `h###` (2–4 chiffres)
+  /// En cas de valeur invalide, applique `fallback`.
+  String _sanitizeSize(String raw, {required String fallback}) {
+    final s = (raw).trim();
+    if (s == 'original') return s;
+    final re = RegExp(r'^[wh]\d{2,4}$');
+    return re.hasMatch(s) ? s : fallback;
   }
+
+  /// Construit l’URI final en gérant :
+  /// - chemins relatifs TMDB (avec ou sans `/` initial),
+  /// - URLs absolues déjà complètes,
+  /// - valeurs vides / "null".
+  Uri? _build(String? path, String size) {
+    if (path == null) return null;
+    final p = path.trim();
+    if (p.isEmpty || p == 'null') return null;
+
+    // Si déjà absolu, on ne recompose pas.
+    if (_looksAbsoluteUrl(p)) {
+      return Uri.tryParse(p);
+    }
+
+    // TMDB retourne en général des chemins commençant par '/', on garantit cette propriété.
+    final normalizedPath = p.startsWith('/') ? p : '/$p';
+
+    // Concaténation sûre : baseUrl + size + normalizedPath
+    final base = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
+    return Uri.parse('$base$size$normalizedPath');
+  }
+
+  bool _looksAbsoluteUrl(String s) =>
+      s.startsWith('http://') || s.startsWith('https://');
+
+  // ---------------------------------------------------------------------------
+  // Tailles standard suggérées (optionnel : utilitaires exploités côté appelant)
+  // ---------------------------------------------------------------------------
+
+  /// Tailles usuelles pour poster (documentation TMDB indicative).
+  static const List<String> posterSizes = <String>[
+    'w92',
+    'w154',
+    'w185',
+    'w342',
+    'w500',
+    'w780',
+    'original',
+  ];
+
+  /// Tailles usuelles pour backdrop.
+  static const List<String> backdropSizes = <String>[
+    'w300',
+    'w780',
+    'w1280',
+    'original',
+  ];
+
+  /// Tailles usuelles pour logo.
+  static const List<String> logoSizes = <String>[
+    'w45',
+    'w92',
+    'w154',
+    'w185',
+    'w300',
+    'w500',
+    'original',
+  ];
+
+  /// Tailles usuelles pour still.
+  static const List<String> stillSizes = <String>[
+    'w92',
+    'w185',
+    'w300',
+    'original',
+  ];
+}
+
+--------------------------------------------------------------------------------
+FILE #243: src/shared/domain/value_objects/content_reference.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:equatable/equatable.dart';
+import 'media_title.dart';
+
+enum ContentType { movie, series, saga, playlist, person }
+
+/// Référence légère et immuable vers un contenu affichable.
+class ContentReference extends Equatable {
+  const ContentReference({
+    required this.id,
+    required this.title,
+    required this.type,
+    this.poster,
+    this.year,
+    this.rating,
+  });
+
+  final String id;
+  final MediaTitle title;
+  final ContentType type;
+  final Uri? poster;
+  final int? year;
+  final double? rating;
+
+  bool get hasPoster => poster != null;
+
+  /// CopyWith immuable.
+  ///
+  /// Utilise `Optional<T>` pour distinguer :
+  /// - `null`   → ne pas modifier
+  /// - `Optional.of(null)` → setter null
+  /// - `Optional.of(v)`    → setter v
+  ContentReference copyWith({
+    String? id,
+    MediaTitle? title,
+    ContentType? type,
+    Optional<Uri?>? poster,
+    Optional<int?>? year,
+    Optional<double?>? rating,
+  }) {
+    return ContentReference(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      poster: poster == null ? this.poster : poster.value,
+      year: year == null ? this.year : year.value,
+      rating: rating == null ? this.rating : rating.value,
+    );
+  }
+
+  @override
+  String toString() => 'ContentReference('
+      'id: $id, '
+      'title: ${title.value}, '
+      'type: $type, '
+      'poster: ${poster?.toString() ?? "-"}, '
+      'year: ${year ?? "-"}, '
+      'rating: ${rating ?? "-"}'
+      ')';
+
+  @override
+  List<Object?> get props => <Object?>[id, title, type, poster, year, rating];
+}
+
+/// Wrapper permettant de distinguer
+/// - "ne pas modifier"  → paramètre copyWith = null
+/// - "modifier à valeur X (y compris null)" → Optional.of(...)
+class Optional<T> {
+  const Optional._(this.value);
+
+  final T value;
+
+  /// Définit une valeur explicite
+  static Optional<T> of<T>(T v) => Optional<T>._(v);
+
+  /// Crée un Optional(null)
+  static Optional<T?> absent<T>() => Optional<T?>._(null);
+}
+
+--------------------------------------------------------------------------------
+FILE #244: src/shared/domain/value_objects/media_id.dart
+--------------------------------------------------------------------------------
+class MovieId {
+  const MovieId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+class SeriesId {
+  const SeriesId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+class EpisodeId {
+  const EpisodeId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+class SeasonId {
+  const SeasonId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+class PersonId {
+  const PersonId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+class SagaId {
+  const SagaId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+class PlaylistId {
+  const PlaylistId(this.value);
+  final String value;
+  @override
+  String toString() => value;
+}
+
+--------------------------------------------------------------------------------
+FILE #245: src/shared/domain/value_objects/media_title.dart
+--------------------------------------------------------------------------------
+class MediaTitle {
+  MediaTitle(String value)
+      : value = value.trim();
+
+  final String value;
+
+  String get display => value;
+
+  @override
+  String toString() => value;
+}
+
+--------------------------------------------------------------------------------
+FILE #246: src/shared/domain/value_objects/synopsis.dart
+--------------------------------------------------------------------------------
+class Synopsis {
+  Synopsis(String value) : value = value.trim();
+
+  final String value;
+
+  @override
+  String toString() => value;
 }
 

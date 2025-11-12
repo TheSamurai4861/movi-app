@@ -31,25 +31,21 @@ class Person extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        tmdbId,
-        name,
-        biography,
-        photo,
-        birthDate,
-        deathDate,
-        placeOfBirth,
-        roles,
-        filmography,
-      ];
+    id,
+    tmdbId,
+    name,
+    biography,
+    photo,
+    birthDate,
+    deathDate,
+    placeOfBirth,
+    roles,
+    filmography,
+  ];
 }
 
 class PersonCredit extends Equatable {
-  const PersonCredit({
-    required this.reference,
-    this.role,
-    this.year,
-  });
+  const PersonCredit({required this.reference, this.role, this.year});
 
   final ContentReference reference;
   final String? role;

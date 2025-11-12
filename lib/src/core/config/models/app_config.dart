@@ -14,20 +14,20 @@ class AppConfig {
     required this.network,
     required this.featureFlags,
     required this.metadata,
-  })  : assert(
-          (network.restBaseUrl.isNotEmpty),
-          'restBaseUrl must not be empty.',
-        ),
-        assert(
-          (network.imageBaseUrl.isNotEmpty),
-          'imageBaseUrl must not be empty.',
-        ),
-        // Fail fast in debug/profile if the TMDB key is missing.
-        // Network clients must still validate at runtime and surface clear errors.
-        assert(
-          (network.tmdbApiKey?.isNotEmpty ?? false),
-          'tmdbApiKey must not be empty. Provide it via your flavor/environment.',
-        );
+  }) : assert(
+         (network.restBaseUrl.isNotEmpty),
+         'restBaseUrl must not be empty.',
+       ),
+       assert(
+         (network.imageBaseUrl.isNotEmpty),
+         'imageBaseUrl must not be empty.',
+       ),
+       // Fail fast in debug/profile if the TMDB key is missing.
+       // Network clients must still validate at runtime and surface clear errors.
+       assert(
+         (network.tmdbApiKey?.isNotEmpty ?? false),
+         'tmdbApiKey must not be empty. Provide it via your flavor/environment.',
+       );
 
   /// Current runtime environment/flavor (dev, staging, prod).
   final EnvironmentFlavor environment;

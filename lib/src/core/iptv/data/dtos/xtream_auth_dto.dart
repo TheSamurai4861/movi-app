@@ -24,6 +24,9 @@ class XtreamAuthDto {
     if (timestamp == null) return null;
     final value = int.tryParse('$timestamp');
     if (value == null || value == 0) return null;
-    return DateTime.fromMillisecondsSinceEpoch(value * 1000, isUtc: true).toLocal();
+    return DateTime.fromMillisecondsSinceEpoch(
+      value * 1000,
+      isUtc: true,
+    ).toLocal();
   }
 }

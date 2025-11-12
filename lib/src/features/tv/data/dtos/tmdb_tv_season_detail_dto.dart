@@ -12,7 +12,10 @@ class TmdbTvSeasonDetailDto {
       name: json['name']?.toString() ?? 'Season',
       airDate: json['air_date']?.toString(),
       episodes: (json['episodes'] as List<dynamic>? ?? const [])
-          .map((episode) => TmdbTvEpisodeDto.fromJson(episode as Map<String, dynamic>))
+          .map(
+            (episode) =>
+                TmdbTvEpisodeDto.fromJson(episode as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -23,13 +26,14 @@ class TmdbTvSeasonDetailDto {
   final List<TmdbTvEpisodeDto> episodes;
 
   Map<String, dynamic> toCache() => {
-        'id': id,
-        'name': name,
-        'air_date': airDate,
-        'episodes': episodes.map((episode) => episode.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'air_date': airDate,
+    'episodes': episodes.map((episode) => episode.toJson()).toList(),
+  };
 
-  factory TmdbTvSeasonDetailDto.fromCache(Map<String, dynamic> json) => TmdbTvSeasonDetailDto.fromJson(json);
+  factory TmdbTvSeasonDetailDto.fromCache(Map<String, dynamic> json) =>
+      TmdbTvSeasonDetailDto.fromJson(json);
 }
 
 class TmdbTvEpisodeDto {
@@ -67,13 +71,13 @@ class TmdbTvEpisodeDto {
   final int episodeNumber;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'air_date': airDate,
-        'vote_average': voteAverage,
-        'runtime': runtime,
-        'still_path': stillPath,
-        'overview': overview,
-        'episode_number': episodeNumber,
-      };
+    'id': id,
+    'name': name,
+    'air_date': airDate,
+    'vote_average': voteAverage,
+    'runtime': runtime,
+    'still_path': stillPath,
+    'overview': overview,
+    'episode_number': episodeNumber,
+  };
 }

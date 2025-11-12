@@ -48,7 +48,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                 children: [
                   const WelcomeHeader(
                     title: 'Bienvenue !',
-                    subtitle: 'Renseigne ton prénom et tes préférences pour personnaliser Movi.',
+                    subtitle:
+                        'Renseigne ton prénom et tes préférences pour personnaliser Movi.',
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Column(
@@ -70,20 +71,56 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         child: DropdownButtonFormField<String>(
                           initialValue: _lang,
                           items: const [
-                            DropdownMenuItem(value: 'en-US', child: Text('English (US)')),
-                            DropdownMenuItem(value: 'fr-FR', child: Text('Français (FR)')),
-                            DropdownMenuItem(value: 'es-ES', child: Text('Español (ES)')),
-                            DropdownMenuItem(value: 'de-DE', child: Text('Deutsch (DE)')),
-                            DropdownMenuItem(value: 'it-IT', child: Text('Italiano (IT)')),
-                            DropdownMenuItem(value: 'pt-BR', child: Text('Português (BR)')),
-                            DropdownMenuItem(value: 'ja-JP', child: Text('日本語 (JP)')),
-                            DropdownMenuItem(value: 'ko-KR', child: Text('한국어 (KR)')),
-                            DropdownMenuItem(value: 'zh-CN', child: Text('中文 (CN)')),
-                            DropdownMenuItem(value: 'ru-RU', child: Text('Русский (RU)')),
-                            DropdownMenuItem(value: 'ar-SA', child: Text('العربية (SA)')),
+                            DropdownMenuItem(
+                              value: 'en-US',
+                              child: Text('English (US)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'fr-FR',
+                              child: Text('Français (FR)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'es-ES',
+                              child: Text('Español (ES)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'de-DE',
+                              child: Text('Deutsch (DE)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'it-IT',
+                              child: Text('Italiano (IT)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'pt-BR',
+                              child: Text('Português (BR)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ja-JP',
+                              child: Text('日本語 (JP)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ko-KR',
+                              child: Text('한국어 (KR)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'zh-CN',
+                              child: Text('中文 (CN)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ru-RU',
+                              child: Text('Русский (RU)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'ar-SA',
+                              child: Text('العربية (SA)'),
+                            ),
                           ],
-                          onChanged: (v) => setState(() => _lang = v ?? 'fr-FR'),
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
+                          onChanged: (v) =>
+                              setState(() => _lang = v ?? 'fr-FR'),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -92,48 +129,87 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         child: DropdownButtonFormField<String>(
                           initialValue: _meta,
                           items: const [
-                            DropdownMenuItem(value: 'tmdb', child: Text('TMDB')),
-                            DropdownMenuItem(value: 'none', child: Text('Aucune')),
+                            DropdownMenuItem(
+                              value: 'tmdb',
+                              child: Text('TMDB'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'none',
+                              child: Text('Aucune'),
+                            ),
                           ],
                           onChanged: (v) => setState(() => _meta = v ?? 'tmdb'),
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
                         child: SizedBox(
                           width: double.infinity,
                           child: MoviPrimaryButton(
                             label: 'Continuer',
-                            onPressed: state.isSaving ? null : () async {
-                              final fn = FirstName.tryParse(_nameCtrl.text);
-                              final lc = LanguageCode.tryParse(_lang);
-                              final mp = MetadataPreference.tryParse(_meta);
-                              if (fn == null || lc == null || mp == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Merci de remplir correctement les champs.')),
-                                );
-                                return;
-                              }
-                              // Sauvegarde du profil
-                              final ok = await ref
-                                  .read(userSettingsControllerProvider.notifier)
-                                  .save(UserProfile(firstName: fn, languageCode: lc, metadataPreference: mp));
-                              if (!context.mounted) return;
-                              if (ok) {
-                                await sl<AppStateController>().setPreferredLocale(_lang);
-                                if (!context.mounted) return;
-                                GoRouter.of(context).go('/settings/iptv/connect');
-                              }
-                            },
+                            onPressed: state.isSaving
+                                ? null
+                                : () async {
+                                    final fn = FirstName.tryParse(
+                                      _nameCtrl.text,
+                                    );
+                                    final lc = LanguageCode.tryParse(_lang);
+                                    final mp = MetadataPreference.tryParse(
+                                      _meta,
+                                    );
+                                    if (fn == null ||
+                                        lc == null ||
+                                        mp == null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Merci de remplir correctement les champs.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    // Sauvegarde du profil
+                                    final ok = await ref
+                                        .read(
+                                          userSettingsControllerProvider
+                                              .notifier,
+                                        )
+                                        .save(
+                                          UserProfile(
+                                            firstName: fn,
+                                            languageCode: lc,
+                                            metadataPreference: mp,
+                                          ),
+                                        );
+                                    if (!context.mounted) return;
+                                    if (ok) {
+                                      await sl<AppStateController>()
+                                          .setPreferredLocale(_lang);
+                                      if (!context.mounted) return;
+                                      GoRouter.of(
+                                        context,
+                                      ).go('/settings/iptv/connect');
+                                    }
+                                  },
                             loading: state.isSaving,
                           ),
                         ),
                       ),
                       if (state.error != null) ...[
                         const SizedBox(height: AppSpacing.sm),
-                        Text(state.error!, style: const TextStyle(color: Colors.red)),
+                        Text(
+                          state.error!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ],
                     ],
                   ),

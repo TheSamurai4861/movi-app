@@ -41,21 +41,21 @@ class TvShow extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        tmdbId,
-        title,
-        synopsis,
-        poster,
-        backdrop,
-        firstAirDate,
-        lastAirDate,
-        status,
-        rating,
-        genres,
-        cast,
-        creators,
-        seasons,
-      ];
+    id,
+    tmdbId,
+    title,
+    synopsis,
+    poster,
+    backdrop,
+    firstAirDate,
+    lastAirDate,
+    status,
+    rating,
+    genres,
+    cast,
+    creators,
+    seasons,
+  ];
 }
 
 class Season extends Equatable {
@@ -79,14 +79,14 @@ class Season extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        seasonNumber,
-        title,
-        overview,
-        poster,
-        episodes,
-        airDate,
-      ];
+    id,
+    seasonNumber,
+    title,
+    overview,
+    poster,
+    episodes,
+    airDate,
+  ];
 }
 
 class Episode extends Equatable {
@@ -110,14 +110,14 @@ class Episode extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        episodeNumber,
-        title,
-        overview,
-        runtime,
-        airDate,
-        still,
-      ];
+    id,
+    episodeNumber,
+    title,
+    overview,
+    runtime,
+    airDate,
+    still,
+  ];
 }
 
 class TvShowSummary extends Equatable {
@@ -140,7 +140,15 @@ class TvShowSummary extends Equatable {
   final SeriesStatus? status;
 
   @override
-  List<Object?> get props => [id, tmdbId, title, poster, backdrop, seasonCount, status];
+  List<Object?> get props => [
+    id,
+    tmdbId,
+    title,
+    poster,
+    backdrop,
+    seasonCount,
+    status,
+  ];
 }
 
 enum SeriesStatus { ongoing, ended, hiatus }

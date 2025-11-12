@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 typedef LocaleCodeProvider = String? Function();
 
 class LocaleInterceptor extends Interceptor {
-  LocaleInterceptor({LocaleCodeProvider? localeProvider}) : _localeProvider = localeProvider;
+  LocaleInterceptor({LocaleCodeProvider? localeProvider})
+    : _localeProvider = localeProvider;
 
   final LocaleCodeProvider? _localeProvider;
 

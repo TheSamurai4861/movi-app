@@ -23,11 +23,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
     final entries = await _watchlist.readAll(ContentType.movie);
     return entries
         .where((e) => e.poster != null)
-        .map((e) => MovieSummary(
-              id: MovieId(e.contentId),
-              title: MediaTitle(e.title),
-              poster: e.poster!,
-            ))
+        .map(
+          (e) => MovieSummary(
+            id: MovieId(e.contentId),
+            title: MediaTitle(e.title),
+            poster: e.poster!,
+          ),
+        )
         .toList(growable: false);
   }
 
@@ -36,11 +38,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
     final entries = await _watchlist.readAll(ContentType.series);
     return entries
         .where((e) => e.poster != null)
-        .map((e) => TvShowSummary(
-              id: SeriesId(e.contentId),
-              title: MediaTitle(e.title),
-              poster: e.poster!,
-            ))
+        .map(
+          (e) => TvShowSummary(
+            id: SeriesId(e.contentId),
+            title: MediaTitle(e.title),
+            poster: e.poster!,
+          ),
+        )
         .toList(growable: false);
   }
 
@@ -49,11 +53,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
     final entries = await _watchlist.readAll(ContentType.saga);
     return entries
         .where((e) => e.poster != null)
-        .map((e) => SagaSummary(
-              id: SagaId(e.contentId),
-              title: MediaTitle(e.title),
-              cover: e.poster!,
-            ))
+        .map(
+          (e) => SagaSummary(
+            id: SagaId(e.contentId),
+            title: MediaTitle(e.title),
+            cover: e.poster!,
+          ),
+        )
         .toList(growable: false);
   }
 
@@ -62,11 +68,13 @@ class LibraryRepositoryImpl implements LibraryRepository {
     final entries = await _watchlist.readAll(ContentType.person);
     return entries
         .where((e) => e.poster != null)
-        .map((e) => PersonSummary(
-              id: PersonId(e.contentId),
-              name: e.title,
-              photo: e.poster,
-            ))
+        .map(
+          (e) => PersonSummary(
+            id: PersonId(e.contentId),
+            name: e.title,
+            photo: e.poster,
+          ),
+        )
         .toList(growable: false);
   }
 
@@ -74,20 +82,14 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<List<ContentReference>> getHistoryCompleted() async {
     final movies = await _history.readAll(ContentType.movie);
     final shows = await _history.readAll(ContentType.series);
-    return [
-      ..._filterCompleted(movies),
-      ..._filterCompleted(shows),
-    ];
+    return [..._filterCompleted(movies), ..._filterCompleted(shows)];
   }
 
   @override
   Future<List<ContentReference>> getHistoryInProgress() async {
     final movies = await _history.readAll(ContentType.movie);
     final shows = await _history.readAll(ContentType.series);
-    return [
-      ..._filterInProgress(movies),
-      ..._filterInProgress(shows),
-    ];
+    return [..._filterInProgress(movies), ..._filterInProgress(shows)];
   }
 
   @override
@@ -98,12 +100,14 @@ class LibraryRepositoryImpl implements LibraryRepository {
   List<ContentReference> _filterCompleted(List<HistoryEntry> entries) {
     return entries
         .where((e) => _progress(e) >= 0.9)
-        .map((e) => ContentReference(
-              id: e.contentId,
-              title: MediaTitle(e.title),
-              type: e.type,
-              poster: e.poster,
-            ))
+        .map(
+          (e) => ContentReference(
+            id: e.contentId,
+            title: MediaTitle(e.title),
+            type: e.type,
+            poster: e.poster,
+          ),
+        )
         .toList(growable: false);
   }
 
@@ -113,12 +117,14 @@ class LibraryRepositoryImpl implements LibraryRepository {
           final p = _progress(e);
           return p > 0 && p < 0.9;
         })
-        .map((e) => ContentReference(
-              id: e.contentId,
-              title: MediaTitle(e.title),
-              type: e.type,
-              poster: e.poster,
-            ))
+        .map(
+          (e) => ContentReference(
+            id: e.contentId,
+            title: MediaTitle(e.title),
+            type: e.type,
+            poster: e.poster,
+          ),
+        )
         .toList(growable: false);
   }
 

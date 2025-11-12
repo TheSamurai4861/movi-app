@@ -10,7 +10,9 @@ import 'environment.dart';
 /// Priority order: generic > flavor-specific.
 const String _tmdbApiKeyGeneric = String.fromEnvironment('TMDB_API_KEY');
 const String _tmdbApiKeyDev = String.fromEnvironment('TMDB_API_KEY_DEV');
-const String _tmdbApiKeyStaging = String.fromEnvironment('TMDB_API_KEY_STAGING');
+const String _tmdbApiKeyStaging = String.fromEnvironment(
+  'TMDB_API_KEY_STAGING',
+);
 const String _tmdbApiKeyProd = String.fromEnvironment('TMDB_API_KEY_PROD');
 
 /// Fallback explicite pour le flavor Dev (usage local uniquement).
@@ -25,13 +27,19 @@ String? _resolveTmdbKey(AppEnvironment env) {
   String candidate;
   switch (env) {
     case AppEnvironment.dev:
-      candidate = _tmdbApiKeyDev.isNotEmpty ? _tmdbApiKeyDev : _tmdbApiKeyGeneric;
+      candidate = _tmdbApiKeyDev.isNotEmpty
+          ? _tmdbApiKeyDev
+          : _tmdbApiKeyGeneric;
       break;
     case AppEnvironment.staging:
-      candidate = _tmdbApiKeyStaging.isNotEmpty ? _tmdbApiKeyStaging : _tmdbApiKeyGeneric;
+      candidate = _tmdbApiKeyStaging.isNotEmpty
+          ? _tmdbApiKeyStaging
+          : _tmdbApiKeyGeneric;
       break;
     case AppEnvironment.prod:
-      candidate = _tmdbApiKeyProd.isNotEmpty ? _tmdbApiKeyProd : _tmdbApiKeyGeneric;
+      candidate = _tmdbApiKeyProd.isNotEmpty
+          ? _tmdbApiKeyProd
+          : _tmdbApiKeyGeneric;
       break;
   }
   return candidate.isNotEmpty ? candidate : null;
@@ -56,27 +64,26 @@ class DevEnvironment implements EnvironmentFlavor {
 
   @override
   FeatureFlags get defaultFlags => const FeatureFlags(
-        useRemoteHome: false,
-        enableTelemetry: true,
-        enableDownloads: false,
-        enableNewSearch: true,
-      );
+    useRemoteHome: false,
+    enableTelemetry: true,
+    enableDownloads: false,
+    enableNewSearch: true,
+  );
 
   @override
-  AppMetadata get metadata => const AppMetadata(
-        version: '0.1.0',
-        buildNumber: 'dev',
-      );
+  AppMetadata get metadata =>
+      const AppMetadata(version: '0.1.0', buildNumber: 'dev');
 
   @override
   NetworkEndpoints get network => NetworkEndpoints(
-        restBaseUrl: 'https://api.dev.movi.app',
-        imageBaseUrl: 'https://images.dev.movi.app',
-        /// TMDB key may be provided via dart-define or deferred to SecretStore (.env).
-        /// Fallback local: clé intégrée en dur pour le flavor Dev uniquement.
-        tmdbApiKey: _resolveTmdbKey(environment) ?? _tmdbHardcodedKeyDev,
-        timeouts: _defaultTimeouts,
-      );
+    restBaseUrl: 'https://api.dev.movi.app',
+    imageBaseUrl: 'https://images.dev.movi.app',
+
+    /// TMDB key may be provided via dart-define or deferred to SecretStore (.env).
+    /// Fallback local: clé intégrée en dur pour le flavor Dev uniquement.
+    tmdbApiKey: _resolveTmdbKey(environment) ?? _tmdbHardcodedKeyDev,
+    timeouts: _defaultTimeouts,
+  );
 }
 
 class StagingEnvironment implements EnvironmentFlavor {
@@ -91,25 +98,23 @@ class StagingEnvironment implements EnvironmentFlavor {
 
   @override
   FeatureFlags get defaultFlags => const FeatureFlags(
-        useRemoteHome: true,
-        enableTelemetry: true,
-        enableDownloads: true,
-        enableNewSearch: true,
-      );
+    useRemoteHome: true,
+    enableTelemetry: true,
+    enableDownloads: true,
+    enableNewSearch: true,
+  );
 
   @override
-  AppMetadata get metadata => const AppMetadata(
-        version: '0.1.0',
-        buildNumber: 'staging',
-      );
+  AppMetadata get metadata =>
+      const AppMetadata(version: '0.1.0', buildNumber: 'staging');
 
   @override
   NetworkEndpoints get network => NetworkEndpoints(
-        restBaseUrl: 'https://api.staging.movi.app',
-        imageBaseUrl: 'https://images.staging.movi.app',
-        tmdbApiKey: _resolveTmdbKey(environment),
-        timeouts: _defaultTimeouts,
-      );
+    restBaseUrl: 'https://api.staging.movi.app',
+    imageBaseUrl: 'https://images.staging.movi.app',
+    tmdbApiKey: _resolveTmdbKey(environment),
+    timeouts: _defaultTimeouts,
+  );
 }
 
 class ProdEnvironment implements EnvironmentFlavor {
@@ -124,27 +129,25 @@ class ProdEnvironment implements EnvironmentFlavor {
 
   @override
   FeatureFlags get defaultFlags => const FeatureFlags(
-        useRemoteHome: true,
-        enableTelemetry: true,
-        enableDownloads: true,
-        enableNewSearch: true,
-      );
+    useRemoteHome: true,
+    enableTelemetry: true,
+    enableDownloads: true,
+    enableNewSearch: true,
+  );
 
   @override
-  AppMetadata get metadata => const AppMetadata(
-        version: '1.0.0',
-        buildNumber: 'prod',
-      );
+  AppMetadata get metadata =>
+      const AppMetadata(version: '1.0.0', buildNumber: 'prod');
 
   @override
   NetworkEndpoints get network => NetworkEndpoints(
-        restBaseUrl: 'https://api.movi.app',
-        imageBaseUrl: 'https://images.movi.app',
-        tmdbApiKey: _resolveTmdbKey(environment),
-        timeouts: const NetworkTimeouts(
-          connect: Duration(seconds: 10),
-          receive: Duration(seconds: 20),
-          send: Duration(seconds: 10),
-        ),
-      );
+    restBaseUrl: 'https://api.movi.app',
+    imageBaseUrl: 'https://images.movi.app',
+    tmdbApiKey: _resolveTmdbKey(environment),
+    timeouts: const NetworkTimeouts(
+      connect: Duration(seconds: 10),
+      receive: Duration(seconds: 20),
+      send: Duration(seconds: 10),
+    ),
+  );
 }

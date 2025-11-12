@@ -20,7 +20,8 @@ class TmdbTvDetailDto {
 
   factory TmdbTvDetailDto.fromJson(Map<String, dynamic> json) {
     // Détermine si le payload est "full" (append_to_response: images/credits/recommendations)
-    final bool isFull = json.containsKey('images') ||
+    final bool isFull =
+        json.containsKey('images') ||
         json.containsKey('credits') ||
         json.containsKey('recommendations');
     final images = json['images'] as Map<String, dynamic>?;
@@ -33,19 +34,29 @@ class TmdbTvDetailDto {
     final crew = (credits?['crew'] as List<dynamic>? ?? const [])
         .map((item) => TmdbTvCrewDto.fromJson(item as Map<String, dynamic>))
         .toList();
-    final recommendations = ((json['recommendations'] as Map<String, dynamic>?)?['results'] as List<dynamic>? ?? const [])
-        .map((item) => TmdbTvSummaryDto.fromJson(item as Map<String, dynamic>))
-        .toList();
+    final recommendations =
+        ((json['recommendations'] as Map<String, dynamic>?)?['results']
+                    as List<dynamic>? ??
+                const [])
+            .map(
+              (item) => TmdbTvSummaryDto.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
     final createdBy = (json['created_by'] as List<dynamic>? ?? const [])
         .map((c) => TmdbTvCrewDto.fromJson(c as Map<String, dynamic>))
         .toList();
     final creators = createdBy.isNotEmpty
         ? createdBy
-        : crew.where((member) => member.job?.toLowerCase() == 'creator').toList();
+        : crew
+              .where((member) => member.job?.toLowerCase() == 'creator')
+              .toList();
 
     return TmdbTvDetailDto(
       id: json['id'] as int,
-      name: json['name']?.toString() ?? json['original_name']?.toString() ?? 'Untitled',
+      name:
+          json['name']?.toString() ??
+          json['original_name']?.toString() ??
+          'Untitled',
       overview: json['overview']?.toString() ?? '',
       posterPath: json['poster_path']?.toString(),
       backdropPath: json['backdrop_path']?.toString(),
@@ -61,7 +72,10 @@ class TmdbTvDetailDto {
       cast: cast,
       creators: creators,
       seasons: (json['seasons'] as List<dynamic>? ?? const [])
-          .map((season) => TmdbTvSeasonDto.fromJson(season as Map<String, dynamic>))
+          .map(
+            (season) =>
+                TmdbTvSeasonDto.fromJson(season as Map<String, dynamic>),
+          )
           .toList(),
       recommendations: recommendations,
       isFullPayload: isFull,
@@ -86,48 +100,55 @@ class TmdbTvDetailDto {
   final bool isFullPayload;
 
   Map<String, dynamic> toCache() => {
-        'id': id,
-        'name': name,
-        'overview': overview,
-        'poster_path': posterPath,
-        'backdrop_path': backdropPath,
-        'images': {
-          'logos': logoPath != null
-              ? [
-                  {
-                    'file_path': logoPath,
-                    'vote_average': voteAverage,
-                    'iso_639_1': null,
-                  }
-                ]
-              : [],
-        },
-        'first_air_date': firstAirDate,
-        'last_air_date': lastAirDate,
-        'status': status,
-        'vote_average': voteAverage,
-        'genres': genres.map((g) => {'name': g}).toList(),
-        'credits': {
-          'cast': cast.map((c) => c.toJson()).toList(),
-          'crew': creators.map((c) => c.toJson()).toList(),
-        },
-        'created_by': creators.map((c) => c.toJson()).toList(),
-        'seasons': seasons.map((season) => season.toJson()).toList(),
-        'recommendations': {
-          'results': recommendations.map((r) => r.toJson()).toList(),
-        },
-      };
+    'id': id,
+    'name': name,
+    'overview': overview,
+    'poster_path': posterPath,
+    'backdrop_path': backdropPath,
+    'images': {
+      'logos': logoPath != null
+          ? [
+              {
+                'file_path': logoPath,
+                'vote_average': voteAverage,
+                'iso_639_1': null,
+              },
+            ]
+          : [],
+    },
+    'first_air_date': firstAirDate,
+    'last_air_date': lastAirDate,
+    'status': status,
+    'vote_average': voteAverage,
+    'genres': genres.map((g) => {'name': g}).toList(),
+    'credits': {
+      'cast': cast.map((c) => c.toJson()).toList(),
+      'crew': creators.map((c) => c.toJson()).toList(),
+    },
+    'created_by': creators.map((c) => c.toJson()).toList(),
+    'seasons': seasons.map((season) => season.toJson()).toList(),
+    'recommendations': {
+      'results': recommendations.map((r) => r.toJson()).toList(),
+    },
+  };
 
-  factory TmdbTvDetailDto.fromCache(Map<String, dynamic> json) => TmdbTvDetailDto.fromJson(json);
+  factory TmdbTvDetailDto.fromCache(Map<String, dynamic> json) =>
+      TmdbTvDetailDto.fromJson(json);
 }
 
 String? _selectLogo(List<dynamic> logos) {
   if (logos.isEmpty) return null;
-  logos.sort((a, b) => ((b['vote_average'] as num?)?.compareTo((a['vote_average'] as num?) ?? 0) ?? 0));
+  logos.sort(
+    (a, b) =>
+        ((b['vote_average'] as num?)?.compareTo(
+          (a['vote_average'] as num?) ?? 0,
+        ) ??
+        0),
+  );
   final best = logos.cast<Map<String, dynamic>>().firstWhere(
-        (logo) => (logo['iso_639_1']?.toString().isNotEmpty ?? false),
-        orElse: () => logos.first as Map<String, dynamic>,
-      );
+    (logo) => (logo['iso_639_1']?.toString().isNotEmpty ?? false),
+    orElse: () => logos.first as Map<String, dynamic>,
+  );
   return best['file_path']?.toString();
 }
 
@@ -154,19 +175,15 @@ class TmdbTvCastDto {
   final String? profilePath;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'character': character,
-        'profile_path': profilePath,
-      };
+    'id': id,
+    'name': name,
+    'character': character,
+    'profile_path': profilePath,
+  };
 }
 
 class TmdbTvCrewDto {
-  TmdbTvCrewDto({
-    required this.id,
-    required this.name,
-    required this.job,
-  });
+  TmdbTvCrewDto({required this.id, required this.name, required this.job});
 
   factory TmdbTvCrewDto.fromJson(Map<String, dynamic> json) {
     return TmdbTvCrewDto(
@@ -180,11 +197,7 @@ class TmdbTvCrewDto {
   final String name;
   final String? job;
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'job': job,
-      };
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'job': job};
 }
 
 class TmdbTvSeasonDto {
@@ -219,14 +232,14 @@ class TmdbTvSeasonDto {
   final int episodeCount;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'overview': overview,
-        'poster_path': posterPath,
-        'air_date': airDate,
-        'season_number': seasonNumber,
-        'episode_count': episodeCount,
-      };
+    'id': id,
+    'name': name,
+    'overview': overview,
+    'poster_path': posterPath,
+    'air_date': airDate,
+    'season_number': seasonNumber,
+    'episode_count': episodeCount,
+  };
 }
 
 class TmdbTvSummaryDto {
@@ -242,7 +255,10 @@ class TmdbTvSummaryDto {
   factory TmdbTvSummaryDto.fromJson(Map<String, dynamic> json) {
     return TmdbTvSummaryDto(
       id: json['id'] as int,
-      name: json['name']?.toString() ?? json['original_name']?.toString() ?? 'Untitled',
+      name:
+          json['name']?.toString() ??
+          json['original_name']?.toString() ??
+          'Untitled',
       posterPath: json['poster_path']?.toString(),
       backdropPath: json['backdrop_path']?.toString(),
       firstAirDate: json['first_air_date']?.toString(),
@@ -258,11 +274,11 @@ class TmdbTvSummaryDto {
   final double? voteAverage;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'poster_path': posterPath,
-        'backdrop_path': backdropPath,
-        'first_air_date': firstAirDate,
-        'vote_average': voteAverage,
-      };
+    'id': id,
+    'name': name,
+    'poster_path': posterPath,
+    'backdrop_path': backdropPath,
+    'first_air_date': firstAirDate,
+    'vote_average': voteAverage,
+  };
 }

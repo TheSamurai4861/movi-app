@@ -15,15 +15,15 @@ class BootstrapState {
     this.message = 'Rafraîchissement des listes IPTV…',
   });
 
-    final BootPhase phase;
-    final String message;
+  final BootPhase phase;
+  final String message;
 
-    BootstrapState copyWith({BootPhase? phase, String? message}) {
-      return BootstrapState(
-        phase: phase ?? this.phase,
-        message: message ?? this.message,
-      );
-    }
+  BootstrapState copyWith({BootPhase? phase, String? message}) {
+    return BootstrapState(
+      phase: phase ?? this.phase,
+      message: message ?? this.message,
+    );
+  }
 }
 
 /// Contrôleur d’orchestration pour la page de bootstrap.
@@ -47,7 +47,11 @@ class BootstrapController extends StateNotifier<BootstrapState> {
     // Écoute l’état pour détecter que les listes IPTV sont disponibles.
     _ref.listen<hp.HomeState>(hp.homeControllerProvider, (prev, next) {
       if (next.iptvLists.isNotEmpty && state.phase == BootPhase.refreshing) {
-        unawaited(LoggingService.log('Bootstrap: IPTV lists available (sections=${next.iptvLists.length})'));
+        unawaited(
+          LoggingService.log(
+            'Bootstrap: IPTV lists available (sections=${next.iptvLists.length})',
+          ),
+        );
         _kickoffEnrich(next);
       }
     });
@@ -57,7 +61,11 @@ class BootstrapController extends StateNotifier<BootstrapState> {
     _timeout = Timer(const Duration(seconds: 3), () {
       final s = _ref.read(hp.homeControllerProvider);
       if (state.phase == BootPhase.refreshing) {
-        unawaited(LoggingService.log('Bootstrap: timeout reached, proceeding to enrich'));
+        unawaited(
+          LoggingService.log(
+            'Bootstrap: timeout reached, proceeding to enrich',
+          ),
+        );
         _kickoffEnrich(s);
       }
     });
@@ -70,7 +78,9 @@ class BootstrapController extends StateNotifier<BootstrapState> {
     );
     // Désactivation de l’enrichissement des listes au bootstrap.
     // Spéc: LITE mode pour sections sous le héros (poster + titre uniquement).
-    unawaited(LoggingService.log('Bootstrap: list enrichment disabled (LITE mode)'));
+    unawaited(
+      LoggingService.log('Bootstrap: list enrichment disabled (LITE mode)'),
+    );
 
     // Petite attente pour laisser flush les premiers patches.
     Timer(const Duration(milliseconds: 300), () {
@@ -89,5 +99,5 @@ class BootstrapController extends StateNotifier<BootstrapState> {
 
 final bootstrapControllerProvider =
     StateNotifierProvider<BootstrapController, BootstrapState>(
-  (ref) => BootstrapController(ref),
-);
+      (ref) => BootstrapController(ref),
+    );

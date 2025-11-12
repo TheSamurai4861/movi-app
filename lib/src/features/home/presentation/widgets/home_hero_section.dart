@@ -4,29 +4,37 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../../../core/router/app_router.dart';
-import '../../../../core/utils/app_assets.dart';
-import '../../../../core/utils/app_spacing.dart';
-import '../../../../core/widgets/movi_favorite_button.dart';
-import '../../../../core/widgets/movi_pill.dart';
-import '../../../../core/widgets/movi_primary_button.dart';
-import '../../../../shared/data/services/tmdb_cache_data_source.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import '../../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/core/di/injector.dart';
+import 'package:movi/src/core/router/app_router.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_favorite_button.dart';
+import 'package:movi/src/core/widgets/movi_pill.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 
 /// Hero principal de la page d’accueil.
-/// - Lecture via cache pour l’affichage initial.
-/// - Hydratation asynchrone (cache→réseau) si des métadonnées essentielles manquent.
-/// - Résout les images via [TmdbImageResolver] avec des tailles adaptées (w780/w500).
+/// - Affiche d’abord les données disponibles (cache / résumé).
+/// - Hydrate asynchronement le cache si des métadonnées clés manquent.
+/// - Sélection d’image centralisée : poster TMDB **sans langue** en priorité,
+///   sinon EN, sinon meilleur score ; fallback sur poster de la playlist.
 class HomeHeroSection extends StatefulWidget {
-  const HomeHeroSection({super.key, required this.movie, this.onBackgroundReady});
+  const HomeHeroSection({
+    super.key,
+    required this.movie,
+    this.onBackgroundReady,
+  });
 
-  /// Résumé du contenu sélectionné pour le hero (MovieSummary minimal).
+  /// Résumé minimal pour initialiser le hero.
   final MovieSummary? movie;
-  /// Callback déclenché dès que le backdrop rend sa première frame.
+
+  /// Notifié quand l’image de fond rend sa première frame.
   final VoidCallback? onBackgroundReady;
 
   @override
@@ -34,9 +42,11 @@ class HomeHeroSection extends StatefulWidget {
 }
 
 class _HomeHeroSectionState extends State<HomeHeroSection> {
-  static const double _totalHeight = 690;
+  // Mise en page
+  static const double _totalHeight = 790;
   static const double _overlayHeight = 125;
-  // Plafond sécurité pour la taille décodée du backdrop (en pixels @device)
+
+  // Sécurité décodage image (px @device)
   static const int _maxHeroCachePx = 1440;
 
   final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
@@ -47,11 +57,11 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       sl<TmdbMovieRemoteDataSource>();
   late final TmdbTvRemoteDataSource _tvRemote = sl<TmdbTvRemoteDataSource>();
 
-  /// Évite les hydrations multiples pour un même identifiant durant le cycle de vie.
+  /// Évite hydrations multiples pour un même id durant la vie du widget.
   final Set<int> _hydratedIds = <int>{};
 
   Future<_HeroMeta?>? _metaFuture;
-  bool _backdropNotified = false; // évite les notifications multiples
+  bool _backdropNotified = false;
 
   @override
   void initState() {
@@ -74,32 +84,25 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
   }
 
   void _primeMeta() {
-    final m = widget.movie;
-    if (m == null) {
+    final movie = widget.movie;
+    if (movie == null) {
       _metaFuture = null;
       return;
     }
-    _metaFuture = _loadMeta(m);
-    // Hydrater en arrière-plan si nécessaire (ne bloque pas l'affichage initial).
-    _hydrateMetaIfNeeded(m);
+    _metaFuture = _loadMeta(movie);
+    _hydrateMetaIfNeeded(movie); // non bloquant
   }
 
-  /// Tente d’extraire une URL http(s) depuis diverses représentations (String / Uri / null).
-  String? _coerceUrl(dynamic v) {
-    if (v == null) return null;
-    final s = v is Uri ? v.toString() : v.toString();
-    if (s.isEmpty || s == 'null') return null;
-    return (s.startsWith('http://') || s.startsWith('https://')) ? s : null;
-  }
+  // ---------------------------------------------------------------------------
+  // CHARGEMENT / HYDRATATION
+  // ---------------------------------------------------------------------------
 
   Future<_HeroMeta?> _loadMeta(MovieSummary m) async {
-    final id = m.tmdbId;
+    final int? id = m.tmdbId;
     if (id == null) return null;
 
-    // 1) Essai cache Movie
+    // 1) Cache film puis fallback cache série (au cas où l’ID pointe vers une série)
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
-
-    // 2) Fallback cache TV si le hero pointe en réalité vers une série (ou cache movie non hydraté)
     bool isTvData = false;
     if (data == null) {
       data = await _safeGetTvDetail(id);
@@ -107,57 +110,57 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     }
     if (data == null) return null;
 
-    final imagesMap =
+    final Map<String, dynamic> images =
         (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final posters =
-        (imagesMap['posters'] as List<dynamic>?) ?? const <dynamic>[];
-    final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
 
-    final posterNoLangPath =
-        _selectPosterNoLang(posters) ?? data['poster_path']?.toString();
-    final logoPath = _selectLogoFrEnNoLang(logos);
+    // Sélection centralisée : poster no-lang → en → best ; pour le logo : en → no-lang → best
+    final String? posterPath =
+        _ImageSelector.selectPoster(posters) ?? data['poster_path']?.toString();
+    final String? posterBgPath = data['poster_background']?.toString();
+    final String? logoPath = _ImageSelector.selectLogo(logos);
 
-    // ✅ Utiliser des tailles adaptées pour réduire la pression mémoire/CPU
-    // Spécification: réduire la taille de l'image du hero et optimiser le poids.
-    // - Poster: passer de w500 à w342 (moins lourd, suffisant pour ce contexte)
-    // - Backdrop: conserver w780 (compromis qualité/poids pour fond plein écran)
-    final posterUri = _images.poster(
-      posterNoLangPath,
-      size: 'original',
-    );
-    final backdropUri = _images.backdrop(
+    // Tailles raisonnables pour limiter la pression mémoire CPU/GPU.
+    // - poster : w500 (qualité suffisante pour le hero)
+    // - backdrop : w780 (compromis qualité/poids pour le plein écran)
+    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
+    final Uri? posterBgUri = _images.poster(posterBgPath, size: 'w780');
+    final Uri? backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
-      size: 'original',
+      size: 'w780',
     );
-    final logoUri = _images.logo(logoPath);
+    final Uri? logoUri = _images.logo(logoPath); // taille par défaut adaptée
 
-    final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num)
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
         ? (data['vote_average'] as num).toDouble()
         : null;
 
-    // Durée (Movie: runtime en minutes, TV: premier élément de episode_run_time si présent).
+    // Durée (film) / durée épisode (série)
     int? runtimeMinutes;
-    final rawRuntime = data['runtime'];
+    final dynamic rawRuntime = data['runtime'];
     if (rawRuntime is int) {
       runtimeMinutes = rawRuntime;
     } else {
-      final ert = data['episode_run_time'];
-      if (ert is List && ert.isNotEmpty) {
-        final first = ert.first;
-        if (first is int) runtimeMinutes = first;
+      final dynamic ert = data['episode_run_time'];
+      if (ert is List && ert.isNotEmpty && ert.first is int) {
+        runtimeMinutes = ert.first as int;
       }
     }
 
-    // Year depuis release_date (Movie) **ou** first_air_date (TV).
-    final String? releaseOrFirstAir =
+    // Année (release_date pour film, first_air_date pour série)
+    final String? date =
         (data['release_date']?.toString().trim().isNotEmpty ?? false)
         ? data['release_date']?.toString()
         : data['first_air_date']?.toString();
-    final year = _parseYear(releaseOrFirstAir) ?? widget.movie?.releaseYear;
+    final int? year = _parseYear(date) ?? widget.movie?.releaseYear;
 
     return _HeroMeta(
       isTv: isTvData,
+      posterBg: posterBgUri?.toString(),
       poster: posterUri?.toString(),
       backdrop: backdropUri?.toString(),
       logo: logoUri?.toString(),
@@ -169,11 +172,9 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
   }
 
   Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
-    final id = m.tmdbId;
-    if (id == null) return;
-    if (_hydratedIds.contains(id)) return;
+    final int? id = m.tmdbId;
+    if (id == null || _hydratedIds.contains(id)) return;
 
-    // Lire le cache pour décider si une hydratation est nécessaire.
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
     bool isTvData = false;
     if (data == null) {
@@ -181,7 +182,7 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       isTvData = data != null;
     }
 
-    // Si aucune entrée de cache, hydrater directement en FULL (film puis fallback série).
+    // Si pas de cache du tout : fetch FULL immédiatement (film puis fallback série)
     if (data == null) {
       try {
         _hydratedIds.add(id);
@@ -190,18 +191,14 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
           await _cache.putMovieDetail(id, dto.toCache());
           isTvData = false;
         } catch (_) {
-          // Fallback série si l’ID correspond à un show.
           final dto = await _tvRemote.fetchShowFull(id);
           await _cache.putTvDetail(id, dto.toCache());
           isTvData = true;
         }
         if (!mounted) return;
-        // Décaler la mise à jour en post-frame pour ne pas perturber la première peinture
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          setState(() {
-            _metaFuture = _loadMeta(m);
-          });
+          setState(() => _metaFuture = _loadMeta(m));
         });
       } catch (e, st) {
         if (kDebugMode) {
@@ -213,40 +210,44 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       return;
     }
 
-    final imagesMap =
+    // Cache présent : vérifier si des champs essentiels manquent
+    final Map<String, dynamic> images =
         (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
-    final logos = (imagesMap['logos'] as List<dynamic>?) ?? const <dynamic>[];
-    final overview = (data['overview']?.toString() ?? '').trim();
-    final vote = (data['vote_average'] is num)
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
         ? (data['vote_average'] as num).toDouble()
         : null;
-    final hasRuntime =
+    final bool hasRuntime =
         data['runtime'] is int ||
         (data['episode_run_time'] is List &&
             (data['episode_run_time'] as List).isNotEmpty);
 
-    final needsHydration =
-        logos.isEmpty || overview.isEmpty || vote == null || !hasRuntime;
+    final bool needsHydration =
+        posters.isEmpty ||
+        logos.isEmpty ||
+        overview.isEmpty ||
+        vote == null ||
+        !hasRuntime;
+
     if (!needsHydration) return;
 
     try {
       _hydratedIds.add(id);
       if (!isTvData) {
-        // Film: récupérer le détail complet (inclut images/logos, crédits, recommandations).
         final dto = await _moviesRemote.fetchMovieFull(id);
         await _cache.putMovieDetail(id, dto.toCache());
       } else {
-        // Série: détail complet.
         final dto = await _tvRemote.fetchShowFull(id);
         await _cache.putTvDetail(id, dto.toCache());
       }
       if (!mounted) return;
-      // Recalculer les métadonnées à partir du cache hydraté en post-frame.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        setState(() {
-          _metaFuture = _loadMeta(m);
-        });
+        setState(() => _metaFuture = _loadMeta(m));
       });
     } catch (e, st) {
       if (kDebugMode) {
@@ -260,7 +261,6 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
       return await _cache.getMovieDetail(id);
     } catch (e, st) {
       if (kDebugMode) {
-        // En debug uniquement : signaler une incohérence de cache.
         debugPrint('HomeHeroSection: getMovieDetail($id) failed: $e\n$st');
       }
       return null;
@@ -278,65 +278,13 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     }
   }
 
-  String? _selectPosterNoLang(List<dynamic> posters) {
-    if (posters.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = posters.cast<Map<String, dynamic>>();
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  String? _selectLogoFrEnNoLang(List<dynamic> logos) {
-    if (logos.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = logos.cast<Map<String, dynamic>>();
-
-    final fr =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'fr'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (fr.isNotEmpty) return pathOf(fr.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  int? _parseYear(String? raw) {
-    if (raw == null || raw.isEmpty || raw.length < 4) return null;
-    return int.tryParse(raw.substring(0, 4));
-  }
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
-    final movie = widget.movie;
+    final MovieSummary? movie = widget.movie;
 
     return SizedBox(
       height: _totalHeight,
@@ -346,25 +294,33 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
           : FutureBuilder<_HeroMeta?>(
               future: _metaFuture,
               builder: (context, snap) {
-                // État de chargement initial ou rafraîchissement cible.
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const _HeroSkeleton(overlayHeight: _overlayHeight);
                 }
 
-                final meta = snap.data;
+                final _HeroMeta? meta = snap.data;
 
-                // Priorité: backdrop > poster > fallback summary (backdrop/poster).
+                // Ordre de préférence du fond :
+                // 1) Poster TMDB sélectionné (no-lang → en → best)
+                // 2) Poster playlist (MovieSummary)
+                // 3) Backdrop TMDB
+                // 4) Backdrop playlist
                 final String? bgSrc =
-                    _coerceUrl(meta?.backdrop) ??
-                    _coerceUrl(meta?.poster) ??
-                    _coerceUrl(movie.backdrop) ??
-                    _coerceUrl(movie.poster);
+                    _coerceHttpUrl(meta?.posterBg) ??
+                    _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(movie.poster.toString()) ??
+                    _coerceHttpUrl(meta?.backdrop) ??
+                    _coerceHttpUrl(movie.backdrop?.toString());
 
-                final hasLogo = (meta?.logo?.isNotEmpty ?? false);
-                final year = meta?.year ?? movie.releaseYear;
-                final yearText = (year ?? '—').toString();
+                if (bgSrc == null) {
+                  return const _HeroEmpty(overlayHeight: _overlayHeight);
+                }
 
-                final rating = meta?.rating;
+                final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
+                final int? year = meta?.year ?? movie.releaseYear;
+                final String yearText = (year ?? '—').toString();
+
+                final double? rating = meta?.rating;
                 final String? ratingText = (rating == null)
                     ? null
                     : (rating >= 10
@@ -372,47 +328,37 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                           : rating.toStringAsFixed(1));
 
                 final String? durationText = _formatDuration(meta?.runtime);
+                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
 
-                final hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
-
-                // Construit le fond du hero en limitant la résolution décodée côté client (cacheWidth)
-                // afin de réduire la consommation mémoire/CPU et accélérer le premier rendu.
                 Widget buildBackground() {
-                  if (bgSrc != null) {
-                    final mq = MediaQuery.of(context);
-                    final rawPx = (mq.size.width * mq.devicePixelRatio).round();
-                    // Évite les décodages géants sur desktop lors des resizes
-                    final cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
-                    return Image.network(
-                      bgSrc,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      // ✅ réduit le churn d’images et la charge sur le main thread (Windows)
-                      gaplessPlayback: true,
-                      // Réduit le poids décodé en adaptant à la largeur réelle de l’écran
-                      cacheWidth: cacheWidth,
-                      filterQuality: FilterQuality.low,
-                      errorBuilder: (_, __, ___) {
-                        // Si l’image échoue, on ne bloque pas l’UI :
-                        // on signale le “ready” pour que l’overlay se ferme.
-                        if (!_backdropNotified) {
-                          _backdropNotified = true;
-                          widget.onBackgroundReady?.call();
-                        }
-                        return const ColoredBox(color: Color(0xFF222222));
-                      },
-                      // Fermer l’overlay dès la première frame du backdrop
-                      frameBuilder: (context, child, frame, wasSync) {
-                        if (frame != null && !_backdropNotified) {
-                          _backdropNotified = true;
-                          widget.onBackgroundReady?.call();
-                        }
-                        return child;
-                      },
-                    );
-                  }
-                  return const ColoredBox(color: Color(0xFF222222));
+                  // Limiter le décodage pour réduire la pression mémoire/CPU (Windows/Desktop).
+                  final mq = MediaQuery.of(context);
+                  final int rawPx = (mq.size.width * mq.devicePixelRatio)
+                      .round();
+                  final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
+                  return Image.network(
+                    bgSrc,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    gaplessPlayback: true,
+                    cacheWidth: cacheWidth,
+                    filterQuality: FilterQuality.low,
+                    errorBuilder: (_, __, ___) {
+                      if (!_backdropNotified) {
+                        _backdropNotified = true;
+                        widget.onBackgroundReady?.call();
+                      }
+                      return const ColoredBox(color: Color(0xFF222222));
+                    },
+                    frameBuilder: (context, child, frame, wasSync) {
+                      if (frame != null && !_backdropNotified) {
+                        _backdropNotified = true;
+                        widget.onBackgroundReady?.call();
+                      }
+                      return child;
+                    },
+                  );
                 }
 
                 return Column(
@@ -449,8 +395,13 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
                                             meta!.logo!,
                                             height: 100,
                                             gaplessPlayback: true,
-                                            // Limite la résolution décodée du logo (~300px @1x)
-                                            cacheWidth: (300 * MediaQuery.of(context).devicePixelRatio).round(),
+                                            // ~300px @1x pour limiter le poids décodé
+                                            cacheWidth:
+                                                (300 *
+                                                        MediaQuery.of(
+                                                          context,
+                                                        ).devicePixelRatio)
+                                                    .round(),
                                             filterQuality: FilterQuality.low,
                                             errorBuilder: (_, __, ___) =>
                                                 _TitleFallback(
@@ -535,6 +486,106 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
             ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+
+  /// Retourne une URL http(s) uniquement, ou null.
+  String? _coerceHttpUrl(String? value) {
+    if (value == null || value.isEmpty || value == 'null') return null;
+    return (value.startsWith('http://') || value.startsWith('https://'))
+        ? value
+        : null;
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sélecteur d’images (centralisé au niveau du widget pour éviter toute
+// divergence interne). Pour une centralisation globale, déplacer ce bloc
+// dans un util partagé et le réutiliser côté repository & widgets.
+// -----------------------------------------------------------------------------
+class _ImageSelector {
+  const _ImageSelector._();
+
+  /// Sélection du poster : priorité **no-lang** → **en** → meilleur score.
+  static String? selectPoster(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+
+  /// Sélection du logo : priorité **en** → **no-lang** → meilleur score.
+  static String? selectLogo(List<dynamic> logos) {
+    if (logos.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+    double ratioOf(Map<String, dynamic> m) {
+      final w = m['width'];
+      final h = m['height'];
+      final dw = (w is num) ? w.toDouble() : double.tryParse(w?.toString() ?? '') ?? 0;
+      final dh = (h is num) ? h.toDouble() : double.tryParse(h?.toString() ?? '') ?? 0;
+      if (dw <= 0 || dh <= 0) return 0;
+      return dw / dh;
+    }
+
+    final List<Map<String, dynamic>> list = logos
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+
+    if (list.isEmpty) return null;
+
+    List<Map<String, dynamic>> sortByScore(List<Map<String, dynamic>> l) =>
+        (l..sort((a, b) => scoreOf(b).compareTo(scoreOf(a))));
+    List<Map<String, dynamic>> preferWide(List<Map<String, dynamic>> l) {
+      final wide = l.where((m) => ratioOf(m) >= 2.0).toList();
+      if (wide.isNotEmpty) return sortByScore(wide);
+      return sortByScore(l);
+    }
+
+    final List<Map<String, dynamic>> en = list
+        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+        .toList();
+    final enPref = preferWide(en);
+    if (enPref.isNotEmpty) return pathOf(enPref.first);
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList();
+    final noLangPref = preferWide(noLang);
+    if (noLangPref.isNotEmpty) return pathOf(noLangPref.first);
+
+    return pathOf(sortByScore(list).first);
+  }
 }
 
 class _BottomOverlay extends StatelessWidget {
@@ -580,6 +631,7 @@ class _TitleFallback extends StatelessWidget {
 class _HeroMeta {
   const _HeroMeta({
     required this.isTv,
+    this.posterBg,
     this.poster,
     this.backdrop,
     this.logo,
@@ -590,6 +642,7 @@ class _HeroMeta {
   });
 
   final bool isTv;
+  final String? posterBg;
   final String? poster;
   final String? backdrop;
   final String? logo;
@@ -619,7 +672,6 @@ class _HeroSkeleton extends StatelessWidget {
                 bottom: overlayHeight - 100,
                 child: Center(
                   child: SizedBox(
-                    // Bloc: largeur = largeur écran - 40px, hauteur = 120px
                     width: MediaQuery.of(context).size.width - 40,
                     height: 120,
                     child: FittedBox(
@@ -644,10 +696,60 @@ class _HeroSkeleton extends StatelessWidget {
   }
 }
 
+class _HeroEmpty extends StatelessWidget {
+  const _HeroEmpty({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: const Text(
+                      'Aucune tendance disponible',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+// Formatage lisible : util libre, pas lié à l’état.
 String? _formatDuration(int? minutes) {
   if (minutes == null || minutes <= 0) return null;
   if (minutes < 60) return '$minutes min';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
+  final int h = minutes ~/ 60;
+  final int m = minutes % 60;
   return m == 0 ? '$h h' : '$h h $m min';
 }

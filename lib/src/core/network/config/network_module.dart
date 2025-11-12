@@ -37,8 +37,6 @@ class NetworkModule {
 
     final dio = factory.create();
     sl.registerSingleton<Dio>(dio);
-    sl.registerSingleton<NetworkExecutor>(
-      NetworkExecutor(dio, logger: logger),
-    );
+    sl.registerSingleton<NetworkExecutor>(NetworkExecutor(dio, logger: logger));
   }
 }

@@ -58,10 +58,13 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
             contentId: row['content_id'] as String,
             type: type,
             title: row['title'] as String,
-            poster: row['poster'] != null && (row['poster'] as String).isNotEmpty
+            poster:
+                row['poster'] != null && (row['poster'] as String).isNotEmpty
                 ? Uri.tryParse(row['poster'] as String)
                 : null,
-            addedAt: DateTime.fromMillisecondsSinceEpoch(row['added_at'] as int),
+            addedAt: DateTime.fromMillisecondsSinceEpoch(
+              row['added_at'] as int,
+            ),
           ),
         )
         .toList();
@@ -80,16 +83,12 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
   @override
   Future<void> upsert(WatchlistEntry entry) async {
     final db = await _db;
-    await db.insert(
-      'watchlist',
-      {
-        'content_id': entry.contentId,
-        'content_type': entry.type.name,
-        'title': entry.title,
-        'poster': entry.poster?.toString(),
-        'added_at': entry.addedAt.millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('watchlist', {
+      'content_id': entry.contentId,
+      'content_type': entry.type.name,
+      'title': entry.title,
+      'poster': entry.poster?.toString(),
+      'added_at': entry.addedAt.millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }

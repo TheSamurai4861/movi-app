@@ -22,7 +22,10 @@ Future<void> main() async {
   };
 
   // Capture des erreurs non gérées côté dispatcher (Flutter 3+)
-  WidgetsBinding.instance.platformDispatcher.onError = (Object error, StackTrace stack) {
+  WidgetsBinding
+      .instance
+      .platformDispatcher
+      .onError = (Object error, StackTrace stack) {
     // Retourne true pour indiquer que l'erreur a été gérée (évite crash immédiat)
     unawaited(LoggingService.log('DispatcherError: $error'));
     unawaited(LoggingService.log('Stack: $stack'));
@@ -36,14 +39,13 @@ Future<void> main() async {
   await LoggingService.log('App start: flavor=$flavor');
 
   // Zone de garde pour les exceptions Dart non interceptées
-  runZonedGuarded(() {
-    runApp(
-      const ProviderScope(
-        child: MyApp(),
-      ),
-    );
-  }, (error, stack) async {
-    await LoggingService.log('UncaughtError: $error');
-    await LoggingService.log('Stack: $stack');
-  });
+  runZonedGuarded(
+    () {
+      runApp(const ProviderScope(child: MyApp()));
+    },
+    (error, stack) async {
+      await LoggingService.log('UncaughtError: $error');
+      await LoggingService.log('Stack: $stack');
+    },
+  );
 }

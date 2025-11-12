@@ -57,30 +57,23 @@ class PlaylistLocalRepository {
 
   Future<void> upsertHeader(PlaylistHeader header) async {
     final db = await _db;
-    await db.insert(
-      'playlists',
-      {
-        'playlist_id': header.id,
-        'title': header.title,
-        'description': header.description,
-        'cover': header.cover?.toString(),
-        'owner': header.owner,
-        'is_public': header.isPublic ? 1 : 0,
-        'created_at': header.createdAt.millisecondsSinceEpoch,
-        'updated_at': header.updatedAt.millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('playlists', {
+      'playlist_id': header.id,
+      'title': header.title,
+      'description': header.description,
+      'cover': header.cover?.toString(),
+      'owner': header.owner,
+      'is_public': header.isPublic ? 1 : 0,
+      'created_at': header.createdAt.millisecondsSinceEpoch,
+      'updated_at': header.updatedAt.millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> renamePlaylist(String playlistId, String newTitle) async {
     final db = await _db;
     await db.update(
       'playlists',
-      {
-        'title': newTitle,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
-      },
+      {'title': newTitle, 'updated_at': DateTime.now().millisecondsSinceEpoch},
       where: 'playlist_id = ?',
       whereArgs: [playlistId],
     );
@@ -90,10 +83,7 @@ class PlaylistLocalRepository {
     final db = await _db;
     await db.update(
       'playlists',
-      {
-        'owner': owner,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
-      },
+      {'owner': owner, 'updated_at': DateTime.now().millisecondsSinceEpoch},
       where: 'playlist_id = ?',
       whereArgs: [playlistId],
     );
@@ -102,28 +92,32 @@ class PlaylistLocalRepository {
   Future<void> deletePlaylist(String playlistId) async {
     final db = await _db;
     final batch = db.batch();
-    batch.delete('playlist_items', where: 'playlist_id = ?', whereArgs: [playlistId]);
-    batch.delete('playlists', where: 'playlist_id = ?', whereArgs: [playlistId]);
+    batch.delete(
+      'playlist_items',
+      where: 'playlist_id = ?',
+      whereArgs: [playlistId],
+    );
+    batch.delete(
+      'playlists',
+      where: 'playlist_id = ?',
+      whereArgs: [playlistId],
+    );
     await batch.commit(noResult: true);
   }
 
   Future<void> addItem(String playlistId, PlaylistItemRow item) async {
     final db = await _db;
-    await db.insert(
-      'playlist_items',
-      {
-        'playlist_id': playlistId,
-        'position': item.position,
-        'content_id': item.reference.id,
-        'content_type': item.reference.type.name,
-        'title': item.reference.title.value,
-        'poster': item.reference.poster?.toString(),
-        'runtime': item.runtime?.inSeconds,
-        'notes': item.notes,
-        'added_at': item.addedAt.millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('playlist_items', {
+      'playlist_id': playlistId,
+      'position': item.position,
+      'content_id': item.reference.id,
+      'content_type': item.reference.type.name,
+      'title': item.reference.title.value,
+      'poster': item.reference.poster?.toString(),
+      'runtime': item.runtime?.inSeconds,
+      'notes': item.notes,
+      'added_at': item.addedAt.millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> removeItem(String playlistId, int position) async {
@@ -135,7 +129,11 @@ class PlaylistLocalRepository {
     );
   }
 
-  Future<void> reorderItem(String playlistId, {required int fromPosition, required int toPosition}) async {
+  Future<void> reorderItem(
+    String playlistId, {
+    required int fromPosition,
+    required int toPosition,
+  }) async {
     final db = await _db;
     await db.transaction((txn) async {
       final rows = await txn.query(
@@ -168,7 +166,11 @@ class PlaylistLocalRepository {
           'playlist_items',
           {'position': pos},
           where: 'playlist_id = ? AND content_id = ? AND content_type = ?',
-          whereArgs: [playlistId, items[i]['content_id'], items[i]['content_type']],
+          whereArgs: [
+            playlistId,
+            items[i]['content_id'],
+            items[i]['content_type'],
+          ],
         );
       }
       await batch.commit(noResult: true);
@@ -177,14 +179,21 @@ class PlaylistLocalRepository {
 
   Future<PlaylistDetailRow?> getPlaylist(String playlistId) async {
     final db = await _db;
-    final headers = await db.query('playlists', where: 'playlist_id = ?', whereArgs: [playlistId], limit: 1);
+    final headers = await db.query(
+      'playlists',
+      where: 'playlist_id = ?',
+      whereArgs: [playlistId],
+      limit: 1,
+    );
     if (headers.isEmpty) return null;
     final h = headers.first;
     final header = PlaylistHeader(
       id: h['playlist_id'] as String,
       title: h['title'] as String,
       description: h['description'] as String?,
-      cover: (h['cover'] as String?) != null ? Uri.tryParse(h['cover'] as String) : null,
+      cover: (h['cover'] as String?) != null
+          ? Uri.tryParse(h['cover'] as String)
+          : null,
       owner: h['owner'] as String,
       isPublic: (h['is_public'] as int) == 1,
       createdAt: DateTime.fromMillisecondsSinceEpoch(h['created_at'] as int),
@@ -203,10 +212,16 @@ class PlaylistLocalRepository {
             reference: ContentReference(
               id: r['content_id'] as String,
               title: MediaTitle(r['title'] as String),
-              type: ContentType.values.firstWhere((t) => t.name == (r['content_type'] as String)),
-              poster: (r['poster'] as String?) != null ? Uri.tryParse(r['poster'] as String) : null,
+              type: ContentType.values.firstWhere(
+                (t) => t.name == (r['content_type'] as String),
+              ),
+              poster: (r['poster'] as String?) != null
+                  ? Uri.tryParse(r['poster'] as String)
+                  : null,
             ),
-            runtime: r['runtime'] != null ? Duration(seconds: r['runtime'] as int) : null,
+            runtime: r['runtime'] != null
+                ? Duration(seconds: r['runtime'] as int)
+                : null,
             notes: r['notes'] as String?,
             addedAt: DateTime.fromMillisecondsSinceEpoch(r['added_at'] as int),
           ),
@@ -217,18 +232,29 @@ class PlaylistLocalRepository {
 
   Future<List<PlaylistHeader>> getUserPlaylists(String owner) async {
     final db = await _db;
-    final rows = await db.query('playlists', where: 'owner = ?', whereArgs: [owner], orderBy: 'updated_at DESC');
+    final rows = await db.query(
+      'playlists',
+      where: 'owner = ?',
+      whereArgs: [owner],
+      orderBy: 'updated_at DESC',
+    );
     return rows
         .map(
           (h) => PlaylistHeader(
             id: h['playlist_id'] as String,
             title: h['title'] as String,
             description: h['description'] as String?,
-            cover: (h['cover'] as String?) != null ? Uri.tryParse(h['cover'] as String) : null,
+            cover: (h['cover'] as String?) != null
+                ? Uri.tryParse(h['cover'] as String)
+                : null,
             owner: h['owner'] as String,
             isPublic: (h['is_public'] as int) == 1,
-            createdAt: DateTime.fromMillisecondsSinceEpoch(h['created_at'] as int),
-            updatedAt: DateTime.fromMillisecondsSinceEpoch(h['updated_at'] as int),
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              h['created_at'] as int,
+            ),
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(
+              h['updated_at'] as int,
+            ),
           ),
         )
         .toList();
@@ -248,11 +274,17 @@ class PlaylistLocalRepository {
             id: h['playlist_id'] as String,
             title: h['title'] as String,
             description: h['description'] as String?,
-            cover: (h['cover'] as String?) != null ? Uri.tryParse(h['cover'] as String) : null,
+            cover: (h['cover'] as String?) != null
+                ? Uri.tryParse(h['cover'] as String)
+                : null,
             owner: h['owner'] as String,
             isPublic: (h['is_public'] as int) == 1,
-            createdAt: DateTime.fromMillisecondsSinceEpoch(h['created_at'] as int),
-            updatedAt: DateTime.fromMillisecondsSinceEpoch(h['updated_at'] as int),
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              h['created_at'] as int,
+            ),
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(
+              h['updated_at'] as int,
+            ),
           ),
         )
         .toList();

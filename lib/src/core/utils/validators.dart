@@ -8,7 +8,8 @@ bool looksLikeHttpUrl(String input) {
   if (v.isEmpty) return false;
   if (v.contains(RegExp(r'\s'))) return false;
 
-  final hasScheme = v.toLowerCase().startsWith('http://') ||
+  final hasScheme =
+      v.toLowerCase().startsWith('http://') ||
       v.toLowerCase().startsWith('https://');
 
   final toParse = hasScheme ? v : 'http://$v';

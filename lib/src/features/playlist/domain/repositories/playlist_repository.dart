@@ -15,7 +15,10 @@ abstract class PlaylistRepository {
     required String owner,
     bool isPublic = false,
   });
-  Future<void> renamePlaylist({required PlaylistId id, required MediaTitle title});
+  Future<void> renamePlaylist({
+    required PlaylistId id,
+    required MediaTitle title,
+  });
   Future<void> deletePlaylist(PlaylistId id);
   Future<void> setOwner({required PlaylistId id, required String owner});
   Future<void> addItem({
@@ -26,5 +29,9 @@ abstract class PlaylistRepository {
     required PlaylistId playlistId,
     required PlaylistItem item,
   });
-  Future<void> reorderItem({required PlaylistId playlistId, required int fromPosition, required int toPosition});
+  Future<void> reorderItem({
+    required PlaylistId playlistId,
+    required int fromPosition,
+    required int toPosition,
+  });
 }

@@ -6,8 +6,11 @@ import 'repositories/playlist_repository_impl.dart';
 class PlaylistDataModule {
   static void register() {
     if (sl.isRegistered<PlaylistRepository>()) return;
-    sl.registerLazySingleton<PlaylistLocalRepository>(() => PlaylistLocalRepository());
-    sl.registerLazySingleton<PlaylistRepository>(() => PlaylistRepositoryImpl(sl<PlaylistLocalRepository>()));
+    sl.registerLazySingleton<PlaylistLocalRepository>(
+      () => PlaylistLocalRepository(),
+    );
+    sl.registerLazySingleton<PlaylistRepository>(
+      () => PlaylistRepositoryImpl(sl<PlaylistLocalRepository>()),
+    );
   }
 }
-

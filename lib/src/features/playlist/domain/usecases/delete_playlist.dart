@@ -8,4 +8,3 @@ class DeletePlaylist {
 
   Future<void> call(PlaylistId id) => _repository.deletePlaylist(id);
 }
-

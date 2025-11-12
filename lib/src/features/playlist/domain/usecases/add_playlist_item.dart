@@ -7,7 +7,10 @@ class AddPlaylistItem {
 
   final PlaylistRepository _repository;
 
-  Future<void> call({required PlaylistId playlistId, required PlaylistItem item}) {
+  Future<void> call({
+    required PlaylistId playlistId,
+    required PlaylistItem item,
+  }) {
     return _repository.addItem(playlistId: playlistId, item: item);
   }
 }

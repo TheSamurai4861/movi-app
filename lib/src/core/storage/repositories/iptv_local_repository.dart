@@ -177,7 +177,7 @@ class IptvLocalRepository {
       for (final playlist in playlists) {
         for (final item in playlist.items) {
           final int? tmdbId = item.tmdbId;
-          if (tmdbId == null) continue;
+          if (tmdbId == null || tmdbId <= 0) continue;
           if (type != null && item.type != type) continue;
           ids.add(tmdbId);
         }

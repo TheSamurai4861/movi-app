@@ -7,5 +7,6 @@ class GetPersonFilmography {
 
   final PersonRepository _repository;
 
-  Future<List<PersonCredit>> call(PersonId id) => _repository.getFilmography(id);
+  Future<List<PersonCredit>> call(PersonId id) =>
+      _repository.getFilmography(id);
 }

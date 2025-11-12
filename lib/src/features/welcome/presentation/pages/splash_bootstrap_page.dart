@@ -14,7 +14,8 @@ class SplashBootstrapPage extends ConsumerStatefulWidget {
   const SplashBootstrapPage({super.key});
 
   @override
-  ConsumerState<SplashBootstrapPage> createState() => _SplashBootstrapPageState();
+  ConsumerState<SplashBootstrapPage> createState() =>
+      _SplashBootstrapPageState();
 }
 
 class _SplashBootstrapPageState extends ConsumerState<SplashBootstrapPage> {
@@ -35,13 +36,15 @@ class _SplashBootstrapPageState extends ConsumerState<SplashBootstrapPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         // Utilise GoRouter pour naviguer vers la route Home (fade transition configurée).
-        unawaited(LoggingService.log('Bootstrap: ready → navigating to Home; message="${state.message}"'));
+        unawaited(
+          LoggingService.log(
+            'Bootstrap: ready → navigating to Home; message="${state.message}"',
+          ),
+        );
         GoRouter.of(context).go(routes.AppRouteNames.home);
       });
     }
 
-    return Scaffold(
-      body: OverlaySplash(message: state.message),
-    );
+    return Scaffold(body: OverlaySplash(message: state.message));
   }
 }

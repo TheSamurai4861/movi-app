@@ -29,4 +29,3 @@ abstract class LibraryRepository {
   /// User playlists summaries.
   Future<List<PlaylistSummary>> getUserPlaylists(String userId);
 }
-

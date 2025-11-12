@@ -11,4 +11,3 @@ class SearchMovies {
     return _repository.searchMovies(query, page: page);
   }
 }
-

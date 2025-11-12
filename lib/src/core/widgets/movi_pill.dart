@@ -49,7 +49,8 @@ class MoviPill extends StatelessWidget {
               Text(
                 label,
                 style:
-                    textStyle ?? const TextStyle(fontSize: 14, color: Colors.white),
+                    textStyle ??
+                    const TextStyle(fontSize: 14, color: Colors.white),
               ),
               if (trailingIcon != null) ...[
                 const SizedBox(width: 4),

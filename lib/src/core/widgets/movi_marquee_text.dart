@@ -74,18 +74,22 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
     );
 
     return SizedBox(
-      height: widget.style.fontSize != null
-          ? widget.style.fontSize! * 1.5
-          : 24,
+      height: widget.style.fontSize != null ? widget.style.fontSize! * 1.5 : 24,
       width: widget.maxWidth,
       child: AnimatedBuilder(
         animation: _gradientController,
         builder: (context, child) {
           final strength = _gradientController.value;
-          final leftColor =
-              Color.lerp(Colors.white, Colors.transparent, strength)!;
-          final rightColor =
-              Color.lerp(Colors.white, Colors.transparent, strength)!;
+          final leftColor = Color.lerp(
+            Colors.white,
+            Colors.transparent,
+            strength,
+          )!;
+          final rightColor = Color.lerp(
+            Colors.white,
+            Colors.transparent,
+            strength,
+          )!;
 
           return ClipRect(
             child: ShaderMask(
@@ -99,12 +103,7 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
                 return LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
-                  colors: [
-                    leftColor,
-                    Colors.white,
-                    Colors.white,
-                    rightColor,
-                  ],
+                  colors: [leftColor, Colors.white, Colors.white, rightColor],
                   stops: const [0.0, 0.08, 0.92, 1.0],
                 ).createShader(adjusted);
               },
@@ -179,7 +178,8 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
     _setGradient(false);
   }
 
-  double _maxExtent() => (_textWidth - widget.maxWidth).clamp(0.0, double.infinity);
+  double _maxExtent() =>
+      (_textWidth - widget.maxWidth).clamp(0.0, double.infinity);
 
   Future<void> _animateTo(double target) async {
     if (!_scrollController.hasClients) return;
@@ -193,7 +193,9 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
       return;
     }
 
-    final durationMs = (distance / widget.speed * 1000).clamp(300, 6000).toInt();
+    final durationMs = (distance / widget.speed * 1000)
+        .clamp(300, 6000)
+        .toInt();
     try {
       await _scrollController.animateTo(
         target,

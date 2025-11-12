@@ -52,13 +52,12 @@ class CategoryController extends StateNotifier<CategoryState> {
     state = state.copyWith(isLoading: true, error: null, page: 1);
     try {
       final all = await _repo.getItems(_key);
-      state = state.copyWith(
-        items: all,
-        hasMore: false,
-        isLoading: false,
-      );
+      state = state.copyWith(items: all, hasMore: false, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement: $e',
+      );
     }
   }
 
@@ -78,21 +77,23 @@ class CategoryController extends StateNotifier<CategoryState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement: $e',
+      );
     }
   }
 }
 
-final categoryControllerProvider = StateNotifierProvider.family<
-    CategoryController,
-    CategoryState,
-    String>(
-  (ref, visibleKey) {
-    final repo = sl<CategoryRepository>();
-    final key = CategoryKey.parse(visibleKey);
-    final controller = CategoryController(repo, key);
-    // Chargement initial
-    controller.fetchFirstPage();
-    return controller;
-  },
-);
+final categoryControllerProvider =
+    StateNotifierProvider.family<CategoryController, CategoryState, String>((
+      ref,
+      visibleKey,
+    ) {
+      final repo = sl<CategoryRepository>();
+      final key = CategoryKey.parse(visibleKey);
+      final controller = CategoryController(repo, key);
+      // Chargement initial
+      controller.fetchFirstPage();
+      return controller;
+    });

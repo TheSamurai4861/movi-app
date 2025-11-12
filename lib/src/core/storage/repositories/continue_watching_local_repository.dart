@@ -33,7 +33,8 @@ abstract class ContinueWatchingLocalRepository {
   Future<List<ContinueWatchingEntry>> readAll(ContentType type);
 }
 
-class ContinueWatchingLocalRepositoryImpl implements ContinueWatchingLocalRepository {
+class ContinueWatchingLocalRepositoryImpl
+    implements ContinueWatchingLocalRepository {
   const ContinueWatchingLocalRepositoryImpl();
 
   Future<Database> get _db => LocalDatabase.instance();
@@ -41,21 +42,17 @@ class ContinueWatchingLocalRepositoryImpl implements ContinueWatchingLocalReposi
   @override
   Future<void> upsert(ContinueWatchingEntry entry) async {
     final db = await _db;
-    await db.insert(
-      'continue_watching',
-      {
-        'content_id': entry.contentId,
-        'content_type': entry.type.name,
-        'title': entry.title,
-        'poster': entry.poster?.toString(),
-        'position': entry.position.inSeconds,
-        'duration': entry.duration?.inSeconds,
-        'season': entry.season,
-        'episode': entry.episode,
-        'updated_at': entry.updatedAt.millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('continue_watching', {
+      'content_id': entry.contentId,
+      'content_type': entry.type.name,
+      'title': entry.title,
+      'poster': entry.poster?.toString(),
+      'position': entry.position.inSeconds,
+      'duration': entry.duration?.inSeconds,
+      'season': entry.season,
+      'episode': entry.episode,
+      'updated_at': entry.updatedAt.millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   @override
@@ -83,17 +80,21 @@ class ContinueWatchingLocalRepositoryImpl implements ContinueWatchingLocalReposi
             contentId: row['content_id'] as String,
             type: type,
             title: row['title'] as String,
-            poster: row['poster'] != null && (row['poster'] as String).isNotEmpty
+            poster:
+                row['poster'] != null && (row['poster'] as String).isNotEmpty
                 ? Uri.tryParse(row['poster'] as String)
                 : null,
             position: Duration(seconds: (row['position'] as int)),
-            duration: row['duration'] != null ? Duration(seconds: row['duration'] as int) : null,
+            duration: row['duration'] != null
+                ? Duration(seconds: row['duration'] as int)
+                : null,
             season: row['season'] as int?,
             episode: row['episode'] as int?,
-            updatedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at'] as int),
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(
+              row['updated_at'] as int,
+            ),
           ),
         )
         .toList();
   }
 }
-

@@ -14,8 +14,9 @@ class SeeAllCard extends StatelessWidget {
     this.posterHeight = 225,
   });
 
-    /// Titre lisible (catégorie sans alias serveur)
+  /// Titre lisible (catégorie sans alias serveur)
   final String title;
+
   /// Clé complète de catégorie: `<alias>/<categorie>`
   final String categoryKey;
   final double width;
@@ -50,9 +51,19 @@ class SeeAllCard extends StatelessWidget {
                     Expanded(
                       child: Row(
                         children: [
-                          Expanded(child: _miniTile(context, Colors.white.withValues(alpha: 0.12))),
+                          Expanded(
+                            child: _miniTile(
+                              context,
+                              Colors.white.withValues(alpha: 0.12),
+                            ),
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: _miniTile(context, Colors.white.withValues(alpha: 0.2))),
+                          Expanded(
+                            child: _miniTile(
+                              context,
+                              Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -60,9 +71,19 @@ class SeeAllCard extends StatelessWidget {
                     Expanded(
                       child: Row(
                         children: [
-                          Expanded(child: _miniTile(context, Colors.white.withValues(alpha: 0.16))),
+                          Expanded(
+                            child: _miniTile(
+                              context,
+                              Colors.white.withValues(alpha: 0.16),
+                            ),
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: _miniTile(context, Colors.white.withValues(alpha: 0.08))),
+                          Expanded(
+                            child: _miniTile(
+                              context,
+                              Colors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -75,11 +96,13 @@ class SeeAllCard extends StatelessWidget {
               'Voir tout',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
-                  ) ?? const TextStyle(
+                  ) ??
+                  const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,

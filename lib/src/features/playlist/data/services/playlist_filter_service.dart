@@ -9,8 +9,12 @@ class PlaylistFilterService {
   final IptvLocalRepository _iptvLocal;
 
   Future<Playlist> filterUnavailable(Playlist playlist) async {
-    final movieIds = await _iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.movie);
-    final showIds = await _iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.series);
+    final movieIds = await _iptvLocal.getAvailableTmdbIds(
+      type: XtreamPlaylistItemType.movie,
+    );
+    final showIds = await _iptvLocal.getAvailableTmdbIds(
+      type: XtreamPlaylistItemType.series,
+    );
     final filtered = playlist.items.where((i) {
       final type = i.reference.type;
       final id = int.tryParse(i.reference.id);

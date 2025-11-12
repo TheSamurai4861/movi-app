@@ -39,7 +39,8 @@ class HttpClientFactory {
             'MOVI/${config.metadata.version} (${config.environment.label})',
       },
       // N'autorise pas les 200-299 uniquement, le mapper gérera l'erreur typée.
-      validateStatus: (status) => status != null && status >= 200 && status < 600,
+      validateStatus: (status) =>
+          status != null && status >= 200 && status < 600,
     );
 
     final dio = Dio(options);

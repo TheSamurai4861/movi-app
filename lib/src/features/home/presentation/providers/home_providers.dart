@@ -21,6 +21,7 @@ class HomeState {
     this.cwShows = const <TvShowSummary>[],
     this.iptvLists = const <String, List<ContentReference>>{},
     this.isLoading = false,
+    this.isHeroEmpty = false,
     this.error,
   });
 
@@ -29,6 +30,7 @@ class HomeState {
   final List<TvShowSummary> cwShows;
   final Map<String, List<ContentReference>> iptvLists;
   final bool isLoading;
+  final bool isHeroEmpty;
   final String? error;
 
   HomeState copyWith({
@@ -37,6 +39,7 @@ class HomeState {
     List<TvShowSummary>? cwShows,
     Map<String, List<ContentReference>>? iptvLists,
     bool? isLoading,
+    bool? isHeroEmpty,
     String? error,
   }) {
     return HomeState(
@@ -45,6 +48,7 @@ class HomeState {
       cwShows: cwShows ?? this.cwShows,
       iptvLists: iptvLists ?? this.iptvLists,
       isLoading: isLoading ?? this.isLoading,
+      isHeroEmpty: isHeroEmpty ?? this.isHeroEmpty,
       error: error ?? this.error,
     );
   }
@@ -75,10 +79,17 @@ class HomeController extends StateNotifier<HomeState> {
 
     try {
       final hero = await _repo.getHeroMovies();
-      state = state.copyWith(hero: hero, isLoading: false);
+      final bool empty = hero.isEmpty;
+      state = state.copyWith(hero: hero, isLoading: false, isHeroEmpty: empty);
+      if (empty) {
+        unawaited(LoggingService.log('Home: hero empty'));
+      }
       unawaited(LoggingService.log('Home: hero loaded count=${hero.length}'));
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement du hero : $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement du hero : $e',
+      );
       unawaited(LoggingService.log('Home: hero load error=$e'));
     }
 
@@ -97,15 +108,21 @@ class HomeController extends StateNotifier<HomeState> {
     try {
       final lists = await _repo.getIptvCategoryLists();
       state = state.copyWith(iptvLists: lists);
-      unawaited(LoggingService.log('Home: iptv lists loaded sections=${lists.length}'));
-    } catch (_) {}
+      unawaited(
+        LoggingService.log('Home: iptv lists loaded sections=${lists.length}'),
+      );
+    } catch (e) {
+      unawaited(LoggingService.log('Home: iptv lists load error=$e'));
+    }
   }
 
   Future<void> _loadCwMovies() async {
     try {
       final cw = await _repo.getContinueWatchingMovies();
       state = state.copyWith(cwMovies: cw);
-      unawaited(LoggingService.log('Home: cw movies loaded count=${cw.length}'));
+      unawaited(
+        LoggingService.log('Home: cw movies loaded count=${cw.length}'),
+      );
     } catch (_) {}
   }
 
@@ -124,7 +141,11 @@ class HomeController extends StateNotifier<HomeState> {
   Future<void> enrichCategoryBatch(String key, int start, int count) async {
     final list = state.iptvLists[key];
     if (list == null || list.isEmpty || count <= 0) return;
-    unawaited(LoggingService.log('Home: enrich start key=$key start=$start count=$count'));
+    unawaited(
+      LoggingService.log(
+        'Home: enrich start key=$key start=$start count=$count',
+      ),
+    );
 
     final clampedStart = start.clamp(0, list.length - 1);
     final end = (clampedStart + count - 1).clamp(0, list.length - 1);
@@ -138,8 +159,10 @@ class HomeController extends StateNotifier<HomeState> {
 
       // Accepter les posters IPTV http(s) s’ils sont compatibles avec la plateforme.
       // Sur le Web, les images http peuvent être bloquées (mixed content) → enrichissement pour obtenir un poster TMDB https.
-      final bool isHttpPosterOnWeb = kIsWeb && ref.poster != null && ref.poster!.scheme == 'http';
-      final needsEnrich = ref.year == null ||
+      final bool isHttpPosterOnWeb =
+          kIsWeb && ref.poster != null && ref.poster!.scheme == 'http';
+      final needsEnrich =
+          ref.year == null ||
           ref.rating == null ||
           ref.poster == null ||
           isHttpPosterOnWeb;
@@ -187,7 +210,11 @@ class HomeController extends StateNotifier<HomeState> {
       _inflight.remove(k);
     }
     if (keysToCancel.isNotEmpty) {
-      unawaited(LoggingService.log('Home: canceled offscreen requests key=$key count=${keysToCancel.length}'));
+      unawaited(
+        LoggingService.log(
+          'Home: canceled offscreen requests key=$key count=${keysToCancel.length}',
+        ),
+      );
     }
   }
 
@@ -214,7 +241,10 @@ class HomeController extends StateNotifier<HomeState> {
   }
 
   void _bufferPatch(String key, int index, ContentReference enriched) {
-    final byIndex = _pendingPatches.putIfAbsent(key, () => <int, ContentReference>{});
+    final byIndex = _pendingPatches.putIfAbsent(
+      key,
+      () => <int, ContentReference>{},
+    );
     byIndex[index] = enriched;
 
     // Augmente légèrement l’intervalle pour réduire la pression sur le thread UI Windows.
@@ -266,10 +296,10 @@ class HomeController extends StateNotifier<HomeState> {
   }
 }
 
-final homeFeedRepositoryProvider =
-    Provider<HomeFeedRepository>((ref) => sl<HomeFeedRepository>());
+final homeFeedRepositoryProvider = Provider<HomeFeedRepository>(
+  (ref) => sl<HomeFeedRepository>(),
+);
 
-final homeControllerProvider =
-    StateNotifierProvider<HomeController, HomeState>(
+final homeControllerProvider = StateNotifierProvider<HomeController, HomeState>(
   (ref) => HomeController(ref.read(homeFeedRepositoryProvider))..load(),
 );

@@ -20,7 +20,10 @@ class WelcomeFaqRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(6),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text('FAQ', style: t.bodyLarge?.copyWith(color: c.primary)),
+              child: Text(
+                'FAQ',
+                style: t.bodyLarge?.copyWith(color: c.primary),
+              ),
             ),
           ),
         ],

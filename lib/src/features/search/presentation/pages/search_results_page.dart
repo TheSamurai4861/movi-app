@@ -15,7 +15,9 @@ class SearchResultsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final a = args ?? const SearchResultsPageArgs(query: '', type: SearchResultsType.movies);
+    final a =
+        args ??
+        const SearchResultsPageArgs(query: '', type: SearchResultsType.movies);
     final state = ref.watch(searchResultsControllerProvider(a));
 
     final title = state.type == SearchResultsType.movies ? 'Films' : 'Séries';
@@ -32,16 +34,19 @@ class SearchResultsPage extends ConsumerWidget {
               if (state.error != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: Text(state.error!, style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    state.error!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 ),
-              Expanded(
-                child: _ResultsGrid(state: state),
-              ),
+              Expanded(child: _ResultsGrid(state: state)),
               if (state.hasMore)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.md),
                   child: ElevatedButton(
-                    onPressed: () => ref.read(searchResultsControllerProvider(a).notifier).fetchNextPage(),
+                    onPressed: () => ref
+                        .read(searchResultsControllerProvider(a).notifier)
+                        .fetchNextPage(),
                     child: const Text('Charger plus'),
                   ),
                 ),
@@ -61,22 +66,26 @@ class _ResultsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = state.type == SearchResultsType.movies
-        ? state.itemsMovies.map((m) => MoviMedia(
+        ? state.itemsMovies.map(
+            (m) => MoviMedia(
               id: m.id.value,
               title: m.title.display,
               poster: m.poster.toString(),
               year: (m.releaseYear?.toString() ?? '—'),
               rating: '—',
               type: MoviMediaType.movie,
-            ))
-        : state.itemsShows.map((s) => MoviMedia(
+            ),
+          )
+        : state.itemsShows.map(
+            (s) => MoviMedia(
               id: s.id.value,
               title: s.title.display,
               poster: s.poster.toString(),
               year: '—',
               rating: '—',
               type: MoviMediaType.series,
-            ));
+            ),
+          );
 
     final mediaList = items.toList(growable: false);
 

@@ -156,9 +156,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusUser.requestFocus(),
-              decoration: const InputDecoration(
-                hintText: 'URL Serveur',
-              ),
+              decoration: const InputDecoration(hintText: 'URL Serveur'),
               validator: (v) => (XtreamEndpoint.tryParse(v ?? '') == null)
                   ? 'URL invalide'
                   : null,

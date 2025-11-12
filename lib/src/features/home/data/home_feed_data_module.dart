@@ -2,6 +2,7 @@ import '../../../core/di/injector.dart';
 import '../../../core/state/app_state_controller.dart';
 import '../../../core/storage/repositories/iptv_local_repository.dart';
 import '../../../shared/data/services/tmdb_image_resolver.dart';
+import '../../../shared/data/services/tmdb_cache_data_source.dart';
 import '../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import '../../movie/domain/repositories/movie_repository.dart';
 import '../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
@@ -22,6 +23,7 @@ class HomeFeedDataModule {
         sl<TvRepository>(),
         sl<TmdbImageResolver>(),
         sl<AppStateController>(),
+        sl<TmdbCacheDataSource>(),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart' show StateNotifier, StateNotifierProvider;
+import 'package:flutter_riverpod/legacy.dart'
+    show StateNotifier, StateNotifierProvider;
 import 'package:movi/src/core/di/injector.dart';
 import '../../domain/entities/search_history_item.dart';
 import '../../domain/repositories/search_history_repository.dart';
@@ -7,16 +8,21 @@ import '../../domain/usecases/add_search_query_to_history.dart';
 import '../../domain/usecases/list_search_history.dart';
 import '../../domain/usecases/remove_search_history_item.dart';
 
-final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((ref) {
+final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((
+  ref,
+) {
   return sl<SearchHistoryRepository>();
 });
 
-final listSearchHistoryProvider = FutureProvider<List<SearchHistoryItem>>((ref) async {
+final listSearchHistoryProvider = FutureProvider<List<SearchHistoryItem>>((
+  ref,
+) async {
   final useCase = ListSearchHistory(ref.read(searchHistoryRepositoryProvider));
   return useCase();
 });
 
-class SearchHistoryController extends StateNotifier<AsyncValue<List<SearchHistoryItem>>> {
+class SearchHistoryController
+    extends StateNotifier<AsyncValue<List<SearchHistoryItem>>> {
   SearchHistoryController(this._repo) : super(const AsyncValue.data([])) {
     refresh();
   }
@@ -44,6 +50,10 @@ class SearchHistoryController extends StateNotifier<AsyncValue<List<SearchHistor
   }
 }
 
-final searchHistoryControllerProvider = StateNotifierProvider<SearchHistoryController, AsyncValue<List<SearchHistoryItem>>>((ref) {
-  return SearchHistoryController(ref.read(searchHistoryRepositoryProvider));
-});
+final searchHistoryControllerProvider =
+    StateNotifierProvider<
+      SearchHistoryController,
+      AsyncValue<List<SearchHistoryItem>>
+    >((ref) {
+      return SearchHistoryController(ref.read(searchHistoryRepositoryProvider));
+    });

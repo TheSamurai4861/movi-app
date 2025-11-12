@@ -11,4 +11,3 @@ class SearchPeople {
     return _repository.searchPeople(query, page: page);
   }
 }
-

@@ -22,9 +22,14 @@ class IptvModule {
     }
 
     sl.registerLazySingleton<XtreamCacheDataSource>(
-      () => XtreamCacheDataSource(sl<IptvLocalRepository>(), sl<ContentCacheRepository>()),
+      () => XtreamCacheDataSource(
+        sl<IptvLocalRepository>(),
+        sl<ContentCacheRepository>(),
+      ),
     );
-    sl.registerLazySingleton<XtreamRemoteDataSource>(() => XtreamRemoteDataSource(sl()));
+    sl.registerLazySingleton<XtreamRemoteDataSource>(
+      () => XtreamRemoteDataSource(sl()),
+    );
     sl.registerLazySingleton<PlaylistMapper>(() => const PlaylistMapper());
 
     sl.registerLazySingleton<IptvRepository>(
@@ -32,8 +37,12 @@ class IptvModule {
     );
 
     sl.registerLazySingleton<AddXtreamSource>(() => AddXtreamSource(sl()));
-    sl.registerLazySingleton<RefreshXtreamCatalog>(() => RefreshXtreamCatalog(sl()));
-    sl.registerLazySingleton<ListXtreamPlaylists>(() => ListXtreamPlaylists(sl()));
+    sl.registerLazySingleton<RefreshXtreamCatalog>(
+      () => RefreshXtreamCatalog(sl()),
+    );
+    sl.registerLazySingleton<ListXtreamPlaylists>(
+      () => ListXtreamPlaylists(sl()),
+    );
 
     // Background sync service (not auto-started)
     if (!sl.isRegistered<XtreamSyncService>()) {

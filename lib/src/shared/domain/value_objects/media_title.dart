@@ -1,6 +1,5 @@
 class MediaTitle {
-  MediaTitle(String value)
-      : value = value.trim();
+  MediaTitle(String value) : value = value.trim();
 
   final String value;
 

@@ -1,6 +1,6 @@
 class LocalePreferences {
   LocalePreferences({String defaultLanguageCode = 'en-US'})
-      : _languageCode = defaultLanguageCode;
+    : _languageCode = defaultLanguageCode;
 
   String _languageCode;
 

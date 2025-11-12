@@ -4,13 +4,15 @@ import 'environment.dart';
 
 class EnvironmentLoader {
   const EnvironmentLoader({PlatformSelector? platformSelector})
-      : platformSelector = platformSelector ?? const PlatformSelector();
+    : platformSelector = platformSelector ?? const PlatformSelector();
 
   final PlatformSelector platformSelector;
 
   // Précompute compile-time defines to avoid runtime fromEnvironment calls on web.
   static const String _defineAppEnv = String.fromEnvironment('APP_ENV');
-  static const String _defineFlutterAppEnv = String.fromEnvironment('FLUTTER_APP_ENV');
+  static const String _defineFlutterAppEnv = String.fromEnvironment(
+    'FLUTTER_APP_ENV',
+  );
 
   EnvironmentFlavor load({AppEnvironment? override}) {
     final resolved = override ?? _resolveFromBuild();
@@ -18,7 +20,8 @@ class EnvironmentLoader {
   }
 
   AppEnvironment _resolveFromBuild() {
-    final envFromDefine = _readDefine('APP_ENV') ?? _readDefine('FLUTTER_APP_ENV');
+    final envFromDefine =
+        _readDefine('APP_ENV') ?? _readDefine('FLUTTER_APP_ENV');
     if (envFromDefine != null) {
       return envFromDefine;
     }
@@ -30,7 +33,9 @@ class EnvironmentLoader {
     }
 
     // Autres plateformes : prod en release, sinon dev.
-    return platformSelector.isReleaseMode ? AppEnvironment.prod : AppEnvironment.dev;
+    return platformSelector.isReleaseMode
+        ? AppEnvironment.prod
+        : AppEnvironment.dev;
   }
 
   AppEnvironment? _readDefine(String key) {

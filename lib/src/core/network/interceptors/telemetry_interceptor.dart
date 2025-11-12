@@ -29,7 +29,9 @@ class TelemetryInterceptor extends Interceptor {
     final start = options.extra['request-start'] as int?;
     if (start == null) return;
     final duration = DateTime.now().millisecondsSinceEpoch - start;
-    logger.debug('[HTTP] ${options.method} ${options.path} ($statusCode) - ${duration}ms');
+    logger.debug(
+      '[HTTP] ${options.method} ${options.path} ($statusCode) - ${duration}ms',
+    );
     options.extra.remove('request-start');
   }
 }

@@ -16,28 +16,39 @@ class XtreamRemoteDataSource {
   }) {
     return _executor.run<Map<String, dynamic>, XtreamAuthDto>(
       request: (client) => client.getUri<Map<String, dynamic>>(
-        endpoint.buildUri({
-          'username': username,
-          'password': password,
-        }),
+        endpoint.buildUri({'username': username, 'password': password}),
       ),
       mapper: (response) => XtreamAuthDto.fromJson(response.data!),
     );
   }
 
-  Future<List<XtreamCategoryDto>> getVodCategories(XtreamAccountRequest request) {
+  Future<List<XtreamCategoryDto>> getVodCategories(
+    XtreamAccountRequest request,
+  ) {
     return _getCategories(request, action: 'get_vod_categories');
   }
 
-  Future<List<XtreamCategoryDto>> getSeriesCategories(XtreamAccountRequest request) {
+  Future<List<XtreamCategoryDto>> getSeriesCategories(
+    XtreamAccountRequest request,
+  ) {
     return _getCategories(request, action: 'get_series_categories');
   }
 
-  Future<List<XtreamStreamDto>> getVodStreams(XtreamAccountRequest request, {String? categoryId}) {
-    return _getStreams(request, action: 'get_vod_streams', categoryId: categoryId);
+  Future<List<XtreamStreamDto>> getVodStreams(
+    XtreamAccountRequest request, {
+    String? categoryId,
+  }) {
+    return _getStreams(
+      request,
+      action: 'get_vod_streams',
+      categoryId: categoryId,
+    );
   }
 
-  Future<List<XtreamStreamDto>> getSeries(XtreamAccountRequest request, {String? categoryId}) {
+  Future<List<XtreamStreamDto>> getSeries(
+    XtreamAccountRequest request, {
+    String? categoryId,
+  }) {
     return _getStreams(request, action: 'get_series', categoryId: categoryId);
   }
 
@@ -53,10 +64,11 @@ class XtreamRemoteDataSource {
           'action': action,
         }),
       ),
-      mapper: (response) =>
-          response.data!
-              .map((item) => XtreamCategoryDto.fromJson(item as Map<String, dynamic>))
-              .toList(growable: false),
+      mapper: (response) => response.data!
+          .map(
+            (item) => XtreamCategoryDto.fromJson(item as Map<String, dynamic>),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -75,13 +87,11 @@ class XtreamRemoteDataSource {
     }
 
     return _executor.run<List<dynamic>, List<XtreamStreamDto>>(
-      request: (client) => client.getUri<List<dynamic>>(
-        request.endpoint.buildUri(query),
-      ),
-      mapper: (response) =>
-          response.data!
-              .map((item) => XtreamStreamDto.fromJson(item as Map<String, dynamic>))
-              .toList(growable: false),
+      request: (client) =>
+          client.getUri<List<dynamic>>(request.endpoint.buildUri(query)),
+      mapper: (response) => response.data!
+          .map((item) => XtreamStreamDto.fromJson(item as Map<String, dynamic>))
+          .toList(growable: false),
     );
   }
 }

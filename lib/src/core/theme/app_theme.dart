@@ -15,14 +15,18 @@ class AppTheme {
     final colorScheme = _buildColorScheme(isDark);
     final textTheme = _buildTextTheme(isDark);
 
-    final backgroundColor =
-        isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final primaryTextColor =
-        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final secondaryTextColor =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    final surfaceContainer =
-        isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
+    final backgroundColor = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final primaryTextColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final secondaryTextColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final surfaceContainer = isDark
+        ? AppColors.darkSurfaceVariant
+        : AppColors.lightSurfaceVariant;
 
     // Tente d’utiliser Montserrat via Google Fonts, sinon fallback système.
     String? montserratFamily;
@@ -44,15 +48,11 @@ class AppTheme {
         foregroundColor: primaryTextColor,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: textTheme.titleLarge?.copyWith(
-          color: primaryTextColor,
-        ),
+        titleTextStyle: textTheme.titleLarge?.copyWith(color: primaryTextColor),
       ),
       cardTheme: CardThemeData(
         color: colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         margin: EdgeInsets.zero,
         elevation: isDark ? 0 : 1,
       ),
@@ -60,18 +60,12 @@ class AppTheme {
         iconColor: primaryTextColor,
         textColor: primaryTextColor,
         tileColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: surfaceContainer,
-        labelStyle: textTheme.labelLarge?.copyWith(
-          color: secondaryTextColor,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        labelStyle: textTheme.labelLarge?.copyWith(color: secondaryTextColor),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         selectedColor: colorScheme.primary.withValues(alpha: 0.12),
         secondarySelectedColor: colorScheme.primary.withValues(alpha: 0.2),
@@ -91,15 +85,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
         hintStyle: textTheme.bodyMedium?.copyWith(
           color: colorScheme.onSurfaceVariant,
         ),
       ),
-      iconTheme: IconThemeData(
-        color: primaryTextColor,
-        size: 24,
-      ),
+      iconTheme: IconThemeData(color: primaryTextColor, size: 24),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
@@ -139,9 +133,7 @@ class AppTheme {
         space: 32,
       ),
       checkboxTheme: CheckboxThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
@@ -156,9 +148,7 @@ class AppTheme {
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: primaryTextColor,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -170,15 +160,19 @@ class AppTheme {
       seedColor: AppColors.accent,
     );
 
-    final surface = isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final surfaceHigh =
-        isDark ? AppColors.darkSurface : AppColors.lightSurface;
-    final surfaceHighest =
-        isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
-    final primaryText =
-        isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final secondaryText =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
+    final surface = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final surfaceHigh = isDark ? AppColors.darkSurface : AppColors.lightSurface;
+    final surfaceHighest = isDark
+        ? AppColors.darkSurfaceVariant
+        : AppColors.lightSurfaceVariant;
+    final primaryText = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final secondaryText = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
 
     return base.copyWith(
       primary: AppColors.accent,
@@ -189,7 +183,9 @@ class AppTheme {
       onSurface: primaryText,
       onSurfaceVariant: secondaryText,
       outline: isDark ? const Color(0xFF3D3D3D) : const Color(0xFFBFC4CC),
-      outlineVariant: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE0E3E8),
+      outlineVariant: isDark
+          ? const Color(0xFF2A2A2A)
+          : const Color(0xFFE0E3E8),
       inversePrimary: const Color(0xFF9CC4FF),
       surfaceTint: AppColors.accent,
     );
@@ -201,21 +197,28 @@ class AppTheme {
     try {
       base = GoogleFonts.montserratTextTheme();
     } catch (_) {
-      base = (isDark ? Typography.whiteMountainView : Typography.blackMountainView).copyWith();
+      base =
+          (isDark ? Typography.whiteMountainView : Typography.blackMountainView)
+              .copyWith();
     }
-    final primary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
-    final secondary =
-        isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-    
+    final primary = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final secondary = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
     // Construit les styles avec fallback si GoogleFonts indisponible
-    TextStyle headline(double size) => (base.titleLarge ?? const TextStyle()).copyWith(
+    TextStyle headline(double size) =>
+        (base.titleLarge ?? const TextStyle()).copyWith(
           fontSize: size,
           fontWeight: FontWeight.w600,
           color: primary,
           height: 1.2,
         );
 
-    TextStyle body(double size, FontWeight weight, Color color) => (base.bodyMedium ?? const TextStyle()).copyWith(
+    TextStyle body(double size, FontWeight weight, Color color) =>
+        (base.bodyMedium ?? const TextStyle()).copyWith(
           fontSize: size,
           fontWeight: weight,
           color: color,

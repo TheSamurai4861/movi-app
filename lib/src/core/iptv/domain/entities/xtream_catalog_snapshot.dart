@@ -31,5 +31,11 @@ class XtreamCatalogSnapshot extends Equatable {
   }
 
   @override
-  List<Object?> get props => [accountId, lastSyncAt, movieCount, seriesCount, lastError];
+  List<Object?> get props => [
+    accountId,
+    lastSyncAt,
+    movieCount,
+    seriesCount,
+    lastError,
+  ];
 }

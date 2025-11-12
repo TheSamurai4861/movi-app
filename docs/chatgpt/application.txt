@@ -1,0 +1,16 @@
+Prompt #3
+Tu vas **corriger lié à l’application des “tendances TMDB” au Hero dans le projet directement
+Attendus :
+
+1. Corrige complètement le fichier pour :
+
+* Code propre, professionnel, conforme aux bonnes pratiques du langage (null-safety, immutabilité quand pertinent, erreurs typées).
+* Responsabilités claires : la **sélection et l’application** des tendances au Hero doivent être sans ambiguïté (pas de double logique UI/Repo).
+* Pas de secrets en dur (lectures via config/env existante).
+* API stable (retours deterministes ; pas d’exceptions silencieuses ; pas d’`await` manquant).
+* Formatage conforme (ex. `dart format`), **aucun** TODO/commentaire inutile.
+
+2. **Sortie** :
+
+* Code corrigé
+* Puis un **résumé concis** (3–6 puces) des changements clés.

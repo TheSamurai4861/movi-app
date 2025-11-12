@@ -30,7 +30,11 @@ class WelcomeHeader extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(title, style: t.headlineSmall, textAlign: TextAlign.center),
+          child: Text(
+            title,
+            style: t.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
         ),
         const SizedBox(height: 10),
         Padding(

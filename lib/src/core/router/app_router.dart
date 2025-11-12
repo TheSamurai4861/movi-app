@@ -56,7 +56,8 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.welcome,
       name: 'welcome',
-      pageBuilder: (context, state) => const MaterialPage(child: WelcomeUserPage()),
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: WelcomeUserPage()),
     ),
 
     // --- BOOTSTRAP (splash) ---
@@ -87,7 +88,9 @@ final appRouter = GoRouter(
       path: AppRouteNames.searchResults,
       name: 'search_results',
       pageBuilder: (context, state) {
-        final args = state.extra is SearchResultsPageArgs ? state.extra as SearchResultsPageArgs : null;
+        final args = state.extra is SearchResultsPageArgs
+            ? state.extra as SearchResultsPageArgs
+            : null;
         return MaterialPage(child: SearchResultsPage(args: args));
       },
     ),
@@ -190,7 +193,11 @@ class _LaunchGateState extends State<_LaunchGate> {
       GoRouter.of(context).go(AppRouteNames.welcome);
     } else {
       // Il y a un compte → Bootstrap (prépare avant Home)
-      unawaited(LoggingService.log('LaunchGate: accounts found=${accounts.length}, go bootstrap'));
+      unawaited(
+        LoggingService.log(
+          'LaunchGate: accounts found=${accounts.length}, go bootstrap',
+        ),
+      );
       GoRouter.of(context).go(AppRouteNames.bootstrap);
     }
   }

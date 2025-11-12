@@ -1,54 +1,78 @@
-// lib/src/features/tmdb/data/datasources/tmdb_cache_data_source.dart
+// ignore_for_file: public_member_api_docs
 
-import '../../../core/storage/repositories/content_cache_repository.dart';
-import '../../../core/storage/services/cache_policy.dart';
+import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
 
-/// Cache TMDB combinant :
-/// - **mémoïzation mémoire courte** (LRU + TTL 30–60s par défaut)
-/// - **persistance** via [ContentCacheRepository] (TTL 7 jours)
+/// Data source de cache pour les détails TMDB (films & séries).
+/// Combine :
+/// - une mémoïsation mémoire **LRU** à court terme (pour éviter les re-hits
+///   réseau durant les rafales d’accès d’un même écran),
+/// - une **persistance** via [ContentCacheRepository] (TTL étendu).
 ///
-/// Objectif : éviter les re-hits réseau lors d’un scroll (mêmes IDs demandés
-/// en rafale) tout en conservant un cache durable entre sessions.
+/// Contrats publics stables :
+/// - `getMovieDetail`, `putMovieDetail`
+/// - `getTvDetail`, `putTvDetail`
+/// - `clearMemoryMemo`
+///
+/// Les méthodes retournent `Map<String, dynamic>?` afin de laisser les couches
+/// supérieures mapper/valider/extraire les champs utiles.
+///
+/// ⚠️ Aucun parsing métier n’est réalisé ici : *responsabilité unique = cache*.
 class TmdbCacheDataSource {
   TmdbCacheDataSource(
     this._cache, {
     Duration memoTtl = const Duration(seconds: 45),
     int memoCapacity = 512,
-  })  : _memoTtl = memoTtl,
-        _memo = _LruMemo<String, Map<String, dynamic>>(memoCapacity);
+  }) : assert(memoCapacity > 0),
+       _memoTtl = memoTtl,
+       _memo = _LruMemo<String, Map<String, dynamic>>(memoCapacity);
 
   final ContentCacheRepository _cache;
 
-  // 7 jours pour la couche persistée
+  /// TTL par défaut de la couche persistée (peut être surchargé à l’appel).
   static const CachePolicy detailPolicy = CachePolicy(ttl: Duration(days: 7));
 
-  // Mémo court (mémoire process)
+  /// TTL de la mémo en mémoire (process).
   final Duration _memoTtl;
+
+  /// Mémo LRU (clé → JSON), bornée et expirante.
   final _LruMemo<String, Map<String, dynamic>> _memo;
+
+  // ---------------------------------------------------------------------------
+  // Clés de cache
+  // ---------------------------------------------------------------------------
 
   String _movieKey(int id) => 'tmdb_movie_detail_$id';
   String _tvKey(int id) => 'tmdb_tv_detail_$id';
 
-  /// ----- MOVIE -----
+  // ---------------------------------------------------------------------------
+  // MOVIE
+  // ---------------------------------------------------------------------------
 
   Future<Map<String, dynamic>?> getMovieDetail(
     int id, {
     Duration? memoTtl,
     CachePolicy? policyOverride,
   }) async {
-    final key = _movieKey(id);
+    if (id <= 0) return null;
+    final String key = _movieKey(id);
 
-    // 1) Mémo mémoire
-    final memo = _memo.getIfFresh(key);
+    // 1) Mémo mémoire (rapide, court-terme)
+    final Map<String, dynamic>? memo = _memo.getIfFresh(key);
     if (memo != null) return memo;
 
-    // 2) Cache persistant (TTL overridable)
-    final data = await _cache.getWithPolicy(key, policyOverride ?? detailPolicy);
+    // 2) Cache persistant (long-terme)
+    final dynamic data = await _cache.getWithPolicy(
+      key,
+      policyOverride ?? detailPolicy,
+    );
+
     if (data is Map<String, dynamic>) {
       _memo.put(key, data, ttl: memoTtl ?? _memoTtl);
       return data;
     }
-    // Donnée corrompue ou inattendue : on renvoie null (laisser la couche au-dessus décider)
+
+    // Donnée absente ou illisible → laisser la couche appelante décider du fallback.
     return null;
   }
 
@@ -57,28 +81,38 @@ class TmdbCacheDataSource {
     Map<String, dynamic> json, {
     Duration? memoTtl,
   }) async {
-    final key = _movieKey(id);
+    if (id <= 0) return;
+    final String key = _movieKey(id);
+    // Écrit d’abord en mémo pour lecture immédiate post-écriture.
     _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
     await _cache.put(key: key, type: 'tmdb_detail', payload: json);
   }
 
-  /// ----- TV -----
+  // ---------------------------------------------------------------------------
+  // TV
+  // ---------------------------------------------------------------------------
 
   Future<Map<String, dynamic>?> getTvDetail(
     int id, {
     Duration? memoTtl,
     CachePolicy? policyOverride,
   }) async {
-    final key = _tvKey(id);
+    if (id <= 0) return null;
+    final String key = _tvKey(id);
 
-    final memo = _memo.getIfFresh(key);
+    final Map<String, dynamic>? memo = _memo.getIfFresh(key);
     if (memo != null) return memo;
 
-    final data = await _cache.getWithPolicy(key, policyOverride ?? detailPolicy);
+    final dynamic data = await _cache.getWithPolicy(
+      key,
+      policyOverride ?? detailPolicy,
+    );
+
     if (data is Map<String, dynamic>) {
       _memo.put(key, data, ttl: memoTtl ?? _memoTtl);
       return data;
     }
+
     return null;
   }
 
@@ -87,39 +121,51 @@ class TmdbCacheDataSource {
     Map<String, dynamic> json, {
     Duration? memoTtl,
   }) async {
-    final key = _tvKey(id);
+    if (id <= 0) return;
+    final String key = _tvKey(id);
     _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
     await _cache.put(key: key, type: 'tmdb_detail', payload: json);
   }
 
-  /// Outils
+  // ---------------------------------------------------------------------------
+  // Outils
+  // ---------------------------------------------------------------------------
 
-  /// Permet de neutraliser la mémo courte (ex.: lors d’un hard refresh).
+  /// Vide la mémo mémoire *uniquement* (n’affecte pas la persistance).
   void clearMemoryMemo() => _memo.clear();
 }
 
-/// LRU mémoire avec TTL par entrée.
+// ============================================================================
+// LRU mémoire simple avec TTL par entrée
+// ============================================================================
+
 class _LruMemo<K, V> {
   _LruMemo(this.capacity) : assert(capacity > 0);
 
   final int capacity;
   final Map<K, _MemoEntry<V>> _map = <K, _MemoEntry<V>>{};
 
+  /// Retourne la valeur si non expirée, en actualisant son ordre LRU.
   V? getIfFresh(K key) {
-    final e = _map.remove(key);
-    if (e == null) return null;
-    if (DateTime.now().isAfter(e.expiresAt)) {
-      return null; // expiré
+    final _MemoEntry<V>? removed = _map.remove(key);
+    if (removed == null) return null;
+
+    // Expiration
+    if (DateTime.now().isAfter(removed.expiresAt)) {
+      return null;
     }
+
     // Réinsère pour marquer l’accès récent
-    _map[key] = e;
-    return e.value;
+    _map[key] = removed;
+    return removed.value;
   }
 
+  /// Insère/actualise une valeur avec son TTL et applique le bornage LRU.
   void put(K key, V value, {required Duration ttl}) {
     _map.remove(key);
-    _map[key] = _MemoEntry(value, DateTime.now().add(ttl));
-    // bornage
+    _map[key] = _MemoEntry<V>(value, DateTime.now().add(ttl));
+
+    // Bornage LRU (Map préserve l’ordre d’insertion → clé la plus ancienne = first)
     while (_map.length > capacity) {
       _map.remove(_map.keys.first);
     }
@@ -129,7 +175,7 @@ class _LruMemo<K, V> {
 }
 
 class _MemoEntry<V> {
-  _MemoEntry(this.value, this.expiresAt);
+  const _MemoEntry(this.value, this.expiresAt);
   final V value;
   final DateTime expiresAt;
 }

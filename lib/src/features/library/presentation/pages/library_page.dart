@@ -15,10 +15,7 @@ class LibraryPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Votre vidéothèque',
-                style: context.textTheme.headlineSmall,
-              ),
+              Text('Votre vidéothèque', style: context.textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Les données seront affichées lorsque la couche data/domain sera implémentée.',
@@ -43,4 +40,3 @@ class LibraryPage extends StatelessWidget {
     );
   }
 }
-

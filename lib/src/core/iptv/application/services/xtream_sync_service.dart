@@ -13,8 +13,8 @@ class XtreamSyncService {
     this._cache, {
     AppLogger? logger,
     Duration? interval,
-  })  : _logger = logger ?? sl<AppLogger>(),
-        _interval = interval ?? const Duration(hours: 2);
+  }) : _logger = logger ?? sl<AppLogger>(),
+       _interval = interval ?? const Duration(hours: 2);
 
   final AppStateController _state;
   final RefreshXtreamCatalog _refresh;
@@ -37,7 +37,9 @@ class XtreamSyncService {
 
   void start() {
     if (_timer != null) return;
-    _logger.info('XtreamSyncService starting (interval: ${_interval.inMinutes}m)');
+    _logger.info(
+      'XtreamSyncService starting (interval: ${_interval.inMinutes}m)',
+    );
     _timer = Timer.periodic(_interval, (_) => _tick());
     // initial tick
     unawaited(_tick());

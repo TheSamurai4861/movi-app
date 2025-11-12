@@ -16,13 +16,19 @@ class StorageModule {
     }
 
     if (!sl.isRegistered<WatchlistLocalRepository>()) {
-      sl.registerLazySingleton<WatchlistLocalRepository>(() => const WatchlistLocalRepositoryImpl());
+      sl.registerLazySingleton<WatchlistLocalRepository>(
+        () => const WatchlistLocalRepositoryImpl(),
+      );
     }
     if (!sl.isRegistered<ContentCacheRepository>()) {
-      sl.registerLazySingleton<ContentCacheRepository>(() => ContentCacheRepository());
+      sl.registerLazySingleton<ContentCacheRepository>(
+        () => ContentCacheRepository(),
+      );
     }
     if (!sl.isRegistered<IptvLocalRepository>()) {
-      sl.registerLazySingleton<IptvLocalRepository>(() => IptvLocalRepository());
+      sl.registerLazySingleton<IptvLocalRepository>(
+        () => IptvLocalRepository(),
+      );
     }
     if (!sl.isRegistered<ContinueWatchingLocalRepository>()) {
       sl.registerLazySingleton<ContinueWatchingLocalRepository>(

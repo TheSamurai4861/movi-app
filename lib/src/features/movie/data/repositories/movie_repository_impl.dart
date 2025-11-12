@@ -16,7 +16,13 @@ import '../datasources/movie_local_data_source.dart';
 import '../dtos/tmdb_movie_detail_dto.dart';
 
 class MovieRepositoryImpl implements MovieRepository {
-  MovieRepositoryImpl(this._remote, this._images, this._watchlist, this._local, this._continueWatching);
+  MovieRepositoryImpl(
+    this._remote,
+    this._images,
+    this._watchlist,
+    this._local,
+    this._continueWatching,
+  );
 
   final TmdbMovieRemoteDataSource _remote;
   final TmdbImageResolver _images;
@@ -51,7 +57,10 @@ class MovieRepositoryImpl implements MovieRepository {
     }
     final dto = await _remote.fetchMovie(movieId);
     final recommendations = dto.recommendations;
-    await _local.saveRecommendations(movieId: movieId, summaries: recommendations);
+    await _local.saveRecommendations(
+      movieId: movieId,
+      summaries: recommendations,
+    );
     return recommendations.map(_mapSummary).whereType<MovieSummary>().toList();
   }
 
@@ -77,7 +86,8 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   @override
-  Future<bool> isInWatchlist(MovieId id) async => _watchlist.exists(id.value, ContentType.movie);
+  Future<bool> isInWatchlist(MovieId id) async =>
+      _watchlist.exists(id.value, ContentType.movie);
 
   @override
   Future<void> setWatchlist(MovieId id, {required bool saved}) async {
@@ -111,15 +121,20 @@ class MovieRepositoryImpl implements MovieRepository {
       duration: Duration(minutes: dto.runtime ?? 0),
       poster: poster,
       backdrop: backdrop,
-      releaseDate: _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      releaseDate:
+          _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
       rating: _mapRating(dto.voteAverage),
       genres: dto.genres,
       cast: dto.cast.take(10).map(_mapCast).toList(),
-      directors: dto.directors.map((crew) => PersonSummary(
-            id: PersonId(crew.id.toString()),
-            tmdbId: crew.id,
-            name: crew.name,
-          )).toList(),
+      directors: dto.directors
+          .map(
+            (crew) => PersonSummary(
+              id: PersonId(crew.id.toString()),
+              tmdbId: crew.id,
+              name: crew.name,
+            ),
+          )
+          .toList(),
       tags: dto.genres,
       sagaLink: _mapSagaLink(dto),
     );

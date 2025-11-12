@@ -21,14 +21,12 @@ class SearchHistoryLocalDataSource {
 
   Future<void> add(String query) async {
     final now = DateTime.now().toUtc();
-    final item = {
-      'q': query,
-      't': now.toIso8601String(),
-    };
+    final item = {'q': query, 't': now.toIso8601String()};
     final key = await _userScopedKey();
     final existing = await _cache.get(key);
-    final list = ((existing?['items'] as List?) ?? const <Map<String, dynamic>>[])
-        .cast<Map<String, dynamic>>();
+    final list =
+        ((existing?['items'] as List?) ?? const <Map<String, dynamic>>[])
+            .cast<Map<String, dynamic>>();
     // Remove duplicates
     list.removeWhere((e) => e['q'] == query);
     list.insert(0, item);
@@ -46,11 +44,14 @@ class SearchHistoryLocalDataSource {
     final list = ((map['items'] as List?) ?? const <Map<String, dynamic>>[])
         .cast<Map<String, dynamic>>();
     return list
-        .map((e) => SearchHistoryItem(
-              query: (e['q'] as String?) ?? '',
-              savedAt: DateTime.tryParse((e['t'] as String?) ?? '')?.toUtc() ??
-                  DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
-            ))
+        .map(
+          (e) => SearchHistoryItem(
+            query: (e['q'] as String?) ?? '',
+            savedAt:
+                DateTime.tryParse((e['t'] as String?) ?? '')?.toUtc() ??
+                DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+          ),
+        )
         .where((i) => i.query.isNotEmpty)
         .toList(growable: false);
   }
@@ -59,8 +60,9 @@ class SearchHistoryLocalDataSource {
     final key = await _userScopedKey();
     final existing = await _cache.get(key);
     if (existing == null) return;
-    final list = ((existing['items'] as List?) ?? const <Map<String, dynamic>>[])
-        .cast<Map<String, dynamic>>();
+    final list =
+        ((existing['items'] as List?) ?? const <Map<String, dynamic>>[])
+            .cast<Map<String, dynamic>>();
     list.removeWhere((e) => e['q'] == query);
     await _cache.put(key: key, type: _type, payload: {'items': list});
   }

@@ -30,10 +30,12 @@ class MoviBottomNavBar extends StatelessWidget {
     required this.selectedIndex,
     required this.onItemSelected,
     List<MoviBottomNavItem>? navItems,
-  })  : assert(selectedIndex >= 0),
-        items = navItems ?? _defaultItems,
-        assert((navItems ?? _defaultItems).isNotEmpty,
-            'MoviBottomNavBar requires at least one item.');
+  }) : assert(selectedIndex >= 0),
+       items = navItems ?? _defaultItems,
+       assert(
+         (navItems ?? _defaultItems).isNotEmpty,
+         'MoviBottomNavBar requires at least one item.',
+       );
 
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
@@ -64,8 +66,10 @@ class MoviBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    assert(selectedIndex < items.length,
-        'selectedIndex ($selectedIndex) must be within the items list.');
+    assert(
+      selectedIndex < items.length,
+      'selectedIndex ($selectedIndex) must be within the items list.',
+    );
 
     final theme = Theme.of(context);
     final unselectedTextColor = Colors.white.withValues(alpha: 0.7);
@@ -126,11 +130,12 @@ class _MoviBottomNavItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveStyle = (textStyle ?? const TextStyle(fontSize: 12)).copyWith(
-      fontSize: 12,
-      fontWeight: FontWeight.w400,
-      color: isSelected ? selectedTextColor : unselectedTextColor,
-    );
+    final effectiveStyle = (textStyle ?? const TextStyle(fontSize: 12))
+        .copyWith(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: isSelected ? selectedTextColor : unselectedTextColor,
+        );
 
     return Material(
       color: Colors.transparent,

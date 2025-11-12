@@ -7,4 +7,3 @@ import '../../domain/repositories/library_repository.dart';
 final libraryRepositoryProvider = Provider<LibraryRepository>(
   (ref) => sl<LibraryRepository>(),
 );
-

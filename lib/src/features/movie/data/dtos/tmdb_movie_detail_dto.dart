@@ -16,14 +16,25 @@ class TmdbMovieDetailDto {
     required this.directors,
     required this.recommendations,
     this.belongsToCollection,
+    this.posterBackground,
   });
 
   factory TmdbMovieDetailDto.fromJson(Map<String, dynamic> json) {
-    final images = json['images'] is Map ? (json['images'] as Map).cast<String, dynamic>() : null;
-    final logos = images?['logos'] is List ? (images!['logos'] as List).cast<dynamic>() : const <dynamic>[];
-    final credits = json['credits'] is Map ? (json['credits'] as Map).cast<String, dynamic>() : null;
-    final rawCast = credits?['cast'] is List ? (credits!['cast'] as List).cast<dynamic>() : const <dynamic>[];
-    final rawCrew = credits?['crew'] is List ? (credits!['crew'] as List).cast<dynamic>() : const <dynamic>[];
+    final images = json['images'] is Map
+        ? (json['images'] as Map).cast<String, dynamic>()
+        : null;
+    final logos = images?['logos'] is List
+        ? (images!['logos'] as List).cast<dynamic>()
+        : const <dynamic>[];
+    final credits = json['credits'] is Map
+        ? (json['credits'] as Map).cast<String, dynamic>()
+        : null;
+    final rawCast = credits?['cast'] is List
+        ? (credits!['cast'] as List).cast<dynamic>()
+        : const <dynamic>[];
+    final rawCrew = credits?['crew'] is List
+        ? (credits!['crew'] as List).cast<dynamic>()
+        : const <dynamic>[];
     final recs = json['recommendations'] is Map
         ? ((json['recommendations'] as Map).cast<String, dynamic>())['results']
         : null;
@@ -46,24 +57,37 @@ class TmdbMovieDetailDto {
 
     return TmdbMovieDetailDto(
       id: _asInt(json['id']) ?? 0,
-      title: _stringOr(json['title'], _stringOr(json['original_title'], 'Untitled')) ?? 'Untitled',
+      title:
+          _stringOr(
+            json['title'],
+            _stringOr(json['original_title'], 'Untitled'),
+          ) ??
+          'Untitled',
       overview: _stringOr(json['overview'], '') ?? '',
       posterPath: _stringOr(json['poster_path']),
+      posterBackground: _selectPosterBackground(images),
       backdropPath: _stringOr(json['backdrop_path']),
       logoPath: _selectLogo(logos),
       releaseDate: _stringOr(json['release_date']),
       runtime: _asInt(json['runtime']),
       voteAverage: _asDouble(json['vote_average']),
-      genres: (json['genres'] is List ? (json['genres'] as List) : const <dynamic>[])
-          .whereType<Map>()
-          .map((g) => _stringOr(g['name'], '') ?? '')
-          .where((name) => name.isNotEmpty)
-          .toList(growable: false),
+      genres:
+          (json['genres'] is List
+                  ? (json['genres'] as List)
+                  : const <dynamic>[])
+              .whereType<Map>()
+              .map((g) => _stringOr(g['name'], '') ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList(growable: false),
       cast: cast,
-      directors: crew.where((m) => (m.job ?? '').toLowerCase() == 'director').toList(growable: false),
+      directors: crew
+          .where((m) => (m.job ?? '').toLowerCase() == 'director')
+          .toList(growable: false),
       recommendations: recommendations,
       belongsToCollection: json['belongs_to_collection'] is Map
-          ? TmdbCollectionRefDto.fromJson((json['belongs_to_collection'] as Map).cast<String, dynamic>())
+          ? TmdbCollectionRefDto.fromJson(
+              (json['belongs_to_collection'] as Map).cast<String, dynamic>(),
+            )
           : null,
     );
   }
@@ -82,6 +106,7 @@ class TmdbMovieDetailDto {
   final List<TmdbMovieCrewDto> directors;
   final List<TmdbMovieSummaryDto> recommendations;
   final TmdbCollectionRefDto? belongsToCollection;
+  final String? posterBackground;
 
   Map<String, dynamic> toCache() {
     return <String, dynamic>{
@@ -90,18 +115,25 @@ class TmdbMovieDetailDto {
       'overview': overview,
       'poster_path': posterPath,
       'backdrop_path': backdropPath,
+      'logo_path': logoPath,
+      'poster_background': posterBackground,
       'release_date': releaseDate,
       'runtime': runtime,
       'vote_average': voteAverage,
-      'genres': genres.map((name) => <String, dynamic>{'name': name}).toList(growable: false),
+      'genres': genres
+          .map((name) => <String, dynamic>{'name': name})
+          .toList(growable: false),
       'credits': <String, dynamic>{
         'cast': cast.map((c) => c.toJson()).toList(growable: false),
         'crew': directors.map((d) => d.toJson()).toList(growable: false),
       },
       'recommendations': <String, dynamic>{
-        'results': recommendations.map((r) => r.toJson()).toList(growable: false),
+        'results': recommendations
+            .map((r) => r.toJson())
+            .toList(growable: false),
       },
-      if (belongsToCollection != null) 'belongs_to_collection': belongsToCollection!.toJson(),
+      if (belongsToCollection != null)
+        'belongs_to_collection': belongsToCollection!.toJson(),
       'images': <String, dynamic>{
         'logos': logoPath != null
             ? <Map<String, dynamic>>[
@@ -109,7 +141,7 @@ class TmdbMovieDetailDto {
                   'file_path': logoPath,
                   'vote_average': voteAverage,
                   'iso_639_1': null,
-                }
+                },
               ]
             : <Map<String, dynamic>>[],
         'posters': const <Map<String, dynamic>>[],
@@ -117,20 +149,67 @@ class TmdbMovieDetailDto {
     };
   }
 
-  factory TmdbMovieDetailDto.fromCache(Map<String, dynamic> json) => TmdbMovieDetailDto.fromJson(json);
+  factory TmdbMovieDetailDto.fromCache(Map<String, dynamic> json) =>
+      TmdbMovieDetailDto.fromJson(json);
+
+  static String? _selectPosterBackground(Map<String, dynamic>? images) {
+    if (images == null) return null;
+    final posters = images['posters'];
+    if (posters is! List) return null;
+    String? pathOf(Map<String, dynamic> m) => _stringOr(m['file_path']);
+    bool okExt(String p) {
+      final lower = p.toLowerCase();
+      return lower.endsWith('.jpg') || lower.endsWith('.png');
+    }
+
+    final list = posters
+        .whereType<Map>()
+        .map((e) => e.cast<String, dynamic>())
+        .toList(growable: false);
+
+    for (final m in list) {
+      final lang = _stringOr(m['iso_639_1']);
+      final p = pathOf(m);
+      if ((lang == null || lang.isEmpty) && p != null && okExt(p)) {
+        return p;
+      }
+    }
+    for (final m in list) {
+      final lang = _stringOr(m['iso_639_1'])?.toLowerCase();
+      final p = pathOf(m);
+      if (lang == 'en' && p != null && okExt(p)) {
+        return p;
+      }
+    }
+    for (final m in list) {
+      final p = pathOf(m);
+      if (p != null && okExt(p)) {
+        return p;
+      }
+    }
+    return null;
+  }
 
   static String? _selectLogo(List<dynamic> logos) {
     if (logos.isEmpty) return null;
-    final list = logos.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList(growable: false);
+    final list = logos
+        .whereType<Map>()
+        .map((e) => e.cast<String, dynamic>())
+        .toList(growable: false);
 
     String? path(Map<String, dynamic> m) => _stringOr(m['file_path']);
-    num score(Map<String, dynamic> m) => (m['vote_average'] is num) ? (m['vote_average'] as num) : 0;
+    num score(Map<String, dynamic> m) =>
+        (m['vote_average'] is num) ? (m['vote_average'] as num) : 0;
 
-    int byScore(Map<String, dynamic> a, Map<String, dynamic> b) => score(b).compareTo(score(a));
+    int byScore(Map<String, dynamic> a, Map<String, dynamic> b) =>
+        score(b).compareTo(score(a));
 
     List<Map<String, dynamic>> filterByLang(String code) {
       final lower = code.toLowerCase();
-      return list.where((m) => _stringOr(m['iso_639_1'])?.toLowerCase() == lower).toList()..sort(byScore);
+      return list
+          .where((m) => _stringOr(m['iso_639_1'])?.toLowerCase() == lower)
+          .toList()
+        ..sort(byScore);
     }
 
     final fr = filterByLang('fr');
@@ -139,10 +218,15 @@ class TmdbMovieDetailDto {
     final en = filterByLang('en');
     if (en.isNotEmpty) return path(en.first);
 
-    final noLang = list
-        .where((m) => m['iso_639_1'] == null || (_stringOr(m['iso_639_1']) ?? '').isEmpty)
-        .toList()
-      ..sort(byScore);
+    final noLang =
+        list
+            .where(
+              (m) =>
+                  m['iso_639_1'] == null ||
+                  (_stringOr(m['iso_639_1']) ?? '').isEmpty,
+            )
+            .toList()
+          ..sort(byScore);
     if (noLang.isNotEmpty) return path(noLang.first);
 
     final sorted = list.toList()..sort(byScore);
@@ -151,13 +235,10 @@ class TmdbMovieDetailDto {
 }
 
 class TmdbCollectionRefDto {
-  TmdbCollectionRefDto({
-    required this.id,
-    required this.name,
-    this.posterPath,
-  });
+  TmdbCollectionRefDto({required this.id, required this.name, this.posterPath});
 
-  factory TmdbCollectionRefDto.fromJson(Map<String, dynamic> json) => TmdbCollectionRefDto(
+  factory TmdbCollectionRefDto.fromJson(Map<String, dynamic> json) =>
+      TmdbCollectionRefDto(
         id: _asInt(json['id']) ?? 0,
         name: _stringOr(json['name'], 'Collection') ?? 'Collection',
         posterPath: _stringOr(json['poster_path']),
@@ -168,10 +249,10 @@ class TmdbCollectionRefDto {
   final String? posterPath;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'name': name,
-        'poster_path': posterPath,
-      };
+    'id': id,
+    'name': name,
+    'poster_path': posterPath,
+  };
 }
 
 class TmdbMovieCastDto {
@@ -182,7 +263,8 @@ class TmdbMovieCastDto {
     required this.profilePath,
   });
 
-  factory TmdbMovieCastDto.fromJson(Map<String, dynamic> json) => TmdbMovieCastDto(
+  factory TmdbMovieCastDto.fromJson(Map<String, dynamic> json) =>
+      TmdbMovieCastDto(
         id: _asInt(json['id']) ?? 0,
         name: _stringOr(json['name'], 'Unknown') ?? 'Unknown',
         character: _stringOr(json['character']),
@@ -195,21 +277,18 @@ class TmdbMovieCastDto {
   final String? profilePath;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'name': name,
-        'character': character,
-        'profile_path': profilePath,
-      };
+    'id': id,
+    'name': name,
+    'character': character,
+    'profile_path': profilePath,
+  };
 }
 
 class TmdbMovieCrewDto {
-  TmdbMovieCrewDto({
-    required this.id,
-    required this.name,
-    required this.job,
-  });
+  TmdbMovieCrewDto({required this.id, required this.name, required this.job});
 
-  factory TmdbMovieCrewDto.fromJson(Map<String, dynamic> json) => TmdbMovieCrewDto(
+  factory TmdbMovieCrewDto.fromJson(Map<String, dynamic> json) =>
+      TmdbMovieCrewDto(
         id: _asInt(json['id']) ?? 0,
         name: _stringOr(json['name'], 'Unknown') ?? 'Unknown',
         job: _stringOr(json['job']),
@@ -220,10 +299,10 @@ class TmdbMovieCrewDto {
   final String? job;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'name': name,
-        'job': job,
-      };
+    'id': id,
+    'name': name,
+    'job': job,
+  };
 }
 
 class TmdbMovieSummaryDto {
@@ -236,9 +315,15 @@ class TmdbMovieSummaryDto {
     required this.voteAverage,
   });
 
-  factory TmdbMovieSummaryDto.fromJson(Map<String, dynamic> json) => TmdbMovieSummaryDto(
+  factory TmdbMovieSummaryDto.fromJson(Map<String, dynamic> json) =>
+      TmdbMovieSummaryDto(
         id: _asInt(json['id']) ?? 0,
-        title: _stringOr(json['title'], _stringOr(json['original_title'], 'Untitled')) ?? 'Untitled',
+        title:
+            _stringOr(
+              json['title'],
+              _stringOr(json['original_title'], 'Untitled'),
+            ) ??
+            'Untitled',
         posterPath: _stringOr(json['poster_path']),
         backdropPath: _stringOr(json['backdrop_path']),
         releaseDate: _stringOr(json['release_date']),
@@ -253,13 +338,13 @@ class TmdbMovieSummaryDto {
   final double? voteAverage;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'title': title,
-        'poster_path': posterPath,
-        'backdrop_path': backdropPath,
-        'release_date': releaseDate,
-        'vote_average': voteAverage,
-      };
+    'id': id,
+    'title': title,
+    'poster_path': posterPath,
+    'backdrop_path': backdropPath,
+    'release_date': releaseDate,
+    'vote_average': voteAverage,
+  };
 }
 
 // -------------------- Helpers --------------------

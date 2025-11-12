@@ -16,10 +16,16 @@ import '../models/search_results_args.dart';
 import '../providers/search_history_providers.dart';
 
 // --- Providers de dépendances ---
-final searchRepositoryProvider = Provider<SearchRepository>((ref) => sl<SearchRepository>());
+final searchRepositoryProvider = Provider<SearchRepository>(
+  (ref) => sl<SearchRepository>(),
+);
 
-final searchMoviesUseCaseProvider = Provider<SearchMovies>((ref) => SearchMovies(ref.read(searchRepositoryProvider)));
-final searchShowsUseCaseProvider = Provider<SearchShows>((ref) => SearchShows(ref.read(searchRepositoryProvider)));
+final searchMoviesUseCaseProvider = Provider<SearchMovies>(
+  (ref) => SearchMovies(ref.read(searchRepositoryProvider)),
+);
+final searchShowsUseCaseProvider = Provider<SearchShows>(
+  (ref) => SearchShows(ref.read(searchRepositoryProvider)),
+);
 
 // --- State & Controller: Recherche instantanée (top 10 + complet en mémoire) ---
 class SearchState {
@@ -55,7 +61,8 @@ class SearchState {
 }
 
 class SearchController extends StateNotifier<SearchState> {
-  SearchController(this._movies, this._shows, [this._addToHistory]) : super(const SearchState());
+  SearchController(this._movies, this._shows, [this._addToHistory])
+    : super(const SearchState());
 
   final SearchMovies _movies;
   final SearchShows _shows;
@@ -69,7 +76,12 @@ class SearchController extends StateNotifier<SearchState> {
     _debounce?.cancel();
     // Moins de 3 lettres → réinitialiser sans requête réseau
     if (query.length < 3) {
-      state = state.copyWith(movies: const [], shows: const [], isLoading: false, error: null);
+      state = state.copyWith(
+        movies: const [],
+        shows: const [],
+        isLoading: false,
+        error: null,
+      );
       return;
     }
     _debounce = Timer(const Duration(seconds: 1), () => _performSearch(query));
@@ -78,10 +90,7 @@ class SearchController extends StateNotifier<SearchState> {
   Future<void> _performSearch(String query) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final res = await Future.wait([
-        _movies(query),
-        _shows(query),
-      ]);
+      final res = await Future.wait([_movies(query), _shows(query)]);
       final moviePage = res[0] as SearchPage<MovieSummary>;
       final showPage = res[1] as SearchPage<TvShowSummary>;
       state = state.copyWith(
@@ -90,7 +99,10 @@ class SearchController extends StateNotifier<SearchState> {
         isLoading: false,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec de la recherche: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec de la recherche: $e',
+      );
     } finally {
       // Ajoute la requête à l'historique même en cas d'échec réseau,
       // pour respecter l'UX attendue (historique lié aux intentions utilisateur).
@@ -109,17 +121,18 @@ class SearchController extends StateNotifier<SearchState> {
   }
 }
 
-final searchControllerProvider = StateNotifierProvider<SearchController, SearchState>((ref) {
-  final movies = ref.read(searchMoviesUseCaseProvider);
-  final shows = ref.read(searchShowsUseCaseProvider);
-  final repo = ref.read(searchHistoryRepositoryProvider);
-  final addToHistory = AddSearchQueryToHistory(repo);
-  return SearchController(movies, shows, (q) async {
-    await addToHistory(q);
-    // Rafraîchit la liste affichée pour refléter l’ajout immédiat
-    await ref.read(searchHistoryControllerProvider.notifier).refresh();
-  });
-});
+final searchControllerProvider =
+    StateNotifierProvider<SearchController, SearchState>((ref) {
+      final movies = ref.read(searchMoviesUseCaseProvider);
+      final shows = ref.read(searchShowsUseCaseProvider);
+      final repo = ref.read(searchHistoryRepositoryProvider);
+      final addToHistory = AddSearchQueryToHistory(repo);
+      return SearchController(movies, shows, (q) async {
+        await addToHistory(q);
+        // Rafraîchit la liste affichée pour refléter l’ajout immédiat
+        await ref.read(searchHistoryControllerProvider.notifier).refresh();
+      });
+    });
 
 // --- State & Controller: Résultats complets avec pagination ---
 class SearchResultsState {
@@ -170,7 +183,7 @@ class SearchResultsState {
 
 class SearchResultsController extends StateNotifier<SearchResultsState> {
   SearchResultsController(this._movies, this._shows, SearchResultsPageArgs args)
-      : super(SearchResultsState(query: args.query, type: args.type));
+    : super(SearchResultsState(query: args.query, type: args.type));
 
   final SearchMovies _movies;
   final SearchShows _shows;
@@ -194,7 +207,10 @@ class SearchResultsController extends StateNotifier<SearchResultsState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement: $e',
+      );
     }
   }
 
@@ -221,19 +237,24 @@ class SearchResultsController extends StateNotifier<SearchResultsState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement: $e',
+      );
     }
   }
 }
 
-final searchResultsControllerProvider = StateNotifierProvider.family<
-    SearchResultsController,
-    SearchResultsState,
-    SearchResultsPageArgs>((ref, args) {
-  final movies = ref.read(searchMoviesUseCaseProvider);
-  final shows = ref.read(searchShowsUseCaseProvider);
-  final ctrl = SearchResultsController(movies, shows, args);
-  // Chargement initial
-  unawaited(ctrl.fetchFirstPage());
-  return ctrl;
-});
+final searchResultsControllerProvider =
+    StateNotifierProvider.family<
+      SearchResultsController,
+      SearchResultsState,
+      SearchResultsPageArgs
+    >((ref, args) {
+      final movies = ref.read(searchMoviesUseCaseProvider);
+      final shows = ref.read(searchShowsUseCaseProvider);
+      final ctrl = SearchResultsController(movies, shows, args);
+      // Chargement initial
+      unawaited(ctrl.fetchFirstPage());
+      return ctrl;
+    });

@@ -35,10 +35,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 0),
+              const SizedBox(height: 20),
               const Text(
                 'Recherche',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -47,7 +51,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   ctrl.setQuery(value);
                   if (value.trim().length < 3) {
                     // Rafraîchir l'historique dès que l'input passe sous 3 caractères
-                    ref.read(searchHistoryControllerProvider.notifier).refresh();
+                    ref
+                        .read(searchHistoryControllerProvider.notifier)
+                        .refresh();
                   }
                 },
                 decoration: InputDecoration(
@@ -55,17 +61,27 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   // Icône de recherche à gauche du placeholder
                   prefixIcon: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Image.asset('assets/icons/search.png', width: 25, height: 25),
+                    child: Image.asset(
+                      'assets/icons/search.png',
+                      width: 25,
+                      height: 25,
+                    ),
                   ),
                   // Bouton suppression à droite uniquement si texte présent
                   suffixIcon: state.query.isNotEmpty
                       ? IconButton(
-                          icon: Image.asset('assets/icons/supprimer.png', width: 25, height: 25),
+                          icon: Image.asset(
+                            'assets/icons/supprimer.png',
+                            width: 25,
+                            height: 25,
+                          ),
                           onPressed: () {
                             _textCtrl.clear();
                             ctrl.setQuery('');
                             // Assurer l’actualisation immédiate de l’historique après effacement
-                            ref.read(searchHistoryControllerProvider.notifier).refresh();
+                            ref
+                                .read(searchHistoryControllerProvider.notifier)
+                                .refresh();
                           },
                           tooltip: 'Effacer',
                         )
@@ -84,13 +100,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   },
                 ),
                 const Expanded(child: SizedBox.shrink()),
-              ]
-              else if (state.isLoading)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
+              ] else if (state.isLoading)
+                const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
               else if (state.error != null)
                 Expanded(
                   child: Center(
-                    child: Text(state.error!, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      state.error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 )
               else
@@ -100,45 +120,59 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       if (state.movies.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         MoviItemsList(
-                            title: 'Films',
-                            subtitle: '(${state.movies.length} résultats)',
-                            estimatedItemWidth: 150,
-                            estimatedItemHeight: 270,
-                            items: state.movies
-                                .take(10)
-                                .map((m) => MoviMediaCard(
-                                      media: MoviMedia(
-                                        id: m.id.value,
-                                        title: m.title.display,
-                                        poster: m.poster.toString(),
-                                        year: (m.releaseYear?.toString() ?? '—'),
-                                        rating: '—',
-                                        type: MoviMediaType.movie,
-                                      ),
-                                    ))
-                                .toList(growable: false),
+                          title: 'Films',
+                          subtitle: '(${state.movies.length} résultats)',
+                          estimatedItemWidth: 150,
+                          estimatedItemHeight: 270,
+                          titlePadding: 0,
+                          horizontalPadding: const EdgeInsetsDirectional.only(
+                            start: 0,
+                            end: 20,
                           ),
+                          items: state.movies
+                              .take(10)
+                              .map(
+                                (m) => MoviMediaCard(
+                                  media: MoviMedia(
+                                    id: m.id.value,
+                                    title: m.title.display,
+                                    poster: m.poster.toString(),
+                                    year: (m.releaseYear?.toString() ?? '—'),
+                                    rating: '—',
+                                    type: MoviMediaType.movie,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
                       ],
                       if (state.shows.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         MoviItemsList(
-                            title: 'Séries',
-                            subtitle: '(${state.shows.length} résultats)',
-                            estimatedItemWidth: 150,
-                            estimatedItemHeight: 270,
-                            items: state.shows
-                                .take(10)
-                                .map((s) => MoviMediaCard(
-                                      media: MoviMedia(
-                                        id: s.id.value,
-                                        title: s.title.display,
-                                        poster: s.poster.toString(),
-                                        year: '—',
-                                        rating: '—',
-                                        type: MoviMediaType.series,
-                                      ),
-                                    ))
-                                .toList(growable: false),
+                          title: 'Séries',
+                          subtitle: '(${state.shows.length} résultats)',
+                          estimatedItemWidth: 150,
+                          estimatedItemHeight: 270,
+                          titlePadding: 0,
+                          horizontalPadding: const EdgeInsetsDirectional.only(
+                            start: 0,
+                            end: 20,
+                          ),
+                          items: state.shows
+                              .take(10)
+                              .map(
+                                (s) => MoviMediaCard(
+                                  media: MoviMedia(
+                                    id: s.id.value,
+                                    title: s.title.display,
+                                    poster: s.poster.toString(),
+                                    year: '—',
+                                    rating: '—',
+                                    type: MoviMediaType.series,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
                         ),
                       ],
                       if (state.movies.isEmpty && state.shows.isEmpty)
@@ -147,10 +181,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             padding: EdgeInsets.all(16),
                             child: Text(
                               'Pas de résultats',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
+                      const SizedBox(height: 100),
                     ],
                   ),
                 ),
@@ -160,7 +198,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ),
     );
   }
-
 }
 
 class _SearchHistoryList extends ConsumerWidget {
@@ -174,23 +211,39 @@ class _SearchHistoryList extends ConsumerWidget {
     return history.when(
       data: (items) {
         // Tri par plus récent
-        final sorted = [...items]..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+        final sorted = [...items]
+          ..sort((a, b) => b.savedAt.compareTo(a.savedAt));
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Historique', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.white)),
+            const Text(
+              'Historique',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 16),
             if (sorted.isEmpty)
               const Text(
                 'Aucune recherche récente',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Color(0xFF737373)),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Color(0xFF737373),
+                ),
               )
             else
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: sorted.length,
-                separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: Color(0xFF737373)),
+                separatorBuilder: (_, __) => const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFF737373),
+                ),
                 itemBuilder: (context, index) {
                   final h = sorted[index];
                   return SizedBox(
@@ -206,7 +259,10 @@ class _SearchHistoryList extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Text(
                                 h.query,
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
@@ -214,8 +270,14 @@ class _SearchHistoryList extends ConsumerWidget {
                           ),
                         ),
                         IconButton(
-                          icon: Image.asset('assets/icons/supprimer.png', width: 25, height: 25),
-                          onPressed: () => ref.read(searchHistoryControllerProvider.notifier).remove(h.query),
+                          icon: Image.asset(
+                            'assets/icons/supprimer.png',
+                            width: 25,
+                            height: 25,
+                          ),
+                          onPressed: () => ref
+                              .read(searchHistoryControllerProvider.notifier)
+                              .remove(h.query),
                           tooltip: 'Supprimer',
                         ),
                       ],

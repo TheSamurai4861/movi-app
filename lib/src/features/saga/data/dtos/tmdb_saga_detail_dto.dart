@@ -40,15 +40,16 @@ class TmdbSagaDetailDto {
   }
 
   Map<String, dynamic> toCache() => {
-        'id': id,
-        'name': name,
-        'overview': overview,
-        'poster_path': posterPath,
-        'backdrop_path': backdropPath,
-        'parts': parts.map((part) => part.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'overview': overview,
+    'poster_path': posterPath,
+    'backdrop_path': backdropPath,
+    'parts': parts.map((part) => part.toJson()).toList(),
+  };
 
-  factory TmdbSagaDetailDto.fromCache(Map<String, dynamic> json) => TmdbSagaDetailDto.fromJson(json);
+  factory TmdbSagaDetailDto.fromCache(Map<String, dynamic> json) =>
+      TmdbSagaDetailDto.fromJson(json);
 }
 
 class TmdbSagaPartDto {
@@ -64,7 +65,10 @@ class TmdbSagaPartDto {
   factory TmdbSagaPartDto.fromJson(Map<String, dynamic> json) {
     return TmdbSagaPartDto(
       id: json['id'] as int,
-      title: json['title']?.toString() ?? json['original_title']?.toString() ?? 'Untitled',
+      title:
+          json['title']?.toString() ??
+          json['original_title']?.toString() ??
+          'Untitled',
       posterPath: json['poster_path']?.toString(),
       releaseDate: json['release_date']?.toString(),
       voteAverage: (json['vote_average'] as num?)?.toDouble(),
@@ -91,11 +95,11 @@ class TmdbSagaPartDto {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'poster_path': posterPath,
-        'release_date': releaseDate,
-        'vote_average': voteAverage,
-        'runtime': runtime,
-      };
+    'id': id,
+    'title': title,
+    'poster_path': posterPath,
+    'release_date': releaseDate,
+    'vote_average': voteAverage,
+    'runtime': runtime,
+  };
 }

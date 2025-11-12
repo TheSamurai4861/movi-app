@@ -23,7 +23,10 @@ class PersonLocalDataSource {
   }
 
   Future<TmdbPersonDetailDto?> getPersonDetail(int id) async {
-    final cached = await _cacheRepository.getWithPolicy(_detailKey(id), _detailPolicy);
+    final cached = await _cacheRepository.getWithPolicy(
+      _detailKey(id),
+      _detailPolicy,
+    );
     if (cached == null) return null;
     return TmdbPersonDetailDto.fromCache(cached);
   }

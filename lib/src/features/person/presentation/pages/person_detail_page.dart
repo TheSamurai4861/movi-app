@@ -17,8 +17,9 @@ class PersonDetailPage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 48,
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     child: const Icon(Icons.person, size: 42),
                   ),
                   const SizedBox(width: 24),
@@ -52,10 +53,7 @@ class PersonDetailPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text(
-                'Biographie',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Biographie', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
                 'Courte biographie de la personne pour valider la mise en page en attendant les données dynamiques. '
@@ -73,8 +71,9 @@ class PersonDetailPage extends StatelessWidget {
                 (index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     child: Text('${index + 1}'),
                   ),
                   title: Text('Projet ${index + 1}'),
@@ -94,7 +93,10 @@ class PersonDetailPage extends StatelessWidget {
                 children: const [
                   _SocialChip(icon: Icons.link, label: 'Site officiel'),
                   _SocialChip(icon: Icons.alternate_email, label: 'Twitter/X'),
-                  _SocialChip(icon: Icons.camera_alt_outlined, label: 'Instagram'),
+                  _SocialChip(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Instagram',
+                  ),
                 ],
               ),
             ],

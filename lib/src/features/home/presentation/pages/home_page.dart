@@ -120,7 +120,8 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
   static const double _mediaCardWidth =
       150; // doit rester aligné avec MoviMediaCard par défaut
   static const double _itemSpacing = 16; // espace horizontal entre items
-  static const double _sectionGap = 32; // espace VERTICAL entre sections MoviItemsList
+  static const double _sectionGap =
+      32; // espace VERTICAL entre sections MoviItemsList
 
   // Afficher uniquement le libellé catégorie (sans "serveur/")
   String _displayCategoryTitle(String raw) {
@@ -194,7 +195,9 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
 
               // On rend le vrai hero avec le state (évite les rebuilds visibles)
               SliverToBoxAdapter(
-                child: (state.hero.length >= 2)
+                child: state.isHeroEmpty
+                    ? const _HeroEmptyBanner()
+                    : (state.hero.length >= 2)
                     ? HomeHeroCarousel(
                         movies: state.hero.take(10).toList(growable: false),
                       )
@@ -330,6 +333,24 @@ class _NavPlaceholder extends StatelessWidget {
       ),
       child: Center(
         child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
+      ),
+    );
+  }
+}
+
+class _HeroEmptyBanner extends StatelessWidget {
+  const _HeroEmptyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        children: const [
+          SizedBox(height: 180),
+          Text('Aucune tendance disponible', textAlign: TextAlign.center),
+          SizedBox(height: 32),
+        ],
       ),
     );
   }

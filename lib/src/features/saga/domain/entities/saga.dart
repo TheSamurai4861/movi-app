@@ -27,7 +27,16 @@ class Saga extends Equatable {
   final DateTime? updatedAt;
 
   @override
-  List<Object?> get props => [id, tmdbId, title, synopsis, cover, timeline, tags, updatedAt];
+  List<Object?> get props => [
+    id,
+    tmdbId,
+    title,
+    synopsis,
+    cover,
+    timeline,
+    tags,
+    updatedAt,
+  ];
 }
 
 class SagaEntry extends Equatable {

@@ -55,13 +55,15 @@ class SagaDetailPage extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         child: Text('${index + 1}'),
                       ),
                       title: Text('Titre ${index + 1}'),
-                      subtitle: const Text('Date de sortie et description courte'),
+                      subtitle: const Text(
+                        'Date de sortie et description courte',
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {},
                     ),
@@ -69,10 +71,7 @@ class SagaDetailPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                'Ressources',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Ressources', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,

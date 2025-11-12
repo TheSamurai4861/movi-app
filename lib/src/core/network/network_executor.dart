@@ -27,8 +27,9 @@ class NetworkExecutor {
     this.memoryCacheMaxEntries = 256,
     this.memoryCacheDefaultTtl = const Duration(seconds: 45),
   }) : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0') {
-    _memoryCache ??=
-        _LruCache<String, Response<dynamic>>(capacity: memoryCacheMaxEntries);
+    _memoryCache ??= _LruCache<String, Response<dynamic>>(
+      capacity: memoryCacheMaxEntries,
+    );
   }
 
   final Dio _client;
@@ -117,8 +118,7 @@ class NetworkExecutor {
 
     // 1) Cache mémoire (hit possible avant tout réseau).
     if (dedupKey != null) {
-      final cached =
-          _memoryCache?.getIfFresh(dedupKey, now: DateTime.now());
+      final cached = _memoryCache?.getIfFresh(dedupKey, now: DateTime.now());
       if (cached != null) {
         try {
           final mapped = mapper(cached as Response<T>);
@@ -144,7 +144,7 @@ class NetworkExecutor {
       }
     }
 
-    for (int attempt = 0;; attempt++) {
+    for (int attempt = 0; ; attempt++) {
       // Circuit-breaker/cooldown sur la clé de concurrence (ex.: 429).
       if (limiter != null) {
         await limiter.acquire();
@@ -158,9 +158,10 @@ class NetworkExecutor {
         // Crée (ou réutilise) la Future à partager pour la dédup "in-flight".
         Future<Response<T>> future;
         if (dedupKey != null) {
-          future = (_inflight[dedupKey] ??=
-                  request(_client) as Future<Response<dynamic>>)
-              as Future<Response<T>>;
+          future =
+              (_inflight[dedupKey] ??=
+                      request(_client) as Future<Response<dynamic>>)
+                  as Future<Response<T>>;
         } else {
           future = request(_client);
         }
@@ -336,8 +337,8 @@ class LimiterStats {
 /// Sémaphore + métriques + adaptation de capacité.
 class _Limiter {
   _Limiter(this._capacity)
-      : assert(_capacity > 0),
-        _latencies = Queue<Duration>();
+    : assert(_capacity > 0),
+      _latencies = Queue<Duration>();
 
   // Sémaphore FIFO
   int _capacity;

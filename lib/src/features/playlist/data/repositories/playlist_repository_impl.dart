@@ -34,7 +34,10 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   }
 
   @override
-  Future<void> renamePlaylist({required PlaylistId id, required MediaTitle title}) async {
+  Future<void> renamePlaylist({
+    required PlaylistId id,
+    required MediaTitle title,
+  }) async {
     await _local.renamePlaylist(id.value, title.value);
   }
 
@@ -42,10 +45,14 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   Future<void> deletePlaylist(PlaylistId id) => _local.deletePlaylist(id.value);
 
   @override
-  Future<void> setOwner({required PlaylistId id, required String owner}) => _local.setOwner(id.value, owner);
+  Future<void> setOwner({required PlaylistId id, required String owner}) =>
+      _local.setOwner(id.value, owner);
 
   @override
-  Future<void> addItem({required PlaylistId playlistId, required PlaylistItem item}) async {
+  Future<void> addItem({
+    required PlaylistId playlistId,
+    required PlaylistItem item,
+  }) async {
     final header = await _local.getPlaylist(playlistId.value);
     if (header == null) {
       // Create playlist header if missing (owner unknown: fallback to 'local')
@@ -65,7 +72,9 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     await _local.addItem(
       playlistId.value,
       PlaylistItemRow(
-        position: item.position ?? DateTime.now().millisecondsSinceEpoch, // naive ordering if missing
+        position:
+            item.position ??
+            DateTime.now().millisecondsSinceEpoch, // naive ordering if missing
         reference: item.reference,
         runtime: item.runtime,
         notes: item.notes,
@@ -118,28 +127,41 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
   }
 
   @override
-  Future<void> removeItem({required PlaylistId playlistId, required PlaylistItem item}) async {
+  Future<void> removeItem({
+    required PlaylistId playlistId,
+    required PlaylistItem item,
+  }) async {
     final position = item.position;
     if (position == null) return;
     await _local.removeItem(playlistId.value, position);
   }
 
   @override
-  Future<void> reorderItem({required PlaylistId playlistId, required int fromPosition, required int toPosition}) {
-    return _local.reorderItem(playlistId.value, fromPosition: fromPosition, toPosition: toPosition);
+  Future<void> reorderItem({
+    required PlaylistId playlistId,
+    required int fromPosition,
+    required int toPosition,
+  }) {
+    return _local.reorderItem(
+      playlistId.value,
+      fromPosition: fromPosition,
+      toPosition: toPosition,
+    );
   }
 
   @override
   Future<List<PlaylistSummary>> searchPlaylists(String query) async {
     final headers = await _local.searchByTitle(query);
     return headers
-        .map((h) => PlaylistSummary(
-              id: PlaylistId(h.id),
-              title: MediaTitle(h.title),
-              cover: h.cover,
-              itemCount: null,
-              owner: h.owner,
-            ))
+        .map(
+          (h) => PlaylistSummary(
+            id: PlaylistId(h.id),
+            title: MediaTitle(h.title),
+            cover: h.cover,
+            itemCount: null,
+            owner: h.owner,
+          ),
+        )
         .toList();
   }
 
@@ -147,7 +169,9 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     return Playlist(
       id: PlaylistId(detail.header.id),
       title: MediaTitle(detail.header.title),
-      description: detail.header.description != null ? Synopsis(detail.header.description!) : null,
+      description: detail.header.description != null
+          ? Synopsis(detail.header.description!)
+          : null,
       cover: detail.header.cover,
       items: detail.items
           .map(
@@ -166,7 +190,8 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
       isPublic: detail.header.isPublic,
       totalDuration: detail.items.fold<Duration?>(
         null,
-        (acc, i) => i.runtime != null ? (acc ?? Duration.zero) + i.runtime! : acc,
+        (acc, i) =>
+            i.runtime != null ? (acc ?? Duration.zero) + i.runtime! : acc,
       ),
     );
   }

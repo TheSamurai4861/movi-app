@@ -11,4 +11,3 @@ class RenamePlaylist {
     return _repository.renamePlaylist(id: id, title: title);
   }
 }
-

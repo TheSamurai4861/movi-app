@@ -15,9 +15,11 @@ class TmdbTvRemoteDataSource {
   final TmdbClient _client;
 
   /// Raccourci historique — conserve la compat API, mais opte pour la version lite.
-  Future<TmdbTvDetailDto> fetchShow(int id,
-          {String? language, CancelToken? cancelToken}) =>
-      fetchShowLite(id, language: language, cancelToken: cancelToken);
+  Future<TmdbTvDetailDto> fetchShow(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) => fetchShowLite(id, language: language, cancelToken: cancelToken);
 
   /// Détail **léger** d’une série (sans `append_to_response`) pour l’enrichissement en liste.
   Future<TmdbTvDetailDto> fetchShowLite(
@@ -48,7 +50,9 @@ class TmdbTvRemoteDataSource {
       'tv/$id',
       language: language,
       query: const {
-        'append_to_response': 'images,credits,recommendations,content_ratings,external_ids',
+        'append_to_response':
+            'images,credits,recommendations,content_ratings,external_ids',
+        'include_image_language': 'fr,en,null',
       },
       cancelToken: cancelToken,
       retries: retries,

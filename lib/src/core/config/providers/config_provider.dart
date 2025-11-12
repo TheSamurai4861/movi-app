@@ -7,8 +7,9 @@ import '../models/feature_flags.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) => sl<AppConfig>());
 
-final environmentProvider =
-    Provider<EnvironmentFlavor>((ref) => sl<EnvironmentFlavor>());
+final environmentProvider = Provider<EnvironmentFlavor>(
+  (ref) => sl<EnvironmentFlavor>(),
+);
 
 final featureFlagsProvider = Provider<FeatureFlags>(
   (ref) => ref.watch(appConfigProvider).featureFlags,

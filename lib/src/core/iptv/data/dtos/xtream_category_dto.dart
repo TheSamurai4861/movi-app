@@ -1,8 +1,5 @@
 class XtreamCategoryDto {
-  XtreamCategoryDto({
-    required this.id,
-    required this.name,
-  });
+  XtreamCategoryDto({required this.id, required this.name});
 
   factory XtreamCategoryDto.fromJson(Map<String, dynamic> json) {
     return XtreamCategoryDto(

@@ -1,0 +1,4 @@
+python concat_lib.py --methods-in-classes
+
+python concat_lib_outline.py --select "238,111,207,10,96,95,97,99,98,102,101,239,237,49,4,243,244,245,246" --export-content --content-only -o outline.txt --content-output files_dump.txt
+

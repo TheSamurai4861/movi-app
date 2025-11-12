@@ -16,10 +16,7 @@ class TvDataModule {
       () => TmdbTvRemoteDataSource(sl<TmdbClient>()),
     );
     sl.registerLazySingleton<TvLocalDataSource>(
-      () => TvLocalDataSource(
-        sl(),
-        sl<LocalePreferences>(),
-      ),
+      () => TvLocalDataSource(sl(), sl<LocalePreferences>()),
     );
     sl.registerLazySingleton<TvRepository>(
       () => TvRepositoryImpl(

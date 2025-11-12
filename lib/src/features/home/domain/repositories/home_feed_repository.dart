@@ -25,7 +25,8 @@ abstract class HomeFeedRepository {
 
   /// Enrichit un ContentReference “léger” avec les métadonnées TMDB (poster TMDB,
   /// year, rating) via cache->réseau si nécessaire, puis renvoie une copie complète.
-  Future<ContentReference> enrichReference(ContentReference ref, {
+  Future<ContentReference> enrichReference(
+    ContentReference ref, {
     CancelToken? cancelToken,
   });
 }

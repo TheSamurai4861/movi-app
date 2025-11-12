@@ -35,14 +35,17 @@ class SagaRepositoryImpl implements SagaRepository {
     })();
 
     // Enrich parts with runtime when possible
-    final parts = await Future.wait(dto.parts.map((part) async {
-      try {
-        final runtime = part.runtime ?? await _remote.fetchMovieRuntime(part.id);
-        return part.copyWith(runtime: runtime);
-      } catch (_) {
-        return part; // keep existing data if runtime call fails
-      }
-    }));
+    final parts = await Future.wait(
+      dto.parts.map((part) async {
+        try {
+          final runtime =
+              part.runtime ?? await _remote.fetchMovieRuntime(part.id);
+          return part.copyWith(runtime: runtime);
+        } catch (_) {
+          return part; // keep existing data if runtime call fails
+        }
+      }),
+    );
     final entries = parts
         .map(
           (part) => SagaEntry(
@@ -102,5 +105,6 @@ class SagaRepositoryImpl implements SagaRepository {
         .toList();
   }
 
-  DateTime? _parseDate(String? date) => date == null || date.isEmpty ? null : DateTime.tryParse(date);
+  DateTime? _parseDate(String? date) =>
+      date == null || date.isEmpty ? null : DateTime.tryParse(date);
 }

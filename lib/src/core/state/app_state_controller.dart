@@ -29,6 +29,8 @@ class AppStateController extends StateNotifier<AppState> {
   /// Indique s'il existe au moins une source IPTV active.
   bool get hasActiveIptvSources => state.activeIptvSources.isNotEmpty;
 
+  bool get hasNoActiveIptvSources => state.activeIptvSources.isEmpty;
+
   /// Définit le mode thème si celui-ci diffère de l'état courant.
   void setThemeMode(ThemeMode mode) {
     if (state.themeMode == mode) return;

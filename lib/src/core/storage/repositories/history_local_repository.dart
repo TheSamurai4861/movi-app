@@ -93,22 +93,18 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     );
 
     if (updateCount == 0) {
-      await db.insert(
-        'history',
-        {
-          'content_id': contentId,
-          'content_type': type.name,
-          'title': title,
-          'poster': poster?.toString(),
-          'last_played_at': now,
-          'play_count': 1,
-          'last_position': position?.inSeconds,
-          'duration': duration?.inSeconds,
-          'season': season,
-          'episode': episode,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      await db.insert('history', {
+        'content_id': contentId,
+        'content_type': type.name,
+        'title': title,
+        'poster': poster?.toString(),
+        'last_played_at': now,
+        'play_count': 1,
+        'last_position': position?.inSeconds,
+        'duration': duration?.inSeconds,
+        'season': season,
+        'episode': episode,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -137,13 +133,20 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
             contentId: row['content_id'] as String,
             type: type,
             title: row['title'] as String,
-            poster: row['poster'] != null && (row['poster'] as String).isNotEmpty
+            poster:
+                row['poster'] != null && (row['poster'] as String).isNotEmpty
                 ? Uri.tryParse(row['poster'] as String)
                 : null,
-            lastPlayedAt: DateTime.fromMillisecondsSinceEpoch(row['last_played_at'] as int),
+            lastPlayedAt: DateTime.fromMillisecondsSinceEpoch(
+              row['last_played_at'] as int,
+            ),
             playCount: (row['play_count'] as int?) ?? 1,
-            lastPosition: row['last_position'] != null ? Duration(seconds: row['last_position'] as int) : null,
-            duration: row['duration'] != null ? Duration(seconds: row['duration'] as int) : null,
+            lastPosition: row['last_position'] != null
+                ? Duration(seconds: row['last_position'] as int)
+                : null,
+            duration: row['duration'] != null
+                ? Duration(seconds: row['duration'] as int)
+                : null,
             season: row['season'] as int?,
             episode: row['episode'] as int?,
           ),
@@ -151,4 +154,3 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
         .toList();
   }
 }
-

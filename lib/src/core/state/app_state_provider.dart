@@ -4,6 +4,7 @@ import '../di/injector.dart';
 import 'app_state.dart';
 import 'app_state_controller.dart';
 
-final appStateControllerProvider = StateNotifierProvider<AppStateController, AppState>(
-  (ref) => sl<AppStateController>(),
-);
+final appStateControllerProvider =
+    StateNotifierProvider<AppStateController, AppState>(
+      (ref) => sl<AppStateController>(),
+    );

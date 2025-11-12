@@ -25,7 +25,9 @@ class UserSettingsLocalDataSource {
     if (map == null) return null;
     final fn = FirstName.tryParse((map['firstName'] as String?) ?? '');
     final lc = LanguageCode.tryParse((map['languageCode'] as String?) ?? '');
-    final mp = MetadataPreference.tryParse((map['metadataPreference'] as String?) ?? 'none');
+    final mp = MetadataPreference.tryParse(
+      (map['metadataPreference'] as String?) ?? 'none',
+    );
     if (fn == null || lc == null || mp == null) return null;
     return UserProfile(firstName: fn, languageCode: lc, metadataPreference: mp);
   }

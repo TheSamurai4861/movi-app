@@ -7,5 +7,6 @@ class GetMovieRecommendations {
 
   final MovieRepository _repository;
 
-  Future<List<MovieSummary>> call(MovieId id) => _repository.getRecommendations(id);
+  Future<List<MovieSummary>> call(MovieId id) =>
+      _repository.getRecommendations(id);
 }

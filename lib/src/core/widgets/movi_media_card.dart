@@ -3,9 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../models/movi_media.dart';
 import '../router/app_router.dart';
-import '../utils/app_assets.dart';
 import 'movi_marquee_text.dart';
-import 'movi_pill.dart';
 
 Widget _buildPosterImage(String source, double width, double height) {
   final placeholder = Container(
@@ -63,7 +61,8 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final textStyle = theme.textTheme.titleSmall?.copyWith(
+    final textStyle =
+        theme.textTheme.titleSmall?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
         ) ??
@@ -122,75 +121,14 @@ class _PosterWithOverlay extends StatelessWidget {
   final double width;
   final double height;
 
-  bool get _hasYear {
-    final y = media.year.trim();
-    return y.isNotEmpty && y != '—';
-  }
-
-  bool get _hasRating {
-    final r = media.rating.trim();
-    return r.isNotEmpty && r != '—';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final showAnyPill = _hasYear || _hasRating;
-
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
-      child: Stack(
-        alignment: Alignment.bottomLeft,
-        children: [
-          SizedBox(
-            width: width,
-            height: height,
-            child: _buildPosterImage(media.poster, width, height),
-          ),
-          // Dégradé bas pour lisibilité
-          Positioned.fill(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                height: 80,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Color(0xFF404040),
-                      Color(0x00404040),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Pills conditionnelles (Patch 6)
-          if (showAnyPill)
-            Positioned(
-              left: 16,
-              bottom: 16,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_hasYear) MoviPill(media.year, large: false),
-                  if (_hasYear && _hasRating) const SizedBox(width: 4),
-                  if (_hasRating)
-                    MoviPill(
-                      media.rating,
-                      large: false,
-                      trailingIcon: Image.asset(
-                        AppAssets.iconStarFilled,
-                        width: 18,
-                        height: 18,
-                        fit: BoxFit.contain,
-                        color: Colors.white,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: _buildPosterImage(media.poster, width, height),
       ),
     );
   }

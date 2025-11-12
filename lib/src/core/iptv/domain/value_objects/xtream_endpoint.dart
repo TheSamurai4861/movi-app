@@ -29,7 +29,8 @@ class XtreamEndpoint extends Equatable {
     }
 
     // 1) Préfixe schéma si absent
-    final hasScheme = trimmed.toLowerCase().startsWith('http://') ||
+    final hasScheme =
+        trimmed.toLowerCase().startsWith('http://') ||
         trimmed.toLowerCase().startsWith('https://');
     final toParse = hasScheme ? trimmed : 'http://$trimmed';
 
@@ -42,14 +43,19 @@ class XtreamEndpoint extends Equatable {
     if (uri.host.isEmpty && uri.authority.isEmpty) {
       throw const FormatException('Hôte manquant');
     }
-    final host = uri.host.isNotEmpty ? uri.host : uri.authority.split(':').first;
+    final host = uri.host.isNotEmpty
+        ? uri.host
+        : uri.authority.split(':').first;
 
     // 3) Schéma + port
     final https = uri.scheme.toLowerCase() == 'https';
     final port = uri.hasPort ? uri.port : (https ? 443 : 80);
 
     // 4) Path => force player_api.php
-    final path = (uri.path.isEmpty || uri.path == '/' || !uri.path.endsWith('player_api.php'))
+    final path =
+        (uri.path.isEmpty ||
+            uri.path == '/' ||
+            !uri.path.endsWith('player_api.php'))
         ? defaultPath
         : (uri.path.startsWith('/') ? uri.path : '/${uri.path}');
 

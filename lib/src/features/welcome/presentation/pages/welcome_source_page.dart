@@ -22,11 +22,14 @@ class WelcomeSourcePage extends StatelessWidget {
                 children: [
                   const WelcomeHeader(
                     title: 'Bienvenue !',
-                    subtitle: 'Ajoute une source pour personnaliser ton expérience dans Movi.',
+                    subtitle:
+                        'Ajoute une source pour personnaliser ton expérience dans Movi.',
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
                     child: SizedBox(
                       width: double.infinity,
                       child: MoviPrimaryButton(

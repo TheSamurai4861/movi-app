@@ -16,8 +16,10 @@ class AppSpacing {
   static const double xxxl = 64;
 
   /// Standard horizontal padding used across most screens.
-  static const EdgeInsets page =
-      EdgeInsets.symmetric(horizontal: lg, vertical: lg);
+  static const EdgeInsets page = EdgeInsets.symmetric(
+    horizontal: lg,
+    vertical: lg,
+  );
 
   /// Standard spacing for sections on a page.
   static const double sectionGap = 32;

@@ -21,7 +21,9 @@ class TvDetailPage extends StatelessWidget {
                     child: Container(
                       height: 180,
                       width: 120,
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       child: const Center(child: Icon(Icons.live_tv, size: 48)),
                     ),
                   ),
@@ -55,10 +57,7 @@ class TvDetailPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text(
-                'Pitch',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Pitch', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
                 'Présentation rapide de la série pour mettre en forme la page. Lorem ipsum '
@@ -81,7 +80,9 @@ class TvDetailPage extends StatelessWidget {
                       width: 48,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                       ),
                       child: Center(child: Text('S4E${index + 1}')),
                     ),
@@ -105,8 +106,9 @@ class TvDetailPage extends StatelessWidget {
                   6,
                   (index) => Chip(
                     avatar: CircleAvatar(
-                      backgroundColor:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       child: Text('${index + 1}'),
                     ),
                     label: Text('Acteur ${index + 1}'),

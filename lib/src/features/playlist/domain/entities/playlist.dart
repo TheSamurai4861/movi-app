@@ -34,17 +34,17 @@ class Playlist extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        description,
-        cover,
-        items,
-        createdAt,
-        updatedAt,
-        owner,
-        isPublic,
-        totalDuration,
-      ];
+    id,
+    title,
+    description,
+    cover,
+    items,
+    createdAt,
+    updatedAt,
+    owner,
+    isPublic,
+    totalDuration,
+  ];
 }
 
 class PlaylistItem extends Equatable {

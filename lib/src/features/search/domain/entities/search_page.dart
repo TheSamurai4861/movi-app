@@ -11,4 +11,3 @@ class SearchPage<T> {
 
   bool get hasMore => page < totalPages;
 }
-

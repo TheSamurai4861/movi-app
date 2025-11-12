@@ -6,7 +6,8 @@ import '../../../../core/iptv/domain/entities/xtream_playlist.dart';
 import '../../../../core/iptv/domain/entities/xtream_playlist_item.dart';
 import '../../../../shared/domain/value_objects/content_reference.dart';
 import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../home/data/repositories/home_feed_repository_impl.dart' show XtreamAccountLite; // reuse lite projection
+import '../../../home/data/repositories/home_feed_repository_impl.dart'
+    show XtreamAccountLite; // reuse lite projection
 import '../../../category_browser/domain/value_objects/category_key.dart';
 
 class CategoryLocalDataSource {

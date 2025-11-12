@@ -45,11 +45,21 @@ class TmdbMovieRemoteDataSource {
     final json = await _client.getJson(
       'movie/$id',
       query: const {
-        'append_to_response': 'images,credits,recommendations',
+        'append_to_response': 'credits,recommendations'
       },
       language: language,
       cancelToken: cancelToken,
     );
+
+    final jsonImages = await _client.getJson(
+      'movie/$id/images',
+      query: const {
+        'include_image_language': 'null,en-US'
+      },
+      cancelToken: cancelToken,
+    );
+
+    json['images'] = jsonImages;
     return TmdbMovieDetailDto.fromJson(json);
   }
 
@@ -64,10 +74,7 @@ class TmdbMovieRemoteDataSource {
     if (q.isEmpty) return const <TmdbMovieSummaryDto>[];
     final json = await _client.getJson(
       'search/movie',
-      query: {
-        'query': q,
-        'page': page.clamp(1, 1000),
-      },
+      query: {'query': q, 'page': page.clamp(1, 1000)},
       language: language,
       cancelToken: cancelToken,
     );
@@ -100,7 +107,7 @@ class TmdbMovieRemoteDataSource {
   }
 
   /// Trending films (`window`: 'day' ou 'week').
-  Future<List<TmdbMovieSummaryDto>> fetchTrendingMovies({
+  Future<List<Map<String, dynamic>>> fetchTrendingMovies({
     String window = 'week',
     int page = 1,
     String? language,
@@ -114,10 +121,7 @@ class TmdbMovieRemoteDataSource {
       cancelToken: cancelToken,
     );
     final results = json['results'];
-    if (results is! List) return const <TmdbMovieSummaryDto>[];
-    return results
-        .whereType<Map<String, dynamic>>()
-        .map(TmdbMovieSummaryDto.fromJson)
-        .toList(growable: false);
+    if (results is! List) return const <Map<String, dynamic>>[];
+    return results.whereType<Map<String, dynamic>>().toList(growable: false);
   }
 }

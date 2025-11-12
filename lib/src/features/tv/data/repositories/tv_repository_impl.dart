@@ -71,7 +71,10 @@ class TvRepositoryImpl implements TvRepository {
   Future<List<Episode>> getEpisodes(SeriesId id, SeasonId seasonId) async {
     final int showId = int.parse(id.value);
     final int seasonNumber = int.parse(seasonId.value);
-    final TmdbTvSeasonDetailDto season = await _loadSeasonDto(showId, seasonNumber);
+    final TmdbTvSeasonDetailDto season = await _loadSeasonDto(
+      showId,
+      seasonNumber,
+    );
     return _mapEpisodes(season);
   }
 
@@ -79,7 +82,10 @@ class TvRepositoryImpl implements TvRepository {
   Future<List<TvShowSummary>> getFeaturedShows() async {
     // Popular = payload léger (résumés) → parfait pour la Home
     final List<TmdbTvSummaryDto> popular = await _remote.fetchPopular();
-    return popular.map(_mapSummary).whereType<TvShowSummary>().toList(growable: false);
+    return popular
+        .map(_mapSummary)
+        .whereType<TvShowSummary>()
+        .toList(growable: false);
   }
 
   @override
@@ -123,7 +129,10 @@ class TvRepositoryImpl implements TvRepository {
   @override
   Future<List<TvShowSummary>> searchShows(String query) async {
     final List<TmdbTvSummaryDto> results = await _remote.searchShows(query);
-    return results.map(_mapSummary).whereType<TvShowSummary>().toList(growable: false);
+    return results
+        .map(_mapSummary)
+        .whereType<TvShowSummary>()
+        .toList(growable: false);
   }
 
   @override
@@ -155,7 +164,8 @@ class TvRepositoryImpl implements TvRepository {
     final cached = await _local.getShowDetail(showId);
     if (cached != null) {
       // Détection FULL sans getter: présence de champs append_to_response
-      final bool hasFull = (cached.logoPath != null) ||
+      final bool hasFull =
+          (cached.logoPath != null) ||
           cached.cast.isNotEmpty ||
           cached.recommendations.isNotEmpty;
       if (hasFull) return cached;
@@ -203,12 +213,19 @@ class TvRepositoryImpl implements TvRepository {
     return results;
   }
 
-  Future<TmdbTvSeasonDetailDto> _loadSeasonDto(int showId, int seasonNumber) async {
+  Future<TmdbTvSeasonDetailDto> _loadSeasonDto(
+    int showId,
+    int seasonNumber,
+  ) async {
     final cached = await _local.getSeason(showId, seasonNumber);
     if (cached != null) return cached;
 
     final CancelToken token = CancelToken();
-    final remote = await _remote.fetchSeason(showId, seasonNumber, cancelToken: token);
+    final remote = await _remote.fetchSeason(
+      showId,
+      seasonNumber,
+      cancelToken: token,
+    );
     await _local.saveSeason(showId, seasonNumber, remote);
     return remote;
   }
@@ -255,19 +272,23 @@ class TvRepositoryImpl implements TvRepository {
     List<TmdbTvSeasonDto> seasons,
     Map<int, TmdbTvSeasonDetailDto> details,
   ) {
-    return seasons.map((season) {
-      final detail = details[season.seasonNumber] ?? _emptySeasonDetail(season);
-      return Season(
-        id: SeasonId(season.seasonNumber.toString()),
-        seasonNumber: season.seasonNumber,
-        title: MediaTitle(season.name),
-        overview:
-            season.overview.isEmpty ? null : Synopsis(season.overview),
-        poster: _images.poster(season.posterPath),
-        episodes: _mapEpisodes(detail),
-        airDate: _parseDate(season.airDate),
-      );
-    }).toList(growable: false);
+    return seasons
+        .map((season) {
+          final detail =
+              details[season.seasonNumber] ?? _emptySeasonDetail(season);
+          return Season(
+            id: SeasonId(season.seasonNumber.toString()),
+            seasonNumber: season.seasonNumber,
+            title: MediaTitle(season.name),
+            overview: season.overview.isEmpty
+                ? null
+                : Synopsis(season.overview),
+            poster: _images.poster(season.posterPath),
+            episodes: _mapEpisodes(detail),
+            airDate: _parseDate(season.airDate),
+          );
+        })
+        .toList(growable: false);
   }
 
   List<Episode> _mapEpisodes(TmdbTvSeasonDetailDto detail) {

@@ -23,5 +23,13 @@ class MovieSummary extends Equatable {
   final List<String> tags;
 
   @override
-  List<Object?> get props => [id, tmdbId, title, poster, backdrop, releaseYear, tags];
+  List<Object?> get props => [
+    id,
+    tmdbId,
+    title,
+    poster,
+    backdrop,
+    releaseYear,
+    tags,
+  ];
 }

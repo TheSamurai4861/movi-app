@@ -13,13 +13,18 @@ class TmdbPersonRemoteDataSource {
   }
 
   Future<List<TmdbPersonDetailDto>> searchPeople(String query) async {
-    final results = await _client.getJson('search/person', query: {'query': query});
+    final results = await _client.getJson(
+      'search/person',
+      query: {'query': query},
+    );
     final list = (results['results'] as List<dynamic>? ?? const []);
     return list
-        .map((item) => TmdbPersonDetailDto.fromJson(
-              item as Map<String, dynamic>,
-              {'cast': const [], 'crew': const []},
-            ))
+        .map(
+          (item) => TmdbPersonDetailDto.fromJson(item as Map<String, dynamic>, {
+            'cast': const [],
+            'crew': const [],
+          }),
+        )
         .toList();
   }
 }

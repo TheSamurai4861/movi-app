@@ -52,14 +52,14 @@ class XtreamAccount extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        alias,
-        endpoint,
-        username,
-        password,
-        status,
-        createdAt,
-        expirationDate,
-        lastError,
-      ];
+    id,
+    alias,
+    endpoint,
+    username,
+    password,
+    status,
+    createdAt,
+    expirationDate,
+    lastError,
+  ];
 }

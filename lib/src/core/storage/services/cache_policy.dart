@@ -3,5 +3,6 @@ class CachePolicy {
 
   final Duration ttl;
 
-  bool isExpired(DateTime updatedAt) => DateTime.now().difference(updatedAt) > ttl;
+  bool isExpired(DateTime updatedAt) =>
+      DateTime.now().difference(updatedAt) > ttl;
 }

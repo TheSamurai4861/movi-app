@@ -24,7 +24,11 @@ class WelcomePage extends ConsumerWidget {
     required String alias,
   }) async {
     final controller = ref.read(iptvConnectControllerProvider.notifier);
-    unawaited(LoggingService.log('Welcome: connect attempt url=$serverUrl user=$username alias=$alias'));
+    unawaited(
+      LoggingService.log(
+        'Welcome: connect attempt url=$serverUrl user=$username alias=$alias',
+      ),
+    );
     final success = await controller.connect(
       serverUrl: serverUrl,
       username: username,
@@ -47,9 +51,9 @@ class WelcomePage extends ConsumerWidget {
       final error =
           ref.read(iptvConnectControllerProvider).error ?? 'Erreur inconnue';
       unawaited(LoggingService.log('Welcome: connect failed error=$error'));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Échec de la connexion : $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Échec de la connexion : $error')));
     }
   }
 

@@ -10,7 +10,10 @@ class AuthInterceptor extends Interceptor {
   final TokenResolver tokenResolver;
 
   @override
-  Future<void> onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     final token = await tokenResolver();
     if (token != null && token.isNotEmpty) {
       options.headers.putIfAbsent('Authorization', () => 'Bearer $token');

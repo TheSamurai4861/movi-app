@@ -31,6 +31,7 @@ class MoviItemsList extends StatefulWidget {
   final String title;
   final String? subtitle;
   final List<Widget> items;
+
   /// Action optionnelle à droite du header (ex: bouton "Voir tout").
   final Widget? action;
 
@@ -84,13 +85,16 @@ class _MoviItemsListState extends State<MoviItemsList> {
 
   double _effectiveViewportWidth(BoxConstraints constraints) {
     final pads = _resolvedHorizontalPadding(context);
-    final width = constraints.maxWidth.isFinite ? constraints.maxWidth : (context.size?.width ?? 0);
+    final width = constraints.maxWidth.isFinite
+        ? constraints.maxWidth
+        : (context.size?.width ?? 0);
     final effective = width - pads.left - pads.right;
     return effective > 0 ? effective : 0;
   }
 
   void _scheduleNotify() {
-    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) return;
+    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null)
+      return;
     _debounce?.cancel();
     _debounce = Timer(Duration(milliseconds: widget.debounceMs), _notifyNow);
   }
@@ -223,7 +227,8 @@ class _MoviItemsListState extends State<MoviItemsList> {
               if (widget.subtitle != null)
                 Text(
                   widget.subtitle!,
-                  style: textTheme.bodyMedium?.copyWith(
+                  style:
+                      textTheme.bodyMedium?.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFFA6A6A6),
@@ -242,7 +247,10 @@ class _MoviItemsListState extends State<MoviItemsList> {
         const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
-            final width = _effectiveViewportWidth(constraints) + // largeur utile (sans padding)
+            final width =
+                _effectiveViewportWidth(
+                  constraints,
+                ) + // largeur utile (sans padding)
                 _resolvedHorizontalPadding(context).left +
                 _resolvedHorizontalPadding(context).right;
             if (_lastViewportWidth != width) {
@@ -263,7 +271,8 @@ class _MoviItemsListState extends State<MoviItemsList> {
                     : null,
                 itemCount: widget.items.length,
                 itemBuilder: (context, i) => widget.items[i],
-                separatorBuilder: (context, _) => SizedBox(width: widget.itemSpacing),
+                separatorBuilder: (context, _) =>
+                    SizedBox(width: widget.itemSpacing),
               ),
             );
           },

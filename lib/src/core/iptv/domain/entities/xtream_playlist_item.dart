@@ -31,16 +31,16 @@ class XtreamPlaylistItem extends Equatable {
 
   @override
   List<Object?> get props => [
-        accountId,
-        categoryId,
-        categoryName,
-        streamId,
-        title,
-        type,
-        overview,
-        posterUrl,
-        rating,
-        releaseYear,
-        tmdbId,
-      ];
+    accountId,
+    categoryId,
+    categoryName,
+    streamId,
+    title,
+    type,
+    overview,
+    posterUrl,
+    rating,
+    releaseYear,
+    tmdbId,
+  ];
 }

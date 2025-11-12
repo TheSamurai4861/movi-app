@@ -26,8 +26,9 @@ class MovieDetailPage extends StatelessWidget {
                     child: Container(
                       height: 180,
                       width: 120,
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       child: const Center(child: Icon(Icons.movie, size: 48)),
                     ),
                   ),
@@ -48,20 +49,21 @@ class MovieDetailPage extends StatelessWidget {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Icon(Icons.star_rounded,
-                                color: Theme.of(context).colorScheme.secondary),
+                            Icon(
+                              Icons.star_rounded,
+                              color: Theme.of(context).colorScheme.secondary,
+                            ),
                             const SizedBox(width: 4),
                             const Text('4.5'),
                             const SizedBox(width: 8),
                             Text(
                               '(2 340 avis)',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                           ],
                         ),
@@ -81,10 +83,7 @@ class MovieDetailPage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-              Text(
-                'Synopsis',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text('Synopsis', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
                 'Un résumé concis du film permettra de valider rapidement la structure de la page '
@@ -103,8 +102,9 @@ class MovieDetailPage extends StatelessWidget {
                 (index) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
                     child: Text('${index + 1}'),
                   ),
                   title: Text('Acteur ${index + 1}'),
@@ -130,13 +130,11 @@ class MovieDetailPage extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                       ),
-                      child: Center(
-                        child: Text('Film ${index + 1}'),
-                      ),
+                      child: Center(child: Text('Film ${index + 1}')),
                     ),
                   ),
                 ),
