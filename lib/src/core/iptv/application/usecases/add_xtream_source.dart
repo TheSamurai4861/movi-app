@@ -11,14 +11,13 @@ class AddXtreamSource {
     required String serverUrl,
     required String username,
     required String password,
-    required String alias,
   }) {
     final endpoint = XtreamEndpoint.parse(serverUrl);
     return _repository.addSource(
       endpoint: endpoint,
       username: username.trim(),
       password: password.trim(),
-      alias: alias.trim().isEmpty ? endpoint.host : alias.trim(),
+      alias: endpoint.host,
     );
   }
 }

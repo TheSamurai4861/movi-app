@@ -36,7 +36,7 @@ class HomeHeroCarousel extends StatefulWidget {
 class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Mise en page
-  static const double _totalHeight = 790;
+  static const double _totalHeight = 650;
   static const double _overlayHeight = 150;
 
   // Limite de décodage (px @device) pour soulager CPU/GPU en desktop
@@ -233,6 +233,10 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     final Uri? logoUri = _images.logo(logoPath);
 
     final String overview = (data['overview']?.toString() ?? '').trim();
+    final String? title = (data['title']?.toString() ?? '').trim().isEmpty
+        ? null
+        : data['title']?.toString();
+
     final double? vote = (data['vote_average'] is num)
         ? (data['vote_average'] as num).toDouble()
         : null;
@@ -262,6 +266,7 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
       poster: posterUri?.toString(),
       backdrop: backdropUri?.toString(),
       logo: logoUri?.toString(),
+      title: title,
       overview: overview.isEmpty ? null : overview,
       year: year,
       rating: vote,
@@ -442,6 +447,8 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                     _coerceHttpUrl(movie.backdrop?.toString());
 
                 final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
+                final bool hasTitle = meta?.title?.isNotEmpty ?? false;
+
                 final int? year = meta?.year ?? movie.releaseYear;
                 final String yearText = (year ?? '—').toString();
 
@@ -512,6 +519,12 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                             left: 0,
                             right: 0,
                             bottom: 0,
+                            child: _GlobalOverlay(height: _totalHeight),
+                          ),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
                             child: _BottomOverlay(height: _overlayHeight),
                           ),
                           const Positioned(
@@ -539,37 +552,38 @@ class _HomeHeroCarouselState extends State<HomeHeroCarousel>
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: AppSpacing.lg,
                                   ),
-                                  child: FittedBox(
-                                    fit: BoxFit.contain,
-                                    child: hasLogo
-                                        ? AnimatedBuilder(
-                                            animation: _darkness,
-                                            builder: (context, _) {
-                                              return Opacity(
-                                                opacity: 1.0 - _darkness.value,
-                                                child: Image.network(
-                                                  meta!.logo!,
-                                                  key: ValueKey(meta.logo!),
-                                                  height: 150,
-                                                  gaplessPlayback: true,
-                                                  cacheWidth:
-                                                      (300 *
-                                                              MediaQuery.of(
-                                                                context,
-                                                              ).devicePixelRatio)
-                                                          .round(),
-                                                  filterQuality:
-                                                      FilterQuality.low,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      _TitleFallback(
-                                                        movie.title.value,
-                                                      ),
+                                  child: hasTitle
+                                      ? AnimatedBuilder(
+                                          animation: _darkness,
+                                          builder: (context, _) {
+                                            return Opacity(
+                                              opacity: 1.0 - _darkness.value,
+                                              child: Text(
+                                                meta!.title!,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
                                                 ),
-                                              );
-                                            },
-                                          )
-                                        : _TitleFallback(movie.title.value),
-                                  ),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                      : Text(
+                                          movie.title.value,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -803,6 +817,21 @@ class _BottomOverlay extends StatelessWidget {
   }
 }
 
+class _GlobalOverlay extends StatelessWidget {
+  const _GlobalOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        color: Color.fromARGB(52, 20, 20, 20),
+      ),
+    );
+  }
+}
+
 class _TopOverlay extends StatelessWidget {
   const _TopOverlay({required this.height});
   final double height;
@@ -850,6 +879,7 @@ class _HeroMeta {
     this.poster,
     this.backdrop,
     this.logo,
+    this.title,
     this.overview,
     this.year,
     this.rating,
@@ -861,6 +891,7 @@ class _HeroMeta {
   final String? poster;
   final String? backdrop;
   final String? logo;
+  final String? title;
   final String? overview;
   final int? year;
   final double? rating;

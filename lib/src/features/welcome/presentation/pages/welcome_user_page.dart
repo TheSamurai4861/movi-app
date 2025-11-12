@@ -9,7 +9,6 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
 import 'package:movi/src/features/settings/domain/value_objects/language_code.dart';
-import 'package:movi/src/features/settings/domain/value_objects/metadata_preference.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
@@ -24,7 +23,6 @@ class WelcomeUserPage extends ConsumerStatefulWidget {
 class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   final _nameCtrl = TextEditingController();
   String _lang = 'fr-FR';
-  String _meta = 'tmdb';
 
   @override
   void dispose() {
@@ -49,96 +47,75 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                   const WelcomeHeader(
                     title: 'Bienvenue !',
                     subtitle:
-                        'Renseigne ton prénom et tes préférences pour personnaliser Movi.',
+                        'Renseigne tes préférences pour personnaliser Movi.',
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       LabeledField(
-                        label: 'Prénom',
+                        label: 'Pseudo',
                         child: TextFormField(
                           controller: _nameCtrl,
                           decoration: const InputDecoration(
-                            hintText: 'Ton prénom',
+                            hintText: 'Ton pseudo',
                             border: OutlineInputBorder(),
                           ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       LabeledField(
-                        label: 'Langue TMDB préférée',
+                        label: 'Langue préférée',
                         child: DropdownButtonFormField<String>(
                           initialValue: _lang,
                           items: const [
                             DropdownMenuItem(
                               value: 'en-US',
-                              child: Text('English (US)'),
+                              child: Text('English', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'fr-FR',
-                              child: Text('Français (FR)'),
+                              child: Text('Français', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'es-ES',
-                              child: Text('Español (ES)'),
+                              child: Text('Español', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'de-DE',
-                              child: Text('Deutsch (DE)'),
+                              child: Text('Deutsch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'it-IT',
-                              child: Text('Italiano (IT)'),
+                              child: Text('Italiano', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'pt-BR',
-                              child: Text('Português (BR)'),
+                              child: Text('Português', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'ja-JP',
-                              child: Text('日本語 (JP)'),
+                              child: Text('日本語', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'ko-KR',
-                              child: Text('한국어 (KR)'),
+                              child: Text('한국어', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'zh-CN',
-                              child: Text('中文 (CN)'),
+                              child: Text('中文', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'ru-RU',
-                              child: Text('Русский (RU)'),
+                              child: Text('Русский', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                             DropdownMenuItem(
                               value: 'ar-SA',
-                              child: Text('العربية (SA)'),
+                              child: Text('العربية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),),
                             ),
                           ],
                           onChanged: (v) =>
                               setState(() => _lang = v ?? 'fr-FR'),
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      LabeledField(
-                        label: 'Préférences métadonnées',
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _meta,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'tmdb',
-                              child: Text('TMDB'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'none',
-                              child: Text('Aucune'),
-                            ),
-                          ],
-                          onChanged: (v) => setState(() => _meta = v ?? 'tmdb'),
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(),
                           ),
@@ -160,12 +137,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                       _nameCtrl.text,
                                     );
                                     final lc = LanguageCode.tryParse(_lang);
-                                    final mp = MetadataPreference.tryParse(
-                                      _meta,
-                                    );
                                     if (fn == null ||
-                                        lc == null ||
-                                        mp == null) {
+                                        lc == null) {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
@@ -187,7 +160,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                           UserProfile(
                                             firstName: fn,
                                             languageCode: lc,
-                                            metadataPreference: mp,
                                           ),
                                         );
                                     if (!context.mounted) return;

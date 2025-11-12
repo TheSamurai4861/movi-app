@@ -37,7 +37,6 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
       serverUrl: _serverCtrl.text.trim(),
       username: _userCtrl.text.trim(),
       password: _passCtrl.text,
-      alias: _aliasCtrl.text.trim(),
     );
     if (!mounted) return;
     if (ok) {
@@ -77,11 +76,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         LabeledField(
-                          label: 'URL du serveur Xtream',
+                          label: 'URL du serveur',
                           child: TextFormField(
                             controller: _serverCtrl,
                             decoration: const InputDecoration(
-                              hintText: 'http(s)://host[:port]/player_api.php',
+                              hintText: 'URL du serveur Xtream',
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) {
@@ -90,12 +89,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               return null;
                             },
                             keyboardType: TextInputType.url,
-                            autofillHints: const [AutofillHints.url],
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
                         LabeledField(
-                          label: 'Nom d’utilisateur Xtream',
+                          label: 'Nom d’utilisateur',
                           child: TextFormField(
                             controller: _userCtrl,
                             decoration: const InputDecoration(
@@ -109,7 +107,7 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                         ),
                         const SizedBox(height: AppSpacing.md),
                         LabeledField(
-                          label: 'Mot de passe Xtream',
+                          label: 'Mot de passe',
                           child: TextFormField(
                             controller: _passCtrl,
                             decoration: const InputDecoration(
@@ -120,17 +118,6 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                                 (v == null || v.isEmpty) ? 'Requis' : null,
                             obscureText: true,
                             autofillHints: const [AutofillHints.password],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        LabeledField(
-                          label: 'Alias (facultatif)',
-                          child: TextFormField(
-                            controller: _aliasCtrl,
-                            decoration: const InputDecoration(
-                              hintText: 'Ex: Mon IPTV',
-                              border: OutlineInputBorder(),
-                            ),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xl),

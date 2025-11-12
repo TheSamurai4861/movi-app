@@ -123,7 +123,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           title: 'Films',
                           subtitle: '(${state.movies.length} résultats)',
                           estimatedItemWidth: 150,
-                          estimatedItemHeight: 270,
+                          estimatedItemHeight: 300,
                           titlePadding: 0,
                           horizontalPadding: const EdgeInsetsDirectional.only(
                             start: 0,
@@ -152,7 +152,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           title: 'Séries',
                           subtitle: '(${state.shows.length} résultats)',
                           estimatedItemWidth: 150,
-                          estimatedItemHeight: 270,
+                          estimatedItemHeight: 300,
                           titlePadding: 0,
                           horizontalPadding: const EdgeInsetsDirectional.only(
                             start: 0,

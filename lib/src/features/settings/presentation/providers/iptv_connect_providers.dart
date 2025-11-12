@@ -37,7 +37,6 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
     required String serverUrl,
     required String username,
     required String password,
-    required String alias,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -46,7 +45,6 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
         serverUrl: serverUrl,
         username: username,
         password: password,
-        alias: alias,
       );
 
       // 2) Activer la source pour l’app (si logique d’état globale)

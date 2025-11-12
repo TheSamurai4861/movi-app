@@ -15,7 +15,6 @@ typedef ConnectCallback =
       String serverUrl,
       String username,
       String password,
-      String alias,
     );
 
 class WelcomeForm extends ConsumerStatefulWidget {
@@ -95,7 +94,6 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
         _urlCtrl.text.trim(),
         _userCtrl.text.trim(),
         _passCtrl.text,
-        '',
       );
       return;
     }
@@ -106,7 +104,6 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
       serverUrl: _urlCtrl.text.trim(),
       username: _userCtrl.text.trim(),
       password: _passCtrl.text,
-      alias: '',
     );
 
     if (!mounted) return;

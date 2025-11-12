@@ -21,19 +21,17 @@ class WelcomePage extends ConsumerWidget {
     required String serverUrl,
     required String username,
     required String password,
-    required String alias,
   }) async {
     final controller = ref.read(iptvConnectControllerProvider.notifier);
     unawaited(
       LoggingService.log(
-        'Welcome: connect attempt url=$serverUrl user=$username alias=$alias',
+        'Welcome: connect attempt url=$serverUrl user=$username',
       ),
     );
     final success = await controller.connect(
       serverUrl: serverUrl,
       username: username,
       password: password,
-      alias: alias,
     );
 
     if (success && context.mounted) {
@@ -76,7 +74,7 @@ class WelcomePage extends ConsumerWidget {
 
                   // 🔸 On passe la fonction _onConnect au formulaire
                   WelcomeForm(
-                    onConnect: (serverUrl, username, password, alias) {
+                    onConnect: (serverUrl, username, password) {
                       // ⬅️ Corrigé : on RETOURNE le Future pour éviter l’avertissement
                       return _onConnect(
                         context,
@@ -84,7 +82,6 @@ class WelcomePage extends ConsumerWidget {
                         serverUrl: serverUrl,
                         username: username,
                         password: password,
-                        alias: alias,
                       );
                     },
                     isLoading: state.isLoading,

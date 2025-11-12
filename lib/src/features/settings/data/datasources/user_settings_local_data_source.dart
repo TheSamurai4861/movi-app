@@ -15,7 +15,6 @@ class UserSettingsLocalDataSource {
     final payload = {
       'firstName': profile.firstName.value,
       'languageCode': profile.languageCode.value,
-      'metadataPreference': profile.metadataPreference.value,
     };
     await _cache.put(key: _key, type: _type, payload: payload);
   }
@@ -25,10 +24,8 @@ class UserSettingsLocalDataSource {
     if (map == null) return null;
     final fn = FirstName.tryParse((map['firstName'] as String?) ?? '');
     final lc = LanguageCode.tryParse((map['languageCode'] as String?) ?? '');
-    final mp = MetadataPreference.tryParse(
-      (map['metadataPreference'] as String?) ?? 'none',
-    );
-    if (fn == null || lc == null || mp == null) return null;
-    return UserProfile(firstName: fn, languageCode: lc, metadataPreference: mp);
+    
+    if (fn == null || lc == null) return null;
+    return UserProfile(firstName: fn, languageCode: lc);
   }
 }

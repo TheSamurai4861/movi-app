@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       extendBody: true,
       body: SafeArea(
         top: false,
