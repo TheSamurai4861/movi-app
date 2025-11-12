@@ -161,9 +161,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           subtitle: '(${state.shows.length} résultats)',
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
-                          titlePadding: 0,
+                          titlePadding: 20,
                           horizontalPadding: const EdgeInsetsDirectional.only(
-                            start: 0,
+                            start: 20,
                             end: 20,
                           ),
                           items: state.shows
