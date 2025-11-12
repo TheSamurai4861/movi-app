@@ -31,63 +31,71 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Text(
-                'Recherche',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                child: Text(
+                  'Recherche',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              TextField(
-                controller: _textCtrl,
-                onChanged: (value) {
-                  ctrl.setQuery(value);
-                  if (value.trim().length < 3) {
-                    // Rafraîchir l'historique dès que l'input passe sous 3 caractères
-                    ref
-                        .read(searchHistoryControllerProvider.notifier)
-                        .refresh();
-                  }
-                },
-                decoration: InputDecoration(
-                  hintText: 'Tapez votre recherche',
-                  // Icône de recherche à gauche du placeholder
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Image.asset(
-                      'assets/icons/search.png',
-                      width: 25,
-                      height: 25,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                child: TextField(
+                  controller: _textCtrl,
+                  onChanged: (value) {
+                    ctrl.setQuery(value);
+                    if (value.trim().length < 3) {
+                      // Rafraîchir l'historique dès que l'input passe sous 3 caractères
+                      ref
+                          .read(searchHistoryControllerProvider.notifier)
+                          .refresh();
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Tapez votre recherche',
+                    // Icône de recherche à gauche du placeholder
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Image.asset(
+                        'assets/icons/search.png',
+                        width: 25,
+                        height: 25,
+                      ),
                     ),
-                  ),
-                  // Bouton suppression à droite uniquement si texte présent
-                  suffixIcon: state.query.isNotEmpty
-                      ? IconButton(
-                          icon: Image.asset(
-                            'assets/icons/supprimer.png',
-                            width: 25,
-                            height: 25,
-                          ),
-                          onPressed: () {
-                            _textCtrl.clear();
-                            ctrl.setQuery('');
-                            // Assurer l’actualisation immédiate de l’historique après effacement
-                            ref
-                                .read(searchHistoryControllerProvider.notifier)
-                                .refresh();
-                          },
-                          tooltip: 'Effacer',
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    // Bouton suppression à droite uniquement si texte présent
+                    suffixIcon: state.query.isNotEmpty
+                        ? IconButton(
+                            icon: Image.asset(
+                              'assets/icons/supprimer.png',
+                              width: 25,
+                              height: 25,
+                            ),
+                            onPressed: () {
+                              _textCtrl.clear();
+                              ctrl.setQuery('');
+                              // Assurer l’actualisation immédiate de l’historique après effacement
+                              ref
+                                  .read(
+                                    searchHistoryControllerProvider.notifier,
+                                  )
+                                  .refresh();
+                            },
+                            tooltip: 'Effacer',
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),
@@ -124,9 +132,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           subtitle: '(${state.movies.length} résultats)',
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
-                          titlePadding: 0,
+                          titlePadding: 20,
                           horizontalPadding: const EdgeInsetsDirectional.only(
-                            start: 0,
+                            start: 20,
                             end: 20,
                           ),
                           items: state.movies
@@ -216,27 +224,34 @@ class _SearchHistoryList extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Historique',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+              child: Text(
+                'Historique',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(height: 16),
             if (sorted.isEmpty)
-              const Text(
-                'Aucune recherche récente',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Color(0xFF737373),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+                child: Text(
+                  'Aucune recherche récente',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF737373),
+                  ),
                 ),
               )
             else
               ListView.separated(
                 shrinkWrap: true,
+                padding: EdgeInsets.only(left: 20, right: 20),
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: sorted.length,
                 separatorBuilder: (_, __) => const Divider(

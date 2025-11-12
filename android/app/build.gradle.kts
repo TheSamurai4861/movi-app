@@ -61,16 +61,17 @@ android {
 
 
     signingConfigs {
-        create("release") {
-            val keystorePath = (project.findProperty("MOVI_KEYSTORE") as? String)
-                ?: error("MOVI_KEYSTORE manquant (android/gradle.properties ou ~/.gradle/gradle.properties)")
-            storeFile = file(keystorePath)
-            storePassword = (project.findProperty("MOVI_STORE_PASSWORD") as? String)
-                ?: error("MOVI_STORE_PASSWORD manquant")
-            keyAlias = (project.findProperty("MOVI_ALIAS") as? String)
-                ?: error("MOVI_ALIAS manquant")
-            keyPassword = (project.findProperty("MOVI_KEY_PASSWORD") as? String)
-                ?: error("MOVI_KEY_PASSWORD manquant")
+        val keystorePath = project.findProperty("MOVI_KEYSTORE") as String?
+        val storePass = project.findProperty("MOVI_STORE_PASSWORD") as String?
+        val alias = project.findProperty("MOVI_ALIAS") as String?
+        val keyPass = project.findProperty("MOVI_KEY_PASSWORD") as String?
+        if (keystorePath != null && storePass != null && alias != null && keyPass != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = storePass
+                keyAlias = alias
+                keyPassword = keyPass
+            }
         }
     }
 
@@ -81,7 +82,10 @@ android {
             // signingConfig = signingConfigs.getByName("release")
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            val sc = signingConfigs.findByName("release")
+            if (sc != null) {
+                signingConfig = sc
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

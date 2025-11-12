@@ -36,7 +36,7 @@ class HomeHeroCarousel extends StatefulWidget {
 class _HomeHeroCarouselState extends State<HomeHeroCarousel>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   // Mise en page
-  static const double _totalHeight = 650;
+  static const double _totalHeight = 590;
   static const double _overlayHeight = 150;
 
   // Limite de décodage (px @device) pour soulager CPU/GPU en desktop
