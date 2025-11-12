@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
-import '../../../movie/domain/entities/movie_summary.dart';
-import '../../../tv/domain/entities/tv_show.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 /// Contract for the Home feed data needed by the Home page (no UI).
 abstract class HomeFeedRepository {

@@ -1,9 +1,9 @@
-import '../../../movie/domain/entities/movie_summary.dart';
-import '../../../tv/domain/entities/tv_show.dart';
-import '../../../saga/domain/entities/saga.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../playlist/domain/entities/playlist.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/playlist/domain/entities/playlist.dart';
 
 /// Contract for Library data (likes, history, user playlists).
 /// No UI logic here; presentation consumes these lists directly.

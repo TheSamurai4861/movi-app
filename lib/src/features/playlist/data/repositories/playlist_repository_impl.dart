@@ -1,9 +1,9 @@
-import '../../domain/entities/playlist.dart';
-import '../../domain/repositories/playlist_repository.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../core/storage/repositories/playlist_local_repository.dart';
+import 'package:movi/src/features/playlist/domain/entities/playlist.dart';
+import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/core/storage/storage.dart';
 
 class PlaylistRepositoryImpl implements PlaylistRepository {
   PlaylistRepositoryImpl(this._local);

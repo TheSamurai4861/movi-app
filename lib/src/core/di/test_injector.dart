@@ -1,9 +1,8 @@
 import 'package:get_it/get_it.dart';
 
-import '../config/models/app_config.dart';
-import '../config/services/secret_store.dart';
-import '../network/interceptors/locale_interceptor.dart';
-import 'injector.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/network/network.dart';
+import 'package:movi/src/core/di/di.dart';
 
 /// Helper used in tests to reset the service locator and register fake config.
 Future<void> initTestDependencies({

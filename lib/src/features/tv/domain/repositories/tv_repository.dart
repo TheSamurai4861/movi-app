@@ -1,5 +1,5 @@
-import '../entities/tv_show.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 abstract class TvRepository {
   Future<TvShow> getShow(SeriesId id);

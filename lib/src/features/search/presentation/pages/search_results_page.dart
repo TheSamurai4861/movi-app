@@ -2,11 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/utils/app_spacing.dart';
-import '../../../../core/widgets/movi_media_card.dart';
-import '../../../../core/models/movi_media.dart';
-import '../models/search_results_args.dart';
-import '../providers/search_providers.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
+import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 
 class SearchResultsPage extends ConsumerWidget {
   const SearchResultsPage({super.key, this.args});

@@ -20,4 +20,16 @@ class AppMetadata {
       supportEmail: supportEmail ?? this.supportEmail,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! AppMetadata) return false;
+    return version == other.version &&
+        buildNumber == other.buildNumber &&
+        supportEmail == other.supportEmail;
+  }
+
+  @override
+  int get hashCode => Object.hash(version, buildNumber, supportEmail);
 }

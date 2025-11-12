@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../saga/domain/entities/saga.dart';
-import '../../../../shared/domain/value_objects/content_rating.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
 
 class Movie extends Equatable {
   const Movie({

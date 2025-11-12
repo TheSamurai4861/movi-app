@@ -1,19 +1,18 @@
-import '../../domain/entities/movie.dart';
-import '../../domain/entities/movie_summary.dart';
-import '../../domain/repositories/movie_repository.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
-import '../../../../shared/domain/value_objects/synopsis.dart';
-import '../../../../shared/domain/value_objects/content_rating.dart';
-import '../../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../saga/domain/entities/saga.dart';
-import '../../../../core/storage/repositories/watchlist_local_repository.dart';
-import '../../../../core/storage/repositories/continue_watching_local_repository.dart';
-import '../datasources/tmdb_movie_remote_data_source.dart';
-import '../datasources/movie_local_data_source.dart';
-import '../dtos/tmdb_movie_detail_dto.dart';
+import 'package:movi/src/features/movie/domain/entities/movie.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
 
 class MovieRepositoryImpl implements MovieRepository {
   MovieRepositoryImpl(

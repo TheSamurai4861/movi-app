@@ -1,4 +1,4 @@
-import '../../../../core/network/network_failures.dart';
+import 'package:movi/src/core/network/network.dart';
 
 /// Traduit un NetworkFailure en message FR court et cohérent pour l’UI.
 String presentFailure(NetworkFailure f) {

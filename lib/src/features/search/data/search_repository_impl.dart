@@ -1,16 +1,16 @@
-import '../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../core/iptv/domain/entities/xtream_playlist_item.dart';
-import '../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../movie/domain/entities/movie_summary.dart';
-import '../../tv/domain/entities/tv_show.dart';
-import '../../person/data/dtos/tmdb_person_detail_dto.dart';
-import '../../../shared/domain/entities/person_summary.dart';
-import '../domain/entities/search_page.dart';
-import '../domain/repositories/search_repository.dart';
-import 'datasources/tmdb_search_remote_data_source.dart';
-import '../../../shared/domain/value_objects/media_title.dart';
-import '../../../shared/domain/services/similarity_service.dart';
-import '../../../shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/search/domain/entities/search_page.dart';
+import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
+import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/services/similarity_service.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 class SearchRepositoryImpl implements SearchRepository {
   SearchRepositoryImpl(

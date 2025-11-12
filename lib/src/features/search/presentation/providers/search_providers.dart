@@ -5,15 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:movi/src/features/search/domain/usecases/add_search_query_to_history.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../domain/repositories/search_repository.dart';
-import '../../domain/usecases/search_movies.dart';
-import '../../domain/usecases/search_shows.dart';
-import '../../domain/entities/search_page.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
-import '../../../tv/domain/entities/tv_show.dart';
-import '../models/search_results_args.dart';
-import '../providers/search_history_providers.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
+import 'package:movi/src/features/search/domain/usecases/search_movies.dart';
+import 'package:movi/src/features/search/domain/usecases/search_shows.dart';
+import 'package:movi/src/features/search/domain/entities/search_page.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
+import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
 
 // --- Providers de dépendances ---
 final searchRepositoryProvider = Provider<SearchRepository>(

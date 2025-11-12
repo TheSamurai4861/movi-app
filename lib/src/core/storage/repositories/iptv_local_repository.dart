@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-import 'package:movi/src/core/iptv/domain/entities/xtream_account.dart';
-import 'package:movi/src/core/iptv/domain/entities/xtream_playlist.dart';
-import 'package:movi/src/core/iptv/domain/entities/xtream_playlist_item.dart';
-import 'package:movi/src/core/iptv/domain/value_objects/xtream_endpoint.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 
-import '../../storage/database/sqlite_database.dart';
+import 'package:movi/src/core/storage/database/sqlite_database.dart';
 
 /// Repository local pour la persistance des comptes et playlists IPTV.
 /// Implémentation basée sur `sqflite` avec conversions typées et garde-fous.
@@ -20,21 +20,16 @@ class IptvLocalRepository {
   /// Enregistre ou met à jour un [XtreamAccount].
   Future<void> saveAccount(XtreamAccount account) async {
     final db = await _db;
-    await db.insert(
-      _tblAccounts,
-      <String, Object?>{
-        'account_id': account.id,
-        'alias': account.alias,
-        'endpoint': account.endpoint.toRawUrl(),
-        'username': account.username,
-        'password': account.password,
-        'status': account.status.name,
-        'expiration': account.expirationDate?.millisecondsSinceEpoch,
-        'created_at': account.createdAt.millisecondsSinceEpoch,
-        'last_error': account.lastError,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert(_tblAccounts, <String, Object?>{
+      'account_id': account.id,
+      'alias': account.alias,
+      'endpoint': account.endpoint.toRawUrl(),
+      'username': account.username,
+      'status': account.status.name,
+      'expiration': account.expirationDate?.millisecondsSinceEpoch,
+      'created_at': account.createdAt.millisecondsSinceEpoch,
+      'last_error': account.lastError,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   /// Récupère tous les comptes IPTV persistés.
@@ -87,16 +82,12 @@ class IptvLocalRepository {
             .toList(growable: false),
       };
 
-      batch.insert(
-        _tblPlaylists,
-        <String, Object?>{
-          'account_id': accountId,
-          'category_id': playlist.id,
-          'payload': jsonEncode(payload),
-          'updated_at': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      batch.insert(_tblPlaylists, <String, Object?>{
+        'account_id': accountId,
+        'category_id': playlist.id,
+        'payload': jsonEncode(payload),
+        'updated_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
     await batch.commit(noResult: true);
@@ -118,8 +109,9 @@ class IptvLocalRepository {
 
       final String title = _asString(payload['title']) ?? '';
       final String categoryId = _asString(payload['categoryId']) ?? '';
-      final XtreamPlaylistType playlistType =
-          _normalizePlaylistType(_asString(payload['type']));
+      final XtreamPlaylistType playlistType = _normalizePlaylistType(
+        _asString(payload['type']),
+      );
 
       final List<dynamic> itemsList = _asList(payload['items']);
 
@@ -133,9 +125,13 @@ class IptvLocalRepository {
         final String? posterUrl = _asString(item['poster']);
         final int? tmdbId = _asNum(item['tmdbId'])?.toInt();
 
-        final String rawType = (_asString(item['type']) ?? '').toLowerCase().trim();
-        final XtreamPlaylistItemType itemType =
-            _normalizeItemType(rawType, playlistType);
+        final String rawType = (_asString(item['type']) ?? '')
+            .toLowerCase()
+            .trim();
+        final XtreamPlaylistItemType itemType = _normalizeItemType(
+          rawType,
+          playlistType,
+        );
 
         if (streamId == null) continue;
 
@@ -196,7 +192,6 @@ class IptvLocalRepository {
     final String alias = (row['alias'] as String?) ?? '';
     final String endpointRaw = (row['endpoint'] as String?) ?? '';
     final String username = (row['username'] as String?) ?? '';
-    final String password = (row['password'] as String?) ?? '';
     final String statusStr =
         (row['status'] as String?) ?? XtreamAccountStatus.pending.name;
     final int createdAtMs = (row['created_at'] as int?) ?? 0;
@@ -213,11 +208,11 @@ class IptvLocalRepository {
       alias: alias,
       endpoint: XtreamEndpoint.parse(endpointRaw),
       username: username,
-      password: password,
       status: status,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAtMs),
-      expirationDate:
-          expirationMs != null ? DateTime.fromMillisecondsSinceEpoch(expirationMs) : null,
+      expirationDate: expirationMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(expirationMs)
+          : null,
       lastError: lastError,
     );
   }

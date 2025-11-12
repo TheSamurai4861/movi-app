@@ -1,8 +1,8 @@
 // lib/src/features/category_browser/presentation/widgets/category_grid.dart
 import 'package:flutter/material.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../../../core/widgets/movi_media_card.dart';
-import '../../../../core/models/movi_media.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
 
 class CategoryGrid extends StatelessWidget {
   const CategoryGrid({super.key, required this.items});

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
-import '../../utils/logger.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
 typedef RetryEvaluator = bool Function(DioException exception);
 

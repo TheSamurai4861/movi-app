@@ -1,6 +1,6 @@
 // lib/src/core/network/dio_failure_mapper.dart
 import 'package:dio/dio.dart';
-import 'network_failures.dart';
+import 'package:movi/src/core/network/network_failures.dart';
 
 NetworkFailure mapDioToFailure(DioException e) {
   switch (e.type) {

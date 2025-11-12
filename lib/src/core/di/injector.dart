@@ -1,29 +1,35 @@
 import 'package:get_it/get_it.dart';
 
-import '../config/models/app_config.dart';
-import '../config/services/secret_store.dart';
-import '../network/config/network_module.dart';
-import '../network/network_executor.dart';
-import '../network/interceptors/locale_interceptor.dart';
-import '../iptv/config/iptv_module.dart';
-import '../preferences/locale_preferences.dart';
-import '../state/app_state_controller.dart';
-import '../../shared/data/services/tmdb_client.dart';
-import '../../shared/data/services/tmdb_image_resolver.dart';
-import '../../features/movie/data/movie_data_module.dart';
-import '../../features/tv/data/tv_data_module.dart';
-import '../../features/person/data/person_data_module.dart';
-import '../../features/saga/data/saga_data_module.dart';
-import '../../features/search/data/search_data_module.dart';
-import '../../features/playlist/data/playlist_data_module.dart';
-import '../../features/home/data/home_feed_data_module.dart';
-import '../../features/library/data/library_data_module.dart';
-import '../../features/category_browser/data/category_browser_data_module.dart';
-import '../../features/settings/data/settings_data_module.dart';
-import '../storage/services/storage_module.dart';
-import '../utils/logger.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/network/config/network_module.dart';
+import 'package:movi/src/core/network/network.dart';
+import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
+import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/state/state.dart';
+import 'package:movi/src/shared/services.dart';
+import 'package:movi/src/features/movie/data/movie_data_module.dart';
+import 'package:movi/src/features/tv/data/tv_data_module.dart';
+import 'package:movi/src/features/person/data/person_data_module.dart';
+import 'package:movi/src/features/saga/data/saga_data_module.dart';
+import 'package:movi/src/features/search/data/search_data_module.dart';
+import 'package:movi/src/features/playlist/data/playlist_data_module.dart';
+import 'package:movi/src/features/home/data/home_feed_data_module.dart';
+import 'package:movi/src/features/library/data/library_data_module.dart';
+import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
+import 'package:movi/src/features/settings/data/settings_data_module.dart';
+import 'package:movi/src/core/storage/services/storage_module.dart';
+import 'package:movi/src/core/logging/logging_module.dart';
 
 final sl = GetIt.instance;
+
+void _replace<T extends Object>(T instance) {
+  if (sl.isRegistered<T>()) {
+    sl.unregister<T>();
+  }
+  sl.registerSingleton<T>(instance);
+}
+
+void replace<T extends Object>(T instance) => _replace<T>(instance);
 
 Future<void> initDependencies({
   AppConfig? appConfig,
@@ -31,11 +37,11 @@ Future<void> initDependencies({
   LocaleCodeProvider? localeProvider,
 }) async {
   _registerLogging();
-  if (appConfig != null && !sl.isRegistered<AppConfig>()) {
-    sl.registerSingleton<AppConfig>(appConfig);
+  if (appConfig != null) {
+    _replace<AppConfig>(appConfig);
   }
-  if (secretStore != null && !sl.isRegistered<SecretStore>()) {
-    sl.registerSingleton<SecretStore>(secretStore);
+  if (secretStore != null) {
+    _replace<SecretStore>(secretStore);
   }
   if (!sl.isRegistered<LocalePreferences>()) {
     sl.registerLazySingleton<LocalePreferences>(() => LocalePreferences());
@@ -47,9 +53,7 @@ Future<void> initDependencies({
 }
 
 void _registerLogging() {
-  if (!sl.isRegistered<AppLogger>()) {
-    sl.registerLazySingleton<AppLogger>(() => AppLogger());
-  }
+  LoggingModule.register();
 }
 
 void _registerNetwork({LocaleCodeProvider? localeProvider}) {
@@ -58,7 +62,7 @@ void _registerNetwork({LocaleCodeProvider? localeProvider}) {
   }
   if (sl.isRegistered<AppConfig>()) {
     NetworkModule.register(localeProvider: localeProvider);
-    IptvModule.register();
+    IptvDataModule.register();
   }
 }
 

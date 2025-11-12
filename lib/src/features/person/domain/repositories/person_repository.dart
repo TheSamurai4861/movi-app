@@ -1,6 +1,6 @@
-import '../entities/person.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/features/person/domain/entities/person.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 /// Contrat domain pour les opérations liées aux personnes (acteurs, réalisateurs...).
 abstract class PersonRepository {

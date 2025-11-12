@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/utils.dart';
+import 'package:movi/src/core/utils/utils.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

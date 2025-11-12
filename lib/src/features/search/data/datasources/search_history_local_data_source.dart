@@ -1,5 +1,5 @@
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
-import '../../domain/entities/search_history_item.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
 
 class SearchHistoryLocalDataSource {
   SearchHistoryLocalDataSource(this._cache);
@@ -24,9 +24,9 @@ class SearchHistoryLocalDataSource {
     final item = {'q': query, 't': now.toIso8601String()};
     final key = await _userScopedKey();
     final existing = await _cache.get(key);
-    final list =
-        ((existing?['items'] as List?) ?? const <Map<String, dynamic>>[])
-            .cast<Map<String, dynamic>>();
+    final list = List<Map<String, dynamic>>.from(
+      (existing?['items'] as List?) ?? const <Map<String, dynamic>>[],
+    );
     // Remove duplicates
     list.removeWhere((e) => e['q'] == query);
     list.insert(0, item);
@@ -60,9 +60,9 @@ class SearchHistoryLocalDataSource {
     final key = await _userScopedKey();
     final existing = await _cache.get(key);
     if (existing == null) return;
-    final list =
-        ((existing['items'] as List?) ?? const <Map<String, dynamic>>[])
-            .cast<Map<String, dynamic>>();
+    final list = List<Map<String, dynamic>>.from(
+      (existing['items'] as List?) ?? const <Map<String, dynamic>>[],
+    );
     list.removeWhere((e) => e['q'] == query);
     await _cache.put(key: key, type: _type, payload: {'items': list});
   }

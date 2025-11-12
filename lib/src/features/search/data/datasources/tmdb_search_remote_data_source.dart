@@ -1,8 +1,8 @@
-import '../../../../shared/data/services/tmdb_client.dart';
-import '../../../../core/preferences/locale_preferences.dart';
-import '../../../movie/data/dtos/tmdb_movie_detail_dto.dart';
-import '../../../tv/data/dtos/tmdb_tv_detail_dto.dart';
-import '../../../person/data/dtos/tmdb_person_detail_dto.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
+import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
 
 class TmdbSearchRemoteDataSource {
   TmdbSearchRemoteDataSource(this._client, this._locale);

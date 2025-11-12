@@ -1,14 +1,14 @@
-import '../../../core/di/injector.dart';
-import '../../../core/state/app_state_controller.dart';
-import '../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../shared/data/services/tmdb_cache_data_source.dart';
-import '../../movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import '../../movie/domain/repositories/movie_repository.dart';
-import '../../tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import '../../tv/domain/repositories/tv_repository.dart';
-import '../domain/repositories/home_feed_repository.dart';
-import 'repositories/home_feed_repository_impl.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/home/data/repositories/home_feed_repository_impl.dart';
 
 class HomeFeedDataModule {
   static void register() {

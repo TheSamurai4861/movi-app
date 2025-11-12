@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import 'package:movi/src/core/di/injector.dart';
+import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/repositories/user_settings_repository.dart';
 import 'package:movi/src/features/settings/domain/usecases/load_user_profile.dart';

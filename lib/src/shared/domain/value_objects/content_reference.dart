@@ -1,7 +1,7 @@
 // ignore_for_file: public_member_api_docs
 
 import 'package:equatable/equatable.dart';
-import 'media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 enum ContentType { movie, series, saga, playlist, person }
 

@@ -1,6 +1,6 @@
 // lib/src/features/welcome/presentation/widgets/welcome_header.dart
 import 'package:flutter/material.dart';
-import '../../../../core/utils/app_assets.dart'; // <-- importe tes assets
+import 'package:movi/src/core/utils/app_assets.dart'; // <-- importe tes assets
 
 class WelcomeHeader extends StatelessWidget {
   const WelcomeHeader({

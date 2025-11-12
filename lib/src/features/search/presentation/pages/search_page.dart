@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
-import '../../../../core/widgets/movi_items_list.dart';
-import '../../../../core/widgets/movi_media_card.dart';
-import '../../../../core/models/movi_media.dart';
-import '../../../search/presentation/providers/search_providers.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});

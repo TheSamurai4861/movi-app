@@ -1,5 +1,5 @@
-import '../entities/user_profile.dart';
-import '../repositories/user_settings_repository.dart';
+import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
+import 'package:movi/src/features/settings/domain/repositories/user_settings_repository.dart';
 
 class LoadUserProfile {
   const LoadUserProfile(this._repo);

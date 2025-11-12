@@ -1,5 +1,5 @@
-import '../entities/playlist.dart';
-import '../repositories/playlist_repository.dart';
+import 'package:movi/src/features/playlist/domain/entities/playlist.dart';
+import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
 
 class SearchPlaylists {
   const SearchPlaylists(this._repository);

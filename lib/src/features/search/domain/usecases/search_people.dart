@@ -1,6 +1,6 @@
-import '../../domain/repositories/search_repository.dart';
-import '../../domain/entities/search_page.dart';
-import '../../../../shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
+import 'package:movi/src/features/search/domain/entities/search_page.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
 
 class SearchPeople {
   const SearchPeople(this._repository);

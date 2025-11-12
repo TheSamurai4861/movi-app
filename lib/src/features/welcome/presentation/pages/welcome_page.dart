@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/logging/logging_service.dart';
+import 'package:movi/src/core/logging/logging.dart';
 
-import '../widgets/welcome_header.dart';
-import '../widgets/welcome_form.dart';
-import '../widgets/welcome_faq_row.dart';
-import '../../../settings/presentation/providers/iptv_connect_providers.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/welcome_form.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/welcome_faq_row.dart';
+import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 
 class WelcomePage extends ConsumerWidget {
   const WelcomePage({super.key});

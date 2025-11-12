@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import 'app_state.dart';
-import '../preferences/locale_preferences.dart';
+import 'package:movi/src/core/state/app_state.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
 
 /// Contrôleur central de l'état applicatif.
 ///
@@ -14,11 +14,7 @@ import '../preferences/locale_preferences.dart';
 /// - Garantit l'immuabilité des collections exposées.
 class AppStateController extends StateNotifier<AppState> {
   AppStateController(this._localePreferences)
-      : super(
-          AppState(
-            preferredLocale: _localePreferences.languageCode,
-          ),
-        );
+    : super(AppState(preferredLocale: _localePreferences.languageCode));
 
   final LocalePreferences _localePreferences;
 
@@ -45,7 +41,10 @@ class AppStateController extends StateNotifier<AppState> {
 
   /// Remplace la liste des sources IPTV actives (copie immuable, dédupliquée).
   void setActiveIptvSources(List<String> sources) {
-    final sanitized = sources.where((e) => e.trim().isNotEmpty).toSet().toList();
+    final sanitized = sources
+        .where((e) => e.trim().isNotEmpty)
+        .toSet()
+        .toList();
     if (_listsEqual(state.activeIptvSources, sanitized)) return;
     state = state.copyWith(activeIptvSources: List.unmodifiable(sanitized));
   }

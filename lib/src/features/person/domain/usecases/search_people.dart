@@ -1,5 +1,5 @@
-import '../../../../shared/domain/entities/person_summary.dart';
-import '../repositories/person_repository.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/person/domain/repositories/person_repository.dart';
 
 class SearchPeople {
   const SearchPeople(this._repository);

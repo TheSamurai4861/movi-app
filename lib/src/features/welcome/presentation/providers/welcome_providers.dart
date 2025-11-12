@@ -2,11 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../../../core/network/network_executor.dart';
-import '../../../../core/network/dio_failure_mapper.dart';
-import '../../../../core/network/network_failures.dart';
-import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/network/network.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
 
 /// État minimal pour l'écran Welcome (UI uniquement)
 class WelcomeUiState {

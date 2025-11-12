@@ -1,9 +1,9 @@
 import 'package:movi/src/features/settings/data/datasources/user_settings_local_data_source.dart';
 import 'package:movi/src/features/settings/domain/repositories/user_settings_repository.dart';
 
-import '../../../core/di/injector.dart';
-import '../../../core/storage/repositories/content_cache_repository.dart';
-import 'repositories/user_settings_repository_impl.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/settings/data/repositories/user_settings_repository_impl.dart';
 
 class SettingsDataModule {
   static void register() {

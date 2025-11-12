@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 class MovieSummary extends Equatable {
   const MovieSummary({

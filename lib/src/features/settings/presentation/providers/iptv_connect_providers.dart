@@ -4,11 +4,11 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../../../core/iptv/application/usecases/add_xtream_source.dart';
-import '../../../../core/iptv/application/usecases/refresh_xtream_catalog.dart';
-import '../../../../core/state/app_state_controller.dart';
-import '../../../home/presentation/providers/home_providers.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.dart';
+import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 
 class IptvConnectState {
   const IptvConnectState({this.isLoading = false, this.error});
@@ -40,11 +40,19 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      // 1) Créer la source (auth + enregistrement)
-      final account = await _add(
+      final res = await _add(
         serverUrl: serverUrl,
         username: username,
         password: password,
+      );
+      if (res.isErr()) {
+        final message = res.fold<String>(ok: (_) => '', err: (f) => f.message);
+        state = state.copyWith(isLoading: false, error: message);
+        return false;
+      }
+      final account = res.fold(
+        ok: (a) => a,
+        err: (_) => throw StateError('unreachable'),
       );
 
       // 2) Activer la source pour l’app (si logique d’état globale)
@@ -64,7 +72,10 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
 
   Future<void> _runBackgroundSync(String accountId) async {
     try {
-      await _refresh(accountId);
+      final res = await _refresh(accountId);
+      if (res.isErr()) {
+        return;
+      }
       // Une fois la synchro terminée, on rafraîchit la Home.
       await _ref.read(homeControllerProvider.notifier).refresh();
     } catch (_) {

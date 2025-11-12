@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../di/injector.dart';
-import 'app_spacing.dart';
-import 'logger.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
 extension MoviContext on BuildContext {
   ThemeData get theme => Theme.of(this);

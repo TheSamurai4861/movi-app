@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-import '../../../../shared/domain/entities/person_summary.dart';
-import 'movie_summary.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 
 class MovieCredit extends Equatable {
   const MovieCredit({

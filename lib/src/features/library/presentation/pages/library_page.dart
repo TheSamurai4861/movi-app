@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/utils/utils.dart';
+import 'package:movi/src/core/utils/utils.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});

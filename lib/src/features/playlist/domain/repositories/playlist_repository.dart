@@ -1,6 +1,6 @@
-import '../entities/playlist.dart';
-import '../../../../shared/domain/value_objects/media_id.dart';
-import '../../../../shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/features/playlist/domain/entities/playlist.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 abstract class PlaylistRepository {
   Future<Playlist> getPlaylist(PlaylistId id);

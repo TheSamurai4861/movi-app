@@ -8,22 +8,22 @@ import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.d
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
 
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/search/presentation/pages/search_page.dart';
-import '../../features/search/presentation/pages/search_results_page.dart';
-import '../../features/search/presentation/models/search_results_args.dart';
-import '../../features/library/presentation/pages/library_page.dart';
-import '../../features/settings/presentation/pages/settings_page.dart';
-import '../../features/movie/presentation/pages/movie_detail_page.dart';
-import '../../features/person/presentation/pages/person_detail_page.dart';
-import '../../features/category_browser/presentation/pages/category_page.dart';
-import '../../features/category_browser/presentation/models/category_args.dart';
-import '../../features/saga/presentation/pages/saga_detail_page.dart';
-import '../../features/tv/presentation/pages/tv_detail_page.dart';
+import 'package:movi/src/features/home/presentation/pages/home_page.dart';
+import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
+import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
+import 'package:movi/src/features/library/presentation/pages/library_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
+import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
+import 'package:movi/src/features/person/presentation/pages/person_detail_page.dart';
+import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
+import 'package:movi/src/features/saga/presentation/pages/saga_detail_page.dart';
+import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
 
-import '../di/injector.dart';
-import '../storage/repositories/iptv_local_repository.dart';
-import '../logging/logging_service.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/logging/logging.dart';
 
 class AppRouteNames {
   static const launch = '/launch';

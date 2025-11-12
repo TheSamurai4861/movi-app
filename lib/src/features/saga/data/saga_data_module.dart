@@ -1,11 +1,11 @@
-import '../../../core/di/injector.dart';
-import '../../../shared/data/services/tmdb_client.dart';
-import '../../../shared/data/services/tmdb_image_resolver.dart';
-import '../domain/repositories/saga_repository.dart';
-import 'datasources/tmdb_saga_remote_data_source.dart';
-import 'datasources/saga_local_data_source.dart';
-import 'repositories/saga_repository_impl.dart';
-import '../../../core/storage/repositories/watchlist_local_repository.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
+import 'package:movi/src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart';
+import 'package:movi/src/features/saga/data/datasources/saga_local_data_source.dart';
+import 'package:movi/src/features/saga/data/repositories/saga_repository_impl.dart';
+import 'package:movi/src/core/storage/storage.dart';
 
 class SagaDataModule {
   static void register() {

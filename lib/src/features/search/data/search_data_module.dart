@@ -1,15 +1,15 @@
-import '../../../core/di/injector.dart';
-import '../../../core/storage/repositories/iptv_local_repository.dart';
-import '../../../shared/data/services/tmdb_image_resolver.dart';
-import '../../../shared/data/services/tmdb_client.dart';
-import '../../../shared/domain/services/similarity_service.dart';
-import '../../../shared/data/services/similarity/hybrid_similarity_service.dart';
-import 'datasources/tmdb_search_remote_data_source.dart';
-import 'datasources/search_history_local_data_source.dart';
-import 'search_repository_impl.dart';
-import '../domain/repositories/search_repository.dart';
-import '../domain/repositories/search_history_repository.dart';
-import 'repositories/search_history_repository_impl.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/domain/services/similarity_service.dart';
+import 'package:movi/src/shared/data/services/similarity/hybrid_similarity_service.dart';
+import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
+import 'package:movi/src/features/search/data/datasources/search_history_local_data_source.dart';
+import 'package:movi/src/features/search/data/search_repository_impl.dart';
+import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
+import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
+import 'package:movi/src/features/search/data/repositories/search_history_repository_impl.dart';
 
 class SearchDataModule {
   static void register() {

@@ -6,12 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import '../../../../core/di/injector.dart';
-import '../../../../core/logging/logging_service.dart';
-import '../../../movie/domain/entities/movie_summary.dart';
-import '../../../tv/domain/entities/tv_show.dart';
-import '../../../../shared/domain/value_objects/content_reference.dart';
-import '../../domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
 
 /// État immutable du Home.
 class HomeState {

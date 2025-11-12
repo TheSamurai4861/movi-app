@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/widgets/movi_pill.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 
 class ContinueWatchingCard extends StatelessWidget {
   const ContinueWatchingCard._({

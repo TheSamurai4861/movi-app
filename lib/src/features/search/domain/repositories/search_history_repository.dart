@@ -1,4 +1,4 @@
-import '../entities/search_history_item.dart';
+import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
 
 abstract class SearchHistoryRepository {
   Future<void> add(String query);

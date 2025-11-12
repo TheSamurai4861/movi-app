@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/category_browser/presentation/models/category_args.dart';
-import '../../core/router/app_router.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
+import 'package:movi/src/core/router/router.dart';
 
 /// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
 /// Affiche un motif 2x2 stylisé et le libellé "Voir tout".

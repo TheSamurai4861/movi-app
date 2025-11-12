@@ -1,8 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 
-import '../../storage/database/sqlite_database.dart';
-import '../../../shared/domain/value_objects/content_reference.dart';
-import '../../../shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/core/storage/database/sqlite_database.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 class PlaylistHeader {
   const PlaylistHeader({

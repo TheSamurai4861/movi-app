@@ -1,8 +1,7 @@
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
+import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
 import 'package:movi/src/features/settings/domain/value_objects/language_code.dart';
-import 'package:movi/src/features/settings/domain/value_objects/metadata_preference.dart';
 
 class UserSettingsLocalDataSource {
   UserSettingsLocalDataSource(this._cache);
@@ -24,7 +23,7 @@ class UserSettingsLocalDataSource {
     if (map == null) return null;
     final fn = FirstName.tryParse((map['firstName'] as String?) ?? '');
     final lc = LanguageCode.tryParse((map['languageCode'] as String?) ?? '');
-    
+
     if (fn == null || lc == null) return null;
     return UserProfile(firstName: fn, languageCode: lc);
   }

@@ -1,12 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 
-import '../../../core/di/injector.dart';
-import '../database/sqlite_database.dart';
-import '../repositories/watchlist_local_repository.dart';
-import '../repositories/content_cache_repository.dart';
-import '../repositories/iptv_local_repository.dart';
-import '../repositories/continue_watching_local_repository.dart';
-import '../repositories/history_local_repository.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/storage/database/sqlite_database.dart';
+import 'package:movi/src/core/storage/storage.dart';
 
 class StorageModule {
   static Future<void> register() async {

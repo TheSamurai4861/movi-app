@@ -1,9 +1,6 @@
-import '../di/injector.dart';
-import 'env/environment.dart';
-import 'models/app_config.dart';
-import 'models/app_metadata.dart';
-import 'models/feature_flags.dart';
-import 'services/secret_store.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
 class AppConfigFactory {
   const AppConfigFactory(this._secretStore);
@@ -16,18 +13,30 @@ class AppConfigFactory {
     AppMetadata? metadataOverride,
   }) async {
     // Préférence au tmdbApiKey fourni par le flavor (compile-time via dart-define).
-    final tmdbKey =
-        flavor.network.tmdbApiKey ?? await _secretStore.read('TMDB_API_KEY');
+    String? tmdbKey = flavor.network.tmdbApiKey;
+    if (tmdbKey == null || tmdbKey.isEmpty) {
+      try {
+        tmdbKey = await _secretStore.read('TMDB_API_KEY');
+      } catch (_) {
+        tmdbKey = null;
+      }
+    }
     final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
     final flags = featureOverrides ?? flavor.defaultFlags;
     final metadata = metadataOverride ?? flavor.metadata;
 
-    return AppConfig(
+    final LoggingConfig logging = _defaultLoggingFor(flavor);
+
+    final config = AppConfig(
       environment: flavor,
       network: network,
       featureFlags: flags,
       metadata: metadata,
+      logging: logging,
     );
+
+    config.ensureValid();
+    return config;
   }
 }
 
@@ -47,6 +56,7 @@ Future<AppConfig> registerConfig({
   );
   _replace<EnvironmentFlavor>(flavor);
   _replace<AppConfig>(config);
+  _replace<FeatureFlags>(config.featureFlags);
   return config;
 }
 
@@ -55,4 +65,40 @@ void _replace<T extends Object>(T instance) {
     sl.unregister<T>();
   }
   sl.registerSingleton<T>(instance);
+}
+
+void registerEnvironmentLoader(EnvironmentLoader loader) {
+  _replace<EnvironmentLoader>(loader);
+}
+
+LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
+  switch (flavor.environment) {
+    case AppEnvironment.dev:
+      return const LoggingConfig(
+        minLevel: LogLevel.debug,
+        enableConsole: true,
+        enableFile: true,
+        samplingByLevel: {LogLevel.debug: 1.0},
+        defaultRateLimitPerMinute: 0,
+        exposeMetrics: true,
+      );
+    case AppEnvironment.staging:
+      return const LoggingConfig(
+        minLevel: LogLevel.info,
+        enableConsole: true,
+        enableFile: true,
+        samplingByLevel: {LogLevel.debug: 0.5},
+        defaultRateLimitPerMinute: 200,
+        exposeMetrics: true,
+      );
+    case AppEnvironment.prod:
+      return const LoggingConfig(
+        minLevel: LogLevel.warn,
+        enableConsole: true,
+        enableFile: true,
+        samplingByLevel: {LogLevel.debug: 0.1},
+        defaultRateLimitPerMinute: 100,
+        exposeMetrics: true,
+      );
+  }
 }

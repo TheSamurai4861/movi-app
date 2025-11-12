@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 
-import '../database/sqlite_database.dart';
-import '../services/cache_policy.dart';
+import 'package:movi/src/core/storage/database/sqlite_database.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
 
 class ContentCacheRepository {
   Future<Database> get _db => LocalDatabase.instance();
