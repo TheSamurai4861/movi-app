@@ -4,12 +4,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:movi/src/features/welcome/presentation/pages/welcome_page.dart';
+import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
 
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/search/presentation/pages/search_page.dart';
+import '../../features/search/presentation/pages/search_results_page.dart';
+import '../../features/search/presentation/models/search_results_args.dart';
 import '../../features/library/presentation/pages/library_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/movie/presentation/pages/movie_detail_page.dart';
@@ -29,6 +31,7 @@ class AppRouteNames {
   static const bootstrap = '/bootstrap';
   static const home = '/';
   static const search = '/search';
+  static const searchResults = '/search_results';
   static const library = '/library';
   static const settings = '/settings';
   static const movie = '/movie';
@@ -53,7 +56,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: AppRouteNames.welcome,
       name: 'welcome',
-      pageBuilder: (context, state) => const MaterialPage(child: WelcomePage()),
+      pageBuilder: (context, state) => const MaterialPage(child: WelcomeUserPage()),
     ),
 
     // --- BOOTSTRAP (splash) ---
@@ -79,6 +82,14 @@ final appRouter = GoRouter(
       path: AppRouteNames.search,
       name: 'search',
       pageBuilder: (context, state) => const MaterialPage(child: SearchPage()),
+    ),
+    GoRoute(
+      path: AppRouteNames.searchResults,
+      name: 'search_results',
+      pageBuilder: (context, state) {
+        final args = state.extra is SearchResultsPageArgs ? state.extra as SearchResultsPageArgs : null;
+        return MaterialPage(child: SearchResultsPage(args: args));
+      },
     ),
     GoRoute(
       path: AppRouteNames.library,

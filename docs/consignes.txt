@@ -1,2 +1,33 @@
-Corrections : 
-- Tu as créer page playlist dans la feature playlist qui doit accueillir une autre feature donc créer une feature spéciale pour cette fonctionnalité : propose implémentation en étapes avec domain et data si nécéssaire.
+Ajouts : 
+
+Refonte page Bienvenue : 
+- Inscription en 2 étapes :
+    - 1. Page user : inputs pour prénom utilisateur, préférences langue app & métadonnées via dropdown 
+        - se souvenir de ces inputs en db avec titre Bienvenue ! et une courte phrase description pour inciter à remplir champs (mise en page similaire page ajout source)
+    - 2. Page ajout d'une source comme elle l'est déjà faite
+
+Ajout page recherche : 
+- fonctionnalités : 
+    - recherche parmi films et séries
+    - historique de recherche lié user
+- ui : 
+    - 0 top 20 left titre 24px semibold "Recherche"
+    - 16 px en dessous input text recherche, placeholder "Tapez votre recherche", icon en trailing assets/icon/search.png en 25 * 25 et à la fin si texte tapé bouton suppression texte suppression.png dans assets/icons 25*25
+    - 32 px en dessous, si pas encore recherché : 
+        - titre moyen medium 20 px "Historique"
+        - liste verticale largeur écran - 40 px : 
+            - element 1er : row 55px haut espace between aligné centre verticalement largeur max avec titre film/série historique le plus récent regular 16px, bouton suppression historique suppression.png dans assets/icons 25*25 qui supprime élément historique et recharge liste historique. 
+            - element 2 : comme élément 1 avec border en haut 1px 737373
+    - sinon si résultats : 
+        - 16px en dessous : movi items list avec titre Films et titre secondaire (X résultats) puis résultats triés du plus ressemblant au moins ressemblant
+        - 16px en dessous : idem série
+    - sinon si pas résultats alors : 
+        Texte centré écran 20px medium "Pas de résultats"
+
+Comportement recherche : 
+- recherche auto après 1s sans Tap
+- min 3 lettres
+- possibilité rechercher par tmdb avec txxxxxxx
+
+
+

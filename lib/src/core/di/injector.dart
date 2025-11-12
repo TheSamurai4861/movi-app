@@ -19,6 +19,7 @@ import '../../features/playlist/data/playlist_data_module.dart';
 import '../../features/home/data/home_feed_data_module.dart';
 import '../../features/library/data/library_data_module.dart';
 import '../../features/category_browser/data/category_browser_data_module.dart';
+import '../../features/settings/data/settings_data_module.dart';
 import '../storage/services/storage_module.dart';
 import '../utils/logger.dart';
 
@@ -94,6 +95,7 @@ void _registerTmdb() {
   HomeFeedDataModule.register();
   LibraryDataModule.register();
   CategoryBrowserDataModule.register();
+  SettingsDataModule.register();
 }
 
 void _registerState() {

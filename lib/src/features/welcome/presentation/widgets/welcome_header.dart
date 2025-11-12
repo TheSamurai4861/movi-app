@@ -3,7 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/app_assets.dart'; // <-- importe tes assets
 
 class WelcomeHeader extends StatelessWidget {
-  const WelcomeHeader({super.key});
+  const WelcomeHeader({
+    super.key,
+    this.title = 'Bienvenue !',
+    this.subtitle = 'Ajouter votre première source',
+  });
+
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -23,13 +30,13 @@ class WelcomeHeader extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text('Bienvenue !', style: t.headlineSmall, textAlign: TextAlign.center),
+          child: Text(title, style: t.headlineSmall, textAlign: TextAlign.center),
         ),
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Text(
-            'Ajouter votre première source',
+            subtitle,
             style: t.bodyLarge,
             textAlign: TextAlign.center,
           ),

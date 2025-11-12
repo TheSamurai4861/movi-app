@@ -1,97 +1,123 @@
-Plan d’implémentation — Feature dédiée pour la page Playlist
+Plan d’implémentation — Refonte Bienvenue & Page Recherche (aligné Clean Architecture)
 
-Objectif
-- Extraire la logique d’affichage et de récupération des éléments d’une playlist (catégorie) hors de la feature `playlist`, en créant une feature dédiée, réutilisable et conforme à la Clean Architecture.
-- La page `PlaylistDetailPage` devient un hôte (shell) qui consomme la nouvelle feature de navigation/affichage des contenus d’une catégorie.
+Préambule (règles projet)
+- Couches séparées (domain/data/presentation) et dépendances uniquement vers le bas.
+- Contrats `Repository` en domain, implémentations en data. Parsing/DataSource dans data.
+- Erreurs typées (Failure/Result), DI via injector, null-safety stricte.
+- UI sobre, pas de préchargement massif, pagination/streaming si nécessaire.
 
-Nom de la feature
-- `category_browser` (navigation et affichage des contenus d’une catégorie/playlist)
+1) Refonte page Bienvenue (Inscription en 2 étapes)
+- Objectif: recueillir profil utilisateur (prénom, langue, métadonnées) puis guider vers l’ajout de source IPTV.
 
-Architecture (Clean)
-- domain
-  - Entities: `Category`, `CategoryItem` (id, title, poster, type, year?, rating?)
-  - Value objects: `CategoryKey`, `Title`
-  - Repository contracts: `CategoryRepository` (obtenir liste par `CategoryKey`, pagination, recherche facultative)
-  - Use cases: `GetCategoryItems`, `PaginateCategoryItems`, `ObserveCategoryItems` (si streaming)
-  - Erreurs typées: `CategoryFailure` (network, parse, empty, unknown)
-- data
-  - Data sources: `CategoryRemoteDataSource` (client HTTP/IPTV), `CategoryCacheDataSource` (cache mémoire optionnel)
-  - DTOs + Mapper: `CategoryItemDto` → `CategoryItem`, parse centralisé
-  - Implémentations: `CategoryRepositoryImpl` (map exceptions → failures, timeouts/retry configurables)
-  - Config: endpoints, timeouts, headers via DI
-- presentation
-  - State: `CategoryState` (loading, data, error, page, hasMore)
-  - Controller: `CategoryController` (Riverpod Notifier), orchestre use cases
-  - Widgets: `CategoryGrid`, `CategoryHeader`, `CategoryErrorView`
-  - Provider: `categoryControllerProvider(CategoryKey)` (family)
+1.1 Domain
+- Entity: `UserProfile { firstName, languageCode, metadataPrefs }`.
+- Value objects: `FirstName`, `LanguageCode`, `MetadataPreference` (validation/coercion).
+- Repository contract: `UserSettingsRepository { Future<void> save(UserProfile), Future<UserProfile?> load() }`.
+- Use cases: `SaveUserProfile`, `LoadUserProfile` (retours typés `Result<void, Failure>` et `Result<UserProfile?, Failure>`).
 
-Arborescence de fichiers
-- `lib/src/features/category_browser/`
-  - `domain/`
-    - `entities/category.dart`
-    - `entities/category_item.dart`
-    - `repositories/category_repository.dart`
-    - `usecases/get_category_items.dart`
-    - `usecases/paginate_category_items.dart`
-    - `failures/category_failure.dart`
-  - `data/`
-    - `datasources/category_remote_data_source.dart`
-    - `datasources/category_cache_data_source.dart`
-    - `dtos/category_item_dto.dart`
-    - `mappers/category_item_mapper.dart`
-    - `repositories/category_repository_impl.dart`
-  - `presentation/`
-    - `controllers/category_controller.dart`
-    - `providers/category_providers.dart`
-    - `widgets/category_grid.dart`
-    - `widgets/category_header.dart`
+1.2 Data
+- DataSource local: `UserSettingsLocalDataSource` (stockage clé-valeur; sérialisation VO). Pas de JSON en domain.
+- Impl: `UserSettingsRepositoryImpl(dataSource)` avec mapping exceptions → `Failure` (storage).
+- DI: enregistrer `UserSettingsLocalDataSource` et `UserSettingsRepositoryImpl` dans `injector.dart`.
 
-Étapes d’implémentation
-1) Domain
-   - Créer `CategoryItem` et `CategoryKey` (immutables, null-safety stricte).
-   - Définir `CategoryRepository` (contrats: `Future<Result<List<CategoryItem>, CategoryFailure>> getItems(CategoryKey, {page, pageSize})`).
-   - Ajouter use cases `GetCategoryItems`, `PaginateCategoryItems` (appellent le repo, renvoient `Result`).
+1.3 Presentation — Étape 1: Page user
+- UI: titre “Bienvenue !” + description courte (mise en page similaire “ajout source”).
+- Champs: input prénom, dropdown langue app, dropdown métadonnées.
+- Règles UI: espacement cohérent (ex: 20px latéraux), validations VO inline.
+- Actions: bouton “Continuer” → appelle `SaveUserProfile` puis navigation Étape 2.
 
-2) Data
-   - Ajouter `CategoryItemDto` et `CategoryItemMapper`.
-   - Implémenter `CategoryRemoteDataSource` (HTTP client injecté via DI, timeouts/retry paramétrables, pas de retry infini).
-   - Implémenter `CategoryRepositoryImpl` (map DTO → domain, map exceptions → `CategoryFailure`).
-   - Optionnel: `CategoryCacheDataSource` (mémoire, TTL court) pour UX.
+1.4 Presentation — Étape 2: Page ajout source
+- Réutiliser la page existante d’ajout de source (IPTV connect); route `iptv_connect`.
+- Pré-remplir si des infos contextuelles existent; sinon flux classique.
 
-3) Presentation
-   - Créer `CategoryState` (data, loading, error, page, hasMore).
-   - Créer `CategoryController` (Riverpod Notifier) utilisant les use cases; expose `fetchFirstPage()`, `fetchNextPage()`.
-   - Créer `categoryControllerProvider = NotifierProvider.family` (clé de catégorie en paramètre).
-   - Créer `CategoryGrid` (2 colonnes, centrée, lazy) et `CategoryHeader` (titre + bouton retour aux positions spécifiées).
+1.5 États/Providers
+- `UserSettingsController` (StateNotifier) avec `UserSettingsState { profile, isSaving, error }`.
+- Providers Riverpod: `userSettingsRepositoryProvider`, `userSettingsControllerProvider`.
 
-4) Intégration dans PlaylistDetailPage
-   - Remplacer l’accès aux providers de home par `categoryControllerProvider(args.categoryKey)`.
-   - Injecter les dépendances via DI (client HTTP, repo) au niveau de l’app.
-   - Conserver le layout (bouton retour à 55px/20px, grille centrée 2 colonnes, gap 24px vertical).
+1.6 Qualité & sécurité
+- Logs sobres (info au save, error sur storage). Pas de payload sensible en clair.
+- Defaults sûrs: si `load()` renvoie null, afficher champs vides mais sûrs.
 
-5) DI & config
-   - Enregistrer `CategoryRepositoryImpl` et `CategoryRemoteDataSource` dans le container (Riverpod providers).
-   - Centraliser base URL/IPTV endpoints et timeouts dans un `CoreConfig`.
+1.7 Étapes de livraison
+- Créer contrats domain + VO + use cases.
+- Implémenter data source local + repository impl + DI.
+- Construire pages UI Étape 1 et 2 + providers + navigation.
+- Test manuel: cycle save/load, reprise app (profil rechargé), puis connexion source.
 
-6) Tests (sur demande uniquement)
-   - Mapper: DTO → Model
-   - Repository: succès/échecs (network, parse)
-   - Controller: pagination et états
+2) Page Recherche (films & séries + historique lié user)
+- Objectif: rechercher films/séries, auto-search après 1s d’inactivité, min 3 lettres, prise en charge `tmdb` direct via `txxxxxxx`, historique persistant.
 
-Règles appliquées (qualité)
-- Clean Architecture stricte: contrats `Repository` dans domain, implémentations dans data.
-- Parsing uniquement en data, types stables en sortie.
-- Gestion d’erreurs typée (Result/Failure), pas d’exceptions qui remontent en UI.
-- DI obligatoire (client HTTP, config, repo), pas d’instances globales cachées.
-- Null-safety, immutabilité par défaut, lints respectés.
-- Logs sobres, pas de payloads sensibles.
+2.1 Domain
+- Value object: `SearchQuery` (min 3 lettres, detection `tmdbPattern = /^t\d{7,}$/` → mode ID direct).
+- Entities existantes: `MovieSummary`, `TvShowSummary` (réutiliser types stables de l’app).
+- Repositories contracts:
+  - `SearchRepository { searchMovies(SearchQuery), searchShows(SearchQuery) }`.
+  - `SearchHistoryRepository { add(query), list(), remove(item) }`.
+- Use cases: `SearchMovies`, `SearchShows`, `AddSearchQueryToHistory`, `ListSearchHistory`, `RemoveSearchHistoryItem`.
 
-Livrables attendus
-- Dossiers et fichiers listés ci-dessus avec implémentations minimales.
-- `PlaylistDetailPage` refactorisée pour consommer `category_browser`.
-- Providers DI et config initiale.
+2.2 Data
+- Impl existante: `SearchRepositoryImpl` (ajuster pour reconnaître `SearchQuery.mode` = text vs `tmdbId`).
+- Filtrage disponible: conserver filtre `availableTmdbIds` (via `IptvLocalRepository`).
+- DataSource histoire: `SearchHistoryLocalDataSource` (liste ordonnée par récent, persistance clé-valeur). Impl `SearchHistoryRepositoryImpl` (mapping exceptions → Failure).
+- DI: enregistrer `SearchHistoryLocalDataSource` + `SearchHistoryRepositoryImpl`.
 
-Options d’évolution
-- Ajout de recherche dans la catégorie (`SearchCategoryItems` use case).
-- Pagination infinie ou bouton “Voir plus” selon UX finale.
-- Cache disqué (Hive) si nécessaire.
+2.3 Presentation — UI layout
+- Header: haut gauche, titre 24px semibold “Recherche” (padding top 0, left 20).
+- 16px en dessous: input texte placeholder “Tapez votre recherche”.
+  - Trailing: `assets/icons/search.png` 25×25.
+  - Si texte présent: bouton suppression `assets/icons/suppression.png` 25×25 en fin.
+- 32px en dessous:
+  - Si aucune recherche encore: section “Historique” (titre medium 20px) + liste verticale largeur `screen - 40px`.
+    - Item: row 55px, align center, space-between: titre (regular 16px) + bouton suppression (icon 25×25). Supprime et recharge liste.
+  - Sinon si résultats: deux sections MoviItemsList
+    - “Films” + sous-titre “(X résultats)” → résultats triés par pertinence.
+    - “Séries” + sous-titre “(Y résultats)”.
+  - Sinon: texte centré 20px medium “Pas de résultats”.
+
+2.4 Comportement & contrôleurs
+- Déclenchement: auto recherche après 1s sans saisie (debounce). Min 3 lettres.
+- Mode `tmdb`: si `SearchQuery.isTmdbId`, bypass texte, requête directe par ID.
+- Historique: ajouter la requête au succès, afficher liste au repos. Suppression rafraîchit provider.
+- Providers Riverpod:
+  - `searchControllerProvider` (state: { query, movies, shows, isLoading, error }).
+  - `searchHistoryControllerProvider` (state: { items, isLoading }).
+
+2.5 Qualité & perfs
+- Débounce 1s, pas de spam réseau; pagination optionnelle si API la supporte.
+- Logs: `debug/info/error` sans données sensibles.
+- Pas de préchargement massif d’images; réutiliser `MoviItemsList`.
+
+2.6 Étapes de livraison
+- Domain: créer `SearchQuery` + contrats `SearchHistoryRepository` + use cases.
+- Data: impl data source local + repository impl + DI.
+- UI: construire `SearchPage` selon layout; brancher providers; intégrer suppression de l’historique.
+- Validation manuelle: auto-search, min 3 lettres, mode tmdb, historique (add/list/remove), affichages Films/Séries.
+
+2.7 Voir tout (films/séries) + limite 10 sur Recherche
+- Affichage Recherche: limiter l’affichage à 10 éléments par section (Films/Séries) tout en conservant la liste complète en mémoire.
+- Bouton “Voir tout”: ajouté sur le header de chaque section, style cohérent avec Home (libellé, taille, espacement).
+- Navigation “Voir tout”: vers une page dédiée `SearchResultsPage` qui reçoit `SearchResultsPageArgs { query, type }` où `type ∈ { movies, shows }`.
+- SearchResultsPage: affiche l’intégralité des résultats pour le type sélectionné (pas de limite), réutilise les composants liste/grille existants.
+- Providers: `searchResultsControllerProvider` (state: { query, type, items, isLoading, error }) qui consomme les use cases `SearchMovies`/`SearchShows`.
+- Routage: ajouter `AppRouteNames.searchResults` et route `/search_results` dans `app_router.dart`.
+- Non-usage de CategoryBrowser: ne pas pointer vers une catégorie (tout films/tout séries) car “Voir tout” doit conserver la pertinence de la requête et respecter la séparation des responsabilités.
+- Étapes:
+  1) Mettre à jour `SearchController` pour exposer `moviesTop10`/`showsTop10` et conserver `moviesAll`/`showsAll`.
+  2) Ajouter le bouton “Voir tout” sur les headers Films/Séries de `SearchPage`.
+  3) Créer `SearchResultsPage` + `SearchResultsPageArgs` + provider dédié.
+  4) Ajouter la route et le nom de route dans le router.
+  5) Vérifier navigation depuis Recherche → Voir tout (Films) et → Voir tout (Séries) avec la query courante.
+
+3) DI & Infrastructure
+- Mettre à jour `injector.dart` pour enregistrer `UserSettingsRepositoryImpl` et `SearchHistoryRepositoryImpl`.
+- Paramétrage timeouts/retry réseau côté data (où applicable); pas de retry infini.
+- Assurer null-safety et valeurs par défaut sûres dans tous les états UI.
+
+4) Journalisation & erreurs
+- Centraliser mapping exceptions → `Failure` (storage, network, parse).
+- Sur UI: afficher messages sobres (“Échec du chargement”, “Pas de résultats”), sans exposer payload sensibles.
+
+5) Checklist livraison
+- Code formaté (`dart format`), lints OK (`flutter_lints`).
+- Navigation: Bienvenue Étape1 → Étape2 (ajout source), Search route accessible.
+- Test manuel des cas: pas de résultats, résultats nombreux, suppression historique, reprise app (profil chargé).

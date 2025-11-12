@@ -16,6 +16,7 @@ class MoviItemsList extends StatefulWidget {
     required this.title,
     required this.items,
     this.subtitle,
+    this.action,
     this.itemSpacing = 16,
     this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
     this.titlePadding = 20,
@@ -30,6 +31,8 @@ class MoviItemsList extends StatefulWidget {
   final String title;
   final String? subtitle;
   final List<Widget> items;
+  /// Action optionnelle à droite du header (ex: bouton "Voir tout").
+  final Widget? action;
 
   /// Espacement entre cartes.
   final double itemSpacing;
@@ -231,6 +234,8 @@ class _MoviItemsListState extends State<MoviItemsList> {
                         color: Color(0xFFA6A6A6),
                       ),
                 ),
+              if (widget.action != null) const SizedBox(width: 8),
+              if (widget.action != null) widget.action!,
             ],
           ),
         ),

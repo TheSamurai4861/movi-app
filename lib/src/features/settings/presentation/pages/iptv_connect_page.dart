@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/utils/app_spacing.dart';
+import '../../../welcome/presentation/widgets/labeled_field.dart';
+import '../../../welcome/presentation/widgets/welcome_header.dart';
+import '../../../../core/widgets/movi_primary_button.dart';
 import '../providers/iptv_connect_providers.dart';
 
 class IptvConnectPage extends ConsumerStatefulWidget {
@@ -52,92 +55,104 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(iptvConnectControllerProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Connexion IPTV')),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            Text(
-              'Renseigne ton abonnement Xtream',
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Form(
-              key: _formKey,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  TextFormField(
-                    controller: _serverCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'URL du serveur',
-                      hintText: 'http(s)://host[:port]/player_api.php',
-                    ),
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Requis';
-                      // suffisant : l’endpoint parser gèrera le reste
-                      return null;
-                    },
-                    keyboardType: TextInputType.url,
-                    autofillHints: const [AutofillHints.url],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _userCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Nom d’utilisateur',
-                    ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Requis' : null,
-                    autofillHints: const [AutofillHints.username],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _passCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Mot de passe',
-                    ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Requis' : null,
-                    obscureText: true,
-                    autofillHints: const [AutofillHints.password],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextFormField(
-                    controller: _aliasCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Alias (facultatif)',
-                      hintText: 'Ex: Mon IPTV',
-                    ),
+                  const WelcomeHeader(
+                    title: 'Bienvenue !',
+                    subtitle: 'Ajoute une source IPTV pour personnaliser Movi.',
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: state.isLoading ? null : _submit,
-                      child: state.isLoading
-                          ? const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 6),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Se connecter'),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LabeledField(
+                          label: 'URL du serveur Xtream',
+                          child: TextFormField(
+                            controller: _serverCtrl,
+                            decoration: const InputDecoration(
+                              hintText: 'http(s)://host[:port]/player_api.php',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Requis';
+                              return null;
+                            },
+                            keyboardType: TextInputType.url,
+                            autofillHints: const [AutofillHints.url],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        LabeledField(
+                          label: 'Nom d’utilisateur Xtream',
+                          child: TextFormField(
+                            controller: _userCtrl,
+                            decoration: const InputDecoration(
+                              hintText: 'Nom d’utilisateur Xtream',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+                            autofillHints: const [AutofillHints.username],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        LabeledField(
+                          label: 'Mot de passe Xtream',
+                          child: TextFormField(
+                            controller: _passCtrl,
+                            decoration: const InputDecoration(
+                              hintText: 'Mot de passe Xtream',
+                              border: OutlineInputBorder(),
+                            ),
+                            validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+                            obscureText: true,
+                            autofillHints: const [AutofillHints.password],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        LabeledField(
+                          label: 'Alias (facultatif)',
+                          child: TextFormField(
+                            controller: _aliasCtrl,
+                            decoration: const InputDecoration(
+                              hintText: 'Ex: Mon IPTV',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: MoviPrimaryButton(
+                              label: 'Se connecter',
+                              onPressed: state.isLoading ? null : _submit,
+                              loading: state.isLoading,
+                            ),
+                          ),
+                        ),
+                        if (state.error != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(state.error!, style: const TextStyle(color: Colors.red)),
+                        ],
+                      ],
                     ),
                   ),
-                  if (state.error != null) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      state.error!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

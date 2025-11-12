@@ -1,20 +1,15 @@
-import 'package:equatable/equatable.dart';
+import '../value_objects/first_name.dart';
+import '../value_objects/language_code.dart';
+import '../value_objects/metadata_preference.dart';
 
-class UserProfile extends Equatable {
+class UserProfile {
   const UserProfile({
-    required this.id,
-    required this.name,
-    this.email,
-    this.avatar,
-    this.subscriptionPlan,
+    required this.firstName,
+    required this.languageCode,
+    required this.metadataPreference,
   });
 
-  final String id;
-  final String name;
-  final String? email;
-  final Uri? avatar;
-  final String? subscriptionPlan;
-
-  @override
-  List<Object?> get props => [id, name, email, avatar, subscriptionPlan];
+  final FirstName firstName;
+  final LanguageCode languageCode;
+  final MetadataPreference metadataPreference;
 }

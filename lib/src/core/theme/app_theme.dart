@@ -24,12 +24,20 @@ class AppTheme {
     final surfaceContainer =
         isDark ? AppColors.darkSurfaceVariant : AppColors.lightSurfaceVariant;
 
+    // Tente d’utiliser Montserrat via Google Fonts, sinon fallback système.
+    String? montserratFamily;
+    try {
+      montserratFamily = GoogleFonts.montserrat().fontFamily;
+    } catch (_) {
+      montserratFamily = null; // fallback sur police système
+    }
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: backgroundColor,
-      fontFamily: GoogleFonts.montserrat().fontFamily,
+      fontFamily: montserratFamily,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: backgroundColor,
@@ -188,20 +196,26 @@ class AppTheme {
   }
 
   static TextTheme _buildTextTheme(bool isDark) {
-    final base = GoogleFonts.montserratTextTheme();
+    // Essaye d’utiliser le TextTheme Montserrat; fallback sur theme par défaut.
+    TextTheme base;
+    try {
+      base = GoogleFonts.montserratTextTheme();
+    } catch (_) {
+      base = (isDark ? Typography.whiteMountainView : Typography.blackMountainView).copyWith();
+    }
     final primary = isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary;
     final secondary =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-    TextStyle headline(double size) => GoogleFonts.montserrat(
+    
+    // Construit les styles avec fallback si GoogleFonts indisponible
+    TextStyle headline(double size) => (base.titleLarge ?? const TextStyle()).copyWith(
           fontSize: size,
           fontWeight: FontWeight.w600,
           color: primary,
           height: 1.2,
         );
 
-    TextStyle body(double size, FontWeight weight, Color color) =>
-        GoogleFonts.montserrat(
+    TextStyle body(double size, FontWeight weight, Color color) => (base.bodyMedium ?? const TextStyle()).copyWith(
           fontSize: size,
           fontWeight: weight,
           color: color,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'labeled_field.dart';
 
 import '../providers/welcome_providers.dart';
 import '../../../../core/iptv/domain/value_objects/xtream_endpoint.dart';
@@ -139,24 +140,14 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     final isLoading = widget.isLoading ?? connectState.isLoading;
 
     final t = Theme.of(context).textTheme;
-    final c = Theme.of(context).colorScheme;
 
     return Form(
       key: _formKey,
       child: Column(
         children: [
           // URL
-          _LabeledField(
+          LabeledField(
             label: 'URL du serveur',
-            footer: ui.endpointPreview != null
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Endpoint détecté : ${ui.endpointPreview}',
-                      style: t.bodyMedium?.copyWith(color: c.onSurfaceVariant),
-                    ),
-                  )
-                : null,
             child: TextFormField(
               controller: _urlCtrl,
               focusNode: _focusUrl,
@@ -176,7 +167,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
           const SizedBox(height: AppSpacing.md),
 
           // Username
-          _LabeledField(
+          LabeledField(
             label: 'Nom d’utilisateur',
             child: TextFormField(
               controller: _userCtrl,
@@ -193,7 +184,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
           const SizedBox(height: AppSpacing.md),
 
           // Password
-          _LabeledField(
+          LabeledField(
             label: 'Mot de passe',
             child: TextFormField(
               controller: _passCtrl,
@@ -253,27 +244,4 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
   }
 }
 
-class _LabeledField extends StatelessWidget {
-  const _LabeledField({required this.label, required this.child, this.footer});
-
-  final String label;
-  final Widget child;
-  final Widget? footer;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: t.labelLarge),
-          const SizedBox(height: AppSpacing.xs),
-          child,
-          if (footer != null) footer!,
-        ],
-      ),
-    );
-  }
-}
+// LabeledField déplacé dans labeled_field.dart pour réutilisation

@@ -14,6 +14,7 @@ import '../../../../core/widgets/movi_items_list.dart';
 import '../../../../core/widgets/movi_media_card.dart';
 import '../../../../core/widgets/movi_see_all_card.dart';
 import '../../../../core/models/movi_media.dart';
+import '../../../search/presentation/pages/search_page.dart';
 import '../widgets/home_hero_section.dart';
 import '../widgets/home_hero_carousel.dart';
 import '../widgets/continue_watching_card.dart';
@@ -46,7 +47,7 @@ class _HomePageState extends State<HomePage> {
 
     final pages = <Widget>[
       const _HomeContent(),
-      _NavPlaceholder(title: 'Recherche', bottomPadding: bottomPadding),
+      const SearchPage(),
       _NavPlaceholder(title: 'Bibliothèque', bottomPadding: bottomPadding),
       _NavPlaceholder(title: 'Paramètres', bottomPadding: bottomPadding),
     ];
