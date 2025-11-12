@@ -123,11 +123,11 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
     // - Backdrop: conserver w780 (compromis qualité/poids pour fond plein écran)
     final posterUri = _images.poster(
       posterNoLangPath,
-      size: 'w342',
+      size: 'original',
     );
     final backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
-      size: 'w780',
+      size: 'original',
     );
     final logoUri = _images.logo(logoPath);
 
