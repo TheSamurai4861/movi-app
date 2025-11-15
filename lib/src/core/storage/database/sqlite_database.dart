@@ -29,18 +29,23 @@ class LocalDatabase {
     }
 
     final dir = await getApplicationDocumentsDirectory();
+
     // S’assure que le dossier existe (surtout côté desktop portable).
     try {
       await Directory(dir.path).create(recursive: true);
     } catch (_) {}
+
     final path = p.join(dir.path, 'movi.db');
 
     _instance = await openDatabase(
       path,
       version: 7,
       onConfigure: (db) async {
+        // Toujours activer les foreign keys.
         await db.execute('PRAGMA foreign_keys = ON;');
-        await db.execute('PRAGMA journal_mode = WAL;');
+
+        // WAL = optimisation, jamais bloquante.
+        await _tryEnableWal(db);
       },
       onCreate: (db, version) async {
         // --- Tables de base ---
@@ -269,5 +274,29 @@ class LocalDatabase {
     if (_instance == null) return;
     await _instance!.close();
     _instance = null;
+  }
+
+  /// Active WAL en "best effort" : jamais bloquant, surtout sur iOS où
+  /// `PRAGMA journal_mode = WAL` peut lever une DatabaseException.
+  static Future<void> _tryEnableWal(Database db) async {
+    // Pas de WAL sur iOS : source de DatabaseException "not an error".
+    if (Platform.isIOS) {
+      debugPrint('[DB] Skipping PRAGMA journal_mode = WAL on iOS');
+      return;
+    }
+
+    try {
+      final result = await db.rawQuery('PRAGMA journal_mode = WAL;');
+      debugPrint('[DB] WAL journal_mode result: $result');
+    } on DatabaseException catch (e) {
+      debugPrint(
+        '[DB] Failed to enable WAL, continuing without WAL: $e',
+      );
+      // On n'échoue pas l'init : WAL est une optimisation seulement.
+    } catch (e) {
+      debugPrint(
+        '[DB] Unexpected error while enabling WAL, continuing: $e',
+      );
+    }
   }
 }
