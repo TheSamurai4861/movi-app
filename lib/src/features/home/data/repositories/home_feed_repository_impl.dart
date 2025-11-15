@@ -2,12 +2,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-import 'package:movi/src/features/iptv/iptv.dart';
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/core/storage/storage.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -24,7 +24,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   HomeFeedRepositoryImpl(
     this._moviesRemote,
     this._tvRemote,
-    this._iptvLocal,
+    this._catalogReader,
     this._movieRepository,
     this._tvRepository,
     this._images,
@@ -34,7 +34,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
   final TmdbMovieRemoteDataSource _moviesRemote;
   final TmdbTvRemoteDataSource _tvRemote;
-  final IptvLocalRepository _iptvLocal;
+  final IptvCatalogReader _catalogReader;
   final MovieRepository _movieRepository;
   final TvRepository _tvRepository;
   final TmdbImageResolver _images;
@@ -78,9 +78,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         return _takeFirst(mappedTrend, _heroLimit);
       }
 
-      final firstVod = await _pickFirstVodStream();
+      final firstVod = await _pickFirstVodRef();
       if (firstVod != null) {
-        final MovieSummary? synthetic = _fromPlaylistItemToMovieSummary(
+        final MovieSummary? synthetic = _fromContentReferenceToMovieSummary(
           firstVod,
         );
         if (synthetic != null) return <MovieSummary>[synthetic];
@@ -108,50 +108,10 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
   @override
   Future<Map<String, List<ContentReference>>> getIptvCategoryLists() async {
-    final Map<String, List<ContentReference>> result =
-        <String, List<ContentReference>>{};
     _enrichedIds.clear();
-
-    final accounts = await _safeGetAccounts();
-    if (accounts.isEmpty) return result;
-
-    for (final acc in accounts) {
-      if (_appState.activeIptvSourceIds.isNotEmpty &&
-          !_appState.activeIptvSourceIds.contains(acc.id)) {
-        continue;
-      }
-
-      final playlists = await _safeGetPlaylists(acc.id);
-      for (final pl in playlists) {
-        final key = '${acc.alias}/${_cleanCategoryTitle(pl.title)}';
-        final items = <ContentReference>[];
-
-        for (final it in pl.items) {
-          final String refId = (it.tmdbId != null && it.tmdbId! > 0)
-              ? it.tmdbId!.toString()
-              : 'xtream:${it.streamId}';
-
-          items.add(
-            ContentReference(
-              id: refId,
-              title: MediaTitle(it.title),
-              type: it.type == XtreamPlaylistItemType.series
-                  ? ContentType.series
-                  : ContentType.movie,
-              poster: _safePosterUri(it.posterUrl),
-              year: it.releaseYear,
-              rating: it.rating,
-            ),
-          );
-        }
-
-        if (items.isNotEmpty) {
-          result[key] = items;
-        }
-      }
-    }
-
-    return result;
+    return _catalogReader.listCategoryLists(
+      activeSourceIds: _appState.activeIptvSourceIds,
+    );
   }
 
   @override
@@ -274,22 +234,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   Future<Set<int>> _collectAvailableTmdbIds() async {
-    try {
-      return await _iptvLocal.getAvailableTmdbIds();
-    } catch (_) {
-      final accs = await _safeGetAccounts();
-      final set = <int>{};
-      for (final acc in accs) {
-        final pls = await _safeGetPlaylists(acc.id);
-        for (final pl in pls) {
-          for (final it in pl.items) {
-            final id = it.tmdbId;
-            if (id != null) set.add(id);
-          }
-        }
-      }
-      return set;
+    final refs = await _catalogReader.searchCatalog('');
+    final set = <int>{};
+    for (final r in refs) {
+      final id = int.tryParse(r.id);
+      if (id != null) set.add(id);
     }
+    return set;
   }
 
   Future<List<_MovieLiteDto>> _fetchTrendingMoviesPage(int page) async {
@@ -354,77 +305,29 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     return list.sublist(0, n);
   }
 
-  Future<XtreamPlaylistItem?> _pickFirstVodStream() async {
-    final accs = await _safeGetAccounts();
-    for (final acc in accs) {
-      final pls = await _safeGetPlaylists(acc.id);
-      final ordered = <XtreamPlaylist>[
-        ...pls.where((p) => p.type == XtreamPlaylistType.movies),
-        ...pls.where((p) => p.type == XtreamPlaylistType.series),
-      ];
-      for (final pl in ordered) {
-        if (pl.items.isNotEmpty) return pl.items.first;
-      }
+  Future<ContentReference?> _pickFirstVodRef() async {
+    final refs = await _catalogReader.searchCatalog('');
+    for (final r in refs) {
+      if (r.type == ContentType.movie && r.poster != null) return r;
     }
     return null;
   }
 
-  MovieSummary? _fromPlaylistItemToMovieSummary(XtreamPlaylistItem item) {
-    final Uri? poster = _safePosterUri(item.posterUrl);
+  MovieSummary? _fromContentReferenceToMovieSummary(ContentReference ref) {
+    final Uri? poster = ref.poster;
     if (poster == null) return null;
+    final tmdbId = int.tryParse(ref.id);
     return MovieSummary(
-      id: MovieId((item.tmdbId ?? item.streamId).toString()),
-      tmdbId: item.tmdbId,
-      title: MediaTitle(item.title),
+      id: MovieId(ref.id),
+      tmdbId: tmdbId,
+      title: MediaTitle(ref.title.value),
       poster: poster,
       backdrop: poster,
-      releaseYear: item.releaseYear,
+      releaseYear: ref.year,
     );
   }
 
-  Future<List<XtreamAccountLite>> _safeGetAccounts() async {
-    try {
-      final accounts = await _iptvLocal.getAccounts();
-      return accounts
-          .map((a) => XtreamAccountLite(id: a.id, alias: a.alias))
-          .toList(growable: false);
-    } catch (e, st) {
-      assert(() {
-        debugPrint('[HomeFeedRepositoryImpl] getAccounts error: $e\n$st');
-        return true;
-      }());
-      return const <XtreamAccountLite>[];
-    }
-  }
-
-  Future<List<XtreamPlaylist>> _safeGetPlaylists(String accountId) async {
-    try {
-      return await _iptvLocal.getPlaylists(accountId);
-    } catch (e, st) {
-      assert(() {
-        debugPrint('[HomeFeedRepositoryImpl] getPlaylists error: $e\n$st');
-        return true;
-      }());
-      return const <XtreamPlaylist>[];
-    }
-  }
-
-  Uri? _safePosterUri(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-    final u = Uri.tryParse(raw);
-    if (u == null) return null;
-    final sch = u.scheme.toLowerCase();
-    if (sch != 'http' && sch != 'https') return null;
-    return u;
-  }
-
-  String _cleanCategoryTitle(String raw) {
-    final idx = raw.indexOf('/');
-    if (idx >= 0 && idx < raw.length - 1) {
-      return raw.substring(idx + 1);
-    }
-    return raw;
-  }
+  
 
   int? _parseYear(String? raw) {
     if (raw == null || raw.isEmpty || raw.length < 4) return null;
@@ -493,10 +396,4 @@ class _MovieLiteDto {
     }
     return null;
   }
-}
-
-class XtreamAccountLite {
-  const XtreamAccountLite({required this.id, required this.alias});
-  final String id;
-  final String alias;
 }

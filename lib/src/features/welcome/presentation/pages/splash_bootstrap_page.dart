@@ -22,8 +22,12 @@ class _SplashBootstrapPageState extends ConsumerState<SplashBootstrapPage> {
   @override
   void initState() {
     super.initState();
-    // Démarre la préparation au montage.
-    ref.read(bootstrapControllerProvider.notifier).start();
+    // Démarre la préparation en post-frame pour éviter la modification
+    // d'un provider pendant la construction du widget tree.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(bootstrapControllerProvider.notifier).start();
+    });
     unawaited(LoggingService.log('Bootstrap: start initiated'));
   }
 

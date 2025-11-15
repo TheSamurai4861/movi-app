@@ -1,17 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart'
-    show StateNotifier, StateNotifierProvider;
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/search/domain/entities/search_history_item.dart';
 import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
 import 'package:movi/src/features/search/domain/usecases/add_search_query_to_history.dart';
 import 'package:movi/src/features/search/domain/usecases/list_search_history.dart';
 import 'package:movi/src/features/search/domain/usecases/remove_search_history_item.dart';
+ 
 
-final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((
-  ref,
-) {
-  return sl<SearchHistoryRepository>();
+final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<SearchHistoryRepository>();
 });
 
 final listSearchHistoryProvider = FutureProvider<List<SearchHistoryItem>>((
@@ -21,13 +19,15 @@ final listSearchHistoryProvider = FutureProvider<List<SearchHistoryItem>>((
   return useCase();
 });
 
-class SearchHistoryController
-    extends StateNotifier<AsyncValue<List<SearchHistoryItem>>> {
-  SearchHistoryController(this._repo) : super(const AsyncValue.data([])) {
-    refresh();
-  }
+class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
+  late final SearchHistoryRepository _repo;
 
-  final SearchHistoryRepository _repo;
+  @override
+  Future<List<SearchHistoryItem>> build() async {
+    _repo = ref.watch(searchHistoryRepositoryProvider);
+    final useCase = ListSearchHistory(_repo);
+    return useCase();
+  }
 
   Future<void> add(String query) async {
     await AddSearchQueryToHistory(_repo)(query);
@@ -40,20 +40,12 @@ class SearchHistoryController
   }
 
   Future<void> refresh() async {
-    state = const AsyncValue.loading();
-    try {
-      final items = await ListSearchHistory(_repo)();
-      state = AsyncValue.data(items);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(build);
   }
 }
 
-final searchHistoryControllerProvider =
-    StateNotifierProvider<
-      SearchHistoryController,
-      AsyncValue<List<SearchHistoryItem>>
-    >((ref) {
-      return SearchHistoryController(ref.read(searchHistoryRepositoryProvider));
-    });
+final searchHistoryControllerProvider = AsyncNotifierProvider<
+  SearchHistoryController,
+  List<SearchHistoryItem>
+>(SearchHistoryController.new);

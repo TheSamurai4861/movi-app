@@ -1,5 +1,4 @@
-import 'package:movi/src/core/storage/storage.dart';
-import 'package:movi/src/features/iptv/iptv.dart';
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
@@ -11,18 +10,19 @@ import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_dat
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class SearchRepositoryImpl implements SearchRepository {
   SearchRepositoryImpl(
     this._remote,
     this._images,
-    this._iptvLocal,
+    this._catalogReader,
     this._similarity,
   );
 
   final TmdbSearchRemoteDataSource _remote;
   final TmdbImageResolver _images;
-  final IptvLocalRepository _iptvLocal;
+  final IptvCatalogReader _catalogReader;
   final SimilarityService _similarity;
 
   @override
@@ -30,36 +30,24 @@ class SearchRepositoryImpl implements SearchRepository {
     String query, {
     int page = 1,
   }) async {
-    final accounts = await _iptvLocal.getAccounts();
     final q = query.trim();
+    final refs = await _catalogReader.searchCatalog(query);
     final items = <MovieSummary>[];
-    for (final acc in accounts) {
-      final playlists = await _iptvLocal.getPlaylists(acc.id);
-      for (final pl in playlists) {
-        for (final it in pl.items) {
-          if (it.type != XtreamPlaylistItemType.movie) continue;
-          final title = it.title.trim();
-          final posterUrl = it.posterUrl;
-          if (posterUrl == null || posterUrl.isEmpty) continue;
-          // Filtre texte simple (contient) avant scoring
-          if (q.isNotEmpty && !title.toLowerCase().contains(q.toLowerCase())) {
-            // on garde quand même pour scoring si besoin ; ici on skip pour limiter bruit
-            continue;
-          }
-          final poster = Uri.tryParse(posterUrl);
-          if (poster == null) continue;
-          items.add(
-            MovieSummary(
-              id: MovieId((it.tmdbId?.toString()) ?? it.streamId.toString()),
-              tmdbId: it.tmdbId,
-              title: MediaTitle(title),
-              poster: poster,
-              backdrop: null,
-              releaseYear: null,
-            ),
-          );
-        }
-      }
+    for (final ref in refs) {
+      if (ref.type != ContentType.movie) continue;
+      final poster = ref.poster;
+      if (poster == null) continue;
+      final tmdbId = int.tryParse(ref.id);
+      items.add(
+        MovieSummary(
+          id: MovieId(ref.id),
+          tmdbId: tmdbId,
+          title: MediaTitle(ref.title.value),
+          poster: poster,
+          backdrop: null,
+          releaseYear: null,
+        ),
+      );
     }
     // Déduplication par tmdbId (on garde l'élément le plus proche de la requête)
     final bestByTmdb = <int, MovieSummary>{};
@@ -96,35 +84,25 @@ class SearchRepositoryImpl implements SearchRepository {
     String query, {
     int page = 1,
   }) async {
-    final accounts = await _iptvLocal.getAccounts();
     final q = query.trim();
+    final refs = await _catalogReader.searchCatalog(query);
     final items = <TvShowSummary>[];
-    for (final acc in accounts) {
-      final playlists = await _iptvLocal.getPlaylists(acc.id);
-      for (final pl in playlists) {
-        for (final it in pl.items) {
-          if (it.type != XtreamPlaylistItemType.series) continue;
-          final title = it.title.trim();
-          final posterUrl = it.posterUrl;
-          if (posterUrl == null || posterUrl.isEmpty) continue;
-          if (q.isNotEmpty && !title.toLowerCase().contains(q.toLowerCase())) {
-            continue;
-          }
-          final poster = Uri.tryParse(posterUrl);
-          if (poster == null) continue;
-          items.add(
-            TvShowSummary(
-              id: SeriesId((it.tmdbId?.toString()) ?? it.streamId.toString()),
-              tmdbId: it.tmdbId,
-              title: MediaTitle(title),
-              poster: poster,
-              backdrop: null,
-              seasonCount: null,
-              status: null,
-            ),
-          );
-        }
-      }
+    for (final ref in refs) {
+      if (ref.type != ContentType.series) continue;
+      final poster = ref.poster;
+      if (poster == null) continue;
+      final tmdbId = int.tryParse(ref.id);
+      items.add(
+        TvShowSummary(
+          id: SeriesId(ref.id),
+          tmdbId: tmdbId,
+          title: MediaTitle(ref.title.value),
+          poster: poster,
+          backdrop: null,
+          seasonCount: null,
+          status: null,
+        ),
+      );
     }
     // Déduplication par tmdbId (on garde l'élément le plus proche de la requête)
     final bestByTmdb = <int, TvShowSummary>{};

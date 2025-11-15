@@ -1,10 +1,15 @@
 // lib/src/features/category_browser/presentation/providers/category_providers.dart
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/features/category_browser/domain/repositories/category_repository.dart';
 import 'package:movi/src/features/category_browser/domain/value_objects/category_key.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+final categoryRepositoryProvider = Provider<CategoryRepository>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<CategoryRepository>();
+});
 
 class CategoryState {
   const CategoryState({
@@ -42,11 +47,19 @@ class CategoryState {
   }
 }
 
-class CategoryController extends StateNotifier<CategoryState> {
-  CategoryController(this._repo, this._key) : super(const CategoryState());
+class CategoryController extends Notifier<CategoryState> {
+  CategoryController(this._visibleKey);
+  final String _visibleKey;
+  late final CategoryRepository _repo;
+  late CategoryKey _key;
 
-  final CategoryRepository _repo;
-  final CategoryKey _key;
+  @override
+  CategoryState build() {
+    _repo = ref.watch(categoryRepositoryProvider);
+    _key = CategoryKey.parse(_visibleKey);
+    Future.microtask(fetchFirstPage);
+    return const CategoryState();
+  }
 
   Future<void> fetchFirstPage() async {
     state = state.copyWith(isLoading: true, error: null, page: 1);
@@ -86,14 +99,6 @@ class CategoryController extends StateNotifier<CategoryState> {
 }
 
 final categoryControllerProvider =
-    StateNotifierProvider.family<CategoryController, CategoryState, String>((
-      ref,
-      visibleKey,
-    ) {
-      final repo = sl<CategoryRepository>();
-      final key = CategoryKey.parse(visibleKey);
-      final controller = CategoryController(repo, key);
-      // Chargement initial
-      controller.fetchFirstPage();
-      return controller;
-    });
+    NotifierProvider.family<CategoryController, CategoryState, String>(
+      CategoryController.new,
+    );

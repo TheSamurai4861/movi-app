@@ -1,6 +1,0 @@
-Voici les fichiers à fournir (numéro — titre) :
-
-
-
-Ligne des numéros :
-96,95,111,239,237,238,99,101,102,98,60,54

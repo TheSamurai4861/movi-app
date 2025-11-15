@@ -3,6 +3,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -22,7 +23,7 @@ import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 /// - Hydrate asynchronement le cache si des métadonnées clés manquent.
 /// - Sélection d’image centralisée : poster TMDB **sans langue** en priorité,
 ///   sinon EN, sinon meilleur score ; fallback sur poster de la playlist.
-class HomeHeroSection extends StatefulWidget {
+class HomeHeroSection extends ConsumerStatefulWidget {
   const HomeHeroSection({
     super.key,
     required this.movie,
@@ -36,10 +37,15 @@ class HomeHeroSection extends StatefulWidget {
   final VoidCallback? onBackgroundReady;
 
   @override
-  State<HomeHeroSection> createState() => _HomeHeroSectionState();
+  ConsumerState<HomeHeroSection> createState() => _HomeHeroSectionState();
 }
 
-class _HomeHeroSectionState extends State<HomeHeroSection> {
+final _tmdbCacheProvider = Provider<TmdbCacheDataSource>((ref) => ref.watch(slProvider)<TmdbCacheDataSource>());
+final _tmdbImagesProvider = Provider<TmdbImageResolver>((ref) => ref.watch(slProvider)<TmdbImageResolver>());
+final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>((ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>());
+final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>((ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>());
+
+class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   // Mise en page
   static const double _totalHeight = 790;
   static const double _overlayHeight = 125;
@@ -49,11 +55,10 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
 
   final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
 
-  late final TmdbCacheDataSource _cache = sl<TmdbCacheDataSource>();
-  late final TmdbImageResolver _images = sl<TmdbImageResolver>();
-  late final TmdbMovieRemoteDataSource _moviesRemote =
-      sl<TmdbMovieRemoteDataSource>();
-  late final TmdbTvRemoteDataSource _tvRemote = sl<TmdbTvRemoteDataSource>();
+  late final TmdbCacheDataSource _cache;
+  late final TmdbImageResolver _images;
+  late final TmdbMovieRemoteDataSource _moviesRemote;
+  late final TmdbTvRemoteDataSource _tvRemote;
 
   /// Évite hydrations multiples pour un même id durant la vie du widget.
   final Set<int> _hydratedIds = <int>{};
@@ -64,6 +69,10 @@ class _HomeHeroSectionState extends State<HomeHeroSection> {
   @override
   void initState() {
     super.initState();
+    _cache = ref.read(_tmdbCacheProvider);
+    _images = ref.read(_tmdbImagesProvider);
+    _moviesRemote = ref.read(_tmdbMovieRemoteProvider);
+    _tvRemote = ref.read(_tmdbTvRemoteProvider);
     _primeMeta();
   }
 

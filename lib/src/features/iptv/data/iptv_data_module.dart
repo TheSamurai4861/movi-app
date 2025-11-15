@@ -5,6 +5,7 @@ import 'package:movi/src/features/iptv/data/repositories/iptv_repository_impl.da
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
 import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.dart';
 import 'package:movi/src/features/iptv/application/usecases/list_xtream_playlists.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -38,6 +39,10 @@ class IptvDataModule {
         sl<PlaylistMapper>(),
       ),
     );
+
+    if (!sl.isRegistered<IptvCatalogReader>()) {
+      sl.registerLazySingleton<IptvCatalogReader>(() => IptvCatalogReader(sl<IptvLocalRepository>()));
+    }
 
     sl.registerLazySingleton<AddXtreamSource>(() => AddXtreamSource(sl()));
     sl.registerLazySingleton<RefreshXtreamCatalog>(

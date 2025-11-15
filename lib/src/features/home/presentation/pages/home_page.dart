@@ -1,24 +1,23 @@
 // lib/src/features/home/presentation/pages/home_page.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
 import 'package:movi/src/core/widgets/movi_media_card.dart';
 import 'package:movi/src/core/widgets/movi_see_all_card.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-import 'dart:async';
-
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
-
-import 'package:movi/src/core/utils/utils.dart';
-import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/models/models.dart';
-import 'package:movi/src/features/search/presentation/pages/search_page.dart';
-import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
-import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
 import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
+import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 // logging_service n'est plus utilisé sur la page d'accueil
 // overlay_splash supprimé de la page d'accueil
 
@@ -99,6 +98,16 @@ class _HomeContent extends ConsumerStatefulWidget {
 /// - Timeout doux de 5 secondes pour éviter de bloquer l’UI en cas de réseau lent.
 class _HomeContentState extends ConsumerState<_HomeContent> {
   // Enrichissement TMDB désactivé pour les listes: plus de mémo viewport ni recheck.
+  @override
+  void initState() {
+    super.initState();
+    // Déclenche le chargement en post-frame pour éviter
+    // la modification de provider durant le build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(hp.homeControllerProvider.notifier).load());
+    });
+  }
 
   bool _isScheduled = false;
   void _postFrame(VoidCallback fn) {
@@ -221,7 +230,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     estimatedItemWidth: 300,
                     estimatedItemHeight: 165,
                     // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
-                    items: ([
+                    items: <Widget>[
                       ...state.cwMovies.map(
                         (m) => ContinueWatchingCard.movie(
                           title: m.title.value,
@@ -241,7 +250,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                           onTap: () => context.push('/tv'),
                         ),
                       ),
-                    ]).take(10).toList(),
+                    ].take(10).toList(),
                   ),
                 ),
 
@@ -293,6 +302,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                         categoryKey: entry.key,
                         width: _mediaCardWidth,
                         posterHeight: 225,
+                        onTap: (args) => context.push('/category', extra: args),
                       ),
                     ],
                   ),

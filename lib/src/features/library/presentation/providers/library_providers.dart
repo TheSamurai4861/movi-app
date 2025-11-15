@@ -5,5 +5,5 @@ import 'package:movi/src/features/library/domain/repositories/library_repository
 
 /// Exposes the LibraryRepository to the presentation layer.
 final libraryRepositoryProvider = Provider<LibraryRepository>(
-  (ref) => sl<LibraryRepository>(),
+  (ref) => ref.watch(slProvider)<LibraryRepository>(),
 );

@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:state_notifier/state_notifier.dart';
 
 import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/state/app_state.dart';
@@ -20,17 +20,10 @@ class AppStateController extends StateNotifier<AppState> {
           AppState(
             preferredLocale: _localePreferences.languageCode,
           ),
-        ) {
-    _localeSubscription =
-        _localePreferences.languageStream.listen((code) {
-      if (code.isNotEmpty && code != state.preferredLocale) {
-        state = state.copyWith(preferredLocale: code);
-      }
-    });
-  }
+        );
 
   final LocalePreferences _localePreferences;
-  late final StreamSubscription<String> _localeSubscription;
+  StreamSubscription<String>? _localeSubscription;
   final StreamController<bool> _connectivityController =
       StreamController<bool>.broadcast();
 
@@ -102,7 +95,7 @@ class AppStateController extends StateNotifier<AppState> {
 
   @override
   void dispose() {
-    _localeSubscription.cancel();
+    _localeSubscription?.cancel();
     // Fire-and-forget la fermeture du StreamController
     unawaited(_connectivityController.close());
     super.dispose();
@@ -119,5 +112,13 @@ class AppStateController extends StateNotifier<AppState> {
       if (!b.contains(value)) return false;
     }
     return true;
+  }
+  void attachLocaleStream() {
+    _localeSubscription?.cancel();
+    _localeSubscription = _localePreferences.languageStream.listen((code) {
+      if (code.isNotEmpty && code != state.preferredLocale) {
+        state = state.copyWith(preferredLocale: code);
+      }
+    });
   }
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+ 
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
@@ -13,7 +13,7 @@ import 'package:movi/src/features/settings/domain/usecases/save_user_profile.dar
 /// Fournit le repository de réglages utilisateur depuis l'injecteur.
 /// Responsabilité : composition DI uniquement (aucune logique métier ici).
 final userSettingsRepositoryProvider = Provider<UserSettingsRepository>(
-  (ref) => sl<UserSettingsRepository>(),
+  (ref) => ref.watch(slProvider)<UserSettingsRepository>(),
 );
 
 /// État immuable des réglages utilisateur.
@@ -46,13 +46,14 @@ class UserSettingsState {
 /// - Charger le profil au démarrage (lecture seule)
 /// - Sauvegarder un profil fourni (écriture atomique, état déterministe)
 /// - Exposer des transitions d'état explicites (loading/success/error)
-class UserSettingsController extends StateNotifier<UserSettingsState> {
-  UserSettingsController(this._repo) : super(const UserSettingsState()) {
-    // Chargement initial non bloquant
-    unawaited(load());
-  }
+class UserSettingsController extends Notifier<UserSettingsState> {
+  late final UserSettingsRepository _repo;
 
-  final UserSettingsRepository _repo;
+  @override
+  UserSettingsState build() {
+    _repo = ref.watch(userSettingsRepositoryProvider);
+    return const UserSettingsState();
+  }
 
   /// Charge le profil utilisateur.
   /// - Émet une erreur lisible en cas d'échec (pas d'exception silencieuse).
@@ -94,7 +95,6 @@ class UserSettingsController extends StateNotifier<UserSettingsState> {
 /// Provider du contrôleur + état exposé à l'UI.
 /// L'UI lit [UserSettingsState] et réagit aux champs [profile], [isSaving], [error].
 final userSettingsControllerProvider =
-    StateNotifierProvider<UserSettingsController, UserSettingsState>((ref) {
-      final repo = ref.read(userSettingsRepositoryProvider);
-      return UserSettingsController(repo);
-    });
+    NotifierProvider<UserSettingsController, UserSettingsState>(
+  UserSettingsController.new,
+);

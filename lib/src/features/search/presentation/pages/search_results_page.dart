@@ -7,6 +7,7 @@ import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
+import 'package:movi/src/features/search/presentation/controllers/search_paged_controller.dart';
 
 class SearchResultsPage extends ConsumerWidget {
   const SearchResultsPage({super.key, this.args});

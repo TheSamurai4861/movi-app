@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
-import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -14,6 +16,14 @@ class SearchPage extends ConsumerStatefulWidget {
 
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _textCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      ref.read(searchHistoryControllerProvider.notifier).refresh(),
+    );
+  }
 
   @override
   void dispose() {

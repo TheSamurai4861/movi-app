@@ -129,5 +129,7 @@ void _registerState() {
     sl.registerLazySingleton<AppStateController>(
       () => AppStateController(sl<LocalePreferences>()),
     );
+    // Attach listeners explicitly (no side-effects in constructor)
+    sl<AppStateController>().attachLocaleStream();
   }
 }

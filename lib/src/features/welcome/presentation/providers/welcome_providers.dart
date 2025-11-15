@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/network/network.dart';
@@ -36,10 +36,14 @@ class WelcomeUiState {
 }
 
 /// Contrôleur UI pour Welcome
-class WelcomeController extends StateNotifier<WelcomeUiState> {
-  WelcomeController(this._dio) : super(const WelcomeUiState());
+class WelcomeController extends Notifier<WelcomeUiState> {
+  late final Dio _dio;
 
-  final Dio _dio;
+  @override
+  WelcomeUiState build() {
+    _dio = ref.watch(welcomeDioProvider);
+    return const WelcomeUiState();
+  }
 
   void toggleObscure() {
     state = state.copyWith(isObscured: !state.isObscured);
@@ -105,10 +109,11 @@ class WelcomeController extends StateNotifier<WelcomeUiState> {
 }
 
 /// Fournit un Dio depuis le conteneur d’injection (network_module)
-final _dioProvider = Provider<Dio>((ref) => sl<Dio>());
+final welcomeDioProvider = Provider<Dio>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<Dio>();
+});
 
 /// Provider principal du contrôleur UI
 final welcomeControllerProvider =
-    StateNotifierProvider<WelcomeController, WelcomeUiState>(
-      (ref) => WelcomeController(ref.watch(_dioProvider)),
-    );
+    NotifierProvider<WelcomeController, WelcomeUiState>(WelcomeController.new);

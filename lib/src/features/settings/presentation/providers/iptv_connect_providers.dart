@@ -2,13 +2,23 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
-
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+ 
+
+final addXtreamSourceProvider = Provider<AddXtreamSource>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<AddXtreamSource>();
+});
+
+final refreshXtreamCatalogProvider = Provider<RefreshXtreamCatalog>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<RefreshXtreamCatalog>();
+});
 
 class IptvConnectState {
   const IptvConnectState({this.isLoading = false, this.error});
@@ -24,14 +34,18 @@ class IptvConnectState {
 /// - Crée et active la source IPTV.
 /// - Lance la synchronisation **en arrière-plan** (fire-and-forget).
 /// - À la fin de la synchro, déclenche un refresh de la Home.
-class IptvConnectController extends StateNotifier<IptvConnectState> {
-  IptvConnectController(this._add, this._refresh, this._appState, this._ref)
-    : super(const IptvConnectState());
+class IptvConnectController extends Notifier<IptvConnectState> {
+  late final AddXtreamSource _add;
+  late final RefreshXtreamCatalog _refresh;
+  late final AppStateController _appState;
 
-  final AddXtreamSource _add;
-  final RefreshXtreamCatalog _refresh;
-  final AppStateController _appState;
-  final Ref _ref;
+  @override
+  IptvConnectState build() {
+    _add = ref.watch(addXtreamSourceProvider);
+    _refresh = ref.watch(refreshXtreamCatalogProvider);
+    _appState = ref.watch(appStateControllerProvider);
+    return const IptvConnectState();
+  }
 
   Future<bool> connect({
     required String serverUrl,
@@ -76,21 +90,13 @@ class IptvConnectController extends StateNotifier<IptvConnectState> {
       if (res.isErr()) {
         return;
       }
-      // Une fois la synchro terminée, on rafraîchit la Home.
-      await _ref.read(homeControllerProvider.notifier).refresh();
+      ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
     } catch (_) {
-      // On ignore ici les erreurs de background pour ne pas perturber l’UI.
-      // (Elles pourront être remontées par la Home si nécessaire.)
     }
   }
 }
 
-final iptvConnectControllerProvider =
-    StateNotifierProvider<IptvConnectController, IptvConnectState>(
-      (ref) => IptvConnectController(
-        sl<AddXtreamSource>(),
-        sl<RefreshXtreamCatalog>(),
-        sl<AppStateController>(),
-        ref,
-      ),
-    );
+final iptvConnectControllerProvider = NotifierProvider<
+  IptvConnectController,
+  IptvConnectState
+>(IptvConnectController.new);

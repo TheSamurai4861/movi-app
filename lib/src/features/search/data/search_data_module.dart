@@ -1,5 +1,5 @@
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
@@ -30,7 +30,7 @@ class SearchDataModule {
         () => SearchRepositoryImpl(
           sl<TmdbSearchRemoteDataSource>(),
           sl<TmdbImageResolver>(),
-          sl<IptvLocalRepository>(),
+          sl<IptvCatalogReader>(),
           sl<SimilarityService>(),
         ),
       );

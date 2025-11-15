@@ -1,6 +1,6 @@
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
@@ -18,7 +18,7 @@ class HomeFeedDataModule {
       () => HomeFeedRepositoryImpl(
         sl<TmdbMovieRemoteDataSource>(),
         sl<TmdbTvRemoteDataSource>(),
-        sl<IptvLocalRepository>(),
+        sl<IptvCatalogReader>(),
         sl<MovieRepository>(),
         sl<TvRepository>(),
         sl<TmdbImageResolver>(),

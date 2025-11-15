@@ -1,17 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
-import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
 import 'package:movi/src/features/settings/domain/value_objects/language_code.dart';
-import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
+import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
+import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 class WelcomeUserPage extends ConsumerStatefulWidget {
   const WelcomeUserPage({super.key});
@@ -23,6 +24,14 @@ class WelcomeUserPage extends ConsumerStatefulWidget {
 class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   final _nameCtrl = TextEditingController();
   String _lang = 'fr-FR';
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      ref.read(userSettingsControllerProvider.notifier).load(),
+    );
+  }
 
   @override
   void dispose() {
@@ -240,7 +249,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                         );
                                     if (!context.mounted) return;
                                     if (ok) {
-                                      await sl<AppStateController>()
+                                      await ref
+                                          .read(appStateControllerProvider)
                                           .setPreferredLocale(_lang);
                                       if (!context.mounted) return;
                                       GoRouter.of(

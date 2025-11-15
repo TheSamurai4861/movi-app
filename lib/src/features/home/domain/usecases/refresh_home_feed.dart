@@ -1,0 +1,32 @@
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+class RefreshHomeFeed {
+  const RefreshHomeFeed(this._repo);
+
+  final HomeFeedRepository _repo;
+
+  Future<RefreshResult> call() async {
+    final hero = await _repo.getHeroMovies();
+    final iptv = await _repo.getIptvCategoryLists();
+    final movies = await _repo.getContinueWatchingMovies();
+    final shows = await _repo.getContinueWatchingShows();
+    return RefreshResult(hero: hero, iptv: iptv, cwMovies: movies, cwShows: shows);
+  }
+}
+
+class RefreshResult {
+  const RefreshResult({
+    required this.hero,
+    required this.iptv,
+    required this.cwMovies,
+    required this.cwShows,
+  });
+
+  final List<MovieSummary> hero;
+  final Map<String, List<ContentReference>> iptv;
+  final List<MovieSummary> cwMovies;
+  final List<TvShowSummary> cwShows;
+}

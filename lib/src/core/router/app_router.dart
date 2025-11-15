@@ -56,9 +56,9 @@ GoRouter createRouter({
     ).router;
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final appStateController = ref.watch(appStateControllerProvider.notifier);
-  final logger = sl<AppLogger>();
-  final iptvRepository = sl<IptvLocalRepository>();
+  final appStateController = ref.watch(appStateControllerProvider);
+  final logger = ref.watch(slProvider)<AppLogger>();
+  final iptvRepository = ref.watch(slProvider)<IptvLocalRepository>();
 
   final bundle = _RouterBundle(
     appStateController: appStateController,
@@ -255,8 +255,12 @@ class _LaunchRedirectGuard extends ChangeNotifier {
 
     final currentLocation = state.matchedLocation;
 
-    if (!cached && currentLocation != AppRouteNames.welcome) {
-      return AppRouteNames.welcome;
+    if (!cached) {
+      // Autoriser l’accès à la page de connexion IPTV même sans comptes
+      final allowIptvConnect = currentLocation == '/settings/iptv/connect';
+      if (currentLocation != AppRouteNames.welcome && !allowIptvConnect) {
+        return AppRouteNames.welcome;
+      }
     }
 
     if (cached &&
