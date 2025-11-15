@@ -23,7 +23,7 @@ workflows:
         script: |
           echo "Building iOS IPA with injected TMDB API key..."
           flutter build ipa --release --no-codesign \
-            --target=lib/main_ios_diag.dart \
+            --target=lib/main.dart \
             --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
             --dart-define=TMDB_API_KEY_DEV=${TMDB_API_KEY} \
             --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY} \
