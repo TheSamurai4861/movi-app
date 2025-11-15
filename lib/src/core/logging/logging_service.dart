@@ -16,12 +16,12 @@ class LoggingService {
   }) async {
     if (!sl.isRegistered<AppLogger>()) return;
     sl<AppLogger>().log(
-          level,
-          message,
-          category: category,
-          error: error,
-          stackTrace: stackTrace,
-        );
+      level,
+      message,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   static Future<void> dispose() async {}

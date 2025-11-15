@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
- 
 
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/logging/logging.dart';
@@ -47,7 +46,8 @@ class BootstrapController extends Notifier<BootstrapState> {
     // Écoute l’événement indiquant la fin de synchro IPTV.
     final bus = _ref.read(appEventBusProvider);
     bus.stream.listen((event) {
-      if (event.type == AppEventType.iptvSynced && state.phase == BootPhase.refreshing) {
+      if (event.type == AppEventType.iptvSynced &&
+          state.phase == BootPhase.refreshing) {
         unawaited(LoggingService.log('Bootstrap: IPTV synced event received'));
         _kickoffEnrich();
       }
@@ -57,7 +57,11 @@ class BootstrapController extends Notifier<BootstrapState> {
     _timeout?.cancel();
     _timeout = Timer(const Duration(seconds: 3), () {
       if (state.phase == BootPhase.refreshing) {
-        unawaited(LoggingService.log('Bootstrap: timeout reached, proceeding to enrich'));
+        unawaited(
+          LoggingService.log(
+            'Bootstrap: timeout reached, proceeding to enrich',
+          ),
+        );
         _kickoffEnrich();
       }
     });
@@ -91,5 +95,5 @@ class BootstrapController extends Notifier<BootstrapState> {
 
 final bootstrapControllerProvider =
     NotifierProvider<BootstrapController, BootstrapState>(
-  BootstrapController.new,
-);
+      BootstrapController.new,
+    );

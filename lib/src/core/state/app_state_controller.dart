@@ -16,19 +16,14 @@ import 'package:movi/src/core/state/app_state.dart';
 /// - Garantit l'immuabilité des collections exposées.
 class AppStateController extends StateNotifier<AppState> {
   AppStateController(this._localePreferences)
-      : super(
-          AppState(
-            preferredLocale: _localePreferences.languageCode,
-          ),
-        );
+    : super(AppState(preferredLocale: _localePreferences.languageCode));
 
   final LocalePreferences _localePreferences;
   StreamSubscription<String>? _localeSubscription;
   final StreamController<bool> _connectivityController =
       StreamController<bool>.broadcast();
 
-  Stream<bool> get connectivityStream =>
-      _connectivityController.stream;
+  Stream<bool> get connectivityStream => _connectivityController.stream;
 
   /// Identifiants des sources IPTV actives (ensemble non modifiable).
   Set<String> get activeIptvSourceIds =>
@@ -37,8 +32,7 @@ class AppStateController extends StateNotifier<AppState> {
   /// Indique s'il existe au moins une source IPTV active.
   bool get hasActiveIptvSources => state.activeIptvSources.isNotEmpty;
 
-  bool get hasNoActiveIptvSources =>
-      state.activeIptvSources.isEmpty;
+  bool get hasNoActiveIptvSources => state.activeIptvSources.isEmpty;
 
   /// Définit le mode thème si celui-ci diffère de l'état courant.
   void setThemeMode(ThemeMode mode) {
@@ -64,9 +58,7 @@ class AppStateController extends StateNotifier<AppState> {
 
     if (_setsEqual(state.activeIptvSources, sanitized)) return;
 
-    state = state.copyWith(
-      activeIptvSources: Set.unmodifiable(sanitized),
-    );
+    state = state.copyWith(activeIptvSources: Set.unmodifiable(sanitized));
   }
 
   /// Définit la langue préférée et la persiste via [LocalePreferences].
@@ -113,6 +105,7 @@ class AppStateController extends StateNotifier<AppState> {
     }
     return true;
   }
+
   void attachLocaleStream() {
     _localeSubscription?.cancel();
     _localeSubscription = _localePreferences.languageStream.listen((code) {

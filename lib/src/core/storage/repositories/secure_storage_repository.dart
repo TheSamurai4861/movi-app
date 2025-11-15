@@ -4,11 +4,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorageRepository {
   SecureStorageRepository([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 
-  Future<void> put({required String key, required Map<String, dynamic> payload}) async {
+  Future<void> put({
+    required String key,
+    required Map<String, dynamic> payload,
+  }) async {
     await _storage.write(key: key, value: jsonEncode(payload));
   }
 
@@ -31,8 +34,7 @@ class SecureStorageRepository {
     final result = <String, Map<String, dynamic>>{};
     for (final entry in entries) {
       try {
-        result[entry.key] =
-            jsonDecode(entry.value) as Map<String, dynamic>;
+        result[entry.key] = jsonDecode(entry.value) as Map<String, dynamic>;
       } catch (_) {
         // Ignore malformed entries to avoid crashing callers.
       }

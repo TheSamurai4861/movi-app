@@ -5,11 +5,9 @@ import 'package:movi/src/core/logging/sanitizer/message_sanitizer.dart';
 typedef ConsolePrinter = void Function(String message);
 
 class ConsoleLogger extends AppLogger {
-  ConsoleLogger({
-    ConsolePrinter? printer,
-    Set<String>? extraSensitiveKeys,
-  })  : _printer = printer ?? debugPrint,
-        _sanitizer = MessageSanitizer(extraSensitiveKeys: extraSensitiveKeys);
+  ConsoleLogger({ConsolePrinter? printer, Set<String>? extraSensitiveKeys})
+    : _printer = printer ?? debugPrint,
+      _sanitizer = MessageSanitizer(extraSensitiveKeys: extraSensitiveKeys);
 
   final ConsolePrinter _printer;
   final MessageSanitizer _sanitizer;

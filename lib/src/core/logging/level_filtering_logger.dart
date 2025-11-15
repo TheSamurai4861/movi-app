@@ -1,7 +1,11 @@
 import 'package:movi/src/core/logging/logger.dart';
 
 class LevelFilteringLogger extends AppLogger implements LoggerLifecycle {
-  LevelFilteringLogger(this._inner, this._minLevel, [this._byCategory = const {}]);
+  LevelFilteringLogger(
+    this._inner,
+    this._minLevel, [
+    this._byCategory = const {},
+  ]);
 
   final AppLogger _inner;
   final LogLevel _minLevel;
@@ -23,7 +27,13 @@ class LevelFilteringLogger extends AppLogger implements LoggerLifecycle {
     StackTrace? stackTrace,
   }) {
     if (!_allow(level, category)) return;
-    _inner.log(level, message, category: category, error: error, stackTrace: stackTrace);
+    _inner.log(
+      level,
+      message,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   @override

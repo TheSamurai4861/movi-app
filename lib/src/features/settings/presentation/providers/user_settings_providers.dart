@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
- 
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
@@ -96,5 +95,5 @@ class UserSettingsController extends Notifier<UserSettingsState> {
 /// L'UI lit [UserSettingsState] et réagit aux champs [profile], [isSaving], [error].
 final userSettingsControllerProvider =
     NotifierProvider<UserSettingsController, UserSettingsState>(
-  UserSettingsController.new,
-);
+      UserSettingsController.new,
+    );

@@ -1,7 +1,6 @@
 // lib/src/features/home/presentation/providers/home_providers.dart
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
- 
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
@@ -100,18 +99,6 @@ class HomeController extends Notifier<HomeState> {
   }
 
   Future<void> refresh() => load();
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
 }
 
 final homeFeedRepositoryProvider = Provider<HomeFeedRepository>((ref) {
@@ -119,5 +106,6 @@ final homeFeedRepositoryProvider = Provider<HomeFeedRepository>((ref) {
   return locator<HomeFeedRepository>();
 });
 
-final homeControllerProvider =
-    NotifierProvider<HomeController, HomeState>(HomeController.new);
+final homeControllerProvider = NotifierProvider<HomeController, HomeState>(
+  HomeController.new,
+);

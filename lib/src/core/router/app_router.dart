@@ -48,12 +48,11 @@ GoRouter createRouter({
   required AppStateController appStateController,
   required AppLogger logger,
   required IptvLocalRepository iptvRepository,
-}) =>
-    _RouterBundle(
-      appStateController: appStateController,
-      logger: logger,
-      iptvRepository: iptvRepository,
-    ).router;
+}) => _RouterBundle(
+  appStateController: appStateController,
+  logger: logger,
+  iptvRepository: iptvRepository,
+).router;
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final appStateController = ref.watch(appStateControllerProvider);
@@ -80,10 +79,10 @@ class _RouterBundle {
     required AppLogger logger,
     required IptvLocalRepository iptvRepository,
   }) : launchGuard = _LaunchRedirectGuard(
-          logger: logger,
-          repository: iptvRepository,
-          appStateController: appStateController,
-        ) {
+         logger: logger,
+         repository: iptvRepository,
+         appStateController: appStateController,
+       ) {
     router = GoRouter(
       initialLocation: AppRouteNames.launch,
       refreshListenable: launchGuard,
@@ -212,9 +211,7 @@ class _LaunchGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
 
@@ -225,8 +222,9 @@ class _LaunchRedirectGuard extends ChangeNotifier {
     required AppStateController appStateController,
   }) : _appStateController = appStateController {
     // addListener renvoie une fonction pour se désabonner, qu'on stocke
-    _removeAppStateListener =
-        _appStateController.addListener(_handleAppStateChange);
+    _removeAppStateListener = _appStateController.addListener(
+      _handleAppStateChange,
+    );
   }
 
   final AppLogger logger;
@@ -293,14 +291,16 @@ class _LaunchRedirectGuard extends ChangeNotifier {
         .getAccounts()
         .then((accounts) => accounts.isNotEmpty)
         .then((value) {
-      _hasAccounts = value;
-    }).catchError((error, stackTrace) {
-      logger.error('Launch redirect failed', error, stackTrace);
-      _hasAccounts = false;
-    }).whenComplete(() {
-      _isResolving = false;
-      notifyListeners();
-    });
+          _hasAccounts = value;
+        })
+        .catchError((error, stackTrace) {
+          logger.error('Launch redirect failed', error, stackTrace);
+          _hasAccounts = false;
+        })
+        .whenComplete(() {
+          _isResolving = false;
+          notifyListeners();
+        });
   }
 
   @override

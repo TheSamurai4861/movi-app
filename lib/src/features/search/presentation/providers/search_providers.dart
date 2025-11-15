@@ -23,11 +23,12 @@ final searchPaginatedUseCaseProvider = Provider<SearchPaginated>(
 
 final searchControllerProvider =
     NotifierProvider<SearchInstantController, SearchState>(
-  SearchInstantController.new,
-);
+      SearchInstantController.new,
+    );
 
-final searchResultsControllerProvider = NotifierProvider.family<
-  SearchPagedController,
-  SearchResultsState,
-  SearchResultsPageArgs
->(SearchPagedController.new);
+final searchResultsControllerProvider =
+    NotifierProvider.family<
+      SearchPagedController,
+      SearchResultsState,
+      SearchResultsPageArgs
+    >(SearchPagedController.new);

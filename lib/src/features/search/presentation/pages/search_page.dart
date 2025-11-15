@@ -20,9 +20,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
-    unawaited(
-      ref.read(searchHistoryControllerProvider.notifier).refresh(),
-    );
+    unawaited(ref.read(searchHistoryControllerProvider.notifier).refresh());
   }
 
   @override

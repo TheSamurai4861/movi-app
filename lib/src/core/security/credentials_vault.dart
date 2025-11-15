@@ -9,7 +9,8 @@ class CredentialsVaultException implements Exception {
   final String message;
   final Object? cause;
   @override
-  String toString() => 'CredentialsVaultException: $message${cause != null ? ' ($cause)' : ''}';
+  String toString() =>
+      'CredentialsVaultException: $message${cause != null ? ' ($cause)' : ''}';
 }
 
 /// Simple in-memory vault useful for tests or platforms without secure storage.

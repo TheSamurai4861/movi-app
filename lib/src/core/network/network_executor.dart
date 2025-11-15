@@ -9,10 +9,8 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/dio_failure_mapper.dart';
 import 'package:movi/src/core/network/network_failures.dart';
 
-typedef NetworkCall<T> = Future<Response<T>> Function(
-  Dio client,
-  CancelToken? cancelToken,
-);
+typedef NetworkCall<T> =
+    Future<Response<T>> Function(Dio client, CancelToken? cancelToken);
 typedef RetryEvaluator = bool Function(DioException error, int attempt);
 typedef AttemptHook = void Function(int attempt, DioException? error);
 
@@ -29,13 +27,13 @@ class NetworkExecutor {
     this.defaultMaxConcurrent = 6,
     this.memoryCacheMaxEntries = 256,
     this.memoryCacheDefaultTtl = const Duration(seconds: 45),
-  })  : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0'),
-        assert(memoryCacheMaxEntries > 0, 'memoryCacheMaxEntries must be > 0'),
-        _limiters = <String, _Limiter>{},
-        _inflight = <String, Future<Response<dynamic>>>{},
-        _memoryCache = _LruCache<String, _CachedPayload>(
-          capacity: memoryCacheMaxEntries,
-        );
+  }) : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0'),
+       assert(memoryCacheMaxEntries > 0, 'memoryCacheMaxEntries must be > 0'),
+       _limiters = <String, _Limiter>{},
+       _inflight = <String, Future<Response<dynamic>>>{},
+       _memoryCache = _LruCache<String, _CachedPayload>(
+         capacity: memoryCacheMaxEntries,
+       );
 
   final Dio _client;
   final AppLogger? logger;

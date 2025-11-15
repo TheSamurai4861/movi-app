@@ -5,9 +5,10 @@ import 'package:movi/src/features/search/domain/repositories/search_history_repo
 import 'package:movi/src/features/search/domain/usecases/add_search_query_to_history.dart';
 import 'package:movi/src/features/search/domain/usecases/list_search_history.dart';
 import 'package:movi/src/features/search/domain/usecases/remove_search_history_item.dart';
- 
 
-final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((ref) {
+final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((
+  ref,
+) {
   final locator = ref.watch(slProvider);
   return locator<SearchHistoryRepository>();
 });
@@ -45,7 +46,7 @@ class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
   }
 }
 
-final searchHistoryControllerProvider = AsyncNotifierProvider<
-  SearchHistoryController,
-  List<SearchHistoryItem>
->(SearchHistoryController.new);
+final searchHistoryControllerProvider =
+    AsyncNotifierProvider<SearchHistoryController, List<SearchHistoryItem>>(
+      SearchHistoryController.new,
+    );

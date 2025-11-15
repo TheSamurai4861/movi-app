@@ -40,10 +40,18 @@ class HomeHeroSection extends ConsumerStatefulWidget {
   ConsumerState<HomeHeroSection> createState() => _HomeHeroSectionState();
 }
 
-final _tmdbCacheProvider = Provider<TmdbCacheDataSource>((ref) => ref.watch(slProvider)<TmdbCacheDataSource>());
-final _tmdbImagesProvider = Provider<TmdbImageResolver>((ref) => ref.watch(slProvider)<TmdbImageResolver>());
-final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>((ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>());
-final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>((ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>());
+final _tmdbCacheProvider = Provider<TmdbCacheDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbCacheDataSource>(),
+);
+final _tmdbImagesProvider = Provider<TmdbImageResolver>(
+  (ref) => ref.watch(slProvider)<TmdbImageResolver>(),
+);
+final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>(),
+);
+final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>(),
+);
 
 class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   // Mise en page

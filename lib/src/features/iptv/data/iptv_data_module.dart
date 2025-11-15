@@ -41,7 +41,9 @@ class IptvDataModule {
     );
 
     if (!sl.isRegistered<IptvCatalogReader>()) {
-      sl.registerLazySingleton<IptvCatalogReader>(() => IptvCatalogReader(sl<IptvLocalRepository>()));
+      sl.registerLazySingleton<IptvCatalogReader>(
+        () => IptvCatalogReader(sl<IptvLocalRepository>()),
+      );
     }
 
     sl.registerLazySingleton<AddXtreamSource>(() => AddXtreamSource(sl()));

@@ -23,10 +23,7 @@ sealed class Result<T, F extends Failure> {
   }
 
   Result<R, F> flatMap<R>(Result<R, F> Function(T value) mapper) {
-    return fold(
-      ok: mapper,
-      err: (failure) => Err<R, F>(failure),
-    );
+    return fold(ok: mapper, err: (failure) => Err<R, F>(failure));
   }
 }
 

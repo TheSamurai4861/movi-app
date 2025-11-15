@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
- 
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/network/network.dart';
@@ -76,10 +75,7 @@ class WelcomeController extends Notifier<WelcomeUiState> {
       // On ne se fie pas au shape exact du JSON (fournisseurs variés) :
       // succès HTTP + corps non nul = OK
       final ok = await executor.run<dynamic, bool>(
-        request: (c, token) => c.getUri<dynamic>(
-          uri,
-          cancelToken: token,
-        ),
+        request: (c, token) => c.getUri<dynamic>(uri, cancelToken: token),
         mapper: (_) => true,
       );
 

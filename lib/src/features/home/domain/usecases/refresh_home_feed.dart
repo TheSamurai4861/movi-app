@@ -13,7 +13,12 @@ class RefreshHomeFeed {
     final iptv = await _repo.getIptvCategoryLists();
     final movies = await _repo.getContinueWatchingMovies();
     final shows = await _repo.getContinueWatchingShows();
-    return RefreshResult(hero: hero, iptv: iptv, cwMovies: movies, cwShows: shows);
+    return RefreshResult(
+      hero: hero,
+      iptv: iptv,
+      cwMovies: movies,
+      cwShows: shows,
+    );
   }
 }
 

@@ -23,18 +23,18 @@ class FileLogger extends AppLogger implements LoggerLifecycle {
     bool dropOldest = true,
     Set<String>? extraSensitiveKeys,
     ConsolePrinter? consolePrinter,
-  })  : _fileName = fileName,
-        _flushInterval = flushInterval,
-        _maxFileSizeBytes = maxFileSizeBytes,
-        _maxFiles = maxFiles,
-        _alsoConsole = alsoConsole,
-        _rotateDaily = rotateDaily,
-        _maxDailyFiles = maxDailyFiles,
-        _compressOld = compressOld,
-        _bufferCapacity = bufferCapacity,
-        _dropOldest = dropOldest,
-        _printer = consolePrinter ?? debugPrint,
-        _sanitizer = MessageSanitizer(extraSensitiveKeys: extraSensitiveKeys) {
+  }) : _fileName = fileName,
+       _flushInterval = flushInterval,
+       _maxFileSizeBytes = maxFileSizeBytes,
+       _maxFiles = maxFiles,
+       _alsoConsole = alsoConsole,
+       _rotateDaily = rotateDaily,
+       _maxDailyFiles = maxDailyFiles,
+       _compressOld = compressOld,
+       _bufferCapacity = bufferCapacity,
+       _dropOldest = dropOldest,
+       _printer = consolePrinter ?? debugPrint,
+       _sanitizer = MessageSanitizer(extraSensitiveKeys: extraSensitiveKeys) {
     if (!kIsWeb) {
       _initFileSink();
     }

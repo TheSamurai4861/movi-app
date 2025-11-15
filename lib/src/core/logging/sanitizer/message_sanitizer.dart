@@ -1,9 +1,6 @@
 class MessageSanitizer {
   MessageSanitizer({Set<String>? extraSensitiveKeys})
-    : _sensitiveKeys = <String>{
-        ..._baseSensitiveKeys,
-        ...?extraSensitiveKeys,
-      };
+    : _sensitiveKeys = <String>{..._baseSensitiveKeys, ...?extraSensitiveKeys};
 
   static const _baseSensitiveKeys = <String>{
     'password',

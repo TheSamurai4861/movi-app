@@ -9,29 +9,32 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 
 Future<void> main() async {
-  runZonedGuarded(() async {
-    WidgetsFlutterBinding.ensureInitialized();
-    LoggingModule.register();
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      LoggingModule.register();
 
-    FlutterError.onError = (FlutterErrorDetails details) {
-      sl<AppLogger>().error('FlutterError', details.exception, details.stack);
-    };
+      FlutterError.onError = (FlutterErrorDetails details) {
+        sl<AppLogger>().error('FlutterError', details.exception, details.stack);
+      };
 
-    WidgetsBinding.instance.platformDispatcher.onError =
-        (Object error, StackTrace stack) {
-          sl<AppLogger>().error('DispatcherError', error, stack);
-          return true;
-        };
+      WidgetsBinding.instance.platformDispatcher.onError =
+          (Object error, StackTrace stack) {
+            sl<AppLogger>().error('DispatcherError', error, stack);
+            return true;
+          };
 
-    final loader = EnvironmentLoader();
-    registerEnvironmentLoader(loader);
-    final flavor = loader.load();
-    final config = await registerConfig(flavor: flavor);
-    await initDependencies(appConfig: config);
+      final loader = EnvironmentLoader();
+      registerEnvironmentLoader(loader);
+      final flavor = loader.load();
+      final config = await registerConfig(flavor: flavor);
+      await initDependencies(appConfig: config);
 
-    sl<AppLogger>().info('App start: flavor=$flavor');
-    runApp(const ProviderScope(child: MyApp()));
-  }, (error, stack) {
-    sl<AppLogger>().error('UncaughtError', error, stack);
-  });
+      sl<AppLogger>().info('App start: flavor=$flavor');
+      runApp(const ProviderScope(child: MyApp()));
+    },
+    (error, stack) {
+      sl<AppLogger>().error('UncaughtError', error, stack);
+    },
+  );
 }

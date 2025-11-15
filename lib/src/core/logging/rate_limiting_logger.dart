@@ -9,8 +9,8 @@ class RateLimitingLogger extends AppLogger implements LoggerLifecycle {
     Map<String, int>? perCategory,
     this.exposeMetrics = false,
     Duration? metricsInterval,
-  })  : _limits = perCategory ?? const {},
-        _metricsInterval = metricsInterval ?? const Duration(minutes: 1) {
+  }) : _limits = perCategory ?? const {},
+       _metricsInterval = metricsInterval ?? const Duration(minutes: 1) {
     if (exposeMetrics) {
       _timer = Timer.periodic(_metricsInterval, (_) => _emitMetrics());
     }
@@ -55,7 +55,10 @@ class RateLimitingLogger extends AppLogger implements LoggerLifecycle {
     final entries = _dropped.entries.toList();
     _dropped.clear();
     for (final e in entries) {
-      _inner.info('rate-limit dropped=${e.value}/min for category=${e.key}', category: 'metrics');
+      _inner.info(
+        'rate-limit dropped=${e.value}/min for category=${e.key}',
+        category: 'metrics',
+      );
     }
   }
 
@@ -68,7 +71,13 @@ class RateLimitingLogger extends AppLogger implements LoggerLifecycle {
     StackTrace? stackTrace,
   }) {
     if (!_allow(category)) return;
-    _inner.log(level, message, category: category, error: error, stackTrace: stackTrace);
+    _inner.log(
+      level,
+      message,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   @override

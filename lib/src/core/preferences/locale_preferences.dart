@@ -9,10 +9,10 @@ class LocalePreferences {
     required String storageKey,
     required String languageCode,
     required StreamController<String> controller,
-  })  : _storage = storage,
-        _storageKey = storageKey,
-        _languageCode = languageCode,
-        _languageController = controller;
+  }) : _storage = storage,
+       _storageKey = storageKey,
+       _languageCode = languageCode,
+       _languageController = controller;
 
   static const String _defaultStorageKey = 'prefs.preferred_locale';
 

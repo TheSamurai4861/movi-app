@@ -28,9 +28,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   @override
   void initState() {
     super.initState();
-    unawaited(
-      ref.read(userSettingsControllerProvider.notifier).load(),
-    );
+    unawaited(ref.read(userSettingsControllerProvider.notifier).load());
   }
 
   @override

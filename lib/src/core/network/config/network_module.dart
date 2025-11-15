@@ -24,10 +24,7 @@ class NetworkModule {
       config: config,
       logger: logger,
       localeProvider: localeProvider,
-      authTokenProvider: _buildTmdbTokenProvider(
-        config.network,
-        secretStore,
-      ),
+      authTokenProvider: _buildTmdbTokenProvider(config.network, secretStore),
     );
 
     final dio = factory.create();

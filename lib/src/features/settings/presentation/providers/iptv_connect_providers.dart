@@ -8,7 +8,6 @@ import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
- 
 
 final addXtreamSourceProvider = Provider<AddXtreamSource>((ref) {
   final locator = ref.watch(slProvider);
@@ -90,13 +89,14 @@ class IptvConnectController extends Notifier<IptvConnectState> {
       if (res.isErr()) {
         return;
       }
-      ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
-    } catch (_) {
-    }
+      ref
+          .read(appEventBusProvider)
+          .emit(const AppEvent(AppEventType.iptvSynced));
+    } catch (_) {}
   }
 }
 
-final iptvConnectControllerProvider = NotifierProvider<
-  IptvConnectController,
-  IptvConnectState
->(IptvConnectController.new);
+final iptvConnectControllerProvider =
+    NotifierProvider<IptvConnectController, IptvConnectState>(
+      IptvConnectController.new,
+    );

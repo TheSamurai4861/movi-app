@@ -13,8 +13,7 @@ class AuthToken {
   final String value;
   final String scheme;
 
-  String get headerValue =>
-      scheme.isEmpty ? value : '$scheme ${value.trim()}';
+  String get headerValue => scheme.isEmpty ? value : '$scheme ${value.trim()}';
 }
 
 abstract class AuthTokenProvider {
@@ -66,11 +65,8 @@ class MemoizedTokenProvider extends AuthTokenProvider {
 }
 
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor({
-    required this.tokenProvider,
-    this.logger,
-    Dio? dio,
-  }) : _dio = dio;
+  AuthInterceptor({required this.tokenProvider, this.logger, Dio? dio})
+    : _dio = dio;
 
   final AuthTokenProvider tokenProvider;
   final AppLogger? logger;
@@ -102,7 +98,8 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    final shouldRetry = err.response?.statusCode == 401 &&
+    final shouldRetry =
+        err.response?.statusCode == 401 &&
         _dio != null &&
         err.requestOptions.extra['auth_retry'] != true;
     if (!shouldRetry) {

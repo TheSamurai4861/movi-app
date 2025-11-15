@@ -174,12 +174,12 @@ class LoggingConfig {
     _mapHash(samplingByLevel),
     _mapHash(samplingByCategory),
     defaultRateLimitPerMinute,
-      _mapHash(rateLimitPerCategory),
-      exposeMetrics,
-      metricsInterval,
-      _mapHash(minLevelByCategory),
-      Object.hashAllUnordered(sensitiveKeys),
-    );
+    _mapHash(rateLimitPerCategory),
+    exposeMetrics,
+    metricsInterval,
+    _mapHash(minLevelByCategory),
+    Object.hashAllUnordered(sensitiveKeys),
+  );
 
   @override
   String toString() {

@@ -89,13 +89,12 @@ class SearchInstantController extends Notifier<SearchState> {
       ]);
       final movies = res[0] as List<MovieSummary>;
       final shows = res[1] as List<TvShowSummary>;
-      state = state.copyWith(
-        movies: movies,
-        shows: shows,
-        isLoading: false,
-      );
+      state = state.copyWith(movies: movies, shows: shows, isLoading: false);
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec de la recherche: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec de la recherche: $e',
+      );
     } finally {
       final add = _addToHistory;
       if (add != null && query.trim().length >= 3) {

@@ -34,7 +34,9 @@ class IptvCatalogReader {
     if (account == null) return const <ContentReference>[];
     final playlists = await _local.getPlaylists(account.id);
     final cleanedTitle = _cleanCategoryTitle(key.title);
-    final matches = playlists.where((pl) => _cleanCategoryTitle(pl.title) == cleanedTitle);
+    final matches = playlists.where(
+      (pl) => _cleanCategoryTitle(pl.title) == cleanedTitle,
+    );
     final playlist = matches.isNotEmpty ? matches.first : null;
     if (playlist == null) return const <ContentReference>[];
     final items = <ContentReference>[];
@@ -46,7 +48,9 @@ class IptvCatalogReader {
         ContentReference(
           id: refId,
           title: MediaTitle(it.title),
-          type: it.type == XtreamPlaylistItemType.series ? ContentType.series : ContentType.movie,
+          type: it.type == XtreamPlaylistItemType.series
+              ? ContentType.series
+              : ContentType.movie,
           poster: _safePosterUri(it.posterUrl),
           year: it.releaseYear,
           rating: it.rating,
@@ -79,7 +83,9 @@ class IptvCatalogReader {
             ContentReference(
               id: refId,
               title: MediaTitle(title),
-              type: it.type == XtreamPlaylistItemType.series ? ContentType.series : ContentType.movie,
+              type: it.type == XtreamPlaylistItemType.series
+                  ? ContentType.series
+                  : ContentType.movie,
               poster: poster,
               year: it.releaseYear,
               rating: it.rating,
@@ -91,11 +97,15 @@ class IptvCatalogReader {
     return results;
   }
 
-  Future<Map<String, List<ContentReference>>> listCategoryLists({Set<String>? activeSourceIds}) async {
+  Future<Map<String, List<ContentReference>>> listCategoryLists({
+    Set<String>? activeSourceIds,
+  }) async {
     final result = <String, List<ContentReference>>{};
     final accounts = await _local.getAccounts();
     for (final acc in accounts) {
-      if (activeSourceIds != null && activeSourceIds.isNotEmpty && !activeSourceIds.contains(acc.id)) {
+      if (activeSourceIds != null &&
+          activeSourceIds.isNotEmpty &&
+          !activeSourceIds.contains(acc.id)) {
         continue;
       }
       final playlists = await _local.getPlaylists(acc.id);
@@ -110,7 +120,9 @@ class IptvCatalogReader {
             ContentReference(
               id: refId,
               title: MediaTitle(it.title),
-              type: it.type == XtreamPlaylistItemType.series ? ContentType.series : ContentType.movie,
+              type: it.type == XtreamPlaylistItemType.series
+                  ? ContentType.series
+                  : ContentType.movie,
               poster: _safePosterUri(it.posterUrl),
               year: it.releaseYear,
               rating: it.rating,

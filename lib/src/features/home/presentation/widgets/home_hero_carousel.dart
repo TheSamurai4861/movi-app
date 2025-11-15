@@ -32,13 +32,21 @@ class HomeHeroCarousel extends ConsumerStatefulWidget {
   ConsumerState<HomeHeroCarousel> createState() => _HomeHeroCarouselState();
 }
 
-final _tmdbCacheProvider = Provider<TmdbCacheDataSource>((ref) => ref.watch(slProvider)<TmdbCacheDataSource>());
-final _tmdbImagesProvider = Provider<TmdbImageResolver>((ref) => ref.watch(slProvider)<TmdbImageResolver>());
-final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>((ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>());
-final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>((ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>());
+final _tmdbCacheProvider = Provider<TmdbCacheDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbCacheDataSource>(),
+);
+final _tmdbImagesProvider = Provider<TmdbImageResolver>(
+  (ref) => ref.watch(slProvider)<TmdbImageResolver>(),
+);
+final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>(),
+);
+final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>(),
+);
 
 class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver {
   // Mise en page
   static const double _totalHeight = 590;
   static const double _overlayHeight = 150;
@@ -49,6 +57,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   // Timings
   static const Duration _rotation = Duration(seconds: 9);
   static const Duration _fade = Duration(milliseconds: 800);
+  static const double _synopsisHeight = 80;
 
   // DI
   late final TmdbCacheDataSource _cache;
@@ -66,17 +75,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   int _index = 0;
   Timer? _timer;
   bool _backdropNotified = false;
-  bool _isTransitioning = false;
-  int? _pendingIndex;
-
-  late final AnimationController _transitionCtrl = AnimationController(
-    vsync: this,
-    duration: _fade,
-  );
-  late final Animation<double> _darkness = CurvedAnimation(
-    parent: _transitionCtrl,
-    curve: Curves.easeInOut,
-  );
 
   @override
   void initState() {
@@ -88,25 +86,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     WidgetsBinding.instance.addObserver(this);
     _prepareCurrentMeta();
     _startTimer();
-
-    _transitionCtrl.addStatusListener((status) {
-      if (!_isTransitioning) return;
-      if (status == AnimationStatus.completed) {
-        // Phase 1 terminée (fondu vers sombre) → on bascule l’index puis on revient.
-        if (_pendingIndex != null) {
-          setState(() {
-            _index = _pendingIndex!;
-            _backdropNotified = false;
-          });
-          _prepareCurrentMeta();
-        }
-        _transitionCtrl.reverse();
-      } else if (status == AnimationStatus.dismissed) {
-        // Phase 2 terminée (retour clair) → transition complète.
-        _isTransitioning = false;
-        _pendingIndex = null;
-      }
-    });
   }
 
   @override
@@ -125,7 +104,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _favorite.dispose();
-    _transitionCtrl.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -161,12 +139,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   void _triggerNext() {
-    if (_isTransitioning) return;
     final int len = widget.movies.length;
     if (len <= 1) return;
-    _pendingIndex = (_index + 1) % len;
-    _isTransitioning = true;
-    _transitionCtrl.forward(from: 0);
+    setState(() {
+      _index = (_index + 1) % len;
+      _backdropNotified = false;
+    });
+    _prepareCurrentMeta();
   }
 
   void _prepareCurrentMeta() {
@@ -306,9 +285,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           _fullyHydratedIds.add(id);
         }
         if (!mounted) return;
+        _metaFutures[id] = _loadMeta(m);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          setState(() {}); // relit _metaFutures[id]
+          setState(() {});
         });
       } catch (e, st) {
         if (kDebugMode) {
@@ -356,9 +336,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         _fullyHydratedIds.add(id);
       }
       if (!mounted) return;
+      _metaFutures[id] = _loadMeta(m);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        setState(() {}); // rechargera la meta
+        setState(() {});
       });
     } catch (e, st) {
       if (kDebugMode) {
@@ -385,6 +366,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       }
       _fullyHydratedIds.add(id);
       if (!mounted) return;
+      _metaFutures[id] = _loadMeta(m);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() {});
@@ -436,10 +418,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           : FutureBuilder<_HeroMeta?>(
               future: _metaFutures[movie.tmdbId!],
               builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return const _HeroSkeleton(overlayHeight: _overlayHeight);
-                }
-
                 final _HeroMeta? meta = snap.data;
 
                 // Ordre de préférence du fond :
@@ -470,12 +448,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                 final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
 
                 Widget buildBackground() {
+                  Widget image;
                   if (bgSrc != null) {
                     final mq = MediaQuery.of(context);
                     final int rawPx = (mq.size.width * mq.devicePixelRatio)
                         .round();
                     final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
-                    return Image.network(
+                    image = Image.network(
                       bgSrc,
                       key: ValueKey(bgSrc),
                       fit: BoxFit.cover,
@@ -498,8 +477,27 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         return child;
                       },
                     );
+                  } else {
+                    image = const ColoredBox(color: Color(0xFF222222));
                   }
-                  return const ColoredBox(color: Color(0xFF222222));
+                  return AnimatedSwitcher(
+                    duration: _fade,
+                    switchInCurve: Curves.easeInOut,
+                    switchOutCurve: Curves.easeInOut,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ...previousChildren,
+                          if (currentChild != null) currentChild,
+                        ],
+                      );
+                    },
+                    child: image,
+                  );
                 }
 
                 return Column(
@@ -510,18 +508,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         fit: StackFit.expand,
                         children: [
                           buildBackground(),
+
                           // Overlay sombre animé (transition inter-slides)
-                          AnimatedBuilder(
-                            animation: _darkness,
-                            builder: (context, _) {
-                              return Opacity(
-                                opacity: _darkness.value,
-                                child: const ColoredBox(
-                                  color: Color(0xFF141414),
-                                ),
-                              );
-                            },
-                          ),
                           const Positioned(
                             left: 0,
                             right: 0,
@@ -560,34 +548,66 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                     horizontal: AppSpacing.lg,
                                   ),
                                   child: hasTitle
-                                      ? AnimatedBuilder(
-                                          animation: _darkness,
-                                          builder: (context, _) {
-                                            return Opacity(
-                                              opacity: 1.0 - _darkness.value,
-                                              child: Text(
-                                                meta!.title!,
-                                                textAlign: TextAlign.center,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
+                                      ? AnimatedSwitcher(
+                                          duration: _fade,
+                                          transitionBuilder:
+                                              (child, animation) =>
+                                                  FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  ),
+                                          layoutBuilder: (current, previous) =>
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  ...previous,
+                                                  if (current != null) current,
+                                                ],
                                               ),
-                                            );
-                                          },
+                                          child: Text(
+                                            meta!.title!,
+                                            key: ValueKey(
+                                              '${movie.tmdbId}_title',
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                         )
-                                      : Text(
-                                          movie.title.value,
-                                          textAlign: TextAlign.center,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
+                                      : AnimatedSwitcher(
+                                          duration: _fade,
+                                          transitionBuilder:
+                                              (child, animation) =>
+                                                  FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  ),
+                                          layoutBuilder: (current, previous) =>
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  ...previous,
+                                                  if (current != null) current,
+                                                ],
+                                              ),
+                                          child: Text(
+                                            movie.title.value,
+                                            key: ValueKey(
+                                              '${movie.tmdbId}_titleFallback',
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                 ),
@@ -598,39 +618,63 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (durationText != null)
-                          MoviPill(durationText, large: true),
-                        if (durationText != null && year != null)
-                          const SizedBox(width: 8),
-                        if (year != null) MoviPill(yearText, large: true),
-                        if (year != null && ratingText != null)
-                          const SizedBox(width: 8),
-                        if (ratingText != null)
-                          MoviPill(ratingText, large: true),
-                      ],
+                    AnimatedSwitcher(
+                      duration: _fade,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      layoutBuilder: (current, previous) => Stack(
+                        alignment: Alignment.center,
+                        children: [...previous, if (current != null) current],
+                      ),
+                      child: Row(
+                        key: ValueKey('${movie.tmdbId}_pills'),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (durationText != null)
+                            MoviPill(durationText, large: true),
+                          if (durationText != null && year != null)
+                            const SizedBox(width: 8),
+                          if (year != null) MoviPill(yearText, large: true),
+                          if (year != null && ratingText != null)
+                            const SizedBox(width: 8),
+                          if (ratingText != null)
+                            MoviPill(ratingText, large: true),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    if (hasSynopsis)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
+                    SizedBox(
+                      height: _synopsisHeight,
+                      child: AnimatedSwitcher(
+                        duration: _fade,
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [...previous, if (current != null) current],
                         ),
-                        child: Text(
-                          meta!.overview!,
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.left,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: hasSynopsis
+                            ? Padding(
+                                key: ValueKey('${movie.tmdbId}_synopsis'),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: Text(
+                                  meta!.overview!,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.left,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                       ),
-                    if (hasSynopsis) const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,

@@ -85,7 +85,10 @@ class SearchPagedController extends Notifier<SearchResultsState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement: $e',
+      );
     }
   }
 
@@ -112,7 +115,10 @@ class SearchPagedController extends Notifier<SearchResultsState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: 'Échec du chargement: $e');
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Échec du chargement: $e',
+      );
     }
   }
 }

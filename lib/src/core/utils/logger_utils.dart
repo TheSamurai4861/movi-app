@@ -12,8 +12,7 @@ void logError(
   String message, [
   Object? error,
   StackTrace? stackTrace,
-]) =>
-    logger.error(message, error, stackTrace);
+]) => logger.error(message, error, stackTrace);
 
 AppLogger categoryLogger(AppLogger logger, String category) =>
     CategoryLogger(logger, category);

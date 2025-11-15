@@ -22,7 +22,9 @@ bool isValidIp(String input) {
   if (v.isEmpty) return false;
   final ipv4 =
       RegExp(r'^(?:\d{1,3}\.){3}\d{1,3}$').hasMatch(v) &&
-          v.split('.').every(
+      v
+          .split('.')
+          .every(
             (octet) => int.tryParse(octet)! >= 0 && int.tryParse(octet)! <= 255,
           );
   final ipv6 = RegExp(

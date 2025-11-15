@@ -6,5 +6,6 @@ class LoadHomeIptvSections {
 
   final HomeFeedRepository _repo;
 
-  Future<Map<String, List<ContentReference>>> call() => _repo.getIptvCategoryLists();
+  Future<Map<String, List<ContentReference>>> call() =>
+      _repo.getIptvCategoryLists();
 }

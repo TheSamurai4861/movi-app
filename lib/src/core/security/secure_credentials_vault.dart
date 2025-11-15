@@ -11,25 +11,27 @@ class SecureCredentialsVault implements CredentialsVault {
     LinuxOptions? linuxOptions,
     WindowsOptions? windowsOptions,
     WebOptions? webOptions,
-  })  : _storage = storage ?? const FlutterSecureStorage(),
-        _androidOptions = androidOptions ??
-            const AndroidOptions(encryptedSharedPreferences: true),
-        _iosOptions = iosOptions ??
-            const IOSOptions(
-              accessibility: KeychainAccessibility.passcode,
-            ),
-        _macOsOptions = macOsOptions ??
-            const MacOsOptions(
-              accessibility: KeychainAccessibility.first_unlock_this_device,
-              useDataProtectionKeyChain: true,
-            ),
-        _linuxOptions = linuxOptions ?? const LinuxOptions(),
-        _windowsOptions = windowsOptions ?? const WindowsOptions(),
-        _webOptions = webOptions ??
-            const WebOptions(
-              dbName: 'movi_credentials',
-              publicKey: 'MOVI_SECURE_STORAGE',
-            );
+  }) : _storage = storage ?? const FlutterSecureStorage(),
+       _androidOptions =
+           androidOptions ??
+           const AndroidOptions(encryptedSharedPreferences: true),
+       _iosOptions =
+           iosOptions ??
+           const IOSOptions(accessibility: KeychainAccessibility.passcode),
+       _macOsOptions =
+           macOsOptions ??
+           const MacOsOptions(
+             accessibility: KeychainAccessibility.first_unlock_this_device,
+             useDataProtectionKeyChain: true,
+           ),
+       _linuxOptions = linuxOptions ?? const LinuxOptions(),
+       _windowsOptions = windowsOptions ?? const WindowsOptions(),
+       _webOptions =
+           webOptions ??
+           const WebOptions(
+             dbName: 'movi_credentials',
+             publicKey: 'MOVI_SECURE_STORAGE',
+           );
 
   final FlutterSecureStorage _storage;
   final AndroidOptions _androidOptions;

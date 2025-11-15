@@ -22,10 +22,7 @@ class ContentCacheRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<Map<String, dynamic>?> get(
-    String key, {
-    CachePolicy? policy,
-  }) async {
+  Future<Map<String, dynamic>?> get(String key, {CachePolicy? policy}) async {
     final db = await _db;
     final rows = await db.query(
       'content_cache',
@@ -66,10 +63,6 @@ class ContentCacheRepository {
 
   Future<void> remove(String key) async {
     final db = await _db;
-    await db.delete(
-      'content_cache',
-      where: 'cache_key = ?',
-      whereArgs: [key],
-    );
+    await db.delete('content_cache', where: 'cache_key = ?', whereArgs: [key]);
   }
 }

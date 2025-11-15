@@ -3,12 +3,13 @@ import 'dart:math';
 import 'package:movi/src/core/logging/logger.dart';
 
 class SamplingLogger extends AppLogger implements LoggerLifecycle {
-  SamplingLogger(this._inner, {
+  SamplingLogger(
+    this._inner, {
     Map<LogLevel, double>? samplingByLevel,
     Map<String, double>? samplingByCategory,
-  })  : _samplingByLevel = samplingByLevel ?? const {},
-        _samplingByCategory = samplingByCategory ?? const {},
-        _rand = Random();
+  }) : _samplingByLevel = samplingByLevel ?? const {},
+       _samplingByCategory = samplingByCategory ?? const {},
+       _rand = Random();
 
   final AppLogger _inner;
   final Map<LogLevel, double> _samplingByLevel;
@@ -16,7 +17,9 @@ class SamplingLogger extends AppLogger implements LoggerLifecycle {
   final Random _rand;
 
   bool _accept(LogLevel level, String? category) {
-    final catKey = (category == null || category.isEmpty) ? 'default' : category;
+    final catKey = (category == null || category.isEmpty)
+        ? 'default'
+        : category;
     final catProb = _samplingByCategory[catKey];
     final levelProb = _samplingByLevel[level];
     final p = catProb ?? levelProb ?? 1.0;
@@ -34,7 +37,13 @@ class SamplingLogger extends AppLogger implements LoggerLifecycle {
     StackTrace? stackTrace,
   }) {
     if (!_accept(level, category)) return;
-    _inner.log(level, message, category: category, error: error, stackTrace: stackTrace);
+    _inner.log(
+      level,
+      message,
+      category: category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   @override

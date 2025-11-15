@@ -327,8 +327,6 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     );
   }
 
-  
-
   int? _parseYear(String? raw) {
     if (raw == null || raw.isEmpty || raw.length < 4) return null;
     return int.tryParse(raw.substring(0, 4));

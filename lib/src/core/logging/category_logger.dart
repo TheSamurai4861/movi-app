@@ -14,7 +14,13 @@ class CategoryLogger extends AppLogger implements LoggerLifecycle {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    _inner.log(level, message, category: _category, error: error, stackTrace: stackTrace);
+    _inner.log(
+      level,
+      message,
+      category: _category,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   @override
