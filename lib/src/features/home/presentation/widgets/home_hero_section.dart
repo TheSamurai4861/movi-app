@@ -9,6 +9,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
@@ -17,6 +18,7 @@ import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 /// Hero principal de la page d’accueil.
 /// - Affiche d’abord les données disponibles (cache / résumé).
@@ -202,12 +204,26 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
       try {
         _hydratedIds.add(id);
         try {
-          final dto = await _moviesRemote.fetchMovieFull(id);
-          await _cache.putMovieDetail(id, dto.toCache());
+          final dto = await _moviesRemote.fetchMovieFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putMovieDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
           isTvData = false;
         } catch (_) {
-          final dto = await _tvRemote.fetchShowFull(id);
-          await _cache.putTvDetail(id, dto.toCache());
+          final dto = await _tvRemote.fetchShowFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putTvDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
           isTvData = true;
         }
         if (!mounted) return;
@@ -253,11 +269,25 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
     try {
       _hydratedIds.add(id);
       if (!isTvData) {
-        final dto = await _moviesRemote.fetchMovieFull(id);
-        await _cache.putMovieDetail(id, dto.toCache());
+        final dto = await _moviesRemote.fetchMovieFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putMovieDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
       } else {
-        final dto = await _tvRemote.fetchShowFull(id);
-        await _cache.putTvDetail(id, dto.toCache());
+        final dto = await _tvRemote.fetchShowFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putTvDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
       }
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -273,7 +303,10 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
 
   Future<Map<String, dynamic>?> _safeGetMovieDetail(int id) async {
     try {
-      return await _cache.getMovieDetail(id);
+      return await _cache.getMovieDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('HomeHeroSection: getMovieDetail($id) failed: $e\n$st');
@@ -284,7 +317,10 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
 
   Future<Map<String, dynamic>?> _safeGetTvDetail(int id) async {
     try {
-      return await _cache.getTvDetail(id);
+      return await _cache.getTvDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('HomeHeroSection: getTvDetail($id) failed: $e\n$st');
@@ -475,7 +511,7 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
                         children: [
                           Expanded(
                             child: MoviPrimaryButton(
-                              label: 'Regarder maintenant',
+                              label: AppLocalizations.of(context)!.homeWatchNow,
                               assetIcon: AppAssets.iconPlay,
                               onPressed: () =>
                                   context.push(AppRouteNames.movie),

@@ -14,6 +14,7 @@ import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
 import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
 import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
@@ -31,6 +32,7 @@ class TvRepositoryImpl implements TvRepository {
     this._watchlist,
     this._local,
     this._continueWatching,
+    this._appState,
   );
 
   final TmdbTvRemoteDataSource _remote;
@@ -38,6 +40,7 @@ class TvRepositoryImpl implements TvRepository {
   final WatchlistLocalRepository _watchlist;
   final TvLocalDataSource _local;
   final ContinueWatchingLocalRepository _continueWatching;
+  final AppStateController _appState;
 
   // Concurrence bornée pour le chargement des saisons (évite de spam TMDB)
   static const int _maxConcurrentSeasons = 4;
@@ -80,7 +83,9 @@ class TvRepositoryImpl implements TvRepository {
   @override
   Future<List<TvShowSummary>> getFeaturedShows() async {
     // Popular = payload léger (résumés) → parfait pour la Home
-    final List<TmdbTvSummaryDto> popular = await _remote.fetchPopular();
+    final List<TmdbTvSummaryDto> popular = await _remote.fetchPopular(
+      language: _appState.preferredLocale,
+    );
     return popular
         .map(_mapSummary)
         .whereType<TvShowSummary>()
@@ -127,7 +132,10 @@ class TvRepositoryImpl implements TvRepository {
 
   @override
   Future<List<TvShowSummary>> searchShows(String query) async {
-    final List<TmdbTvSummaryDto> results = await _remote.searchShows(query);
+    final List<TmdbTvSummaryDto> results = await _remote.searchShows(
+      query,
+      language: _appState.preferredLocale,
+    );
     return results
         .map(_mapSummary)
         .whereType<TvShowSummary>()
@@ -172,7 +180,11 @@ class TvRepositoryImpl implements TvRepository {
 
     // Sinon, charge en "full" depuis TMDB
     final CancelToken token = CancelToken();
-    final remote = await _remote.fetchShowFull(showId, cancelToken: token);
+    final remote = await _remote.fetchShowFull(
+      showId,
+      language: _appState.preferredLocale,
+      cancelToken: token,
+    );
 
     // Sauvegarde (remplace/complète)
     await _local.saveShowDetail(remote);
@@ -223,6 +235,7 @@ class TvRepositoryImpl implements TvRepository {
     final remote = await _remote.fetchSeason(
       showId,
       seasonNumber,
+      language: _appState.preferredLocale,
       cancelToken: token,
     );
     await _local.saveSeason(showId, seasonNumber, remote);

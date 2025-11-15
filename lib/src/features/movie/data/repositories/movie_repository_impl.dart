@@ -12,6 +12,7 @@ import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
 
 class MovieRepositoryImpl implements MovieRepository {
@@ -21,6 +22,7 @@ class MovieRepositoryImpl implements MovieRepository {
     this._watchlist,
     this._local,
     this._continueWatching,
+    this._appState,
   );
 
   final TmdbMovieRemoteDataSource _remote;
@@ -28,6 +30,7 @@ class MovieRepositoryImpl implements MovieRepository {
   final WatchlistLocalRepository _watchlist;
   final MovieLocalDataSource _local;
   final ContinueWatchingLocalRepository _continueWatching;
+  final AppStateController _appState;
 
   @override
   Future<Movie> getMovie(MovieId id) async {
@@ -36,7 +39,10 @@ class MovieRepositoryImpl implements MovieRepository {
     if (cached != null) {
       return _mapDetail(cached);
     }
-    final remote = await _remote.fetchMovie(movieId);
+    final remote = await _remote.fetchMovie(
+      movieId,
+      language: _appState.preferredLocale,
+    );
     await _local.saveMovieDetail(dto: remote);
     return _mapDetail(remote);
   }
@@ -54,7 +60,10 @@ class MovieRepositoryImpl implements MovieRepository {
     if (cached != null && cached.isNotEmpty) {
       return cached.map(_mapSummary).whereType<MovieSummary>().toList();
     }
-    final dto = await _remote.fetchMovie(movieId);
+    final dto = await _remote.fetchMovie(
+      movieId,
+      language: _appState.preferredLocale,
+    );
     final recommendations = dto.recommendations;
     await _local.saveRecommendations(
       movieId: movieId,
@@ -80,7 +89,10 @@ class MovieRepositoryImpl implements MovieRepository {
 
   @override
   Future<List<MovieSummary>> searchMovies(String query) async {
-    final results = await _remote.searchMovies(query);
+    final results = await _remote.searchMovies(
+      query,
+      language: _appState.preferredLocale,
+    );
     return results.map(_mapSummary).whereType<MovieSummary>().toList();
   }
 

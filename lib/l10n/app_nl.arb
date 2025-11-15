@@ -1,0 +1,59 @@
+{
+  "welcomeTitle": "Welkom!",
+  "welcomeSubtitle": "Vul je voorkeuren in om Movi te personaliseren.",
+  "labelUsername": "Bijnaam",
+  "labelPreferredLanguage": "Voorkeurstaal",
+  "actionContinue": "Doorgaan",
+  "hintUsername": "Je bijnaam",
+  "errorFillFields": "Vul de velden correct in.",
+  "homeWatchNow": "Nu kijken",
+  "welcomeSourceTitle": "Welkom!",
+  "welcomeSourceSubtitle": "Voeg een bron toe om je Movi-ervaring te personaliseren.",
+  "welcomeSourceAdd": "Bron toevoegen",
+  "searchTitle": "Zoeken",
+  "searchHint": "Typ je zoekopdracht",
+  "clear": "Wissen",
+  "moviesTitle": "Films",
+  "seriesTitle": "Series",
+  "noResults": "Geen resultaten",
+  "historyTitle": "Geschiedenis",
+  "historyEmpty": "Geen recente zoekopdrachten",
+  "delete": "Verwijderen",
+  "resultsCount": "({count} resultaten)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "errorUnknown": "Onbekende fout",
+  "errorConnectionFailed": "Verbinding mislukt: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorConnectionGeneric": "Verbinding mislukt",
+  "validationRequired": "Vereist",
+  "validationInvalidUrl": "Ongeldige URL",
+  "snackbarSourceAddedBackground": "IPTV-bron toegevoegd. Synchronisatie op de achtergrond…",
+  "snackbarSourceAddedSynced": "IPTV-bron toegevoegd en gesynchroniseerd",
+  "navHome": "Home",
+  "navSearch": "Zoeken",
+  "navLibrary": "Bibliotheek",
+  "navSettings": "Instellingen",
+  "settingsTitle": "Instellingen",
+  "settingsLanguageLabel": "App-taal",
+  "settingsGeneralTitle": "Algemene voorkeuren",
+  "settingsDarkModeTitle": "Donkere modus",
+  "settingsDarkModeSubtitle": "Schakel een nachtvriendelijk thema in.",
+  "settingsNotificationsTitle": "Meldingen",
+  "settingsNotificationsSubtitle": "Ontvang bericht over nieuwe releases.",
+  "settingsAccountTitle": "Account",
+  "settingsProfileInfoTitle": "Profielinformatie",
+  "settingsProfileInfoSubtitle": "Naam, avatar, voorkeuren",
+  "settingsAboutTitle": "Over",
+  "settingsLegalMentionsTitle": "Juridische vermeldingen",
+  "settingsPrivacyPolicyTitle": "Privacybeleid",
+  "actionCancel": "Annuleren",
+  "actionConfirm": "Bevestigen"
+}

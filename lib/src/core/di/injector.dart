@@ -20,6 +20,7 @@ import 'package:movi/src/features/search/data/search_data_module.dart';
 import 'package:movi/src/features/settings/data/settings_data_module.dart';
 import 'package:movi/src/features/tv/data/tv_data_module.dart';
 import 'package:movi/src/shared/services.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 
 /// Global service locator instance used across the app.
 final sl = GetIt.instance;
@@ -131,5 +132,10 @@ void _registerState() {
     );
     // Attach listeners explicitly (no side-effects in constructor)
     sl<AppStateController>().attachLocaleStream();
+    sl<LocalePreferences>().languageStream.listen((_) {
+      if (sl.isRegistered<TmdbCacheDataSource>()) {
+        sl<TmdbCacheDataSource>().clearMemoryMemo();
+      }
+    });
   }
 }

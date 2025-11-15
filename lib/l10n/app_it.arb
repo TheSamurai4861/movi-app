@@ -1,0 +1,59 @@
+{
+  "welcomeTitle": "Benvenuto!",
+  "welcomeSubtitle": "Compila le tue preferenze per personalizzare Movi.",
+  "labelUsername": "Nickname",
+  "labelPreferredLanguage": "Lingua preferita",
+  "actionContinue": "Continua",
+  "hintUsername": "Il tuo nickname",
+  "errorFillFields": "Compila correttamente i campi.",
+  "homeWatchNow": "Guarda ora",
+  "welcomeSourceTitle": "Benvenuto!",
+  "welcomeSourceSubtitle": "Aggiungi una sorgente per personalizzare la tua esperienza su Movi.",
+  "welcomeSourceAdd": "Aggiungi una sorgente",
+  "searchTitle": "Cerca",
+  "searchHint": "Scrivi la tua ricerca",
+  "clear": "Cancella",
+  "moviesTitle": "Film",
+  "seriesTitle": "Serie",
+  "noResults": "Nessun risultato",
+  "historyTitle": "Cronologia",
+  "historyEmpty": "Nessuna ricerca recente",
+  "delete": "Elimina",
+  "resultsCount": "({count} risultati)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "errorUnknown": "Errore sconosciuto",
+  "errorConnectionFailed": "Connessione non riuscita: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorConnectionGeneric": "Connessione non riuscita",
+  "validationRequired": "Obbligatorio",
+  "validationInvalidUrl": "URL non valido",
+  "snackbarSourceAddedBackground": "Sorgente IPTV aggiunta. Sincronizzazione in background…",
+  "snackbarSourceAddedSynced": "Sorgente IPTV aggiunta e sincronizzata",
+  "navHome": "Home",
+  "navSearch": "Cerca",
+  "navLibrary": "Libreria",
+  "navSettings": "Impostazioni",
+  "settingsTitle": "Impostazioni",
+  "settingsLanguageLabel": "Lingua dell’app",
+  "settingsGeneralTitle": "Preferenze generali",
+  "settingsDarkModeTitle": "Modalità scura",
+  "settingsDarkModeSubtitle": "Abilita un tema adatto alla notte.",
+  "settingsNotificationsTitle": "Notifiche",
+  "settingsNotificationsSubtitle": "Ricevi avvisi sulle nuove uscite.",
+  "settingsAccountTitle": "Account",
+  "settingsProfileInfoTitle": "Informazioni profilo",
+  "settingsProfileInfoSubtitle": "Nome, avatar, preferenze",
+  "settingsAboutTitle": "Informazioni",
+  "settingsLegalMentionsTitle": "Note legali",
+  "settingsPrivacyPolicyTitle": "Informativa sulla privacy",
+  "actionCancel": "Annulla",
+  "actionConfirm": "Conferma"
+}

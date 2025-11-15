@@ -6,6 +6,7 @@ import 'package:movi/src/features/movie/domain/repositories/movie_repository.dar
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
 import 'package:movi/src/features/movie/data/repositories/movie_repository_impl.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 
 class MovieDataModule {
   static void register() {
@@ -23,6 +24,7 @@ class MovieDataModule {
         sl<WatchlistLocalRepository>(),
         sl<MovieLocalDataSource>(),
         sl<ContinueWatchingLocalRepository>(),
+        sl<AppStateController>(),
       ),
     );
   }

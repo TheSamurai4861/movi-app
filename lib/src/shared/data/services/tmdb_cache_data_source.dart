@@ -41,8 +41,9 @@ class TmdbCacheDataSource {
   // Clés de cache
   // ---------------------------------------------------------------------------
 
-  String _movieKey(int id) => 'tmdb_movie_detail_$id';
-  String _tvKey(int id) => 'tmdb_tv_detail_$id';
+  String _movieKey(int id, String language) =>
+      'tmdb_movie_detail_${id}_$language';
+  String _tvKey(int id, String language) => 'tmdb_tv_detail_${id}_$language';
 
   // ---------------------------------------------------------------------------
   // MOVIE
@@ -50,11 +51,12 @@ class TmdbCacheDataSource {
 
   Future<Map<String, dynamic>?> getMovieDetail(
     int id, {
+    required String language,
     Duration? memoTtl,
     CachePolicy? policyOverride,
   }) async {
     if (id <= 0) return null;
-    final String key = _movieKey(id);
+    final String key = _movieKey(id, language);
 
     // 1) Mémo mémoire (rapide, court-terme)
     final Map<String, dynamic>? memo = _memo.getIfFresh(key);
@@ -78,10 +80,11 @@ class TmdbCacheDataSource {
   Future<void> putMovieDetail(
     int id,
     Map<String, dynamic> json, {
+    required String language,
     Duration? memoTtl,
   }) async {
     if (id <= 0) return;
-    final String key = _movieKey(id);
+    final String key = _movieKey(id, language);
     // Écrit d’abord en mémo pour lecture immédiate post-écriture.
     _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
     await _cache.put(key: key, type: 'tmdb_detail', payload: json);
@@ -93,11 +96,12 @@ class TmdbCacheDataSource {
 
   Future<Map<String, dynamic>?> getTvDetail(
     int id, {
+    required String language,
     Duration? memoTtl,
     CachePolicy? policyOverride,
   }) async {
     if (id <= 0) return null;
-    final String key = _tvKey(id);
+    final String key = _tvKey(id, language);
 
     final Map<String, dynamic>? memo = _memo.getIfFresh(key);
     if (memo != null) return memo;
@@ -118,10 +122,11 @@ class TmdbCacheDataSource {
   Future<void> putTvDetail(
     int id,
     Map<String, dynamic> json, {
+    required String language,
     Duration? memoTtl,
   }) async {
     if (id <= 0) return;
-    final String key = _tvKey(id);
+    final String key = _tvKey(id, language);
     _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
     await _cache.put(key: key, type: 'tmdb_detail', payload: json);
   }

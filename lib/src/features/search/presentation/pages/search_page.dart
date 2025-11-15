@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -43,11 +44,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                 child: Text(
-                  'Recherche',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.searchTitle,
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -69,7 +70,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     }
                   },
                   decoration: InputDecoration(
-                    hintText: 'Tapez votre recherche',
+                    hintText: AppLocalizations.of(context)!.searchHint,
                     // Icône de recherche à gauche du placeholder
                     prefixIcon: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -97,7 +98,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   )
                                   .refresh();
                             },
-                            tooltip: 'Effacer',
+                            tooltip: AppLocalizations.of(context)!.clear,
                           )
                         : null,
                     border: OutlineInputBorder(
@@ -135,8 +136,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       if (state.movies.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         MoviItemsList(
-                          title: 'Films',
-                          subtitle: '(${state.movies.length} résultats)',
+                          title: AppLocalizations.of(context)!.moviesTitle,
+                          subtitle: AppLocalizations.of(context)!
+                              .resultsCount(state.movies.length),
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
                           titlePadding: 20,
@@ -163,8 +165,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       if (state.shows.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         MoviItemsList(
-                          title: 'Séries',
-                          subtitle: '(${state.shows.length} résultats)',
+                          title: AppLocalizations.of(context)!.seriesTitle,
+                          subtitle: AppLocalizations.of(context)!
+                              .resultsCount(state.shows.length),
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
                           titlePadding: 20,
@@ -188,12 +191,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         ),
                       ],
                       if (state.movies.isEmpty && state.shows.isEmpty)
-                        const Center(
+                        Center(
                           child: Padding(
-                            padding: EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(16),
                             child: Text(
-                              'Pas de résultats',
-                              style: TextStyle(
+                              AppLocalizations.of(context)!.noResults,
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -228,11 +231,11 @@ class _SearchHistoryList extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
               child: Text(
-                'Historique',
-                style: TextStyle(
+                AppLocalizations.of(context)!.historyTitle,
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
                   color: Colors.white,
@@ -241,11 +244,11 @@ class _SearchHistoryList extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             if (sorted.isEmpty)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 0, 0, 0),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                 child: Text(
-                  'Aucune recherche récente',
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.historyEmpty,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF737373),
@@ -297,7 +300,7 @@ class _SearchHistoryList extends ConsumerWidget {
                           onPressed: () => ref
                               .read(searchHistoryControllerProvider.notifier)
                               .remove(h.query),
-                          tooltip: 'Supprimer',
+                          tooltip: AppLocalizations.of(context)!.delete,
                         ),
                       ],
                     ),

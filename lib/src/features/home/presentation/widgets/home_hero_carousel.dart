@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -18,6 +19,9 @@ import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
 
 /// Carrousel du Hero d’accueil.
 /// - Affiche une liste de films/séries en rotation automatique.
@@ -84,6 +88,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _moviesRemote = ref.read(_tmdbMovieRemoteProvider);
     _tvRemote = ref.read(_tmdbTvRemoteProvider);
     WidgetsBinding.instance.addObserver(this);
+    final persistedIndex = ref.read(hp.homeHeroIndexProvider);
+    if (persistedIndex > 0 && persistedIndex < widget.movies.length) {
+      _index = persistedIndex;
+    }
     _prepareCurrentMeta();
     _startTimer();
   }
@@ -92,7 +100,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   void didUpdateWidget(covariant HomeHeroCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.movies, widget.movies)) {
-      _index = 0;
+      final persistedIndex = ref.read(hp.homeHeroIndexProvider);
+      final int maxIndex = (widget.movies.length - 1);
+      _index = (persistedIndex < 0)
+          ? 0
+          : (persistedIndex > maxIndex ? maxIndex : persistedIndex);
       _metaFutures.clear();
       _backdropNotified = false;
       _prepareCurrentMeta();
@@ -145,6 +157,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       _index = (_index + 1) % len;
       _backdropNotified = false;
     });
+    ref.read(hp.homeHeroIndexProvider.notifier).set(_index);
     _prepareCurrentMeta();
   }
 
@@ -276,12 +289,26 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       try {
         _hydratedIds.add(id);
         try {
-          final dto = await _moviesRemote.fetchMovieFull(id);
-          await _cache.putMovieDetail(id, dto.toCache());
+          final dto = await _moviesRemote.fetchMovieFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putMovieDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
           _fullyHydratedIds.add(id);
         } catch (_) {
-          final dto = await _tvRemote.fetchShowFull(id);
-          await _cache.putTvDetail(id, dto.toCache());
+          final dto = await _tvRemote.fetchShowFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putTvDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
           _fullyHydratedIds.add(id);
         }
         if (!mounted) return;
@@ -327,12 +354,26 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     try {
       _hydratedIds.add(id);
       if (!isTvData) {
-        final dto = await _moviesRemote.fetchMovieFull(id);
-        await _cache.putMovieDetail(id, dto.toCache());
+        final dto = await _moviesRemote.fetchMovieFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putMovieDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
         _fullyHydratedIds.add(id);
       } else {
-        final dto = await _tvRemote.fetchShowFull(id);
-        await _cache.putTvDetail(id, dto.toCache());
+        final dto = await _tvRemote.fetchShowFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putTvDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
         _fullyHydratedIds.add(id);
       }
       if (!mounted) return;
@@ -358,11 +399,25 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     try {
       _hydratedIds.add(id);
       try {
-        final dto = await _moviesRemote.fetchMovieFull(id);
-        await _cache.putMovieDetail(id, dto.toCache());
+        final dto = await _moviesRemote.fetchMovieFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putMovieDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
       } catch (_) {
-        final dto = await _tvRemote.fetchShowFull(id);
-        await _cache.putTvDetail(id, dto.toCache());
+        final dto = await _tvRemote.fetchShowFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putTvDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
       }
       _fullyHydratedIds.add(id);
       if (!mounted) return;
@@ -380,7 +435,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   Future<Map<String, dynamic>?> _safeGetMovieDetail(int id) async {
     try {
-      return await _cache.getMovieDetail(id);
+      return await _cache.getMovieDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('HomeHeroCarousel: getMovieDetail($id) failed: $e\n$st');
@@ -391,7 +449,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   Future<Map<String, dynamic>?> _safeGetTvDetail(int id) async {
     try {
-      return await _cache.getTvDetail(id);
+      return await _cache.getTvDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('HomeHeroCarousel: getTvDetail($id) failed: $e\n$st');
@@ -684,7 +745,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         children: [
                           Expanded(
                             child: MoviPrimaryButton(
-                              label: 'Regarder maintenant',
+                              label: AppLocalizations.of(context)!.homeWatchNow,
                               assetIcon: AppAssets.iconPlay,
                               onPressed: () =>
                                   context.push(AppRouteNames.movie),

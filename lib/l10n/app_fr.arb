@@ -1,0 +1,65 @@
+{
+  "welcomeTitle": "Bienvenue !",
+  "welcomeSubtitle": "Renseigne tes préférences pour personnaliser Movi.",
+  "labelUsername": "Pseudo",
+  "labelPreferredLanguage": "Langue préférée",
+  "actionContinue": "Continuer",
+  "hintUsername": "Ton pseudo",
+  "errorFillFields": "Merci de remplir correctement les champs.",
+  "homeWatchNow": "Regarder maintenant",
+  "welcomeSourceTitle": "Bienvenue !",
+  "welcomeSourceSubtitle": "Ajoute une source pour personnaliser ton expérience dans Movi.",
+  "welcomeSourceAdd": "Ajouter une source",
+  "searchTitle": "Recherche",
+  "searchHint": "Tapez votre recherche",
+  "clear": "Effacer",
+  "moviesTitle": "Films",
+  "seriesTitle": "Séries",
+  "noResults": "Pas de résultats",
+  "historyTitle": "Historique",
+  "historyEmpty": "Aucune recherche récente",
+  "delete": "Supprimer",
+  "resultsCount": "({count} résultats)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+  ,
+  "errorUnknown": "Erreur inconnue",
+  "errorConnectionFailed": "Échec de la connexion : {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorConnectionGeneric": "Échec de la connexion",
+  "validationRequired": "Requis",
+  "validationInvalidUrl": "URL invalide",
+  "snackbarSourceAddedBackground": "Source IPTV ajoutée. Synchronisation en arrière-plan…",
+  "snackbarSourceAddedSynced": "Source IPTV ajoutée et synchronisée"
+  ,
+  "navHome": "Accueil",
+  "navSearch": "Recherche",
+  "navLibrary": "Bibliothèque",
+  "navSettings": "Paramètres",
+  "settingsTitle": "Paramètres",
+  "settingsLanguageLabel": "Langue de l’application",
+  "settingsGeneralTitle": "Préférences générales",
+  "settingsDarkModeTitle": "Mode sombre",
+  "settingsDarkModeSubtitle": "Active un thème adapté à la nuit.",
+  "settingsNotificationsTitle": "Notifications",
+  "settingsNotificationsSubtitle": "Soyez averti des nouvelles sorties.",
+  "settingsAccountTitle": "Compte",
+  "settingsProfileInfoTitle": "Informations du profil",
+  "settingsProfileInfoSubtitle": "Nom, avatar, préférences",
+  "settingsAboutTitle": "À propos",
+  "settingsLegalMentionsTitle": "Mentions légales",
+  "settingsPrivacyPolicyTitle": "Politique de confidentialité",
+  "actionCancel": "Annuler",
+  "actionConfirm": "Valider"
+}

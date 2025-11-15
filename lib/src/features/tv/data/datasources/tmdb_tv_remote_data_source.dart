@@ -35,6 +35,25 @@ class TmdbTvRemoteDataSource {
       retries: retries,
       // cacheTtl: Duration(seconds: 45), // optionnel : TTL custom (sinon défaut executor)
     );
+    final String name =
+        (json['name']?.toString() ?? json['original_name']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (name.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'tv/$id',
+        language: 'en-US',
+        cancelToken: cancelToken,
+        retries: retries,
+      );
+      if (name.isEmpty) {
+        json['name'] = en['name'] ?? en['original_name'];
+        json['original_name'] = en['original_name'] ?? en['name'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
     return TmdbTvDetailDto.fromJson(json);
   }
 
@@ -57,6 +76,30 @@ class TmdbTvRemoteDataSource {
       cancelToken: cancelToken,
       retries: retries,
     );
+    final String name =
+        (json['name']?.toString() ?? json['original_name']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (name.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'tv/$id',
+        language: 'en-US',
+        query: const {
+          'append_to_response':
+              'images,credits,recommendations,content_ratings,external_ids',
+          'include_image_language': 'fr,en,null',
+        },
+        cancelToken: cancelToken,
+        retries: retries,
+      );
+      if (name.isEmpty) {
+        json['name'] = en['name'] ?? en['original_name'];
+        json['original_name'] = en['original_name'] ?? en['name'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
     return TmdbTvDetailDto.fromJson(json);
   }
 

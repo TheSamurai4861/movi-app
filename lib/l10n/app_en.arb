@@ -1,0 +1,65 @@
+{
+  "welcomeTitle": "Welcome!",
+  "welcomeSubtitle": "Fill your preferences to personalize Movi.",
+  "labelUsername": "Nickname",
+  "labelPreferredLanguage": "Preferred Language",
+  "actionContinue": "Continue",
+  "hintUsername": "Your nickname",
+  "errorFillFields": "Please fill the fields correctly.",
+  "homeWatchNow": "Watch now",
+  "welcomeSourceTitle": "Welcome!",
+  "welcomeSourceSubtitle": "Add a source to personalize your experience in Movi.",
+  "welcomeSourceAdd": "Add a source",
+  "searchTitle": "Search",
+  "searchHint": "Type your search",
+  "clear": "Clear",
+  "moviesTitle": "Movies",
+  "seriesTitle": "Shows",
+  "noResults": "No results",
+  "historyTitle": "History",
+  "historyEmpty": "No recent searches",
+  "delete": "Delete",
+  "resultsCount": "({count} results)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+  ,
+  "errorUnknown": "Unknown error",
+  "errorConnectionFailed": "Connection failed: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorConnectionGeneric": "Connection failed",
+  "validationRequired": "Required",
+  "validationInvalidUrl": "Invalid URL",
+  "snackbarSourceAddedBackground": "IPTV source added. Sync in background…",
+  "snackbarSourceAddedSynced": "IPTV source added and synchronized"
+  ,
+  "navHome": "Home",
+  "navSearch": "Search",
+  "navLibrary": "Library",
+  "navSettings": "Settings",
+  "settingsTitle": "Settings",
+  "settingsLanguageLabel": "Application Language",
+  "settingsGeneralTitle": "General Preferences",
+  "settingsDarkModeTitle": "Dark Mode",
+  "settingsDarkModeSubtitle": "Enable a night-friendly theme.",
+  "settingsNotificationsTitle": "Notifications",
+  "settingsNotificationsSubtitle": "Be notified of new releases.",
+  "settingsAccountTitle": "Account",
+  "settingsProfileInfoTitle": "Profile information",
+  "settingsProfileInfoSubtitle": "Name, avatar, preferences",
+  "settingsAboutTitle": "About",
+  "settingsLegalMentionsTitle": "Legal mentions",
+  "settingsPrivacyPolicyTitle": "Privacy policy",
+  "actionCancel": "Cancel",
+  "actionConfirm": "Confirm"
+}

@@ -8,7 +8,7 @@ const _kNavHeight = 72.0;
 const _kContainerPadding = 5.0;
 const _kSelectedBackground = Color(0xB32E2E2E); // 70% opacity
 const _kBarBackground = Color(0x80666666); // 50% opacity
-const _kActiveTextColor = Color(0xFF5493DE);
+const _kActiveTextColor = Color.fromRGBO(38, 120, 217, 1);
 const _kAnimationDuration = Duration(milliseconds: 300);
 
 class MoviBottomNavItem {

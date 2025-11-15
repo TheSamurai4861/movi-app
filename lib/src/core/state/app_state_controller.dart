@@ -16,10 +16,14 @@ import 'package:movi/src/core/state/app_state.dart';
 /// - Garantit l'immuabilité des collections exposées.
 class AppStateController extends StateNotifier<AppState> {
   AppStateController(this._localePreferences)
-    : super(AppState(preferredLocale: _localePreferences.languageCode));
+    : super(AppState(
+        preferredLocale: _localePreferences.languageCode,
+        themeMode: _localePreferences.themeMode,
+      ));
 
   final LocalePreferences _localePreferences;
   StreamSubscription<String>? _localeSubscription;
+  StreamSubscription<ThemeMode>? _themeSubscription;
   final StreamController<bool> _connectivityController =
       StreamController<bool>.broadcast();
 
@@ -34,9 +38,13 @@ class AppStateController extends StateNotifier<AppState> {
 
   bool get hasNoActiveIptvSources => state.activeIptvSources.isEmpty;
 
+  String get preferredLocale => state.preferredLocale;
+  ThemeMode get themeMode => state.themeMode;
+
   /// Définit le mode thème si celui-ci diffère de l'état courant.
-  void setThemeMode(ThemeMode mode) {
+  Future<void> setThemeMode(ThemeMode mode) async {
     if (state.themeMode == mode) return;
+    await _localePreferences.setThemeMode(mode);
     state = state.copyWith(themeMode: mode);
   }
 
@@ -88,6 +96,7 @@ class AppStateController extends StateNotifier<AppState> {
   @override
   void dispose() {
     _localeSubscription?.cancel();
+    _themeSubscription?.cancel();
     // Fire-and-forget la fermeture du StreamController
     unawaited(_connectivityController.close());
     super.dispose();
@@ -108,9 +117,15 @@ class AppStateController extends StateNotifier<AppState> {
 
   void attachLocaleStream() {
     _localeSubscription?.cancel();
+    _themeSubscription?.cancel();
     _localeSubscription = _localePreferences.languageStream.listen((code) {
       if (code.isNotEmpty && code != state.preferredLocale) {
         state = state.copyWith(preferredLocale: code);
+      }
+    });
+    _themeSubscription = _localePreferences.themeStream.listen((mode) {
+      if (mode != state.themeMode) {
+        state = state.copyWith(themeMode: mode);
       }
     });
   }

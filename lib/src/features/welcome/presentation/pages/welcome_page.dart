@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/logging/logging.dart';
 
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
@@ -38,20 +39,25 @@ class WelcomePage extends ConsumerWidget {
       unawaited(LoggingService.log('Welcome: connect success, go bootstrap'));
       // ✅ Navigation immédiate vers la page d’accueil
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Source IPTV ajoutée. La synchronisation démarre en arrière-plan…',
+            AppLocalizations.of(context)!.snackbarSourceAddedBackground,
           ),
         ),
       );
       context.go('/bootstrap'); // Aller d'abord au splash de préparation
     } else if (!success && context.mounted) {
       final error =
-          ref.read(iptvConnectControllerProvider).error ?? 'Erreur inconnue';
+          ref.read(iptvConnectControllerProvider).error ??
+          AppLocalizations.of(context)!.errorUnknown;
       unawaited(LoggingService.log('Welcome: connect failed error=$error'));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Échec de la connexion : $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.errorConnectionFailed(error),
+          ),
+        ),
+      );
     }
   }
 

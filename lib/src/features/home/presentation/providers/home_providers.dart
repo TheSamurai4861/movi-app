@@ -12,6 +12,35 @@ import 'package:movi/src/features/home/domain/usecases/load_home_hero.dart';
 import 'package:movi/src/features/home/domain/usecases/load_home_continue_watching.dart';
 import 'package:movi/src/features/home/domain/usecases/load_home_iptv_sections.dart';
 
+class NavIndexController extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void set(int index) {
+    if (index == state) return;
+    state = index;
+  }
+}
+
+final homeNavIndexProvider = NotifierProvider<NavIndexController, int>(
+  NavIndexController.new,
+);
+
+class HomeHeroIndexController extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void set(int index) {
+    final next = index < 0 ? 0 : index;
+    if (next == state) return;
+    state = next;
+  }
+}
+
+final homeHeroIndexProvider = NotifierProvider<HomeHeroIndexController, int>(
+  HomeHeroIndexController.new,
+);
+
 /// État immutable du Home.
 class HomeState {
   const HomeState({

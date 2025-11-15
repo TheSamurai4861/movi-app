@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
 
 import 'package:movi/src/features/welcome/presentation/providers/welcome_providers.dart';
@@ -106,23 +107,27 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     if (ok) {
       // ✅ Nav immédiate — la synchro tourne en arrière-plan (voir iptv_connect_providers)
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Source IPTV ajoutée. Synchronisation en arrière-plan…',
+            AppLocalizations.of(context)!.snackbarSourceAddedBackground,
           ),
         ),
       );
       context.go('/'); // aller directement à l’accueil
     } else {
-      final err =
-          ref.read(iptvConnectControllerProvider).error ?? 'Échec de connexion';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      final err = ref.read(iptvConnectControllerProvider).error;
+      final msg = err == null || err.isEmpty
+          ? AppLocalizations.of(context)!.errorConnectionGeneric
+          : AppLocalizations.of(context)!.errorConnectionFailed(err);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
-  String _presentFailureMessage(String? raw) {
-    if (raw == null || raw.isEmpty) return 'Échec de connexion';
-    return raw;
+  String _presentFailureMessage(BuildContext context, String? raw) {
+    if (raw == null || raw.isEmpty) {
+      return AppLocalizations.of(context)!.errorConnectionGeneric;
+    }
+    return AppLocalizations.of(context)!.errorConnectionFailed(raw);
   }
 
   @override
@@ -151,7 +156,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               onFieldSubmitted: (_) => _focusUser.requestFocus(),
               decoration: const InputDecoration(hintText: 'URL Serveur'),
               validator: (v) => (XtreamEndpoint.tryParse(v ?? '') == null)
-                  ? 'URL invalide'
+                  ? AppLocalizations.of(context)!.validationInvalidUrl
                   : null,
             ),
           ),
@@ -168,8 +173,9 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusPass.requestFocus(),
               decoration: const InputDecoration(hintText: 'Identifiant Xtream'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Requis' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? AppLocalizations.of(context)!.validationRequired
+                  : null,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -200,7 +206,9 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
                 ),
               ),
               obscureText: ui.isObscured,
-              validator: (v) => (v == null || v.isEmpty) ? 'Requis' : null,
+              validator: (v) => (v == null || v.isEmpty)
+                  ? AppLocalizations.of(context)!.validationRequired
+                  : null,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -224,7 +232,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Text(
-                _presentFailureMessage(ui.errorMessage),
+                _presentFailureMessage(context, ui.errorMessage),
                 style: t.bodyMedium?.copyWith(color: Colors.redAccent),
               ),
             ),

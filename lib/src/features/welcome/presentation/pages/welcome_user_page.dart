@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
@@ -51,28 +52,31 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const WelcomeHeader(
-                    title: 'Bienvenue !',
-                    subtitle:
-                        'Renseigne tes préférences pour personnaliser Movi.',
+                  WelcomeHeader(
+                    title: AppLocalizations.of(context)!.welcomeTitle,
+                    subtitle: AppLocalizations.of(context)!.welcomeSubtitle,
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       LabeledField(
-                        label: 'Pseudo',
+                        label: AppLocalizations.of(context)!.labelUsername,
                         child: TextFormField(
                           controller: _nameCtrl,
-                          decoration: const InputDecoration(
-                            hintText: 'Ton pseudo',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            hintText: AppLocalizations.of(
+                              context,
+                            )!.hintUsername,
+                            border: const OutlineInputBorder(),
                           ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       LabeledField(
-                        label: 'Langue préférée',
+                        label: AppLocalizations.of(
+                          context,
+                        )!.labelPreferredLanguage,
                         child: DropdownButtonFormField<String>(
                           initialValue: _lang,
                           items: const [
@@ -213,7 +217,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         child: SizedBox(
                           width: double.infinity,
                           child: MoviPrimaryButton(
-                            label: 'Continuer',
+                            label: AppLocalizations.of(context)!.actionContinue,
                             onPressed: state.isSaving
                                 ? null
                                 : () async {
@@ -225,9 +229,11 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Merci de remplir correctement les champs.',
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.errorFillFields,
                                           ),
                                         ),
                                       );

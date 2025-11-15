@@ -4,8 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/models/models.dart';
-import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
@@ -17,19 +17,21 @@ import 'package:movi/src/features/home/presentation/widgets/continue_watching_ca
 import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/features/library/presentation/pages/library_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 // logging_service n'est plus utilisé sur la page d'accueil
 // overlay_splash supprimé de la page d'accueil
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  static const _fadeDuration = Duration(milliseconds: 500);
+class _HomePageState extends ConsumerState<HomePage> {
+  static const _fadeDuration = Duration(milliseconds: 200);
   static const _navBottomOffset = 0;
 
   int _selectedIndex = 0;
@@ -42,14 +44,14 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final navHeight = moviNavBarHeight();
-    final bottomPadding = navHeight + _navBottomOffset + media.padding.bottom;
+    final navIndex = ref.watch(hp.homeNavIndexProvider);
+    if (_selectedIndex != navIndex) _selectedIndex = navIndex;
 
     final pages = <Widget>[
       const _HomeContent(),
       const SearchPage(),
-      _NavPlaceholder(title: 'Bibliothèque', bottomPadding: bottomPadding),
-      _NavPlaceholder(title: 'Paramètres', bottomPadding: bottomPadding),
+      const LibraryPage(),
+      const SettingsPage(),
     ];
 
     return Scaffold(
@@ -72,7 +74,32 @@ class _HomePageState extends State<HomePage> {
               bottom: _navBottomOffset + media.padding.bottom,
               child: MoviBottomNavBar(
                 selectedIndex: _selectedIndex,
-                onItemSelected: _handleNavTap,
+                navItems: [
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navHome,
+                    activeIcon: AppAssets.navHomeActive,
+                    inactiveIcon: AppAssets.navHome,
+                  ),
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navSearch,
+                    activeIcon: AppAssets.navSearchActive,
+                    inactiveIcon: AppAssets.navSearch,
+                  ),
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navLibrary,
+                    activeIcon: AppAssets.navLibraryActive,
+                    inactiveIcon: AppAssets.navLibrary,
+                  ),
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navSettings,
+                    activeIcon: AppAssets.navSettingsActive,
+                    inactiveIcon: AppAssets.navSettings,
+                  ),
+                ],
+                onItemSelected: (i) {
+                  _handleNavTap(i);
+                  ref.read(hp.homeNavIndexProvider.notifier).set(i);
+                },
               ),
             ),
             // Overlay supprimé : le contenu est affiché directement.
@@ -321,28 +348,6 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
 }
 
 // _ViewportReq supprimé — l’UI n’émet plus de fenêtres de viewport pour enrichir.
-
-class _NavPlaceholder extends StatelessWidget {
-  const _NavPlaceholder({required this.title, required this.bottomPadding});
-
-  final String title;
-  final double bottomPadding;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.lg,
-        AppSpacing.lg,
-        bottomPadding,
-      ),
-      child: Center(
-        child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
-      ),
-    );
-  }
-}
 
 class _HeroEmptyBanner extends StatelessWidget {
   const _HeroEmptyBanner();

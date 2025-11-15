@@ -7,6 +7,7 @@ import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
 import 'package:movi/src/features/tv/data/repositories/tv_repository_impl.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 
 class TvDataModule {
   static void register() {
@@ -24,6 +25,7 @@ class TvDataModule {
         sl<WatchlistLocalRepository>(),
         sl<TvLocalDataSource>(),
         sl<ContinueWatchingLocalRepository>(),
+        sl<AppStateController>(),
       ),
     );
   }

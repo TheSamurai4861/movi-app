@@ -147,15 +147,21 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       if (isSeries) {
         Map<String, dynamic>? cached = await _tmdbCache.getTvDetail(
           idNum,
+          language: _appState.preferredLocale,
           policyOverride: const CachePolicy(ttl: Duration(days: 3)),
         );
         if (cached == null) {
           final dto = await _tvRemote.fetchShowLite(
             idNum,
+            language: _appState.preferredLocale,
             cancelToken: cancelToken,
           );
           cached = dto.toCache();
-          await _tmdbCache.putTvDetail(idNum, cached);
+          await _tmdbCache.putTvDetail(
+            idNum,
+            cached,
+            language: _appState.preferredLocale,
+          );
         }
 
         final String? posterPath =
@@ -186,15 +192,21 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       } else {
         Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(
           idNum,
+          language: _appState.preferredLocale,
           policyOverride: const CachePolicy(ttl: Duration(days: 3)),
         );
         if (cached == null) {
           final dto = await _moviesRemote.fetchMovieLite(
             idNum,
+            language: _appState.preferredLocale,
             cancelToken: cancelToken,
           );
           cached = dto.toCache();
-          await _tmdbCache.putMovieDetail(idNum, cached);
+          await _tmdbCache.putMovieDetail(
+            idNum,
+            cached,
+            language: _appState.preferredLocale,
+          );
         }
 
         final String? posterPath =
@@ -248,6 +260,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
         window: _trendingWindow,
         page: page,
+        language: _appState.preferredLocale,
       );
       return res
           .map(_MovieLiteDto.tryParse)
@@ -264,6 +277,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         try {
           final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
             window: _trendingWindow,
+            language: _appState.preferredLocale,
           );
           return res
               .map(_MovieLiteDto.tryParse)

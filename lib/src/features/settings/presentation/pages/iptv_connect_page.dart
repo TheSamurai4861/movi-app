@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
@@ -41,7 +42,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
     if (!mounted) return;
     if (ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Source IPTV ajoutée et synchronisée')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.snackbarSourceAddedSynced,
+          ),
+        ),
       );
       if (context.canPop()) {
         context.pop(); // cas: ouvert depuis Settings (push)
@@ -85,7 +90,9 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                             ),
                             validator: (v) {
                               if (v == null || v.trim().isEmpty) {
-                                return 'Requis';
+                                return AppLocalizations.of(
+                                  context,
+                                )!.validationRequired;
                               }
                               return null;
                             },
@@ -101,8 +108,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               hintText: 'Nom d’utilisateur Xtream',
                               border: OutlineInputBorder(),
                             ),
-                            validator: (v) =>
-                                (v == null || v.isEmpty) ? 'Requis' : null,
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.validationRequired
+                                : null,
                             autofillHints: const [AutofillHints.username],
                           ),
                         ),
@@ -115,8 +125,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                               hintText: 'Mot de passe Xtream',
                               border: OutlineInputBorder(),
                             ),
-                            validator: (v) =>
-                                (v == null || v.isEmpty) ? 'Requis' : null,
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? AppLocalizations.of(
+                                    context,
+                                  )!.validationRequired
+                                : null,
                             obscureText: true,
                             autofillHints: const [AutofillHints.password],
                           ),

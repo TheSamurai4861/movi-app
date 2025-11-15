@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 class WelcomeSourcePage extends StatelessWidget {
@@ -20,10 +21,11 @@ class WelcomeSourcePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const WelcomeHeader(
-                    title: 'Bienvenue !',
-                    subtitle:
-                        'Ajoute une source pour personnaliser ton expérience dans Movi.',
+                  WelcomeHeader(
+                    title: AppLocalizations.of(context)!.welcomeSourceTitle,
+                    subtitle: AppLocalizations.of(
+                      context,
+                    )!.welcomeSourceSubtitle,
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Padding(
@@ -33,7 +35,7 @@ class WelcomeSourcePage extends StatelessWidget {
                     child: SizedBox(
                       width: double.infinity,
                       child: MoviPrimaryButton(
-                        label: 'Ajouter une source',
+                        label: AppLocalizations.of(context)!.welcomeSourceAdd,
                         onPressed: () {
                           if (!context.mounted) return;
                           GoRouter.of(context).go('/settings/iptv/connect');

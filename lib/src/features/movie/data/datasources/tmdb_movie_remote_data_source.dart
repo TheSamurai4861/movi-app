@@ -24,6 +24,24 @@ class TmdbMovieRemoteDataSource {
       language: language,
       cancelToken: cancelToken,
     );
+    final String title =
+        (json['title']?.toString() ?? json['original_title']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (title.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'movie/$id',
+        language: 'en-US',
+        cancelToken: cancelToken,
+      );
+      if (title.isEmpty) {
+        json['title'] = en['title'] ?? en['original_title'];
+        json['original_title'] = en['original_title'] ?? en['title'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
     return TmdbMovieDetailDto.fromJson(json);
   }
 
@@ -49,11 +67,37 @@ class TmdbMovieRemoteDataSource {
       cancelToken: cancelToken,
     );
 
+    String imgLangs(String? code) {
+      final lang = (code ?? '').split('-').first.toLowerCase();
+      if (lang.isEmpty || lang == 'en') return 'null,en';
+      return '$lang,en,null';
+    }
+
     final jsonImages = await _client.getJson(
       'movie/$id/images',
-      query: const {'include_image_language': 'null,en-US'},
+      query: {'include_image_language': imgLangs(language)},
       cancelToken: cancelToken,
     );
+
+    final String title =
+        (json['title']?.toString() ?? json['original_title']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (title.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'movie/$id',
+        query: const {'append_to_response': 'credits,recommendations'},
+        language: 'en-US',
+        cancelToken: cancelToken,
+      );
+      if (title.isEmpty) {
+        json['title'] = en['title'] ?? en['original_title'];
+        json['original_title'] = en['original_title'] ?? en['title'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
 
     json['images'] = jsonImages;
     return TmdbMovieDetailDto.fromJson(json);

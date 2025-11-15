@@ -7,6 +7,7 @@ import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
+import 'package:movi/src/core/preferences/preferences.dart';
 
 Future<void> main() async {
   runZonedGuarded(
@@ -28,7 +29,10 @@ Future<void> main() async {
       registerEnvironmentLoader(loader);
       final flavor = loader.load();
       final config = await registerConfig(flavor: flavor);
-      await initDependencies(appConfig: config);
+      await initDependencies(
+        appConfig: config,
+        localeProvider: () => sl<LocalePreferences>().languageCode,
+      );
 
       sl<AppLogger>().info('App start: flavor=$flavor');
       runApp(const ProviderScope(child: MyApp()));
