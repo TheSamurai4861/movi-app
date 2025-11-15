@@ -1,33 +1,28 @@
 workflows:
-  ios-ipa:
-    name: iOS IPA (unsigned)
+  ios-dev-ipa:
+    name: iOS Dev IPA (unsigned)
     max_build_duration: 60
     environment:
       flutter: stable
       xcode: latest
-      vars:
-        TMDB_API_KEY: eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8
     scripts:
       - name: Install dependencies
         script: flutter pub get
 
-      - name: Check TMDB key length
+      - name: Build unsigned IPA (archive, APP_ENV=dev)
         script: |
-          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
-          if [ -z "$TMDB_API_KEY" ]; then
-            echo "ERROR: TMDB_API_KEY is empty"
-            exit 1
+          echo "Building iOS Dev IPA..."
+          EXTRA_DEFINE=""
+          if [ -n "$TMDB_API_KEY" ]; then
+            echo "TMDB_API_KEY provided, enabling TMDB define for dev build"
+            EXTRA_DEFINE="--dart-define=TMDB_API_KEY=${TMDB_API_KEY}"
+          else
+            echo "TMDB_API_KEY not set; proceeding without TMDB define (permissive dev)"
           fi
-
-      - name: Build unsigned IPA (archive)
-        script: |
-          echo "Building iOS IPA with injected TMDB API key..."
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
-            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
-            --dart-define=TMDB_API_KEY_DEV=${TMDB_API_KEY} \
-            --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY} \
-            --dart-define=APP_ENV=prod
+            --dart-define=APP_ENV=dev \
+            $EXTRA_DEFINE
 
       - name: Package unsigned IPA from .xcarchive
         script: |
@@ -37,7 +32,47 @@ workflows:
           rm -rf "$OUTDIR"
           mkdir -p "$OUTDIR/Payload"
           cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
-          (cd "$OUTDIR" && zip -r "Runner-unsigned.ipa" "Payload")
+          (cd "$OUTDIR" && zip -r "Runner-unsigned-dev.ipa" "Payload")
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+
+  ios-prod-store:
+    name: iOS Prod Store (unsigned)
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+
+      - name: Check TMDB key length (required for prod)
+        script: |
+          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "ERROR: TMDB_API_KEY is empty for prod build"
+            exit 1
+          fi
+
+      - name: Build unsigned IPA (archive, APP_ENV=prod)
+        script: |
+          echo "Building iOS Prod IPA..."
+          flutter build ipa --release --no-codesign \
+            --target=lib/main.dart \
+            --dart-define=APP_ENV=prod \
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY}
+
+      - name: Package unsigned IPA from .xcarchive
+        script: |
+          set -euxo pipefail
+          ARCHIVE="build/ios/archive/Runner.xcarchive"
+          OUTDIR="build/ios/ipa"
+          rm -rf "$OUTDIR"
+          mkdir -p "$OUTDIR/Payload"
+          cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
+          (cd "$OUTDIR" && zip -r "Runner-unsigned-prod.ipa" "Payload")
 
     artifacts:
       - build/ios/ipa/*.ipa

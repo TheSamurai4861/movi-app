@@ -11,10 +11,13 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   final loader = EnvironmentLoader();
   registerEnvironmentLoader(loader);
   final flavor = loader.load();
+  final requireTmdbKey = kReleaseMode && flavor.isProduction;
+  debugPrint('[Startup] flavor=${flavor.label} '
+      '(env: ${flavor.environment}) | requireTmdbKey=$requireTmdbKey');
   debugPrint('avant registerConfig');
   final config = await registerConfig(
     flavor: flavor,
-    requireTmdbKey: kReleaseMode,
+    requireTmdbKey: requireTmdbKey,
   );
   debugPrint('après registerConfig OK');
   debugPrint('avant initDependencies');

@@ -16,10 +16,12 @@ class AppConfigFactory {
     // Préférence au tmdbApiKey fourni par le flavor (compile-time via dart-define).
     String? tmdbKey = flavor.network.tmdbApiKey;
     if (tmdbKey == null || tmdbKey.isEmpty) {
-      try {
-        tmdbKey = await _secretStore.read('TMDB_API_KEY');
-      } catch (_) {
-        tmdbKey = null;
+      if (!requireTmdbKey) {
+        try {
+          tmdbKey = await _secretStore.read('TMDB_API_KEY');
+        } catch (_) {
+          tmdbKey = null;
+        }
       }
     }
     final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
