@@ -5,6 +5,8 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      groups:
+        - api
     scripts:
       - name: Install dependencies
         script: flutter pub get
@@ -48,6 +50,8 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      groups:
+        - api
     scripts:
       - name: Install dependencies
         script: flutter pub get
