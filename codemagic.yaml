@@ -9,20 +9,24 @@ workflows:
       - name: Install dependencies
         script: flutter pub get
 
+      - name: Load .env (optional TMDB for dev)
+        script: |
+          set -a
+          if [ -f .env ]; then
+            echo "Loading .env for dev convenience"
+            source .env
+          else
+            echo ".env not found; continuing"
+          fi
+          set +a
+
       - name: Build unsigned IPA (archive, APP_ENV=dev)
         script: |
           echo "Building iOS Dev IPA..."
-          EXTRA_DEFINE=""
-          if [ -n "$TMDB_API_KEY" ]; then
-            echo "TMDB_API_KEY provided, enabling TMDB define for dev build"
-            EXTRA_DEFINE="--dart-define=TMDB_API_KEY=${TMDB_API_KEY}"
-          else
-            echo "TMDB_API_KEY not set; proceeding without TMDB define (permissive dev)"
-          fi
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
             --dart-define=APP_ENV=dev \
-            $EXTRA_DEFINE
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY}
 
       - name: Package unsigned IPA from .xcarchive
         script: |
