@@ -1,767 +1,389 @@
 ================================================================================
-EXPORT CONTENU — 10 fichier(s)
+EXPORT CONTENU — 18 fichier(s)
 ================================================================================
 
 --------------------------------------------------------------------------------
-FILE #16: src/core/config/config_module.dart
+FILE #12: main.dart
 --------------------------------------------------------------------------------
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/config/config.dart';
-import 'package:movi/src/core/logging/logger.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/app.dart';
+import 'package:movi/src/core/startup/app_startup_gate.dart';
 
-class AppConfigFactory {
-  const AppConfigFactory(this._secretStore);
-
-  final SecretStore _secretStore;
-
-  Future<AppConfig> build({
-    required EnvironmentFlavor flavor,
-    FeatureFlags? featureOverrides,
-    AppMetadata? metadataOverride,
-    bool requireTmdbKey = true,
-  }) async {
-    // Préférence au tmdbApiKey fourni par le flavor (compile-time via dart-define).
-    String? tmdbKey = flavor.network.tmdbApiKey;
-    if (tmdbKey == null || tmdbKey.isEmpty) {
-      if (!requireTmdbKey) {
-        try {
-          tmdbKey = await _secretStore.read('TMDB_API_KEY');
-        } catch (_) {
-          tmdbKey = null;
-        }
-      }
-    }
-    final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
-    final flags = featureOverrides ?? flavor.defaultFlags;
-    final metadata = metadataOverride ?? flavor.metadata;
-    final LoggingConfig logging = _defaultLoggingFor(flavor)..validate();
-    final config = AppConfig(
-      environment: flavor,
-      network: network,
-      featureFlags: flags,
-      metadata: metadata,
-      logging: logging,
-      requireTmdbKey: requireTmdbKey,
-    );
-
-    config.ensureValid();
-    return config;
-  }
-}
-
-Future<AppConfig> loadAppConfig({
-  required EnvironmentFlavor flavor,
-  SecretStore? secretStore,
-  FeatureFlags? featureOverrides,
-  AppMetadata? metadataOverride,
-  bool requireTmdbKey = true,
-}) async {
-  final store = secretStore ?? SecretStore();
-  final factory = AppConfigFactory(store);
-  return factory.build(
-    flavor: flavor,
-    featureOverrides: featureOverrides,
-    metadataOverride: metadataOverride,
-    requireTmdbKey: requireTmdbKey,
-  );
-}
-
-Future<AppConfig> registerConfig({
-  required EnvironmentFlavor flavor,
-  SecretStore? secretStore,
-  FeatureFlags? featureOverrides,
-  AppMetadata? metadataOverride,
-  bool requireTmdbKey = true,
-  bool registerWithLocator = true,
-}) async {
-  final store = secretStore ?? SecretStore();
-  if (registerWithLocator) {
-    _replace<SecretStore>(store);
-  }
-  final config = await loadAppConfig(
-    flavor: flavor,
-    secretStore: store,
-    featureOverrides: featureOverrides,
-    metadataOverride: metadataOverride,
-    requireTmdbKey: requireTmdbKey,
-  );
-  if (registerWithLocator) {
-    _replace<EnvironmentFlavor>(flavor);
-    _replace<AppConfig>(config);
-    _replace<FeatureFlags>(config.featureFlags);
-  }
-  return config;
-}
-
-void _replace<T extends Object>(T instance) {
-  if (sl.isRegistered<T>()) {
-    sl.unregister<T>();
-  }
-  sl.registerSingleton<T>(instance);
-}
-
-void registerEnvironmentLoader(EnvironmentLoader loader) {
-  _replace<EnvironmentLoader>(loader);
-}
-
-LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
-  switch (flavor.environment) {
-    case AppEnvironment.dev:
-      return const LoggingConfig(
-        minLevel: LogLevel.debug,
-        enableConsole: true,
-        enableFile: true,
-        samplingByLevel: {LogLevel.debug: 1.0},
-        defaultRateLimitPerMinute: 0,
-        exposeMetrics: true,
-      );
-    case AppEnvironment.staging:
-      return const LoggingConfig(
-        minLevel: LogLevel.info,
-        enableConsole: true,
-        enableFile: true,
-        samplingByLevel: {LogLevel.debug: 0.5},
-        defaultRateLimitPerMinute: 200,
-        exposeMetrics: true,
-      );
-    case AppEnvironment.prod:
-      return const LoggingConfig(
-        minLevel: LogLevel.warn,
-        enableConsole: true,
-        enableFile: true,
-        samplingByLevel: {LogLevel.debug: 0.1},
-        defaultRateLimitPerMinute: 100,
-        exposeMetrics: true,
-      );
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #17: src/core/config/env/dev_environment.dart
---------------------------------------------------------------------------------
-// ignore_for_file: public_member_api_docs
-
-import 'package:movi/src/core/config/models/app_metadata.dart';
-import 'package:movi/src/core/config/models/feature_flags.dart';
-import 'package:movi/src/core/config/models/network_endpoints.dart';
-import 'package:movi/src/core/config/env/environment.dart';
-
-/// Compile-time configuration for TMDB access.
-/// Provide with `--dart-define` at build/run time.
-/// Priority order: generic > flavor-specific.
-const String _tmdbApiKeyGeneric = String.fromEnvironment('TMDB_API_KEY');
-const String _tmdbApiKeyDev = String.fromEnvironment('TMDB_API_KEY_DEV');
-const String _tmdbApiKeyStaging = String.fromEnvironment(
-  'TMDB_API_KEY_STAGING',
-);
-const String _tmdbApiKeyProd = String.fromEnvironment('TMDB_API_KEY_PROD');
-
-/// Fallback explicite pour le flavor Dev (usage local uniquement).
-/// ATTENTION: ne pas utiliser en prod/staging. Cette valeur sera intégrée au binaire.
-
-/// Optionally returns the TMDB API key from compile-time defines.
-/// If no key is provided via --dart-define, returns null to allow
-/// runtime resolution (e.g., via .env or process environment).
-String? _resolveTmdbKey(AppEnvironment env) {
-  String candidate = _tmdbApiKeyGeneric;
-  if (candidate.isEmpty) {
-    switch (env) {
-      case AppEnvironment.dev:
-        candidate = _tmdbApiKeyDev;
-        break;
-      case AppEnvironment.staging:
-        candidate = _tmdbApiKeyStaging;
-        break;
-      case AppEnvironment.prod:
-        candidate = _tmdbApiKeyProd;
-        break;
-    }
-  }
-  return candidate.isNotEmpty ? candidate : null;
-}
-
-/// Default network timeouts used across flavors when not overridden.
-const NetworkTimeouts _defaultTimeouts = NetworkTimeouts(
-  connect: Duration(seconds: 5),
-  receive: Duration(seconds: 10),
-  send: Duration(seconds: 5),
-);
-
-EnvironmentFlavor createDevEnvironment() => _buildFlavor(
-  env: AppEnvironment.dev,
-  label: 'Development',
-  flags: const FeatureFlags(
-    useRemoteHome: false,
-    enableTelemetry: true,
-    enableDownloads: false,
-    enableNewSearch: true,
-  ),
-  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'dev'),
-  restBaseUrl: 'https://api.dev.movi.app',
-  imageBaseUrl: 'https://images.dev.movi.app',
-  timeouts: _defaultTimeouts,
-);
-
-EnvironmentFlavor createStagingEnvironment() => _buildFlavor(
-  env: AppEnvironment.staging,
-  label: 'Staging',
-  flags: const FeatureFlags(
-    useRemoteHome: true,
-    enableTelemetry: true,
-    enableDownloads: true,
-    enableNewSearch: true,
-  ),
-  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'staging'),
-  restBaseUrl: 'https://api.staging.movi.app',
-  imageBaseUrl: 'https://images.staging.movi.app',
-  timeouts: _defaultTimeouts,
-);
-
-EnvironmentFlavor createProdEnvironment() => _buildFlavor(
-  env: AppEnvironment.prod,
-  label: 'Production',
-  flags: const FeatureFlags(
-    useRemoteHome: true,
-    enableTelemetry: true,
-    enableDownloads: true,
-    enableNewSearch: true,
-  ),
-  metadata: const AppMetadata(version: '1.0.0', buildNumber: 'prod'),
-  restBaseUrl: 'https://api.movi.app',
-  imageBaseUrl: 'https://images.movi.app',
-  timeouts: const NetworkTimeouts(
-    connect: Duration(seconds: 10),
-    receive: Duration(seconds: 20),
-    send: Duration(seconds: 10),
-  ),
-);
-
-EnvironmentFlavor _buildFlavor({
-  required AppEnvironment env,
-  required String label,
-  required FeatureFlags flags,
-  required AppMetadata metadata,
-  required String restBaseUrl,
-  required String imageBaseUrl,
-  NetworkTimeouts timeouts = const NetworkTimeouts(),
-}) {
-  return EnvironmentFlavor(
-    environment: env,
-    label: label,
-    defaultFlags: flags,
-    metadata: metadata,
-    network: NetworkEndpoints(
-      restBaseUrl: restBaseUrl,
-      imageBaseUrl: imageBaseUrl,
-      tmdbApiKey: _resolveTmdbKey(env),
-      timeouts: timeouts,
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('FlutterError: ${details.exception}');
+  };
+  WidgetsBinding.instance.platformDispatcher.onError =
+      (Object error, StackTrace stack) {
+        debugPrint('DispatcherError: $error');
+        return true;
+      };
+  runApp(
+    const ProviderScope(
+      child: AppStartupGate(child: MyApp()),
     ),
   );
 }
 
 --------------------------------------------------------------------------------
-FILE #18: src/core/config/env/environment.dart
+FILE #14: src/app.dart
 --------------------------------------------------------------------------------
-import 'package:movi/src/core/config/models/app_metadata.dart';
-import 'package:movi/src/core/config/models/feature_flags.dart';
-import 'package:movi/src/core/config/models/network_endpoints.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/theme/theme.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
-enum AppEnvironment { dev, staging, prod }
+class MyApp extends ConsumerWidget {
+  const MyApp({super.key});
 
-class EnvironmentFlavor {
-  const EnvironmentFlavor({
-    required this.environment,
-    required this.label,
-    required this.network,
-    required this.defaultFlags,
-    required this.metadata,
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+    final locale = ref.watch(currentLocaleProvider);
+    final themeMode = ref.watch(currentThemeModeProvider);
+    return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      title: 'Movi',
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      locale: locale,
+      supportedLocales: const [
+        Locale('en', 'US'),
+        Locale('fr', 'FR'),
+        Locale('es', 'ES'),
+        Locale('nl', 'NL'),
+        Locale('it', 'IT'),
+      ],
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      routerConfig: router,
+    );
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #60: src/core/router/app_router.dart
+--------------------------------------------------------------------------------
+// lib/src/core/router/app_router.dart
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/state/app_state.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
+import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
+import 'package:movi/src/features/home/presentation/pages/home_page.dart';
+import 'package:movi/src/features/library/presentation/pages/library_page.dart';
+import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
+import 'package:movi/src/features/person/presentation/pages/person_detail_page.dart';
+import 'package:movi/src/features/saga/presentation/pages/saga_detail_page.dart';
+import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
+import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
+import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
+import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
+import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
+
+class AppRouteNames {
+  static const launch = '/launch';
+  static const welcome = '/welcome';
+  static const bootstrap = '/bootstrap';
+  static const home = '/';
+  static const search = '/search';
+  static const searchResults = '/search_results';
+  static const library = '/library';
+  static const settings = '/settings';
+  static const movie = '/movie';
+  static const person = '/person';
+  static const playlist = '/playlist';
+  static const category = '/category';
+  static const saga = '/saga';
+  static const tv = '/tv';
+}
+
+GoRouter createRouter({
+  required AppStateController appStateController,
+  required AppLogger logger,
+  required IptvLocalRepository iptvRepository,
+}) => _RouterBundle(
+  appStateController: appStateController,
+  logger: logger,
+  iptvRepository: iptvRepository,
+).router;
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final appStateController = ref.watch(appStateControllerProvider);
+  final logger = ref.watch(slProvider)<AppLogger>();
+  final iptvRepository = ref.watch(slProvider)<IptvLocalRepository>();
+
+  final bundle = _RouterBundle(
+    appStateController: appStateController,
+    logger: logger,
+    iptvRepository: iptvRepository,
+  );
+
+  ref.onDispose(() {
+    bundle.router.dispose();
+    bundle.launchGuard.dispose();
   });
 
-  final AppEnvironment environment;
-  final String label;
-  final NetworkEndpoints network;
-  final FeatureFlags defaultFlags;
-  final AppMetadata metadata;
+  return bundle.router;
+});
 
-  bool get isProduction => environment == AppEnvironment.prod;
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! EnvironmentFlavor) return false;
-    return environment == other.environment &&
-        label == other.label &&
-        network == other.network &&
-        defaultFlags == other.defaultFlags &&
-        metadata == other.metadata;
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(environment, label, network, defaultFlags, metadata);
-}
-
---------------------------------------------------------------------------------
-FILE #19: src/core/config/env/environment_loader.dart
---------------------------------------------------------------------------------
-import 'package:movi/src/core/config/services/platform_selector.dart';
-import 'package:movi/src/core/config/env/dev_environment.dart';
-import 'package:movi/src/core/config/env/environment.dart';
-
-typedef EnvironmentFallbackResolver =
-    AppEnvironment Function(PlatformInfo info);
-
-class EnvironmentLoader {
-  EnvironmentLoader({
-    PlatformInfo? platformInfo,
-    EnvironmentFallbackResolver? fallbackResolver,
-    void Function(String message)? onInfo,
-  }) : platformInfo = platformInfo ?? const PlatformSelector(),
-       _fallbackResolver = fallbackResolver ?? _defaultFallback,
-       _onInfo = onInfo;
-
-  final PlatformInfo platformInfo;
-  final EnvironmentFallbackResolver _fallbackResolver;
-  final void Function(String message)? _onInfo;
-  EnvironmentFlavor? _cached;
-
-  // Précompute compile-time defines to avoid runtime fromEnvironment calls on web.
-  static const String _defineAppEnv = String.fromEnvironment('APP_ENV');
-  static const String _defineFlutterAppEnv = String.fromEnvironment(
-    'FLUTTER_APP_ENV',
-  );
-
-  EnvironmentFlavor load({AppEnvironment? override}) {
-    if (override == null && _cached != null) return _cached!;
-    final resolved = override ?? _resolveFromBuild();
-    final flavor = createEnvironmentFlavor(resolved);
-    if (override == null) _cached = flavor;
-    return flavor;
-  }
-
-  AppEnvironment _resolveFromBuild() {
-    final envFromDefine =
-        _readDefine('APP_ENV') ?? _readDefine('FLUTTER_APP_ENV');
-    if (envFromDefine != null) {
-      return envFromDefine;
-    }
-    _onInfo?.call(
-      'EnvironmentLoader: no --dart-define provided, using fallback resolver.',
-    );
-    return _fallbackResolver(platformInfo);
-  }
-
-  AppEnvironment? _readDefine(String key) {
-    final value = switch (key) {
-      'APP_ENV' => _defineAppEnv,
-      'FLUTTER_APP_ENV' => _defineFlutterAppEnv,
-      _ => '',
-    };
-    if (value.isEmpty) return null;
-    return _parse(value);
-  }
-
-  AppEnvironment _parse(String raw) {
-    switch (raw.toLowerCase()) {
-      case 'dev':
-      case 'development':
-        return AppEnvironment.dev;
-      case 'staging':
-      case 'stage':
-        return AppEnvironment.staging;
-      case 'prod':
-      case 'production':
-        return AppEnvironment.prod;
-      default:
-        return AppEnvironment.dev;
-    }
-  }
-}
-
-AppEnvironment _defaultFallback(PlatformInfo info) {
-  if (info.currentPlatform == AppPlatform.ios) {
-    return AppEnvironment.dev;
-  }
-  return info.isReleaseMode ? AppEnvironment.prod : AppEnvironment.dev;
-}
-
-EnvironmentFlavor createEnvironmentFlavor(AppEnvironment environment) {
-  switch (environment) {
-    case AppEnvironment.dev:
-      return createDevEnvironment();
-    case AppEnvironment.staging:
-      return createStagingEnvironment();
-    case AppEnvironment.prod:
-      return createProdEnvironment();
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #20: src/core/config/models/app_config.dart
---------------------------------------------------------------------------------
-// ignore_for_file: public_member_api_docs
-
-import 'package:movi/src/core/config/env/environment.dart';
-import 'package:movi/src/core/config/models/app_metadata.dart';
-import 'package:movi/src/core/config/models/feature_flags.dart';
-import 'package:movi/src/core/config/models/logging_config.dart';
-import 'package:movi/src/core/config/models/network_endpoints.dart';
-
-/// Immutable application configuration assembled at bootstrap.
-/// Contains the current environment, network endpoints (incl. TMDB),
-/// feature flags and application metadata. No I/O is performed here.
-class AppConfig {
-  AppConfig({
-    required this.environment,
-    required this.network,
-    required this.featureFlags,
-    required this.metadata,
-    required this.logging,
-    this.requireTmdbKey = true,
-  }) : assert(
-         (network.restBaseUrl.isNotEmpty),
-         'restBaseUrl must not be empty.',
-       ),
-       assert(
-         (network.imageBaseUrl.isNotEmpty),
-         'imageBaseUrl must not be empty.',
-       ),
-       // Fail fast in debug/profile if the TMDB key is missing unless opt-out.
-       // Network clients must still validate at runtime and surface clear errors.
-       assert(
-         !requireTmdbKey || (network.tmdbApiKey?.isNotEmpty ?? false),
-         'tmdbApiKey must not be empty. Provide it via your flavor/environment.',
-       );
-
-  /// Current runtime environment/flavor (dev, staging, prod).
-  final EnvironmentFlavor environment;
-
-  /// Network endpoints and API keys (including TMDB).
-  final NetworkEndpoints network;
-
-  /// Feature toggles enabled for this build.
-  final FeatureFlags featureFlags;
-
-  /// App metadata (version/build).
-  final AppMetadata metadata;
-
-  /// Logging configuration for the current environment.
-  final LoggingConfig logging;
-
-  /// Whether [ensureValid] must enforce the presence of a TMDB key.
-  final bool requireTmdbKey;
-
-  /// Lightweight validity check intended for runtime guards in release builds.
-  /// Throws [StateError] with an explicit message when a critical value is invalid.
-  void ensureValid() {
-    if ((network.restBaseUrl).isEmpty) {
-      throw StateError('AppConfig.network.restBaseUrl is empty.');
-    }
-    if ((network.imageBaseUrl).isEmpty) {
-      throw StateError('AppConfig.network.imageBaseUrl is empty.');
-    }
-    if (requireTmdbKey && (network.tmdbApiKey ?? '').isEmpty) {
-      throw StateError(
-        'AppConfig.network.tmdbApiKey is empty. '
-        'Ensure your flavor/environment provides a valid TMDB key.',
-      );
-    }
-  }
-
-  /// Returns a copy of this configuration with selectively replaced fields.
-  AppConfig copyWith({
-    EnvironmentFlavor? environment,
-    NetworkEndpoints? network,
-    FeatureFlags? featureFlags,
-    AppMetadata? metadata,
-    LoggingConfig? logging,
-    bool? requireTmdbKey,
-  }) {
-    return AppConfig(
-      environment: environment ?? this.environment,
-      network: network ?? this.network,
-      featureFlags: featureFlags ?? this.featureFlags,
-      metadata: metadata ?? this.metadata,
-      logging: logging ?? this.logging,
-      requireTmdbKey: requireTmdbKey ?? this.requireTmdbKey,
+class _RouterBundle {
+  _RouterBundle({
+    required AppStateController appStateController,
+    required AppLogger logger,
+    required IptvLocalRepository iptvRepository,
+  }) : launchGuard = _LaunchRedirectGuard(
+         logger: logger,
+         repository: iptvRepository,
+         appStateController: appStateController,
+       ) {
+    router = GoRouter(
+      initialLocation: AppRouteNames.launch,
+      refreshListenable: launchGuard,
+      redirect: launchGuard.handle,
+      routes: [
+        GoRoute(
+          path: AppRouteNames.launch,
+          name: 'launch',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: _LaunchGate()),
+        ),
+        GoRoute(
+          path: AppRouteNames.welcome,
+          name: 'welcome',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: WelcomeUserPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.bootstrap,
+          name: 'bootstrap',
+          pageBuilder: (context, state) => const CustomTransitionPage(
+            child: SplashBootstrapPage(),
+            transitionsBuilder: _fadeTransition,
+          ),
+        ),
+        GoRoute(
+          path: AppRouteNames.home,
+          name: 'home',
+          pageBuilder: (context, state) => const CustomTransitionPage(
+            child: HomePage(),
+            transitionsBuilder: _fadeTransition,
+          ),
+        ),
+        GoRoute(
+          path: AppRouteNames.search,
+          name: 'search',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SearchPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.searchResults,
+          name: 'search_results',
+          pageBuilder: (context, state) {
+            final args = state.extra is SearchResultsPageArgs
+                ? state.extra as SearchResultsPageArgs
+                : null;
+            return MaterialPage(child: SearchResultsPage(args: args));
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.library,
+          name: 'library',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: LibraryPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.settings,
+          name: 'settings',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SettingsPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.movie,
+          name: 'movie_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: MovieDetailPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.person,
+          name: 'person_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: PersonDetailPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.category,
+          name: 'category_page',
+          pageBuilder: (context, state) {
+            final args = state.extra is CategoryPageArgs
+                ? state.extra as CategoryPageArgs
+                : null;
+            return MaterialPage(child: CategoryPage(args: args));
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.saga,
+          name: 'saga_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SagaDetailPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.tv,
+          name: 'tv_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: TvDetailPage()),
+        ),
+        GoRoute(
+          path: '/settings/iptv/connect',
+          name: 'iptv_connect',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: IptvConnectPage()),
+        ),
+      ],
+      errorPageBuilder: (context, state) => MaterialPage(
+        child: Scaffold(
+          body: Center(child: Text('Route introuvable: ${state.error}')),
+        ),
+      ),
     );
   }
 
-  /// Convenience booleans for quick checks without leaking environment internals.
-  bool get isProduction => environment.isProduction;
-
-  /// True when a (non-empty) TMDB key is present from the active flavor.
-  bool get hasTmdbKey => (network.tmdbApiKey?.isNotEmpty ?? false);
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    if (other is! AppConfig) return false;
-    return environment.environment == other.environment.environment &&
-        environment.label == other.environment.label &&
-        network.restBaseUrl == other.network.restBaseUrl &&
-        network.imageBaseUrl == other.network.imageBaseUrl &&
-        (network.tmdbApiKey ?? '') == (other.network.tmdbApiKey ?? '') &&
-        network.resolvedTmdbBaseHost == other.network.resolvedTmdbBaseHost &&
-        network.resolvedTmdbApiVersion ==
-            other.network.resolvedTmdbApiVersion &&
-        network.timeouts.connect == other.network.timeouts.connect &&
-        network.timeouts.receive == other.network.timeouts.receive &&
-        network.timeouts.send == other.network.timeouts.send &&
-        featureFlags.useRemoteHome == other.featureFlags.useRemoteHome &&
-        featureFlags.enableTelemetry == other.featureFlags.enableTelemetry &&
-        featureFlags.enableDownloads == other.featureFlags.enableDownloads &&
-        featureFlags.enableNewSearch == other.featureFlags.enableNewSearch &&
-        metadata.version == other.metadata.version &&
-        metadata.buildNumber == other.metadata.buildNumber &&
-        metadata.supportEmail == other.metadata.supportEmail &&
-        logging.minLevel == other.logging.minLevel &&
-        logging.enableConsole == other.logging.enableConsole &&
-        logging.enableFile == other.logging.enableFile &&
-        logging.flushInterval == other.logging.flushInterval &&
-        logging.maxFileSizeBytes == other.logging.maxFileSizeBytes &&
-        logging.maxFiles == other.logging.maxFiles &&
-        logging.rotateDaily == other.logging.rotateDaily &&
-        logging.maxDailyFiles == other.logging.maxDailyFiles &&
-        logging.compressOld == other.logging.compressOld &&
-        logging.bufferCapacity == other.logging.bufferCapacity &&
-        logging.dropOldest == other.logging.dropOldest &&
-        _mapEquals(logging.samplingByLevel, other.logging.samplingByLevel) &&
-        _stringIntMapEquals(
-          logging.rateLimitPerCategory,
-          other.logging.rateLimitPerCategory,
-        ) &&
-        _stringDoubleMapEquals(
-          logging.samplingByCategory,
-          other.logging.samplingByCategory,
-        ) &&
-        logging.defaultRateLimitPerMinute ==
-            other.logging.defaultRateLimitPerMinute &&
-        logging.exposeMetrics == other.logging.exposeMetrics &&
-        logging.metricsInterval == other.logging.metricsInterval &&
-        requireTmdbKey == other.requireTmdbKey;
-  }
-
-  @override
-  int get hashCode => Object.hashAll([
-    environment.environment,
-    environment.label,
-    network.restBaseUrl,
-    network.imageBaseUrl,
-    network.tmdbApiKey ?? '',
-    network.resolvedTmdbBaseHost,
-    network.resolvedTmdbApiVersion,
-    network.timeouts.connect,
-    network.timeouts.receive,
-    network.timeouts.send,
-    featureFlags.useRemoteHome,
-    featureFlags.enableTelemetry,
-    featureFlags.enableDownloads,
-    featureFlags.enableNewSearch,
-    metadata.version,
-    metadata.buildNumber,
-    metadata.supportEmail,
-    logging.minLevel,
-    logging.enableConsole,
-    logging.enableFile,
-    logging.flushInterval,
-    logging.maxFileSizeBytes,
-    logging.maxFiles,
-    logging.rotateDaily,
-    logging.maxDailyFiles,
-    logging.compressOld,
-    logging.bufferCapacity,
-    logging.dropOldest,
-    logging.defaultRateLimitPerMinute,
-    logging.exposeMetrics,
-    logging.metricsInterval,
-    _mapHash(logging.samplingByLevel),
-    _mapHash(logging.samplingByCategory),
-    _mapHash(logging.rateLimitPerCategory),
-    _mapHash(logging.minLevelByCategory),
-    requireTmdbKey,
-  ]);
-
-  @override
-  String toString() {
-    // Do not print secrets.
-    final key = network.tmdbApiKey ?? '';
-    final maskedKey = key.isEmpty ? '<empty>' : '***${key.hashCode}';
-    return 'AppConfig(env: ${environment.label}, '
-        'rest: ${network.restBaseUrl}, images: ${network.imageBaseUrl}, '
-        'tmdbKey: $maskedKey, flags: $featureFlags, meta: $metadata, logging: $logging)';
-  }
-
-  bool _mapEquals<K, V>(Map<K, V> a, Map<K, V> b) {
-    if (identical(a, b)) return true;
-    if (a.length != b.length) return false;
-    for (final e in a.entries) {
-      if (b[e.key] != e.value) return false;
-    }
-    return true;
-  }
-
-  bool _stringIntMapEquals(Map<String, int> a, Map<String, int> b) =>
-      _mapEquals<String, int>(a, b);
-  bool _stringDoubleMapEquals(Map<String, double> a, Map<String, double> b) =>
-      _mapEquals<String, double>(a, b);
-
-  int _mapHash<K, V>(Map<K, V> map) => Object.hashAll(
-    map.entries.map((entry) => Object.hash(entry.key, entry.value)),
-  );
+  late final GoRouter router;
+  final _LaunchRedirectGuard launchGuard;
 }
 
---------------------------------------------------------------------------------
-FILE #28: src/core/config/services/secret_store.dart
---------------------------------------------------------------------------------
-// Conditional export: picks IO or Web implementation.
-export 'secret_store_io.dart' if (dart.library.html) 'secret_store_web.dart';
+Widget _fadeTransition(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  return FadeTransition(opacity: animation, child: child);
+}
 
---------------------------------------------------------------------------------
-FILE #29: src/core/config/services/secret_store_io.dart
---------------------------------------------------------------------------------
-import 'dart:io';
+class _LaunchGate extends StatelessWidget {
+  const _LaunchGate();
 
-class SecretStore {
-  SecretStore({
-    Map<String, String> initialSecrets = const {},
-    this.envFilePath = '.env',
-    this.envFileCacheTtl = const Duration(minutes: 5),
-  }) : _secrets = Map<String, String>.from(initialSecrets);
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  }
+}
 
-  final Map<String, String> _secrets;
-  final String envFilePath;
-  final Duration envFileCacheTtl;
-  Map<String, String>? _envFileCache;
-  DateTime? _lastEnvLoad;
+class _LaunchRedirectGuard extends ChangeNotifier {
+  _LaunchRedirectGuard({
+    required this.logger,
+    required this.repository,
+    required AppStateController appStateController,
+  }) : _appStateController = appStateController {
+    // addListener renvoie une fonction pour se désabonner, qu'on stocke
+    _removeAppStateListener = _appStateController.addListener(
+      _handleAppStateChange,
+    );
+  }
 
-  Future<String?> read(String key) async {
-    if (_secrets.containsKey(key)) {
-      return _secrets[key];
+  final AppLogger logger;
+  final IptvLocalRepository repository;
+  final AppStateController _appStateController;
+
+  bool? _hasAccounts;
+  bool _isResolving = false;
+
+  /// Fonction retournée par `addListener` pour annuler l'écoute.
+  late final void Function() _removeAppStateListener;
+
+  FutureOr<String?> handle(BuildContext context, GoRouterState state) {
+    final cached = _hasAccounts;
+
+    if (cached == null) {
+      _resolve();
+
+      // subloc a été renommé en matchedLocation dans go_router >= 8.1.0
+      // https://pub.dev/packages/go_router/changelog
+      final currentLocation = state.matchedLocation;
+      return currentLocation == AppRouteNames.launch
+          ? null
+          : AppRouteNames.launch;
     }
-    // Runtime environment variables via process env (desktop/mobile).
-    final processEnv = Platform.environment[key];
-    if (processEnv != null && processEnv.isNotEmpty) {
-      _secrets[key] = processEnv;
-      return processEnv;
+
+    final currentLocation = state.matchedLocation;
+
+    if (!cached) {
+      // Autoriser l’accès à la page de connexion IPTV même sans comptes
+      final allowIptvConnect = currentLocation == '/settings/iptv/connect';
+      if (currentLocation != AppRouteNames.welcome && !allowIptvConnect) {
+        return AppRouteNames.welcome;
+      }
     }
-    // Fallback to .env file on disk.
-    final fileValue = await _readFromEnvFile(key);
-    if (fileValue != null) {
-      _secrets[key] = fileValue;
-      return fileValue;
+
+    if (cached &&
+        (currentLocation == AppRouteNames.launch ||
+            currentLocation == AppRouteNames.welcome)) {
+      return AppRouteNames.bootstrap;
     }
+
     return null;
   }
 
-  Future<String?> _readFromEnvFile(String key) async {
-    final now = DateTime.now();
-    final cacheExpired =
-        _lastEnvLoad == null || now.difference(_lastEnvLoad!) > envFileCacheTtl;
-    if (_envFileCache == null || cacheExpired) {
-      _envFileCache = await _loadEnvFile();
-      _lastEnvLoad = now;
-    }
-    return _envFileCache?[key];
-  }
-
-  Future<Map<String, String>> _loadEnvFile() async {
-    final candidates = await _candidateEnvFiles();
-    for (final file in candidates) {
-      if (await file.exists()) {
-        final lines = await file.readAsLines();
-        return _parseEnv(lines);
+  void _handleAppStateChange(AppState state) {
+    if (state.activeIptvSources.isNotEmpty) {
+      if (_hasAccounts != true) {
+        _hasAccounts = true;
+        notifyListeners();
       }
+    } else if (_hasAccounts == true) {
+      // on force une nouvelle résolution si les sources IPTV actives disparaissent
+      _hasAccounts = null;
+      notifyListeners();
     }
-    return {};
   }
 
-  Future<List<File>> _candidateEnvFiles() async {
-    final files = <File>[];
-    // Primary: configured path (relative or absolute).
-    files.add(File(envFilePath));
+  void _resolve() {
+    if (_isResolving) return;
+    _isResolving = true;
 
-    // Search upwards from current working directory.
-    var dir = Directory.current;
-    for (int i = 0; i < 6; i++) {
-      files.add(File('${dir.path}${Platform.pathSeparator}.env'));
-      final parent = dir.parent;
-      if (parent.path == dir.path) break;
-      dir = parent;
-    }
-
-    // Also search upwards from the script location if available.
-    try {
-      final scriptPath = Platform.script.toFilePath();
-      var scriptDir = File(scriptPath).parent;
-      for (int i = 0; i < 6; i++) {
-        files.add(File('${scriptDir.path}${Platform.pathSeparator}.env'));
-        final parent = scriptDir.parent;
-        if (parent.path == scriptDir.path) break;
-        scriptDir = parent;
-      }
-    } catch (_) {
-      // Ignore if not available.
-    }
-
-    // Deduplicate paths.
-    final unique = <String, File>{};
-    for (final f in files) {
-      unique[f.path] = f;
-    }
-    return unique.values.toList(growable: false);
+    repository
+        .getAccounts()
+        .then((accounts) => accounts.isNotEmpty)
+        .then((value) {
+          _hasAccounts = value;
+        })
+        .catchError((error, stackTrace) {
+          logger.error('Launch redirect failed', error, stackTrace);
+          _hasAccounts = false;
+        })
+        .whenComplete(() {
+          _isResolving = false;
+          notifyListeners();
+        });
   }
 
-  Map<String, String> _parseEnv(List<String> lines) {
-    final map = <String, String>{};
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
-      final index = trimmed.indexOf('=');
-      if (index == -1) continue;
-      final key = trimmed.substring(0, index).trim();
-      var value = trimmed.substring(index + 1).trim();
-      // Strip surrounding quotes if present.
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith('\'') && value.endsWith('\''))) {
-        value = value.substring(1, value.length - 1);
-      }
-      if (key.isNotEmpty) {
-        map[key] = value;
-      }
-    }
-    return map;
-  }
-
-  Future<void> write(String key, String value) async {
-    _secrets[key] = value;
-    await _persistEnvValue(key, value);
-  }
-
-  void preload(Map<String, String> entries) => _secrets.addAll(entries);
-
-  void invalidateEnvFileCache() {
-    _envFileCache = null;
-    _lastEnvLoad = null;
-  }
-
-  Future<void> _persistEnvValue(String key, String value) async {
-    Map<String, String> existing;
-    if (_envFileCache != null) {
-      existing = Map<String, String>.from(_envFileCache!);
-    } else {
-      existing = await _loadEnvFile();
-    }
-    existing[key] = value;
-    final file = File(envFilePath);
-    await file.create(recursive: true);
-    final buffer = StringBuffer();
-    for (final entry in existing.entries) {
-      buffer.writeln('${entry.key}=${entry.value}');
-    }
-    await file.writeAsString(buffer.toString());
-    _envFileCache = existing;
-    _lastEnvLoad = DateTime.now();
+  @override
+  void dispose() {
+    // On se désabonne du StateNotifier proprement
+    _removeAppStateListener();
+    super.dispose();
   }
 }
 
@@ -771,7 +393,8 @@ FILE #65: src/core/startup/app_startup_gate.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/core/startup/app_startup_provider.dart';
+
+import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
 
 class AppStartupGate extends ConsumerWidget {
   const AppStartupGate({super.key, required this.child});
@@ -779,7 +402,12 @@ class AppStartupGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(appStartupProvider);
+    final state = ref.watch(app_startup_provider.appStartupProvider);
+
+    // Flag compile-time pour diagnostiquer les IPA dev.
+    const bool forceStartupDetails =
+        bool.fromEnvironment('FORCE_STARTUP_DETAILS', defaultValue: false);
+
     if (state.isLoading) {
       debugPrint('[Startup] loading...');
       return MaterialApp(
@@ -790,34 +418,61 @@ class AppStartupGate extends ConsumerWidget {
         ),
       );
     }
+
     if (state.hasError) {
       final details = state.error.toString();
-      final showDetails = !kReleaseMode;
+      final showDetails = !kReleaseMode || forceStartupDetails;
+
+      // On tronque pour éviter un pavé illisible sur mobile.
+      final displayDetails = details.length > 400
+          ? '${details.substring(0, 400)}…'
+          : details;
+
       debugPrint('[Startup] error: $details');
+
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         home: Scaffold(
-          backgroundColor: Color.fromRGBO(20, 20, 20, 1),
+          backgroundColor: const Color.fromRGBO(20, 20, 20, 1),
           body: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Erreur au démarrage (config ou réseau)'),
-                if (showDetails) ...[
-                  const SizedBox(height: 12),
-                  Text(details, textAlign: TextAlign.center),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Erreur au démarrage (config ou réseau)',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (showDetails) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      displayDetails,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => ref.refresh(app_startup_provider.appStartupProvider),
+                    child: const Text('Réessayer'),
+                  ),
                 ],
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => ref.refresh(appStartupProvider),
-                  child: const Text('Réessayer'),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       );
     }
+
     debugPrint('[Startup] success, navigate to Home');
     return child;
   }
@@ -858,6 +513,3156 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   LoggingModule.register();
   debugPrint('après LoggingModule.register OK');
 });
+
+--------------------------------------------------------------------------------
+FILE #117: src/features/home/data/home_feed_data_module.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/home/data/repositories/home_feed_repository_impl.dart';
+
+class HomeFeedDataModule {
+  static void register() {
+    if (sl.isRegistered<HomeFeedRepository>()) return;
+
+    sl.registerLazySingleton<HomeFeedRepository>(
+      () => HomeFeedRepositoryImpl(
+        sl<TmdbMovieRemoteDataSource>(),
+        sl<TmdbTvRemoteDataSource>(),
+        sl<IptvCatalogReader>(),
+        sl<MovieRepository>(),
+        sl<TvRepository>(),
+        sl<TmdbImageResolver>(),
+        sl<AppStateController>(),
+        sl<TmdbCacheDataSource>(),
+      ),
+    );
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #118: src/features/home/data/repositories/home_feed_repository_impl.dart
+--------------------------------------------------------------------------------
+/* lib/src/features/home/data/repositories/home_feed_repository_impl.dart */
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/movie.dart';
+
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/tv/tv.dart';
+
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+
+class HomeFeedRepositoryImpl implements HomeFeedRepository {
+  HomeFeedRepositoryImpl(
+    this._moviesRemote,
+    this._tvRemote,
+    this._catalogReader,
+    this._movieRepository,
+    this._tvRepository,
+    this._images,
+    this._appState,
+    this._tmdbCache,
+  );
+
+  final TmdbMovieRemoteDataSource _moviesRemote;
+  final TmdbTvRemoteDataSource _tvRemote;
+  final IptvCatalogReader _catalogReader;
+  final MovieRepository _movieRepository;
+  final TvRepository _tvRepository;
+  final TmdbImageResolver _images;
+  final AppStateController _appState;
+  final TmdbCacheDataSource _tmdbCache;
+
+  final Set<String> _enrichedIds = <String>{};
+
+  static const String _trendingWindow = 'week';
+  static const int _maxTrendingPages = 3;
+  static const int _heroLimit = 20;
+
+  @override
+  Future<List<MovieSummary>> getHeroMovies() async {
+    try {
+      final Set<int> availableTmdb = await _collectAvailableTmdbIds();
+
+      List<_MovieLiteDto> picked = <_MovieLiteDto>[];
+      if (availableTmdb.isNotEmpty) {
+        for (var page = 1; page <= _maxTrendingPages; page++) {
+          final pageDtos = await _fetchTrendingMoviesPage(page);
+          if (pageDtos.isEmpty) break;
+
+          final matched = pageDtos
+              .where((d) => availableTmdb.contains(d.id))
+              .toList(growable: false);
+
+          final mapped = _mapDtosToHeroCandidates(matched);
+          if (mapped.isNotEmpty) {
+            return _takeFirst(mapped, _heroLimit);
+          }
+          picked = matched;
+        }
+      }
+
+      final trendPage1 = picked.isNotEmpty
+          ? picked
+          : await _fetchTrendingMoviesPage(1);
+      final mappedTrend = _mapDtosToHeroCandidates(trendPage1);
+      if (mappedTrend.isNotEmpty) {
+        return _takeFirst(mappedTrend, _heroLimit);
+      }
+
+      final firstVod = await _pickFirstVodRef();
+      if (firstVod != null) {
+        final MovieSummary? synthetic = _fromContentReferenceToMovieSummary(
+          firstVod,
+        );
+        if (synthetic != null) return <MovieSummary>[synthetic];
+      }
+
+      return const <MovieSummary>[];
+    } catch (e, st) {
+      assert(() {
+        debugPrint('[HomeFeedRepositoryImpl] getHeroMovies error: $e\n$st');
+        return true;
+      }());
+      return const <MovieSummary>[];
+    }
+  }
+
+  @override
+  Future<List<MovieSummary>> getContinueWatchingMovies() {
+    return _movieRepository.getContinueWatching();
+  }
+
+  @override
+  Future<List<TvShowSummary>> getContinueWatchingShows() {
+    return _tvRepository.getContinueWatching();
+  }
+
+  @override
+  Future<Map<String, List<ContentReference>>> getIptvCategoryLists() async {
+    _enrichedIds.clear();
+    return _catalogReader.listCategoryLists(
+      activeSourceIds: _appState.activeIptvSourceIds,
+    );
+  }
+
+  @override
+  Future<ContentReference> enrichReference(
+    ContentReference ref, {
+    CancelToken? cancelToken,
+  }) async {
+    int? idNum = int.tryParse(ref.id);
+    final bool isSeries = ref.type == ContentType.series;
+
+    if (_enrichedIds.contains(ref.id)) return ref;
+
+    if (idNum == null) {
+      try {
+        if (isSeries) {
+          final results = await _tvRemote.searchShows(
+            ref.title.value,
+            cancelToken: cancelToken,
+          );
+          idNum = results.isNotEmpty ? results.first.id : null;
+        } else {
+          final results = await _moviesRemote.searchMovies(
+            ref.title.value,
+            cancelToken: cancelToken,
+          );
+          idNum = results.isNotEmpty ? results.first.id : null;
+        }
+      } catch (_) {}
+    }
+    if (idNum == null) return ref;
+
+    try {
+      if (isSeries) {
+        Map<String, dynamic>? cached = await _tmdbCache.getTvDetail(
+          idNum,
+          language: _appState.preferredLocale,
+          policyOverride: const CachePolicy(ttl: Duration(days: 3)),
+        );
+        if (cached == null) {
+          final dto = await _tvRemote.fetchShowLite(
+            idNum,
+            language: _appState.preferredLocale,
+            cancelToken: cancelToken,
+          );
+          cached = dto.toCache();
+          await _tmdbCache.putTvDetail(
+            idNum,
+            cached,
+            language: _appState.preferredLocale,
+          );
+        }
+
+        final String? posterPath =
+            _PosterSelector.selectBestPosterPath(
+              (cached['images']?['posters'] as List<dynamic>?) ??
+                  const <dynamic>[],
+            ) ??
+            cached['poster_path']?.toString();
+
+        final String? tmdbTitle =
+            (cached['name']?.toString() ?? cached['original_name']?.toString());
+
+        final result = ContentReference(
+          id: ref.id,
+          title: MediaTitle(
+            (tmdbTitle != null && tmdbTitle.isNotEmpty)
+                ? tmdbTitle
+                : ref.title.value,
+          ),
+          type: ref.type,
+          poster: _images.poster(posterPath) ?? ref.poster,
+          year: _parseYear(cached['first_air_date']?.toString()) ?? ref.year,
+          rating: (cached['vote_average'] as num?)?.toDouble() ?? ref.rating,
+        );
+
+        _enrichedIds.add(ref.id);
+        return result;
+      } else {
+        Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(
+          idNum,
+          language: _appState.preferredLocale,
+          policyOverride: const CachePolicy(ttl: Duration(days: 3)),
+        );
+        if (cached == null) {
+          final dto = await _moviesRemote.fetchMovieLite(
+            idNum,
+            language: _appState.preferredLocale,
+            cancelToken: cancelToken,
+          );
+          cached = dto.toCache();
+          await _tmdbCache.putMovieDetail(
+            idNum,
+            cached,
+            language: _appState.preferredLocale,
+          );
+        }
+
+        final String? posterPath =
+            _PosterSelector.selectBestPosterPath(
+              (cached['images']?['posters'] as List<dynamic>?) ??
+                  const <dynamic>[],
+            ) ??
+            cached['poster_path']?.toString();
+
+        final String? tmdbTitle =
+            (cached['title']?.toString() ??
+            cached['original_title']?.toString());
+
+        final result = ContentReference(
+          id: ref.id,
+          title: MediaTitle(
+            (tmdbTitle != null && tmdbTitle.isNotEmpty)
+                ? tmdbTitle
+                : ref.title.value,
+          ),
+          type: ref.type,
+          poster: _images.poster(posterPath) ?? ref.poster,
+          year: _parseYear(cached['release_date']?.toString()) ?? ref.year,
+          rating: (cached['vote_average'] as num?)?.toDouble() ?? ref.rating,
+        );
+
+        _enrichedIds.add(ref.id);
+        return result;
+      }
+    } catch (e, st) {
+      assert(() {
+        debugPrint('[HomeFeedRepositoryImpl] enrichReference error: $e\n$st');
+        return true;
+      }());
+      return ref;
+    }
+  }
+
+  Future<Set<int>> _collectAvailableTmdbIds() async {
+    final refs = await _catalogReader.searchCatalog('');
+    final set = <int>{};
+    for (final r in refs) {
+      final id = int.tryParse(r.id);
+      if (id != null) set.add(id);
+    }
+    return set;
+  }
+
+  Future<List<_MovieLiteDto>> _fetchTrendingMoviesPage(int page) async {
+    try {
+      final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
+        window: _trendingWindow,
+        page: page,
+        language: _appState.preferredLocale,
+      );
+      return res
+          .map(_MovieLiteDto.tryParse)
+          .whereType<_MovieLiteDto>()
+          .toList(growable: false);
+    } catch (e, st) {
+      assert(() {
+        debugPrint(
+          '[HomeFeedRepositoryImpl] fetchTrendingMovies(page:$page) error: $e\n$st',
+        );
+        return true;
+      }());
+      if (page == 1) {
+        try {
+          final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
+            window: _trendingWindow,
+            language: _appState.preferredLocale,
+          );
+          return res
+              .map(_MovieLiteDto.tryParse)
+              .whereType<_MovieLiteDto>()
+              .toList(growable: false);
+        } catch (_) {}
+      }
+      return const <_MovieLiteDto>[];
+    }
+  }
+
+  List<MovieSummary> _mapDtosToHeroCandidates(List<_MovieLiteDto> dtos) {
+    final result = <MovieSummary>[];
+    for (final dto in dtos) {
+      final Uri? poster = _images.poster(dto.posterPath);
+      final Uri? backdrop = _images.backdrop(dto.backdropPath);
+
+      final Uri? chosenPoster = poster ?? backdrop;
+      if (chosenPoster == null) {
+        continue;
+      }
+
+      result.add(
+        MovieSummary(
+          id: MovieId(dto.id.toString()),
+          tmdbId: dto.id,
+          title: MediaTitle(dto.title),
+          poster: chosenPoster,
+          backdrop: backdrop ?? poster,
+          releaseYear: _parseYear(dto.releaseDate),
+        ),
+      );
+    }
+    return result;
+  }
+
+  List<T> _takeFirst<T>(List<T> list, int n) {
+    if (list.length <= n) return list;
+    return list.sublist(0, n);
+  }
+
+  Future<ContentReference?> _pickFirstVodRef() async {
+    final refs = await _catalogReader.searchCatalog('');
+    for (final r in refs) {
+      if (r.type == ContentType.movie && r.poster != null) return r;
+    }
+    return null;
+  }
+
+  MovieSummary? _fromContentReferenceToMovieSummary(ContentReference ref) {
+    final Uri? poster = ref.poster;
+    if (poster == null) return null;
+    final tmdbId = int.tryParse(ref.id);
+    return MovieSummary(
+      id: MovieId(ref.id),
+      tmdbId: tmdbId,
+      title: MediaTitle(ref.title.value),
+      poster: poster,
+      backdrop: poster,
+      releaseYear: ref.year,
+    );
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.isEmpty || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+class _PosterSelector {
+  const _PosterSelector._();
+
+  static String? selectBestPosterPath(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
+      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+}
+
+class _MovieLiteDto {
+  const _MovieLiteDto({
+    required this.id,
+    required this.title,
+    this.posterPath,
+    this.backdropPath,
+    this.releaseDate,
+  });
+
+  final int id;
+  final String title;
+  final String? posterPath;
+  final String? backdropPath;
+  final String? releaseDate;
+
+  static _MovieLiteDto? tryParse(dynamic e) {
+    if (e is Map<String, dynamic>) {
+      final int? id = (e['id'] as num?)?.toInt();
+      final String? title = (e['title'] ?? e['original_title'])?.toString();
+      if (id == null || title == null) return null;
+      return _MovieLiteDto(
+        id: id,
+        title: title,
+        posterPath: e['poster_path']?.toString(),
+        backdropPath: e['backdrop_path']?.toString(),
+        releaseDate: e['release_date']?.toString(),
+      );
+    }
+    return null;
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #120: src/features/home/domain/usecases/load_home_continue_watching.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+
+class LoadHomeContinueWatching {
+  const LoadHomeContinueWatching(this._repo);
+
+  final HomeFeedRepository _repo;
+
+  Future<List<MovieSummary>> movies() => _repo.getContinueWatchingMovies();
+  Future<List<TvShowSummary>> shows() => _repo.getContinueWatchingShows();
+}
+
+--------------------------------------------------------------------------------
+FILE #121: src/features/home/domain/usecases/load_home_hero.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+
+class LoadHomeHero {
+  const LoadHomeHero(this._repo);
+
+  final HomeFeedRepository _repo;
+
+  Future<List<MovieSummary>> call() => _repo.getHeroMovies();
+}
+
+--------------------------------------------------------------------------------
+FILE #122: src/features/home/domain/usecases/load_home_iptv_sections.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+class LoadHomeIptvSections {
+  const LoadHomeIptvSections(this._repo);
+
+  final HomeFeedRepository _repo;
+
+  Future<Map<String, List<ContentReference>>> call() =>
+      _repo.getIptvCategoryLists();
+}
+
+--------------------------------------------------------------------------------
+FILE #123: src/features/home/domain/usecases/refresh_home_feed.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+class RefreshHomeFeed {
+  const RefreshHomeFeed(this._repo);
+
+  final HomeFeedRepository _repo;
+
+  Future<RefreshResult> call() async {
+    final hero = await _repo.getHeroMovies();
+    final iptv = await _repo.getIptvCategoryLists();
+    final movies = await _repo.getContinueWatchingMovies();
+    final shows = await _repo.getContinueWatchingShows();
+    return RefreshResult(
+      hero: hero,
+      iptv: iptv,
+      cwMovies: movies,
+      cwShows: shows,
+    );
+  }
+}
+
+class RefreshResult {
+  const RefreshResult({
+    required this.hero,
+    required this.iptv,
+    required this.cwMovies,
+    required this.cwShows,
+  });
+
+  final List<MovieSummary> hero;
+  final Map<String, List<ContentReference>> iptv;
+  final List<MovieSummary> cwMovies;
+  final List<TvShowSummary> cwShows;
+}
+
+--------------------------------------------------------------------------------
+FILE #125: src/features/home/presentation/pages/home_page.dart
+--------------------------------------------------------------------------------
+// lib/src/features/home/presentation/pages/home_page.dart
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
+import 'package:movi/src/core/widgets/movi_items_list.dart';
+import 'package:movi/src/core/widgets/movi_media_card.dart';
+import 'package:movi/src/core/widgets/movi_see_all_card.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
+import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
+import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/features/library/presentation/pages/library_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+// logging_service n'est plus utilisé sur la page d'accueil
+// overlay_splash supprimé de la page d'accueil
+
+class HomePage extends ConsumerStatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  static const _navBottomOffset = 0;
+
+  int _selectedIndex = 0;
+  final PageStorageBucket _bucket = PageStorageBucket();
+
+  void _handleNavTap(int index) {
+    if (_selectedIndex == index) return;
+    setState(() => _selectedIndex = index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final navIndex = ref.watch(hp.homeNavIndexProvider);
+    if (_selectedIndex != navIndex) _selectedIndex = navIndex;
+
+    final pages = <Widget>[
+      _HomeContent(key: const PageStorageKey('tab-home')),
+      const SearchPage(),
+      const LibraryPage(key: PageStorageKey('tab-library')),
+      const SettingsPage(key: PageStorageKey('tab-settings')),
+    ];
+
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      extendBody: true,
+      body: SafeArea(
+        top: false,
+        bottom: false,
+        child: Stack(
+          children: [
+            PageStorage(
+              bucket: _bucket,
+              child: IndexedStack(index: _selectedIndex, children: pages),
+            ),
+            Positioned(
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              bottom: _navBottomOffset + media.padding.bottom,
+              child: MoviBottomNavBar(
+                selectedIndex: _selectedIndex,
+                navItems: [
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navHome,
+                    activeIcon: AppAssets.navHomeActive,
+                    inactiveIcon: AppAssets.navHome,
+                  ),
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navSearch,
+                    activeIcon: AppAssets.navSearchActive,
+                    inactiveIcon: AppAssets.navSearch,
+                  ),
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navLibrary,
+                    activeIcon: AppAssets.navLibraryActive,
+                    inactiveIcon: AppAssets.navLibrary,
+                  ),
+                  MoviBottomNavItem(
+                    label: AppLocalizations.of(context)!.navSettings,
+                    activeIcon: AppAssets.navSettingsActive,
+                    inactiveIcon: AppAssets.navSettings,
+                  ),
+                ],
+                onItemSelected: (i) {
+                  _handleNavTap(i);
+                  ref.read(hp.homeNavIndexProvider.notifier).set(i);
+                },
+              ),
+            ),
+            // Overlay supprimé : le contenu est affiché directement.
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeContent extends ConsumerStatefulWidget {
+  const _HomeContent({super.key});
+
+  @override
+  ConsumerState<_HomeContent> createState() => _HomeContentState();
+}
+
+/// Gère le contenu Home avec overlay de démarrage.
+///
+/// Comportement de l’overlay:
+/// - Démarre visible et se masque dès que le hero ou le premier viewport
+///   d’items est précaché (premier à terminer gagne).
+/// - Timeout doux de 5 secondes pour éviter de bloquer l’UI en cas de réseau lent.
+class _HomeContentState extends ConsumerState<_HomeContent> {
+  // Enrichissement TMDB désactivé pour les listes: plus de mémo viewport ni recheck.
+  @override
+  void initState() {
+    super.initState();
+    // Déclenche le chargement en post-frame pour éviter
+    // la modification de provider durant le build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(hp.homeControllerProvider.notifier).load());
+    });
+  }
+
+  bool _isScheduled = false;
+  void _postFrame(VoidCallback fn) {
+    if (_isScheduled) return;
+    _isScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      fn();
+      _isScheduled = false;
+    });
+  }
+
+  Future<void> _precacheImageUrl(String url) async {
+    if (url.isEmpty) return;
+    try {
+      await precacheImage(NetworkImage(url), context);
+    } catch (_) {
+      // ignore erreurs réseau; l’overlay ne doit pas bloquer
+    }
+  }
+
+  static const double _mediaCardWidth =
+      150; // doit rester aligné avec MoviMediaCard par défaut
+  static const double _itemSpacing = 16; // espace horizontal entre items
+  static const double _sectionGap =
+      32; // espace VERTICAL entre sections MoviItemsList
+
+  // Afficher uniquement le libellé catégorie (sans "serveur/")
+  String _displayCategoryTitle(String raw) {
+    final idx = raw.indexOf('/');
+    return (idx >= 0 && idx < raw.length - 1) ? raw.substring(idx + 1) : raw;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final state = ref.watch(hp.homeControllerProvider);
+    final controller = ref.read(hp.homeControllerProvider.notifier);
+
+    // Précache héro (sans fermer l’overlay) pour accélérer les réaffichages
+    _postFrame(() {
+      if (state.hero.isNotEmpty) {
+        var heroUrl = ((state.hero.first.backdrop) ?? (state.hero.first.poster))
+            .toString();
+        if (heroUrl == 'null') heroUrl = '';
+        if (heroUrl.isNotEmpty) {
+          unawaited(_precacheImageUrl(heroUrl));
+        }
+      }
+    });
+
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: () async {
+            await controller.refresh();
+          },
+          child: CustomScrollView(
+            slivers: [
+              if (state.error != null)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                    ),
+                  child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.red.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: Colors.red),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Text(
+                              AppLocalizations.of(context)!
+                                  .homeErrorSwipeToRetry,
+                              style:
+                                  (theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.red,
+                                  )) ??
+                                  theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // On rend le vrai hero avec le state (évite les rebuilds visibles)
+              SliverToBoxAdapter(
+                child: state.isHeroEmpty
+                    ? const _HeroEmptyBanner()
+                    : (state.hero.length >= 2)
+                    ? HomeHeroCarousel(
+                        movies: state.hero.take(10).toList(growable: false),
+                      )
+                    : HomeHeroSection(
+                        movie: state.hero.isNotEmpty ? state.hero.first : null,
+                      ),
+              ),
+
+              // Marge après le hero: 32px pour uniformiser l'espacement des sections
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+              // ===== Section "En cours" =====
+              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title:
+                        AppLocalizations.of(context)!.homeContinueWatching,
+                    itemSpacing: _itemSpacing,
+                    // Cartes "En cours" font 300x165
+                    estimatedItemWidth: 300,
+                    estimatedItemHeight: 165,
+                    // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
+                    items: <Widget>[
+                      ...state.cwMovies.map(
+                        (m) => ContinueWatchingCard.movie(
+                          title: m.title.value,
+                          poster: (m.backdrop ?? m.poster).toString(),
+                          year: m.releaseYear?.toString() ?? '',
+                          progress: 0,
+                          onTap: () => context.push('/movie'),
+                        ),
+                      ),
+                      ...state.cwShows.map(
+                        (s) => ContinueWatchingCard.episode(
+                          title: s.title.value,
+                          seriesTitle: s.title.value,
+                          poster: (s.backdrop ?? s.poster).toString(),
+                          seasonEpisode: 'S?? E??',
+                          progress: 0,
+                          onTap: () => context.push('/tv'),
+                        ),
+                      ),
+                    ].take(10).toList(),
+                  ),
+                ),
+
+              // 32 px après "En cours"
+              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+
+              if (state.iptvLists.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.homeNoIptvSources,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
+
+              // ===== Sections IPTV ===== (enrichissement à la volée)
+              for (final entry in state.iptvLists.entries) ...[
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: _displayCategoryTitle(
+                      entry.key,
+                    ), // ← étiquette propre
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    // Hauteur totale carte = poster (225) + titre (≈20) + marge (12)
+                    // → 225 + 12 + 20 ≈ 257 ; on sécurise à 270 pour éviter overflow.
+                    estimatedItemHeight: 270,
+                    items: [
+                      ...entry.value.take(9).map((r) {
+                        final media = MoviMedia(
+                          id: r.id,
+                          title: r.title.value,
+                          poster: r.poster,
+                          year: r.year,
+                          rating: r.rating,
+                          type: r.type == ContentType.series
+                              ? MoviMediaType.series
+                              : MoviMediaType.movie,
+                        );
+                        return MoviMediaCard(media: media);
+                      }),
+                      SeeAllCard(
+                        title: _displayCategoryTitle(entry.key),
+                        categoryKey: entry.key,
+                        width: _mediaCardWidth,
+                        posterHeight: 225,
+                        onTap: (args) => context.push('/category', extra: args),
+                      ),
+                    ],
+                  ),
+                ),
+                // 32 px entre *chaque* section MoviItemsList IPTV
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+              ],
+
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// _ViewportReq supprimé — l’UI n’émet plus de fenêtres de viewport pour enrichir.
+
+class _HeroEmptyBanner extends StatelessWidget {
+  const _HeroEmptyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Column(
+        children: [
+          const SizedBox(height: 180),
+          Text(
+            AppLocalizations.of(context)!.homeNoTrends,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #126: src/features/home/presentation/providers/home_providers.dart
+--------------------------------------------------------------------------------
+// lib/src/features/home/presentation/providers/home_providers.dart
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/state/app_event_bus.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/home/domain/usecases/load_home_hero.dart';
+import 'package:movi/src/features/home/domain/usecases/load_home_continue_watching.dart';
+import 'package:movi/src/features/home/domain/usecases/load_home_iptv_sections.dart';
+
+class NavIndexController extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void set(int index) {
+    if (index == state) return;
+    state = index;
+  }
+}
+
+final homeNavIndexProvider = NotifierProvider<NavIndexController, int>(
+  NavIndexController.new,
+);
+
+class HomeHeroIndexController extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void set(int index) {
+    final next = index < 0 ? 0 : index;
+    if (next == state) return;
+    state = next;
+  }
+}
+
+final homeHeroIndexProvider = NotifierProvider<HomeHeroIndexController, int>(
+  HomeHeroIndexController.new,
+);
+
+/// État immutable du Home.
+class HomeState {
+  const HomeState({
+    this.hero = const <MovieSummary>[],
+    this.cwMovies = const <MovieSummary>[],
+    this.cwShows = const <TvShowSummary>[],
+    this.iptvLists = const <String, List<ContentReference>>{},
+    this.isLoading = false,
+    this.isHeroEmpty = false,
+    this.error,
+  });
+
+  final List<MovieSummary> hero;
+  final List<MovieSummary> cwMovies;
+  final List<TvShowSummary> cwShows;
+  final Map<String, List<ContentReference>> iptvLists;
+  final bool isLoading;
+  final bool isHeroEmpty;
+  final String? error;
+
+  HomeState copyWith({
+    List<MovieSummary>? hero,
+    List<MovieSummary>? cwMovies,
+    List<TvShowSummary>? cwShows,
+    Map<String, List<ContentReference>>? iptvLists,
+    bool? isLoading,
+    bool? isHeroEmpty,
+    String? error,
+  }) {
+    return HomeState(
+      hero: hero ?? this.hero,
+      cwMovies: cwMovies ?? this.cwMovies,
+      cwShows: cwShows ?? this.cwShows,
+      iptvLists: iptvLists ?? this.iptvLists,
+      isLoading: isLoading ?? this.isLoading,
+      isHeroEmpty: isHeroEmpty ?? this.isHeroEmpty,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// Contrôleur Home avec enrichissement batché + annulation propre.
+class HomeController extends Notifier<HomeState> {
+  late final HomeFeedRepository _repo;
+  late final LoadHomeHero _loadHero;
+  late final LoadHomeContinueWatching _loadCw;
+  late final LoadHomeIptvSections _loadIptv;
+  StreamSubscription<AppEvent>? _eventSub;
+
+  @override
+  HomeState build() {
+    _repo = ref.watch(homeFeedRepositoryProvider);
+    _loadHero = LoadHomeHero(_repo);
+    _loadCw = LoadHomeContinueWatching(_repo);
+    _loadIptv = LoadHomeIptvSections(_repo);
+    if (_eventSub == null) {
+      final bus = ref.watch(appEventBusProvider);
+      _eventSub = bus.stream.listen((event) {
+        if (event.type == AppEventType.iptvSynced) {
+          unawaited(refresh());
+        }
+      });
+      ref.onDispose(() {
+        _eventSub?.cancel();
+        _eventSub = null;
+      });
+    }
+    return const HomeState();
+  }
+
+  Future<void> load() async {
+    state = state.copyWith(isLoading: true, error: null);
+    final hero = await _loadHero();
+    final iptv = await _loadIptv();
+    final movies = await _loadCw.movies();
+    final shows = await _loadCw.shows();
+    state = state.copyWith(
+      hero: hero,
+      cwMovies: movies,
+      cwShows: shows,
+      iptvLists: iptv,
+      isLoading: false,
+      isHeroEmpty: hero.isEmpty,
+    );
+  }
+
+  Future<void> refresh() => load();
+}
+
+final homeFeedRepositoryProvider = Provider<HomeFeedRepository>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<HomeFeedRepository>();
+});
+
+final homeControllerProvider = NotifierProvider<HomeController, HomeState>(
+  HomeController.new,
+);
+
+--------------------------------------------------------------------------------
+FILE #128: src/features/home/presentation/widgets/home_hero_carousel.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
+
+/// Carrousel du Hero d’accueil.
+/// - Affiche une liste de films/séries en rotation automatique.
+/// - Lit d’abord le cache, puis hydrate si nécessaire (cache → full fetch).
+/// - Sélection d’images centralisée pour éliminer les posters avec texte.
+class HomeHeroCarousel extends ConsumerStatefulWidget {
+  const HomeHeroCarousel({super.key, required this.movies});
+
+  final List<MovieSummary> movies;
+
+  @override
+  ConsumerState<HomeHeroCarousel> createState() => _HomeHeroCarouselState();
+}
+
+final _tmdbCacheProvider = Provider<TmdbCacheDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbCacheDataSource>(),
+);
+final _tmdbImagesProvider = Provider<TmdbImageResolver>(
+  (ref) => ref.watch(slProvider)<TmdbImageResolver>(),
+);
+final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>(),
+);
+final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>(),
+);
+
+class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
+    with WidgetsBindingObserver {
+  // Mise en page
+  static const double _totalHeight = 590;
+  static const double _overlayHeight = 150;
+
+  // Limite de décodage (px @device) pour soulager CPU/GPU en desktop
+  static const int _maxHeroCachePx = 1440;
+
+  // Timings
+  static const Duration _rotation = Duration(seconds: 9);
+  static const Duration _fade = Duration(milliseconds: 800);
+  static const double _synopsisHeight = 80;
+
+  // DI
+  late final TmdbCacheDataSource _cache;
+  late final TmdbImageResolver _images;
+  late final TmdbMovieRemoteDataSource _moviesRemote;
+  late final TmdbTvRemoteDataSource _tvRemote;
+
+  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
+
+  // États
+  final Set<int> _hydratedIds = <int>{};
+  final Set<int> _fullyHydratedIds = <int>{};
+  final Map<int, Future<_HeroMeta?>> _metaFutures = <int, Future<_HeroMeta?>>{};
+
+  int _index = 0;
+  Timer? _timer;
+  bool _backdropNotified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cache = ref.read(_tmdbCacheProvider);
+    _images = ref.read(_tmdbImagesProvider);
+    _moviesRemote = ref.read(_tmdbMovieRemoteProvider);
+    _tvRemote = ref.read(_tmdbTvRemoteProvider);
+    WidgetsBinding.instance.addObserver(this);
+    final persistedIndex = ref.read(hp.homeHeroIndexProvider);
+    if (persistedIndex > 0 && persistedIndex < widget.movies.length) {
+      _index = persistedIndex;
+    }
+    _prepareCurrentMeta();
+    _startTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeHeroCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.movies, widget.movies)) {
+      final persistedIndex = ref.read(hp.homeHeroIndexProvider);
+      final int maxIndex = (widget.movies.length - 1);
+      _index = (persistedIndex < 0)
+          ? 0
+          : (persistedIndex > maxIndex ? maxIndex : persistedIndex);
+      _metaFutures.clear();
+      _backdropNotified = false;
+      _prepareCurrentMeta();
+      _restartTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _favorite.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  // Lifecycle : pause/reprise du timer
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _restartTimer();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _timer?.cancel();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rotation / préparation
+  // ---------------------------------------------------------------------------
+
+  void _startTimer() {
+    _timer?.cancel();
+    if (widget.movies.length <= 1) return;
+    _timer = Timer.periodic(_rotation, (_) {
+      if (!mounted) return;
+      _triggerNext();
+    });
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _startTimer();
+  }
+
+  void _triggerNext() {
+    final int len = widget.movies.length;
+    if (len <= 1) return;
+    setState(() {
+      _index = (_index + 1) % len;
+      _backdropNotified = false;
+    });
+    ref.read(hp.homeHeroIndexProvider.notifier).set(_index);
+    _prepareCurrentMeta();
+  }
+
+  void _prepareCurrentMeta() {
+    final MovieSummary? m = _currentMovie;
+    if (m == null || m.tmdbId == null) return;
+
+    // Préparer meta courante (cache→affichage)
+    _metaFutures[m.tmdbId!] ??= _loadMeta(m);
+    if (_index == 0) {
+      _hydrateMetaIfNeeded(m);
+    }
+
+    // Précharger image courante
+    _precacheBgFor(m, isNext: false);
+
+    // Préparer meta suivante pour une transition fluide
+    final MovieSummary? next = _nextMovie;
+    if (next?.tmdbId != null) {
+      _metaFutures[next!.tmdbId!] ??= _loadMeta(next);
+      if (!_fullyHydratedIds.contains(next.tmdbId!)) {
+        _hydrateMetaFull(next);
+      }
+      _precacheBgFor(next, isNext: true);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers de données / cache
+  // ---------------------------------------------------------------------------
+
+  MovieSummary? get _currentMovie =>
+      (widget.movies.isNotEmpty ? widget.movies[_index] : null);
+
+  MovieSummary? get _nextMovie => widget.movies.isNotEmpty
+      ? widget.movies[(_index + 1) % widget.movies.length]
+      : null;
+
+  Future<_HeroMeta?> _loadMeta(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null) return null;
+
+    // 1) Film en cache, sinon 2) Série en cache
+    Map<String, dynamic>? data = await _safeGetMovieDetail(id);
+    bool isTvData = false;
+    if (data == null) {
+      data = await _safeGetTvDetail(id);
+      isTvData = data != null;
+    }
+    if (data == null) return null;
+
+    final Map<String, dynamic> images =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+
+    // Sélection centralisée : poster no-lang → en → best ; logo en → no-lang → best
+    final String? posterPath =
+        _ImageSelector.selectPoster(posters) ?? data['poster_path']?.toString();
+    final String? posterBgPath = data['poster_background']?.toString();
+    final String? logoPath = _ImageSelector.selectLogo(logos);
+
+    // Tailles standardisées pour stabilité/perf
+    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
+    final Uri? posterBgUri = _images.poster(posterBgPath, size: 'w780');
+    final Uri? backdropUri = _images.backdrop(
+      data['backdrop_path']?.toString(),
+      size: 'w780',
+    );
+    final Uri? logoUri = _images.logo(logoPath);
+
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final String? title = (data['title']?.toString() ?? '').trim().isEmpty
+        ? null
+        : data['title']?.toString();
+
+    final double? vote = (data['vote_average'] is num)
+        ? (data['vote_average'] as num).toDouble()
+        : null;
+
+    // Durée (film) / durée épisode (série)
+    int? runtimeMinutes;
+    final dynamic rawRuntime = data['runtime'];
+    if (rawRuntime is int) {
+      runtimeMinutes = rawRuntime;
+    } else {
+      final dynamic ert = data['episode_run_time'];
+      if (ert is List && ert.isNotEmpty && ert.first is int) {
+        runtimeMinutes = ert.first as int;
+      }
+    }
+
+    // Année depuis release_date (film) ou first_air_date (série)
+    final String? date =
+        (data['release_date']?.toString().trim().isNotEmpty ?? false)
+        ? data['release_date']?.toString()
+        : data['first_air_date']?.toString();
+    final int? year = _parseYear(date) ?? m.releaseYear;
+
+    return _HeroMeta(
+      isTv: isTvData,
+      posterBg: posterBgUri?.toString(),
+      poster: posterUri?.toString(),
+      backdrop: backdropUri?.toString(),
+      logo: logoUri?.toString(),
+      title: title,
+      overview: overview.isEmpty ? null : overview,
+      year: year,
+      rating: vote,
+      runtime: runtimeMinutes,
+    );
+  }
+
+  Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null || _hydratedIds.contains(id)) return;
+
+    Map<String, dynamic>? data = await _safeGetMovieDetail(id);
+    bool isTvData = false;
+    if (data == null) {
+      data = await _safeGetTvDetail(id);
+      isTvData = data != null;
+    }
+
+    // Aucune donnée en cache → fetch FULL immédiat
+    if (data == null) {
+      try {
+        _hydratedIds.add(id);
+        try {
+          final dto = await _moviesRemote.fetchMovieFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putMovieDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          _fullyHydratedIds.add(id);
+        } catch (_) {
+          final dto = await _tvRemote.fetchShowFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putTvDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          _fullyHydratedIds.add(id);
+        }
+        if (!mounted) return;
+        _metaFutures[id] = _loadMeta(m);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {});
+        });
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint(
+            'HomeHeroCarousel: hydration (no cache) failed for $id: $e\n$st',
+          );
+        }
+      }
+      return;
+    }
+
+    // Cache présent mais incomplet → hydrate si nécessaire
+    final Map<String, dynamic> images =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
+        ? (data['vote_average'] as num).toDouble()
+        : null;
+    final bool hasRuntime =
+        data['runtime'] is int ||
+        (data['episode_run_time'] is List &&
+            (data['episode_run_time'] as List).isNotEmpty);
+
+    final bool needsHydration =
+        posters.isEmpty ||
+        logos.isEmpty ||
+        overview.isEmpty ||
+        vote == null ||
+        !hasRuntime;
+    if (!needsHydration) return;
+
+    try {
+      _hydratedIds.add(id);
+      if (!isTvData) {
+        final dto = await _moviesRemote.fetchMovieFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putMovieDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        _fullyHydratedIds.add(id);
+      } else {
+        final dto = await _tvRemote.fetchShowFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putTvDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        _fullyHydratedIds.add(id);
+      }
+      if (!mounted) return;
+      _metaFutures[id] = _loadMeta(m);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+      });
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroCarousel: hydration failed for $id: $e\n$st');
+      }
+    }
+  }
+
+  Future<void> _hydrateMetaFull(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null ||
+        _hydratedIds.contains(id) ||
+        _fullyHydratedIds.contains(id)) {
+      return;
+    }
+    try {
+      _hydratedIds.add(id);
+      try {
+        final dto = await _moviesRemote.fetchMovieFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putMovieDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
+      } catch (_) {
+        final dto = await _tvRemote.fetchShowFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putTvDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
+      }
+      _fullyHydratedIds.add(id);
+      if (!mounted) return;
+      _metaFutures[id] = _loadMeta(m);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {});
+      });
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroCarousel: hydration full failed for $id: $e\n$st');
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _safeGetMovieDetail(int id) async {
+    try {
+      return await _cache.getMovieDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroCarousel: getMovieDetail($id) failed: $e\n$st');
+      }
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _safeGetTvDetail(int id) async {
+    try {
+      return await _cache.getTvDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroCarousel: getTvDetail($id) failed: $e\n$st');
+      }
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final MovieSummary? movie = _currentMovie;
+
+    return SizedBox(
+      height: _totalHeight,
+      width: double.infinity,
+      child: (widget.movies.isEmpty)
+          ? const _HeroEmpty(overlayHeight: _overlayHeight)
+          : movie == null
+          ? const _HeroSkeleton(overlayHeight: _overlayHeight)
+          : FutureBuilder<_HeroMeta?>(
+              future: _metaFutures[movie.tmdbId!],
+              builder: (context, snap) {
+                final _HeroMeta? meta = snap.data;
+
+                // Ordre de préférence du fond :
+                // 1) Poster TMDB (no-lang → en → best)
+                // 2) Poster playlist
+                // 3) Backdrop TMDB
+                // 4) Backdrop playlist
+                final String? bgSrc =
+                    _coerceHttpUrl(meta?.posterBg) ??
+                    _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(movie.poster.toString()) ??
+                    _coerceHttpUrl(meta?.backdrop) ??
+                    _coerceHttpUrl(movie.backdrop?.toString());
+
+                final bool hasTitle = meta?.title?.isNotEmpty ?? false;
+
+                final int? year = meta?.year ?? movie.releaseYear;
+                final String yearText = (year ?? '—').toString();
+
+                final double? rating = meta?.rating;
+                final String? ratingText = (rating == null)
+                    ? null
+                    : (rating >= 10
+                          ? rating.toStringAsFixed(0)
+                          : rating.toStringAsFixed(1));
+
+                final String? durationText = _formatDuration(meta?.runtime);
+                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
+
+                Widget buildBackground() {
+                  Widget image;
+                  if (bgSrc != null) {
+                    final mq = MediaQuery.of(context);
+                    final int rawPx = (mq.size.width * mq.devicePixelRatio)
+                        .round();
+                    final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
+                    image = Image.network(
+                      bgSrc,
+                      key: ValueKey(bgSrc),
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0.0, -0.5),
+                      width: double.infinity,
+                      height: double.infinity,
+                      gaplessPlayback: true,
+                      cacheWidth: cacheWidth,
+                      filterQuality: FilterQuality.low,
+                      errorBuilder: (_, __, ___) {
+                        if (!_backdropNotified) {
+                          _backdropNotified = true;
+                        }
+                        return const ColoredBox(color: Color(0xFF222222));
+                      },
+                      frameBuilder: (context, child, frame, wasSync) {
+                        if (frame != null && !_backdropNotified) {
+                          _backdropNotified = true;
+                        }
+                        return child;
+                      },
+                    );
+                  } else {
+                    image = const ColoredBox(color: Color(0xFF222222));
+                  }
+                  return AnimatedSwitcher(
+                    duration: _fade,
+                    switchInCurve: Curves.easeInOut,
+                    switchOutCurve: Curves.easeInOut,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ...previousChildren,
+                          if (currentChild != null) currentChild,
+                        ],
+                      );
+                    },
+                    child: image,
+                  );
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          buildBackground(),
+
+                          // Overlay sombre animé (transition inter-slides)
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _GlobalOverlay(height: _totalHeight),
+                          ),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _BottomOverlay(height: _overlayHeight),
+                          ),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            child: _TopOverlay(height: _overlayHeight),
+                          ),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            child: _TopOverlay(height: _overlayHeight),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxHeight: 150,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                  ),
+                                  child: hasTitle
+                                      ? AnimatedSwitcher(
+                                          duration: _fade,
+                                          transitionBuilder:
+                                              (child, animation) =>
+                                                  FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  ),
+                                          layoutBuilder: (current, previous) =>
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  ...previous,
+                                                  if (current != null) current,
+                                                ],
+                                              ),
+                                          child: Text(
+                                            meta!.title!,
+                                            key: ValueKey(
+                                              '${movie.tmdbId}_title',
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      : AnimatedSwitcher(
+                                          duration: _fade,
+                                          transitionBuilder:
+                                              (child, animation) =>
+                                                  FadeTransition(
+                                                    opacity: animation,
+                                                    child: child,
+                                                  ),
+                                          layoutBuilder: (current, previous) =>
+                                              Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  ...previous,
+                                                  if (current != null) current,
+                                                ],
+                                              ),
+                                          child: Text(
+                                            movie.title.value,
+                                            key: ValueKey(
+                                              '${movie.tmdbId}_titleFallback',
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AnimatedSwitcher(
+                      duration: _fade,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      layoutBuilder: (current, previous) => Stack(
+                        alignment: Alignment.center,
+                        children: [...previous, if (current != null) current],
+                      ),
+                      child: Row(
+                        key: ValueKey('${movie.tmdbId}_pills'),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (durationText != null)
+                            MoviPill(durationText, large: true),
+                          if (durationText != null && year != null)
+                            const SizedBox(width: 8),
+                          if (year != null) MoviPill(yearText, large: true),
+                          if (year != null && ratingText != null)
+                            const SizedBox(width: 8),
+                          if (ratingText != null)
+                            MoviPill(ratingText, large: true),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: _synopsisHeight,
+                      child: AnimatedSwitcher(
+                        duration: _fade,
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [...previous, if (current != null) current],
+                        ),
+                        child: hasSynopsis
+                            ? Padding(
+                                key: ValueKey('${movie.tmdbId}_synopsis'),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: Text(
+                                  meta!.overview!,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.left,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: MoviPrimaryButton(
+                              label: AppLocalizations.of(context)!.homeWatchNow,
+                              assetIcon: AppAssets.iconPlay,
+                              onPressed: () =>
+                                  context.push(AppRouteNames.movie),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _favorite,
+                            builder: (_, isFav, __) {
+                              return MoviFavoriteButton(
+                                isFavorite: isFav,
+                                onPressed: () => _favorite.value = !isFav,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pré-chargement images
+  // ---------------------------------------------------------------------------
+
+  void _precacheBgFor(MovieSummary m, {required bool isNext}) {
+    final int? id = m.tmdbId;
+    if (id == null) return;
+
+    final Future<_HeroMeta?>? future = _metaFutures[id];
+    if (future == null) return;
+
+    future.then((meta) async {
+      if (!mounted) return;
+
+      final bool ok = isNext
+          ? (_nextMovie?.tmdbId == id)
+          : (_currentMovie?.tmdbId == id);
+      if (!ok) return;
+
+      final String? bgSrc =
+          _coerceHttpUrl(meta?.posterBg) ??
+          _coerceHttpUrl(meta?.poster) ??
+          _coerceHttpUrl(m.poster.toString()) ??
+          _coerceHttpUrl(meta?.backdrop) ??
+          _coerceHttpUrl(m.backdrop?.toString());
+
+      if (bgSrc == null) return;
+
+      try {
+        await precacheImage(NetworkImage(bgSrc), context);
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint('HomeHeroCarousel: precache failed for $id: $e\n$st');
+        }
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+
+  String? _coerceHttpUrl(String? value) {
+    if (value == null || value.isEmpty || value == 'null') return null;
+    return (value.startsWith('http://') || value.startsWith('https://'))
+        ? value
+        : null;
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sélecteur d’images centralisé (poster et logo).
+// Poster : priorité **no-lang** → **en** → meilleur score.
+// Logo   : priorité **en** → **no-lang** → meilleur score.
+// -----------------------------------------------------------------------------
+class _ImageSelector {
+  const _ImageSelector._();
+
+  static String? selectPoster(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+
+  static String? selectLogo(List<dynamic> logos) {
+    if (logos.isEmpty) return null;
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+    double ratioOf(Map<String, dynamic> m) {
+      final w = m['width'];
+      final h = m['height'];
+      final dw = (w is num)
+          ? w.toDouble()
+          : double.tryParse(w?.toString() ?? '') ?? 0;
+      final dh = (h is num)
+          ? h.toDouble()
+          : double.tryParse(h?.toString() ?? '') ?? 0;
+      if (dw <= 0 || dh <= 0) return 0;
+      return dw / dh;
+    }
+
+    final List<Map<String, dynamic>> list = logos
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+    if (list.isEmpty) return null;
+
+    List<Map<String, dynamic>> sortByScore(List<Map<String, dynamic>> l) =>
+        (l..sort((a, b) => scoreOf(b).compareTo(scoreOf(a))));
+    List<Map<String, dynamic>> preferWide(List<Map<String, dynamic>> l) {
+      final wide = l.where((m) => ratioOf(m) >= 2.0).toList();
+      if (wide.isNotEmpty) return sortByScore(wide);
+      return sortByScore(l);
+    }
+
+    final List<Map<String, dynamic>> en = list
+        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+        .toList();
+    final enPref = preferWide(en);
+    if (enPref.isNotEmpty) return pathOf(enPref.first);
+
+    final List<Map<String, dynamic>> noLang = list
+        .where((m) => m['iso_639_1'] == null)
+        .toList();
+    final noLangPref = preferWide(noLang);
+    if (noLangPref.isNotEmpty) return pathOf(noLangPref.first);
+
+    return pathOf(sortByScore(list).first);
+  }
+}
+
+class _BottomOverlay extends StatelessWidget {
+  const _BottomOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Color(0xFF141414), Color(0x00141414)],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlobalOverlay extends StatelessWidget {
+  const _GlobalOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(color: Color.fromARGB(52, 20, 20, 20)),
+    );
+  }
+}
+
+class _TopOverlay extends StatelessWidget {
+  const _TopOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF141414), Color(0x00141414)],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroMeta {
+  const _HeroMeta({
+    required this.isTv,
+    this.posterBg,
+    this.poster,
+    this.backdrop,
+    this.logo,
+    this.title,
+    this.overview,
+    this.year,
+    this.rating,
+    this.runtime,
+  });
+
+  final bool isTv;
+  final String? posterBg;
+  final String? poster;
+  final String? backdrop;
+  final String? logo;
+  final String? title;
+  final String? overview;
+  final int? year;
+  final double? rating;
+  final int? runtime;
+}
+
+class _HeroSkeleton extends StatelessWidget {
+  const _HeroSkeleton({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width - 40,
+                    height: 120,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Image.asset(AppAssets.iconAppLogo),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _HeroEmpty extends StatelessWidget {
+  const _HeroEmpty({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: const Text(
+                      'Aucune tendance disponible',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+String? _formatDuration(int? minutes) {
+  if (minutes == null || minutes <= 0) return null;
+  if (minutes < 60) return '$minutes min';
+  final int h = minutes ~/ 60;
+  final int m = minutes % 60;
+  return m == 0 ? '$h h' : '$h h $m min';
+}
+
+--------------------------------------------------------------------------------
+FILE #129: src/features/home/presentation/widgets/home_hero_section.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/l10n/app_localizations.dart';
+
+/// Hero principal de la page d’accueil.
+/// - Affiche d’abord les données disponibles (cache / résumé).
+/// - Hydrate asynchronement le cache si des métadonnées clés manquent.
+/// - Sélection d’image centralisée : poster TMDB **sans langue** en priorité,
+///   sinon EN, sinon meilleur score ; fallback sur poster de la playlist.
+class HomeHeroSection extends ConsumerStatefulWidget {
+  const HomeHeroSection({
+    super.key,
+    required this.movie,
+    this.onBackgroundReady,
+  });
+
+  /// Résumé minimal pour initialiser le hero.
+  final MovieSummary? movie;
+
+  /// Notifié quand l’image de fond rend sa première frame.
+  final VoidCallback? onBackgroundReady;
+
+  @override
+  ConsumerState<HomeHeroSection> createState() => _HomeHeroSectionState();
+}
+
+final _tmdbCacheProvider = Provider<TmdbCacheDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbCacheDataSource>(),
+);
+final _tmdbImagesProvider = Provider<TmdbImageResolver>(
+  (ref) => ref.watch(slProvider)<TmdbImageResolver>(),
+);
+final _tmdbMovieRemoteProvider = Provider<TmdbMovieRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbMovieRemoteDataSource>(),
+);
+final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
+  (ref) => ref.watch(slProvider)<TmdbTvRemoteDataSource>(),
+);
+
+class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
+  // Mise en page
+  static const double _totalHeight = 790;
+  static const double _overlayHeight = 125;
+
+  // Sécurité décodage image (px @device)
+  static const int _maxHeroCachePx = 1440;
+
+  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
+
+  late final TmdbCacheDataSource _cache;
+  late final TmdbImageResolver _images;
+  late final TmdbMovieRemoteDataSource _moviesRemote;
+  late final TmdbTvRemoteDataSource _tvRemote;
+
+  /// Évite hydrations multiples pour un même id durant la vie du widget.
+  final Set<int> _hydratedIds = <int>{};
+
+  Future<_HeroMeta?>? _metaFuture;
+  bool _backdropNotified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _cache = ref.read(_tmdbCacheProvider);
+    _images = ref.read(_tmdbImagesProvider);
+    _moviesRemote = ref.read(_tmdbMovieRemoteProvider);
+    _tvRemote = ref.read(_tmdbTvRemoteProvider);
+    _primeMeta();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeHeroSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldId = oldWidget.movie?.tmdbId;
+    final newId = widget.movie?.tmdbId;
+    if (oldId != newId) _primeMeta();
+  }
+
+  @override
+  void dispose() {
+    _favorite.dispose();
+    super.dispose();
+  }
+
+  void _primeMeta() {
+    final movie = widget.movie;
+    if (movie == null) {
+      _metaFuture = null;
+      return;
+    }
+    _metaFuture = _loadMeta(movie);
+    _hydrateMetaIfNeeded(movie); // non bloquant
+  }
+
+  // ---------------------------------------------------------------------------
+  // CHARGEMENT / HYDRATATION
+  // ---------------------------------------------------------------------------
+
+  Future<_HeroMeta?> _loadMeta(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null) return null;
+
+    // 1) Cache film puis fallback cache série (au cas où l’ID pointe vers une série)
+    Map<String, dynamic>? data = await _safeGetMovieDetail(id);
+    bool isTvData = false;
+    if (data == null) {
+      data = await _safeGetTvDetail(id);
+      isTvData = data != null;
+    }
+    if (data == null) return null;
+
+    final Map<String, dynamic> images =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+
+    // Sélection centralisée : poster no-lang → en → best ; pour le logo : en → no-lang → best
+    final String? posterPath =
+        _ImageSelector.selectPoster(posters) ?? data['poster_path']?.toString();
+    final String? posterBgPath = data['poster_background']?.toString();
+    final String? logoPath = _ImageSelector.selectLogo(logos);
+
+    // Tailles raisonnables pour limiter la pression mémoire CPU/GPU.
+    // - poster : w500 (qualité suffisante pour le hero)
+    // - backdrop : w780 (compromis qualité/poids pour le plein écran)
+    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
+    final Uri? posterBgUri = _images.poster(posterBgPath, size: 'w780');
+    final Uri? backdropUri = _images.backdrop(
+      data['backdrop_path']?.toString(),
+      size: 'w780',
+    );
+    final Uri? logoUri = _images.logo(logoPath); // taille par défaut adaptée
+
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
+        ? (data['vote_average'] as num).toDouble()
+        : null;
+
+    // Durée (film) / durée épisode (série)
+    int? runtimeMinutes;
+    final dynamic rawRuntime = data['runtime'];
+    if (rawRuntime is int) {
+      runtimeMinutes = rawRuntime;
+    } else {
+      final dynamic ert = data['episode_run_time'];
+      if (ert is List && ert.isNotEmpty && ert.first is int) {
+        runtimeMinutes = ert.first as int;
+      }
+    }
+
+    // Année (release_date pour film, first_air_date pour série)
+    final String? date =
+        (data['release_date']?.toString().trim().isNotEmpty ?? false)
+        ? data['release_date']?.toString()
+        : data['first_air_date']?.toString();
+    final int? year = _parseYear(date) ?? widget.movie?.releaseYear;
+
+    return _HeroMeta(
+      isTv: isTvData,
+      posterBg: posterBgUri?.toString(),
+      poster: posterUri?.toString(),
+      backdrop: backdropUri?.toString(),
+      logo: logoUri?.toString(),
+      overview: overview.isEmpty ? null : overview,
+      year: year,
+      rating: vote,
+      runtime: runtimeMinutes,
+    );
+  }
+
+  Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
+    final int? id = m.tmdbId;
+    if (id == null || _hydratedIds.contains(id)) return;
+
+    Map<String, dynamic>? data = await _safeGetMovieDetail(id);
+    bool isTvData = false;
+    if (data == null) {
+      data = await _safeGetTvDetail(id);
+      isTvData = data != null;
+    }
+
+    // Si pas de cache du tout : fetch FULL immédiatement (film puis fallback série)
+    if (data == null) {
+      try {
+        _hydratedIds.add(id);
+        try {
+          final dto = await _moviesRemote.fetchMovieFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putMovieDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          isTvData = false;
+        } catch (_) {
+          final dto = await _tvRemote.fetchShowFull(
+            id,
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          await _cache.putTvDetail(
+            id,
+            dto.toCache(),
+            language: ref.read(currentLanguageCodeProvider),
+          );
+          isTvData = true;
+        }
+        if (!mounted) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() => _metaFuture = _loadMeta(m));
+        });
+      } catch (e, st) {
+        if (kDebugMode) {
+          debugPrint(
+            'HomeHeroSection: hydration (no cache) failed for $id: $e\n$st',
+          );
+        }
+      }
+      return;
+    }
+
+    // Cache présent : vérifier si des champs essentiels manquent
+    final Map<String, dynamic> images =
+        (data['images'] as Map<String, dynamic>?) ?? const <String, dynamic>{};
+    final List<dynamic> posters =
+        (images['posters'] as List<dynamic>?) ?? const <dynamic>[];
+    final List<dynamic> logos =
+        (images['logos'] as List<dynamic>?) ?? const <dynamic>[];
+    final String overview = (data['overview']?.toString() ?? '').trim();
+    final double? vote = (data['vote_average'] is num)
+        ? (data['vote_average'] as num).toDouble()
+        : null;
+    final bool hasRuntime =
+        data['runtime'] is int ||
+        (data['episode_run_time'] is List &&
+            (data['episode_run_time'] as List).isNotEmpty);
+
+    final bool needsHydration =
+        posters.isEmpty ||
+        logos.isEmpty ||
+        overview.isEmpty ||
+        vote == null ||
+        !hasRuntime;
+
+    if (!needsHydration) return;
+
+    try {
+      _hydratedIds.add(id);
+      if (!isTvData) {
+        final dto = await _moviesRemote.fetchMovieFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putMovieDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
+      } else {
+        final dto = await _tvRemote.fetchShowFull(
+          id,
+          language: ref.read(currentLanguageCodeProvider),
+        );
+        await _cache.putTvDetail(
+          id,
+          dto.toCache(),
+          language: ref.read(currentLanguageCodeProvider),
+        );
+      }
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _metaFuture = _loadMeta(m));
+      });
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroSection: hydration failed for $id: $e\n$st');
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _safeGetMovieDetail(int id) async {
+    try {
+      return await _cache.getMovieDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroSection: getMovieDetail($id) failed: $e\n$st');
+      }
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _safeGetTvDetail(int id) async {
+    try {
+      return await _cache.getTvDetail(
+        id,
+        language: ref.read(currentLanguageCodeProvider),
+      );
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('HomeHeroSection: getTvDetail($id) failed: $e\n$st');
+      }
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final MovieSummary? movie = widget.movie;
+
+    return SizedBox(
+      height: _totalHeight,
+      width: double.infinity,
+      child: movie == null
+          ? const _HeroSkeleton(overlayHeight: _overlayHeight)
+          : FutureBuilder<_HeroMeta?>(
+              future: _metaFuture,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const _HeroSkeleton(overlayHeight: _overlayHeight);
+                }
+
+                final _HeroMeta? meta = snap.data;
+
+                // Ordre de préférence du fond :
+                // 1) Poster TMDB sélectionné (no-lang → en → best)
+                // 2) Poster playlist (MovieSummary)
+                // 3) Backdrop TMDB
+                // 4) Backdrop playlist
+                final String? bgSrc =
+                    _coerceHttpUrl(meta?.posterBg) ??
+                    _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(movie.poster.toString()) ??
+                    _coerceHttpUrl(meta?.backdrop) ??
+                    _coerceHttpUrl(movie.backdrop?.toString());
+
+                if (bgSrc == null) {
+                  return const _HeroEmpty(overlayHeight: _overlayHeight);
+                }
+
+                final bool hasLogo = (meta?.logo?.isNotEmpty ?? false);
+                final int? year = meta?.year ?? movie.releaseYear;
+                final String yearText = (year ?? '—').toString();
+
+                final double? rating = meta?.rating;
+                final String? ratingText = (rating == null)
+                    ? null
+                    : (rating >= 10
+                          ? rating.toStringAsFixed(0)
+                          : rating.toStringAsFixed(1));
+
+                final String? durationText = _formatDuration(meta?.runtime);
+                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
+
+                Widget buildBackground() {
+                  // Limiter le décodage pour réduire la pression mémoire/CPU (Windows/Desktop).
+                  final mq = MediaQuery.of(context);
+                  final int rawPx = (mq.size.width * mq.devicePixelRatio)
+                      .round();
+                  final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
+                  return Image.network(
+                    bgSrc,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    gaplessPlayback: true,
+                    cacheWidth: cacheWidth,
+                    filterQuality: FilterQuality.low,
+                    errorBuilder: (_, __, ___) {
+                      if (!_backdropNotified) {
+                        _backdropNotified = true;
+                        widget.onBackgroundReady?.call();
+                      }
+                      return const ColoredBox(color: Color(0xFF222222));
+                    },
+                    frameBuilder: (context, child, frame, wasSync) {
+                      if (frame != null && !_backdropNotified) {
+                        _backdropNotified = true;
+                        widget.onBackgroundReady?.call();
+                      }
+                      return child;
+                    },
+                  );
+                }
+
+                return Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          buildBackground(),
+                          const Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _BottomOverlay(height: _overlayHeight),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: _overlayHeight - 100,
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxHeight: 100,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.lg,
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.contain,
+                                    child: hasLogo
+                                        ? Image.network(
+                                            meta!.logo!,
+                                            height: 100,
+                                            gaplessPlayback: true,
+                                            // ~300px @1x pour limiter le poids décodé
+                                            cacheWidth:
+                                                (300 *
+                                                        MediaQuery.of(
+                                                          context,
+                                                        ).devicePixelRatio)
+                                                    .round(),
+                                            filterQuality: FilterQuality.low,
+                                            errorBuilder: (_, __, ___) =>
+                                                _TitleFallback(
+                                                  movie.title.value,
+                                                ),
+                                          )
+                                        : _TitleFallback(movie.title.value),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (durationText != null)
+                          MoviPill(durationText, large: true),
+                        if (durationText != null && year != null)
+                          const SizedBox(width: 8),
+                        if (year != null) MoviPill(yearText, large: true),
+                        if (year != null && ratingText != null)
+                          const SizedBox(width: 8),
+                        if (ratingText != null)
+                          MoviPill(ratingText, large: true),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (hasSynopsis)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        child: Text(
+                          meta!.overview!,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    if (hasSynopsis) const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: MoviPrimaryButton(
+                              label: AppLocalizations.of(context)!.homeWatchNow,
+                              assetIcon: AppAssets.iconPlay,
+                              onPressed: () =>
+                                  context.push(AppRouteNames.movie),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _favorite,
+                            builder: (_, isFav, __) {
+                              return MoviFavoriteButton(
+                                isFavorite: isFav,
+                                onPressed: () => _favorite.value = !isFav,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              },
+            ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Utils
+  // ---------------------------------------------------------------------------
+
+  /// Retourne une URL http(s) uniquement, ou null.
+  String? _coerceHttpUrl(String? value) {
+    if (value == null || value.isEmpty || value == 'null') return null;
+    return (value.startsWith('http://') || value.startsWith('https://'))
+        ? value
+        : null;
+  }
+
+  int? _parseYear(String? raw) {
+    if (raw == null || raw.length < 4) return null;
+    return int.tryParse(raw.substring(0, 4));
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Sélecteur d’images (centralisé au niveau du widget pour éviter toute
+// divergence interne). Pour une centralisation globale, déplacer ce bloc
+// dans un util partagé et le réutiliser côté repository & widgets.
+// -----------------------------------------------------------------------------
+class _ImageSelector {
+  const _ImageSelector._();
+
+  /// Sélection du poster : priorité **no-lang** → **en** → meilleur score.
+  static String? selectPoster(List<dynamic> posters) {
+    if (posters.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+
+    final List<Map<String, dynamic>> list = posters
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+
+    if (list.isEmpty) return null;
+
+    final List<Map<String, dynamic>> noLang =
+        list.where((m) => m['iso_639_1'] == null).toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (noLang.isNotEmpty) return pathOf(noLang.first);
+
+    final List<Map<String, dynamic>> en =
+        list
+            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+            .toList()
+          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    if (en.isNotEmpty) return pathOf(en.first);
+
+    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
+    return pathOf(list.first);
+  }
+
+  /// Sélection du logo : priorité **en** → **no-lang** → meilleur score.
+  static String? selectLogo(List<dynamic> logos) {
+    if (logos.isEmpty) return null;
+
+    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
+    double ratioOf(Map<String, dynamic> m) {
+      final w = m['width'];
+      final h = m['height'];
+      final dw = (w is num)
+          ? w.toDouble()
+          : double.tryParse(w?.toString() ?? '') ?? 0;
+      final dh = (h is num)
+          ? h.toDouble()
+          : double.tryParse(h?.toString() ?? '') ?? 0;
+      if (dw <= 0 || dh <= 0) return 0;
+      return dw / dh;
+    }
+
+    final List<Map<String, dynamic>> list = logos
+        .whereType<Map<String, dynamic>>()
+        .where((m) => m['file_path'] != null)
+        .toList();
+
+    if (list.isEmpty) return null;
+
+    List<Map<String, dynamic>> sortByScore(List<Map<String, dynamic>> l) =>
+        (l..sort((a, b) => scoreOf(b).compareTo(scoreOf(a))));
+    List<Map<String, dynamic>> preferWide(List<Map<String, dynamic>> l) {
+      final wide = l.where((m) => ratioOf(m) >= 2.0).toList();
+      if (wide.isNotEmpty) return sortByScore(wide);
+      return sortByScore(l);
+    }
+
+    final List<Map<String, dynamic>> en = list
+        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
+        .toList();
+    final enPref = preferWide(en);
+    if (enPref.isNotEmpty) return pathOf(enPref.first);
+
+    final List<Map<String, dynamic>> noLang = list
+        .where((m) => m['iso_639_1'] == null)
+        .toList();
+    final noLangPref = preferWide(noLang);
+    if (noLangPref.isNotEmpty) return pathOf(noLangPref.first);
+
+    return pathOf(sortByScore(list).first);
+  }
+}
+
+class _BottomOverlay extends StatelessWidget {
+  const _BottomOverlay({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Color(0xFF141414), Color(0x00141414)],
+        ),
+      ),
+    );
+  }
+}
+
+class _TitleFallback extends StatelessWidget {
+  const _TitleFallback(this.title);
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      textAlign: TextAlign.center,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.2,
+      ),
+    );
+  }
+}
+
+class _HeroMeta {
+  const _HeroMeta({
+    required this.isTv,
+    this.posterBg,
+    this.poster,
+    this.backdrop,
+    this.logo,
+    this.overview,
+    this.year,
+    this.rating,
+    this.runtime,
+  });
+
+  final bool isTv;
+  final String? posterBg;
+  final String? poster;
+  final String? backdrop;
+  final String? logo;
+  final String? overview;
+  final int? year;
+  final double? rating;
+  final int? runtime;
+}
+
+class _HeroSkeleton extends StatelessWidget {
+  const _HeroSkeleton({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width - 40,
+                    height: 120,
+                    child: FittedBox(
+                      fit: BoxFit.contain,
+                      child: Image.asset(AppAssets.iconAppLogo),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+class _HeroEmpty extends StatelessWidget {
+  const _HeroEmpty({required this.overlayHeight});
+  final double overlayHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Color(0xFF222222)),
+              _BottomOverlay(height: overlayHeight),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: overlayHeight - 100,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: const Text(
+                      'Aucune tendance disponible',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+}
+
+// Formatage lisible : util libre, pas lié à l’état.
+String? _formatDuration(int? minutes) {
+  if (minutes == null || minutes <= 0) return null;
+  if (minutes < 60) return '$minutes min';
+  final int h = minutes ~/ 60;
+  final int m = minutes % 60;
+  return m == 0 ? '$h h' : '$h h $m min';
+}
+
+--------------------------------------------------------------------------------
+FILE #302: src/shared/data/services/tmdb_cache_data_source.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:movi/src/core/storage/storage.dart';
+
+/// Data source de cache pour les détails TMDB (films & séries).
+/// Combine :
+/// - une mémoïsation mémoire **LRU** à court terme (pour éviter les re-hits
+///   réseau durant les rafales d’accès d’un même écran),
+/// - une **persistance** via [ContentCacheRepository] (TTL étendu).
+///
+/// Contrats publics stables :
+/// - `getMovieDetail`, `putMovieDetail`
+/// - `getTvDetail`, `putTvDetail`
+/// - `clearMemoryMemo`
+///
+/// Les méthodes retournent `Map<String, dynamic>?` afin de laisser les couches
+/// supérieures mapper/valider/extraire les champs utiles.
+///
+/// ⚠️ Aucun parsing métier n’est réalisé ici : *responsabilité unique = cache*.
+class TmdbCacheDataSource {
+  TmdbCacheDataSource(
+    this._cache, {
+    Duration memoTtl = const Duration(seconds: 45),
+    int memoCapacity = 512,
+  }) : assert(memoCapacity > 0),
+       _memoTtl = memoTtl,
+       _memo = _LruMemo<String, Map<String, dynamic>>(memoCapacity);
+
+  final ContentCacheRepository _cache;
+
+  /// TTL par défaut de la couche persistée (peut être surchargé à l’appel).
+  static const CachePolicy detailPolicy = CachePolicy(ttl: Duration(days: 7));
+
+  /// TTL de la mémo en mémoire (process).
+  final Duration _memoTtl;
+
+  /// Mémo LRU (clé → JSON), bornée et expirante.
+  final _LruMemo<String, Map<String, dynamic>> _memo;
+
+  // ---------------------------------------------------------------------------
+  // Clés de cache
+  // ---------------------------------------------------------------------------
+
+  String _movieKey(int id, String language) =>
+      'tmdb_movie_detail_${id}_$language';
+  String _tvKey(int id, String language) => 'tmdb_tv_detail_${id}_$language';
+
+  // ---------------------------------------------------------------------------
+  // MOVIE
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> getMovieDetail(
+    int id, {
+    required String language,
+    Duration? memoTtl,
+    CachePolicy? policyOverride,
+  }) async {
+    if (id <= 0) return null;
+    final String key = _movieKey(id, language);
+
+    // 1) Mémo mémoire (rapide, court-terme)
+    final Map<String, dynamic>? memo = _memo.getIfFresh(key);
+    if (memo != null) return memo;
+
+    // 2) Cache persistant (long-terme)
+    final dynamic data = await _cache.getWithPolicy(
+      key,
+      policyOverride ?? detailPolicy,
+    );
+
+    if (data is Map<String, dynamic>) {
+      _memo.put(key, data, ttl: memoTtl ?? _memoTtl);
+      return data;
+    }
+
+    // Donnée absente ou illisible → laisser la couche appelante décider du fallback.
+    return null;
+  }
+
+  Future<void> putMovieDetail(
+    int id,
+    Map<String, dynamic> json, {
+    required String language,
+    Duration? memoTtl,
+  }) async {
+    if (id <= 0) return;
+    final String key = _movieKey(id, language);
+    // Écrit d’abord en mémo pour lecture immédiate post-écriture.
+    _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
+    await _cache.put(key: key, type: 'tmdb_detail', payload: json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // TV
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> getTvDetail(
+    int id, {
+    required String language,
+    Duration? memoTtl,
+    CachePolicy? policyOverride,
+  }) async {
+    if (id <= 0) return null;
+    final String key = _tvKey(id, language);
+
+    final Map<String, dynamic>? memo = _memo.getIfFresh(key);
+    if (memo != null) return memo;
+
+    final dynamic data = await _cache.getWithPolicy(
+      key,
+      policyOverride ?? detailPolicy,
+    );
+
+    if (data is Map<String, dynamic>) {
+      _memo.put(key, data, ttl: memoTtl ?? _memoTtl);
+      return data;
+    }
+
+    return null;
+  }
+
+  Future<void> putTvDetail(
+    int id,
+    Map<String, dynamic> json, {
+    required String language,
+    Duration? memoTtl,
+  }) async {
+    if (id <= 0) return;
+    final String key = _tvKey(id, language);
+    _memo.put(key, json, ttl: memoTtl ?? _memoTtl);
+    await _cache.put(key: key, type: 'tmdb_detail', payload: json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Outils
+  // ---------------------------------------------------------------------------
+
+  /// Vide la mémo mémoire *uniquement* (n’affecte pas la persistance).
+  void clearMemoryMemo() => _memo.clear();
+}
+
+// ============================================================================
+// LRU mémoire simple avec TTL par entrée
+// ============================================================================
+
+class _LruMemo<K, V> {
+  _LruMemo(this.capacity) : assert(capacity > 0);
+
+  final int capacity;
+  final Map<K, _MemoEntry<V>> _map = <K, _MemoEntry<V>>{};
+
+  /// Retourne la valeur si non expirée, en actualisant son ordre LRU.
+  V? getIfFresh(K key) {
+    final _MemoEntry<V>? removed = _map.remove(key);
+    if (removed == null) return null;
+
+    // Expiration
+    if (DateTime.now().isAfter(removed.expiresAt)) {
+      return null;
+    }
+
+    // Réinsère pour marquer l’accès récent
+    _map[key] = removed;
+    return removed.value;
+  }
+
+  /// Insère/actualise une valeur avec son TTL et applique le bornage LRU.
+  void put(K key, V value, {required Duration ttl}) {
+    _map.remove(key);
+    _map[key] = _MemoEntry<V>(value, DateTime.now().add(ttl));
+
+    // Bornage LRU (Map préserve l’ordre d’insertion → clé la plus ancienne = first)
+    while (_map.length > capacity) {
+      _map.remove(_map.keys.first);
+    }
+  }
+
+  void clear() => _map.clear();
+}
+
+class _MemoEntry<V> {
+  const _MemoEntry(this.value, this.expiresAt);
+  final V value;
+  final DateTime expiresAt;
+}
 
 --------------------------------------------------------------------------------
 FILE #303: src/shared/data/services/tmdb_client.dart
@@ -1073,5 +3878,163 @@ class TmdbClientError implements Exception {
     if (uri != null) b.write(' uri=$uri');
     return b.toString();
   }
+}
+
+--------------------------------------------------------------------------------
+FILE #304: src/shared/data/services/tmdb_image_resolver.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+/// TMDB Image URL resolver.
+/// Responsabilité unique : convertir un `file_path` TMDB (ex: `/abc.jpg`)
+/// en `Uri` consommable par l’application, avec gestion des tailles.
+///
+/// Règles :
+/// - Si `path` est `null`, vide ou égal à la chaîne `"null"`, retourne `null`.
+/// - Si `path` est déjà une URL absolue (http/https), elle est retournée telle quelle.
+/// - Sinon on préfixe avec `baseUrl` et une taille valide (ex: `w500`, `w780`, `original`).
+///
+/// Bonnes pratiques :
+/// - Utiliser des tailles cohérentes par type d’image (défauts fournis).
+/// - Éviter `original` sur mobile/desktop si la performance mémoire est critique.
+class TmdbImageResolver {
+  const TmdbImageResolver({this.baseUrl = 'https://image.tmdb.org/t/p/'});
+
+  /// Base URL du CDN TMDB (se termine toujours par `/t/p/`).
+  final String baseUrl;
+
+  /// Construit l’URL d’un poster (portrait).
+  /// Taille par défaut : `w342`.
+  Uri? poster(String? path, {String size = 'w342'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w342'));
+
+  /// Construit l’URL d’un backdrop (paysage).
+  /// Taille par défaut : `w780`.
+  Uri? backdrop(String? path, {String size = 'w780'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w780'));
+
+  Uri? heroPoster(
+    String? posterPath,
+    String? backdropPath, {
+    String posterSize = 'w342',
+    String backdropSize = 'w780',
+  }) {
+    return poster(posterPath, size: posterSize) ??
+        backdrop(backdropPath, size: backdropSize);
+  }
+
+  TmdbImagePair resolvePair(
+    String? posterPath,
+    String? backdropPath, {
+    String posterSize = 'w342',
+    String backdropSize = 'w780',
+  }) {
+    final Uri? p = poster(posterPath, size: posterSize);
+    final Uri? b = backdrop(backdropPath, size: backdropSize);
+    return TmdbImagePair(poster: p, backdrop: b, preferred: p ?? b);
+  }
+
+  /// Construit l’URL d’un logo (transparent, centré).
+  /// Taille par défaut : `w300`.
+  Uri? logo(String? path, {String size = 'w300'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w300'));
+
+  /// Construit l’URL d’une image de scène (still).
+  /// Taille par défaut : `w185`.
+  Uri? still(String? path, {String size = 'w185'}) =>
+      _build(path, _sanitizeSize(size, fallback: 'w185'));
+
+  // ---------------------------------------------------------------------------
+  // Internals
+  // ---------------------------------------------------------------------------
+
+  /// Normalise la taille. Autorise :
+  ///  - `original`
+  ///  - `w###` ou `h###` (2–4 chiffres)
+  /// En cas de valeur invalide, applique `fallback`.
+  String _sanitizeSize(String raw, {required String fallback}) {
+    final s = (raw).trim();
+    if (s == 'original') return s;
+    final re = RegExp(r'^[wh]\d{2,4}$');
+    return re.hasMatch(s) ? s : fallback;
+  }
+
+  /// Construit l’URI final en gérant :
+  /// - chemins relatifs TMDB (avec ou sans `/` initial),
+  /// - URLs absolues déjà complètes,
+  /// - valeurs vides / "null".
+  Uri? _build(String? path, String size) {
+    if (path == null) return null;
+    final p = path.trim();
+    if (p.isEmpty || p == 'null') return null;
+
+    // Si déjà absolu, on ne recompose pas.
+    if (_looksAbsoluteUrl(p)) {
+      return Uri.tryParse(p);
+    }
+
+    // TMDB retourne en général des chemins commençant par '/', on garantit cette propriété.
+    final normalizedPath = p.startsWith('/') ? p : '/$p';
+
+    // Concaténation sûre : baseUrl + size + normalizedPath
+    final base = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
+    return Uri.parse('$base$size$normalizedPath');
+  }
+
+  bool _looksAbsoluteUrl(String s) =>
+      s.startsWith('http://') || s.startsWith('https://');
+
+  // ---------------------------------------------------------------------------
+  // Tailles standard suggérées (optionnel : utilitaires exploités côté appelant)
+  // ---------------------------------------------------------------------------
+
+  /// Tailles usuelles pour poster (documentation TMDB indicative).
+  static const List<String> posterSizes = <String>[
+    'w92',
+    'w154',
+    'w185',
+    'w342',
+    'w500',
+    'w780',
+    'original',
+  ];
+
+  /// Tailles usuelles pour backdrop.
+  static const List<String> backdropSizes = <String>[
+    'w300',
+    'w780',
+    'w1280',
+    'original',
+  ];
+
+  /// Tailles usuelles pour logo.
+  static const List<String> logoSizes = <String>[
+    'w45',
+    'w92',
+    'w154',
+    'w185',
+    'w300',
+    'w500',
+    'original',
+  ];
+
+  /// Tailles usuelles pour still.
+  static const List<String> stillSizes = <String>[
+    'w92',
+    'w185',
+    'w300',
+    'original',
+  ];
+}
+
+class TmdbImagePair {
+  const TmdbImagePair({
+    required this.poster,
+    required this.backdrop,
+    required this.preferred,
+  });
+  final Uri? poster;
+  final Uri? backdrop;
+  final Uri? preferred;
 }
 

@@ -55,5 +55,11 @@
   "settingsLegalMentionsTitle": "Avisos legales",
   "settingsPrivacyPolicyTitle": "Política de privacidad",
   "actionCancel": "Cancelar",
-  "actionConfirm": "Confirmar"
+  "actionConfirm": "Confirmar",
+  "actionRetry": "Reintentar"
+  ,
+  "homeErrorSwipeToRetry": "Se produjo un error. Desliza hacia abajo para reintentar.",
+  "homeContinueWatching": "Continuar viendo",
+  "homeNoIptvSources": "No hay fuente IPTV activa. Añade una fuente en Ajustes para ver tus categorías.",
+  "homeNoTrends": "No hay contenido en tendencia disponible"
 }

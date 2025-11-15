@@ -154,4 +154,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionConfirm => 'Confirm';
+
+  @override
+  String get actionRetry => 'Retry';
+
+  @override
+  String get homeErrorSwipeToRetry => 'An error occurred. Swipe down to retry.';
+
+  @override
+  String get homeContinueWatching => 'Continue watching';
+
+  @override
+  String get homeNoIptvSources =>
+      'No IPTV source active. Add a source in Settings to see your categories.';
+
+  @override
+  String get homeNoTrends => 'No trending content available';
 }

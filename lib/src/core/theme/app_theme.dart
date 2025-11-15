@@ -39,6 +39,11 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
+      splashFactory: NoSplash.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      focusColor: Colors.transparent,
       scaffoldBackgroundColor: backgroundColor,
       fontFamily: GoogleFonts.montserrat().fontFamily,
       textTheme: textTheme,
@@ -113,6 +118,7 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
           textStyle: buttonTextStyle,
+          overlayColor: Colors.transparent,
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -232,6 +238,7 @@ class AppTheme {
       padding: padding,
       shape: shape,
       textStyle: textStyle,
+      overlayColor: Colors.transparent,
     );
   }
 }

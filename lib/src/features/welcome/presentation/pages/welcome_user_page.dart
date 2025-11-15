@@ -29,7 +29,10 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   @override
   void initState() {
     super.initState();
-    unawaited(ref.read(userSettingsControllerProvider.notifier).load());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(ref.read(userSettingsControllerProvider.notifier).load());
+    });
   }
 
   @override

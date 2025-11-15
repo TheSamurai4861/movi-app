@@ -158,4 +158,21 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get actionConfirm => 'Bevestigen';
+
+  @override
+  String get actionRetry => 'Opnieuw proberen';
+
+  @override
+  String get homeErrorSwipeToRetry =>
+      'Er is een fout opgetreden. Veeg omlaag om opnieuw te proberen.';
+
+  @override
+  String get homeContinueWatching => 'Verder kijken';
+
+  @override
+  String get homeNoIptvSources =>
+      'Geen IPTV-bron actief. Voeg een bron toe in Instellingen om je categorieën te zien.';
+
+  @override
+  String get homeNoTrends => 'Geen trending inhoud beschikbaar';
 }

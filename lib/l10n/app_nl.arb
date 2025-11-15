@@ -55,5 +55,11 @@
   "settingsLegalMentionsTitle": "Juridische vermeldingen",
   "settingsPrivacyPolicyTitle": "Privacybeleid",
   "actionCancel": "Annuleren",
-  "actionConfirm": "Bevestigen"
+  "actionConfirm": "Bevestigen",
+  "actionRetry": "Opnieuw proberen"
+  ,
+  "homeErrorSwipeToRetry": "Er is een fout opgetreden. Veeg omlaag om opnieuw te proberen.",
+  "homeContinueWatching": "Verder kijken",
+  "homeNoIptvSources": "Geen IPTV-bron actief. Voeg een bron toe in Instellingen om je categorieën te zien.",
+  "homeNoTrends": "Geen trending inhoud beschikbaar"
 }

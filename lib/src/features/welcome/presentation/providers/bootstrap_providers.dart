@@ -1,10 +1,15 @@
 // lib/src/features/welcome/presentation/providers/bootstrap_providers.dart
-import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+import 'dart:async';
+import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/core/di/di.dart';
 
 enum BootPhase { refreshing, enriching, ready }
 
@@ -97,3 +102,60 @@ final bootstrapControllerProvider =
     NotifierProvider<BootstrapController, BootstrapState>(
       BootstrapController.new,
     );
+
+final appPreloadProvider = FutureProvider<void>((ref) async {
+  await ref.read(app_startup_provider.appStartupProvider.future);
+  final appState = ref.read(appStateControllerProvider);
+  if (appState.hasNoActiveIptvSources) {
+    final locator = ref.read(slProvider);
+    final iptvRepo = locator<IptvLocalRepository>();
+    final accounts = await iptvRepo.getAccounts();
+    if (accounts.isNotEmpty) {
+      final ids = accounts.map((a) => a.id).toSet();
+      appState.setActiveIptvSources(ids);
+    }
+  }
+  final initial = ref.read(homeControllerProvider);
+  final home = ref.read(homeControllerProvider.notifier);
+
+  final hasData = initial.error == null && (
+    initial.hero.isNotEmpty ||
+    initial.cwMovies.isNotEmpty ||
+    initial.cwShows.isNotEmpty ||
+    initial.iptvLists.isNotEmpty
+  );
+
+  if (hasData) {
+    return;
+  }
+
+  try {
+    await home.load().timeout(const Duration(seconds: 10));
+  } on TimeoutException {
+    final after = ref.read(homeControllerProvider);
+    final partial = after.hero.isNotEmpty ||
+        after.cwMovies.isNotEmpty ||
+        after.cwShows.isNotEmpty ||
+        after.iptvLists.isNotEmpty;
+    if (!partial) {
+      throw AppPreloadTimeoutException('Home load timeout');
+    }
+  } catch (e) {
+    unawaited(LoggingService.log('Home preload failed: $e'));
+    final after = ref.read(homeControllerProvider);
+    final partial = after.hero.isNotEmpty ||
+        after.cwMovies.isNotEmpty ||
+        after.cwShows.isNotEmpty ||
+        after.iptvLists.isNotEmpty;
+    if (!partial) {
+      rethrow;
+    }
+  }
+});
+
+class AppPreloadTimeoutException implements Exception {
+  AppPreloadTimeoutException(this.message);
+  final String message;
+  @override
+  String toString() => 'AppPreloadTimeoutException: $message';
+}

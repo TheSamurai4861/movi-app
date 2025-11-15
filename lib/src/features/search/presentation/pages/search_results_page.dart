@@ -1,6 +1,7 @@
 // lib/src/features/search/presentation/pages/search_results_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -8,18 +9,37 @@ import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/controllers/search_paged_controller.dart';
+import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
 
-class SearchResultsPage extends ConsumerWidget {
+class SearchResultsPage extends ConsumerStatefulWidget {
   const SearchResultsPage({super.key, this.args});
 
   final SearchResultsPageArgs? args;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final a =
-        args ??
+  ConsumerState<SearchResultsPage> createState() => _SearchResultsPageState();
+}
+
+class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
+  late final SearchResultsPageArgs _args;
+
+  @override
+  void initState() {
+    super.initState();
+    _args = widget.args ??
         const SearchResultsPageArgs(query: '', type: SearchResultsType.movies);
-    final state = ref.watch(searchResultsControllerProvider(a));
+    final q = _args.query.trim();
+    if (q.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(searchHistoryControllerProvider.notifier).add(q);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(searchResultsControllerProvider(_args));
 
     final title = state.type == SearchResultsType.movies ? 'Films' : 'Séries';
     return Scaffold(
@@ -46,7 +66,7 @@ class SearchResultsPage extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: AppSpacing.md),
                   child: ElevatedButton(
                     onPressed: () => ref
-                        .read(searchResultsControllerProvider(a).notifier)
+                        .read(searchResultsControllerProvider(_args).notifier)
                         .fetchNextPage(),
                     child: const Text('Charger plus'),
                   ),
@@ -88,7 +108,9 @@ class _ResultsGrid extends StatelessWidget {
     final mediaList = items.toList(growable: false);
 
     if (mediaList.isEmpty) {
-      return const Center(child: Text('Pas de résultats')); // fallback UI
+      return Center(
+        child: Text(AppLocalizations.of(context)!.noResults),
+      );
     }
 
     return GridView.builder(

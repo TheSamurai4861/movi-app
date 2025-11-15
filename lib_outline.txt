@@ -511,17 +511,17 @@ lib/
 ================================================================================
 INDEX DES FICHIERS LIB/ (numéroté)
 ================================================================================
-   1. l10n/app_en.arb  (65 lignes, 2170 octets) *
-   2. l10n/app_es.arb  (59 lignes, 2281 octets) *
-   3. l10n/app_fr.arb  (65 lignes, 2353 octets) *
-   4. l10n/app_it.arb  (59 lignes, 2272 octets) *
-   5. l10n/app_localizations.dart  (428 lignes, 12481 octets) *
-   6. l10n/app_localizations_en.dart  (157 lignes, 3419 octets) *
-   7. l10n/app_localizations_es.dart  (159 lignes, 3586 octets) *
-   8. l10n/app_localizations_fr.dart  (159 lignes, 3613 octets) *
-   9. l10n/app_localizations_it.dart  (160 lignes, 3573 octets) *
-  10. l10n/app_localizations_nl.dart  (161 lignes, 3526 octets) *
-  11. l10n/app_nl.arb  (59 lignes, 2213 octets) *
+   1. l10n/app_en.arb  (71 lignes, 2466 octets) *
+   2. l10n/app_es.arb  (65 lignes, 2620 octets) *
+   3. l10n/app_fr.arb  (71 lignes, 2682 octets) *
+   4. l10n/app_it.arb  (65 lignes, 2633 octets) *
+   5. l10n/app_localizations.dart  (458 lignes, 13369 octets) *
+   6. l10n/app_localizations_en.dart  (173 lignes, 3837 octets) *
+   7. l10n/app_localizations_es.dart  (176 lignes, 4053 octets) *
+   8. l10n/app_localizations_fr.dart  (176 lignes, 4070 octets) *
+   9. l10n/app_localizations_it.dart  (177 lignes, 4062 octets) *
+  10. l10n/app_localizations_nl.dart  (178 lignes, 3996 octets) *
+  11. l10n/app_nl.arb  (65 lignes, 2555 octets) *
   12. main.dart  (21 lignes, 638 octets) *
   13. main_ios_diag.dart  (13 lignes, 227 octets) *
   14. src/app.dart  (40 lignes, 1317 octets) *
@@ -575,14 +575,14 @@ INDEX DES FICHIERS LIB/ (numéroté)
   62. src/core/security/credentials_vault.dart  (37 lignes, 1100 octets) *
   63. src/core/security/secure_credentials_vault.dart  (85 lignes, 2581 octets) *
   64. src/core/shared/failure.dart  (49 lignes, 1044 octets) *
-  65. src/core/startup/app_startup_gate.dart  (54 lignes, 1800 octets) *
+  65. src/core/startup/app_startup_gate.dart  (87 lignes, 2906 octets) *
   66. src/core/startup/app_startup_provider.dart  (32 lignes, 1261 octets) *
   67. src/core/state/app_event_bus.dart  (33 lignes, 666 octets) *
   68. src/core/state/app_state.dart  (38 lignes, 936 octets) *
   69. src/core/state/app_state_controller.dart  (132 lignes, 4669 octets) *
   70. src/core/state/app_state_provider.dart  (51 lignes, 1799 octets) *
   71. src/core/state/state.dart  (4 lignes, 124 octets) *
-  72. src/core/storage/database/sqlite_database.dart  (273 lignes, 8740 octets) *
+  72. src/core/storage/database/sqlite_database.dart  (302 lignes, 9665 octets) *
   73. src/core/storage/repositories/content_cache_repository.dart  (68 lignes, 1828 octets) *
   74. src/core/storage/repositories/continue_watching_local_repository.dart  (100 lignes, 3016 octets) *
   75. src/core/storage/repositories/history_local_repository.dart  (156 lignes, 4298 octets) *
@@ -595,7 +595,7 @@ INDEX DES FICHIERS LIB/ (numéroté)
   82. src/core/storage/storage.dart  (9 lignes, 451 octets) *
   83. src/core/storage/storage_failures.dart  (21 lignes, 586 octets) *
   84. src/core/theme/app_colors.dart  (23 lignes, 833 octets) *
-  85. src/core/theme/app_theme.dart  (237 lignes, 8242 octets) *
+  85. src/core/theme/app_theme.dart  (244 lignes, 8528 octets) *
   86. src/core/theme/theme.dart  (2 lignes, 51 octets) *
   87. src/core/utils/app_assets.dart  (20 lignes, 1070 octets) *
   88. src/core/utils/app_spacing.dart  (32 lignes, 945 octets) *
@@ -635,7 +635,7 @@ INDEX DES FICHIERS LIB/ (numéroté)
  122. src/features/home/domain/usecases/load_home_iptv_sections.dart  (11 lignes, 367 octets) *
  123. src/features/home/domain/usecases/refresh_home_feed.dart  (37 lignes, 1101 octets) *
  124. src/features/home/home.dart  (4 lignes, 224 octets) *
- 125. src/features/home/presentation/pages/home_page.dart  (368 lignes, 14129 octets) *
+ 125. src/features/home/presentation/pages/home_page.dart  (371 lignes, 14230 octets) *
  126. src/features/home/presentation/providers/home_providers.dart  (140 lignes, 4177 octets) *
  127. src/features/home/presentation/widgets/continue_watching_card.dart  (207 lignes, 6414 octets) *
  128. src/features/home/presentation/widgets/home_hero_carousel.dart  (1088 lignes, 39049 octets) *
@@ -733,7 +733,7 @@ INDEX DES FICHIERS LIB/ (numéroté)
  220. src/features/saga/domain/usecases/search_sagas.dart  (11 lignes, 344 octets) *
  221. src/features/saga/presentation/pages/saga_detail_page.dart  (137 lignes, 4562 octets) *
  222. src/features/saga/saga.dart  (6 lignes, 270 octets) *
- 223. src/features/search/data/datasources/search_history_local_data_source.dart  (69 lignes, 2413 octets) *
+ 223. src/features/search/data/datasources/search_history_local_data_source.dart  (152 lignes, 4346 octets) *
  224. src/features/search/data/datasources/tmdb_search_remote_data_source.dart  (65 lignes, 2326 octets) *
  225. src/features/search/data/repositories/search_history_repository_impl.dart  (18 lignes, 654 octets) *
  226. src/features/search/data/search_data_module.dart  (51 lignes, 2289 octets) *
@@ -754,9 +754,9 @@ INDEX DES FICHIERS LIB/ (numéroté)
  241. src/features/search/presentation/controllers/search_instant_controller.dart  (105 lignes, 3142 octets) *
  242. src/features/search/presentation/controllers/search_paged_controller.dart  (124 lignes, 3807 octets) *
  243. src/features/search/presentation/models/search_results_args.dart  (9 lignes, 275 octets) *
- 244. src/features/search/presentation/pages/search_page.dart  (317 lignes, 12399 octets) *
- 245. src/features/search/presentation/pages/search_results_page.dart  (107 lignes, 3600 octets) *
- 246. src/features/search/presentation/providers/search_history_providers.dart  (52 lignes, 1748 octets) *
+ 244. src/features/search/presentation/pages/search_page.dart  (378 lignes, 14155 octets) *
+ 245. src/features/search/presentation/pages/search_results_page.dart  (129 lignes, 4260 octets) *
+ 246. src/features/search/presentation/providers/search_history_providers.dart  (116 lignes, 3942 octets) *
  247. src/features/search/presentation/providers/search_providers.dart  (34 lignes, 1441 octets) *
  248. src/features/search/search.dart  (11 lignes, 559 octets) *
  249. src/features/settings/data/datasources/user_settings_local_data_source.dart  (30 lignes, 1108 octets) *
@@ -802,7 +802,7 @@ INDEX DES FICHIERS LIB/ (numéroté)
  289. src/features/welcome/presentation/pages/splash_bootstrap_page.dart  (54 lignes, 1870 octets) *
  290. src/features/welcome/presentation/pages/welcome_page.dart  (106 lignes, 3664 octets) *
  291. src/features/welcome/presentation/pages/welcome_source_page.dart  (54 lignes, 1930 octets) *
- 292. src/features/welcome/presentation/pages/welcome_user_page.dart  (286 lignes, 12484 octets) *
+ 292. src/features/welcome/presentation/pages/welcome_user_page.dart  (289 lignes, 12577 octets) *
  293. src/features/welcome/presentation/providers/bootstrap_providers.dart  (99 lignes, 2862 octets) *
  294. src/features/welcome/presentation/providers/welcome_providers.dart  (115 lignes, 3448 octets) *
  295. src/features/welcome/presentation/utils/error_presenter.dart  (15 lignes, 848 octets) *
@@ -859,11 +859,11 @@ FILE #5: l10n/app_localizations.dart
   L  73: of — (BuildContext context)
   L 231: resultsCount — (int count)
   L 243: errorConnectionFailed — (String error)
-  L 390: _AppLocalizationsDelegate
+  L 420: _AppLocalizationsDelegate
 [METHODS _AppLocalizationsDelegate]
-  L 392: _AppLocalizationsDelegate — (…)
-  L 395: load — (Locale locale)
-  L 400: isSupported — (Locale locale)
+  L 422: _AppLocalizationsDelegate — (…)
+  L 425: load — (Locale locale)
+  L 430: isSupported — (Locale locale)
 
 --------------------------------------------------------------------------------
 FILE #6: l10n/app_localizations_en.dart
@@ -1362,10 +1362,10 @@ FILE #64: src/core/shared/failure.dart
 FILE #65: src/core/startup/app_startup_gate.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   6: AppStartupGate
+  L   7: AppStartupGate
 [METHODS AppStartupGate]
-  L   7: AppStartupGate — (…)
-  L  11: build — (BuildContext context, WidgetRef ref)
+  L   8: AppStartupGate — (…)
+  L  12: build — (BuildContext context, WidgetRef ref)
 
 --------------------------------------------------------------------------------
 FILE #66: src/core/startup/app_startup_provider.dart
@@ -1423,7 +1423,8 @@ FILE #72: src/core/storage/database/sqlite_database.dart
 [METHODS LocalDatabase]
   L  13: LocalDatabase._ — (…)
   L  18: instance — ()
-  L 268: dispose — ()
+  L 273: dispose — ()
+  L 281: _tryEnableWal — (Database db)
 
 --------------------------------------------------------------------------------
 FILE #73: src/core/storage/repositories/content_cache_repository.dart
@@ -1579,8 +1580,8 @@ FILE #85: src/core/theme/app_theme.dart
 [METHODS AppTheme]
   L   7: AppTheme._ — (…)
   L  13: _buildTheme — (Brightness brightness)
-  L 145: _buildColorScheme — (bool isDark)
-  L 182: _buildTextTheme — (bool isDark)
+  L 151: _buildColorScheme — (bool isDark)
+  L 188: _buildTextTheme — (bool isDark)
 
 --------------------------------------------------------------------------------
 FILE #86: src/core/theme/theme.dart
@@ -1928,17 +1929,17 @@ FILE #125: src/features/home/presentation/pages/home_page.dart
 [METHODS _HomePageState]
   L  39: _handleNavTap — (int index)
   L  45: build — (BuildContext context)
-  L 113: _HomeContent
+  L 111: _HomeContent
 [METHODS _HomeContent]
-  L 114: _HomeContent — (…)
-  L 117: createState — () => _HomeContentState()
-  L 126: _HomeContentState
+  L 112: _HomeContent — (…)
+  L 115: createState — () => _HomeContentState()
+  L 124: _HomeContentState
 [METHODS _HomeContentState]
-  L 129: initState — ()
-  L 140: _postFrame — (VoidCallback fn)
-  L 149: _precacheImageUrl — (String url)
-  L 165: _displayCategoryTitle — (String raw)
-  L 171: build — (BuildContext context)
+  L 127: initState — ()
+  L 138: _postFrame — (VoidCallback fn)
+  L 147: _precacheImageUrl — (String url)
+  L 163: _displayCategoryTitle — (String raw)
+  L 169: build — (BuildContext context)
   L 352: _HeroEmptyBanner
 [METHODS _HeroEmptyBanner]
   L 353: _HeroEmptyBanner — (…)
@@ -2891,13 +2892,16 @@ FILE #222: src/features/saga/saga.dart
 FILE #223: src/features/search/data/datasources/search_history_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   4: SearchHistoryLocalDataSource
+  L   7: SearchHistoryLocalDataSource
 [METHODS SearchHistoryLocalDataSource]
-  L   5: SearchHistoryLocalDataSource — (…)
-  L  11: _userScopedKey — ()
-  L  22: add — (String query)
-  L  40: list — ()
-  L  59: remove — (String query)
+  L   8: SearchHistoryLocalDataSource — (…)
+  L  15: _userScopedKey — ()
+  L  30: add — (String query)
+  L  58: list — ()
+  L  84: remove — (String query)
+  L 105: _safeGet — (String key)
+  L 120: _decodeItems — (Map<String, dynamic>? map)
+  L 144: _parseDate — (dynamic input)
 
 --------------------------------------------------------------------------------
 FILE #224: src/features/search/data/datasources/tmdb_search_remote_data_source.dart
@@ -3086,43 +3090,48 @@ FILE #243: src/features/search/presentation/models/search_results_args.dart
 FILE #244: src/features/search/presentation/pages/search_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  11: SearchPage
+  L  13: SearchPage
 [METHODS SearchPage]
-  L  12: SearchPage — (…)
-  L  15: createState — () => _SearchPageState()
-  L  18: _SearchPageState
+  L  14: SearchPage — (…)
+  L  17: createState — () => _SearchPageState()
+  L  20: _SearchPageState
 [METHODS _SearchPageState]
-  L  22: initState — ()
-  L  28: dispose — ()
-  L  34: build — (BuildContext context)
-  L 218: _SearchHistoryList
+  L  26: initState — ()
+  L  39: dispose — ()
+  L  45: build — (BuildContext context)
+  L 235: _SearchHistoryList
 [METHODS _SearchHistoryList]
-  L 219: _SearchHistoryList — (…)
-  L 224: build — (BuildContext context, WidgetRef ref)
+  L 236: _SearchHistoryList — (…)
+  L 240: _buildHistorySection — (BuildContext context, Widget child)
+  L 262: build — (BuildContext context, WidgetRef ref)
 
 --------------------------------------------------------------------------------
 FILE #245: src/features/search/presentation/pages/search_results_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  12: SearchResultsPage
+  L  14: SearchResultsPage
 [METHODS SearchResultsPage]
-  L  13: SearchResultsPage — (…)
-  L  18: build — (BuildContext context, WidgetRef ref)
-  L  62: _ResultsGrid
+  L  15: SearchResultsPage — (…)
+  L  20: createState — () => _SearchResultsPageState()
+  L  23: _SearchResultsPageState
+[METHODS _SearchResultsPageState]
+  L  27: initState — ()
+  L  41: build — (BuildContext context)
+  L  82: _ResultsGrid
 [METHODS _ResultsGrid]
-  L  63: _ResultsGrid — (…)
-  L  68: build — (BuildContext context)
+  L  83: _ResultsGrid — (…)
+  L  88: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
 FILE #246: src/features/search/presentation/providers/search_history_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  23: SearchHistoryController
+  L  21: SearchHistoryController
 [METHODS SearchHistoryController]
-  L  27: build — ()
-  L  33: add — (String query)
-  L  38: remove — (String query)
-  L  43: refresh — ()
+  L  29: build — ()
+  L  41: add — (String query)
+  L  58: remove — (String query)
+  L  72: refresh — ()
 
 --------------------------------------------------------------------------------
 FILE #247: src/features/search/presentation/providers/search_providers.dart
@@ -3571,8 +3580,8 @@ FILE #292: src/features/welcome/presentation/pages/welcome_user_page.dart
   L  25: _WelcomeUserPageState
 [METHODS _WelcomeUserPageState]
   L  30: initState — ()
-  L  36: dispose — ()
-  L  42: build — (BuildContext context)
+  L  39: dispose — ()
+  L  45: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
 FILE #293: src/features/welcome/presentation/providers/bootstrap_providers.dart

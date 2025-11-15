@@ -31,10 +31,10 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  static const _fadeDuration = Duration(milliseconds: 200);
   static const _navBottomOffset = 0;
 
   int _selectedIndex = 0;
+  final PageStorageBucket _bucket = PageStorageBucket();
 
   void _handleNavTap(int index) {
     if (_selectedIndex == index) return;
@@ -48,10 +48,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (_selectedIndex != navIndex) _selectedIndex = navIndex;
 
     final pages = <Widget>[
-      const _HomeContent(),
+      _HomeContent(key: const PageStorageKey('tab-home')),
       const SearchPage(),
-      const LibraryPage(),
-      const SettingsPage(),
+      const LibraryPage(key: PageStorageKey('tab-library')),
+      const SettingsPage(key: PageStorageKey('tab-settings')),
     ];
 
     return Scaffold(
@@ -62,11 +62,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         bottom: false,
         child: Stack(
           children: [
-            AnimatedSwitcher(
-              duration: _fadeDuration,
-              transitionBuilder: (child, animation) =>
-                  FadeTransition(opacity: animation, child: child),
-              child: pages[_selectedIndex],
+            PageStorage(
+              bucket: _bucket,
+              child: IndexedStack(index: _selectedIndex, children: pages),
             ),
             Positioned(
               left: AppSpacing.lg,
@@ -111,7 +109,7 @@ class _HomePageState extends ConsumerState<HomePage> {
 }
 
 class _HomeContent extends ConsumerStatefulWidget {
-  const _HomeContent();
+  const _HomeContent({super.key});
 
   @override
   ConsumerState<_HomeContent> createState() => _HomeContentState();
@@ -128,12 +126,6 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
   @override
   void initState() {
     super.initState();
-    // Déclenche le chargement en post-frame pour éviter
-    // la modification de provider durant le build.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(ref.read(hp.homeControllerProvider.notifier).load());
-    });
   }
 
   bool _isScheduled = false;
@@ -202,7 +194,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                       AppSpacing.lg,
                       AppSpacing.md,
                     ),
-                    child: Container(
+                  child: Container(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
@@ -217,7 +209,8 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              'Une erreur est survenue. Balayez vers le bas pour réessayer.',
+                              AppLocalizations.of(context)!
+                                  .homeErrorSwipeToRetry,
                               style:
                                   (theme.textTheme.bodyMedium?.copyWith(
                                     color: Colors.red,
@@ -251,7 +244,8 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
               if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
                 SliverToBoxAdapter(
                   child: MoviItemsList(
-                    title: 'En cours',
+                    title:
+                        AppLocalizations.of(context)!.homeContinueWatching,
                     itemSpacing: _itemSpacing,
                     // Cartes "En cours" font 300x165
                     estimatedItemWidth: 300,
@@ -285,18 +279,96 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
               if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
                 const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
 
-              if (state.iptvLists.isEmpty)
+              if (state.isLoading && state.iptvLists.isEmpty) ...[
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: '',
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    estimatedItemHeight: 270,
+                    items: List.generate(9, (i) {
+                      return SizedBox(
+                        width: _mediaCardWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SizedBox(
+                                width: _mediaCardWidth,
+                                height: 225,
+                                child: const ColoredBox(
+                                  color: Color(0xFF222222),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: _mediaCardWidth * 0.8,
+                              height: 16,
+                              child: const ColoredBox(
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: '',
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    estimatedItemHeight: 270,
+                    items: List.generate(9, (i) {
+                      return SizedBox(
+                        width: _mediaCardWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SizedBox(
+                                width: _mediaCardWidth,
+                                height: 225,
+                                child: const ColoredBox(
+                                  color: Color(0xFF222222),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: _mediaCardWidth * 0.8,
+                              height: 16,
+                              child: const ColoredBox(
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+              ] else if (state.iptvLists.isEmpty) ...[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg,
                     ),
                     child: Text(
-                      'Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.',
+                      AppLocalizations.of(context)!.homeNoIptvSources,
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),
                 ),
+              ],
 
               // ===== Sections IPTV ===== (enrichissement à la volée)
               for (final entry in state.iptvLists.entries) ...[
@@ -357,10 +429,13 @@ class _HeroEmptyBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Column(
-        children: const [
-          SizedBox(height: 180),
-          Text('Aucune tendance disponible', textAlign: TextAlign.center),
-          SizedBox(height: 32),
+        children: [
+          const SizedBox(height: 180),
+          Text(
+            AppLocalizations.of(context)!.homeNoTrends,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );

@@ -156,4 +156,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get actionConfirm => 'Valider';
+
+  @override
+  String get actionRetry => 'Réessayer';
+
+  @override
+  String get homeErrorSwipeToRetry =>
+      'Une erreur est survenue. Balayez vers le bas pour réessayer.';
+
+  @override
+  String get homeContinueWatching => 'En cours';
+
+  @override
+  String get homeNoIptvSources =>
+      'Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.';
+
+  @override
+  String get homeNoTrends => 'Aucune tendance disponible';
 }

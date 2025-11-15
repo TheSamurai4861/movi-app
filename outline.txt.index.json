@@ -3,95 +3,103 @@
   "output": "C:\\Users\\berny\\DEV\\Flutter\\movi\\outline.txt",
   "content_output": "files_dump.txt",
   "total_indexed": 314,
-  "selected_count": 10,
+  "selected_count": 18,
   "selected_nums": [
-    16,
-    17,
-    18,
-    19,
-    20,
-    28,
-    29,
+    12,
+    14,
+    60,
     65,
     66,
-    303
+    117,
+    118,
+    120,
+    121,
+    122,
+    123,
+    125,
+    126,
+    128,
+    129,
+    302,
+    303,
+    304
   ],
   "files": [
     {
       "num": 1,
       "path": "l10n/app_en.arb",
-      "lines": 65,
-      "bytes": 2170,
+      "lines": 71,
+      "bytes": 2466,
       "selected": false
     },
     {
       "num": 2,
       "path": "l10n/app_es.arb",
-      "lines": 59,
-      "bytes": 2281,
+      "lines": 65,
+      "bytes": 2620,
       "selected": false
     },
     {
       "num": 3,
       "path": "l10n/app_fr.arb",
-      "lines": 65,
-      "bytes": 2353,
+      "lines": 71,
+      "bytes": 2682,
       "selected": false
     },
     {
       "num": 4,
       "path": "l10n/app_it.arb",
-      "lines": 59,
-      "bytes": 2272,
+      "lines": 65,
+      "bytes": 2633,
       "selected": false
     },
     {
       "num": 5,
       "path": "l10n/app_localizations.dart",
-      "lines": 428,
-      "bytes": 12481,
+      "lines": 458,
+      "bytes": 13369,
       "selected": false
     },
     {
       "num": 6,
       "path": "l10n/app_localizations_en.dart",
-      "lines": 157,
-      "bytes": 3419,
+      "lines": 173,
+      "bytes": 3837,
       "selected": false
     },
     {
       "num": 7,
       "path": "l10n/app_localizations_es.dart",
-      "lines": 159,
-      "bytes": 3586,
+      "lines": 176,
+      "bytes": 4053,
       "selected": false
     },
     {
       "num": 8,
       "path": "l10n/app_localizations_fr.dart",
-      "lines": 159,
-      "bytes": 3613,
+      "lines": 176,
+      "bytes": 4070,
       "selected": false
     },
     {
       "num": 9,
       "path": "l10n/app_localizations_it.dart",
-      "lines": 160,
-      "bytes": 3573,
+      "lines": 177,
+      "bytes": 4062,
       "selected": false
     },
     {
       "num": 10,
       "path": "l10n/app_localizations_nl.dart",
-      "lines": 161,
-      "bytes": 3526,
+      "lines": 178,
+      "bytes": 3996,
       "selected": false
     },
     {
       "num": 11,
       "path": "l10n/app_nl.arb",
-      "lines": 59,
-      "bytes": 2213,
+      "lines": 65,
+      "bytes": 2555,
       "selected": false
     },
     {
@@ -99,7 +107,7 @@
       "path": "main.dart",
       "lines": 21,
       "bytes": 638,
-      "selected": false
+      "selected": true
     },
     {
       "num": 13,
@@ -113,7 +121,7 @@
       "path": "src/app.dart",
       "lines": 40,
       "bytes": 1317,
-      "selected": false
+      "selected": true
     },
     {
       "num": 15,
@@ -127,35 +135,35 @@
       "path": "src/core/config/config_module.dart",
       "lines": 130,
       "bytes": 3685,
-      "selected": true
+      "selected": false
     },
     {
       "num": 17,
       "path": "src/core/config/env/dev_environment.dart",
       "lines": 119,
       "bytes": 3821,
-      "selected": true
+      "selected": false
     },
     {
       "num": 18,
       "path": "src/core/config/env/environment.dart",
       "lines": 38,
       "bytes": 1122,
-      "selected": true
+      "selected": false
     },
     {
       "num": 19,
       "path": "src/core/config/env/environment_loader.dart",
       "lines": 91,
       "bytes": 2829,
-      "selected": true
+      "selected": false
     },
     {
       "num": 20,
       "path": "src/core/config/models/app_config.dart",
       "lines": 211,
       "bytes": 8140,
-      "selected": true
+      "selected": false
     },
     {
       "num": 21,
@@ -211,14 +219,14 @@
       "path": "src/core/config/services/secret_store.dart",
       "lines": 2,
       "bytes": 133,
-      "selected": true
+      "selected": false
     },
     {
       "num": 29,
       "path": "src/core/config/services/secret_store_io.dart",
       "lines": 144,
       "bytes": 4359,
-      "selected": true
+      "selected": false
     },
     {
       "num": 30,
@@ -435,7 +443,7 @@
       "path": "src/core/router/app_router.dart",
       "lines": 312,
       "bytes": 10226,
-      "selected": false
+      "selected": true
     },
     {
       "num": 61,
@@ -468,8 +476,8 @@
     {
       "num": 65,
       "path": "src/core/startup/app_startup_gate.dart",
-      "lines": 54,
-      "bytes": 1800,
+      "lines": 87,
+      "bytes": 2906,
       "selected": true
     },
     {
@@ -517,8 +525,8 @@
     {
       "num": 72,
       "path": "src/core/storage/database/sqlite_database.dart",
-      "lines": 273,
-      "bytes": 8740,
+      "lines": 302,
+      "bytes": 9665,
       "selected": false
     },
     {
@@ -608,8 +616,8 @@
     {
       "num": 85,
       "path": "src/core/theme/app_theme.dart",
-      "lines": 237,
-      "bytes": 8242,
+      "lines": 244,
+      "bytes": 8528,
       "selected": false
     },
     {
@@ -834,14 +842,14 @@
       "path": "src/features/home/data/home_feed_data_module.dart",
       "lines": 30,
       "bytes": 1347,
-      "selected": false
+      "selected": true
     },
     {
       "num": 118,
       "path": "src/features/home/data/repositories/home_feed_repository_impl.dart",
       "lines": 411,
       "bytes": 12664,
-      "selected": false
+      "selected": true
     },
     {
       "num": 119,
@@ -855,28 +863,28 @@
       "path": "src/features/home/domain/usecases/load_home_continue_watching.dart",
       "lines": 12,
       "bytes": 501,
-      "selected": false
+      "selected": true
     },
     {
       "num": 121,
       "path": "src/features/home/domain/usecases/load_home_hero.dart",
       "lines": 10,
       "bytes": 320,
-      "selected": false
+      "selected": true
     },
     {
       "num": 122,
       "path": "src/features/home/domain/usecases/load_home_iptv_sections.dart",
       "lines": 11,
       "bytes": 367,
-      "selected": false
+      "selected": true
     },
     {
       "num": 123,
       "path": "src/features/home/domain/usecases/refresh_home_feed.dart",
       "lines": 37,
       "bytes": 1101,
-      "selected": false
+      "selected": true
     },
     {
       "num": 124,
@@ -888,16 +896,16 @@
     {
       "num": 125,
       "path": "src/features/home/presentation/pages/home_page.dart",
-      "lines": 368,
-      "bytes": 14129,
-      "selected": false
+      "lines": 371,
+      "bytes": 14230,
+      "selected": true
     },
     {
       "num": 126,
       "path": "src/features/home/presentation/providers/home_providers.dart",
       "lines": 140,
       "bytes": 4177,
-      "selected": false
+      "selected": true
     },
     {
       "num": 127,
@@ -911,14 +919,14 @@
       "path": "src/features/home/presentation/widgets/home_hero_carousel.dart",
       "lines": 1088,
       "bytes": 39049,
-      "selected": false
+      "selected": true
     },
     {
       "num": 129,
       "path": "src/features/home/presentation/widgets/home_hero_section.dart",
       "lines": 811,
       "bytes": 28657,
-      "selected": false
+      "selected": true
     },
     {
       "num": 130,
@@ -1574,8 +1582,8 @@
     {
       "num": 223,
       "path": "src/features/search/data/datasources/search_history_local_data_source.dart",
-      "lines": 69,
-      "bytes": 2413,
+      "lines": 152,
+      "bytes": 4346,
       "selected": false
     },
     {
@@ -1721,22 +1729,22 @@
     {
       "num": 244,
       "path": "src/features/search/presentation/pages/search_page.dart",
-      "lines": 317,
-      "bytes": 12399,
+      "lines": 378,
+      "bytes": 14155,
       "selected": false
     },
     {
       "num": 245,
       "path": "src/features/search/presentation/pages/search_results_page.dart",
-      "lines": 107,
-      "bytes": 3600,
+      "lines": 129,
+      "bytes": 4260,
       "selected": false
     },
     {
       "num": 246,
       "path": "src/features/search/presentation/providers/search_history_providers.dart",
-      "lines": 52,
-      "bytes": 1748,
+      "lines": 116,
+      "bytes": 3942,
       "selected": false
     },
     {
@@ -2057,8 +2065,8 @@
     {
       "num": 292,
       "path": "src/features/welcome/presentation/pages/welcome_user_page.dart",
-      "lines": 286,
-      "bytes": 12484,
+      "lines": 289,
+      "bytes": 12577,
       "selected": false
     },
     {
@@ -2129,7 +2137,7 @@
       "path": "src/shared/data/services/tmdb_cache_data_source.dart",
       "lines": 185,
       "bytes": 5829,
-      "selected": false
+      "selected": true
     },
     {
       "num": 303,
@@ -2143,7 +2151,7 @@
       "path": "src/shared/data/services/tmdb_image_resolver.dart",
       "lines": 154,
       "bytes": 4871,
-      "selected": false
+      "selected": true
     },
     {
       "num": 305,

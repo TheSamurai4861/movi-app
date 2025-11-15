@@ -112,11 +112,16 @@ class HomeController extends Notifier<HomeState> {
   }
 
   Future<void> load() async {
+    if (state.isLoading) return;
     state = state.copyWith(isLoading: true, error: null);
-    final hero = await _loadHero();
-    final iptv = await _loadIptv();
-    final movies = await _loadCw.movies();
-    final shows = await _loadCw.shows();
+    final heroF = _loadHero();
+    final iptvF = _loadIptv();
+    final moviesF = _loadCw.movies();
+    final showsF = _loadCw.shows();
+    final hero = await heroF;
+    final iptv = await iptvF;
+    final movies = await moviesF;
+    final shows = await showsF;
     state = state.copyWith(
       hero: hero,
       cwMovies: movies,

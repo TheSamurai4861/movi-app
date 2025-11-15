@@ -385,6 +385,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm'**
   String get actionConfirm;
+
+  /// No description provided for @actionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get actionRetry;
+
+  /// No description provided for @homeErrorSwipeToRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred. Swipe down to retry.'**
+  String get homeErrorSwipeToRetry;
+
+  /// No description provided for @homeContinueWatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue watching'**
+  String get homeContinueWatching;
+
+  /// No description provided for @homeNoIptvSources.
+  ///
+  /// In en, this message translates to:
+  /// **'No IPTV source active. Add a source in Settings to see your categories.'**
+  String get homeNoIptvSources;
+
+  /// No description provided for @homeNoTrends.
+  ///
+  /// In en, this message translates to:
+  /// **'No trending content available'**
+  String get homeNoTrends;
 }
 
 class _AppLocalizationsDelegate

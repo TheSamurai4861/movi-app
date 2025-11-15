@@ -61,5 +61,11 @@
   "settingsLegalMentionsTitle": "Mentions légales",
   "settingsPrivacyPolicyTitle": "Politique de confidentialité",
   "actionCancel": "Annuler",
-  "actionConfirm": "Valider"
+  "actionConfirm": "Valider",
+  "actionRetry": "Réessayer"
+  ,
+  "homeErrorSwipeToRetry": "Une erreur est survenue. Balayez vers le bas pour réessayer.",
+  "homeContinueWatching": "En cours",
+  "homeNoIptvSources": "Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.",
+  "homeNoTrends": "Aucune tendance disponible"
 }
