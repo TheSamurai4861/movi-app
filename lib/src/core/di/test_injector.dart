@@ -1,16 +1,28 @@
 import 'package:get_it/get_it.dart';
 
 import 'package:movi/src/core/config/config.dart';
-import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/network/network.dart';
 
-/// Helper used in tests to reset the service locator and register fake config.
-Future<void> initTestDependencies({
+/// Disposable scope returned when initializing dependencies for tests.
+class TestInjectorScope {
+  TestInjectorScope._(this._popScope);
+
+  final void Function() _popScope;
+
+  void dispose() {
+    _popScope();
+  }
+}
+
+/// Helper used in tests to create an isolated GetIt scope with fake config.
+Future<TestInjectorScope> initTestDependencies({
   AppConfig? appConfig,
   SecretStore? secretStore,
   LocaleCodeProvider? localeProvider,
+  bool registerFeatureModules = false,
 }) async {
-  await GetIt.I.reset();
+  GetIt.I.pushNewScope();
 
   if (appConfig != null) {
     GetIt.I.registerSingleton<AppConfig>(appConfig);
@@ -23,5 +35,8 @@ Future<void> initTestDependencies({
     appConfig: appConfig,
     secretStore: secretStore,
     localeProvider: localeProvider,
+    registerFeatureModules: registerFeatureModules,
   );
+
+  return TestInjectorScope._(() => GetIt.I.popScope());
 }

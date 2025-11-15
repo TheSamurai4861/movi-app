@@ -1,3 +1,5 @@
+import 'dart:async';
+
 enum LogLevel { debug, info, warn, error }
 
 class LogEvent {
@@ -35,4 +37,9 @@ abstract class AppLogger {
       log(LogLevel.warn, message, category: category);
   void error(String message, [Object? error, StackTrace? stackTrace]) =>
       log(LogLevel.error, message, error: error, stackTrace: stackTrace);
+}
+
+/// Optional lifecycle hook implemented by loggers holding resources.
+abstract class LoggerLifecycle {
+  FutureOr<void> dispose();
 }

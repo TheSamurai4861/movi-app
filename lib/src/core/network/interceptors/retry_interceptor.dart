@@ -28,6 +28,12 @@ class RetryInterceptor extends Interceptor {
   ) async {
     var attempt = (err.requestOptions.extra['retry_attempt'] as int?) ?? 0;
     final shouldRetry = _shouldRetry(err) && attempt < maxAttempts;
+    final cancelToken = err.requestOptions.cancelToken;
+
+    if (cancelToken?.isCancelled == true) {
+      handler.next(err);
+      return;
+    }
 
     if (!shouldRetry) {
       handler.next(err);
@@ -41,13 +47,13 @@ class RetryInterceptor extends Interceptor {
     await Future.delayed(delay * attempt);
 
     try {
-      final response = await _dio.fetch(
-        err.requestOptions.copyWith(
-          data: err.requestOptions.data,
-          headers: err.requestOptions.headers,
-          queryParameters: err.requestOptions.queryParameters,
-        ),
-      );
+      final requestOptions = err.requestOptions.copyWith(
+        data: err.requestOptions.data,
+        headers: err.requestOptions.headers,
+        queryParameters: err.requestOptions.queryParameters,
+      )..cancelToken = cancelToken;
+
+      final response = await _dio.fetch(requestOptions);
       handler.resolve(response);
     } on DioException catch (error) {
       handler.next(error);

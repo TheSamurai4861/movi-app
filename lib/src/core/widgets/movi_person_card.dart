@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
 import 'package:movi/src/core/models/models.dart';
-import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
 
-Image _buildPersonImage(String source, double width, double height) {
+Widget _buildPersonImage(Uri? poster, double width, double height) {
   final errorPlaceholder = Container(
     width: width,
     height: height,
@@ -15,9 +12,13 @@ Image _buildPersonImage(String source, double width, double height) {
     ),
   );
 
-  if (source.startsWith('http')) {
+  if (poster == null) return errorPlaceholder;
+  final source = poster.toString().trim();
+  if (source.isEmpty) return errorPlaceholder;
+  final scheme = poster.scheme.toLowerCase();
+  if (scheme == 'http' || scheme == 'https') {
     return Image.network(
-      source,
+      poster.toString(),
       width: width,
       height: height,
       fit: BoxFit.cover,
@@ -26,9 +27,10 @@ Image _buildPersonImage(String source, double width, double height) {
       filterQuality: FilterQuality.low,
     );
   }
+  final assetPath = scheme == 'asset' ? poster.path : source;
 
   return Image.asset(
-    source,
+    assetPath,
     width: width,
     height: height,
     fit: BoxFit.cover,
@@ -43,11 +45,15 @@ class MoviPersonCard extends StatelessWidget {
     required this.person,
     this.width = 150,
     this.height = 225,
+    this.onTap,
+    this.heroTag,
   });
 
   final MoviPerson person;
   final double width;
   final double height;
+  final ValueChanged<MoviPerson>? onTap;
+  final Object? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -76,21 +82,14 @@ class MoviPersonCard extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => context.push(AppRouteNames.person),
+      onTap: () => onTap?.call(person),
       child: SizedBox(
         width: width,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: SizedBox(
-                width: width,
-                height: height,
-                child: _buildPersonImage(person.poster, width, height),
-              ),
-            ),
+            _buildPoster(context),
             const SizedBox(height: 12),
             MoviMarqueeText(
               text: person.name,
@@ -107,5 +106,18 @@ class MoviPersonCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildPoster(BuildContext context) {
+    final image = ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: _buildPersonImage(person.poster, width, height),
+      ),
+    );
+    if (heroTag == null) return image;
+    return Hero(tag: heroTag!, child: image);
   }
 }

@@ -34,6 +34,18 @@ class NetworkTimeouts {
       send: send ?? this.send,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! NetworkTimeouts) return false;
+    return connect == other.connect &&
+        receive == other.receive &&
+        send == other.send;
+  }
+
+  @override
+  int get hashCode => Object.hash(connect, receive, send);
 }
 
 /// Configuration des endpoints réseau de l'application.
@@ -109,16 +121,6 @@ class NetworkEndpoints {
     return s == 'http' || s == 'https';
   }
 
-  String joinRestPath(String path) {
-    final p = path.startsWith('/') ? path.substring(1) : path;
-    return '$restBaseUrlNormalized/$p';
-  }
-
-  String joinImagePath(String path) {
-    final p = path.startsWith('/') ? path.substring(1) : path;
-    return '$imageBaseUrlNormalized/$p';
-  }
-
   NetworkEndpoints copyWith({
     String? restBaseUrl,
     String? imageBaseUrl,
@@ -136,4 +138,36 @@ class NetworkEndpoints {
       timeouts: timeouts ?? this.timeouts,
     );
   }
+
+  String joinRestPath(String path) {
+    final sanitized = path.startsWith('/') ? path.substring(1) : path;
+    return restBaseUri.resolve(sanitized).toString();
+  }
+
+  String joinImagePath(String path) {
+    final sanitized = path.startsWith('/') ? path.substring(1) : path;
+    return imageBaseUri.resolve(sanitized).toString();
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! NetworkEndpoints) return false;
+    return restBaseUrl == other.restBaseUrl &&
+        imageBaseUrl == other.imageBaseUrl &&
+        tmdbApiKey == other.tmdbApiKey &&
+        tmdbBaseHost == other.tmdbBaseHost &&
+        tmdbApiVersion == other.tmdbApiVersion &&
+        timeouts == other.timeouts;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    restBaseUrl,
+    imageBaseUrl,
+    tmdbApiKey,
+    tmdbBaseHost,
+    tmdbApiVersion,
+    timeouts,
+  );
 }

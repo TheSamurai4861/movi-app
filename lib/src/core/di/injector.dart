@@ -1,25 +1,27 @@
 import 'package:get_it/get_it.dart';
 
 import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/network/config/network_module.dart';
 import 'package:movi/src/core/network/network.dart';
-import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
 import 'package:movi/src/core/state/state.dart';
-import 'package:movi/src/shared/services.dart';
+import 'package:movi/src/core/storage/services/storage_module.dart';
+import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
+import 'package:movi/src/features/home/data/home_feed_data_module.dart';
+import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
+import 'package:movi/src/features/library/data/library_data_module.dart';
 import 'package:movi/src/features/movie/data/movie_data_module.dart';
-import 'package:movi/src/features/tv/data/tv_data_module.dart';
 import 'package:movi/src/features/person/data/person_data_module.dart';
+import 'package:movi/src/features/playlist/data/playlist_data_module.dart';
 import 'package:movi/src/features/saga/data/saga_data_module.dart';
 import 'package:movi/src/features/search/data/search_data_module.dart';
-import 'package:movi/src/features/playlist/data/playlist_data_module.dart';
-import 'package:movi/src/features/home/data/home_feed_data_module.dart';
-import 'package:movi/src/features/library/data/library_data_module.dart';
-import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
 import 'package:movi/src/features/settings/data/settings_data_module.dart';
-import 'package:movi/src/core/storage/services/storage_module.dart';
-import 'package:movi/src/core/logging/logging_module.dart';
+import 'package:movi/src/features/tv/data/tv_data_module.dart';
+import 'package:movi/src/shared/services.dart';
 
+/// Global service locator instance used across the app.
 final sl = GetIt.instance;
 
 void _replace<T extends Object>(T instance) {
@@ -35,38 +37,55 @@ Future<void> initDependencies({
   AppConfig? appConfig,
   SecretStore? secretStore,
   LocaleCodeProvider? localeProvider,
+  bool registerFeatureModules = true,
 }) async {
-  _registerLogging();
-  if (appConfig != null) {
-    _replace<AppConfig>(appConfig);
-  }
-  if (secretStore != null) {
-    _replace<SecretStore>(secretStore);
-  }
-  if (!sl.isRegistered<LocalePreferences>()) {
-    sl.registerLazySingleton<LocalePreferences>(() => LocalePreferences());
-  }
+  await _ensureConfig(appConfig);
+  _ensureSecretStore(secretStore);
+  await _ensureLocalePreferences();
+  _registerLoggingIfReady();
   await StorageModule.register();
-  _registerNetwork(localeProvider: localeProvider);
-  _registerTmdb();
+  await _registerNetwork(localeProvider: localeProvider);
+  _registerTmdbInfrastructure();
+  if (registerFeatureModules) {
+    _registerFeatureModules();
+  }
   _registerState();
 }
 
-void _registerLogging() {
-  LoggingModule.register();
+Future<void> _ensureConfig(AppConfig? config) async {
+  if (config == null) return;
+  if (sl.isRegistered<AppLogger>()) {
+    await LoggingModule.dispose();
+  }
+  _replace<AppConfig>(config);
 }
 
-void _registerNetwork({LocaleCodeProvider? localeProvider}) {
-  if (!sl.isRegistered<SecretStore>()) {
+void _ensureSecretStore(SecretStore? store) {
+  if (store != null) {
+    _replace<SecretStore>(store);
+  } else if (!sl.isRegistered<SecretStore>()) {
     sl.registerLazySingleton<SecretStore>(() => SecretStore());
   }
+}
+
+Future<void> _ensureLocalePreferences() async {
+  if (sl.isRegistered<LocalePreferences>()) return;
+  final prefs = await LocalePreferences.create();
+  sl.registerSingleton<LocalePreferences>(prefs);
+}
+
+void _registerLoggingIfReady() {
   if (sl.isRegistered<AppConfig>()) {
-    NetworkModule.register(localeProvider: localeProvider);
-    IptvDataModule.register();
+    LoggingModule.register();
   }
 }
 
-void _registerTmdb() {
+Future<void> _registerNetwork({LocaleCodeProvider? localeProvider}) async {
+  if (!sl.isRegistered<AppConfig>()) return;
+  NetworkModule.register(localeProvider: localeProvider);
+}
+
+void _registerTmdbInfrastructure() {
   if (!sl.isRegistered<TmdbImageResolver>()) {
     sl.registerLazySingleton<TmdbImageResolver>(
       () => const TmdbImageResolver(),
@@ -89,7 +108,10 @@ void _registerTmdb() {
       endpoints: sl<AppConfig>().network,
     ),
   );
+}
 
+void _registerFeatureModules() {
+  IptvDataModule.register();
   MovieDataModule.register();
   TvDataModule.register();
   PersonDataModule.register();

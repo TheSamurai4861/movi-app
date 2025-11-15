@@ -72,7 +72,10 @@ class WelcomeController extends StateNotifier<WelcomeUiState> {
       // On ne se fie pas au shape exact du JSON (fournisseurs variés) :
       // succès HTTP + corps non nul = OK
       final ok = await executor.run<dynamic, bool>(
-        request: (c) => c.getUri<dynamic>(uri),
+        request: (c, token) => c.getUri<dynamic>(
+          uri,
+          cancelToken: token,
+        ),
         mapper: (_) => true,
       );
 

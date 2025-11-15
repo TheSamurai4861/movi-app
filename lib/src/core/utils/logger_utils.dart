@@ -1,19 +1,22 @@
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/category_logger.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
-AppLogger get _logger => sl<AppLogger>();
+void logDebug(AppLogger logger, String message) => logger.debug(message);
 
-void logDebug(String message) => _logger.debug(message);
+void logInfo(AppLogger logger, String message) => logger.info(message);
 
-void logInfo(String message) => _logger.info(message);
+void logWarn(AppLogger logger, String message) => logger.warn(message);
 
-void logWarn(String message) => _logger.warn(message);
+void logError(
+  AppLogger logger,
+  String message, [
+  Object? error,
+  StackTrace? stackTrace,
+]) =>
+    logger.error(message, error, stackTrace);
 
-void logError(String message, [Object? error, StackTrace? stackTrace]) =>
-    _logger.error(message, error, stackTrace);
+AppLogger categoryLogger(AppLogger logger, String category) =>
+    CategoryLogger(logger, category);
 
-AppLogger categoryLogger(String category) => CategoryLogger(_logger, category);
-
-AppLogger get networkLogger => categoryLogger('network');
-AppLogger get uiLogger => categoryLogger('ui');
+AppLogger networkLogger(AppLogger logger) => categoryLogger(logger, 'network');
+AppLogger uiLogger(AppLogger logger) => categoryLogger(logger, 'ui');

@@ -9,14 +9,14 @@ class HttpClientFactory {
   const HttpClientFactory({
     required this.config,
     required this.logger,
-    required this.secretStore,
     this.localeProvider,
+    this.authTokenProvider,
   });
 
   final AppConfig config;
   final AppLogger logger;
-  final SecretStore secretStore;
   final LocaleCodeProvider? localeProvider;
+  final AuthTokenProvider? authTokenProvider;
 
   Dio create() {
     final baseUrl = config.network.restBaseUrl.trim();
@@ -40,13 +40,18 @@ class HttpClientFactory {
     final dio = Dio(options);
 
     dio.interceptors.addAll(<Interceptor>[
-      AuthInterceptor(
-        tokenResolver: () async =>
-            config.network.tmdbApiKey ?? await secretStore.read('TMDB_API_KEY'),
-      ),
+      if (authTokenProvider != null)
+        AuthInterceptor(
+          tokenProvider: authTokenProvider!,
+          logger: logger,
+          dio: dio,
+        ),
       LocaleInterceptor(localeProvider: localeProvider),
       RetryInterceptor(dio: dio, logger: logger),
-      TelemetryInterceptor(logger: logger),
+      TelemetryInterceptor(
+        logger: logger,
+        enabled: config.featureFlags.telemetry.enableTelemetry,
+      ),
     ]);
 
     return dio;

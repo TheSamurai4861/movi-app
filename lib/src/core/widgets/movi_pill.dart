@@ -10,6 +10,7 @@ class MoviPill extends StatelessWidget {
     this.large = false,
     this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     this.trailingIcon,
+    this.color,
   });
 
   /// Text to display inside the pill.
@@ -23,6 +24,7 @@ class MoviPill extends StatelessWidget {
 
   /// Optional icon displayed to the right of the text.
   final Widget? trailingIcon;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,8 @@ class MoviPill extends StatelessWidget {
     final textStyle = (large ? textTheme.labelLarge : textTheme.labelMedium)
         ?.copyWith(color: Colors.white, fontWeight: FontWeight.w500);
 
+    final background = color ?? const Color(0x80292929);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(999),
       child: BackdropFilter(
@@ -39,7 +43,7 @@ class MoviPill extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: const Color(0x80292929),
+            color: background,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(

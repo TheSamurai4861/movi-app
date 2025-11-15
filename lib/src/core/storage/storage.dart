@@ -1,5 +1,6 @@
 export 'repositories/iptv_local_repository.dart';
 export 'repositories/content_cache_repository.dart';
+export 'repositories/secure_storage_repository.dart';
 export 'repositories/playlist_local_repository.dart';
 export 'repositories/watchlist_local_repository.dart';
 export 'repositories/continue_watching_local_repository.dart';

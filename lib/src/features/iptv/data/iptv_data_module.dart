@@ -9,8 +9,6 @@ import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.da
 import 'package:movi/src/features/iptv/application/usecases/list_xtream_playlists.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
-import 'package:movi/src/core/security/secure_credentials_vault.dart';
-import 'dart:io' show Platform;
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/iptv/application/services/playlist_mapper.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
@@ -31,14 +29,6 @@ class IptvDataModule {
       () => XtreamRemoteDataSource(sl()),
     );
     sl.registerLazySingleton<PlaylistMapper>(() => const PlaylistMapper());
-
-    if (Platform.isWindows) {
-      replace<CredentialsVault>(
-        CredentialsVaultImpl(sl<ContentCacheRepository>()),
-      );
-    } else {
-      replace<CredentialsVault>(SecureCredentialsVault());
-    }
 
     sl.registerLazySingleton<IptvRepository>(
       () => IptvRepositoryImpl(

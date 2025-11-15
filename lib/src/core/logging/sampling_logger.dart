@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:movi/src/core/logging/logger.dart';
 
-class SamplingLogger extends AppLogger {
+class SamplingLogger extends AppLogger implements LoggerLifecycle {
   SamplingLogger(this._inner, {
     Map<LogLevel, double>? samplingByLevel,
     Map<String, double>? samplingByCategory,
@@ -35,5 +35,12 @@ class SamplingLogger extends AppLogger {
   }) {
     if (!_accept(level, category)) return;
     _inner.log(level, message, category: category, error: error, stackTrace: stackTrace);
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (_inner is LoggerLifecycle) {
+      await (_inner as LoggerLifecycle).dispose();
+    }
   }
 }

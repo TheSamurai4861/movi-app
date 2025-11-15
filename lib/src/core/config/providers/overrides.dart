@@ -7,6 +7,8 @@ import 'package:movi/src/core/config/models/feature_flags.dart';
 import 'package:movi/src/core/config/models/network_endpoints.dart';
 import 'package:movi/src/core/config/providers/config_provider.dart';
 
+/// Crée l’ensemble des overrides de configuration à utiliser
+/// dans un ProviderScope (tests, stories, flavors, etc.).
 List<Override> createConfigOverrides(AppConfig config) {
   return [
     appConfigProvider.overrideWithValue(config),
@@ -17,18 +19,22 @@ List<Override> createConfigOverrides(AppConfig config) {
   ];
 }
 
+/// Override ciblé des feature flags (utile pour les tests / stories).
 Override overrideFeatureFlags(FeatureFlags flags) {
   return featureFlagsProvider.overrideWithValue(flags);
 }
 
+/// Override ciblé de l’environnement (dev, prod, etc.).
 Override overrideEnvironment(EnvironmentFlavor flavor) {
   return environmentProvider.overrideWithValue(flavor);
 }
 
+/// Override ciblé des endpoints réseau.
 Override overrideNetworkEndpoints(NetworkEndpoints endpoints) {
   return networkEndpointsProvider.overrideWithValue(endpoints);
 }
 
+/// Override ciblé des métadonnées d’app (nom, version, etc.).
 Override overrideAppMetadata(AppMetadata metadata) {
   return appMetadataProvider.overrideWithValue(metadata);
 }

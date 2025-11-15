@@ -1,10 +1,12 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// SQLite singleton (sqflite / sqflite_ffi) avec migrations.
+/// - Version 7 (indexes cache supplémentaires, PRAGMA renforcés)
 /// - Version 6 (retire colonne password de iptv_accounts)
 /// - Desktop (Windows/Linux) utilise sqflite_common_ffi
 class LocalDatabase {
@@ -15,6 +17,10 @@ class LocalDatabase {
   /// Retourne l'instance unique de la base (créée au besoin).
   static Future<Database> instance() async {
     if (_instance != null) return _instance!;
+
+    try {
+      WidgetsFlutterBinding.ensureInitialized();
+    } catch (_) {}
 
     // Initialisation FFI pour desktop.
     if (Platform.isWindows || Platform.isLinux) {
@@ -31,7 +37,11 @@ class LocalDatabase {
 
     _instance = await openDatabase(
       path,
-      version: 6,
+      version: 7,
+      onConfigure: (db) async {
+        await db.execute('PRAGMA foreign_keys = ON;');
+        await db.execute('PRAGMA journal_mode = WAL;');
+      },
       onCreate: (db, version) async {
         // --- Tables de base ---
         await db.execute('''
@@ -144,6 +154,9 @@ class LocalDatabase {
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
         );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_content_cache_type ON content_cache(cache_type);',
+        );
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -241,9 +254,20 @@ class LocalDatabase {
             'ALTER TABLE iptv_accounts_new RENAME TO iptv_accounts;',
           );
         }
+        if (oldVersion < 7) {
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_content_cache_type ON content_cache(cache_type);',
+          );
+        }
       },
     );
 
     return _instance!;
+  }
+
+  static Future<void> dispose() async {
+    if (_instance == null) return;
+    await _instance!.close();
+    _instance = null;
   }
 }

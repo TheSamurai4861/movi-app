@@ -50,69 +50,74 @@ const NetworkTimeouts _defaultTimeouts = NetworkTimeouts(
   send: Duration(seconds: 5),
 );
 
-EnvironmentFlavor createDevEnvironment() {
-  final env = AppEnvironment.dev;
-  return EnvironmentFlavor(
-    environment: env,
-    label: 'Development',
-    defaultFlags: const FeatureFlags(
-      useRemoteHome: false,
-      enableTelemetry: true,
-      enableDownloads: false,
-      enableNewSearch: true,
-    ),
-    metadata: const AppMetadata(version: '0.1.0', buildNumber: 'dev'),
-    network: NetworkEndpoints(
-      restBaseUrl: 'https://api.dev.movi.app',
-      imageBaseUrl: 'https://images.dev.movi.app',
-      tmdbApiKey: _resolveTmdbKey(env),
-      timeouts: _defaultTimeouts,
-    ),
-  );
-}
+EnvironmentFlavor createDevEnvironment() => _buildFlavor(
+  env: AppEnvironment.dev,
+  label: 'Development',
+  flags: const FeatureFlags(
+    useRemoteHome: false,
+    enableTelemetry: true,
+    enableDownloads: false,
+    enableNewSearch: true,
+  ),
+  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'dev'),
+  restBaseUrl: 'https://api.dev.movi.app',
+  imageBaseUrl: 'https://images.dev.movi.app',
+  timeouts: _defaultTimeouts,
+);
 
-EnvironmentFlavor createStagingEnvironment() {
-  final env = AppEnvironment.staging;
-  return EnvironmentFlavor(
-    environment: env,
-    label: 'Staging',
-    defaultFlags: const FeatureFlags(
-      useRemoteHome: true,
-      enableTelemetry: true,
-      enableDownloads: true,
-      enableNewSearch: true,
-    ),
-    metadata: const AppMetadata(version: '0.1.0', buildNumber: 'staging'),
-    network: NetworkEndpoints(
-      restBaseUrl: 'https://api.staging.movi.app',
-      imageBaseUrl: 'https://images.staging.movi.app',
-      tmdbApiKey: _resolveTmdbKey(env),
-      timeouts: _defaultTimeouts,
-    ),
-  );
-}
+EnvironmentFlavor createStagingEnvironment() => _buildFlavor(
+  env: AppEnvironment.staging,
+  label: 'Staging',
+  flags: const FeatureFlags(
+    useRemoteHome: true,
+    enableTelemetry: true,
+    enableDownloads: true,
+    enableNewSearch: true,
+  ),
+  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'staging'),
+  restBaseUrl: 'https://api.staging.movi.app',
+  imageBaseUrl: 'https://images.staging.movi.app',
+  timeouts: _defaultTimeouts,
+);
 
-EnvironmentFlavor createProdEnvironment() {
-  final env = AppEnvironment.prod;
+EnvironmentFlavor createProdEnvironment() => _buildFlavor(
+  env: AppEnvironment.prod,
+  label: 'Production',
+  flags: const FeatureFlags(
+    useRemoteHome: true,
+    enableTelemetry: true,
+    enableDownloads: true,
+    enableNewSearch: true,
+  ),
+  metadata: const AppMetadata(version: '1.0.0', buildNumber: 'prod'),
+  restBaseUrl: 'https://api.movi.app',
+  imageBaseUrl: 'https://images.movi.app',
+  timeouts: const NetworkTimeouts(
+    connect: Duration(seconds: 10),
+    receive: Duration(seconds: 20),
+    send: Duration(seconds: 10),
+  ),
+);
+
+EnvironmentFlavor _buildFlavor({
+  required AppEnvironment env,
+  required String label,
+  required FeatureFlags flags,
+  required AppMetadata metadata,
+  required String restBaseUrl,
+  required String imageBaseUrl,
+  NetworkTimeouts timeouts = const NetworkTimeouts(),
+}) {
   return EnvironmentFlavor(
     environment: env,
-    label: 'Production',
-    defaultFlags: const FeatureFlags(
-      useRemoteHome: true,
-      enableTelemetry: true,
-      enableDownloads: true,
-      enableNewSearch: true,
-    ),
-    metadata: const AppMetadata(version: '1.0.0', buildNumber: 'prod'),
+    label: label,
+    defaultFlags: flags,
+    metadata: metadata,
     network: NetworkEndpoints(
-      restBaseUrl: 'https://api.movi.app',
-      imageBaseUrl: 'https://images.movi.app',
+      restBaseUrl: restBaseUrl,
+      imageBaseUrl: imageBaseUrl,
       tmdbApiKey: _resolveTmdbKey(env),
-      timeouts: const NetworkTimeouts(
-        connect: Duration(seconds: 10),
-        receive: Duration(seconds: 20),
-        send: Duration(seconds: 10),
-      ),
+      timeouts: timeouts,
     ),
   );
 }

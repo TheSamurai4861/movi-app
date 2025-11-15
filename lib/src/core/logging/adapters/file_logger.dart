@@ -5,10 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'package:movi/src/core/logging/adapters/console_logger.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/sanitizer/message_sanitizer.dart';
 
-class FileLogger extends AppLogger {
+class FileLogger extends AppLogger implements LoggerLifecycle {
   FileLogger({
     String fileName = 'app.log',
     Duration flushInterval = const Duration(milliseconds: 500),
@@ -20,17 +21,20 @@ class FileLogger extends AppLogger {
     bool compressOld = false,
     int bufferCapacity = 2000,
     bool dropOldest = true,
-  }) : _fileName = fileName,
-       _flushInterval = flushInterval,
-       _maxFileSizeBytes = maxFileSizeBytes,
-       _maxFiles = maxFiles,
-       _alsoConsole = alsoConsole,
-       _rotateDaily = rotateDaily,
-       _maxDailyFiles = maxDailyFiles,
-       _compressOld = compressOld,
-       _bufferCapacity = bufferCapacity,
-       _dropOldest = dropOldest,
-       _sanitizer = MessageSanitizer() {
+    Set<String>? extraSensitiveKeys,
+    ConsolePrinter? consolePrinter,
+  })  : _fileName = fileName,
+        _flushInterval = flushInterval,
+        _maxFileSizeBytes = maxFileSizeBytes,
+        _maxFiles = maxFiles,
+        _alsoConsole = alsoConsole,
+        _rotateDaily = rotateDaily,
+        _maxDailyFiles = maxDailyFiles,
+        _compressOld = compressOld,
+        _bufferCapacity = bufferCapacity,
+        _dropOldest = dropOldest,
+        _printer = consolePrinter ?? debugPrint,
+        _sanitizer = MessageSanitizer(extraSensitiveKeys: extraSensitiveKeys) {
     if (!kIsWeb) {
       _initFileSink();
     }
@@ -46,6 +50,7 @@ class FileLogger extends AppLogger {
   final bool _compressOld;
   final int _bufferCapacity;
   final bool _dropOldest;
+  final ConsolePrinter _printer;
   final MessageSanitizer _sanitizer;
 
   IOSink? _sink;
@@ -70,7 +75,7 @@ class FileLogger extends AppLogger {
 
   void _printConsole(String line) {
     if (!_alsoConsole) return;
-    debugPrint(line);
+    _printer(line);
   }
 
   Future<void> _flush() async {
@@ -159,6 +164,7 @@ class FileLogger extends AppLogger {
     _buffer.add(line);
   }
 
+  @override
   Future<void> dispose() async {
     _timer?.cancel();
     await _flush();

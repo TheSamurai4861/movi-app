@@ -28,20 +28,19 @@ class AppTheme {
         ? AppColors.darkSurfaceVariant
         : AppColors.lightSurfaceVariant;
 
-    // Tente d’utiliser Montserrat via Google Fonts, sinon fallback système.
-    String? montserratFamily;
-    try {
-      montserratFamily = GoogleFonts.montserrat().fontFamily;
-    } catch (_) {
-      montserratFamily = null; // fallback sur police système
-    }
+    final buttonTextStyle = textTheme.labelLarge?.copyWith(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+    );
+    const buttonPadding = EdgeInsets.symmetric(horizontal: 24, vertical: 15);
+    const buttonShape = StadiumBorder();
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: backgroundColor,
-      fontFamily: montserratFamily,
+      fontFamily: GoogleFonts.montserrat().fontFamily,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: backgroundColor,
@@ -95,36 +94,25 @@ class AppTheme {
       ),
       iconTheme: IconThemeData(color: primaryTextColor, size: 24),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
-          shape: const StadiumBorder(),
-          textStyle: textTheme.labelLarge?.copyWith(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        style: _primaryButtonStyle(
+          colorScheme: colorScheme,
+          textStyle: buttonTextStyle,
+          padding: buttonPadding,
+          shape: buttonShape,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
-          shape: const StadiumBorder(),
-          textStyle: textTheme.labelLarge?.copyWith(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        style: _primaryButtonStyle(
+          colorScheme: colorScheme,
+          textStyle: buttonTextStyle,
+          padding: buttonPadding,
+          shape: buttonShape,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          textStyle: textTheme.labelLarge?.copyWith(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: buttonTextStyle,
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -192,15 +180,9 @@ class AppTheme {
   }
 
   static TextTheme _buildTextTheme(bool isDark) {
-    // Essaye d’utiliser le TextTheme Montserrat; fallback sur theme par défaut.
-    TextTheme base;
-    try {
-      base = GoogleFonts.montserratTextTheme();
-    } catch (_) {
-      base =
-          (isDark ? Typography.whiteMountainView : Typography.blackMountainView)
-              .copyWith();
-    }
+    final base = GoogleFonts.montserratTextTheme(
+      isDark ? Typography.whiteMountainView : Typography.blackMountainView,
+    );
     final primary = isDark
         ? AppColors.darkTextPrimary
         : AppColors.lightTextPrimary;
@@ -235,6 +217,21 @@ class AppTheme {
       labelLarge: body(16, FontWeight.w600, primary),
       labelMedium: body(14, FontWeight.w500, secondary),
       labelSmall: body(12, FontWeight.w500, secondary),
+    );
+  }
+
+  static ButtonStyle _primaryButtonStyle({
+    required ColorScheme colorScheme,
+    required TextStyle? textStyle,
+    required EdgeInsetsGeometry padding,
+    required OutlinedBorder shape,
+  }) {
+    return FilledButton.styleFrom(
+      backgroundColor: colorScheme.primary,
+      foregroundColor: colorScheme.onPrimary,
+      padding: padding,
+      shape: shape,
+      textStyle: textStyle,
     );
   }
 }

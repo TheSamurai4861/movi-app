@@ -4,11 +4,14 @@ class SecretStore {
   SecretStore({
     Map<String, String> initialSecrets = const {},
     this.envFilePath = '.env',
+    this.envFileCacheTtl = const Duration(minutes: 5),
   }) : _secrets = Map<String, String>.from(initialSecrets);
 
   final Map<String, String> _secrets;
   final String envFilePath;
+  final Duration envFileCacheTtl;
   Map<String, String>? _envFileCache;
+  DateTime? _lastEnvLoad;
 
   Future<String?> read(String key) async {
     if (_secrets.containsKey(key)) {
@@ -30,7 +33,13 @@ class SecretStore {
   }
 
   Future<String?> _readFromEnvFile(String key) async {
-    _envFileCache ??= await _loadEnvFile();
+    final now = DateTime.now();
+    final cacheExpired =
+        _lastEnvLoad == null || now.difference(_lastEnvLoad!) > envFileCacheTtl;
+    if (_envFileCache == null || cacheExpired) {
+      _envFileCache = await _loadEnvFile();
+      _lastEnvLoad = now;
+    }
     return _envFileCache?[key];
   }
 
@@ -104,7 +113,32 @@ class SecretStore {
 
   Future<void> write(String key, String value) async {
     _secrets[key] = value;
+    await _persistEnvValue(key, value);
   }
 
   void preload(Map<String, String> entries) => _secrets.addAll(entries);
+
+  void invalidateEnvFileCache() {
+    _envFileCache = null;
+    _lastEnvLoad = null;
+  }
+
+  Future<void> _persistEnvValue(String key, String value) async {
+    Map<String, String> existing;
+    if (_envFileCache != null) {
+      existing = Map<String, String>.from(_envFileCache!);
+    } else {
+      existing = await _loadEnvFile();
+    }
+    existing[key] = value;
+    final file = File(envFilePath);
+    await file.create(recursive: true);
+    final buffer = StringBuffer();
+    for (final entry in existing.entries) {
+      buffer.writeln('${entry.key}=${entry.value}');
+    }
+    await file.writeAsString(buffer.toString());
+    _envFileCache = existing;
+    _lastEnvLoad = DateTime.now();
+  }
 }

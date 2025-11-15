@@ -10,14 +10,17 @@ NetworkFailure mapDioToFailure(DioException e) {
       return const TimeoutFailure();
 
     case DioExceptionType.badResponse:
-      final status = e.response?.statusCode ?? 0;
+      final status = e.response?.statusCode;
+      final message = e.response?.statusMessage ?? 'Server error';
       if (status == 401) return const UnauthorizedFailure();
       if (status == 403) return const ForbiddenFailure();
       if (status == 404) return const NotFoundFailure();
       if (status == 429) return const RateLimitedFailure();
-      return ServerFailure('Server error', statusCode: status);
+      return ServerFailure(message, statusCode: status);
 
     case DioExceptionType.badCertificate:
+      return const BadCertificateFailure();
+
     case DioExceptionType.connectionError:
       return const ConnectionFailure();
 

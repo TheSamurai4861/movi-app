@@ -20,4 +20,19 @@ class EnvironmentFlavor {
   final AppMetadata metadata;
 
   bool get isProduction => environment == AppEnvironment.prod;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! EnvironmentFlavor) return false;
+    return environment == other.environment &&
+        label == other.label &&
+        network == other.network &&
+        defaultFlags == other.defaultFlags &&
+        metadata == other.metadata;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(environment, label, network, defaultFlags, metadata);
 }

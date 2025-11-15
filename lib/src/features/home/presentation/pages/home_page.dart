@@ -2,6 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
+import 'package:movi/src/core/widgets/movi_items_list.dart';
+import 'package:movi/src/core/widgets/movi_media_card.dart';
+import 'package:movi/src/core/widgets/movi_see_all_card.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'dart:async';
 
@@ -10,7 +14,6 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
 
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
@@ -273,18 +276,12 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     estimatedItemHeight: 270,
                     items: [
                       ...entry.value.take(9).map((r) {
-                        // Poster (TMDB ou fallback IPTV déjà fourni par le repo)
-                        final poster = r.poster?.toString() ?? '';
-                        // Désactiver toute pill: ne pas afficher année/score pour les listes
-                        const String yearStr = '';
-                        const String ratingStr = '';
-
                         final media = MoviMedia(
                           id: r.id,
                           title: r.title.value,
-                          poster: poster,
-                          year: yearStr, // <-- String non nulle
-                          rating: ratingStr, // <-- String non nulle
+                          poster: r.poster,
+                          year: r.year,
+                          rating: r.rating,
                           type: r.type == ContentType.series
                               ? MoviMediaType.series
                               : MoviMediaType.movie,

@@ -1,3 +1,2 @@
+// Service locator entry-points shared by the app.
 export 'injector.dart';
-export 'services/content_repository.dart';
-export 'services/preferences_service.dart';

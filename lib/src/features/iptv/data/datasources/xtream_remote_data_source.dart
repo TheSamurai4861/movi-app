@@ -17,9 +17,10 @@ class XtreamRemoteDataSource {
     required String password,
   }) {
     return _executor.run<dynamic, XtreamAuthDto>(
-      request: (client) => client.getUri<dynamic>(
+      request: (client, cancelToken) => client.getUri<dynamic>(
         endpoint.buildUri({'username': username, 'password': password}),
         options: Options(responseType: ResponseType.json),
+        cancelToken: cancelToken,
       ),
       mapper: (response) {
         final data = response.data;
@@ -84,13 +85,14 @@ class XtreamRemoteDataSource {
     required String action,
   }) {
     return _executor.run<dynamic, List<XtreamCategoryDto>>(
-      request: (client) => client.getUri<dynamic>(
+      request: (client, cancelToken) => client.getUri<dynamic>(
         request.endpoint.buildUri({
           'username': request.username,
           'password': request.password,
           'action': action,
         }),
         options: Options(responseType: ResponseType.json),
+        cancelToken: cancelToken,
       ),
       mapper: (response) {
         final data = response.data;
@@ -134,9 +136,10 @@ class XtreamRemoteDataSource {
     }
 
     return _executor.run<dynamic, List<XtreamStreamDto>>(
-      request: (client) => client.getUri<dynamic>(
+      request: (client, cancelToken) => client.getUri<dynamic>(
         request.endpoint.buildUri(query),
         options: Options(responseType: ResponseType.json),
+        cancelToken: cancelToken,
       ),
       mapper: (response) {
         final data = response.data;

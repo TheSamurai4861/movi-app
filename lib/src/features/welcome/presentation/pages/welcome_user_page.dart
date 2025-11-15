@@ -5,12 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
 import 'package:movi/src/features/settings/domain/value_objects/language_code.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
-import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
 
 class WelcomeUserPage extends ConsumerStatefulWidget {

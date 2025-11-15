@@ -34,6 +34,11 @@ class RateLimitedFailure extends NetworkFailure {
   const RateLimitedFailure() : super('Rate limited', statusCode: 429);
 }
 
+class BadCertificateFailure extends NetworkFailure {
+  const BadCertificateFailure()
+    : super('Certificate validation failed', statusCode: 495);
+}
+
 class ServerFailure extends NetworkFailure {
   const ServerFailure(super.message, {super.statusCode});
 }

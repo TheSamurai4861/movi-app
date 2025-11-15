@@ -2,11 +2,21 @@ import 'package:movi/src/core/config/services/platform_selector.dart';
 import 'package:movi/src/core/config/env/dev_environment.dart';
 import 'package:movi/src/core/config/env/environment.dart';
 
+typedef EnvironmentFallbackResolver =
+    AppEnvironment Function(PlatformInfo info);
+
 class EnvironmentLoader {
-  EnvironmentLoader({PlatformInfo? platformInfo})
-    : platformInfo = platformInfo ?? const PlatformSelector();
+  EnvironmentLoader({
+    PlatformInfo? platformInfo,
+    EnvironmentFallbackResolver? fallbackResolver,
+    void Function(String message)? onInfo,
+  }) : platformInfo = platformInfo ?? const PlatformSelector(),
+       _fallbackResolver = fallbackResolver ?? _defaultFallback,
+       _onInfo = onInfo;
 
   final PlatformInfo platformInfo;
+  final EnvironmentFallbackResolver _fallbackResolver;
+  final void Function(String message)? _onInfo;
   EnvironmentFlavor? _cached;
 
   // Précompute compile-time defines to avoid runtime fromEnvironment calls on web.
@@ -29,17 +39,10 @@ class EnvironmentLoader {
     if (envFromDefine != null) {
       return envFromDefine;
     }
-    // iOS: par défaut, utiliser l'environnement Dev si aucune variable compile-time n'est fournie.
-    // Cela garantit qu'une clé TMDB valable (fallback Dev) est disponible sans --dart-define,
-    // ce qui évite le basculement vers le fallback IPTV pour le Hero.
-    if (platformInfo.currentPlatform == AppPlatform.ios) {
-      return AppEnvironment.dev;
-    }
-
-    // Autres plateformes : prod en release, sinon dev.
-    return platformInfo.isReleaseMode
-        ? AppEnvironment.prod
-        : AppEnvironment.dev;
+    _onInfo?.call(
+      'EnvironmentLoader: no --dart-define provided, using fallback resolver.',
+    );
+    return _fallbackResolver(platformInfo);
   }
 
   AppEnvironment? _readDefine(String key) {
@@ -67,6 +70,13 @@ class EnvironmentLoader {
         return AppEnvironment.dev;
     }
   }
+}
+
+AppEnvironment _defaultFallback(PlatformInfo info) {
+  if (info.currentPlatform == AppPlatform.ios) {
+    return AppEnvironment.dev;
+  }
+  return info.isReleaseMode ? AppEnvironment.prod : AppEnvironment.dev;
 }
 
 EnvironmentFlavor createEnvironmentFlavor(AppEnvironment environment) {

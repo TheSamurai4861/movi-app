@@ -1,9 +1,11 @@
 // lib/src/core/state/app_state_controller.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-import 'package:movi/src/core/state/app_state.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
+import 'package:movi/src/core/state/app_state.dart';
 
 /// Contrôleur central de l'état applicatif.
 ///
@@ -14,18 +16,36 @@ import 'package:movi/src/core/preferences/locale_preferences.dart';
 /// - Garantit l'immuabilité des collections exposées.
 class AppStateController extends StateNotifier<AppState> {
   AppStateController(this._localePreferences)
-    : super(AppState(preferredLocale: _localePreferences.languageCode));
+      : super(
+          AppState(
+            preferredLocale: _localePreferences.languageCode,
+          ),
+        ) {
+    _localeSubscription =
+        _localePreferences.languageStream.listen((code) {
+      if (code.isNotEmpty && code != state.preferredLocale) {
+        state = state.copyWith(preferredLocale: code);
+      }
+    });
+  }
 
   final LocalePreferences _localePreferences;
+  late final StreamSubscription<String> _localeSubscription;
+  final StreamController<bool> _connectivityController =
+      StreamController<bool>.broadcast();
 
-  /// Identifiants des sources IPTV actives (liste non modifiable).
-  List<String> get activeIptvSourceIds =>
-      List.unmodifiable(state.activeIptvSources);
+  Stream<bool> get connectivityStream =>
+      _connectivityController.stream;
+
+  /// Identifiants des sources IPTV actives (ensemble non modifiable).
+  Set<String> get activeIptvSourceIds =>
+      Set.unmodifiable(state.activeIptvSources);
 
   /// Indique s'il existe au moins une source IPTV active.
   bool get hasActiveIptvSources => state.activeIptvSources.isNotEmpty;
 
-  bool get hasNoActiveIptvSources => state.activeIptvSources.isEmpty;
+  bool get hasNoActiveIptvSources =>
+      state.activeIptvSources.isEmpty;
 
   /// Définit le mode thème si celui-ci diffère de l'état courant.
   void setThemeMode(ThemeMode mode) {
@@ -37,16 +57,23 @@ class AppStateController extends StateNotifier<AppState> {
   void setConnectivity(bool isOnline) {
     if (state.isOnline == isOnline) return;
     state = state.copyWith(isOnline: isOnline);
+    if (!_connectivityController.isClosed) {
+      _connectivityController.add(isOnline);
+    }
   }
 
   /// Remplace la liste des sources IPTV actives (copie immuable, dédupliquée).
-  void setActiveIptvSources(List<String> sources) {
+  void setActiveIptvSources(Set<String> sources) {
     final sanitized = sources
-        .where((e) => e.trim().isNotEmpty)
-        .toSet()
-        .toList();
-    if (_listsEqual(state.activeIptvSources, sanitized)) return;
-    state = state.copyWith(activeIptvSources: List.unmodifiable(sanitized));
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+
+    if (_setsEqual(state.activeIptvSources, sanitized)) return;
+
+    state = state.copyWith(
+      activeIptvSources: Set.unmodifiable(sanitized),
+    );
   }
 
   /// Définit la langue préférée et la persiste via [LocalePreferences].
@@ -61,7 +88,7 @@ class AppStateController extends StateNotifier<AppState> {
   void addIptvSource(String accountId) {
     final id = accountId.trim();
     if (id.isEmpty || state.activeIptvSources.contains(id)) return;
-    final updated = <String>[...state.activeIptvSources, id];
+    final updated = state.activeIptvSources.toSet()..add(id);
     setActiveIptvSources(updated);
   }
 
@@ -69,19 +96,27 @@ class AppStateController extends StateNotifier<AppState> {
   void removeIptvSource(String accountId) {
     final id = accountId.trim();
     if (id.isEmpty || !state.activeIptvSources.contains(id)) return;
-    final updated = <String>[...state.activeIptvSources]..remove(id);
+    final updated = state.activeIptvSources.toSet()..remove(id);
     setActiveIptvSources(updated);
+  }
+
+  @override
+  void dispose() {
+    _localeSubscription.cancel();
+    // Fire-and-forget la fermeture du StreamController
+    unawaited(_connectivityController.close());
+    super.dispose();
   }
 
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
 
-  bool _listsEqual(List<String> a, List<String> b) {
+  bool _setsEqual(Set<String> a, Set<String> b) {
     if (identical(a, b)) return true;
     if (a.length != b.length) return false;
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
+    for (final value in a) {
+      if (!b.contains(value)) return false;
     }
     return true;
   }
