@@ -47,13 +47,13 @@ class TmdbClient {
       cacheTtl: cacheTtl,
       retries: retries,
       cancelToken: cancelToken,
-      request: (Dio client) => client.getUri<dynamic>(
+      request: (Dio client, CancelToken? token) => client.getUri<dynamic>(
         uri,
         options: Options(
           responseType: ResponseType.json,
           headers: _buildHeaders(),
         ),
-        cancelToken: cancelToken,
+        cancelToken: token,
       ),
       mapper: (response) {
         final data = response.data;
@@ -87,13 +87,13 @@ class TmdbClient {
       cacheTtl: cacheTtl,
       retries: retries,
       cancelToken: cancelToken,
-      request: (Dio client) => client.getUri<dynamic>(
+      request: (Dio client, CancelToken? token) => client.getUri<dynamic>(
         uri,
         options: Options(
           responseType: ResponseType.json,
           headers: _buildHeaders(),
         ),
-        cancelToken: cancelToken,
+        cancelToken: token,
       ),
       mapper: (response) {
         final data = response.data;

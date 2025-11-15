@@ -5,12 +5,15 @@ import 'package:movi/src/features/playlist/data/repositories/playlist_repository
 
 class PlaylistDataModule {
   static void register() {
-    if (sl.isRegistered<PlaylistRepository>()) return;
-    sl.registerLazySingleton<PlaylistLocalRepository>(
-      () => PlaylistLocalRepository(),
-    );
-    sl.registerLazySingleton<PlaylistRepository>(
-      () => PlaylistRepositoryImpl(sl<PlaylistLocalRepository>()),
-    );
+    if (!sl.isRegistered<PlaylistLocalRepository>()) {
+      sl.registerLazySingleton<PlaylistLocalRepository>(
+        () => PlaylistLocalRepository(),
+      );
+    }
+    if (!sl.isRegistered<PlaylistRepository>()) {
+      sl.registerLazySingleton<PlaylistRepository>(
+        () => PlaylistRepositoryImpl(sl<PlaylistLocalRepository>()),
+      );
+    }
   }
 }

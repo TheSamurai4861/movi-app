@@ -1,6 +1,6 @@
 import 'package:movi/src/core/logging/logger.dart';
 
-class LevelFilteringLogger extends AppLogger {
+class LevelFilteringLogger extends AppLogger implements LoggerLifecycle {
   LevelFilteringLogger(this._inner, this._minLevel, [this._byCategory = const {}]);
 
   final AppLogger _inner;
@@ -24,5 +24,12 @@ class LevelFilteringLogger extends AppLogger {
   }) {
     if (!_allow(level, category)) return;
     _inner.log(level, message, category: category, error: error, stackTrace: stackTrace);
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (_inner is LoggerLifecycle) {
+      await (_inner as LoggerLifecycle).dispose();
+    }
   }
 }

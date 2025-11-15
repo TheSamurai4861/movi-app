@@ -2,28 +2,30 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
-import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
-import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
-
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/state/app_state.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
+import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
 import 'package:movi/src/features/home/presentation/pages/home_page.dart';
-import 'package:movi/src/features/search/presentation/pages/search_page.dart';
-import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
-import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
-import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
 import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
 import 'package:movi/src/features/person/presentation/pages/person_detail_page.dart';
-import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
-import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 import 'package:movi/src/features/saga/presentation/pages/saga_detail_page.dart';
+import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
+import 'package:movi/src/features/search/presentation/pages/search_page.dart';
+import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
 import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
-
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/storage/storage.dart';
-import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
+import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
 
 class AppRouteNames {
   static const launch = '/launch';
@@ -42,120 +44,159 @@ class AppRouteNames {
   static const tv = '/tv';
 }
 
-final appRouter = GoRouter(
-  initialLocation: AppRouteNames.launch,
-  routes: [
-    // --- LAUNCH GATE ---
-    GoRoute(
-      path: AppRouteNames.launch,
-      name: 'launch',
-      pageBuilder: (context, state) => const MaterialPage(child: _LaunchGate()),
-    ),
+GoRouter createRouter({
+  required AppStateController appStateController,
+  required AppLogger logger,
+  required IptvLocalRepository iptvRepository,
+}) =>
+    _RouterBundle(
+      appStateController: appStateController,
+      logger: logger,
+      iptvRepository: iptvRepository,
+    ).router;
 
-    // --- WELCOME ---
-    GoRoute(
-      path: AppRouteNames.welcome,
-      name: 'welcome',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: WelcomeUserPage()),
-    ),
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final appStateController = ref.watch(appStateControllerProvider.notifier);
+  final logger = sl<AppLogger>();
+  final iptvRepository = sl<IptvLocalRepository>();
 
-    // --- BOOTSTRAP (splash) ---
-    GoRoute(
-      path: AppRouteNames.bootstrap,
-      name: 'bootstrap',
-      pageBuilder: (context, state) => const CustomTransitionPage(
-        child: SplashBootstrapPage(),
-        transitionsBuilder: _fadeTransition,
+  final bundle = _RouterBundle(
+    appStateController: appStateController,
+    logger: logger,
+    iptvRepository: iptvRepository,
+  );
+
+  ref.onDispose(() {
+    bundle.router.dispose();
+    bundle.launchGuard.dispose();
+  });
+
+  return bundle.router;
+});
+
+class _RouterBundle {
+  _RouterBundle({
+    required AppStateController appStateController,
+    required AppLogger logger,
+    required IptvLocalRepository iptvRepository,
+  }) : launchGuard = _LaunchRedirectGuard(
+          logger: logger,
+          repository: iptvRepository,
+          appStateController: appStateController,
+        ) {
+    router = GoRouter(
+      initialLocation: AppRouteNames.launch,
+      refreshListenable: launchGuard,
+      redirect: launchGuard.handle,
+      routes: [
+        GoRoute(
+          path: AppRouteNames.launch,
+          name: 'launch',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: _LaunchGate()),
+        ),
+        GoRoute(
+          path: AppRouteNames.welcome,
+          name: 'welcome',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: WelcomeUserPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.bootstrap,
+          name: 'bootstrap',
+          pageBuilder: (context, state) => const CustomTransitionPage(
+            child: SplashBootstrapPage(),
+            transitionsBuilder: _fadeTransition,
+          ),
+        ),
+        GoRoute(
+          path: AppRouteNames.home,
+          name: 'home',
+          pageBuilder: (context, state) => const CustomTransitionPage(
+            child: HomePage(),
+            transitionsBuilder: _fadeTransition,
+          ),
+        ),
+        GoRoute(
+          path: AppRouteNames.search,
+          name: 'search',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SearchPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.searchResults,
+          name: 'search_results',
+          pageBuilder: (context, state) {
+            final args = state.extra is SearchResultsPageArgs
+                ? state.extra as SearchResultsPageArgs
+                : null;
+            return MaterialPage(child: SearchResultsPage(args: args));
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.library,
+          name: 'library',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: LibraryPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.settings,
+          name: 'settings',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SettingsPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.movie,
+          name: 'movie_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: MovieDetailPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.person,
+          name: 'person_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: PersonDetailPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.category,
+          name: 'category_page',
+          pageBuilder: (context, state) {
+            final args = state.extra is CategoryPageArgs
+                ? state.extra as CategoryPageArgs
+                : null;
+            return MaterialPage(child: CategoryPage(args: args));
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.saga,
+          name: 'saga_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SagaDetailPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.tv,
+          name: 'tv_detail',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: TvDetailPage()),
+        ),
+        GoRoute(
+          path: '/settings/iptv/connect',
+          name: 'iptv_connect',
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: IptvConnectPage()),
+        ),
+      ],
+      errorPageBuilder: (context, state) => MaterialPage(
+        child: Scaffold(
+          body: Center(child: Text('Route introuvable: ${state.error}')),
+        ),
       ),
-    ),
+    );
+  }
 
-    // --- HOME / TABS ---
-    GoRoute(
-      path: AppRouteNames.home,
-      name: 'home',
-      pageBuilder: (context, state) => const CustomTransitionPage(
-        child: HomePage(),
-        transitionsBuilder: _fadeTransition,
-      ),
-    ),
-    GoRoute(
-      path: AppRouteNames.search,
-      name: 'search',
-      pageBuilder: (context, state) => const MaterialPage(child: SearchPage()),
-    ),
-    GoRoute(
-      path: AppRouteNames.searchResults,
-      name: 'search_results',
-      pageBuilder: (context, state) {
-        final args = state.extra is SearchResultsPageArgs
-            ? state.extra as SearchResultsPageArgs
-            : null;
-        return MaterialPage(child: SearchResultsPage(args: args));
-      },
-    ),
-    GoRoute(
-      path: AppRouteNames.library,
-      name: 'library',
-      pageBuilder: (context, state) => const MaterialPage(child: LibraryPage()),
-    ),
-    GoRoute(
-      path: AppRouteNames.settings,
-      name: 'settings',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: SettingsPage()),
-    ),
-
-    // --- DETAILS ---
-    GoRoute(
-      path: AppRouteNames.movie,
-      name: 'movie_detail',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: MovieDetailPage()),
-    ),
-    GoRoute(
-      path: AppRouteNames.person,
-      name: 'person_detail',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: PersonDetailPage()),
-    ),
-    GoRoute(
-      path: AppRouteNames.category,
-      name: 'category_page',
-      pageBuilder: (context, state) {
-        final args = state.extra is CategoryPageArgs
-            ? state.extra as CategoryPageArgs
-            : null;
-        return MaterialPage(child: CategoryPage(args: args));
-      },
-    ),
-    GoRoute(
-      path: AppRouteNames.saga,
-      name: 'saga_detail',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: SagaDetailPage()),
-    ),
-    GoRoute(
-      path: AppRouteNames.tv,
-      name: 'tv_detail',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: TvDetailPage()),
-    ),
-
-    // --- SETTINGS: IPTV CONNECT (toujours accessible depuis Settings)
-    GoRoute(
-      path: '/settings/iptv/connect',
-      name: 'iptv_connect',
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: IptvConnectPage()),
-    ),
-  ],
-  errorPageBuilder: (context, state) => MaterialPage(
-    child: Scaffold(
-      body: Center(child: Text('Route introuvable: ${state.error}')),
-    ),
-  ),
-);
+  late final GoRouter router;
+  final _LaunchRedirectGuard launchGuard;
+}
 
 Widget _fadeTransition(
   BuildContext context,
@@ -166,45 +207,102 @@ Widget _fadeTransition(
   return FadeTransition(opacity: animation, child: child);
 }
 
-/// Page de garde qui choisit Welcome vs Home au démarrage.
-class _LaunchGate extends StatefulWidget {
+class _LaunchGate extends StatelessWidget {
   const _LaunchGate();
 
   @override
-  State<_LaunchGate> createState() => _LaunchGateState();
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
 }
 
-class _LaunchGateState extends State<_LaunchGate> {
-  @override
-  void initState() {
-    super.initState();
-    _decide();
+class _LaunchRedirectGuard extends ChangeNotifier {
+  _LaunchRedirectGuard({
+    required this.logger,
+    required this.repository,
+    required AppStateController appStateController,
+  }) : _appStateController = appStateController {
+    // addListener renvoie une fonction pour se désabonner, qu'on stocke
+    _removeAppStateListener =
+        _appStateController.addListener(_handleAppStateChange);
   }
 
-  Future<void> _decide() async {
-    // On lit le local repo pour vérifier s'il existe AU MOINS un compte IPTV
-    final repo = sl<IptvLocalRepository>();
-    final accounts = await repo.getAccounts();
+  final AppLogger logger;
+  final IptvLocalRepository repository;
+  final AppStateController _appStateController;
 
-    if (!mounted) return;
-    if (accounts.isEmpty) {
-      // Pas de compte → Welcome
-      unawaited(LoggingService.log('LaunchGate: no accounts, go welcome'));
-      GoRouter.of(context).go(AppRouteNames.welcome);
-    } else {
-      // Il y a un compte → Bootstrap (prépare avant Home)
-      unawaited(
-        LoggingService.log(
-          'LaunchGate: accounts found=${accounts.length}, go bootstrap',
-        ),
-      );
-      GoRouter.of(context).go(AppRouteNames.bootstrap);
+  bool? _hasAccounts;
+  bool _isResolving = false;
+
+  /// Fonction retournée par `addListener` pour annuler l'écoute.
+  late final void Function() _removeAppStateListener;
+
+  FutureOr<String?> handle(BuildContext context, GoRouterState state) {
+    final cached = _hasAccounts;
+
+    if (cached == null) {
+      _resolve();
+
+      // subloc a été renommé en matchedLocation dans go_router >= 8.1.0
+      // https://pub.dev/packages/go_router/changelog
+      final currentLocation = state.matchedLocation;
+      return currentLocation == AppRouteNames.launch
+          ? null
+          : AppRouteNames.launch;
+    }
+
+    final currentLocation = state.matchedLocation;
+
+    if (!cached && currentLocation != AppRouteNames.welcome) {
+      return AppRouteNames.welcome;
+    }
+
+    if (cached &&
+        (currentLocation == AppRouteNames.launch ||
+            currentLocation == AppRouteNames.welcome)) {
+      return AppRouteNames.bootstrap;
+    }
+
+    return null;
+  }
+
+  void _handleAppStateChange(AppState state) {
+    if (state.activeIptvSources.isNotEmpty) {
+      if (_hasAccounts != true) {
+        _hasAccounts = true;
+        notifyListeners();
+      }
+    } else if (_hasAccounts == true) {
+      // on force une nouvelle résolution si les sources IPTV actives disparaissent
+      _hasAccounts = null;
+      notifyListeners();
     }
   }
 
+  void _resolve() {
+    if (_isResolving) return;
+    _isResolving = true;
+
+    repository
+        .getAccounts()
+        .then((accounts) => accounts.isNotEmpty)
+        .then((value) {
+      _hasAccounts = value;
+    }).catchError((error, stackTrace) {
+      logger.error('Launch redirect failed', error, stackTrace);
+      _hasAccounts = false;
+    }).whenComplete(() {
+      _isResolving = false;
+      notifyListeners();
+    });
+  }
+
   @override
-  Widget build(BuildContext context) {
-    // Splash minimal pendant la décision
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+  void dispose() {
+    // On se désabonne du StateNotifier proprement
+    _removeAppStateListener();
+    super.dispose();
   }
 }

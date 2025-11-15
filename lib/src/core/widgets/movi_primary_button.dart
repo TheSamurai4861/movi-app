@@ -1,82 +1,47 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 /// Primary action button aligned with the app theme.
 /// - Fills the maximum horizontal space allowed by its parent.
 /// - Uses FilledButton to inherit `filledButtonTheme` from AppTheme.
-/// - Supports optional navigation (via GoRouter) and an optional asset icon.
+/// - Pure widget: navigation logic must be provided via [onPressed].
 class MoviPrimaryButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onPressed;
-
-  // Optional navigation support (used if onPressed is null)
-  final String? routeName;
-  final Map<String, String> pathParams;
-  final Map<String, dynamic> queryParams;
-  final Object? extra;
-  final bool replace; // true => goNamed, false => pushNamed
-
-  // Visuals
-  final bool loading;
-  final String? assetIcon; // e.g. AppAssets.iconSearch
-  final Widget?
-  leading; // alternative to assetIcon (e.g., Icon(Icons.play_arrow))
-  final double iconSize;
-  final double height;
-  final EdgeInsetsGeometry padding;
-
   const MoviPrimaryButton({
     super.key,
     required this.label,
     this.onPressed,
-    this.routeName,
-    this.pathParams = const {},
-    this.queryParams = const {},
-    this.extra,
-    this.replace = false,
     this.loading = false,
     this.assetIcon,
     this.leading,
     this.iconSize = 20,
     this.height = 48,
     this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    this.buttonStyle,
+    this.expand = true,
   });
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  final bool loading;
+  final String? assetIcon;
+  final Widget? leading;
+  final double iconSize;
+  final double height;
+  final EdgeInsetsGeometry padding;
+  final ButtonStyle? buttonStyle;
+  final bool expand;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    VoidCallback? effectiveOnPressed;
-    if (!loading) {
-      if (onPressed != null) {
-        effectiveOnPressed = onPressed;
-      } else if (routeName != null) {
-        effectiveOnPressed = () {
-          if (replace) {
-            context.goNamed(
-              routeName!,
-              pathParameters: pathParams,
-              queryParameters: queryParams,
-              extra: extra,
-            );
-          } else {
-            context.pushNamed(
-              routeName!,
-              pathParameters: pathParams,
-              queryParameters: queryParams,
-              extra: extra,
-            );
-          }
-        };
-      }
-    }
+    final effectiveOnPressed = loading ? null : onPressed;
 
     Widget buildIcon() => Image.asset(
       assetIcon!,
       width: iconSize,
       height: iconSize,
-      // Tint to keep contrast on primary background (expects monochrome icon)
       color: scheme.onPrimary,
       fit: BoxFit.contain,
     );
@@ -138,19 +103,22 @@ class MoviPrimaryButton extends StatelessWidget {
     }
 
     final button = FilledButton(
+      style: buttonStyle,
       onPressed: effectiveOnPressed,
       child: Padding(padding: padding, child: content),
     );
 
-    // Take the maximum width allowed by parent constraints.
-    return Semantics(
+    final child = Semantics(
       button: true,
       enabled: effectiveOnPressed != null,
       label: label,
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: height),
-        child: SizedBox(width: double.infinity, child: button),
+        child: expand
+            ? SizedBox(width: double.infinity, child: button)
+            : button,
       ),
     );
+    return child;
   }
 }

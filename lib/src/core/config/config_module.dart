@@ -11,6 +11,7 @@ class AppConfigFactory {
     required EnvironmentFlavor flavor,
     FeatureFlags? featureOverrides,
     AppMetadata? metadataOverride,
+    bool requireTmdbKey = true,
   }) async {
     // Préférence au tmdbApiKey fourni par le flavor (compile-time via dart-define).
     String? tmdbKey = flavor.network.tmdbApiKey;
@@ -24,15 +25,14 @@ class AppConfigFactory {
     final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
     final flags = featureOverrides ?? flavor.defaultFlags;
     final metadata = metadataOverride ?? flavor.metadata;
-
-    final LoggingConfig logging = _defaultLoggingFor(flavor);
-
+    final LoggingConfig logging = _defaultLoggingFor(flavor)..validate();
     final config = AppConfig(
       environment: flavor,
       network: network,
       featureFlags: flags,
       metadata: metadata,
       logging: logging,
+      requireTmdbKey: requireTmdbKey,
     );
 
     config.ensureValid();
@@ -40,23 +40,47 @@ class AppConfigFactory {
   }
 }
 
+Future<AppConfig> loadAppConfig({
+  required EnvironmentFlavor flavor,
+  SecretStore? secretStore,
+  FeatureFlags? featureOverrides,
+  AppMetadata? metadataOverride,
+  bool requireTmdbKey = true,
+}) async {
+  final store = secretStore ?? SecretStore();
+  final factory = AppConfigFactory(store);
+  return factory.build(
+    flavor: flavor,
+    featureOverrides: featureOverrides,
+    metadataOverride: metadataOverride,
+    requireTmdbKey: requireTmdbKey,
+  );
+}
+
 Future<AppConfig> registerConfig({
   required EnvironmentFlavor flavor,
   SecretStore? secretStore,
   FeatureFlags? featureOverrides,
   AppMetadata? metadataOverride,
+  bool requireTmdbKey = true,
+  bool registerWithLocator = true,
 }) async {
   final store = secretStore ?? SecretStore();
-  _replace<SecretStore>(store);
-  final factory = AppConfigFactory(store);
-  final config = await factory.build(
+  if (registerWithLocator) {
+    _replace<SecretStore>(store);
+  }
+  final config = await loadAppConfig(
     flavor: flavor,
+    secretStore: store,
     featureOverrides: featureOverrides,
     metadataOverride: metadataOverride,
+    requireTmdbKey: requireTmdbKey,
   );
-  _replace<EnvironmentFlavor>(flavor);
-  _replace<AppConfig>(config);
-  _replace<FeatureFlags>(config.featureFlags);
+  if (registerWithLocator) {
+    _replace<EnvironmentFlavor>(flavor);
+    _replace<AppConfig>(config);
+    _replace<FeatureFlags>(config.featureFlags);
+  }
   return config;
 }
 

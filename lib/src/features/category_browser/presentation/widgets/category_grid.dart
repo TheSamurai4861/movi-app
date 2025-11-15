@@ -36,15 +36,12 @@ class CategoryGrid extends StatelessWidget {
           itemCount: items.length,
           itemBuilder: (context, index) {
             final r = items[index];
-            final poster = r.poster?.toString() ?? '';
-            const String yearStr = '';
-            const String ratingStr = '';
             final media = MoviMedia(
               id: r.id,
               title: r.title.value,
-              poster: poster,
-              year: yearStr,
-              rating: ratingStr,
+              poster: r.poster,
+              year: r.year,
+              rating: r.rating,
               type: r.type == ContentType.series
                   ? MoviMediaType.series
                   : MoviMediaType.movie,

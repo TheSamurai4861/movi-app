@@ -5,11 +5,14 @@ import 'dart:math';
 
 import 'package:dio/dio.dart';
 
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/dio_failure_mapper.dart';
 import 'package:movi/src/core/network/network_failures.dart';
-import 'package:movi/src/core/logging/logger.dart';
 
-typedef NetworkCall<T> = Future<Response<T>> Function(Dio client);
+typedef NetworkCall<T> = Future<Response<T>> Function(
+  Dio client,
+  CancelToken? cancelToken,
+);
 typedef RetryEvaluator = bool Function(DioException error, int attempt);
 typedef AttemptHook = void Function(int attempt, DioException? error);
 
@@ -26,11 +29,13 @@ class NetworkExecutor {
     this.defaultMaxConcurrent = 6,
     this.memoryCacheMaxEntries = 256,
     this.memoryCacheDefaultTtl = const Duration(seconds: 45),
-  }) : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0') {
-    _memoryCache ??= _LruCache<String, Response<dynamic>>(
-      capacity: memoryCacheMaxEntries,
-    );
-  }
+  })  : assert(defaultMaxConcurrent > 0, 'defaultMaxConcurrent must be > 0'),
+        assert(memoryCacheMaxEntries > 0, 'memoryCacheMaxEntries must be > 0'),
+        _limiters = <String, _Limiter>{},
+        _inflight = <String, Future<Response<dynamic>>>{},
+        _memoryCache = _LruCache<String, _CachedPayload>(
+          capacity: memoryCacheMaxEntries,
+        );
 
   final Dio _client;
   final AppLogger? logger;
@@ -46,17 +51,16 @@ class NetworkExecutor {
   final Duration memoryCacheDefaultTtl;
 
   /// Limiteurs partagés par clé (ex.: "tmdb") pour lisser l’ensemble des appels.
-  static final Map<String, _Limiter> _limiters = <String, _Limiter>{};
+  final Map<String, _Limiter> _limiters;
 
   /// Déduplication "in-flight": clé → Future en cours.
-  static final Map<String, Future<Response<dynamic>>> _inflight =
-      <String, Future<Response<dynamic>>>{};
+  final Map<String, Future<Response<dynamic>>> _inflight;
 
   /// Mini cache mémoire partagé (LRU + TTL).
-  static _LruCache<String, Response<dynamic>>? _memoryCache;
+  final _LruCache<String, _CachedPayload> _memoryCache;
 
   /// Configure/ajuste dynamiquement la concurrence max pour une [key].
-  static void configureConcurrency(String key, int maxConcurrent) {
+  void configureConcurrency(String key, int maxConcurrent) {
     assert(maxConcurrent > 0, 'maxConcurrent must be > 0');
     final existing = _limiters[key];
     if (existing == null) {
@@ -67,13 +71,13 @@ class NetworkExecutor {
   }
 
   /// Récupère quelques stats (utile en debug/telemetry).
-  static LimiterStats? getLimiterStats(String key) => _limiters[key]?.stats;
+  LimiterStats? getLimiterStats(String key) => _limiters[key]?.stats;
 
   /// Efface tous les limiteurs/in-flight/cache (utile en tests).
-  static void resetLimiters() {
+  void resetLimiters() {
     _limiters.clear();
     _inflight.clear();
-    _memoryCache?.clear();
+    _memoryCache.clear();
   }
 
   /// Exécute [request] puis mappe la réponse via [mapper].
@@ -118,11 +122,10 @@ class NetworkExecutor {
 
     // 1) Cache mémoire (hit possible avant tout réseau).
     if (dedupKey != null) {
-      final cached = _memoryCache?.getIfFresh(dedupKey, now: DateTime.now());
+      final cached = _memoryCache.getIfFresh(dedupKey, now: DateTime.now());
       if (cached != null) {
         try {
-          final mapped = mapper(cached as Response<T>);
-          return mapped;
+          return mapper(cached.asResponse<T>());
         } catch (_) {
           // En cas d’incompatibilité de type, on ignore le cache.
         }
@@ -145,6 +148,7 @@ class NetworkExecutor {
     }
 
     for (int attempt = 0; ; attempt++) {
+      var registeredInflight = false;
       // Circuit-breaker/cooldown sur la clé de concurrence (ex.: 429).
       if (limiter != null) {
         await limiter.acquire();
@@ -158,12 +162,16 @@ class NetworkExecutor {
         // Crée (ou réutilise) la Future à partager pour la dédup "in-flight".
         Future<Response<T>> future;
         if (dedupKey != null) {
-          future =
-              (_inflight[dedupKey] ??=
-                      request(_client) as Future<Response<dynamic>>)
-                  as Future<Response<T>>;
+          final existing = _inflight[dedupKey];
+          if (existing != null) {
+            future = existing as Future<Response<T>>;
+          } else {
+            future = request(_client, cancelToken);
+            _inflight[dedupKey] = future as Future<Response<dynamic>>;
+            registeredInflight = true;
+          }
         } else {
-          future = request(_client);
+          future = request(_client, cancelToken);
         }
 
         // Gère un timeout de secours si non configuré côté Dio.
@@ -196,22 +204,23 @@ class NetworkExecutor {
         // 3) Écrit dans le cache mémoire (LRU + TTL).
         if (dedupKey != null) {
           final ttl = cacheTtl ?? memoryCacheDefaultTtl;
-          _memoryCache?.put(
+          _memoryCache.put(
             dedupKey,
-            response as Response<dynamic>,
+            _CachedPayload.fromResponse(response),
             ttl: ttl,
             now: DateTime.now(),
           );
         }
 
-        // 4) Retire la requête de l’in-flight (si présente).
-        if (dedupKey != null) {
-          _inflight.remove(dedupKey);
+        try {
+          final out = mapper(response);
+          onAttemptEnd?.call(attempt, null);
+          return out;
+        } finally {
+          if (dedupKey != null && registeredInflight) {
+            _inflight.remove(dedupKey);
+          }
         }
-
-        onAttemptEnd?.call(attempt, null);
-        final out = mapper(response);
-        return out;
       } on DioException catch (e, st) {
         sw.stop();
         dioErr = e;
@@ -243,27 +252,29 @@ class NetworkExecutor {
 
         onAttemptEnd?.call(attempt, e);
 
-        // Nettoie l’in-flight si c’était la requête partagée qui a échoué.
-        if (dedupKey != null) {
+        if (dedupKey != null && registeredInflight) {
           _inflight.remove(dedupKey);
         }
-
         throw mapDioToFailure(e);
       } catch (e, st) {
         sw.stop();
         logger?.error('Unexpected network error', e, st);
         onAttemptEnd?.call(attempt, dioErr);
 
-        // Nettoie l’in-flight si c’était la requête partagée qui a échoué.
-        if (dedupKey != null) {
+        if (dedupKey != null && registeredInflight) {
           _inflight.remove(dedupKey);
         }
-
         throw UnknownFailure(e.toString());
       } finally {
         limiter?.release();
       }
     }
+  }
+
+  void dispose() {
+    _limiters.clear();
+    _inflight.clear();
+    _memoryCache.clear();
   }
 
   Duration _timeoutFromDio() {
@@ -507,4 +518,58 @@ class _Entry<V> {
   _Entry(this.value, this.expiresAt);
   final V value;
   final DateTime expiresAt;
+}
+
+class _CachedPayload {
+  _CachedPayload({
+    required this.data,
+    required this.statusCode,
+    required this.headers,
+    required this.extra,
+    required this.method,
+    required this.path,
+    required this.baseUrl,
+  });
+
+  final dynamic data;
+  final int? statusCode;
+  final Map<String, List<String>> headers;
+  final Map<String, dynamic> extra;
+  final String method;
+  final String path;
+  final String baseUrl;
+
+  factory _CachedPayload.fromResponse(Response response) {
+    return _CachedPayload(
+      data: response.data,
+      statusCode: response.statusCode,
+      headers: _cloneHeaders(response.headers),
+      extra: Map<String, dynamic>.from(response.extra),
+      method: response.requestOptions.method,
+      path: response.requestOptions.path,
+      baseUrl: response.requestOptions.baseUrl,
+    );
+  }
+
+  Response<T> asResponse<T>() {
+    return Response<T>(
+      data: data as T,
+      statusCode: statusCode,
+      headers: Headers.fromMap(headers),
+      requestOptions: RequestOptions(
+        path: path,
+        method: method,
+        baseUrl: baseUrl,
+      ),
+      extra: Map<String, dynamic>.from(extra),
+    );
+  }
+
+  static Map<String, List<String>> _cloneHeaders(Headers headers) {
+    final map = <String, List<String>>{};
+    for (final entry in headers.map.entries) {
+      map[entry.key] = List<String>.from(entry.value);
+    }
+    return map;
+  }
 }

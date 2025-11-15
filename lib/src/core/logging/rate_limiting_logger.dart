@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:movi/src/core/logging/logger.dart';
 
-class RateLimitingLogger extends AppLogger {
+class RateLimitingLogger extends AppLogger implements LoggerLifecycle {
   RateLimitingLogger(
     this._inner, {
     this.defaultPerMinute = 0,
@@ -69,6 +69,17 @@ class RateLimitingLogger extends AppLogger {
   }) {
     if (!_allow(category)) return;
     _inner.log(level, message, category: category, error: error, stackTrace: stackTrace);
+  }
+
+  @override
+  Future<void> dispose() async {
+    _timer?.cancel();
+    if (exposeMetrics && _dropped.isNotEmpty) {
+      _emitMetrics();
+    }
+    if (_inner is LoggerLifecycle) {
+      await (_inner as LoggerLifecycle).dispose();
+    }
   }
 }
 

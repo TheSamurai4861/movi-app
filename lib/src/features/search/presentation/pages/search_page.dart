@@ -143,9 +143,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   media: MoviMedia(
                                     id: m.id.value,
                                     title: m.title.display,
-                                    poster: m.poster.toString(),
-                                    year: (m.releaseYear?.toString() ?? '—'),
-                                    rating: '—',
+                                    poster: m.poster,
+                                    year: m.releaseYear,
                                     type: MoviMediaType.movie,
                                   ),
                                 ),
@@ -172,9 +171,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   media: MoviMedia(
                                     id: s.id.value,
                                     title: s.title.display,
-                                    poster: s.poster.toString(),
-                                    year: '—',
-                                    rating: '—',
+                                    poster: s.poster,
                                     type: MoviMediaType.series,
                                   ),
                                 ),

@@ -1,9 +1,15 @@
 import 'package:sqflite/sqflite.dart';
 
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/security/credentials_vault.dart';
+import 'package:movi/src/core/security/secure_credentials_vault.dart';
 import 'package:movi/src/core/storage/database/sqlite_database.dart';
 import 'package:movi/src/core/storage/storage.dart';
 
+/// Registers all storage-layer dependencies.
+///
+/// In tests, prefer overriding repositories with in-memory fakes before calling
+/// [register] to avoid touching the on-disk SQLite database.
 class StorageModule {
   static Future<void> register() async {
     if (!sl.isRegistered<Database>()) {
@@ -35,6 +41,28 @@ class StorageModule {
       sl.registerLazySingleton<HistoryLocalRepository>(
         () => const HistoryLocalRepositoryImpl(),
       );
+    }
+    if (!sl.isRegistered<PlaylistLocalRepository>()) {
+      sl.registerLazySingleton<PlaylistLocalRepository>(
+        () => PlaylistLocalRepository(),
+      );
+    }
+    if (!sl.isRegistered<SecureStorageRepository>()) {
+      sl.registerLazySingleton<SecureStorageRepository>(
+        () => SecureStorageRepository(),
+      );
+    }
+    if (!sl.isRegistered<CredentialsVault>()) {
+      sl.registerLazySingleton<CredentialsVault>(
+        () => SecureCredentialsVault(),
+      );
+    }
+  }
+
+  static Future<void> dispose() async {
+    await LocalDatabase.dispose();
+    if (sl.isRegistered<Database>()) {
+      sl.unregister<Database>();
     }
   }
 }

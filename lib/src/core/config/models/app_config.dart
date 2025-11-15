@@ -16,6 +16,7 @@ class AppConfig {
     required this.featureFlags,
     required this.metadata,
     required this.logging,
+    this.requireTmdbKey = true,
   }) : assert(
          (network.restBaseUrl.isNotEmpty),
          'restBaseUrl must not be empty.',
@@ -24,10 +25,10 @@ class AppConfig {
          (network.imageBaseUrl.isNotEmpty),
          'imageBaseUrl must not be empty.',
        ),
-       // Fail fast in debug/profile if the TMDB key is missing.
+       // Fail fast in debug/profile if the TMDB key is missing unless opt-out.
        // Network clients must still validate at runtime and surface clear errors.
        assert(
-         (network.tmdbApiKey?.isNotEmpty ?? false),
+         !requireTmdbKey || (network.tmdbApiKey?.isNotEmpty ?? false),
          'tmdbApiKey must not be empty. Provide it via your flavor/environment.',
        );
 
@@ -46,6 +47,9 @@ class AppConfig {
   /// Logging configuration for the current environment.
   final LoggingConfig logging;
 
+  /// Whether [ensureValid] must enforce the presence of a TMDB key.
+  final bool requireTmdbKey;
+
   /// Lightweight validity check intended for runtime guards in release builds.
   /// Throws [StateError] with an explicit message when a critical value is invalid.
   void ensureValid() {
@@ -55,7 +59,7 @@ class AppConfig {
     if ((network.imageBaseUrl).isEmpty) {
       throw StateError('AppConfig.network.imageBaseUrl is empty.');
     }
-    if ((network.tmdbApiKey ?? '').isEmpty) {
+    if (requireTmdbKey && (network.tmdbApiKey ?? '').isEmpty) {
       throw StateError(
         'AppConfig.network.tmdbApiKey is empty. '
         'Ensure your flavor/environment provides a valid TMDB key.',
@@ -70,6 +74,7 @@ class AppConfig {
     FeatureFlags? featureFlags,
     AppMetadata? metadata,
     LoggingConfig? logging,
+    bool? requireTmdbKey,
   }) {
     return AppConfig(
       environment: environment ?? this.environment,
@@ -77,6 +82,7 @@ class AppConfig {
       featureFlags: featureFlags ?? this.featureFlags,
       metadata: metadata ?? this.metadata,
       logging: logging ?? this.logging,
+      requireTmdbKey: requireTmdbKey ?? this.requireTmdbKey,
     );
   }
 
@@ -121,54 +127,59 @@ class AppConfig {
         logging.dropOldest == other.logging.dropOldest &&
         _mapEquals(logging.samplingByLevel, other.logging.samplingByLevel) &&
         _stringIntMapEquals(
-            logging.rateLimitPerCategory, other.logging.rateLimitPerCategory) &&
+          logging.rateLimitPerCategory,
+          other.logging.rateLimitPerCategory,
+        ) &&
         _stringDoubleMapEquals(
-            logging.samplingByCategory, other.logging.samplingByCategory) &&
+          logging.samplingByCategory,
+          other.logging.samplingByCategory,
+        ) &&
         logging.defaultRateLimitPerMinute ==
             other.logging.defaultRateLimitPerMinute &&
         logging.exposeMetrics == other.logging.exposeMetrics &&
-        logging.metricsInterval == other.logging.metricsInterval;
-        
+        logging.metricsInterval == other.logging.metricsInterval &&
+        requireTmdbKey == other.requireTmdbKey;
   }
 
   @override
   int get hashCode => Object.hashAll([
-        environment.environment,
-        environment.label,
-        network.restBaseUrl,
-        network.imageBaseUrl,
-        network.tmdbApiKey ?? '',
-        network.resolvedTmdbBaseHost,
-        network.resolvedTmdbApiVersion,
-        network.timeouts.connect,
-        network.timeouts.receive,
-        network.timeouts.send,
-        featureFlags.useRemoteHome,
-        featureFlags.enableTelemetry,
-        featureFlags.enableDownloads,
-        featureFlags.enableNewSearch,
-        metadata.version,
-        metadata.buildNumber,
-        metadata.supportEmail,
-        logging.minLevel,
-        logging.enableConsole,
-        logging.enableFile,
-        logging.flushInterval,
-        logging.maxFileSizeBytes,
-        logging.maxFiles,
-        logging.rotateDaily,
-        logging.maxDailyFiles,
-        logging.compressOld,
-        logging.bufferCapacity,
-        logging.dropOldest,
-        logging.defaultRateLimitPerMinute,
-        logging.exposeMetrics,
-        logging.metricsInterval,
-        logging.samplingByLevel,
-        logging.samplingByCategory,
-        logging.rateLimitPerCategory,
-        logging.minLevelByCategory,
-      ]);
+    environment.environment,
+    environment.label,
+    network.restBaseUrl,
+    network.imageBaseUrl,
+    network.tmdbApiKey ?? '',
+    network.resolvedTmdbBaseHost,
+    network.resolvedTmdbApiVersion,
+    network.timeouts.connect,
+    network.timeouts.receive,
+    network.timeouts.send,
+    featureFlags.useRemoteHome,
+    featureFlags.enableTelemetry,
+    featureFlags.enableDownloads,
+    featureFlags.enableNewSearch,
+    metadata.version,
+    metadata.buildNumber,
+    metadata.supportEmail,
+    logging.minLevel,
+    logging.enableConsole,
+    logging.enableFile,
+    logging.flushInterval,
+    logging.maxFileSizeBytes,
+    logging.maxFiles,
+    logging.rotateDaily,
+    logging.maxDailyFiles,
+    logging.compressOld,
+    logging.bufferCapacity,
+    logging.dropOldest,
+    logging.defaultRateLimitPerMinute,
+    logging.exposeMetrics,
+    logging.metricsInterval,
+    _mapHash(logging.samplingByLevel),
+    _mapHash(logging.samplingByCategory),
+    _mapHash(logging.rateLimitPerCategory),
+    _mapHash(logging.minLevelByCategory),
+    requireTmdbKey,
+  ]);
 
   @override
   String toString() {
@@ -193,4 +204,8 @@ class AppConfig {
       _mapEquals<String, int>(a, b);
   bool _stringDoubleMapEquals(Map<String, double> a, Map<String, double> b) =>
       _mapEquals<String, double>(a, b);
+
+  int _mapHash<K, V>(Map<K, V> map) => Object.hashAll(
+    map.entries.map((entry) => Object.hash(entry.key, entry.value)),
+  );
 }

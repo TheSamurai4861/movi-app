@@ -6,19 +6,19 @@ class AppState extends Equatable {
     this.themeMode = ThemeMode.system,
     this.isOnline = true,
     this.preferredLocale = 'en-US',
-    this.activeIptvSources = const [],
+    this.activeIptvSources = const <String>{},
   });
 
   final ThemeMode themeMode;
   final bool isOnline;
   final String preferredLocale;
-  final List<String> activeIptvSources;
+  final Set<String> activeIptvSources;
 
   AppState copyWith({
     ThemeMode? themeMode,
     bool? isOnline,
     String? preferredLocale,
-    List<String>? activeIptvSources,
+    Set<String>? activeIptvSources,
   }) {
     return AppState(
       themeMode: themeMode ?? this.themeMode,

@@ -29,6 +29,24 @@ class FeatureFlags {
   TelemetryFlags get telemetry => TelemetryFlags(enableTelemetry);
   DownloadFlags get downloads => DownloadFlags(enableDownloads);
   SearchFlags get search => SearchFlags(enableNewSearch);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! FeatureFlags) return false;
+    return useRemoteHome == other.useRemoteHome &&
+        enableTelemetry == other.enableTelemetry &&
+        enableDownloads == other.enableDownloads &&
+        enableNewSearch == other.enableNewSearch;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    useRemoteHome,
+    enableTelemetry,
+    enableDownloads,
+    enableNewSearch,
+  );
 }
 
 class HomeFlags {

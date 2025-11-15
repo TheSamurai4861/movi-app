@@ -6,6 +6,8 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:movi/src/core/utils/app_assets.dart';
+
 class OverlaySplash extends StatelessWidget {
   const OverlaySplash({super.key, this.message, this.fadeInDuration});
 
@@ -30,10 +32,13 @@ class OverlaySplash extends StatelessWidget {
         child: Stack(
           children: [
             Center(
-              child: Image.asset(
-                'assets/icons/app_logo.png',
-                height: 120,
-                fit: BoxFit.contain,
+              child: Semantics(
+                label: 'MOVI splash logo',
+                child: Image.asset(
+                  AppAssets.iconAppLogo,
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             Positioned(
@@ -51,10 +56,13 @@ class OverlaySplash extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                   ],
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  Semantics(
+                    label: 'Chargement en cours',
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
                   ),
                 ],
               ),

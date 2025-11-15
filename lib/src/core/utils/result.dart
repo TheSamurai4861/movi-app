@@ -7,6 +7,27 @@ sealed class Result<T, F extends Failure> {
 
   bool isOk() => this is Ok<T, F>;
   bool isErr() => this is Err<T, F>;
+
+  Result<R, F> map<R>(R Function(T value) mapper) {
+    return fold(
+      ok: (value) => Ok<R, F>(mapper(value)),
+      err: (failure) => Err<R, F>(failure),
+    );
+  }
+
+  Result<T, F2> mapError<F2 extends Failure>(F2 Function(F failure) mapper) {
+    return fold(
+      ok: (value) => Ok<T, F2>(value),
+      err: (failure) => Err<T, F2>(mapper(failure)),
+    );
+  }
+
+  Result<R, F> flatMap<R>(Result<R, F> Function(T value) mapper) {
+    return fold(
+      ok: mapper,
+      err: (failure) => Err<R, F>(failure),
+    );
+  }
 }
 
 class Ok<T, F extends Failure> extends Result<T, F> {

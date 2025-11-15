@@ -22,22 +22,10 @@ class ContentCacheRepository {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<Map<String, dynamic>?> get(String key) async {
-    final db = await _db;
-    final rows = await db.query(
-      'content_cache',
-      where: 'cache_key = ?',
-      whereArgs: [key],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    return jsonDecode(rows.first['payload'] as String) as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>?> getWithPolicy(
-    String key,
-    CachePolicy policy,
-  ) async {
+  Future<Map<String, dynamic>?> get(
+    String key, {
+    CachePolicy? policy,
+  }) async {
     final db = await _db;
     final rows = await db.query(
       'content_cache',
@@ -49,7 +37,7 @@ class ContentCacheRepository {
     final updatedAt = DateTime.fromMillisecondsSinceEpoch(
       rows.first['updated_at'] as int,
     );
-    if (policy.isExpired(updatedAt)) {
+    if (policy != null && policy.isExpired(updatedAt)) {
       await db.delete(
         'content_cache',
         where: 'cache_key = ?',
@@ -60,12 +48,28 @@ class ContentCacheRepository {
     return jsonDecode(rows.first['payload'] as String) as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>?> getWithPolicy(
+    String key,
+    CachePolicy policy,
+  ) async {
+    return get(key, policy: policy);
+  }
+
   Future<void> clearType(String type) async {
     final db = await _db;
     await db.delete(
       'content_cache',
       where: 'cache_type = ?',
       whereArgs: [type],
+    );
+  }
+
+  Future<void> remove(String key) async {
+    final db = await _db;
+    await db.delete(
+      'content_cache',
+      where: 'cache_key = ?',
+      whereArgs: [key],
     );
   }
 }

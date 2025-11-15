@@ -1,5 +1,11 @@
 class MessageSanitizer {
-  static const _sensitiveKeys = <String>{
+  MessageSanitizer({Set<String>? extraSensitiveKeys})
+    : _sensitiveKeys = <String>{
+        ..._baseSensitiveKeys,
+        ...?extraSensitiveKeys,
+      };
+
+  static const _baseSensitiveKeys = <String>{
     'password',
     'passwd',
     'pass',
@@ -13,6 +19,7 @@ class MessageSanitizer {
     'secret',
     'client_secret',
   };
+  final Set<String> _sensitiveKeys;
 
   static final RegExp _jwtPattern = RegExp(
     r'[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+',
