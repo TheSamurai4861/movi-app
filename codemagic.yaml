@@ -22,13 +22,25 @@ workflows:
           fi
           set +a
 
+      # NEW : vérif que Codemagic voit bien TMDB_API_KEY en dev
+      - name: Check TMDB key length (dev)
+        script: |
+          echo "==== DEV TMDB_API_KEY check ===="
+          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "ERROR: TMDB_API_KEY is empty for dev build"
+            exit 1
+          fi
+          echo "================================"
+
       - name: Build unsigned IPA (archive, APP_ENV=dev)
         script: |
           echo "Building iOS Dev IPA..."
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
             --dart-define=APP_ENV=dev \
-            --dart-define=TMDB_API_KEY=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
+            --dart-define=FORCE_STARTUP_DETAILS=true
 
       - name: Package unsigned IPA from .xcarchive
         script: |
@@ -70,7 +82,8 @@ workflows:
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
             --dart-define=APP_ENV=prod \
-            --dart-define=TMDB_API_KEY=eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI0ZjliZDI0YzhiMjYyNWUyMzk2ZTNlZjg2YTg5ZmU0YyIsIm5iZiI6MTY0ODM4MzU1My4yNDEsInN1YiI6IjYyNDA1NjQxYzc0MGQ5MDA0N2EzNmNjMyIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.KvWRTSdQiWBF2-KQhgN_7xzSJS8AS7xE3-A7fzxCno8
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
+            --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY}
 
       - name: Package unsigned IPA from .xcarchive
         script: |

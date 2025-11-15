@@ -1,0 +1,1077 @@
+================================================================================
+EXPORT CONTENU — 10 fichier(s)
+================================================================================
+
+--------------------------------------------------------------------------------
+FILE #16: src/core/config/config_module.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/logging/logger.dart';
+
+class AppConfigFactory {
+  const AppConfigFactory(this._secretStore);
+
+  final SecretStore _secretStore;
+
+  Future<AppConfig> build({
+    required EnvironmentFlavor flavor,
+    FeatureFlags? featureOverrides,
+    AppMetadata? metadataOverride,
+    bool requireTmdbKey = true,
+  }) async {
+    // Préférence au tmdbApiKey fourni par le flavor (compile-time via dart-define).
+    String? tmdbKey = flavor.network.tmdbApiKey;
+    if (tmdbKey == null || tmdbKey.isEmpty) {
+      if (!requireTmdbKey) {
+        try {
+          tmdbKey = await _secretStore.read('TMDB_API_KEY');
+        } catch (_) {
+          tmdbKey = null;
+        }
+      }
+    }
+    final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
+    final flags = featureOverrides ?? flavor.defaultFlags;
+    final metadata = metadataOverride ?? flavor.metadata;
+    final LoggingConfig logging = _defaultLoggingFor(flavor)..validate();
+    final config = AppConfig(
+      environment: flavor,
+      network: network,
+      featureFlags: flags,
+      metadata: metadata,
+      logging: logging,
+      requireTmdbKey: requireTmdbKey,
+    );
+
+    config.ensureValid();
+    return config;
+  }
+}
+
+Future<AppConfig> loadAppConfig({
+  required EnvironmentFlavor flavor,
+  SecretStore? secretStore,
+  FeatureFlags? featureOverrides,
+  AppMetadata? metadataOverride,
+  bool requireTmdbKey = true,
+}) async {
+  final store = secretStore ?? SecretStore();
+  final factory = AppConfigFactory(store);
+  return factory.build(
+    flavor: flavor,
+    featureOverrides: featureOverrides,
+    metadataOverride: metadataOverride,
+    requireTmdbKey: requireTmdbKey,
+  );
+}
+
+Future<AppConfig> registerConfig({
+  required EnvironmentFlavor flavor,
+  SecretStore? secretStore,
+  FeatureFlags? featureOverrides,
+  AppMetadata? metadataOverride,
+  bool requireTmdbKey = true,
+  bool registerWithLocator = true,
+}) async {
+  final store = secretStore ?? SecretStore();
+  if (registerWithLocator) {
+    _replace<SecretStore>(store);
+  }
+  final config = await loadAppConfig(
+    flavor: flavor,
+    secretStore: store,
+    featureOverrides: featureOverrides,
+    metadataOverride: metadataOverride,
+    requireTmdbKey: requireTmdbKey,
+  );
+  if (registerWithLocator) {
+    _replace<EnvironmentFlavor>(flavor);
+    _replace<AppConfig>(config);
+    _replace<FeatureFlags>(config.featureFlags);
+  }
+  return config;
+}
+
+void _replace<T extends Object>(T instance) {
+  if (sl.isRegistered<T>()) {
+    sl.unregister<T>();
+  }
+  sl.registerSingleton<T>(instance);
+}
+
+void registerEnvironmentLoader(EnvironmentLoader loader) {
+  _replace<EnvironmentLoader>(loader);
+}
+
+LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
+  switch (flavor.environment) {
+    case AppEnvironment.dev:
+      return const LoggingConfig(
+        minLevel: LogLevel.debug,
+        enableConsole: true,
+        enableFile: true,
+        samplingByLevel: {LogLevel.debug: 1.0},
+        defaultRateLimitPerMinute: 0,
+        exposeMetrics: true,
+      );
+    case AppEnvironment.staging:
+      return const LoggingConfig(
+        minLevel: LogLevel.info,
+        enableConsole: true,
+        enableFile: true,
+        samplingByLevel: {LogLevel.debug: 0.5},
+        defaultRateLimitPerMinute: 200,
+        exposeMetrics: true,
+      );
+    case AppEnvironment.prod:
+      return const LoggingConfig(
+        minLevel: LogLevel.warn,
+        enableConsole: true,
+        enableFile: true,
+        samplingByLevel: {LogLevel.debug: 0.1},
+        defaultRateLimitPerMinute: 100,
+        exposeMetrics: true,
+      );
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #17: src/core/config/env/dev_environment.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:movi/src/core/config/models/app_metadata.dart';
+import 'package:movi/src/core/config/models/feature_flags.dart';
+import 'package:movi/src/core/config/models/network_endpoints.dart';
+import 'package:movi/src/core/config/env/environment.dart';
+
+/// Compile-time configuration for TMDB access.
+/// Provide with `--dart-define` at build/run time.
+/// Priority order: generic > flavor-specific.
+const String _tmdbApiKeyGeneric = String.fromEnvironment('TMDB_API_KEY');
+const String _tmdbApiKeyDev = String.fromEnvironment('TMDB_API_KEY_DEV');
+const String _tmdbApiKeyStaging = String.fromEnvironment(
+  'TMDB_API_KEY_STAGING',
+);
+const String _tmdbApiKeyProd = String.fromEnvironment('TMDB_API_KEY_PROD');
+
+/// Fallback explicite pour le flavor Dev (usage local uniquement).
+/// ATTENTION: ne pas utiliser en prod/staging. Cette valeur sera intégrée au binaire.
+
+/// Optionally returns the TMDB API key from compile-time defines.
+/// If no key is provided via --dart-define, returns null to allow
+/// runtime resolution (e.g., via .env or process environment).
+String? _resolveTmdbKey(AppEnvironment env) {
+  String candidate = _tmdbApiKeyGeneric;
+  if (candidate.isEmpty) {
+    switch (env) {
+      case AppEnvironment.dev:
+        candidate = _tmdbApiKeyDev;
+        break;
+      case AppEnvironment.staging:
+        candidate = _tmdbApiKeyStaging;
+        break;
+      case AppEnvironment.prod:
+        candidate = _tmdbApiKeyProd;
+        break;
+    }
+  }
+  return candidate.isNotEmpty ? candidate : null;
+}
+
+/// Default network timeouts used across flavors when not overridden.
+const NetworkTimeouts _defaultTimeouts = NetworkTimeouts(
+  connect: Duration(seconds: 5),
+  receive: Duration(seconds: 10),
+  send: Duration(seconds: 5),
+);
+
+EnvironmentFlavor createDevEnvironment() => _buildFlavor(
+  env: AppEnvironment.dev,
+  label: 'Development',
+  flags: const FeatureFlags(
+    useRemoteHome: false,
+    enableTelemetry: true,
+    enableDownloads: false,
+    enableNewSearch: true,
+  ),
+  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'dev'),
+  restBaseUrl: 'https://api.dev.movi.app',
+  imageBaseUrl: 'https://images.dev.movi.app',
+  timeouts: _defaultTimeouts,
+);
+
+EnvironmentFlavor createStagingEnvironment() => _buildFlavor(
+  env: AppEnvironment.staging,
+  label: 'Staging',
+  flags: const FeatureFlags(
+    useRemoteHome: true,
+    enableTelemetry: true,
+    enableDownloads: true,
+    enableNewSearch: true,
+  ),
+  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'staging'),
+  restBaseUrl: 'https://api.staging.movi.app',
+  imageBaseUrl: 'https://images.staging.movi.app',
+  timeouts: _defaultTimeouts,
+);
+
+EnvironmentFlavor createProdEnvironment() => _buildFlavor(
+  env: AppEnvironment.prod,
+  label: 'Production',
+  flags: const FeatureFlags(
+    useRemoteHome: true,
+    enableTelemetry: true,
+    enableDownloads: true,
+    enableNewSearch: true,
+  ),
+  metadata: const AppMetadata(version: '1.0.0', buildNumber: 'prod'),
+  restBaseUrl: 'https://api.movi.app',
+  imageBaseUrl: 'https://images.movi.app',
+  timeouts: const NetworkTimeouts(
+    connect: Duration(seconds: 10),
+    receive: Duration(seconds: 20),
+    send: Duration(seconds: 10),
+  ),
+);
+
+EnvironmentFlavor _buildFlavor({
+  required AppEnvironment env,
+  required String label,
+  required FeatureFlags flags,
+  required AppMetadata metadata,
+  required String restBaseUrl,
+  required String imageBaseUrl,
+  NetworkTimeouts timeouts = const NetworkTimeouts(),
+}) {
+  return EnvironmentFlavor(
+    environment: env,
+    label: label,
+    defaultFlags: flags,
+    metadata: metadata,
+    network: NetworkEndpoints(
+      restBaseUrl: restBaseUrl,
+      imageBaseUrl: imageBaseUrl,
+      tmdbApiKey: _resolveTmdbKey(env),
+      timeouts: timeouts,
+    ),
+  );
+}
+
+--------------------------------------------------------------------------------
+FILE #18: src/core/config/env/environment.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/core/config/models/app_metadata.dart';
+import 'package:movi/src/core/config/models/feature_flags.dart';
+import 'package:movi/src/core/config/models/network_endpoints.dart';
+
+enum AppEnvironment { dev, staging, prod }
+
+class EnvironmentFlavor {
+  const EnvironmentFlavor({
+    required this.environment,
+    required this.label,
+    required this.network,
+    required this.defaultFlags,
+    required this.metadata,
+  });
+
+  final AppEnvironment environment;
+  final String label;
+  final NetworkEndpoints network;
+  final FeatureFlags defaultFlags;
+  final AppMetadata metadata;
+
+  bool get isProduction => environment == AppEnvironment.prod;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! EnvironmentFlavor) return false;
+    return environment == other.environment &&
+        label == other.label &&
+        network == other.network &&
+        defaultFlags == other.defaultFlags &&
+        metadata == other.metadata;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(environment, label, network, defaultFlags, metadata);
+}
+
+--------------------------------------------------------------------------------
+FILE #19: src/core/config/env/environment_loader.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/core/config/services/platform_selector.dart';
+import 'package:movi/src/core/config/env/dev_environment.dart';
+import 'package:movi/src/core/config/env/environment.dart';
+
+typedef EnvironmentFallbackResolver =
+    AppEnvironment Function(PlatformInfo info);
+
+class EnvironmentLoader {
+  EnvironmentLoader({
+    PlatformInfo? platformInfo,
+    EnvironmentFallbackResolver? fallbackResolver,
+    void Function(String message)? onInfo,
+  }) : platformInfo = platformInfo ?? const PlatformSelector(),
+       _fallbackResolver = fallbackResolver ?? _defaultFallback,
+       _onInfo = onInfo;
+
+  final PlatformInfo platformInfo;
+  final EnvironmentFallbackResolver _fallbackResolver;
+  final void Function(String message)? _onInfo;
+  EnvironmentFlavor? _cached;
+
+  // Précompute compile-time defines to avoid runtime fromEnvironment calls on web.
+  static const String _defineAppEnv = String.fromEnvironment('APP_ENV');
+  static const String _defineFlutterAppEnv = String.fromEnvironment(
+    'FLUTTER_APP_ENV',
+  );
+
+  EnvironmentFlavor load({AppEnvironment? override}) {
+    if (override == null && _cached != null) return _cached!;
+    final resolved = override ?? _resolveFromBuild();
+    final flavor = createEnvironmentFlavor(resolved);
+    if (override == null) _cached = flavor;
+    return flavor;
+  }
+
+  AppEnvironment _resolveFromBuild() {
+    final envFromDefine =
+        _readDefine('APP_ENV') ?? _readDefine('FLUTTER_APP_ENV');
+    if (envFromDefine != null) {
+      return envFromDefine;
+    }
+    _onInfo?.call(
+      'EnvironmentLoader: no --dart-define provided, using fallback resolver.',
+    );
+    return _fallbackResolver(platformInfo);
+  }
+
+  AppEnvironment? _readDefine(String key) {
+    final value = switch (key) {
+      'APP_ENV' => _defineAppEnv,
+      'FLUTTER_APP_ENV' => _defineFlutterAppEnv,
+      _ => '',
+    };
+    if (value.isEmpty) return null;
+    return _parse(value);
+  }
+
+  AppEnvironment _parse(String raw) {
+    switch (raw.toLowerCase()) {
+      case 'dev':
+      case 'development':
+        return AppEnvironment.dev;
+      case 'staging':
+      case 'stage':
+        return AppEnvironment.staging;
+      case 'prod':
+      case 'production':
+        return AppEnvironment.prod;
+      default:
+        return AppEnvironment.dev;
+    }
+  }
+}
+
+AppEnvironment _defaultFallback(PlatformInfo info) {
+  if (info.currentPlatform == AppPlatform.ios) {
+    return AppEnvironment.dev;
+  }
+  return info.isReleaseMode ? AppEnvironment.prod : AppEnvironment.dev;
+}
+
+EnvironmentFlavor createEnvironmentFlavor(AppEnvironment environment) {
+  switch (environment) {
+    case AppEnvironment.dev:
+      return createDevEnvironment();
+    case AppEnvironment.staging:
+      return createStagingEnvironment();
+    case AppEnvironment.prod:
+      return createProdEnvironment();
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #20: src/core/config/models/app_config.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:movi/src/core/config/env/environment.dart';
+import 'package:movi/src/core/config/models/app_metadata.dart';
+import 'package:movi/src/core/config/models/feature_flags.dart';
+import 'package:movi/src/core/config/models/logging_config.dart';
+import 'package:movi/src/core/config/models/network_endpoints.dart';
+
+/// Immutable application configuration assembled at bootstrap.
+/// Contains the current environment, network endpoints (incl. TMDB),
+/// feature flags and application metadata. No I/O is performed here.
+class AppConfig {
+  AppConfig({
+    required this.environment,
+    required this.network,
+    required this.featureFlags,
+    required this.metadata,
+    required this.logging,
+    this.requireTmdbKey = true,
+  }) : assert(
+         (network.restBaseUrl.isNotEmpty),
+         'restBaseUrl must not be empty.',
+       ),
+       assert(
+         (network.imageBaseUrl.isNotEmpty),
+         'imageBaseUrl must not be empty.',
+       ),
+       // Fail fast in debug/profile if the TMDB key is missing unless opt-out.
+       // Network clients must still validate at runtime and surface clear errors.
+       assert(
+         !requireTmdbKey || (network.tmdbApiKey?.isNotEmpty ?? false),
+         'tmdbApiKey must not be empty. Provide it via your flavor/environment.',
+       );
+
+  /// Current runtime environment/flavor (dev, staging, prod).
+  final EnvironmentFlavor environment;
+
+  /// Network endpoints and API keys (including TMDB).
+  final NetworkEndpoints network;
+
+  /// Feature toggles enabled for this build.
+  final FeatureFlags featureFlags;
+
+  /// App metadata (version/build).
+  final AppMetadata metadata;
+
+  /// Logging configuration for the current environment.
+  final LoggingConfig logging;
+
+  /// Whether [ensureValid] must enforce the presence of a TMDB key.
+  final bool requireTmdbKey;
+
+  /// Lightweight validity check intended for runtime guards in release builds.
+  /// Throws [StateError] with an explicit message when a critical value is invalid.
+  void ensureValid() {
+    if ((network.restBaseUrl).isEmpty) {
+      throw StateError('AppConfig.network.restBaseUrl is empty.');
+    }
+    if ((network.imageBaseUrl).isEmpty) {
+      throw StateError('AppConfig.network.imageBaseUrl is empty.');
+    }
+    if (requireTmdbKey && (network.tmdbApiKey ?? '').isEmpty) {
+      throw StateError(
+        'AppConfig.network.tmdbApiKey is empty. '
+        'Ensure your flavor/environment provides a valid TMDB key.',
+      );
+    }
+  }
+
+  /// Returns a copy of this configuration with selectively replaced fields.
+  AppConfig copyWith({
+    EnvironmentFlavor? environment,
+    NetworkEndpoints? network,
+    FeatureFlags? featureFlags,
+    AppMetadata? metadata,
+    LoggingConfig? logging,
+    bool? requireTmdbKey,
+  }) {
+    return AppConfig(
+      environment: environment ?? this.environment,
+      network: network ?? this.network,
+      featureFlags: featureFlags ?? this.featureFlags,
+      metadata: metadata ?? this.metadata,
+      logging: logging ?? this.logging,
+      requireTmdbKey: requireTmdbKey ?? this.requireTmdbKey,
+    );
+  }
+
+  /// Convenience booleans for quick checks without leaking environment internals.
+  bool get isProduction => environment.isProduction;
+
+  /// True when a (non-empty) TMDB key is present from the active flavor.
+  bool get hasTmdbKey => (network.tmdbApiKey?.isNotEmpty ?? false);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! AppConfig) return false;
+    return environment.environment == other.environment.environment &&
+        environment.label == other.environment.label &&
+        network.restBaseUrl == other.network.restBaseUrl &&
+        network.imageBaseUrl == other.network.imageBaseUrl &&
+        (network.tmdbApiKey ?? '') == (other.network.tmdbApiKey ?? '') &&
+        network.resolvedTmdbBaseHost == other.network.resolvedTmdbBaseHost &&
+        network.resolvedTmdbApiVersion ==
+            other.network.resolvedTmdbApiVersion &&
+        network.timeouts.connect == other.network.timeouts.connect &&
+        network.timeouts.receive == other.network.timeouts.receive &&
+        network.timeouts.send == other.network.timeouts.send &&
+        featureFlags.useRemoteHome == other.featureFlags.useRemoteHome &&
+        featureFlags.enableTelemetry == other.featureFlags.enableTelemetry &&
+        featureFlags.enableDownloads == other.featureFlags.enableDownloads &&
+        featureFlags.enableNewSearch == other.featureFlags.enableNewSearch &&
+        metadata.version == other.metadata.version &&
+        metadata.buildNumber == other.metadata.buildNumber &&
+        metadata.supportEmail == other.metadata.supportEmail &&
+        logging.minLevel == other.logging.minLevel &&
+        logging.enableConsole == other.logging.enableConsole &&
+        logging.enableFile == other.logging.enableFile &&
+        logging.flushInterval == other.logging.flushInterval &&
+        logging.maxFileSizeBytes == other.logging.maxFileSizeBytes &&
+        logging.maxFiles == other.logging.maxFiles &&
+        logging.rotateDaily == other.logging.rotateDaily &&
+        logging.maxDailyFiles == other.logging.maxDailyFiles &&
+        logging.compressOld == other.logging.compressOld &&
+        logging.bufferCapacity == other.logging.bufferCapacity &&
+        logging.dropOldest == other.logging.dropOldest &&
+        _mapEquals(logging.samplingByLevel, other.logging.samplingByLevel) &&
+        _stringIntMapEquals(
+          logging.rateLimitPerCategory,
+          other.logging.rateLimitPerCategory,
+        ) &&
+        _stringDoubleMapEquals(
+          logging.samplingByCategory,
+          other.logging.samplingByCategory,
+        ) &&
+        logging.defaultRateLimitPerMinute ==
+            other.logging.defaultRateLimitPerMinute &&
+        logging.exposeMetrics == other.logging.exposeMetrics &&
+        logging.metricsInterval == other.logging.metricsInterval &&
+        requireTmdbKey == other.requireTmdbKey;
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    environment.environment,
+    environment.label,
+    network.restBaseUrl,
+    network.imageBaseUrl,
+    network.tmdbApiKey ?? '',
+    network.resolvedTmdbBaseHost,
+    network.resolvedTmdbApiVersion,
+    network.timeouts.connect,
+    network.timeouts.receive,
+    network.timeouts.send,
+    featureFlags.useRemoteHome,
+    featureFlags.enableTelemetry,
+    featureFlags.enableDownloads,
+    featureFlags.enableNewSearch,
+    metadata.version,
+    metadata.buildNumber,
+    metadata.supportEmail,
+    logging.minLevel,
+    logging.enableConsole,
+    logging.enableFile,
+    logging.flushInterval,
+    logging.maxFileSizeBytes,
+    logging.maxFiles,
+    logging.rotateDaily,
+    logging.maxDailyFiles,
+    logging.compressOld,
+    logging.bufferCapacity,
+    logging.dropOldest,
+    logging.defaultRateLimitPerMinute,
+    logging.exposeMetrics,
+    logging.metricsInterval,
+    _mapHash(logging.samplingByLevel),
+    _mapHash(logging.samplingByCategory),
+    _mapHash(logging.rateLimitPerCategory),
+    _mapHash(logging.minLevelByCategory),
+    requireTmdbKey,
+  ]);
+
+  @override
+  String toString() {
+    // Do not print secrets.
+    final key = network.tmdbApiKey ?? '';
+    final maskedKey = key.isEmpty ? '<empty>' : '***${key.hashCode}';
+    return 'AppConfig(env: ${environment.label}, '
+        'rest: ${network.restBaseUrl}, images: ${network.imageBaseUrl}, '
+        'tmdbKey: $maskedKey, flags: $featureFlags, meta: $metadata, logging: $logging)';
+  }
+
+  bool _mapEquals<K, V>(Map<K, V> a, Map<K, V> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final e in a.entries) {
+      if (b[e.key] != e.value) return false;
+    }
+    return true;
+  }
+
+  bool _stringIntMapEquals(Map<String, int> a, Map<String, int> b) =>
+      _mapEquals<String, int>(a, b);
+  bool _stringDoubleMapEquals(Map<String, double> a, Map<String, double> b) =>
+      _mapEquals<String, double>(a, b);
+
+  int _mapHash<K, V>(Map<K, V> map) => Object.hashAll(
+    map.entries.map((entry) => Object.hash(entry.key, entry.value)),
+  );
+}
+
+--------------------------------------------------------------------------------
+FILE #28: src/core/config/services/secret_store.dart
+--------------------------------------------------------------------------------
+// Conditional export: picks IO or Web implementation.
+export 'secret_store_io.dart' if (dart.library.html) 'secret_store_web.dart';
+
+--------------------------------------------------------------------------------
+FILE #29: src/core/config/services/secret_store_io.dart
+--------------------------------------------------------------------------------
+import 'dart:io';
+
+class SecretStore {
+  SecretStore({
+    Map<String, String> initialSecrets = const {},
+    this.envFilePath = '.env',
+    this.envFileCacheTtl = const Duration(minutes: 5),
+  }) : _secrets = Map<String, String>.from(initialSecrets);
+
+  final Map<String, String> _secrets;
+  final String envFilePath;
+  final Duration envFileCacheTtl;
+  Map<String, String>? _envFileCache;
+  DateTime? _lastEnvLoad;
+
+  Future<String?> read(String key) async {
+    if (_secrets.containsKey(key)) {
+      return _secrets[key];
+    }
+    // Runtime environment variables via process env (desktop/mobile).
+    final processEnv = Platform.environment[key];
+    if (processEnv != null && processEnv.isNotEmpty) {
+      _secrets[key] = processEnv;
+      return processEnv;
+    }
+    // Fallback to .env file on disk.
+    final fileValue = await _readFromEnvFile(key);
+    if (fileValue != null) {
+      _secrets[key] = fileValue;
+      return fileValue;
+    }
+    return null;
+  }
+
+  Future<String?> _readFromEnvFile(String key) async {
+    final now = DateTime.now();
+    final cacheExpired =
+        _lastEnvLoad == null || now.difference(_lastEnvLoad!) > envFileCacheTtl;
+    if (_envFileCache == null || cacheExpired) {
+      _envFileCache = await _loadEnvFile();
+      _lastEnvLoad = now;
+    }
+    return _envFileCache?[key];
+  }
+
+  Future<Map<String, String>> _loadEnvFile() async {
+    final candidates = await _candidateEnvFiles();
+    for (final file in candidates) {
+      if (await file.exists()) {
+        final lines = await file.readAsLines();
+        return _parseEnv(lines);
+      }
+    }
+    return {};
+  }
+
+  Future<List<File>> _candidateEnvFiles() async {
+    final files = <File>[];
+    // Primary: configured path (relative or absolute).
+    files.add(File(envFilePath));
+
+    // Search upwards from current working directory.
+    var dir = Directory.current;
+    for (int i = 0; i < 6; i++) {
+      files.add(File('${dir.path}${Platform.pathSeparator}.env'));
+      final parent = dir.parent;
+      if (parent.path == dir.path) break;
+      dir = parent;
+    }
+
+    // Also search upwards from the script location if available.
+    try {
+      final scriptPath = Platform.script.toFilePath();
+      var scriptDir = File(scriptPath).parent;
+      for (int i = 0; i < 6; i++) {
+        files.add(File('${scriptDir.path}${Platform.pathSeparator}.env'));
+        final parent = scriptDir.parent;
+        if (parent.path == scriptDir.path) break;
+        scriptDir = parent;
+      }
+    } catch (_) {
+      // Ignore if not available.
+    }
+
+    // Deduplicate paths.
+    final unique = <String, File>{};
+    for (final f in files) {
+      unique[f.path] = f;
+    }
+    return unique.values.toList(growable: false);
+  }
+
+  Map<String, String> _parseEnv(List<String> lines) {
+    final map = <String, String>{};
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty || trimmed.startsWith('#')) continue;
+      final index = trimmed.indexOf('=');
+      if (index == -1) continue;
+      final key = trimmed.substring(0, index).trim();
+      var value = trimmed.substring(index + 1).trim();
+      // Strip surrounding quotes if present.
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith('\'') && value.endsWith('\''))) {
+        value = value.substring(1, value.length - 1);
+      }
+      if (key.isNotEmpty) {
+        map[key] = value;
+      }
+    }
+    return map;
+  }
+
+  Future<void> write(String key, String value) async {
+    _secrets[key] = value;
+    await _persistEnvValue(key, value);
+  }
+
+  void preload(Map<String, String> entries) => _secrets.addAll(entries);
+
+  void invalidateEnvFileCache() {
+    _envFileCache = null;
+    _lastEnvLoad = null;
+  }
+
+  Future<void> _persistEnvValue(String key, String value) async {
+    Map<String, String> existing;
+    if (_envFileCache != null) {
+      existing = Map<String, String>.from(_envFileCache!);
+    } else {
+      existing = await _loadEnvFile();
+    }
+    existing[key] = value;
+    final file = File(envFilePath);
+    await file.create(recursive: true);
+    final buffer = StringBuffer();
+    for (final entry in existing.entries) {
+      buffer.writeln('${entry.key}=${entry.value}');
+    }
+    await file.writeAsString(buffer.toString());
+    _envFileCache = existing;
+    _lastEnvLoad = DateTime.now();
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #65: src/core/startup/app_startup_gate.dart
+--------------------------------------------------------------------------------
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/startup/app_startup_provider.dart';
+
+class AppStartupGate extends ConsumerWidget {
+  const AppStartupGate({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appStartupProvider);
+    if (state.isLoading) {
+      debugPrint('[Startup] loading...');
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color.fromRGBO(20, 20, 20, 1),
+          body: const Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (state.hasError) {
+      final details = state.error.toString();
+      final showDetails = !kReleaseMode;
+      debugPrint('[Startup] error: $details');
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Color.fromRGBO(20, 20, 20, 1),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Erreur au démarrage (config ou réseau)'),
+                if (showDetails) ...[
+                  const SizedBox(height: 12),
+                  Text(details, textAlign: TextAlign.center),
+                ],
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => ref.refresh(appStartupProvider),
+                  child: const Text('Réessayer'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    debugPrint('[Startup] success, navigate to Home');
+    return child;
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #66: src/core/startup/app_startup_provider.dart
+--------------------------------------------------------------------------------
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logging_module.dart';
+import 'package:movi/src/core/preferences/preferences.dart';
+
+final appStartupProvider = FutureProvider<void>((ref) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final loader = EnvironmentLoader();
+  registerEnvironmentLoader(loader);
+  final flavor = loader.load();
+  final requireTmdbKey = kReleaseMode && flavor.isProduction;
+  debugPrint('[Startup] flavor=${flavor.label} '
+      '(env: ${flavor.environment}) | requireTmdbKey=$requireTmdbKey');
+  debugPrint('avant registerConfig');
+  final config = await registerConfig(
+    flavor: flavor,
+    requireTmdbKey: requireTmdbKey,
+  );
+  debugPrint('après registerConfig OK');
+  debugPrint('avant initDependencies');
+  await initDependencies(
+    appConfig: config,
+    localeProvider: () => sl<LocalePreferences>().languageCode,
+  );
+  debugPrint('après initDependencies OK');
+  debugPrint('avant LoggingModule.register');
+  LoggingModule.register();
+  debugPrint('après LoggingModule.register OK');
+});
+
+--------------------------------------------------------------------------------
+FILE #303: src/shared/data/services/tmdb_client.dart
+--------------------------------------------------------------------------------
+// ignore_for_file: public_member_api_docs
+
+import 'package:dio/dio.dart';
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/network/network.dart';
+
+/// Client HTTP strict pour TMDB (v3/v4) basé sur [NetworkExecutor].
+///
+/// Principes :
+/// - Aucune clé en dur : tout provient de [NetworkEndpoints].
+/// - Déduplication et mini-cache via `dedupKey`/`cacheTtl` de l'exécuteur.
+/// - Pas de cast Map→Response : on mappe la réponse **après** l'appel réseau.
+/// - URI canoniques et stables : query triée pour une clé de dédup déterministe.
+class TmdbClient {
+  TmdbClient({
+    required NetworkExecutor executor,
+    required NetworkEndpoints endpoints,
+  }) : _executor = executor,
+       _endpoints = endpoints;
+
+  final NetworkExecutor _executor;
+  final NetworkEndpoints _endpoints;
+
+  /// Récupère un JSON racine **Map** depuis TMDB.
+  ///
+  /// Exemple de `path`: `movie/550`, `tv/1399`, `search/movie`.
+  ///
+  /// - `query` : paramètres additionnels, convertis en String.
+  /// - `language` : ex. `fr-FR` ou `en-US` (non ajouté si vide).
+  /// - `cancelToken` : annulation propre en cas de navigation/scroll.
+  /// - `retries` : tentatives supplémentaires (backoff géré par l’exécuteur).
+  /// - `cacheTtl` : TTL du mini-cache mémoire de l’exécuteur (si null → défaut).
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    Map<String, Object?>? query,
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+    Duration? cacheTtl,
+  }) async {
+    final uri = _buildUri(path: path, query: query, language: language);
+    final dedupKey = _buildDedupKey('GET', uri);
+
+    return _executor.run<dynamic, Map<String, dynamic>>(
+      concurrencyKey: 'tmdb',
+      dedupKey: dedupKey,
+      cacheTtl: cacheTtl,
+      retries: retries,
+      cancelToken: cancelToken,
+      request: (Dio client, CancelToken? token) => client.getUri<dynamic>(
+        uri,
+        options: Options(
+          responseType: ResponseType.json,
+          headers: _buildHeaders(),
+        ),
+        cancelToken: token,
+      ),
+      mapper: (response) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) return data;
+        throw TmdbClientError(
+          'Unexpected TMDB payload type: ${data.runtimeType}',
+          uri: uri,
+          statusCode: response.statusCode,
+        );
+      },
+    );
+  }
+
+  /// Récupère un JSON racine **List** depuis TMDB (certaines routes renvoient une liste).
+  ///
+  /// Retourne toujours une liste (vide si le payload est vide/inattendu).
+  Future<List<dynamic>> getJsonList(
+    String path, {
+    Map<String, Object?>? query,
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+    Duration? cacheTtl,
+  }) async {
+    final uri = _buildUri(path: path, query: query, language: language);
+    final dedupKey = _buildDedupKey('GET', uri);
+
+    return _executor.run<dynamic, List<dynamic>>(
+      concurrencyKey: 'tmdb',
+      dedupKey: dedupKey,
+      cacheTtl: cacheTtl,
+      retries: retries,
+      cancelToken: cancelToken,
+      request: (Dio client, CancelToken? token) => client.getUri<dynamic>(
+        uri,
+        options: Options(
+          responseType: ResponseType.json,
+          headers: _buildHeaders(),
+        ),
+        cancelToken: token,
+      ),
+      mapper: (response) {
+        final data = response.data;
+        if (data is List<dynamic>) return data;
+        if (data is Map<String, dynamic>) {
+          final results = data['results'];
+          if (results is List<dynamic>) return results;
+        }
+        return const <dynamic>[];
+      },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // URI / Headers
+  // ---------------------------------------------------------------------------
+
+  /// Construit un URI TMDB valide en injectant `language` et, si v3, `api_key`.
+  Uri _buildUri({
+    required String path,
+    Map<String, Object?>? query,
+    String? language,
+  }) {
+    final host = _resolveHost();
+    final version = _resolveApiVersion();
+    final normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+
+    // Query canonique triée pour une dédup stable.
+    final qp = _canonicalizeQuery(query);
+
+    if (language != null && language.isNotEmpty) {
+      qp['language'] = language;
+    }
+
+    // Clé v3 en query (sinon Bearer v4 en header).
+    final apiKey = _endpoints.tmdbApiKey;
+    if (apiKey != null && apiKey.isNotEmpty && _isV3Key(apiKey)) {
+      qp.putIfAbsent('api_key', () => apiKey);
+    }
+
+    return Uri.https(host, '/$version/$normalizedPath', qp.isEmpty ? null : qp);
+  }
+
+  Map<String, String> _canonicalizeQuery(Map<String, Object?>? query) {
+    if (query == null || query.isEmpty) return <String, String>{};
+    final keys = query.keys.where((k) => query[k] != null).toList()..sort();
+    final out = <String, String>{};
+    for (final k in keys) {
+      final v = query[k];
+      if (v == null) continue;
+      out[k] = v.toString();
+    }
+    return out;
+  }
+
+  String _resolveHost() {
+    final fromCfg = _endpoints.tmdbBaseHost?.trim();
+    if (fromCfg != null && fromCfg.isNotEmpty) return fromCfg;
+    try {
+      return _endpoints.resolvedTmdbBaseHost;
+    } catch (_) {
+      return 'api.themoviedb.org';
+    }
+  }
+
+  String _resolveApiVersion() {
+    final fromCfg = _endpoints.tmdbApiVersion?.trim();
+    if (fromCfg != null && fromCfg.isNotEmpty) return fromCfg;
+    try {
+      return _endpoints.resolvedTmdbApiVersion;
+    } catch (_) {
+      return '3';
+    }
+  }
+
+  bool _isV3Key(String key) => !key.startsWith('eyJ') && key.length <= 64;
+
+  Map<String, String> _buildHeaders() {
+    final apiKey = _endpoints.tmdbApiKey;
+    final headers = <String, String>{'Accept': 'application/json'};
+    // Si API v4 : Authorization: Bearer <token>
+    if (apiKey != null && apiKey.isNotEmpty && !_isV3Key(apiKey)) {
+      headers['Authorization'] = 'Bearer $apiKey';
+    }
+    return headers;
+  }
+
+  /// Clé stable pour la déduplication/caching mémoire de l’exécuteur.
+  String _buildDedupKey(String method, Uri uri) {
+    final qp = _canonicalizeQuery(uri.queryParameters);
+    final canonical = Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      path: uri.path,
+      queryParameters: qp.isEmpty ? null : qp,
+    ).toString();
+    return '$method|$canonical';
+  }
+}
+
+/// Erreur spécifique TMDB surfacée aux appelants.
+class TmdbClientError implements Exception {
+  TmdbClientError(this.message, {this.uri, this.statusCode});
+
+  final String message;
+  final Uri? uri;
+  final int? statusCode;
+
+  @override
+  String toString() {
+    final b = StringBuffer('TmdbClientError: $message');
+    if (statusCode != null) b.write(' (status=$statusCode)');
+    if (uri != null) b.write(' uri=$uri');
+    return b.toString();
+  }
+}
+
