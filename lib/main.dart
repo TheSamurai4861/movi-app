@@ -1,44 +1,21 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/app.dart';
-import 'package:movi/src/core/config/config.dart';
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/logging/logger.dart';
-import 'package:movi/src/core/logging/logging_module.dart';
-import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/startup/app_startup_gate.dart';
 
-Future<void> main() async {
-  runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      LoggingModule.register();
-
-      FlutterError.onError = (FlutterErrorDetails details) {
-        sl<AppLogger>().error('FlutterError', details.exception, details.stack);
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('FlutterError: ${details.exception}');
+  };
+  WidgetsBinding.instance.platformDispatcher.onError =
+      (Object error, StackTrace stack) {
+        debugPrint('DispatcherError: $error');
+        return true;
       };
-
-      WidgetsBinding.instance.platformDispatcher.onError =
-          (Object error, StackTrace stack) {
-            sl<AppLogger>().error('DispatcherError', error, stack);
-            return true;
-          };
-
-      final loader = EnvironmentLoader();
-      registerEnvironmentLoader(loader);
-      final flavor = loader.load();
-      final config = await registerConfig(flavor: flavor);
-      await initDependencies(
-        appConfig: config,
-        localeProvider: () => sl<LocalePreferences>().languageCode,
-      );
-
-      sl<AppLogger>().info('App start: flavor=$flavor');
-      runApp(const ProviderScope(child: MyApp()));
-    },
-    (error, stack) {
-      sl<AppLogger>().error('UncaughtError', error, stack);
-    },
+  runApp(
+    const ProviderScope(
+      child: AppStartupGate(child: MyApp()),
+    ),
   );
 }

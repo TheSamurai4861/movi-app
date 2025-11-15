@@ -22,23 +22,19 @@ const String _tmdbApiKeyProd = String.fromEnvironment('TMDB_API_KEY_PROD');
 /// If no key is provided via --dart-define, returns null to allow
 /// runtime resolution (e.g., via .env or process environment).
 String? _resolveTmdbKey(AppEnvironment env) {
-  String candidate;
-  switch (env) {
-    case AppEnvironment.dev:
-      candidate = _tmdbApiKeyDev.isNotEmpty
-          ? _tmdbApiKeyDev
-          : _tmdbApiKeyGeneric;
-      break;
-    case AppEnvironment.staging:
-      candidate = _tmdbApiKeyStaging.isNotEmpty
-          ? _tmdbApiKeyStaging
-          : _tmdbApiKeyGeneric;
-      break;
-    case AppEnvironment.prod:
-      candidate = _tmdbApiKeyProd.isNotEmpty
-          ? _tmdbApiKeyProd
-          : _tmdbApiKeyGeneric;
-      break;
+  String candidate = _tmdbApiKeyGeneric;
+  if (candidate.isEmpty) {
+    switch (env) {
+      case AppEnvironment.dev:
+        candidate = _tmdbApiKeyDev;
+        break;
+      case AppEnvironment.staging:
+        candidate = _tmdbApiKeyStaging;
+        break;
+      case AppEnvironment.prod:
+        candidate = _tmdbApiKeyProd;
+        break;
+    }
   }
   return candidate.isNotEmpty ? candidate : null;
 }

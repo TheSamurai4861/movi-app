@@ -11,11 +11,23 @@ workflows:
       - name: Install dependencies
         script: flutter pub get
 
+      - name: Check TMDB key length
+        script: |
+          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "ERROR: TMDB_API_KEY is empty"
+            exit 1
+          fi
+
       - name: Build unsigned IPA (archive)
         script: |
           echo "Building iOS IPA with injected TMDB API key..."
           flutter build ipa --release --no-codesign \
-            --dart-define=TMDB_API_KEY=${TMDB_API_KEY}
+            --target=lib/main_ios_diag.dart \
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
+            --dart-define=TMDB_API_KEY_DEV=${TMDB_API_KEY} \
+            --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY} \
+            --dart-define=APP_ENV=prod
 
       - name: Package unsigned IPA from .xcarchive
         script: |
