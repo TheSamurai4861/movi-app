@@ -39,7 +39,7 @@ class MovieRepositoryImpl implements MovieRepository {
     if (cached != null) {
       return _mapDetail(cached);
     }
-    final remote = await _remote.fetchMovie(
+    final remote = await _remote.fetchMovieFull(
       movieId,
       language: _appState.preferredLocale,
     );
@@ -49,8 +49,9 @@ class MovieRepositoryImpl implements MovieRepository {
 
   @override
   Future<List<PersonSummary>> getCredits(MovieId id) async {
-    final dto = await getMovie(id);
-    return dto.cast;
+    final detail = await getMovie(id);
+    final combined = <PersonSummary>[...detail.directors, ...detail.cast];
+    return combined.take(10).toList(growable: false);
   }
 
   @override
@@ -60,7 +61,7 @@ class MovieRepositoryImpl implements MovieRepository {
     if (cached != null && cached.isNotEmpty) {
       return cached.map(_mapSummary).whereType<MovieSummary>().toList();
     }
-    final dto = await _remote.fetchMovie(
+    final dto = await _remote.fetchMovieFull(
       movieId,
       language: _appState.preferredLocale,
     );
@@ -119,7 +120,8 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
+    final posterCandidate = dto.posterBackground ?? dto.posterPath;
+    final poster = _images.poster(posterCandidate, size: 'w342');
     final backdrop = _images.backdrop(dto.backdropPath);
     if (poster == null) {
       throw StateError('Movie ${dto.id} missing poster');
@@ -135,6 +137,7 @@ class MovieRepositoryImpl implements MovieRepository {
       releaseDate:
           _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
       rating: _mapRating(dto.voteAverage),
+      voteAverage: dto.voteAverage,
       genres: dto.genres,
       cast: dto.cast.take(10).map(_mapCast).toList(),
       directors: dto.directors
@@ -143,6 +146,8 @@ class MovieRepositoryImpl implements MovieRepository {
               id: PersonId(crew.id.toString()),
               tmdbId: crew.id,
               name: crew.name,
+              role: 'Director',
+              photo: _images.poster(crew.profilePath),
             ),
           )
           .toList(),

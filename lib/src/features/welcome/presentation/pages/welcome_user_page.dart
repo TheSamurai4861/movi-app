@@ -204,6 +204,28 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                 ),
                               ),
                             ),
+                            DropdownMenuItem(
+                              value: 'pl-PL',
+                              child: Text(
+                                'Polski',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'fr-MM',
+                              child: Text(
+                                'Burgonde',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
                           ],
                           onChanged: (v) =>
                               setState(() => _lang = v ?? 'fr-FR'),

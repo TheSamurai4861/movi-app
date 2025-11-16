@@ -25,6 +25,7 @@ class PersonDataModule {
         sl(),
         sl<TmdbImageResolver>(),
         sl<PersonLocalDataSource>(),
+        sl<LocalePreferences>(),
       ),
     );
   }

@@ -1,5 +1,7 @@
 // lib/src/features/category_browser/presentation/widgets/category_grid.dart
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
@@ -46,7 +48,13 @@ class CategoryGrid extends StatelessWidget {
                   ? MoviMediaType.series
                   : MoviMediaType.movie,
             );
-            return MoviMediaCard(media: media);
+            return MoviMediaCard(
+              media: media,
+              onTap: (m) => context.push(
+                m.type == MoviMediaType.movie ? AppRouteNames.movie : AppRouteNames.tv,
+                extra: m,
+              ),
+            );
           },
         ),
       ),

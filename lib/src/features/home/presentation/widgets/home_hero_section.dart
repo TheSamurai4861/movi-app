@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
+import 'dart:async';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -11,6 +13,7 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -70,11 +73,15 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   late final TmdbMovieRemoteDataSource _moviesRemote;
   late final TmdbTvRemoteDataSource _tvRemote;
 
-  /// Évite hydrations multiples pour un même id durant la vie du widget.
-  final Set<int> _hydratedIds = <int>{};
+  final Set<String> _hydratedKeys = <String>{};
+
+  String? _lastLanguageCode;
+  _HeroMeta? _lastMeta;
+  Timer? _langDebounce;
 
   Future<_HeroMeta?>? _metaFuture;
   bool _backdropNotified = false;
+  CancelToken? _cancelToken;
 
   @override
   void initState() {
@@ -83,6 +90,7 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
     _images = ref.read(_tmdbImagesProvider);
     _moviesRemote = ref.read(_tmdbMovieRemoteProvider);
     _tvRemote = ref.read(_tmdbTvRemoteProvider);
+    _lastLanguageCode = ref.read(currentLanguageCodeProvider);
     _primeMeta();
   }
 
@@ -97,6 +105,8 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   @override
   void dispose() {
     _favorite.dispose();
+    _langDebounce?.cancel();
+    _cancelToken?.cancel('disposed');
     super.dispose();
   }
 
@@ -190,7 +200,9 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
 
   Future<void> _hydrateMetaIfNeeded(MovieSummary m) async {
     final int? id = m.tmdbId;
-    if (id == null || _hydratedIds.contains(id)) return;
+    if (id == null) return;
+    final String key = '$id|${ref.read(currentLanguageCodeProvider)}';
+    if (_hydratedKeys.contains(key)) return;
 
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
     bool isTvData = false;
@@ -202,11 +214,12 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
     // Si pas de cache du tout : fetch FULL immédiatement (film puis fallback série)
     if (data == null) {
       try {
-        _hydratedIds.add(id);
+        _hydratedKeys.add(key);
         try {
           final dto = await _moviesRemote.fetchMovieFull(
             id,
             language: ref.read(currentLanguageCodeProvider),
+            cancelToken: _cancelToken,
           );
           await _cache.putMovieDetail(
             id,
@@ -218,6 +231,7 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
           final dto = await _tvRemote.fetchShowFull(
             id,
             language: ref.read(currentLanguageCodeProvider),
+            cancelToken: _cancelToken,
           );
           await _cache.putTvDetail(
             id,
@@ -267,11 +281,12 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
     if (!needsHydration) return;
 
     try {
-      _hydratedIds.add(id);
+      _hydratedKeys.add(key);
       if (!isTvData) {
         final dto = await _moviesRemote.fetchMovieFull(
           id,
           language: ref.read(currentLanguageCodeProvider),
+          cancelToken: _cancelToken,
         );
         await _cache.putMovieDetail(
           id,
@@ -282,6 +297,7 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
         final dto = await _tvRemote.fetchShowFull(
           id,
           language: ref.read(currentLanguageCodeProvider),
+          cancelToken: _cancelToken,
         );
         await _cache.putTvDetail(
           id,
@@ -337,6 +353,14 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   Widget build(BuildContext context) {
     final MovieSummary? movie = widget.movie;
 
+    final String lang = ref.watch(currentLanguageCodeProvider);
+    if (lang != _lastLanguageCode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _onLanguageChanged(lang);
+      });
+    }
+
     return SizedBox(
       height: _totalHeight,
       width: double.infinity,
@@ -345,11 +369,13 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
           : FutureBuilder<_HeroMeta?>(
               future: _metaFuture,
               builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
+                final _HeroMeta? meta = snap.data ?? _lastMeta;
+                if (snap.connectionState == ConnectionState.done && snap.data != null) {
+                  _lastMeta = snap.data;
+                }
+                if (snap.connectionState == ConnectionState.waiting && meta == null) {
                   return const _HeroSkeleton(overlayHeight: _overlayHeight);
                 }
-
-                final _HeroMeta? meta = snap.data;
 
                 // Ordre de préférence du fond :
                 // 1) Poster TMDB sélectionné (no-lang → en → best)
@@ -513,8 +539,18 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
                             child: MoviPrimaryButton(
                               label: AppLocalizations.of(context)!.homeWatchNow,
                               assetIcon: AppAssets.iconPlay,
-                              onPressed: () =>
-                                  context.push(AppRouteNames.movie),
+                              onPressed: () {
+                                final m = widget.movie;
+                                if (m == null) return;
+                                final media = MoviMedia(
+                                  id: m.id.value,
+                                  title: m.title.display,
+                                  poster: m.poster,
+                                  year: m.releaseYear,
+                                  type: MoviMediaType.movie,
+                                );
+                                context.push(AppRouteNames.movie, extra: media);
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -536,6 +572,23 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
               },
             ),
     );
+  }
+
+  void _onLanguageChanged(String newLang) {
+    _cancelToken?.cancel('language_changed');
+    _langDebounce?.cancel();
+    _langDebounce = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      _cancelToken = CancelToken();
+      _lastLanguageCode = newLang;
+      final MovieSummary? m = widget.movie;
+      if (m == null) {
+        setState(() => _metaFuture = null);
+        return;
+      }
+      setState(() => _metaFuture = _loadMeta(m));
+      _hydrateMetaIfNeeded(m);
+    });
   }
 
   // ---------------------------------------------------------------------------

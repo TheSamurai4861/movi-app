@@ -23,9 +23,10 @@ Widget _buildPosterImage(Uri? poster, double width, double height) {
       height: height,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => placeholder,
-      // Supprime le loadingBuilder pour éviter des reconstructions fréquentes.
       gaplessPlayback: true,
       filterQuality: FilterQuality.low,
+      cacheWidth: (width * 2).toInt(),
+      cacheHeight: (height * 2).toInt(),
     );
   }
 
@@ -37,6 +38,8 @@ Widget _buildPosterImage(Uri? poster, double width, double height) {
     height: height,
     fit: BoxFit.cover,
     errorBuilder: (_, __, ___) => placeholder,
+    cacheWidth: (width * 2).toInt(),
+    cacheHeight: (height * 2).toInt(),
   );
 }
 
@@ -128,14 +131,7 @@ class _PosterWithOverlay extends StatelessWidget {
           left: 0,
           right: 0,
           child: Container(
-            height: height * 0.35,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0x00000000), Color(0xCC000000)],
-              ),
-            ),
+            height: height * 0.35
           ),
         ),
       ],

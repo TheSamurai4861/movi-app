@@ -1,31 +1,6 @@
 ================================================================================
-EXPORT CONTENU — 18 fichier(s)
+EXPORT CONTENU — 22 fichier(s)
 ================================================================================
-
---------------------------------------------------------------------------------
-FILE #12: main.dart
---------------------------------------------------------------------------------
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/app.dart';
-import 'package:movi/src/core/startup/app_startup_gate.dart';
-
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (FlutterErrorDetails details) {
-    debugPrint('FlutterError: ${details.exception}');
-  };
-  WidgetsBinding.instance.platformDispatcher.onError =
-      (Object error, StackTrace stack) {
-        debugPrint('DispatcherError: $error');
-        return true;
-      };
-  runApp(
-    const ProviderScope(
-      child: AppStartupGate(child: MyApp()),
-    ),
-  );
-}
 
 --------------------------------------------------------------------------------
 FILE #14: src/app.dart
@@ -72,481 +47,435 @@ class MyApp extends ConsumerWidget {
 }
 
 --------------------------------------------------------------------------------
-FILE #60: src/core/router/app_router.dart
+FILE #48: src/core/network/config/network_module.dart
 --------------------------------------------------------------------------------
-// lib/src/core/router/app_router.dart
+// lib/src/core/network/config/network_module.dart
+import 'package:dio/dio.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+
+import 'package:movi/src/core/config/config.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/network.dart';
+
+class NetworkModule {
+  static void register({LocaleCodeProvider? localeProvider}) {
+    if (!sl.isRegistered<AppConfig>()) {
+      throw StateError('AppConfig must be registered before NetworkModule.');
+    }
+
+    _ensureTmdbCacheDataSource();
+
+    final config = sl<AppConfig>();
+    final logger = sl<AppLogger>();
+    final secretStore = sl<SecretStore>();
+
+    final factory = HttpClientFactory(
+      config: config,
+      logger: logger,
+      localeProvider: localeProvider,
+      authTokenProvider: _buildTmdbTokenProvider(config.network, secretStore),
+    );
+
+    final dio = factory.create();
+    _replaceSingleton<Dio>(dio, (old) => old.close(force: true));
+    _replaceSingleton<NetworkExecutor>(
+      NetworkExecutor(dio, logger: logger),
+      (old) => old.dispose(),
+    );
+  }
+
+  static void _ensureTmdbCacheDataSource() {
+    if (!sl.isRegistered<TmdbCacheDataSource>()) {
+      sl.registerLazySingleton<TmdbCacheDataSource>(
+        () => TmdbCacheDataSource(sl<ContentCacheRepository>()),
+      );
+    }
+  }
+
+  static AuthTokenProvider? _buildTmdbTokenProvider(
+    NetworkEndpoints endpoints,
+    SecretStore secretStore,
+  ) {
+    final host = endpoints.resolvedTmdbBaseHost.toLowerCase();
+
+    return MemoizedTokenProvider(
+      loader: () async {
+        final configured = endpoints.tmdbApiKey?.trim();
+        if (configured != null && configured.isNotEmpty) {
+          if (_isV3Key(configured)) return null;
+          return configured;
+        }
+        final secret = await secretStore.read('TMDB_API_KEY');
+        if (secret == null || secret.isEmpty) return null;
+        if (_isV3Key(secret)) return null;
+        return secret;
+      },
+      appliesTo: (request) => request.uri.host.toLowerCase() == host,
+    );
+  }
+
+  static bool _isV3Key(String key) =>
+      !key.startsWith('eyJ') && key.length <= 64;
+
+  static void _replaceSingleton<T extends Object>(
+    T instance,
+    void Function(T old)? dispose,
+  ) {
+    if (sl.isRegistered<T>()) {
+      final old = sl<T>();
+      dispose?.call(old);
+      sl.unregister<T>();
+    }
+    sl.registerSingleton<T>(instance);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #52: src/core/network/interceptors/locale_interceptor.dart
+--------------------------------------------------------------------------------
+import 'package:dio/dio.dart';
+
+typedef LocaleCodeProvider = String? Function();
+
+class LocaleInterceptor extends Interceptor {
+  LocaleInterceptor({LocaleCodeProvider? localeProvider})
+    : _localeProvider = localeProvider;
+
+  final LocaleCodeProvider? _localeProvider;
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    final locale = _localeProvider?.call();
+    if (locale != null && locale.isNotEmpty) {
+      options.headers['Accept-Language'] = locale;
+    }
+    handler.next(options);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #58: src/core/preferences/locale_preferences.dart
+--------------------------------------------------------------------------------
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+/// Persisted locale preferences with change notifications.
+class LocalePreferences {
+  LocalePreferences._({
+    required FlutterSecureStorage storage,
+    required String storageKey,
+    required String languageCode,
+    required StreamController<String> languageController,
+    required String themeStorageKey,
+    required ThemeMode themeMode,
+    required StreamController<ThemeMode> themeController,
+  })  : _storage = storage,
+        _storageKey = storageKey,
+        _languageCode = languageCode,
+        _languageController = languageController,
+        _themeStorageKey = themeStorageKey,
+        _themeMode = themeMode,
+        _themeController = themeController;
+
+  static const String _defaultStorageKey = 'prefs.preferred_locale';
+
+  /// Builds a preferences instance by reading the persisted value from storage.
+  static Future<LocalePreferences> create({
+    FlutterSecureStorage? storage,
+    String defaultLanguageCode = 'en-US',
+    String storageKey = _defaultStorageKey,
+    String themeStorageKey = 'prefs.theme_mode',
+    ThemeMode defaultThemeMode = ThemeMode.system,
+  }) async {
+    final resolvedStorage = storage ?? const FlutterSecureStorage();
+    final normalizedDefault = _normalize(defaultLanguageCode) ?? 'en-US';
+    final persistedLang = await resolvedStorage.read(key: storageKey);
+    final initialLang = _normalize(persistedLang) ?? normalizedDefault;
+
+    final persistedThemeRaw = await resolvedStorage.read(key: themeStorageKey);
+    final initialTheme = _parseTheme(persistedThemeRaw) ?? defaultThemeMode;
+
+    return LocalePreferences._(
+      storage: resolvedStorage,
+      storageKey: storageKey,
+      languageCode: initialLang,
+      languageController: StreamController<String>.broadcast(),
+      themeStorageKey: themeStorageKey,
+      themeMode: initialTheme,
+      themeController: StreamController<ThemeMode>.broadcast(),
+    );
+  }
+
+  final FlutterSecureStorage _storage;
+  final String _storageKey;
+  final StreamController<String> _languageController;
+  String _languageCode;
+  final String _themeStorageKey;
+  final StreamController<ThemeMode> _themeController;
+  ThemeMode _themeMode;
+
+  /// Currently selected locale code (e.g., `en-US`).
+  String get languageCode => _languageCode;
+
+  /// Stream emitting whenever the language changes.
+  Stream<String> get languageStream => _languageController.stream;
+
+  ThemeMode get themeMode => _themeMode;
+
+  Stream<ThemeMode> get themeStream => _themeController.stream;
+
+  /// Persists and notifies a new language code.
+  Future<void> setLanguageCode(String code) async {
+    final normalized = _normalize(code);
+    if (normalized == null || normalized == _languageCode) return;
+    _languageCode = normalized;
+    await _storage.write(key: _storageKey, value: normalized);
+    if (!_languageController.isClosed) {
+      _languageController.add(normalized);
+    }
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (mode == _themeMode) return;
+    _themeMode = mode;
+    await _storage.write(key: _themeStorageKey, value: _stringifyTheme(mode));
+    if (!_themeController.isClosed) {
+      _themeController.add(mode);
+    }
+  }
+
+  /// Cleans up internal resources.
+  Future<void> dispose() async {
+    await _languageController.close();
+    await _themeController.close();
+  }
+
+  static String? _normalize(String? code) {
+    if (code == null) return null;
+    final trimmed = code.trim();
+    if (trimmed.isEmpty) return null;
+    return trimmed;
+  }
+
+  static ThemeMode? _parseTheme(String? raw) {
+    switch (raw?.trim().toLowerCase()) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      case 'system':
+        return ThemeMode.system;
+      default:
+        return null;
+    }
+  }
+
+  static String _stringifyTheme(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.dark:
+        return 'dark';
+      case ThemeMode.system:
+        return 'system';
+    }
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #69: src/core/state/app_state_controller.dart
+--------------------------------------------------------------------------------
+// lib/src/core/state/app_state_controller.dart
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:state_notifier/state_notifier.dart';
 
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/state/app_state.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/core/state/app_state_provider.dart';
-import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
-import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
-import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
-import 'package:movi/src/features/home/presentation/pages/home_page.dart';
-import 'package:movi/src/features/library/presentation/pages/library_page.dart';
-import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
-import 'package:movi/src/features/person/presentation/pages/person_detail_page.dart';
-import 'package:movi/src/features/saga/presentation/pages/saga_detail_page.dart';
-import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
-import 'package:movi/src/features/search/presentation/pages/search_page.dart';
-import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
-import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
-import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
-import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
-import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
-import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
 
-class AppRouteNames {
-  static const launch = '/launch';
-  static const welcome = '/welcome';
-  static const bootstrap = '/bootstrap';
-  static const home = '/';
-  static const search = '/search';
-  static const searchResults = '/search_results';
-  static const library = '/library';
-  static const settings = '/settings';
-  static const movie = '/movie';
-  static const person = '/person';
-  static const playlist = '/playlist';
-  static const category = '/category';
-  static const saga = '/saga';
-  static const tv = '/tv';
-}
+/// Contrôleur central de l'état applicatif.
+///
+/// - Expose un sous-ensemble d'accès en lecture seule pour éviter
+///   toute manipulation directe de `state` par l'extérieur.
+/// - Applique des mises à jour idempotentes (early-return) afin d'éviter
+///   des rebuilds inutiles.
+/// - Garantit l'immuabilité des collections exposées.
+class AppStateController extends StateNotifier<AppState> {
+  AppStateController(this._localePreferences)
+    : super(AppState(
+        preferredLocale: _localePreferences.languageCode,
+        themeMode: _localePreferences.themeMode,
+      ));
 
-GoRouter createRouter({
-  required AppStateController appStateController,
-  required AppLogger logger,
-  required IptvLocalRepository iptvRepository,
-}) => _RouterBundle(
-  appStateController: appStateController,
-  logger: logger,
-  iptvRepository: iptvRepository,
-).router;
+  final LocalePreferences _localePreferences;
+  StreamSubscription<String>? _localeSubscription;
+  StreamSubscription<ThemeMode>? _themeSubscription;
+  final StreamController<bool> _connectivityController =
+      StreamController<bool>.broadcast();
 
-final appRouterProvider = Provider<GoRouter>((ref) {
-  final appStateController = ref.watch(appStateControllerProvider);
-  final logger = ref.watch(slProvider)<AppLogger>();
-  final iptvRepository = ref.watch(slProvider)<IptvLocalRepository>();
+  Stream<bool> get connectivityStream => _connectivityController.stream;
 
-  final bundle = _RouterBundle(
-    appStateController: appStateController,
-    logger: logger,
-    iptvRepository: iptvRepository,
-  );
+  /// Identifiants des sources IPTV actives (ensemble non modifiable).
+  Set<String> get activeIptvSourceIds =>
+      Set.unmodifiable(state.activeIptvSources);
 
-  ref.onDispose(() {
-    bundle.router.dispose();
-    bundle.launchGuard.dispose();
-  });
+  /// Indique s'il existe au moins une source IPTV active.
+  bool get hasActiveIptvSources => state.activeIptvSources.isNotEmpty;
 
-  return bundle.router;
-});
+  bool get hasNoActiveIptvSources => state.activeIptvSources.isEmpty;
 
-class _RouterBundle {
-  _RouterBundle({
-    required AppStateController appStateController,
-    required AppLogger logger,
-    required IptvLocalRepository iptvRepository,
-  }) : launchGuard = _LaunchRedirectGuard(
-         logger: logger,
-         repository: iptvRepository,
-         appStateController: appStateController,
-       ) {
-    router = GoRouter(
-      initialLocation: AppRouteNames.launch,
-      refreshListenable: launchGuard,
-      redirect: launchGuard.handle,
-      routes: [
-        GoRoute(
-          path: AppRouteNames.launch,
-          name: 'launch',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: _LaunchGate()),
-        ),
-        GoRoute(
-          path: AppRouteNames.welcome,
-          name: 'welcome',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: WelcomeUserPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.bootstrap,
-          name: 'bootstrap',
-          pageBuilder: (context, state) => const CustomTransitionPage(
-            child: SplashBootstrapPage(),
-            transitionsBuilder: _fadeTransition,
-          ),
-        ),
-        GoRoute(
-          path: AppRouteNames.home,
-          name: 'home',
-          pageBuilder: (context, state) => const CustomTransitionPage(
-            child: HomePage(),
-            transitionsBuilder: _fadeTransition,
-          ),
-        ),
-        GoRoute(
-          path: AppRouteNames.search,
-          name: 'search',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: SearchPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.searchResults,
-          name: 'search_results',
-          pageBuilder: (context, state) {
-            final args = state.extra is SearchResultsPageArgs
-                ? state.extra as SearchResultsPageArgs
-                : null;
-            return MaterialPage(child: SearchResultsPage(args: args));
-          },
-        ),
-        GoRoute(
-          path: AppRouteNames.library,
-          name: 'library',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: LibraryPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.settings,
-          name: 'settings',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: SettingsPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.movie,
-          name: 'movie_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: MovieDetailPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.person,
-          name: 'person_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: PersonDetailPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.category,
-          name: 'category_page',
-          pageBuilder: (context, state) {
-            final args = state.extra is CategoryPageArgs
-                ? state.extra as CategoryPageArgs
-                : null;
-            return MaterialPage(child: CategoryPage(args: args));
-          },
-        ),
-        GoRoute(
-          path: AppRouteNames.saga,
-          name: 'saga_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: SagaDetailPage()),
-        ),
-        GoRoute(
-          path: AppRouteNames.tv,
-          name: 'tv_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: TvDetailPage()),
-        ),
-        GoRoute(
-          path: '/settings/iptv/connect',
-          name: 'iptv_connect',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: IptvConnectPage()),
-        ),
-      ],
-      errorPageBuilder: (context, state) => MaterialPage(
-        child: Scaffold(
-          body: Center(child: Text('Route introuvable: ${state.error}')),
-        ),
-      ),
-    );
+  String get preferredLocale => state.preferredLocale;
+  ThemeMode get themeMode => state.themeMode;
+
+  /// Définit le mode thème si celui-ci diffère de l'état courant.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    if (state.themeMode == mode) return;
+    await _localePreferences.setThemeMode(mode);
+    state = state.copyWith(themeMode: mode);
   }
 
-  late final GoRouter router;
-  final _LaunchRedirectGuard launchGuard;
-}
-
-Widget _fadeTransition(
-  BuildContext context,
-  Animation<double> animation,
-  Animation<double> secondaryAnimation,
-  Widget child,
-) {
-  return FadeTransition(opacity: animation, child: child);
-}
-
-class _LaunchGate extends StatelessWidget {
-  const _LaunchGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-  }
-}
-
-class _LaunchRedirectGuard extends ChangeNotifier {
-  _LaunchRedirectGuard({
-    required this.logger,
-    required this.repository,
-    required AppStateController appStateController,
-  }) : _appStateController = appStateController {
-    // addListener renvoie une fonction pour se désabonner, qu'on stocke
-    _removeAppStateListener = _appStateController.addListener(
-      _handleAppStateChange,
-    );
-  }
-
-  final AppLogger logger;
-  final IptvLocalRepository repository;
-  final AppStateController _appStateController;
-
-  bool? _hasAccounts;
-  bool _isResolving = false;
-
-  /// Fonction retournée par `addListener` pour annuler l'écoute.
-  late final void Function() _removeAppStateListener;
-
-  FutureOr<String?> handle(BuildContext context, GoRouterState state) {
-    final cached = _hasAccounts;
-
-    if (cached == null) {
-      _resolve();
-
-      // subloc a été renommé en matchedLocation dans go_router >= 8.1.0
-      // https://pub.dev/packages/go_router/changelog
-      final currentLocation = state.matchedLocation;
-      return currentLocation == AppRouteNames.launch
-          ? null
-          : AppRouteNames.launch;
-    }
-
-    final currentLocation = state.matchedLocation;
-
-    if (!cached) {
-      // Autoriser l’accès à la page de connexion IPTV même sans comptes
-      final allowIptvConnect = currentLocation == '/settings/iptv/connect';
-      if (currentLocation != AppRouteNames.welcome && !allowIptvConnect) {
-        return AppRouteNames.welcome;
-      }
-    }
-
-    if (cached &&
-        (currentLocation == AppRouteNames.launch ||
-            currentLocation == AppRouteNames.welcome)) {
-      return AppRouteNames.bootstrap;
-    }
-
-    return null;
-  }
-
-  void _handleAppStateChange(AppState state) {
-    if (state.activeIptvSources.isNotEmpty) {
-      if (_hasAccounts != true) {
-        _hasAccounts = true;
-        notifyListeners();
-      }
-    } else if (_hasAccounts == true) {
-      // on force une nouvelle résolution si les sources IPTV actives disparaissent
-      _hasAccounts = null;
-      notifyListeners();
+  /// Met à jour l'état de connectivité si celui-ci a changé.
+  void setConnectivity(bool isOnline) {
+    if (state.isOnline == isOnline) return;
+    state = state.copyWith(isOnline: isOnline);
+    if (!_connectivityController.isClosed) {
+      _connectivityController.add(isOnline);
     }
   }
 
-  void _resolve() {
-    if (_isResolving) return;
-    _isResolving = true;
+  /// Remplace la liste des sources IPTV actives (copie immuable, dédupliquée).
+  void setActiveIptvSources(Set<String> sources) {
+    final sanitized = sources
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
 
-    repository
-        .getAccounts()
-        .then((accounts) => accounts.isNotEmpty)
-        .then((value) {
-          _hasAccounts = value;
-        })
-        .catchError((error, stackTrace) {
-          logger.error('Launch redirect failed', error, stackTrace);
-          _hasAccounts = false;
-        })
-        .whenComplete(() {
-          _isResolving = false;
-          notifyListeners();
-        });
+    if (_setsEqual(state.activeIptvSources, sanitized)) return;
+
+    state = state.copyWith(activeIptvSources: Set.unmodifiable(sanitized));
+  }
+
+  /// Définit la langue préférée et la persiste via [LocalePreferences].
+  Future<void> setPreferredLocale(String locale) async {
+    final value = locale.trim();
+    if (value.isEmpty || state.preferredLocale == value) return;
+    await _localePreferences.setLanguageCode(value);
+    state = state.copyWith(preferredLocale: value);
+  }
+
+  /// Ajoute une source IPTV si absente.
+  void addIptvSource(String accountId) {
+    final id = accountId.trim();
+    if (id.isEmpty || state.activeIptvSources.contains(id)) return;
+    final updated = state.activeIptvSources.toSet()..add(id);
+    setActiveIptvSources(updated);
+  }
+
+  /// Retire une source IPTV si présente.
+  void removeIptvSource(String accountId) {
+    final id = accountId.trim();
+    if (id.isEmpty || !state.activeIptvSources.contains(id)) return;
+    final updated = state.activeIptvSources.toSet()..remove(id);
+    setActiveIptvSources(updated);
   }
 
   @override
   void dispose() {
-    // On se désabonne du StateNotifier proprement
-    _removeAppStateListener();
+    _localeSubscription?.cancel();
+    _themeSubscription?.cancel();
+    // Fire-and-forget la fermeture du StreamController
+    unawaited(_connectivityController.close());
     super.dispose();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  bool _setsEqual(Set<String> a, Set<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final value in a) {
+      if (!b.contains(value)) return false;
+    }
+    return true;
+  }
+
+  void attachLocaleStream() {
+    _localeSubscription?.cancel();
+    _themeSubscription?.cancel();
+    _localeSubscription = _localePreferences.languageStream.listen((code) {
+      if (code.isNotEmpty && code != state.preferredLocale) {
+        state = state.copyWith(preferredLocale: code);
+      }
+    });
+    _themeSubscription = _localePreferences.themeStream.listen((mode) {
+      if (mode != state.themeMode) {
+        state = state.copyWith(themeMode: mode);
+      }
+    });
   }
 }
 
 --------------------------------------------------------------------------------
-FILE #65: src/core/startup/app_startup_gate.dart
+FILE #70: src/core/state/app_state_provider.dart
 --------------------------------------------------------------------------------
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
-
-class AppStartupGate extends ConsumerWidget {
-  const AppStartupGate({super.key, required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(app_startup_provider.appStartupProvider);
-
-    // Flag compile-time pour diagnostiquer les IPA dev.
-    const bool forceStartupDetails =
-        bool.fromEnvironment('FORCE_STARTUP_DETAILS', defaultValue: false);
-
-    if (state.isLoading) {
-      debugPrint('[Startup] loading...');
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          backgroundColor: const Color.fromRGBO(20, 20, 20, 1),
-          body: const Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
-
-    if (state.hasError) {
-      final details = state.error.toString();
-      final showDetails = !kReleaseMode || forceStartupDetails;
-
-      // On tronque pour éviter un pavé illisible sur mobile.
-      final displayDetails = details.length > 400
-          ? '${details.substring(0, 400)}…'
-          : details;
-
-      debugPrint('[Startup] error: $details');
-
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          backgroundColor: const Color.fromRGBO(20, 20, 20, 1),
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Erreur au démarrage (config ou réseau)',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  if (showDetails) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      displayDetails,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => ref.refresh(app_startup_provider.appStartupProvider),
-                    child: const Text('Réessayer'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    debugPrint('[Startup] success, navigate to Home');
-    return child;
-  }
-}
-
---------------------------------------------------------------------------------
-FILE #66: src/core/startup/app_startup_provider.dart
---------------------------------------------------------------------------------
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/logging/logging_module.dart';
-import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 
-final appStartupProvider = FutureProvider<void>((ref) async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final loader = EnvironmentLoader();
-  registerEnvironmentLoader(loader);
-  final flavor = loader.load();
-  final requireTmdbKey = kReleaseMode && flavor.isProduction;
-  debugPrint('[Startup] flavor=${flavor.label} '
-      '(env: ${flavor.environment}) | requireTmdbKey=$requireTmdbKey');
-  debugPrint('avant registerConfig');
-  final config = await registerConfig(
-    flavor: flavor,
-    requireTmdbKey: requireTmdbKey,
-  );
-  debugPrint('après registerConfig OK');
-  debugPrint('avant initDependencies');
-  await initDependencies(
-    appConfig: config,
-    localeProvider: () => sl<LocalePreferences>().languageCode,
-  );
-  debugPrint('après initDependencies OK');
-  debugPrint('avant LoggingModule.register');
-  LoggingModule.register();
-  debugPrint('après LoggingModule.register OK');
+final appStateControllerProvider = Provider<AppStateController>(
+  (ref) => ref.watch(slProvider)<AppStateController>(),
+);
+
+final languageCodeStreamProvider = StreamProvider<String>((ref) {
+  final prefs = ref.watch(slProvider)<LocalePreferences>();
+  return prefs.languageStream;
 });
 
---------------------------------------------------------------------------------
-FILE #117: src/features/home/data/home_feed_data_module.dart
---------------------------------------------------------------------------------
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
-import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
-import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
-import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
-import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
-import 'package:movi/src/features/home/data/repositories/home_feed_repository_impl.dart';
-
-class HomeFeedDataModule {
-  static void register() {
-    if (sl.isRegistered<HomeFeedRepository>()) return;
-
-    sl.registerLazySingleton<HomeFeedRepository>(
-      () => HomeFeedRepositoryImpl(
-        sl<TmdbMovieRemoteDataSource>(),
-        sl<TmdbTvRemoteDataSource>(),
-        sl<IptvCatalogReader>(),
-        sl<MovieRepository>(),
-        sl<TvRepository>(),
-        sl<TmdbImageResolver>(),
-        sl<AppStateController>(),
-        sl<TmdbCacheDataSource>(),
-      ),
-    );
-  }
+Locale _parseLocale(String code) {
+  final parts = code.split('-');
+  final language = parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : 'en';
+  final country = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : 'US';
+  return Locale(language, country);
 }
+
+final currentLocaleProvider = Provider<Locale>((ref) {
+  final ctrl = ref.watch(appStateControllerProvider);
+  final code = ref
+      .watch(languageCodeStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => ctrl.preferredLocale);
+  return _parseLocale(code);
+});
+
+final currentLanguageCodeProvider = Provider<String>((ref) {
+  final ctrl = ref.watch(appStateControllerProvider);
+  final code = ref
+      .watch(languageCodeStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => ctrl.preferredLocale);
+  return code;
+});
+
+final themeModeStreamProvider = StreamProvider<ThemeMode>((ref) {
+  final prefs = ref.watch(slProvider)<LocalePreferences>();
+  return prefs.themeStream;
+});
+
+final currentThemeModeProvider = Provider<ThemeMode>((ref) {
+  final ctrl = ref.watch(appStateControllerProvider);
+  final mode = ref
+      .watch(themeModeStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => ctrl.themeMode);
+  return mode;
+});
 
 --------------------------------------------------------------------------------
 FILE #118: src/features/home/data/repositories/home_feed_repository_impl.dart
@@ -964,22 +893,6 @@ class _MovieLiteDto {
 }
 
 --------------------------------------------------------------------------------
-FILE #120: src/features/home/domain/usecases/load_home_continue_watching.dart
---------------------------------------------------------------------------------
-import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
-import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
-import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
-
-class LoadHomeContinueWatching {
-  const LoadHomeContinueWatching(this._repo);
-
-  final HomeFeedRepository _repo;
-
-  Future<List<MovieSummary>> movies() => _repo.getContinueWatchingMovies();
-  Future<List<TvShowSummary>> shows() => _repo.getContinueWatchingShows();
-}
-
---------------------------------------------------------------------------------
 FILE #121: src/features/home/domain/usecases/load_home_hero.dart
 --------------------------------------------------------------------------------
 import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
@@ -991,62 +904,6 @@ class LoadHomeHero {
   final HomeFeedRepository _repo;
 
   Future<List<MovieSummary>> call() => _repo.getHeroMovies();
-}
-
---------------------------------------------------------------------------------
-FILE #122: src/features/home/domain/usecases/load_home_iptv_sections.dart
---------------------------------------------------------------------------------
-import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-
-class LoadHomeIptvSections {
-  const LoadHomeIptvSections(this._repo);
-
-  final HomeFeedRepository _repo;
-
-  Future<Map<String, List<ContentReference>>> call() =>
-      _repo.getIptvCategoryLists();
-}
-
---------------------------------------------------------------------------------
-FILE #123: src/features/home/domain/usecases/refresh_home_feed.dart
---------------------------------------------------------------------------------
-import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
-import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
-import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-
-class RefreshHomeFeed {
-  const RefreshHomeFeed(this._repo);
-
-  final HomeFeedRepository _repo;
-
-  Future<RefreshResult> call() async {
-    final hero = await _repo.getHeroMovies();
-    final iptv = await _repo.getIptvCategoryLists();
-    final movies = await _repo.getContinueWatchingMovies();
-    final shows = await _repo.getContinueWatchingShows();
-    return RefreshResult(
-      hero: hero,
-      iptv: iptv,
-      cwMovies: movies,
-      cwShows: shows,
-    );
-  }
-}
-
-class RefreshResult {
-  const RefreshResult({
-    required this.hero,
-    required this.iptv,
-    required this.cwMovies,
-    required this.cwShows,
-  });
-
-  final List<MovieSummary> hero;
-  final Map<String, List<ContentReference>> iptv;
-  final List<MovieSummary> cwMovies;
-  final List<TvShowSummary> cwShows;
 }
 
 --------------------------------------------------------------------------------
@@ -1180,12 +1037,6 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
   @override
   void initState() {
     super.initState();
-    // Déclenche le chargement en post-frame pour éviter
-    // la modification de provider durant le build.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(ref.read(hp.homeControllerProvider.notifier).load());
-    });
   }
 
   bool _isScheduled = false;
@@ -1339,7 +1190,84 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
               if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
                 const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
 
-              if (state.iptvLists.isEmpty)
+              if (state.isLoading && state.iptvLists.isEmpty) ...[
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: '',
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    estimatedItemHeight: 270,
+                    items: List.generate(9, (i) {
+                      return SizedBox(
+                        width: _mediaCardWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SizedBox(
+                                width: _mediaCardWidth,
+                                height: 225,
+                                child: const ColoredBox(
+                                  color: Color(0xFF222222),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: _mediaCardWidth * 0.8,
+                              height: 16,
+                              child: const ColoredBox(
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+                SliverToBoxAdapter(
+                  child: MoviItemsList(
+                    title: '',
+                    itemSpacing: _itemSpacing,
+                    estimatedItemWidth: _mediaCardWidth,
+                    estimatedItemHeight: 270,
+                    items: List.generate(9, (i) {
+                      return SizedBox(
+                        width: _mediaCardWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: SizedBox(
+                                width: _mediaCardWidth,
+                                height: 225,
+                                child: const ColoredBox(
+                                  color: Color(0xFF222222),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: _mediaCardWidth * 0.8,
+                              height: 16,
+                              child: const ColoredBox(
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+              ] else if (state.iptvLists.isEmpty) ...[
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -1351,6 +1279,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     ),
                   ),
                 ),
+              ],
 
               // ===== Sections IPTV ===== (enrichissement à la volée)
               for (final entry in state.iptvLists.entries) ...[
@@ -1541,11 +1470,16 @@ class HomeController extends Notifier<HomeState> {
   }
 
   Future<void> load() async {
+    if (state.isLoading) return;
     state = state.copyWith(isLoading: true, error: null);
-    final hero = await _loadHero();
-    final iptv = await _loadIptv();
-    final movies = await _loadCw.movies();
-    final shows = await _loadCw.shows();
+    final heroF = _loadHero();
+    final iptvF = _loadIptv();
+    final moviesF = _loadCw.movies();
+    final showsF = _loadCw.shows();
+    final hero = await heroF;
+    final iptv = await iptvF;
+    final movies = await moviesF;
+    final shows = await showsF;
     state = state.copyWith(
       hero: hero,
       cwMovies: movies,
@@ -3476,6 +3410,1229 @@ String? _formatDuration(int? minutes) {
 }
 
 --------------------------------------------------------------------------------
+FILE #164: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+--------------------------------------------------------------------------------
+// lib/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+import 'package:dio/dio.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
+
+/// Remote data source pour les FILMS TMDB.
+/// - Tout l’I/O réseau + gestion d’erreurs est délégué à [TmdbClient].
+/// - Cette couche ne manipule **que** des `Map<String, dynamic>` décodés.
+/// - Aucune dépendance à `Response`, uniquement mapping en DTOs.
+class TmdbMovieRemoteDataSource {
+  const TmdbMovieRemoteDataSource(this._client);
+
+  final TmdbClient _client;
+
+  /// Détail léger (sans `append_to_response`).
+  Future<TmdbMovieDetailDto> fetchMovieLite(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/$id',
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final String title =
+        (json['title']?.toString() ?? json['original_title']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (title.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'movie/$id',
+        language: 'en-US',
+        cancelToken: cancelToken,
+      );
+      if (title.isEmpty) {
+        json['title'] = en['title'] ?? en['original_title'];
+        json['original_title'] = en['original_title'] ?? en['title'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
+    return TmdbMovieDetailDto.fromJson(json);
+  }
+
+  /// Alias de compatibilité vers [fetchMovieLite].
+  Future<TmdbMovieDetailDto> fetchMovie(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) {
+    return fetchMovieLite(id, language: language, cancelToken: cancelToken);
+  }
+
+  /// Détail complet avec `append_to_response` (images/credits/recommendations).
+  Future<TmdbMovieDetailDto> fetchMovieFull(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/$id',
+      query: const {'append_to_response': 'credits,recommendations'},
+      language: language,
+      cancelToken: cancelToken,
+    );
+
+    String imgLangs(String? code) {
+      final lang = (code ?? '').split('-').first.toLowerCase();
+      if (lang.isEmpty || lang == 'en') return 'null,en';
+      return '$lang,en,null';
+    }
+
+    final jsonImages = await _client.getJson(
+      'movie/$id/images',
+      query: {'include_image_language': imgLangs(language)},
+      cancelToken: cancelToken,
+    );
+
+    final String title =
+        (json['title']?.toString() ?? json['original_title']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (title.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'movie/$id',
+        query: const {'append_to_response': 'credits,recommendations'},
+        language: 'en-US',
+        cancelToken: cancelToken,
+      );
+      if (title.isEmpty) {
+        json['title'] = en['title'] ?? en['original_title'];
+        json['original_title'] = en['original_title'] ?? en['title'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
+
+    json['images'] = jsonImages;
+    return TmdbMovieDetailDto.fromJson(json);
+  }
+
+  /// Recherche de films (paginée côté TMDB).
+  Future<List<TmdbMovieSummaryDto>> searchMovies(
+    String query, {
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return const <TmdbMovieSummaryDto>[];
+    final json = await _client.getJson(
+      'search/movie',
+      query: {'query': q, 'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Films populaires (paginé).
+  Future<List<TmdbMovieSummaryDto>> fetchPopular({
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final json = await _client.getJson(
+      'movie/popular',
+      query: {'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <TmdbMovieSummaryDto>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbMovieSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Trending films (`window`: 'day' ou 'week').
+  Future<List<Map<String, dynamic>>> fetchTrendingMovies({
+    String window = 'week',
+    int page = 1,
+    String? language,
+    CancelToken? cancelToken,
+  }) async {
+    final normalizedWindow = (window == 'day') ? 'day' : 'week';
+    final json = await _client.getJson(
+      'trending/movie/$normalizedWindow',
+      query: {'page': page.clamp(1, 1000)},
+      language: language,
+      cancelToken: cancelToken,
+    );
+    final results = json['results'];
+    if (results is! List) return const <Map<String, dynamic>>[];
+    return results.whereType<Map<String, dynamic>>().toList(growable: false);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #167: src/features/movie/data/repositories/movie_repository_impl.dart
+--------------------------------------------------------------------------------
+import 'package:movi/src/features/movie/domain/entities/movie.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
+
+class MovieRepositoryImpl implements MovieRepository {
+  MovieRepositoryImpl(
+    this._remote,
+    this._images,
+    this._watchlist,
+    this._local,
+    this._continueWatching,
+    this._appState,
+  );
+
+  final TmdbMovieRemoteDataSource _remote;
+  final TmdbImageResolver _images;
+  final WatchlistLocalRepository _watchlist;
+  final MovieLocalDataSource _local;
+  final ContinueWatchingLocalRepository _continueWatching;
+  final AppStateController _appState;
+
+  @override
+  Future<Movie> getMovie(MovieId id) async {
+    final movieId = int.parse(id.value);
+    final cached = await _local.getMovieDetail(movieId);
+    if (cached != null) {
+      return _mapDetail(cached);
+    }
+    final remote = await _remote.fetchMovie(
+      movieId,
+      language: _appState.preferredLocale,
+    );
+    await _local.saveMovieDetail(dto: remote);
+    return _mapDetail(remote);
+  }
+
+  @override
+  Future<List<PersonSummary>> getCredits(MovieId id) async {
+    final dto = await getMovie(id);
+    return dto.cast;
+  }
+
+  @override
+  Future<List<MovieSummary>> getRecommendations(MovieId id) async {
+    final movieId = int.parse(id.value);
+    final cached = await _local.getRecommendations(movieId);
+    if (cached != null && cached.isNotEmpty) {
+      return cached.map(_mapSummary).whereType<MovieSummary>().toList();
+    }
+    final dto = await _remote.fetchMovie(
+      movieId,
+      language: _appState.preferredLocale,
+    );
+    final recommendations = dto.recommendations;
+    await _local.saveRecommendations(
+      movieId: movieId,
+      summaries: recommendations,
+    );
+    return recommendations.map(_mapSummary).whereType<MovieSummary>().toList();
+  }
+
+  @override
+  Future<List<MovieSummary>> getContinueWatching() async {
+    final entries = await _continueWatching.readAll(ContentType.movie);
+    return entries
+        .where((e) => e.poster != null)
+        .map(
+          (e) => MovieSummary(
+            id: MovieId(e.contentId),
+            title: MediaTitle(e.title),
+            poster: e.poster!,
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  Future<List<MovieSummary>> searchMovies(String query) async {
+    final results = await _remote.searchMovies(
+      query,
+      language: _appState.preferredLocale,
+    );
+    return results.map(_mapSummary).whereType<MovieSummary>().toList();
+  }
+
+  @override
+  Future<bool> isInWatchlist(MovieId id) async =>
+      _watchlist.exists(id.value, ContentType.movie);
+
+  @override
+  Future<void> setWatchlist(MovieId id, {required bool saved}) async {
+    if (saved) {
+      final summary = await getMovie(id);
+      await _watchlist.upsert(
+        WatchlistEntry(
+          contentId: id.value,
+          type: ContentType.movie,
+          title: summary.title.value,
+          poster: summary.poster,
+          addedAt: DateTime.now(),
+        ),
+      );
+    } else {
+      await _watchlist.remove(id.value, ContentType.movie);
+    }
+  }
+
+  Movie _mapDetail(TmdbMovieDetailDto dto) {
+    final poster = _images.poster(dto.posterPath, size: 'w342');
+    final backdrop = _images.backdrop(dto.backdropPath);
+    if (poster == null) {
+      throw StateError('Movie ${dto.id} missing poster');
+    }
+    return Movie(
+      id: MovieId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.title),
+      synopsis: Synopsis(dto.overview),
+      duration: Duration(minutes: dto.runtime ?? 0),
+      poster: poster,
+      backdrop: backdrop,
+      releaseDate:
+          _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      rating: _mapRating(dto.voteAverage),
+      genres: dto.genres,
+      cast: dto.cast.take(10).map(_mapCast).toList(),
+      directors: dto.directors
+          .map(
+            (crew) => PersonSummary(
+              id: PersonId(crew.id.toString()),
+              tmdbId: crew.id,
+              name: crew.name,
+            ),
+          )
+          .toList(),
+      tags: dto.genres,
+      sagaLink: _mapSagaLink(dto),
+    );
+  }
+
+  SagaSummary? _mapSagaLink(TmdbMovieDetailDto dto) {
+    final col = dto.belongsToCollection;
+    if (col == null) return null;
+    final cover = _images.poster(col.posterPath);
+    return SagaSummary(
+      id: SagaId(col.id.toString()),
+      tmdbId: col.id,
+      title: MediaTitle(col.name),
+      cover: cover,
+      itemCount: null,
+    );
+  }
+
+  PersonSummary _mapCast(TmdbMovieCastDto cast) {
+    return PersonSummary(
+      id: PersonId(cast.id.toString()),
+      tmdbId: cast.id,
+      name: cast.name,
+      role: cast.character,
+      photo: _images.poster(cast.profilePath),
+    );
+  }
+
+  MovieSummary? _mapSummary(TmdbMovieSummaryDto summary) {
+    final poster = _images.poster(summary.posterPath, size: 'w342');
+    if (poster == null) return null;
+    return MovieSummary(
+      id: MovieId(summary.id.toString()),
+      tmdbId: summary.id,
+      title: MediaTitle(summary.title),
+      poster: poster,
+      backdrop: _images.backdrop(summary.backdropPath),
+      releaseYear: _parseDate(summary.releaseDate)?.year,
+      tags: const [],
+    );
+  }
+
+  DateTime? _parseDate(String? date) {
+    if (date == null || date.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(date);
+  }
+
+  ContentRating? _mapRating(double? voteAverage) {
+    if (voteAverage == null) return null;
+    if (voteAverage >= 8.0) return ContentRating.pg13;
+    if (voteAverage >= 5.0) return ContentRating.pg;
+    return ContentRating.unrated;
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #170: src/features/movie/domain/entities/movie_summary.dart
+--------------------------------------------------------------------------------
+import 'package:equatable/equatable.dart';
+
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+
+class MovieSummary extends Equatable {
+  const MovieSummary({
+    required this.id,
+    this.tmdbId,
+    required this.title,
+    required this.poster,
+    this.backdrop,
+    this.releaseYear,
+    this.tags = const [],
+  });
+
+  final MovieId id;
+  final int? tmdbId;
+  final MediaTitle title;
+  final Uri poster;
+  final Uri? backdrop;
+  final int? releaseYear;
+  final List<String> tags;
+
+  @override
+  List<Object?> get props => [
+    id,
+    tmdbId,
+    title,
+    poster,
+    backdrop,
+    releaseYear,
+    tags,
+  ];
+}
+
+--------------------------------------------------------------------------------
+FILE #252: src/features/settings/domain/entities/user_preferences.dart
+--------------------------------------------------------------------------------
+import 'package:equatable/equatable.dart';
+
+enum ThemePreference { system, light, dark }
+
+enum LanguagePreference { system, en, fr, es }
+
+enum NotificationFrequency { none, importantOnly, all }
+
+class UserPreferences extends Equatable {
+  const UserPreferences({
+    required this.theme,
+    required this.language,
+    required this.notifications,
+    required this.autoplayNext,
+  });
+
+  final ThemePreference theme;
+  final LanguagePreference language;
+  final NotificationFrequency notifications;
+  final bool autoplayNext;
+
+  UserPreferences copyWith({
+    ThemePreference? theme,
+    LanguagePreference? language,
+    NotificationFrequency? notifications,
+    bool? autoplayNext,
+  }) {
+    return UserPreferences(
+      theme: theme ?? this.theme,
+      language: language ?? this.language,
+      notifications: notifications ?? this.notifications,
+      autoplayNext: autoplayNext ?? this.autoplayNext,
+    );
+  }
+
+  @override
+  List<Object?> get props => [theme, language, notifications, autoplayNext];
+}
+
+--------------------------------------------------------------------------------
+FILE #263: src/features/settings/domain/value_objects/language_code.dart
+--------------------------------------------------------------------------------
+class LanguageCode {
+  const LanguageCode._(this.value);
+
+  final String value;
+
+  static LanguageCode? tryParse(String input) {
+    final v = input.trim().toLowerCase();
+    if (v.isEmpty || v.length > 10) return null;
+    return LanguageCode._(v);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #266: src/features/settings/presentation/pages/settings_page.dart
+--------------------------------------------------------------------------------
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/l10n/app_localizations.dart';
+
+class SettingsPage extends ConsumerStatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends ConsumerState<SettingsPage> {
+  static const List<(String code, String label)> _languages = <(String, String)>[
+    ('en-US', 'English (United States)'),
+    ('fr-FR', 'Français (France)'),
+    ('es-ES', 'Español (España)'),
+    ('nl-NL', 'Nederlands (Nederland)'),
+    ('it-IT', 'Italiano (Italia)'),
+  ];
+
+  String _labelFor(String code) {
+    final entry = _languages.firstWhere(
+      (e) => e.$1.toLowerCase() == code.toLowerCase(),
+      orElse: () => (code, code),
+    );
+    return entry.$2;
+  }
+
+  Future<void> _pickLanguage(BuildContext context, String current) async {
+    final initialIndex = _languages.indexWhere(
+      (e) => e.$1.toLowerCase() == current.toLowerCase(),
+    );
+    int selected = initialIndex >= 0 ? initialIndex : 0;
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) {
+        return Container(
+          height: 250,
+          color: Colors.black,
+          child: Column(
+            children: [
+              SizedBox(
+                height: 200,
+                child: CupertinoPicker(
+                  itemExtent: 44,
+                  scrollController: FixedExtentScrollController(
+                    initialItem: selected,
+                  ),
+                  onSelectedItemChanged: (i) => selected = i,
+                  children: _languages
+                      .map(
+                        (e) => Center(
+                          child: Text(
+                            e.$2,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              SizedBox(
+                height: 50,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    CupertinoButton(
+                      child: Text(AppLocalizations.of(ctx)!.actionCancel),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                    CupertinoButton(
+                      child: Text(AppLocalizations.of(ctx)!.actionConfirm),
+                      onPressed: () async {
+                        final code = _languages[selected].$1;
+                        Navigator.of(ctx).pop();
+                        await ref
+                            .read(appStateControllerProvider)
+                            .setPreferredLocale(code);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentCode = ref.watch(currentLanguageCodeProvider);
+    return Scaffold(
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settingsTitle)),
+      body: SafeArea(
+        child: ListView(
+          padding: AppSpacing.page,
+          children: [
+            Text(AppLocalizations.of(context)!.settingsGeneralTitle, style: context.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            SwitchListTile(
+              value: ref.watch(currentThemeModeProvider) == ThemeMode.dark,
+              title: Text(AppLocalizations.of(context)!.settingsDarkModeTitle),
+              subtitle: Text(AppLocalizations.of(context)!.settingsDarkModeSubtitle),
+              onChanged: (enabled) {
+                final mode = enabled ? ThemeMode.dark : ThemeMode.light;
+                unawaited(ref.read(appStateControllerProvider).setThemeMode(mode));
+              },
+            ),
+            SwitchListTile(
+              value: false,
+              title: Text(AppLocalizations.of(context)!.settingsNotificationsTitle),
+              subtitle: Text(AppLocalizations.of(context)!.settingsNotificationsSubtitle),
+              onChanged: (_) {},
+            ),
+            const Divider(height: AppSpacing.sectionGap),
+            Text(AppLocalizations.of(context)!.settingsAccountTitle, style: context.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            ListTile(
+              leading: Icon(Icons.person_outline),
+              title: Text(AppLocalizations.of(context)!.settingsProfileInfoTitle),
+              subtitle: Text(AppLocalizations.of(context)!.settingsProfileInfoSubtitle),
+              trailing: Icon(Icons.chevron_right),
+            ),
+            ListTile(
+              leading: const Icon(Icons.language),
+              title: Text(AppLocalizations.of(context)!.settingsLanguageLabel),
+              subtitle: Text(_labelFor(currentCode)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _pickLanguage(context, currentCode),
+            ),
+            const Divider(height: AppSpacing.sectionGap),
+            Text(AppLocalizations.of(context)!.settingsAboutTitle, style: context.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.sm),
+            ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text(AppLocalizations.of(context)!.settingsLegalMentionsTitle),
+              trailing: Icon(Icons.chevron_right),
+            ),
+            ListTile(
+              leading: Icon(Icons.lock_outline),
+              title: Text(AppLocalizations.of(context)!.settingsPrivacyPolicyTitle),
+              trailing: Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #270: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
+--------------------------------------------------------------------------------
+// lib/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
+import 'package:dio/dio.dart';
+
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
+
+/// Remote data source pour les séries TV TMDB.
+/// - I/O réseau délégué à [TmdbClient] (qui force la clé de concurrence "tmdb").
+/// - Parsing strict en DTOs, sans manipuler directement `Response`.
+/// - Stratégie "lite-first" : payload minimal en liste, payload complet à l’ouverture de la fiche.
+class TmdbTvRemoteDataSource {
+  TmdbTvRemoteDataSource(this._client);
+
+  final TmdbClient _client;
+
+  /// Raccourci historique — conserve la compat API, mais opte pour la version lite.
+  Future<TmdbTvDetailDto> fetchShow(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+  }) => fetchShowLite(id, language: language, cancelToken: cancelToken);
+
+  /// Détail **léger** d’une série (sans `append_to_response`) pour l’enrichissement en liste.
+  Future<TmdbTvDetailDto> fetchShowLite(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final json = await _client.getJson(
+      'tv/$id',
+      language: language,
+      cancelToken: cancelToken,
+      retries: retries,
+      // cacheTtl: Duration(seconds: 45), // optionnel : TTL custom (sinon défaut executor)
+    );
+    final String name =
+        (json['name']?.toString() ?? json['original_name']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (name.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'tv/$id',
+        language: 'en-US',
+        cancelToken: cancelToken,
+        retries: retries,
+      );
+      if (name.isEmpty) {
+        json['name'] = en['name'] ?? en['original_name'];
+        json['original_name'] = en['original_name'] ?? en['name'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
+    return TmdbTvDetailDto.fromJson(json);
+  }
+
+  /// Détail **complet** d’une série, pour la page fiche.
+  /// Ajoute images, crédits, recommandations et content_ratings (utile pour les badges).
+  Future<TmdbTvDetailDto> fetchShowFull(
+    int id, {
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final json = await _client.getJson(
+      'tv/$id',
+      language: language,
+      query: const {
+        'append_to_response':
+            'images,credits,recommendations,content_ratings,external_ids',
+        'include_image_language': 'fr,en,null',
+      },
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final String name =
+        (json['name']?.toString() ?? json['original_name']?.toString() ?? '')
+            .trim();
+    final String overview = (json['overview']?.toString() ?? '').trim();
+    if (name.isEmpty || overview.isEmpty) {
+      final en = await _client.getJson(
+        'tv/$id',
+        language: 'en-US',
+        query: const {
+          'append_to_response':
+              'images,credits,recommendations,content_ratings,external_ids',
+          'include_image_language': 'fr,en,null',
+        },
+        cancelToken: cancelToken,
+        retries: retries,
+      );
+      if (name.isEmpty) {
+        json['name'] = en['name'] ?? en['original_name'];
+        json['original_name'] = en['original_name'] ?? en['name'];
+      }
+      if (overview.isEmpty) {
+        json['overview'] = en['overview'];
+      }
+    }
+    return TmdbTvDetailDto.fromJson(json);
+  }
+
+  /// Détail d’une **saison** (payload modéré).
+  Future<TmdbTvSeasonDetailDto> fetchSeason(
+    int showId,
+    int seasonNumber, {
+    String? language,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final json = await _client.getJson(
+      'tv/$showId/season/$seasonNumber',
+      language: language,
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    return TmdbTvSeasonDetailDto.fromJson(json);
+  }
+
+  /// Recherche de séries — renvoie une liste de résumés.
+  Future<List<TmdbTvSummaryDto>> searchShows(
+    String query, {
+    String? language,
+    int page = 1,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return const <TmdbTvSummaryDto>[];
+
+    final safePage = page < 1 ? 1 : page;
+    final json = await _client.getJson(
+      'search/tv',
+      language: language,
+      query: {'query': q, 'page': safePage},
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final results = (json['results'] as List<dynamic>? ?? const []);
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbTvSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// Liste des séries populaires (résumés).
+  Future<List<TmdbTvSummaryDto>> fetchPopular({
+    String? language,
+    int page = 1,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final json = await _client.getJson(
+      'tv/popular',
+      language: language,
+      query: {'page': safePage},
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final results = (json['results'] as List<dynamic>? ?? const []);
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbTvSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+
+  /// (Optionnel) Autres endpoints utiles si besoin de diversité :
+  /// - tv/top_rated
+  /// - tv/airing_today
+  /// - tv/on_the_air
+  Future<List<TmdbTvSummaryDto>> fetchTopRated({
+    String? language,
+    int page = 1,
+    CancelToken? cancelToken,
+    int retries = 1,
+  }) async {
+    final safePage = page < 1 ? 1 : page;
+    final json = await _client.getJson(
+      'tv/top_rated',
+      language: language,
+      query: {'page': safePage},
+      cancelToken: cancelToken,
+      retries: retries,
+    );
+    final results = (json['results'] as List<dynamic>? ?? const []);
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(TmdbTvSummaryDto.fromJson)
+        .toList(growable: false);
+  }
+}
+
+--------------------------------------------------------------------------------
+FILE #274: src/features/tv/data/repositories/tv_repository_impl.dart
+--------------------------------------------------------------------------------
+// lib/src/features/tv/data/repositories/tv_repository_impl.dart
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
+
+/// Implémentation du repository TV.
+/// Stratégie:
+/// - **Lite-first** pour les listes (popular/search via remote summaries)
+/// - **Full-on-demand** pour la fiche (fetchShowFull + saisons)
+/// - **Cache local** (TvLocalDataSource) pour show/season si disponible
+/// - Mapping strict, images via [TmdbImageResolver]
+class TvRepositoryImpl implements TvRepository {
+  TvRepositoryImpl(
+    this._remote,
+    this._images,
+    this._watchlist,
+    this._local,
+    this._continueWatching,
+    this._appState,
+  );
+
+  final TmdbTvRemoteDataSource _remote;
+  final TmdbImageResolver _images;
+  final WatchlistLocalRepository _watchlist;
+  final TvLocalDataSource _local;
+  final ContinueWatchingLocalRepository _continueWatching;
+  final AppStateController _appState;
+
+  // Concurrence bornée pour le chargement des saisons (évite de spam TMDB)
+  static const int _maxConcurrentSeasons = 4;
+
+  @override
+  Future<TvShow> getShow(SeriesId id) async {
+    final int showId = int.parse(id.value);
+
+    // 1) Détail complet (cache → réseau)
+    final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
+
+    // 2) Détails de saisons (cache → réseau) avec concurrence bornée
+    final Map<int, TmdbTvSeasonDetailDto> seasonDetails =
+        await _loadSeasonsBatched(showId, detail.seasons);
+
+    // 3) Mapping
+    return _mapShow(detail, seasonDetails);
+  }
+
+  @override
+  Future<List<Season>> getSeasons(SeriesId id) async {
+    final int showId = int.parse(id.value);
+    final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
+    final Map<int, TmdbTvSeasonDetailDto> seasonDetails =
+        await _loadSeasonsBatched(showId, detail.seasons);
+    return _mapSeasons(detail.seasons, seasonDetails);
+  }
+
+  @override
+  Future<List<Episode>> getEpisodes(SeriesId id, SeasonId seasonId) async {
+    final int showId = int.parse(id.value);
+    final int seasonNumber = int.parse(seasonId.value);
+    final TmdbTvSeasonDetailDto season = await _loadSeasonDto(
+      showId,
+      seasonNumber,
+    );
+    return _mapEpisodes(season);
+  }
+
+  @override
+  Future<List<TvShowSummary>> getFeaturedShows() async {
+    // Popular = payload léger (résumés) → parfait pour la Home
+    final List<TmdbTvSummaryDto> popular = await _remote.fetchPopular(
+      language: _appState.preferredLocale,
+    );
+    return popular
+        .map(_mapSummary)
+        .whereType<TvShowSummary>()
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<TvShowSummary>> getUserWatchlist() async {
+    final entries = await _watchlist.readAll(ContentType.series);
+    return entries
+        .where((e) => e.poster != null)
+        .map(
+          (e) => TvShowSummary(
+            id: SeriesId(e.contentId),
+            tmdbId: int.tryParse(e.contentId),
+            title: MediaTitle(e.title),
+            poster: e.poster!,
+            backdrop: null,
+            seasonCount: null,
+            status: null,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<TvShowSummary>> getContinueWatching() async {
+    final entries = await _continueWatching.readAll(ContentType.series);
+    return entries
+        .where((e) => e.poster != null)
+        .map(
+          (e) => TvShowSummary(
+            id: SeriesId(e.contentId),
+            tmdbId: int.tryParse(e.contentId),
+            title: MediaTitle(e.title),
+            poster: e.poster!,
+            backdrop: null,
+            seasonCount: null,
+            status: null,
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<TvShowSummary>> searchShows(String query) async {
+    final List<TmdbTvSummaryDto> results = await _remote.searchShows(
+      query,
+      language: _appState.preferredLocale,
+    );
+    return results
+        .map(_mapSummary)
+        .whereType<TvShowSummary>()
+        .toList(growable: false);
+  }
+
+  @override
+  Future<bool> isInWatchlist(SeriesId id) =>
+      _watchlist.exists(id.value, ContentType.series);
+
+  @override
+  Future<void> setWatchlist(SeriesId id, {required bool saved}) async {
+    if (saved) {
+      final show = await getShow(id);
+      await _watchlist.upsert(
+        WatchlistEntry(
+          contentId: id.value,
+          type: ContentType.series,
+          title: show.title.value,
+          poster: show.poster,
+          addedAt: DateTime.now(),
+        ),
+      );
+    } else {
+      await _watchlist.remove(id.value, ContentType.series);
+    }
+  }
+
+  // --------- Chargement & cache ---------
+
+  Future<TmdbTvDetailDto> _loadShowDtoFull(int showId) async {
+    // Essaye cache local (peut déjà contenir un "full")
+    final cached = await _local.getShowDetail(showId);
+    if (cached != null) {
+      // Détection FULL sans getter: présence de champs append_to_response
+      final bool hasFull =
+          (cached.logoPath != null) ||
+          cached.cast.isNotEmpty ||
+          cached.recommendations.isNotEmpty;
+      if (hasFull) return cached;
+    }
+
+    // Sinon, charge en "full" depuis TMDB
+    final CancelToken token = CancelToken();
+    final remote = await _remote.fetchShowFull(
+      showId,
+      language: _appState.preferredLocale,
+      cancelToken: token,
+    );
+
+    // Sauvegarde (remplace/complète)
+    await _local.saveShowDetail(remote);
+    return remote;
+  }
+
+  Future<Map<int, TmdbTvSeasonDetailDto>> _loadSeasonsBatched(
+    int showId,
+    List<TmdbTvSeasonDto> seasons,
+  ) async {
+    // Trie par numéro et ignore les numéros négatifs (cas spéciaux)
+    final filtered = seasons.where((s) => s.seasonNumber >= 0).toList()
+      ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
+
+    final results = <int, TmdbTvSeasonDetailDto>{};
+    // Exécute par batches pour limiter la concurrence
+    List<Future<void>> batch = [];
+    for (final season in filtered) {
+      batch.add(
+        _loadSeasonDto(showId, season.seasonNumber).then((dto) {
+          results[season.seasonNumber] = dto;
+        }),
+      );
+      if (batch.length >= _maxConcurrentSeasons) {
+        await Future.wait(batch);
+        batch = [];
+      }
+    }
+    if (batch.isNotEmpty) {
+      await Future.wait(batch);
+    }
+
+    // Complète avec placeholders si manque
+    for (final s in filtered) {
+      results.putIfAbsent(s.seasonNumber, () => _emptySeasonDetail(s));
+    }
+    return results;
+  }
+
+  Future<TmdbTvSeasonDetailDto> _loadSeasonDto(
+    int showId,
+    int seasonNumber,
+  ) async {
+    final cached = await _local.getSeason(showId, seasonNumber);
+    if (cached != null) return cached;
+
+    final CancelToken token = CancelToken();
+    final remote = await _remote.fetchSeason(
+      showId,
+      seasonNumber,
+      language: _appState.preferredLocale,
+      cancelToken: token,
+    );
+    await _local.saveSeason(showId, seasonNumber, remote);
+    return remote;
+  }
+
+  // --------- Mapping ---------
+
+  TvShow _mapShow(
+    TmdbTvDetailDto dto,
+    Map<int, TmdbTvSeasonDetailDto> seasonDetails,
+  ) {
+    final poster = _images.poster(dto.posterPath, size: 'w342');
+    if (poster == null) {
+      // On évite un crash dur : valeur sûre minimale
+      throw StateError('TV show ${dto.id} missing poster');
+    }
+
+    return TvShow(
+      id: SeriesId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.name),
+      synopsis: Synopsis(dto.overview),
+      poster: poster,
+      backdrop: _images.backdrop(dto.backdropPath),
+      firstAirDate: _parseDate(dto.firstAirDate),
+      lastAirDate: _parseDate(dto.lastAirDate),
+      status: _mapStatus(dto.status),
+      rating: _mapRating(dto.voteAverage),
+      genres: dto.genres,
+      cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
+      creators: dto.creators
+          .map(
+            (c) => PersonSummary(
+              id: PersonId(c.id.toString()),
+              tmdbId: c.id,
+              name: c.name,
+            ),
+          )
+          .toList(growable: false),
+      seasons: _mapSeasons(dto.seasons, seasonDetails),
+    );
+  }
+
+  List<Season> _mapSeasons(
+    List<TmdbTvSeasonDto> seasons,
+    Map<int, TmdbTvSeasonDetailDto> details,
+  ) {
+    return seasons
+        .map((season) {
+          final detail =
+              details[season.seasonNumber] ?? _emptySeasonDetail(season);
+          return Season(
+            id: SeasonId(season.seasonNumber.toString()),
+            seasonNumber: season.seasonNumber,
+            title: MediaTitle(season.name),
+            overview: season.overview.isEmpty
+                ? null
+                : Synopsis(season.overview),
+            poster: _images.poster(season.posterPath),
+            episodes: _mapEpisodes(detail),
+            airDate: _parseDate(season.airDate),
+          );
+        })
+        .toList(growable: false);
+  }
+
+  List<Episode> _mapEpisodes(TmdbTvSeasonDetailDto detail) {
+    return detail.episodes
+        .map(
+          (ep) => Episode(
+            id: EpisodeId(ep.id.toString()),
+            episodeNumber: ep.episodeNumber,
+            title: MediaTitle(ep.name),
+            overview: ep.overview.isEmpty ? null : Synopsis(ep.overview),
+            runtime: ep.runtime != null ? Duration(minutes: ep.runtime!) : null,
+            airDate: _parseDate(ep.airDate),
+            still: _images.still(ep.stillPath),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  TmdbTvSeasonDetailDto _emptySeasonDetail(TmdbTvSeasonDto season) {
+    return TmdbTvSeasonDetailDto(
+      id: season.id,
+      name: season.name,
+      airDate: season.airDate,
+      episodes: const [],
+    );
+  }
+
+  TvShowSummary? _mapSummary(TmdbTvSummaryDto dto) {
+    final poster = _images.poster(dto.posterPath, size: 'w342');
+    if (poster == null) return null;
+    return TvShowSummary(
+      id: SeriesId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.name),
+      poster: poster,
+      backdrop: _images.backdrop(dto.backdropPath),
+      seasonCount: null,
+      status: null,
+    );
+    // NOTE: si besoin, on pourrait enrichir rapidement seasonCount/status
+    // via un hit "lite" mais ce n’est pas requis pour la Home.
+  }
+
+  PersonSummary _mapCast(TmdbTvCastDto cast) {
+    return PersonSummary(
+      id: PersonId(cast.id.toString()),
+      tmdbId: cast.id,
+      name: cast.name,
+      role: cast.character,
+      photo: _images.poster(cast.profilePath),
+    );
+  }
+
+  DateTime? _parseDate(String? date) =>
+      (date == null || date.isEmpty) ? null : DateTime.tryParse(date);
+
+  SeriesStatus? _mapStatus(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'ended':
+        return SeriesStatus.ended;
+      case 'returning series':
+      case 'in production':
+        return SeriesStatus.ongoing;
+      case 'canceled':
+        return SeriesStatus.hiatus;
+      default:
+        return null;
+    }
+  }
+
+  // Heuristique simple basée sur la note TMDB → catégorisation locale
+  ContentRating? _mapRating(double? voteAverage) {
+    if (voteAverage == null) return null;
+    if (voteAverage >= 8.0) return ContentRating.pg13;
+    if (voteAverage >= 5.0) return ContentRating.pg;
+    return ContentRating.unrated;
+  }
+}
+
+--------------------------------------------------------------------------------
 FILE #302: src/shared/data/services/tmdb_cache_data_source.dart
 --------------------------------------------------------------------------------
 // ignore_for_file: public_member_api_docs
@@ -3878,163 +5035,5 @@ class TmdbClientError implements Exception {
     if (uri != null) b.write(' uri=$uri');
     return b.toString();
   }
-}
-
---------------------------------------------------------------------------------
-FILE #304: src/shared/data/services/tmdb_image_resolver.dart
---------------------------------------------------------------------------------
-// ignore_for_file: public_member_api_docs
-
-/// TMDB Image URL resolver.
-/// Responsabilité unique : convertir un `file_path` TMDB (ex: `/abc.jpg`)
-/// en `Uri` consommable par l’application, avec gestion des tailles.
-///
-/// Règles :
-/// - Si `path` est `null`, vide ou égal à la chaîne `"null"`, retourne `null`.
-/// - Si `path` est déjà une URL absolue (http/https), elle est retournée telle quelle.
-/// - Sinon on préfixe avec `baseUrl` et une taille valide (ex: `w500`, `w780`, `original`).
-///
-/// Bonnes pratiques :
-/// - Utiliser des tailles cohérentes par type d’image (défauts fournis).
-/// - Éviter `original` sur mobile/desktop si la performance mémoire est critique.
-class TmdbImageResolver {
-  const TmdbImageResolver({this.baseUrl = 'https://image.tmdb.org/t/p/'});
-
-  /// Base URL du CDN TMDB (se termine toujours par `/t/p/`).
-  final String baseUrl;
-
-  /// Construit l’URL d’un poster (portrait).
-  /// Taille par défaut : `w342`.
-  Uri? poster(String? path, {String size = 'w342'}) =>
-      _build(path, _sanitizeSize(size, fallback: 'w342'));
-
-  /// Construit l’URL d’un backdrop (paysage).
-  /// Taille par défaut : `w780`.
-  Uri? backdrop(String? path, {String size = 'w780'}) =>
-      _build(path, _sanitizeSize(size, fallback: 'w780'));
-
-  Uri? heroPoster(
-    String? posterPath,
-    String? backdropPath, {
-    String posterSize = 'w342',
-    String backdropSize = 'w780',
-  }) {
-    return poster(posterPath, size: posterSize) ??
-        backdrop(backdropPath, size: backdropSize);
-  }
-
-  TmdbImagePair resolvePair(
-    String? posterPath,
-    String? backdropPath, {
-    String posterSize = 'w342',
-    String backdropSize = 'w780',
-  }) {
-    final Uri? p = poster(posterPath, size: posterSize);
-    final Uri? b = backdrop(backdropPath, size: backdropSize);
-    return TmdbImagePair(poster: p, backdrop: b, preferred: p ?? b);
-  }
-
-  /// Construit l’URL d’un logo (transparent, centré).
-  /// Taille par défaut : `w300`.
-  Uri? logo(String? path, {String size = 'w300'}) =>
-      _build(path, _sanitizeSize(size, fallback: 'w300'));
-
-  /// Construit l’URL d’une image de scène (still).
-  /// Taille par défaut : `w185`.
-  Uri? still(String? path, {String size = 'w185'}) =>
-      _build(path, _sanitizeSize(size, fallback: 'w185'));
-
-  // ---------------------------------------------------------------------------
-  // Internals
-  // ---------------------------------------------------------------------------
-
-  /// Normalise la taille. Autorise :
-  ///  - `original`
-  ///  - `w###` ou `h###` (2–4 chiffres)
-  /// En cas de valeur invalide, applique `fallback`.
-  String _sanitizeSize(String raw, {required String fallback}) {
-    final s = (raw).trim();
-    if (s == 'original') return s;
-    final re = RegExp(r'^[wh]\d{2,4}$');
-    return re.hasMatch(s) ? s : fallback;
-  }
-
-  /// Construit l’URI final en gérant :
-  /// - chemins relatifs TMDB (avec ou sans `/` initial),
-  /// - URLs absolues déjà complètes,
-  /// - valeurs vides / "null".
-  Uri? _build(String? path, String size) {
-    if (path == null) return null;
-    final p = path.trim();
-    if (p.isEmpty || p == 'null') return null;
-
-    // Si déjà absolu, on ne recompose pas.
-    if (_looksAbsoluteUrl(p)) {
-      return Uri.tryParse(p);
-    }
-
-    // TMDB retourne en général des chemins commençant par '/', on garantit cette propriété.
-    final normalizedPath = p.startsWith('/') ? p : '/$p';
-
-    // Concaténation sûre : baseUrl + size + normalizedPath
-    final base = baseUrl.endsWith('/') ? baseUrl : '$baseUrl/';
-    return Uri.parse('$base$size$normalizedPath');
-  }
-
-  bool _looksAbsoluteUrl(String s) =>
-      s.startsWith('http://') || s.startsWith('https://');
-
-  // ---------------------------------------------------------------------------
-  // Tailles standard suggérées (optionnel : utilitaires exploités côté appelant)
-  // ---------------------------------------------------------------------------
-
-  /// Tailles usuelles pour poster (documentation TMDB indicative).
-  static const List<String> posterSizes = <String>[
-    'w92',
-    'w154',
-    'w185',
-    'w342',
-    'w500',
-    'w780',
-    'original',
-  ];
-
-  /// Tailles usuelles pour backdrop.
-  static const List<String> backdropSizes = <String>[
-    'w300',
-    'w780',
-    'w1280',
-    'original',
-  ];
-
-  /// Tailles usuelles pour logo.
-  static const List<String> logoSizes = <String>[
-    'w45',
-    'w92',
-    'w154',
-    'w185',
-    'w300',
-    'w500',
-    'original',
-  ];
-
-  /// Tailles usuelles pour still.
-  static const List<String> stillSizes = <String>[
-    'w92',
-    'w185',
-    'w300',
-    'original',
-  ];
-}
-
-class TmdbImagePair {
-  const TmdbImagePair({
-    required this.poster,
-    required this.backdrop,
-    required this.preferred,
-  });
-  final Uri? poster;
-  final Uri? backdrop;
-  final Uri? preferred;
 }
 

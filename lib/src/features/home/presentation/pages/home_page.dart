@@ -11,11 +11,13 @@ import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
 import 'package:movi/src/core/widgets/movi_media_card.dart';
 import 'package:movi/src/core/widgets/movi_see_all_card.dart';
+import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
@@ -177,6 +179,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
       }
     });
 
+    final String lang = ref.watch(currentLanguageCodeProvider);
     return Stack(
       children: [
         RefreshIndicator(
@@ -230,6 +233,7 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     ? const _HeroEmptyBanner()
                     : (state.hero.length >= 2)
                     ? HomeHeroCarousel(
+                        key: ValueKey(lang),
                         movies: state.hero.take(10).toList(growable: false),
                       )
                     : HomeHeroSection(
@@ -253,23 +257,40 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
                     items: <Widget>[
                       ...state.cwMovies.map(
-                        (m) => ContinueWatchingCard.movie(
-                          title: m.title.value,
-                          poster: (m.backdrop ?? m.poster).toString(),
-                          year: m.releaseYear?.toString() ?? '',
-                          progress: 0,
-                          onTap: () => context.push('/movie'),
-                        ),
+                        (m) {
+                          final media = MoviMedia(
+                            id: m.id.value,
+                            title: m.title.display,
+                            poster: m.backdrop ?? m.poster,
+                            year: m.releaseYear,
+                            type: MoviMediaType.movie,
+                          );
+                          return ContinueWatchingCard.movie(
+                            title: m.title.value,
+                            poster: (m.backdrop ?? m.poster).toString(),
+                            year: m.releaseYear?.toString() ?? '',
+                            progress: 0,
+                            onTap: () => context.push(AppRouteNames.movie, extra: media),
+                          );
+                        },
                       ),
                       ...state.cwShows.map(
-                        (s) => ContinueWatchingCard.episode(
-                          title: s.title.value,
-                          seriesTitle: s.title.value,
-                          poster: (s.backdrop ?? s.poster).toString(),
-                          seasonEpisode: 'S?? E??',
-                          progress: 0,
-                          onTap: () => context.push('/tv'),
-                        ),
+                        (s) {
+                          final media = MoviMedia(
+                            id: s.id.value,
+                            title: s.title.value,
+                            poster: s.backdrop ?? s.poster,
+                            type: MoviMediaType.series,
+                          );
+                          return ContinueWatchingCard.episode(
+                            title: s.title.value,
+                            seriesTitle: s.title.value,
+                            poster: (s.backdrop ?? s.poster).toString(),
+                            seasonEpisode: 'S?? E??',
+                            progress: 0,
+                            onTap: () => context.push(AppRouteNames.tv, extra: media),
+                          );
+                        },
                       ),
                     ].take(10).toList(),
                   ),
@@ -394,7 +415,15 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                               ? MoviMediaType.series
                               : MoviMediaType.movie,
                         );
-                        return MoviMediaCard(media: media);
+                        return MoviMediaCard(
+                          media: media,
+                          onTap: (m) {
+                            final route = m.type == MoviMediaType.movie
+                                ? AppRouteNames.movie
+                                : AppRouteNames.tv;
+                            context.push(route, extra: m);
+                          },
+                        );
                       }),
                       SeeAllCard(
                         title: _displayCategoryTitle(entry.key),

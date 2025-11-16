@@ -175,4 +175,26 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get homeNoTrends => 'Geen trending inhoud beschikbaar';
+
+  @override
+  String get actionBack => 'Terug';
+
+  @override
+  String get actionExpand => 'Uitklappen';
+
+  @override
+  String get castTitle => 'Cast';
+
+  @override
+  String get recommendationsTitle => 'Aanbevelingen';
+
+  @override
+  String get libraryHeader => 'Jouw videotheek';
+
+  @override
+  String get libraryDataInfo =>
+      'Gegevens worden getoond zodra data/domain is geïmplementeerd.';
+
+  @override
+  String get libraryEmpty => 'Geen inhoud beschikbaar op dit moment.';
 }

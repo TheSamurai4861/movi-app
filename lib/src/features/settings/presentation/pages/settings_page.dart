@@ -21,6 +21,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ('es-ES', 'Español (España)'),
     ('nl-NL', 'Nederlands (Nederland)'),
     ('it-IT', 'Italiano (Italia)'),
+    ('pl-PL', 'Polski (Polska)'),
+    ('fr-MM', 'Burgonde'),
   ];
 
   String _labelFor(String code) {

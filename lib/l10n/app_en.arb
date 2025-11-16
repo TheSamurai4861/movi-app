@@ -68,4 +68,12 @@
   "homeContinueWatching": "Continue watching",
   "homeNoIptvSources": "No IPTV source active. Add a source in Settings to see your categories.",
   "homeNoTrends": "No trending content available"
+  ,
+  "actionBack": "Back",
+  "actionExpand": "Expand",
+  "castTitle": "Cast",
+  "recommendationsTitle": "Recommendations",
+  "libraryHeader": "Your library",
+  "libraryDataInfo": "Data will be displayed when data/domain is implemented.",
+  "libraryEmpty": "No content available yet."
 }

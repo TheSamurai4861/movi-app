@@ -12,6 +12,7 @@ import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -747,8 +748,18 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                             child: MoviPrimaryButton(
                               label: AppLocalizations.of(context)!.homeWatchNow,
                               assetIcon: AppAssets.iconPlay,
-                              onPressed: () =>
-                                  context.push(AppRouteNames.movie),
+                              onPressed: () {
+                                final m = _currentMovie;
+                                if (m == null) return;
+                                final media = MoviMedia(
+                                  id: m.id.value,
+                                  title: m.title.display,
+                                  poster: m.backdrop ?? m.poster,
+                                  year: m.releaseYear,
+                                  type: MoviMediaType.movie,
+                                );
+                                context.push(AppRouteNames.movie, extra: media);
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1084,5 +1095,5 @@ String? _formatDuration(int? minutes) {
   if (minutes < 60) return '$minutes min';
   final int h = minutes ~/ 60;
   final int m = minutes % 60;
-  return m == 0 ? '$h h' : '$h h $m min';
+  return m == 0 ? '$h h' : '${h}h ${m}m';
 }

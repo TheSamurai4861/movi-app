@@ -1,0 +1,1256 @@
+{
+  "metadata": {
+    "exportedAt": "2025-11-16T00:34:16.620Z",
+    "componentName": "Media - Pas commencé",
+    "totalElements": 73,
+    "nestingDepth": 8,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)",
+      "color-rgb(41, 41, 41)": "rgb(41, 41, 41)",
+      "color-rgb(33, 96, 171)": "rgb(33, 96, 171)",
+      "color-rgb(166, 166, 166)": "rgb(166, 166, 166)"
+    },
+    "fonts": {
+      "montserrat": {
+        "family": "Montserrat",
+        "sizes": {
+          "size-16": "16px",
+          "size-24": "24px",
+          "size-20": "20px"
+        },
+        "weights": {
+          "weight-600": "600",
+          "weight-500": "500",
+          "weight-400": "400"
+        }
+      }
+    },
+    "spacing": {
+      "padding-right-20": "20px",
+      "padding-left-20": "20px",
+      "gap-236": "236px",
+      "gap-4": "4px",
+      "gap-16": "16px",
+      "gap-8": "8px",
+      "padding-top-4": "4px",
+      "padding-right-8": "8px",
+      "padding-bottom-4": "4px",
+      "padding-left-8": "8px",
+      "gap-10": "10px",
+      "padding-top-15": "15px",
+      "padding-right-318": "318px",
+      "padding-bottom-15": "15px",
+      "padding-left-318": "318px",
+      "gap-12": "12px",
+      "gap-24": "24px",
+      "gap-6": "6px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "media---pas-commenc-",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 1481
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "row",
+        "gap": 0,
+        "align": {
+          "main": "start",
+          "cross": "start"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "top_actions",
+        "type": "FRAME",
+        "size": {
+          "w": 393,
+          "h": 35
+        },
+        "styles": {
+          "layout": {
+            "direction": "row",
+            "gap": 236,
+            "align": {
+              "main": "space-between",
+              "cross": "center"
+            },
+            "padding": [
+              0,
+              20,
+              0,
+              20
+            ]
+          }
+        },
+        "children": [
+          {
+            "name": "back_btn",
+            "type": "FRAME",
+            "size": {
+              "w": 92,
+              "h": 35
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 0,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "icon-png",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 35,
+                  "h": 35
+                }
+              },
+              {
+                "name": "text",
+                "type": "TEXT",
+                "size": {
+                  "w": 57,
+                  "h": 20
+                },
+                "content": "Retour",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Montserrat",
+                    "size": 16,
+                    "weight": "600",
+                    "align": "left"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "back",
+            "type": "FRAME",
+            "size": {
+              "w": 25,
+              "h": 35
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 4,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "more",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 25,
+                  "h": 25
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "hero",
+        "type": "GROUP",
+        "size": {
+          "w": 393,
+          "h": 688
+        },
+        "children": [
+          {
+            "name": "hero-image",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 393,
+              "h": 590
+            }
+          },
+          {
+            "name": "overlays",
+            "type": "GROUP",
+            "size": {
+              "w": 393,
+              "h": 283
+            },
+            "children": [
+              {
+                "name": "overlay2",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 393,
+                  "h": 283
+                }
+              },
+              {
+                "name": "overlay1",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 393,
+                  "h": 283
+                }
+              }
+            ]
+          },
+          {
+            "name": "hero-content",
+            "type": "FRAME",
+            "size": {
+              "w": 393,
+              "h": 189
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                },
+                "padding": [
+                  0,
+                  20,
+                  0,
+                  20
+                ]
+              }
+            },
+            "children": [
+              {
+                "name": "media-title",
+                "type": "TEXT",
+                "size": {
+                  "w": 309,
+                  "h": 29
+                },
+                "content": "Une bataille après l’autre",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Montserrat",
+                    "size": 24,
+                    "weight": "600",
+                    "align": "left"
+                  }
+                }
+              },
+              {
+                "name": "pills",
+                "type": "FRAME",
+                "size": {
+                  "w": 209,
+                  "h": 28
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 8,
+                    "align": {
+                      "main": "start",
+                      "cross": "start"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "pill",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 55,
+                      "h": 28
+                    },
+                    "styles": {
+                      "bg": "rgb(41, 41, 41)",
+                      "radius": 14,
+                      "layout": {
+                        "direction": "row",
+                        "gap": 10,
+                        "align": {
+                          "main": "center",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          4,
+                          8,
+                          4,
+                          8
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "year",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 39,
+                          "h": 20
+                        },
+                        "content": "2025",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "pill",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 78,
+                      "h": 28
+                    },
+                    "styles": {
+                      "bg": "rgb(41, 41, 41)",
+                      "radius": 14,
+                      "layout": {
+                        "direction": "row",
+                        "gap": 10,
+                        "align": {
+                          "main": "center",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          4,
+                          8,
+                          4,
+                          8
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "duration",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 62,
+                          "h": 20
+                        },
+                        "content": "2h 42m",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "pill",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 60,
+                      "h": 28
+                    },
+                    "styles": {
+                      "bg": "rgb(41, 41, 41)",
+                      "radius": 14,
+                      "layout": {
+                        "direction": "row",
+                        "gap": 4,
+                        "align": {
+                          "main": "center",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          4,
+                          8,
+                          4,
+                          8
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "rating",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 22,
+                          "h": 20
+                        },
+                        "content": "7.7",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "icon-png",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 18,
+                          "h": 18
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "overview",
+                "type": "GROUP",
+                "size": {
+                  "w": 353,
+                  "h": 100
+                },
+                "children": [
+                  {
+                    "name": "container-cliper",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 353,
+                      "h": 90
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "row",
+                        "gap": 0,
+                        "align": {
+                          "main": "start",
+                          "cross": "start"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "synopsis",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 353,
+                          "h": 280
+                        },
+                        "content": "Bob Ferguson est un ancien révolutionnaire paranoïaque et désabusé, qui a jadis oeuvré avec son ex, Perfidia, au sein du French 75, un groupe  militant voué au renversement du gouvernement américain. Seize ans plus  tard, Bob vit seul avec sa fille, Willa, quand celle-ci disparaît  soudainement. Bob soupçonne son vieil ennemi d’antan, le Colonel Steven  J. Lockjaw, d’être responsable de sa disparition. Il décide alors de  renouer avec ses anciens frères d’armes pour retrouver sa fille, quitte à confronter les fantômes de son passé.",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "bottom-overlay-over-text",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 353,
+                          "h": 41
+                        },
+                        "children": [
+                          {
+                            "name": "rectangle-53",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 353,
+                              "h": 41
+                            }
+                          },
+                          {
+                            "name": "rectangle-54",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 353,
+                              "h": 41
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "extend-btn",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 102,
+                      "h": 25
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "row",
+                        "gap": 4,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "agrandir",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 73,
+                          "h": 20
+                        },
+                        "content": "Agrandir",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "icon-png",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 25,
+                          "h": 25
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "hero-actions",
+            "type": "FRAME",
+            "size": {
+              "w": 393,
+              "h": 55
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                },
+                "padding": [
+                  0,
+                  20,
+                  0,
+                  20
+                ]
+              }
+            },
+            "children": [
+              {
+                "name": "watch-btn-to-player",
+                "type": "FRAME",
+                "size": {
+                  "w": 302,
+                  "h": 55
+                },
+                "styles": {
+                  "bg": "rgb(33, 96, 171)",
+                  "radius": 32,
+                  "layout": {
+                    "direction": "row",
+                    "gap": 16,
+                    "align": {
+                      "main": "center",
+                      "cross": "center"
+                    },
+                    "padding": [
+                      15,
+                      318,
+                      15,
+                      318
+                    ]
+                  }
+                },
+                "children": [
+                  {
+                    "name": "icon-png",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 25,
+                      "h": 25
+                    }
+                  },
+                  {
+                    "name": "regarder-maintenant",
+                    "type": "TEXT",
+                    "size": {
+                      "w": 179,
+                      "h": 20
+                    },
+                    "content": "Regarder maintenant",
+                    "styles": {
+                      "bg": "rgb(255, 255, 255)",
+                      "text": {
+                        "family": "Montserrat",
+                        "size": 16,
+                        "weight": "600",
+                        "align": "left"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "favorite-btn",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "group-18",
+        "type": "GROUP",
+        "size": {
+          "w": 393,
+          "h": 670
+        },
+        "children": [
+          {
+            "name": "movi-items-list",
+            "type": "GROUP",
+            "size": {
+              "w": 393,
+              "h": 301
+            },
+            "children": [
+              {
+                "name": "frame-36",
+                "type": "FRAME",
+                "size": {
+                  "w": 393,
+                  "h": 253
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 0,
+                    "align": {
+                      "main": "start",
+                      "cross": "start"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "list",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 668,
+                      "h": 257
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "row",
+                        "gap": 16,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          0,
+                          20,
+                          0,
+                          0
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "list-element",
+                        "type": "FRAME",
+                        "size": {
+                          "w": 150,
+                          "h": 257
+                        },
+                        "styles": {
+                          "layout": {
+                            "direction": "column",
+                            "gap": 12,
+                            "align": {
+                              "main": "start",
+                              "cross": "center"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "name": "group-15",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "children": [
+                              {
+                                "name": "image-5",
+                                "type": "RECTANGLE",
+                                "size": {
+                                  "w": 150,
+                                  "h": 225
+                                },
+                                "styles": {
+                                  "radius": 16
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "une-bataille-apr---",
+                            "type": "TEXT",
+                            "size": {
+                              "w": 150,
+                              "h": 20
+                            },
+                            "content": "Une bataille apr...",
+                            "styles": {
+                              "bg": "rgb(255, 255, 255)",
+                              "text": {
+                                "family": "Montserrat",
+                                "size": 16,
+                                "weight": "600",
+                                "align": "left"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "list-element",
+                        "type": "FRAME",
+                        "size": {
+                          "w": 150,
+                          "h": 257
+                        },
+                        "styles": {
+                          "layout": {
+                            "direction": "column",
+                            "gap": 12,
+                            "align": {
+                              "main": "start",
+                              "cross": "center"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "name": "group-15",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "children": [
+                              {
+                                "name": "image-6",
+                                "type": "RECTANGLE",
+                                "size": {
+                                  "w": 150,
+                                  "h": 225
+                                },
+                                "styles": {
+                                  "radius": 16
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "falcon-express",
+                            "type": "TEXT",
+                            "size": {
+                              "w": 150,
+                              "h": 20
+                            },
+                            "content": "Falcon Express",
+                            "styles": {
+                              "bg": "rgb(255, 255, 255)",
+                              "text": {
+                                "family": "Montserrat",
+                                "size": 16,
+                                "weight": "600",
+                                "align": "center"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "list-element",
+                        "type": "FRAME",
+                        "size": {
+                          "w": 150,
+                          "h": 257
+                        },
+                        "styles": {
+                          "layout": {
+                            "direction": "column",
+                            "gap": 12,
+                            "align": {
+                              "main": "start",
+                              "cross": "center"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "name": "group-15",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "children": [
+                              {
+                                "name": "image-7",
+                                "type": "RECTANGLE",
+                                "size": {
+                                  "w": 150,
+                                  "h": 225
+                                },
+                                "styles": {
+                                  "radius": 16
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "smashing-ma---",
+                            "type": "TEXT",
+                            "size": {
+                              "w": 150,
+                              "h": 20
+                            },
+                            "content": "Smashing Ma...",
+                            "styles": {
+                              "bg": "rgb(255, 255, 255)",
+                              "text": {
+                                "family": "Montserrat",
+                                "size": 16,
+                                "weight": "600",
+                                "align": "center"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "list-element",
+                        "type": "FRAME",
+                        "size": {
+                          "w": 150,
+                          "h": 257
+                        },
+                        "styles": {
+                          "layout": {
+                            "direction": "column",
+                            "gap": 12,
+                            "align": {
+                              "main": "start",
+                              "cross": "center"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "name": "group-15",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "children": [
+                              {
+                                "name": "image-4",
+                                "type": "RECTANGLE",
+                                "size": {
+                                  "w": 150,
+                                  "h": 225
+                                },
+                                "styles": {
+                                  "radius": 16
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "chainsaw-man---",
+                            "type": "TEXT",
+                            "size": {
+                              "w": 150,
+                              "h": 20
+                            },
+                            "content": "Chainsaw Man...",
+                            "styles": {
+                              "bg": "rgb(255, 255, 255)",
+                              "text": {
+                                "family": "Montserrat",
+                                "size": 16,
+                                "weight": "600",
+                                "align": "center"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "recommandations",
+                "type": "TEXT",
+                "size": {
+                  "w": 197,
+                  "h": 24
+                },
+                "content": "Recommandations",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Montserrat",
+                    "size": 20,
+                    "weight": "600",
+                    "align": "left"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "name": "movi--persons-list",
+            "type": "FRAME",
+            "size": {
+              "w": 393,
+              "h": 325
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 24,
+                "align": {
+                  "main": "start",
+                  "cross": "start"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "frame-61",
+                "type": "FRAME",
+                "size": {
+                  "w": 393,
+                  "h": 24
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 0,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    },
+                    "padding": [
+                      0,
+                      20,
+                      0,
+                      20
+                    ]
+                  }
+                },
+                "children": [
+                  {
+                    "name": "list-title",
+                    "type": "TEXT",
+                    "size": {
+                      "w": 124,
+                      "h": 24
+                    },
+                    "content": "Distribution",
+                    "styles": {
+                      "bg": "rgb(255, 255, 255)",
+                      "text": {
+                        "family": "Montserrat",
+                        "size": 20,
+                        "weight": "600",
+                        "align": "left"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "list",
+                "type": "FRAME",
+                "size": {
+                  "w": 522,
+                  "h": 277
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 16,
+                    "align": {
+                      "main": "start",
+                      "cross": "start"
+                    },
+                    "padding": [
+                      0,
+                      20,
+                      0,
+                      20
+                    ]
+                  }
+                },
+                "children": [
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "person-image",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "styles": {
+                          "radius": 16
+                        }
+                      },
+                      {
+                        "name": "real-name",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Leonardo Dica...",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "name-in-media",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Bob",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "person-image",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "styles": {
+                          "radius": 16
+                        }
+                      },
+                      {
+                        "name": "real-name",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Leonardo Dica...",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "name-in-media",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Bob",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "person-image",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "styles": {
+                          "radius": 16
+                        }
+                      },
+                      {
+                        "name": "real-name",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Leonardo Dica...",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "name-in-media",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Bob",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 1,
+    "frames": 25,
+    "texts": 20,
+    "hasAutoLayout": true,
+    "hasEffects": true
+  }
+}

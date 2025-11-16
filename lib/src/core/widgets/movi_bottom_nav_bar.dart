@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 const _kNavHeight = 72.0;
 const _kContainerPadding = 5.0;
@@ -31,7 +32,7 @@ class MoviBottomNavBar extends StatelessWidget {
     required this.onItemSelected,
     List<MoviBottomNavItem>? navItems,
   }) : assert(selectedIndex >= 0),
-       items = navItems ?? _defaultItems,
+       _customItems = navItems,
        assert(
          (navItems ?? _defaultItems).isNotEmpty,
          'MoviBottomNavBar requires at least one item.',
@@ -39,7 +40,7 @@ class MoviBottomNavBar extends StatelessWidget {
 
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
-  final List<MoviBottomNavItem> items;
+  final List<MoviBottomNavItem>? _customItems;
 
   static const List<MoviBottomNavItem> _defaultItems = [
     MoviBottomNavItem(
@@ -66,8 +67,9 @@ class MoviBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final items = _customItems ?? _localizedItems(context);
     assert(
-      selectedIndex < items.length,
+      selectedIndex < (items.length),
       'selectedIndex ($selectedIndex) must be within the items list.',
     );
 
@@ -106,6 +108,32 @@ class MoviBottomNavBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<MoviBottomNavItem> _localizedItems(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    return [
+      MoviBottomNavItem(
+        label: loc.navHome,
+        activeIcon: AppAssets.navHomeActive,
+        inactiveIcon: AppAssets.navHome,
+      ),
+      MoviBottomNavItem(
+        label: loc.navSearch,
+        activeIcon: AppAssets.navSearchActive,
+        inactiveIcon: AppAssets.navSearch,
+      ),
+      MoviBottomNavItem(
+        label: loc.navLibrary,
+        activeIcon: AppAssets.navLibraryActive,
+        inactiveIcon: AppAssets.navLibrary,
+      ),
+      MoviBottomNavItem(
+        label: loc.navSettings,
+        activeIcon: AppAssets.navSettingsActive,
+        inactiveIcon: AppAssets.navSettings,
+      ),
+    ];
   }
 }
 

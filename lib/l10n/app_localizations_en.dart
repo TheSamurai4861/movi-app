@@ -170,4 +170,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeNoTrends => 'No trending content available';
+
+  @override
+  String get actionBack => 'Back';
+
+  @override
+  String get actionExpand => 'Expand';
+
+  @override
+  String get castTitle => 'Cast';
+
+  @override
+  String get recommendationsTitle => 'Recommendations';
+
+  @override
+  String get libraryHeader => 'Your library';
+
+  @override
+  String get libraryDataInfo =>
+      'Data will be displayed when data/domain is implemented.';
+
+  @override
+  String get libraryEmpty => 'No content available yet.';
 }

@@ -18,6 +18,7 @@ class Movie extends Equatable {
     this.backdrop,
     required this.releaseDate,
     this.rating,
+    this.voteAverage,
     required this.genres,
     required this.cast,
     required this.directors,
@@ -34,6 +35,7 @@ class Movie extends Equatable {
   final Uri? backdrop;
   final DateTime releaseDate;
   final ContentRating? rating;
+  final double? voteAverage;
   final List<String> genres;
   final List<PersonSummary> cast;
   final List<PersonSummary> directors;
@@ -51,6 +53,7 @@ class Movie extends Equatable {
     backdrop,
     releaseDate,
     rating,
+    voteAverage,
     genres,
     cast,
     directors,

@@ -26,6 +26,7 @@ import 'package:movi/src/features/settings/presentation/pages/settings_page.dart
 import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
+import 'package:movi/src/core/models/models.dart';
 
 class AppRouteNames {
   static const launch = '/launch';
@@ -147,8 +148,15 @@ class _RouterBundle {
         GoRoute(
           path: AppRouteNames.movie,
           name: 'movie_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: MovieDetailPage()),
+          pageBuilder: (context, state) {
+            final media = state.extra is MoviMedia ? state.extra as MoviMedia : null;
+            return CustomTransitionPage(
+              child: MovieDetailPage(media: media),
+              transitionsBuilder: _fadeTransition,
+              transitionDuration: const Duration(milliseconds: 300),
+              reverseTransitionDuration: const Duration(milliseconds: 300),
+            );
+          },
         ),
         GoRoute(
           path: AppRouteNames.person,

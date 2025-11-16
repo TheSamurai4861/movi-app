@@ -6,16 +6,20 @@ class TmdbPersonRemoteDataSource {
 
   final TmdbClient _client;
 
-  Future<TmdbPersonDetailDto> fetchPerson(int id) async {
-    final detail = await _client.getJson('person/$id');
-    final credits = await _client.getJson('person/$id/combined_credits');
+  Future<TmdbPersonDetailDto> fetchPerson(int id, {String? language}) async {
+    final detail = await _client.getJson('person/$id', language: language);
+    final credits = await _client.getJson(
+      'person/$id/combined_credits',
+      language: language,
+    );
     return TmdbPersonDetailDto.fromJson(detail, credits);
   }
 
-  Future<List<TmdbPersonDetailDto>> searchPeople(String query) async {
+  Future<List<TmdbPersonDetailDto>> searchPeople(String query, {String? language}) async {
     final results = await _client.getJson(
       'search/person',
       query: {'query': query},
+      language: language,
     );
     final list = (results['results'] as List<dynamic>? ?? const []);
     return list

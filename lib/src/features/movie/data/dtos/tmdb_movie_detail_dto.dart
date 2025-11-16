@@ -65,7 +65,8 @@ class TmdbMovieDetailDto {
           'Untitled',
       overview: _stringOr(json['overview'], '') ?? '',
       posterPath: _stringOr(json['poster_path']),
-      posterBackground: _selectPosterBackground(images),
+      posterBackground:
+          _stringOr(json['poster_background']) ?? _selectPosterBackground(images),
       backdropPath: _stringOr(json['backdrop_path']),
       logoPath: _selectLogo(logos),
       releaseDate: _stringOr(json['release_date']),
@@ -285,23 +286,26 @@ class TmdbMovieCastDto {
 }
 
 class TmdbMovieCrewDto {
-  TmdbMovieCrewDto({required this.id, required this.name, required this.job});
+  TmdbMovieCrewDto({required this.id, required this.name, required this.job, this.profilePath});
 
   factory TmdbMovieCrewDto.fromJson(Map<String, dynamic> json) =>
       TmdbMovieCrewDto(
         id: _asInt(json['id']) ?? 0,
         name: _stringOr(json['name'], 'Unknown') ?? 'Unknown',
         job: _stringOr(json['job']),
+        profilePath: _stringOr(json['profile_path']),
       );
 
   final int id;
   final String name;
   final String? job;
+  final String? profilePath;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
     'name': name,
     'job': job,
+    'profile_path': profilePath,
   };
 }
 

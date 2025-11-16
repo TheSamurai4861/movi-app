@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
@@ -8,17 +9,17 @@ class LibraryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bibliothèque')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.navLibrary)),
       body: SafeArea(
         child: Padding(
           padding: AppSpacing.page,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Votre vidéothèque', style: context.textTheme.headlineSmall),
+              Text(AppLocalizations.of(context)!.libraryHeader, style: context.textTheme.headlineSmall),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Les données seront affichées lorsque la couche data/domain sera implémentée.',
+                AppLocalizations.of(context)!.libraryDataInfo,
                 style: context.textTheme.bodyMedium?.copyWith(
                   color: context.colorScheme.onSurfaceVariant,
                 ),
@@ -27,7 +28,7 @@ class LibraryPage extends StatelessWidget {
               Expanded(
                 child: Center(
                   child: Text(
-                    'Aucun contenu disponible pour le moment.',
+                    AppLocalizations.of(context)!.libraryEmpty,
                     style: context.textTheme.bodyLarge,
                     textAlign: TextAlign.center,
                   ),

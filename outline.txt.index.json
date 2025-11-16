@@ -1,28 +1,32 @@
 {
-  "root": "C:\\Users\\berny\\DEV\\Flutter\\movi\\lib",
-  "output": "C:\\Users\\berny\\DEV\\Flutter\\movi\\outline.txt",
+  "root": "D:\\Home\\TheSamurai\\DEV\\FLUTTER\\movi-app\\lib",
+  "output": "D:\\Home\\TheSamurai\\DEV\\FLUTTER\\movi-app\\outline.txt",
   "content_output": "files_dump.txt",
   "total_indexed": 314,
-  "selected_count": 18,
+  "selected_count": 22,
   "selected_nums": [
-    12,
     14,
-    60,
-    65,
-    66,
-    117,
+    48,
+    52,
+    58,
+    69,
+    70,
     118,
-    120,
     121,
-    122,
-    123,
     125,
     126,
     128,
     129,
+    164,
+    167,
+    170,
+    252,
+    263,
+    266,
+    270,
+    274,
     302,
-    303,
-    304
+    303
   ],
   "files": [
     {
@@ -107,7 +111,7 @@
       "path": "main.dart",
       "lines": 21,
       "bytes": 638,
-      "selected": true
+      "selected": false
     },
     {
       "num": 13,
@@ -359,7 +363,7 @@
       "path": "src/core/network/config/network_module.dart",
       "lines": 82,
       "bytes": 2527,
-      "selected": false
+      "selected": true
     },
     {
       "num": 49,
@@ -387,7 +391,7 @@
       "path": "src/core/network/interceptors/locale_interceptor.dart",
       "lines": 19,
       "bytes": 544,
-      "selected": false
+      "selected": true
     },
     {
       "num": 53,
@@ -429,7 +433,7 @@
       "path": "src/core/preferences/locale_preferences.dart",
       "lines": 127,
       "bytes": 4130,
-      "selected": false
+      "selected": true
     },
     {
       "num": 59,
@@ -443,7 +447,7 @@
       "path": "src/core/router/app_router.dart",
       "lines": 312,
       "bytes": 10226,
-      "selected": true
+      "selected": false
     },
     {
       "num": 61,
@@ -478,14 +482,14 @@
       "path": "src/core/startup/app_startup_gate.dart",
       "lines": 87,
       "bytes": 2906,
-      "selected": true
+      "selected": false
     },
     {
       "num": 66,
       "path": "src/core/startup/app_startup_provider.dart",
       "lines": 32,
       "bytes": 1261,
-      "selected": true
+      "selected": false
     },
     {
       "num": 67,
@@ -506,14 +510,14 @@
       "path": "src/core/state/app_state_controller.dart",
       "lines": 132,
       "bytes": 4669,
-      "selected": false
+      "selected": true
     },
     {
       "num": 70,
       "path": "src/core/state/app_state_provider.dart",
       "lines": 51,
       "bytes": 1799,
-      "selected": false
+      "selected": true
     },
     {
       "num": 71,
@@ -842,7 +846,7 @@
       "path": "src/features/home/data/home_feed_data_module.dart",
       "lines": 30,
       "bytes": 1347,
-      "selected": true
+      "selected": false
     },
     {
       "num": 118,
@@ -863,7 +867,7 @@
       "path": "src/features/home/domain/usecases/load_home_continue_watching.dart",
       "lines": 12,
       "bytes": 501,
-      "selected": true
+      "selected": false
     },
     {
       "num": 121,
@@ -877,14 +881,14 @@
       "path": "src/features/home/domain/usecases/load_home_iptv_sections.dart",
       "lines": 11,
       "bytes": 367,
-      "selected": true
+      "selected": false
     },
     {
       "num": 123,
       "path": "src/features/home/domain/usecases/refresh_home_feed.dart",
       "lines": 37,
       "bytes": 1101,
-      "selected": true
+      "selected": false
     },
     {
       "num": 124,
@@ -896,15 +900,15 @@
     {
       "num": 125,
       "path": "src/features/home/presentation/pages/home_page.dart",
-      "lines": 371,
-      "bytes": 14230,
+      "lines": 443,
+      "bytes": 17402,
       "selected": true
     },
     {
       "num": 126,
       "path": "src/features/home/presentation/providers/home_providers.dart",
-      "lines": 140,
-      "bytes": 4177,
+      "lines": 145,
+      "bytes": 4316,
       "selected": true
     },
     {
@@ -1171,7 +1175,7 @@
       "path": "src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart",
       "lines": 167,
       "bytes": 5380,
-      "selected": false
+      "selected": true
     },
     {
       "num": 165,
@@ -1192,7 +1196,7 @@
       "path": "src/features/movie/data/repositories/movie_repository_impl.dart",
       "lines": 204,
       "bytes": 6607,
-      "selected": false
+      "selected": true
     },
     {
       "num": 168,
@@ -1213,7 +1217,7 @@
       "path": "src/features/movie/domain/entities/movie_summary.dart",
       "lines": 35,
       "bytes": 710,
-      "selected": false
+      "selected": true
     },
     {
       "num": 171,
@@ -1787,7 +1791,7 @@
       "path": "src/features/settings/domain/entities/user_preferences.dart",
       "lines": 38,
       "bytes": 1014,
-      "selected": false
+      "selected": true
     },
     {
       "num": 253,
@@ -1864,7 +1868,7 @@
       "path": "src/features/settings/domain/value_objects/language_code.dart",
       "lines": 11,
       "bytes": 256,
-      "selected": false
+      "selected": true
     },
     {
       "num": 264,
@@ -1885,7 +1889,7 @@
       "path": "src/features/settings/presentation/pages/settings_page.dart",
       "lines": 160,
       "bytes": 6171,
-      "selected": false
+      "selected": true
     },
     {
       "num": 267,
@@ -1913,7 +1917,7 @@
       "path": "src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart",
       "lines": 195,
       "bytes": 6238,
-      "selected": false
+      "selected": true
     },
     {
       "num": 271,
@@ -1941,7 +1945,7 @@
       "path": "src/features/tv/data/repositories/tv_repository_impl.dart",
       "lines": 381,
       "bytes": 12285,
-      "selected": false
+      "selected": true
     },
     {
       "num": 275,
@@ -2044,8 +2048,8 @@
     {
       "num": 289,
       "path": "src/features/welcome/presentation/pages/splash_bootstrap_page.dart",
-      "lines": 54,
-      "bytes": 1870,
+      "lines": 63,
+      "bytes": 1900,
       "selected": false
     },
     {
@@ -2072,8 +2076,8 @@
     {
       "num": 293,
       "path": "src/features/welcome/presentation/providers/bootstrap_providers.dart",
-      "lines": 99,
-      "bytes": 2862,
+      "lines": 161,
+      "bytes": 4981,
       "selected": false
     },
     {
@@ -2151,7 +2155,7 @@
       "path": "src/shared/data/services/tmdb_image_resolver.dart",
       "lines": 154,
       "bytes": 4871,
-      "selected": true
+      "selected": false
     },
     {
       "num": 305,

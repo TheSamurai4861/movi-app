@@ -174,4 +174,26 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get homeNoTrends => 'Nessun contenuto di tendenza disponibile';
+
+  @override
+  String get actionBack => 'Indietro';
+
+  @override
+  String get actionExpand => 'Espandi';
+
+  @override
+  String get castTitle => 'Cast';
+
+  @override
+  String get recommendationsTitle => 'Consigli';
+
+  @override
+  String get libraryHeader => 'La tua videoteca';
+
+  @override
+  String get libraryDataInfo =>
+      'I dati verranno mostrati quando data/domain sarà implementato.';
+
+  @override
+  String get libraryEmpty => 'Nessun contenuto disponibile al momento.';
 }

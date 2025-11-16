@@ -3,6 +3,7 @@ import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/features/person/domain/entities/person.dart';
 import 'package:movi/src/features/person/domain/repositories/person_repository.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -11,11 +12,12 @@ import 'package:movi/src/features/person/data/datasources/person_local_data_sour
 import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
 
 class PersonRepositoryImpl implements PersonRepository {
-  PersonRepositoryImpl(this._remote, this._images, this._local);
+  PersonRepositoryImpl(this._remote, this._images, this._local, this._locale);
 
   final TmdbPersonRemoteDataSource _remote;
   final TmdbImageResolver _images;
   final PersonLocalDataSource _local;
+  final LocalePreferences _locale;
 
   @override
   Future<Person> getPerson(PersonId id) async {
@@ -31,7 +33,7 @@ class PersonRepositoryImpl implements PersonRepository {
 
   @override
   Future<List<PersonSummary>> searchPeople(String query) async {
-    final dtos = await _remote.searchPeople(query);
+    final dtos = await _remote.searchPeople(query, language: _locale.languageCode);
     return dtos
         .map(
           (dto) => PersonSummary(
@@ -87,7 +89,7 @@ class PersonRepositoryImpl implements PersonRepository {
     final personId = int.parse(id.value);
     final cached = await _local.getPersonDetail(personId);
     if (cached != null) return cached;
-    final remote = await _remote.fetchPerson(personId);
+    final remote = await _remote.fetchPerson(personId, language: _locale.languageCode);
     await _local.savePersonDetail(remote);
     return remote;
   }

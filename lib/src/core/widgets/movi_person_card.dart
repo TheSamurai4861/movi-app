@@ -25,6 +25,8 @@ Widget _buildPersonImage(Uri? poster, double width, double height) {
       errorBuilder: (_, __, ___) => errorPlaceholder,
       gaplessPlayback: true,
       filterQuality: FilterQuality.low,
+      cacheWidth: (width * 2).toInt(),
+      cacheHeight: (height * 2).toInt(),
     );
   }
   final assetPath = scheme == 'asset' ? poster.path : source;
@@ -35,6 +37,8 @@ Widget _buildPersonImage(Uri? poster, double width, double height) {
     height: height,
     fit: BoxFit.cover,
     errorBuilder: (_, __, ___) => errorPlaceholder,
+    cacheWidth: (width * 2).toInt(),
+    cacheHeight: (height * 2).toInt(),
   );
 }
 

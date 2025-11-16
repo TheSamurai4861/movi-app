@@ -3,7 +3,7 @@ ARBORESCENCE DU PROJET
 ================================================================================
 
 --------------------------------------------------------------------------------
-Structure du dossier: C:\Users\berny\DEV\Flutter\movi\assets
+Structure du dossier: D:\Home\TheSamurai\DEV\FLUTTER\movi-app\assets
 --------------------------------------------------------------------------------
 assets/
 └── icons/
@@ -24,7 +24,7 @@ assets/
     └── supprimer.png
 
 --------------------------------------------------------------------------------
-Structure du dossier: C:\Users\berny\DEV\Flutter\movi\lib
+Structure du dossier: D:\Home\TheSamurai\DEV\FLUTTER\movi-app\lib
 --------------------------------------------------------------------------------
 lib/
 ├── l10n/
@@ -635,8 +635,8 @@ INDEX DES FICHIERS LIB/ (numéroté)
  122. src/features/home/domain/usecases/load_home_iptv_sections.dart  (11 lignes, 367 octets) *
  123. src/features/home/domain/usecases/refresh_home_feed.dart  (37 lignes, 1101 octets) *
  124. src/features/home/home.dart  (4 lignes, 224 octets) *
- 125. src/features/home/presentation/pages/home_page.dart  (371 lignes, 14230 octets) *
- 126. src/features/home/presentation/providers/home_providers.dart  (140 lignes, 4177 octets) *
+ 125. src/features/home/presentation/pages/home_page.dart  (443 lignes, 17402 octets) *
+ 126. src/features/home/presentation/providers/home_providers.dart  (145 lignes, 4316 octets) *
  127. src/features/home/presentation/widgets/continue_watching_card.dart  (207 lignes, 6414 octets) *
  128. src/features/home/presentation/widgets/home_hero_carousel.dart  (1088 lignes, 39049 octets) *
  129. src/features/home/presentation/widgets/home_hero_section.dart  (811 lignes, 28657 octets) *
@@ -799,11 +799,11 @@ INDEX DES FICHIERS LIB/ (numéroté)
  286. src/features/tv/domain/usecases/toggle_tv_watchlist.dart  (12 lignes, 374 octets) *
  287. src/features/tv/presentation/pages/tv_detail_page.dart  (124 lignes, 4637 octets) *
  288. src/features/tv/tv.dart  (13 lignes, 640 octets) *
- 289. src/features/welcome/presentation/pages/splash_bootstrap_page.dart  (54 lignes, 1870 octets) *
+ 289. src/features/welcome/presentation/pages/splash_bootstrap_page.dart  (63 lignes, 1900 octets) *
  290. src/features/welcome/presentation/pages/welcome_page.dart  (106 lignes, 3664 octets) *
  291. src/features/welcome/presentation/pages/welcome_source_page.dart  (54 lignes, 1930 octets) *
  292. src/features/welcome/presentation/pages/welcome_user_page.dart  (289 lignes, 12577 octets) *
- 293. src/features/welcome/presentation/providers/bootstrap_providers.dart  (99 lignes, 2862 octets) *
+ 293. src/features/welcome/presentation/providers/bootstrap_providers.dart  (161 lignes, 4981 octets) *
  294. src/features/welcome/presentation/providers/welcome_providers.dart  (115 lignes, 3448 octets) *
  295. src/features/welcome/presentation/utils/error_presenter.dart  (15 lignes, 848 octets) *
  296. src/features/welcome/presentation/widgets/labeled_field.dart  (25 lignes, 686 octets) *
@@ -1936,14 +1936,14 @@ FILE #125: src/features/home/presentation/pages/home_page.dart
   L 124: _HomeContentState
 [METHODS _HomeContentState]
   L 127: initState — ()
-  L 138: _postFrame — (VoidCallback fn)
-  L 147: _precacheImageUrl — (String url)
-  L 163: _displayCategoryTitle — (String raw)
-  L 169: build — (BuildContext context)
-  L 352: _HeroEmptyBanner
+  L 132: _postFrame — (VoidCallback fn)
+  L 141: _precacheImageUrl — (String url)
+  L 157: _displayCategoryTitle — (String raw)
+  L 163: build — (BuildContext context)
+  L 424: _HeroEmptyBanner
 [METHODS _HeroEmptyBanner]
-  L 353: _HeroEmptyBanner — (…)
-  L 356: build — (BuildContext context)
+  L 425: _HeroEmptyBanner — (…)
+  L 428: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
 FILE #126: src/features/home/presentation/providers/home_providers.dart
@@ -1960,7 +1960,7 @@ FILE #126: src/features/home/presentation/providers/home_providers.dart
 [METHODS HomeController]
   L  94: build — ()
   L 114: load — ()
-  L 130: refresh — () => load()
+  L 135: refresh — () => load()
 
 --------------------------------------------------------------------------------
 FILE #127: src/features/home/presentation/widgets/continue_watching_card.dart
@@ -3543,14 +3543,13 @@ FILE #288: src/features/tv/tv.dart
 FILE #289: src/features/welcome/presentation/pages/splash_bootstrap_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  13: SplashBootstrapPage
+  L  10: SplashBootstrapPage
 [METHODS SplashBootstrapPage]
-  L  14: SplashBootstrapPage — (…)
-  L  17: createState — ()
-  L  21: _SplashBootstrapPageState
+  L  11: SplashBootstrapPage — (…)
+  L  14: createState — ()
+  L  18: _SplashBootstrapPageState
 [METHODS _SplashBootstrapPageState]
-  L  23: initState — ()
-  L  35: build — (BuildContext context)
+  L  22: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
 FILE #290: src/features/welcome/presentation/pages/welcome_page.dart
@@ -3587,13 +3586,16 @@ FILE #292: src/features/welcome/presentation/pages/welcome_user_page.dart
 FILE #293: src/features/welcome/presentation/providers/bootstrap_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  11: BootstrapState
-  L  29: BootstrapController
+  L  16: BootstrapState
+  L  34: BootstrapController
 [METHODS BootstrapController]
-  L  31: build — ()
-  L  41: start — ()
-  L  70: _kickoffEnrich — ()
-  L  88: _registerDispose — ()
+  L  36: build — ()
+  L  46: start — ()
+  L  75: _kickoffEnrich — ()
+  L  93: _registerDispose — ()
+  L 156: AppPreloadTimeoutException
+[METHODS AppPreloadTimeoutException]
+  L 157: AppPreloadTimeoutException — (…)
 
 --------------------------------------------------------------------------------
 FILE #294: src/features/welcome/presentation/providers/welcome_providers.dart

@@ -17,4 +17,7 @@ class AppAssets {
   static const String navSettings = 'assets/icons/settings.png';
   static const String navSettingsActive = 'assets/icons/settings_activated.png';
   static const String iconPlay = 'assets/icons/play_arrow.png';
+  static const String iconBack = 'assets/icons/back_icon.png';
+  static const String iconMore = 'assets/icons/more_icon.png';
+  static const String iconExtend = 'assets/icons/extend_icon.png';
 }

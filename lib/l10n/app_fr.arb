@@ -68,4 +68,12 @@
   "homeContinueWatching": "En cours",
   "homeNoIptvSources": "Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.",
   "homeNoTrends": "Aucune tendance disponible"
+  ,
+  "actionBack": "Retour",
+  "actionExpand": "Agrandir",
+  "castTitle": "Distribution",
+  "recommendationsTitle": "Recommandations",
+  "libraryHeader": "Votre vidéothèque",
+  "libraryDataInfo": "Les données seront affichées lorsque la couche data/domain sera implémentée.",
+  "libraryEmpty": "Aucun contenu disponible pour le moment."
 }

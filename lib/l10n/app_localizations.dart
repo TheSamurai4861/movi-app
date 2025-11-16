@@ -10,6 +10,7 @@ import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_it.dart';
 import 'app_localizations_nl.dart';
+import 'app_localizations_pl.dart';
 
 // ignore_for_file: type=lint
 
@@ -100,8 +101,10 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('es'),
     Locale('fr'),
+    Locale('fr', 'MM'),
     Locale('it'),
     Locale('nl'),
+    Locale('pl'),
   ];
 
   /// No description provided for @welcomeTitle.
@@ -415,6 +418,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No trending content available'**
   String get homeNoTrends;
+
+  /// No description provided for @actionBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get actionBack;
+
+  /// No description provided for @actionExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand'**
+  String get actionExpand;
+
+  /// No description provided for @castTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast'**
+  String get castTitle;
+
+  /// No description provided for @recommendationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommendations'**
+  String get recommendationsTitle;
+
+  /// No description provided for @libraryHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Your library'**
+  String get libraryHeader;
+
+  /// No description provided for @libraryDataInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Data will be displayed when data/domain is implemented.'**
+  String get libraryDataInfo;
+
+  /// No description provided for @libraryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No content available yet.'**
+  String get libraryEmpty;
 }
 
 class _AppLocalizationsDelegate
@@ -427,14 +472,32 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['en', 'es', 'fr', 'it', 'nl'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'en',
+    'es',
+    'fr',
+    'it',
+    'nl',
+    'pl',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+country codes are specified.
+  switch (locale.languageCode) {
+    case 'fr':
+      {
+        switch (locale.countryCode) {
+          case 'MM':
+            return AppLocalizationsFrMm();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'en':
@@ -447,6 +510,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsIt();
     case 'nl':
       return AppLocalizationsNl();
+    case 'pl':
+      return AppLocalizationsPl();
   }
 
   throw FlutterError(

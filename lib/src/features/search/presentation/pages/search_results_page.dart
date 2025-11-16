@@ -5,6 +5,8 @@ import 'package:movi/l10n/app_localizations.dart';
 
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
@@ -122,7 +124,13 @@ class _ResultsGrid extends StatelessWidget {
       ),
       itemCount: mediaList.length,
       itemBuilder: (context, index) {
-        return MoviMediaCard(media: mediaList[index]);
+        return MoviMediaCard(
+          media: mediaList[index],
+          onTap: (m) => context.push(
+            m.type == MoviMediaType.movie ? AppRouteNames.movie : AppRouteNames.tv,
+            extra: m,
+          ),
+        );
       },
     );
   }

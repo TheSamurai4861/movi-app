@@ -124,8 +124,9 @@ class TmdbClient {
     // Query canonique triée pour une dédup stable.
     final qp = _canonicalizeQuery(query);
 
-    if (language != null && language.isNotEmpty) {
-      qp['language'] = language;
+    final lang = _normalizeLanguage(language);
+    if (lang != null && lang.isNotEmpty) {
+      qp['language'] = lang;
     }
 
     // Clé v3 en query (sinon Bearer v4 en header).
@@ -135,6 +136,15 @@ class TmdbClient {
     }
 
     return Uri.https(host, '/$version/$normalizedPath', qp.isEmpty ? null : qp);
+  }
+
+  String? _normalizeLanguage(String? language) {
+    if (language == null) return null;
+    final trimmed = language.trim();
+    if (trimmed.isEmpty) return null;
+    final lower = trimmed.toLowerCase().replaceAll('_', '-');
+    if (lower == 'fr-mm') return 'fr-FR';
+    return trimmed;
   }
 
   Map<String, String> _canonicalizeQuery(Map<String, Object?>? query) {

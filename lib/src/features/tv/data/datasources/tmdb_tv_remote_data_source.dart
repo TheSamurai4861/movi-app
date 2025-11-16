@@ -65,13 +65,19 @@ class TmdbTvRemoteDataSource {
     CancelToken? cancelToken,
     int retries = 1,
   }) async {
+    String imgLangs(String? code) {
+      final lang = (code ?? '').split('-').first.toLowerCase();
+      if (lang.isEmpty || lang == 'en') return 'null,en';
+      return '$lang,en,null';
+    }
+
     final json = await _client.getJson(
       'tv/$id',
       language: language,
-      query: const {
+      query: {
         'append_to_response':
             'images,credits,recommendations,content_ratings,external_ids',
-        'include_image_language': 'fr,en,null',
+        'include_image_language': imgLangs(language),
       },
       cancelToken: cancelToken,
       retries: retries,
@@ -84,10 +90,10 @@ class TmdbTvRemoteDataSource {
       final en = await _client.getJson(
         'tv/$id',
         language: 'en-US',
-        query: const {
+        query: {
           'append_to_response':
               'images,credits,recommendations,content_ratings,external_ids',
-          'include_image_language': 'fr,en,null',
+          'include_image_language': imgLangs('en-US'),
         },
         cancelToken: cancelToken,
         retries: retries,

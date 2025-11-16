@@ -1,6 +1,6 @@
 {
-  "root": "C:\\Users\\berny\\DEV\\Flutter\\movi\\lib",
-  "output": "C:\\Users\\berny\\DEV\\Flutter\\movi\\lib_outline.txt",
+  "root": "D:\\Home\\TheSamurai\\DEV\\FLUTTER\\movi-app\\lib",
+  "output": "D:\\Home\\TheSamurai\\DEV\\FLUTTER\\movi-app\\lib_outline.txt",
   "total_indexed": 314,
   "selected_count": 314,
   "selected_nums": [
@@ -1191,15 +1191,15 @@
     {
       "num": 125,
       "path": "src/features/home/presentation/pages/home_page.dart",
-      "lines": 371,
-      "bytes": 14230,
+      "lines": 443,
+      "bytes": 17402,
       "selected": true
     },
     {
       "num": 126,
       "path": "src/features/home/presentation/providers/home_providers.dart",
-      "lines": 140,
-      "bytes": 4177,
+      "lines": 145,
+      "bytes": 4316,
       "selected": true
     },
     {
@@ -2339,8 +2339,8 @@
     {
       "num": 289,
       "path": "src/features/welcome/presentation/pages/splash_bootstrap_page.dart",
-      "lines": 54,
-      "bytes": 1870,
+      "lines": 63,
+      "bytes": 1900,
       "selected": true
     },
     {
@@ -2367,8 +2367,8 @@
     {
       "num": 293,
       "path": "src/features/welcome/presentation/providers/bootstrap_providers.dart",
-      "lines": 99,
-      "bytes": 2862,
+      "lines": 161,
+      "bytes": 4981,
       "selected": true
     },
     {
