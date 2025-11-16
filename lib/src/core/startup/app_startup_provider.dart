@@ -5,6 +5,7 @@ import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 
 final appStartupProvider = FutureProvider<void>((ref) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,8 +13,10 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   registerEnvironmentLoader(loader);
   final flavor = loader.load();
   final requireTmdbKey = kReleaseMode && flavor.isProduction;
-  debugPrint('[Startup] flavor=${flavor.label} '
-      '(env: ${flavor.environment}) | requireTmdbKey=$requireTmdbKey');
+  debugPrint(
+    '[Startup] flavor=${flavor.label} '
+    '(env: ${flavor.environment}) | requireTmdbKey=$requireTmdbKey',
+  );
   debugPrint('avant registerConfig');
   final config = await registerConfig(
     flavor: flavor,
@@ -29,4 +32,6 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   debugPrint('avant LoggingModule.register');
   LoggingModule.register();
   debugPrint('après LoggingModule.register OK');
+  final syncService = sl<XtreamSyncService>();
+  syncService.start();
 });

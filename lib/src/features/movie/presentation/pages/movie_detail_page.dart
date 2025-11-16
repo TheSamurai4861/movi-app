@@ -110,8 +110,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }) {
     final cs = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.headlineSmall;
-    const heroHeight = 590.0;
-    const overlayHeight = 283.0;
+    const heroHeight = 440.0;
+    const overlayHeight = 210.0;
     return Scaffold(
       backgroundColor: cs.surface,
       body: SafeArea(
@@ -479,21 +479,32 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                             ),
                           ),
                           const SizedBox(height: 24),
-                          MoviItemsList(
-                            title: AppLocalizations.of(
-                              context,
-                            )!.recommendationsTitle,
-                            estimatedItemWidth: 150,
-                            estimatedItemHeight: 258,
-                            titlePadding: 20,
-                            horizontalPadding: const EdgeInsetsDirectional.only(
-                              start: 20,
-                              end: 0,
+                          if (recommendations.isNotEmpty)
+                            MoviItemsList(
+                              title: AppLocalizations.of(
+                                context,
+                              )!.recommendationsTitle,
+                              estimatedItemWidth: 150,
+                              estimatedItemHeight: 258,
+                              titlePadding: 20,
+                              horizontalPadding:
+                                  const EdgeInsetsDirectional.only(
+                                    start: 20,
+                                    end: 0,
+                                  ),
+                              items: recommendations
+                                  .map(
+                                    (m) => MoviMediaCard(
+                                      media: m,
+                                      heroTag: 'reco_${m.id}',
+                                      onTap: (mm) => context.push(
+                                        AppRouteNames.movie,
+                                        extra: mm,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(growable: false),
                             ),
-                            items: recommendations
-                                .map((m) => MoviMediaCard(media: m))
-                                .toList(growable: false),
-                          ),
                           const SizedBox(height: 100),
                         ],
                       ),
@@ -501,7 +512,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                   ),
                 ),
               ),
-              
             ],
           ),
         ),
@@ -514,11 +524,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     if (uri == null) {
       return Container(color: AppColors.darkSurface);
     }
+    final mq = MediaQuery.of(context);
+    final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
+    final int cacheWidth = rawPx.clamp(480, 1440);
     return Image.network(
       uri.toString(),
       fit: BoxFit.cover,
       gaplessPlayback: true,
+      cacheWidth: cacheWidth,
       filterQuality: FilterQuality.low,
+      alignment: const Alignment(0.0, -0.5),
     );
   }
 }

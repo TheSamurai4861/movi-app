@@ -8,14 +8,22 @@ import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart
 import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart';
 import 'package:movi/src/features/iptv/data/datasources/xtream_remote_data_source.dart';
 import 'package:movi/src/features/iptv/application/services/playlist_mapper.dart';
+import 'package:movi/src/features/iptv/data/datasources/xtream_cache_data_source.dart';
 
 class IptvRepositoryImpl implements IptvRepository {
-  IptvRepositoryImpl(this._local, this._vault, this._remote, this._mapper);
+  IptvRepositoryImpl(
+    this._local,
+    this._vault,
+    this._remote,
+    this._mapper,
+    this._cache,
+  );
 
   final IptvLocalRepository _local;
   final CredentialsVault _vault;
   final XtreamRemoteDataSource _remote;
   final PlaylistMapper _mapper;
+  final XtreamCacheDataSource _cache;
 
   @override
   Future<XtreamAccount> addSource({
@@ -60,7 +68,21 @@ class IptvRepositoryImpl implements IptvRepository {
           throw AccountNotFoundFailure('Unknown Xtream account $accountId'),
     );
 
-    final password = await _vault.readPassword(accountId);
+    String? password = await _vault.readPassword(accountId);
+    if (password == null || password.isEmpty) {
+      final hostKey = '${account.endpoint.host}_${account.username}'
+          .toLowerCase();
+      if (hostKey != accountId) {
+        password = await _vault.readPassword(hostKey);
+      }
+    }
+    if (password == null || password.isEmpty) {
+      final rawUrlKey = '${account.endpoint.toRawUrl()}_${account.username}'
+          .toLowerCase();
+      if (rawUrlKey != accountId) {
+        password = await _vault.readPassword(rawUrlKey);
+      }
+    }
     if (password == null || password.isEmpty) {
       throw MissingCredentialsFailure('Missing credentials for $accountId');
     }
@@ -88,12 +110,14 @@ class IptvRepositoryImpl implements IptvRepository {
 
     final movieCount = movies.length;
     final seriesCount = series.length;
-    return XtreamCatalogSnapshot(
+    final snapshot = XtreamCatalogSnapshot(
       accountId: accountId,
       lastSyncAt: DateTime.now(),
       movieCount: movieCount,
       seriesCount: seriesCount,
     );
+    await _cache.saveSnapshot(snapshot);
+    return snapshot;
   }
 
   @override

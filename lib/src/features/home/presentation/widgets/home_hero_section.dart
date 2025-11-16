@@ -60,7 +60,7 @@ final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
 
 class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   // Mise en page
-  static const double _totalHeight = 790;
+  static const double _totalHeight = 890;
   static const double _overlayHeight = 125;
 
   // Sécurité décodage image (px @device)
@@ -370,10 +370,12 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
               future: _metaFuture,
               builder: (context, snap) {
                 final _HeroMeta? meta = snap.data ?? _lastMeta;
-                if (snap.connectionState == ConnectionState.done && snap.data != null) {
+                if (snap.connectionState == ConnectionState.done &&
+                    snap.data != null) {
                   _lastMeta = snap.data;
                 }
-                if (snap.connectionState == ConnectionState.waiting && meta == null) {
+                if (snap.connectionState == ConnectionState.waiting &&
+                    meta == null) {
                   return const _HeroSkeleton(overlayHeight: _overlayHeight);
                 }
 
@@ -506,7 +508,15 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
                         if (year != null && ratingText != null)
                           const SizedBox(width: 8),
                         if (ratingText != null)
-                          MoviPill(ratingText, large: true),
+                          MoviPill(
+                            ratingText,
+                            large: true,
+                            trailingIcon: Image.asset(
+                              AppAssets.iconStarFilled,
+                              width: 18,
+                              height: 18,
+                            ),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 16),

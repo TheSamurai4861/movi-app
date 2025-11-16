@@ -20,10 +20,7 @@ class IptvDataModule {
     assert(sl.isRegistered<NetworkExecutor>());
 
     sl.registerLazySingleton<XtreamCacheDataSource>(
-      () => XtreamCacheDataSource(
-        sl<IptvLocalRepository>(),
-        sl<ContentCacheRepository>(),
-      ),
+      () => XtreamCacheDataSource(sl<ContentCacheRepository>()),
     );
 
     sl.registerLazySingleton<XtreamRemoteDataSource>(
@@ -37,6 +34,7 @@ class IptvDataModule {
         sl<CredentialsVault>(),
         sl<XtreamRemoteDataSource>(),
         sl<PlaylistMapper>(),
+        sl<XtreamCacheDataSource>(),
       ),
     );
 
