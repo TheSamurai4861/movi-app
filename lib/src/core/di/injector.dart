@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart';
+import 'dart:ui' as ui;
 
 import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/logging/logger.dart';
@@ -71,7 +72,9 @@ void _ensureSecretStore(SecretStore? store) {
 
 Future<void> _ensureLocalePreferences() async {
   if (sl.isRegistered<LocalePreferences>()) return;
-  final prefs = await LocalePreferences.create();
+  final locale = ui.PlatformDispatcher.instance.locale;
+  final code = '${locale.languageCode}-${locale.countryCode ?? 'US'}';
+  final prefs = await LocalePreferences.create(defaultLanguageCode: code);
   sl.registerSingleton<LocalePreferences>(prefs);
 }
 

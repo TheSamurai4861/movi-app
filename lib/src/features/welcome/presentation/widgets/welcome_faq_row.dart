@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 class WelcomeFaqRow extends StatelessWidget {
   const WelcomeFaqRow({super.key, this.onTap});
@@ -21,7 +22,7 @@ class WelcomeFaqRow extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: Text(
-                'FAQ',
+                AppLocalizations.of(context)!.faqLabel,
                 style: t.bodyLarge?.copyWith(color: c.primary),
               ),
             ),

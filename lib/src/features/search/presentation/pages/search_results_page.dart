@@ -43,7 +43,9 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(searchResultsControllerProvider(_args));
 
-    final title = state.type == SearchResultsType.movies ? 'Films' : 'Séries';
+    final title = state.type == SearchResultsType.movies
+        ? AppLocalizations.of(context)!.moviesTitle
+        : AppLocalizations.of(context)!.seriesTitle;
     return Scaffold(
       appBar: AppBar(title: Text('Résultats — $title')),
       body: SafeArea(
@@ -70,7 +72,7 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
                     onPressed: () => ref
                         .read(searchResultsControllerProvider(_args).notifier)
                         .fetchNextPage(),
-                    child: const Text('Charger plus'),
+                    child: Text(AppLocalizations.of(context)!.actionLoadMore),
                   ),
                 ),
             ],

@@ -70,9 +70,9 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const WelcomeHeader(
-                    title: 'Bienvenue !',
-                    subtitle: 'Ajoute une source IPTV pour personnaliser Movi.',
+                  WelcomeHeader(
+                    title: AppLocalizations.of(context)!.welcomeTitle,
+                    subtitle: AppLocalizations.of(context)!.welcomeSubtitle,
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   Form(
@@ -81,11 +81,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         LabeledField(
-                          label: 'URL du serveur',
+                          label: AppLocalizations.of(context)!.iptvServerUrlLabel,
                           child: TextFormField(
                             controller: _serverCtrl,
-                            decoration: const InputDecoration(
-                              hintText: 'URL du serveur Xtream',
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)!.iptvServerUrlHint,
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) {
@@ -101,7 +101,7 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                         ),
                         const SizedBox(height: AppSpacing.md),
                         LabeledField(
-                          label: 'Nom d’utilisateur',
+                          label: AppLocalizations.of(context)!.labelUsername,
                           child: TextFormField(
                             controller: _userCtrl,
                             decoration: const InputDecoration(
@@ -118,11 +118,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                         ),
                         const SizedBox(height: AppSpacing.md),
                         LabeledField(
-                          label: 'Mot de passe',
+                          label: AppLocalizations.of(context)!.iptvPasswordLabel,
                           child: TextFormField(
                             controller: _passCtrl,
-                            decoration: const InputDecoration(
-                              hintText: 'Mot de passe Xtream',
+                            decoration: InputDecoration(
+                              hintText: AppLocalizations.of(context)!.iptvPasswordHint,
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) => (v == null || v.isEmpty)
@@ -141,8 +141,8 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                           ),
                           child: SizedBox(
                             width: double.infinity,
-                            child: MoviPrimaryButton(
-                              label: 'Se connecter',
+                              child: MoviPrimaryButton(
+                              label: AppLocalizations.of(context)!.actionConnect,
                               onPressed: state.isLoading ? null : _submit,
                               loading: state.isLoading,
                             ),

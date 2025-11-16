@@ -54,10 +54,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     with WidgetsBindingObserver {
   // Mise en page
   static const double _totalHeight = 590;
-  static const double _overlayHeight = 150;
+  static const double _overlayHeight = 210;
 
-  // Limite de décodage (px @device) pour soulager CPU/GPU en desktop
-  static const int _maxHeroCachePx = 1440;
+  
 
   // Timings
   static const Duration _rotation = Duration(seconds: 9);
@@ -512,10 +511,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                 Widget buildBackground() {
                   Widget image;
                   if (bgSrc != null) {
-                    final mq = MediaQuery.of(context);
-                    final int rawPx = (mq.size.width * mq.devicePixelRatio)
-                        .round();
-                    final int cacheWidth = rawPx.clamp(480, _maxHeroCachePx);
                     image = Image.network(
                       bgSrc,
                       key: ValueKey(bgSrc),
@@ -524,13 +519,17 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       width: double.infinity,
                       height: double.infinity,
                       gaplessPlayback: true,
-                      cacheWidth: cacheWidth,
                       filterQuality: FilterQuality.low,
                       errorBuilder: (_, __, ___) {
                         if (!_backdropNotified) {
                           _backdropNotified = true;
                         }
-                        return const ColoredBox(color: Color(0xFF222222));
+                        return Image.asset(
+                          AppAssets.placeholderPosterMovie,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                        );
                       },
                       frameBuilder: (context, child, frame, wasSync) {
                         if (frame != null && !_backdropNotified) {
@@ -590,16 +589,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                             top: 0,
                             child: _TopOverlay(height: _overlayHeight),
                           ),
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            child: _TopOverlay(height: _overlayHeight),
-                          ),
                           Positioned(
                             left: 0,
                             right: 0,
-                            bottom: 0,
+                            bottom: 10,
                             child: Center(
                               child: ConstrainedBox(
                                 constraints: const BoxConstraints(
@@ -679,7 +672,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     AnimatedSwitcher(
                       duration: _fade,
                       transitionBuilder: (child, animation) =>
@@ -700,7 +693,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                           if (year != null && ratingText != null)
                             const SizedBox(width: 8),
                           if (ratingText != null)
-                            MoviPill(ratingText, large: true),
+                            MoviPill(
+                              ratingText,
+                              trailingIcon: Image.asset(
+                                AppAssets.iconStarFilled,
+                                width: 18,
+                                height: 18,
+                              ),
+                              large: true,
+                            ),
                         ],
                       ),
                     ),
@@ -947,7 +948,7 @@ class _GlobalOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: height,
-      decoration: const BoxDecoration(color: Color.fromARGB(52, 20, 20, 20)),
+      decoration: const BoxDecoration(color: Color.fromARGB(26, 20, 20, 20)),
     );
   }
 }
@@ -1064,10 +1065,10 @@ class _HeroEmpty extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg,
                     ),
-                    child: const Text(
-                      'Aucune tendance disponible',
+                    child: Text(
+                      AppLocalizations.of(context)!.homeNoTrends,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,

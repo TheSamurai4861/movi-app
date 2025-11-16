@@ -145,7 +145,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
         children: [
           // URL
           LabeledField(
-            label: 'URL du serveur',
+            label: AppLocalizations.of(context)!.iptvServerUrlLabel,
             child: TextFormField(
               controller: _urlCtrl,
               focusNode: _focusUrl,
@@ -154,7 +154,9 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusUser.requestFocus(),
-              decoration: const InputDecoration(hintText: 'URL Serveur'),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context)!.iptvServerUrlHint,
+              ),
               validator: (v) => (XtreamEndpoint.tryParse(v ?? '') == null)
                   ? AppLocalizations.of(context)!.validationInvalidUrl
                   : null,
@@ -164,7 +166,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
 
           // Username
           LabeledField(
-            label: 'Nom d’utilisateur',
+            label: AppLocalizations.of(context)!.iptvUsernameLabel,
             child: TextFormField(
               controller: _userCtrl,
               focusNode: _focusUser,
@@ -172,7 +174,9 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               autofillHints: const [AutofillHints.username],
               textInputAction: TextInputAction.next,
               onFieldSubmitted: (_) => _focusPass.requestFocus(),
-              decoration: const InputDecoration(hintText: 'Identifiant Xtream'),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(context)!.iptvUsernameHint,
+              ),
               validator: (v) => (v == null || v.trim().isEmpty)
                   ? AppLocalizations.of(context)!.validationRequired
                   : null,
@@ -182,7 +186,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
 
           // Password
           LabeledField(
-            label: 'Mot de passe',
+            label: AppLocalizations.of(context)!.iptvPasswordLabel,
             child: TextFormField(
               controller: _passCtrl,
               focusNode: _focusPass,
@@ -193,7 +197,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
                 if (_isFormValid && !isLoading) _onSubmit();
               },
               decoration: InputDecoration(
-                hintText: 'Mot de passe Xtream',
+                hintText: AppLocalizations.of(context)!.iptvPasswordHint,
                 suffixIcon: IconButton(
                   onPressed: isLoading
                       ? null
@@ -220,7 +224,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
             child: SizedBox(
               width: double.infinity,
               child: MoviPrimaryButton(
-                label: 'Ajouter la source',
+                label: AppLocalizations.of(context)!.welcomeSourceAdd,
                 onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
                 loading: isLoading,
               ),

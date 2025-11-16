@@ -1,16 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
 
-Widget _buildPersonImage(Uri? poster, double width, double height) {
-  final errorPlaceholder = Container(
-    width: width,
-    height: height,
-    color: const Color(0xFF222222),
-    child: const Center(
-      child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
-    ),
-  );
+Widget _buildPersonImage(
+  Uri? poster,
+  double width,
+  double height, {
+  String? placeholderAsset,
+}) {
+  final Widget errorPlaceholder = (placeholderAsset == null)
+      ? Container(
+          width: width,
+          height: height,
+          color: const Color(0xFF222222),
+          child: const Center(
+            child:
+                Icon(Icons.broken_image, size: 32, color: Colors.white54),
+          ),
+        )
+      : Image.asset(
+          placeholderAsset,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        );
 
   if (poster == null) return errorPlaceholder;
   final source = poster.toString().trim();
@@ -118,10 +132,23 @@ class MoviPersonCard extends StatelessWidget {
       child: SizedBox(
         width: width,
         height: height,
-        child: _buildPersonImage(person.poster, width, height),
+        child: _buildPersonImage(
+          person.poster,
+          width,
+          height,
+          placeholderAsset: _rolePlaceholder(person.role),
+        ),
       ),
     );
     if (heroTag == null) return image;
     return Hero(tag: heroTag!, child: image);
+  }
+
+  String _rolePlaceholder(String role) {
+    final r = role.toLowerCase();
+    if (r.contains('réalis') || r.contains('director')) {
+      return AppAssets.placeholderPersonDirector;
+    }
+    return AppAssets.placeholderPersonActor;
   }
 }

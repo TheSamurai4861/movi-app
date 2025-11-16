@@ -419,6 +419,150 @@ abstract class AppLocalizations {
   /// **'No trending content available'**
   String get homeNoTrends;
 
+  /// No description provided for @actionChangeMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Change metadata'**
+  String get actionChangeMetadata;
+
+  /// No description provided for @actionAddToList.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to a list'**
+  String get actionAddToList;
+
+  /// No description provided for @actionMarkSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as seen'**
+  String get actionMarkSeen;
+
+  /// No description provided for @actionMarkUnseen.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unseen'**
+  String get actionMarkUnseen;
+
+  /// No description provided for @actionReportProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a problem'**
+  String get actionReportProblem;
+
+  /// No description provided for @featureComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature coming soon'**
+  String get featureComingSoon;
+
+  /// No description provided for @actionLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get actionLoadMore;
+
+  /// No description provided for @iptvServerUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get iptvServerUrlLabel;
+
+  /// No description provided for @iptvServerUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Xtream server URL'**
+  String get iptvServerUrlHint;
+
+  /// No description provided for @iptvPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get iptvPasswordLabel;
+
+  /// No description provided for @iptvPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Xtream password'**
+  String get iptvPasswordHint;
+
+  /// No description provided for @actionConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get actionConnect;
+
+  /// No description provided for @settingsRefreshIptvPlaylistsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh IPTV playlists'**
+  String get settingsRefreshIptvPlaylistsTitle;
+
+  /// No description provided for @statusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get statusActive;
+
+  /// No description provided for @statusNoActiveSource.
+  ///
+  /// In en, this message translates to:
+  /// **'No active source'**
+  String get statusNoActiveSource;
+
+  /// No description provided for @overlayPreparingHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing home…'**
+  String get overlayPreparingHome;
+
+  /// No description provided for @errorPrepareHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to prepare the home page'**
+  String get errorPrepareHome;
+
+  /// No description provided for @overlayOpeningHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening home…'**
+  String get overlayOpeningHome;
+
+  /// No description provided for @overlayRefreshingIptvLists.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing IPTV lists…'**
+  String get overlayRefreshingIptvLists;
+
+  /// No description provided for @overlayPreparingMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing metadata…'**
+  String get overlayPreparingMetadata;
+
+  /// No description provided for @errorHomeLoadTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Home load timeout'**
+  String get errorHomeLoadTimeout;
+
+  /// No description provided for @faqLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'FAQ'**
+  String get faqLabel;
+
+  /// No description provided for @iptvUsernameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get iptvUsernameLabel;
+
+  /// No description provided for @iptvUsernameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Xtream username'**
+  String get iptvUsernameHint;
+
   /// No description provided for @actionBack.
   ///
   /// In en, this message translates to:

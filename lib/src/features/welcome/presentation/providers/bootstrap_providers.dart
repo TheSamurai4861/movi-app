@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/logging/logging.dart';
-import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
+import 'package:movi/src/core/startup/app_startup_provider.dart'
+    as app_startup_provider;
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'dart:async';
@@ -118,12 +119,12 @@ final appPreloadProvider = FutureProvider<void>((ref) async {
   final initial = ref.read(homeControllerProvider);
   final home = ref.read(homeControllerProvider.notifier);
 
-  final hasData = initial.error == null && (
-    initial.hero.isNotEmpty ||
-    initial.cwMovies.isNotEmpty ||
-    initial.cwShows.isNotEmpty ||
-    initial.iptvLists.isNotEmpty
-  );
+  final hasData =
+      initial.error == null &&
+      (initial.hero.isNotEmpty ||
+          initial.cwMovies.isNotEmpty ||
+          initial.cwShows.isNotEmpty ||
+          initial.iptvLists.isNotEmpty);
 
   if (hasData) {
     return;
@@ -133,7 +134,8 @@ final appPreloadProvider = FutureProvider<void>((ref) async {
     await home.load().timeout(const Duration(seconds: 10));
   } on TimeoutException {
     final after = ref.read(homeControllerProvider);
-    final partial = after.hero.isNotEmpty ||
+    final partial =
+        after.hero.isNotEmpty ||
         after.cwMovies.isNotEmpty ||
         after.cwShows.isNotEmpty ||
         after.iptvLists.isNotEmpty;
@@ -143,7 +145,8 @@ final appPreloadProvider = FutureProvider<void>((ref) async {
   } catch (e) {
     unawaited(LoggingService.log('Home preload failed: $e'));
     final after = ref.read(homeControllerProvider);
-    final partial = after.hero.isNotEmpty ||
+    final partial =
+        after.hero.isNotEmpty ||
         after.cwMovies.isNotEmpty ||
         after.cwShows.isNotEmpty ||
         after.iptvLists.isNotEmpty;

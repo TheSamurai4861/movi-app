@@ -428,7 +428,12 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
                         _backdropNotified = true;
                         widget.onBackgroundReady?.call();
                       }
-                      return const ColoredBox(color: Color(0xFF222222));
+                      return Image.asset(
+                        AppAssets.placeholderPosterMovie,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      );
                     },
                     frameBuilder: (context, child, frame, wasSync) {
                       if (frame != null && !_backdropNotified) {
@@ -838,10 +843,10 @@ class _HeroEmpty extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg,
                     ),
-                    child: const Text(
-                      'Aucune tendance disponible',
+                    child: Text(
+                      AppLocalizations.of(context)!.homeNoTrends,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w600,

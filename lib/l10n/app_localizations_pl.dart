@@ -175,6 +175,78 @@ class AppLocalizationsPl extends AppLocalizations {
   String get homeNoTrends => 'Brak treści na czasie';
 
   @override
+  String get actionChangeMetadata => 'Change metadata';
+
+  @override
+  String get actionAddToList => 'Add to a list';
+
+  @override
+  String get actionMarkSeen => 'Mark as seen';
+
+  @override
+  String get actionMarkUnseen => 'Mark as unseen';
+
+  @override
+  String get actionReportProblem => 'Report a problem';
+
+  @override
+  String get featureComingSoon => 'Feature coming soon';
+
+  @override
+  String get actionLoadMore => 'Load more';
+
+  @override
+  String get iptvServerUrlLabel => 'Server URL';
+
+  @override
+  String get iptvServerUrlHint => 'Xtream server URL';
+
+  @override
+  String get iptvPasswordLabel => 'Password';
+
+  @override
+  String get iptvPasswordHint => 'Xtream password';
+
+  @override
+  String get actionConnect => 'Connect';
+
+  @override
+  String get settingsRefreshIptvPlaylistsTitle => 'Refresh IPTV playlists';
+
+  @override
+  String get statusActive => 'Active';
+
+  @override
+  String get statusNoActiveSource => 'No active source';
+
+  @override
+  String get overlayPreparingHome => 'Preparing home…';
+
+  @override
+  String get errorPrepareHome => 'Unable to prepare the home page';
+
+  @override
+  String get overlayOpeningHome => 'Opening home…';
+
+  @override
+  String get overlayRefreshingIptvLists => 'Refreshing IPTV lists…';
+
+  @override
+  String get overlayPreparingMetadata => 'Preparing metadata…';
+
+  @override
+  String get errorHomeLoadTimeout => 'Home load timeout';
+
+  @override
+  String get faqLabel => 'FAQ';
+
+  @override
+  String get iptvUsernameLabel => 'Username';
+
+  @override
+  String get iptvUsernameHint => 'Xtream username';
+
+  @override
   String get actionBack => 'Wstecz';
 
   @override

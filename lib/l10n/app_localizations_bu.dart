@@ -134,4 +134,52 @@ class AppLocalizationsBu extends AppLocalizations {
   
   @override
   String get recommendationsTitle => 'Conseils';
+  @override
+  String get actionChangeMetadata => 'Changer les bilboquets';
+  @override
+  String get actionAddToList => 'Mettre en la liste';
+  @override
+  String get actionMarkSeen => 'Marquer comme vu';
+  @override
+  String get actionMarkUnseen => 'Marquer comme point vu';
+  @override
+  String get actionReportProblem => 'Signaler un couac';
+  @override
+  String get featureComingSoon => 'Fonction à venir';
+  @override
+  String get actionLoadMore => 'Charger davantage';
+  @override
+  String get iptvServerUrlLabel => 'Adresse du serveur';
+  @override
+  String get iptvServerUrlHint => 'Adresse du serveur Xtream';
+  @override
+  String get iptvPasswordLabel => 'Mot de passe';
+  @override
+  String get iptvPasswordHint => 'Mot de passe Xtream';
+  @override
+  String get actionConnect => 'Se relier';
+  @override
+  String get settingsRefreshIptvPlaylistsTitle => 'Rafraîchir les listes IPTV';
+  @override
+  String get statusActive => 'Actif';
+  @override
+  String get statusNoActiveSource => 'Point de source active';
+  @override
+  String get overlayPreparingHome => 'Préparation du gîte…';
+  @override
+  String get errorPrepareHome => 'Impossible de préparer la page du gîte';
+  @override
+  String get overlayOpeningHome => 'Ouverture du gîte…';
+  @override
+  String get overlayRefreshingIptvLists => 'Rafraîchissement des listes IPTV…';
+  @override
+  String get overlayPreparingMetadata => 'Préparation des billets…';
+  @override
+  String get errorHomeLoadTimeout => 'Délai de chargement du gîte dépassé';
+  @override
+  String get faqLabel => 'FAQ';
+  @override
+  String get iptvUsernameLabel => 'Nom d’utilisateur';
+  @override
+  String get iptvUsernameHint => 'Identifiant Xtream';
 }

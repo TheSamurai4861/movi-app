@@ -1,16 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:movi/src/core/models/models.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
 
-Widget _buildPosterImage(Uri? poster, double width, double height) {
-  final placeholder = Container(
-    width: width,
-    height: height,
-    color: const Color(0xFF222222),
-    child: const Center(
-      child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
-    ),
-  );
+Widget _buildPosterImage(
+  Uri? poster,
+  double width,
+  double height, {
+  String? placeholderAsset,
+}) {
+  final Widget placeholder = (placeholderAsset == null)
+      ? Container(
+          width: width,
+          height: height,
+          color: const Color(0xFF222222),
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+          ),
+        )
+      : Image.asset(
+          placeholderAsset,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        );
 
   if (poster == null) return placeholder;
   final source = poster.toString().trim();
@@ -125,7 +138,14 @@ class _PosterWithOverlay extends StatelessWidget {
     final image = Stack(
       fit: StackFit.expand,
       children: [
-        _buildPosterImage(media.poster, width, height),
+        _buildPosterImage(
+          media.poster,
+          width,
+          height,
+          placeholderAsset: media.type == MoviMediaType.movie
+              ? AppAssets.placeholderPosterMovie
+              : AppAssets.placeholderPosterSeries,
+        ),
         Positioned(
           bottom: 0,
           left: 0,

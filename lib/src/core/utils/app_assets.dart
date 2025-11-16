@@ -20,4 +20,14 @@ class AppAssets {
   static const String iconBack = 'assets/icons/back_icon.png';
   static const String iconMore = 'assets/icons/more_icon.png';
   static const String iconExtend = 'assets/icons/extend_icon.png';
+
+  // Placeholders
+  static const String placeholderPosterMovie =
+      'assets/placeholders/poster_movie.png';
+  static const String placeholderPosterSeries =
+      'assets/placeholders/poster_series.png';
+  static const String placeholderPersonDirector =
+      'assets/placeholders/person_director.png';
+  static const String placeholderPersonActor =
+      'assets/placeholders/person_actor.png';
 }

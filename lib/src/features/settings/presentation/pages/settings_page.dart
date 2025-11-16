@@ -228,11 +228,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.refresh),
-              title: const Text('Rafraîchir les playlists IPTV'),
+              title: Text(AppLocalizations.of(context)!.settingsRefreshIptvPlaylistsTitle),
               subtitle: Text(
                 ref.watch(appStateControllerProvider).hasActiveIptvSources
-                    ? 'Actif'
-                    : 'Aucune source active',
+                    ? AppLocalizations.of(context)!.statusActive
+                    : AppLocalizations.of(context)!.statusNoActiveSource,
               ),
               trailing: _refreshingIptv
                   ? const SizedBox(
