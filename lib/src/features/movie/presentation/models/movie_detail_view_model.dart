@@ -2,6 +2,7 @@ import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/movie/domain/entities/movie.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
 
 class MovieDetailViewModel {
   MovieDetailViewModel({
@@ -15,6 +16,7 @@ class MovieDetailViewModel {
     required this.poster,
     required this.backdrop,
     required this.language,
+    this.sagaLink,
   });
 
   final String title;
@@ -27,6 +29,7 @@ class MovieDetailViewModel {
   final Uri? poster;
   final Uri? backdrop;
   final String language;
+  final SagaSummary? sagaLink;
 
   factory MovieDetailViewModel.fromDomain({
     required Movie detail,
@@ -73,6 +76,7 @@ class MovieDetailViewModel {
       poster: detail.poster,
       backdrop: detail.backdrop,
       language: language,
+      sagaLink: detail.sagaLink,
     );
   }
 }

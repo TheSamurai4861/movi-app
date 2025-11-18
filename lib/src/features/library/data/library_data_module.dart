@@ -1,6 +1,7 @@
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
+import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/favorites_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/history_repository.dart';
@@ -16,6 +17,7 @@ class LibraryDataModule {
         sl<WatchlistLocalRepository>(),
         sl<HistoryLocalRepository>(),
         sl<PlaylistRepository>(),
+        sl<PersonRepository>(),
       ),
     );
 

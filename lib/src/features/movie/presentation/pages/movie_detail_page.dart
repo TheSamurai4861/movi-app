@@ -19,6 +19,11 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart' as hp;
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/core/widgets/movi_favorite_button.dart';
 
 class MovieDetailPage extends ConsumerStatefulWidget {
   const MovieDetailPage({super.key, this.media});
@@ -32,8 +37,6 @@ class MovieDetailPage extends ConsumerStatefulWidget {
 class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     with TickerProviderStateMixin {
   bool _overviewExpanded = false;
-  bool _edgeSwipeActive = false;
-  double _edgeSwipeStartX = 0.0;
   String mediaTitle = '—';
   String yearText = '—';
   String durationText = '—';
@@ -88,6 +91,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         isLoading: false,
         poster: vm.poster,
         backdrop: vm.backdrop,
+        sagaLink: vm.sagaLink,
       ),
     );
   }
@@ -112,36 +116,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required bool isLoading,
     Uri? poster,
     Uri? backdrop,
+    SagaSummary? sagaLink,
   }) {
     final cs = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.headlineSmall;
     const heroHeight = 400.0;
     const overlayHeight = 200.0;
-    return Scaffold(
-      backgroundColor: cs.surface,
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (details) {
-          final dx = details.globalPosition.dx;
-          if (dx <= 24) {
-            _edgeSwipeActive = true;
-            _edgeSwipeStartX = dx;
-          } else {
-            _edgeSwipeActive = false;
-          }
-        },
-        onHorizontalDragUpdate: (details) {
-          if (!_edgeSwipeActive) return;
-          final moved = details.globalPosition.dx - _edgeSwipeStartX;
-          if (moved > 80) {
-            _edgeSwipeActive = false;
-            if (mounted) context.pop();
-          }
-        },
-        onHorizontalDragEnd: (_) {
-          _edgeSwipeActive = false;
-        },
-        child: SafeArea(
+    return SwipeBackWrapper(
+      child: Scaffold(
+        backgroundColor: cs.surface,
+        body: SafeArea(
           top: true,
           bottom: true,
           child: Opacity(
@@ -308,26 +292,58 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                 height: 55,
                                 child: Row(
                                   children: [
-                                    Expanded(
-                                      child: MoviPrimaryButton(
-                                        label: AppLocalizations.of(
-                                          context,
-                                        )!.homeWatchNow,
-                                        assetIcon: AppAssets.iconPlay,
-                                        buttonStyle: FilledButton.styleFrom(
-                                          backgroundColor: AppColors.accent,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              32,
+                                    Consumer(
+                                      builder: (context, ref, _) {
+                                        if (widget.media == null) {
+                                          return Expanded(
+                                            child: MoviPrimaryButton(
+                                              label: AppLocalizations.of(
+                                                context,
+                                              )!.homeWatchNow,
+                                              assetIcon: AppAssets.iconPlay,
+                                              buttonStyle: FilledButton.styleFrom(
+                                                backgroundColor: AppColors.accent,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(
+                                                    32,
+                                                  ),
+                                                ),
+                                              ),
+                                              onPressed: () => _playMovie(
+                                                context,
+                                                widget.media!.id,
+                                                mediaTitle,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        final historyAsync = ref.watch(
+                                          hp.mediaHistoryProvider((contentId: widget.media!.id, type: ContentType.movie)),
+                                        );
+                                        return Expanded(
+                                          child: MoviPrimaryButton(
+                                            label: historyAsync.when(
+                                              data: (entry) => entry != null ? 'Reprendre la lecture' : AppLocalizations.of(context)!.homeWatchNow,
+                                              loading: () => AppLocalizations.of(context)!.homeWatchNow,
+                                              error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
+                                            ),
+                                            assetIcon: AppAssets.iconPlay,
+                                            buttonStyle: FilledButton.styleFrom(
+                                              backgroundColor: AppColors.accent,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(
+                                                  32,
+                                                ),
+                                              ),
+                                            ),
+                                            onPressed: () => _playMovie(
+                                              context,
+                                              widget.media!.id,
+                                              mediaTitle,
                                             ),
                                           ),
-                                        ),
-                                        onPressed: () => _playMovie(
-                                          context,
-                                          widget.media!.id,
-                                          mediaTitle,
-                                        ),
-                                      ),
+                                        );
+                                      },
                                     ),
                                     const SizedBox(width: 16),
                                     SizedBox(
@@ -538,6 +554,83 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                               ),
                             ),
                             const SizedBox(height: 24),
+                            // Section saga (si le film fait partie d'une saga)
+                            if (sagaLink != null)
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final sagaMoviesAsync = ref.watch(sagaMoviesProvider(sagaLink));
+                                  return sagaMoviesAsync.when(
+                                    data: (sagaMovies) {
+                                      if (sagaMovies.isEmpty) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          MoviItemsList(
+                                            title: 'Saga ${sagaLink.title.display}',
+                                            estimatedItemWidth: 150,
+                                            estimatedItemHeight: 258,
+                                            titlePadding: 20,
+                                            horizontalPadding:
+                                                const EdgeInsetsDirectional.only(
+                                                  start: 20,
+                                                  end: 0,
+                                                ),
+                                            action: Padding(
+                                              padding: const EdgeInsetsDirectional.only(end: 20),
+                                              child: Consumer(
+                                                builder: (context, ref, _) {
+                                                  final sagaId = sagaLink.id.value;
+                                                  final isFavoriteAsync = ref.watch(
+                                                    sagaIsFavoriteProvider(sagaId),
+                                                  );
+                                                  return isFavoriteAsync.when(
+                                                    data: (isFavorite) => MoviFavoriteButton(
+                                                      isFavorite: isFavorite,
+                                                      onPressed: () async {
+                                                        await ref.read(
+                                                          sagaToggleFavoriteProvider.notifier,
+                                                        ).toggle(sagaId, sagaLink);
+                                                      },
+                                                    ),
+                                                    loading: () => MoviFavoriteButton(
+                                                      isFavorite: false,
+                                                      onPressed: () {},
+                                                    ),
+                                                    error: (_, __) => MoviFavoriteButton(
+                                                      isFavorite: false,
+                                                      onPressed: () {},
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            items: sagaMovies
+                                                .map(
+                                                  (m) => MoviMediaCard(
+                                                    media: m,
+                                                    heroTag: 'saga_${m.id}',
+                                                    highlightBorder: m.id == widget.media?.id,
+                                                    onTap: (mm) => context.push(
+                                                      AppRouteNames.movie,
+                                                      extra: mm,
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(growable: false),
+                                          ),
+                                          const SizedBox(height: 24),
+                                        ],
+                                      );
+                                    },
+                                    loading: () => const SizedBox.shrink(),
+                                    error: (_, __) => const SizedBox.shrink(),
+                                  );
+                                },
+                              ),
+                            // Section recommandations
                             if (recommendations.isNotEmpty)
                               MoviItemsList(
                                 title: AppLocalizations.of(
@@ -811,10 +904,25 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
       logger.debug('URL de streaming construite: $streamUrl');
 
+      // Récupérer le poster depuis widget.media ou le view model
+      Uri? posterUri = widget.media?.poster;
+      if (posterUri == null && widget.media != null) {
+        final vmAsync = ref.read(movieDetailControllerProvider(widget.media!.id));
+        vmAsync.whenData((vm) {
+          posterUri = vm.poster;
+        });
+      }
+
       // Ouvrir le player
       context.push(
         AppRouteNames.player,
-        extra: VideoSource(url: streamUrl, title: title),
+        extra: VideoSource(
+          url: streamUrl,
+          title: title,
+          contentId: movieId,
+          contentType: ContentType.movie,
+          poster: posterUri,
+        ),
       );
     } catch (e, st) {
       final logger = ref.read(slProvider)<AppLogger>();

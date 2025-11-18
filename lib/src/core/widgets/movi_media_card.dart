@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
+import 'package:movi/src/core/theme/app_colors.dart';
 
 Widget _buildPosterImage(
   Uri? poster,
@@ -65,6 +66,7 @@ class MoviMediaCard extends StatefulWidget {
     this.height = 225,
     this.onTap,
     this.heroTag,
+    this.highlightBorder = false,
   });
 
   final MoviMedia media;
@@ -72,6 +74,7 @@ class MoviMediaCard extends StatefulWidget {
   final double height;
   final ValueChanged<MoviMedia>? onTap;
   final Object? heroTag;
+  final bool highlightBorder;
 
   @override
   State<MoviMediaCard> createState() => _MoviMediaCardState();
@@ -106,6 +109,7 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
               width: widget.width,
               height: widget.height,
               heroTag: widget.heroTag,
+              highlightBorder: widget.highlightBorder,
             ),
             const SizedBox(height: 12),
             MoviMarqueeText(
@@ -126,12 +130,14 @@ class _PosterWithOverlay extends StatelessWidget {
     required this.width,
     required this.height,
     this.heroTag,
+    this.highlightBorder = false,
   });
 
   final MoviMedia media;
   final double width;
   final double height;
   final Object? heroTag;
+  final bool highlightBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -157,12 +163,32 @@ class _PosterWithOverlay extends StatelessWidget {
       ],
     );
 
-    final content = ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(width: width, height: height, child: image),
-    );
+    final widgetContent = highlightBorder
+        ? Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.accent,
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14), // 16 - 2 pour la bordure
+              child: SizedBox(
+                width: width - 4, // Compenser la bordure (2px de chaque côté)
+                height: height - 4, // Compenser la bordure (2px de chaque côté)
+                child: image,
+              ),
+            ),
+          )
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(width: width, height: height, child: image),
+          );
 
-    if (heroTag == null) return content;
-    return Hero(tag: heroTag!, child: content);
+    if (heroTag == null) return widgetContent;
+    return Hero(tag: heroTag!, child: widgetContent);
   }
 }

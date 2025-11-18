@@ -6,6 +6,7 @@ import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 enum LibraryPlaylistType {
+  inProgress,
   favoriteMovies,
   favoriteSeries,
   watchHistory,
@@ -33,6 +34,8 @@ class LibraryPlaylistCard extends StatelessWidget {
 
   Widget _getIcon() {
     switch (type) {
+      case LibraryPlaylistType.inProgress:
+        return const Icon(Icons.play_circle_outline, color: Colors.white, size: 40);
       case LibraryPlaylistType.favoriteMovies:
         return const Icon(Icons.movie, color: Colors.white, size: 40);
       case LibraryPlaylistType.favoriteSeries:

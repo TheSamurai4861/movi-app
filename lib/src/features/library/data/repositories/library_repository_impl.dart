@@ -3,6 +3,7 @@ import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/features/movie/movie.dart';
 import 'package:movi/src/features/tv/tv.dart';
 import 'package:movi/src/features/saga/saga.dart';
+import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -13,13 +14,15 @@ class LibraryRepositoryImpl implements LibraryRepository {
   LibraryRepositoryImpl(
     this._watchlist,
     this._history,
-    this._playlists, {
+    this._playlists,
+    this._personRepository, {
     String? userId,
   }) : _userId = userId ?? 'default';
 
   final WatchlistLocalRepository _watchlist;
   final HistoryLocalRepository _history;
   final PlaylistRepository _playlists;
+  final PersonRepository _personRepository;
   final String _userId;
 
   @override
@@ -70,16 +73,31 @@ class LibraryRepositoryImpl implements LibraryRepository {
   @override
   Future<List<PersonSummary>> getLikedPersons() async {
     final entries = await _watchlist.readAll(ContentType.person, userId: _userId);
-    return entries
-        .where((e) => e.poster != null)
-        .map(
-          (e) => PersonSummary(
-            id: PersonId(e.contentId),
-            name: e.title,
-            photo: e.poster,
-          ),
-        )
-        .toList(growable: false);
+    final persons = <PersonSummary>[];
+    
+    for (final entry in entries) {
+      // Si la photo n'est pas disponible dans la base de données, la charger depuis TMDB
+      Uri? photo = entry.poster;
+      if (photo == null) {
+        try {
+          final person = await _personRepository.getPerson(PersonId(entry.contentId));
+          photo = person.photo;
+        } catch (e) {
+          // Si l'erreur survient, continuer sans photo
+          photo = null;
+        }
+      }
+      
+      persons.add(
+        PersonSummary(
+          id: PersonId(entry.contentId),
+          name: entry.title,
+          photo: photo,
+        ),
+      );
+    }
+    
+    return persons;
   }
 
   @override

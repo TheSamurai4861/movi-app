@@ -6,8 +6,9 @@ class TmdbSagaRemoteDataSource {
 
   final TmdbClient _client;
 
-  Future<TmdbSagaDetailDto> fetchSaga(int id) async {
-    final json = await _client.getJson('collection/$id');
+  Future<TmdbSagaDetailDto> fetchSaga(int id, {String? language}) async {
+    final query = language != null ? {'language': language} : null;
+    final json = await _client.getJson('collection/$id', query: query);
     return TmdbSagaDetailDto.fromJson(json);
   }
 

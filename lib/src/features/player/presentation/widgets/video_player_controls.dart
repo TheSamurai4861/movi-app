@@ -269,7 +269,13 @@ class VideoPlayerControls extends StatelessWidget {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const Text(
+                          ' : ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                        ),
                         // Temps total
                         Text(
                           formatDuration(duration),

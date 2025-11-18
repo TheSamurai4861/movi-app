@@ -24,6 +24,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
@@ -60,7 +61,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     with WidgetsBindingObserver {
   // Mise en page
   static const double _totalHeight = 590;
-  static const double _overlayHeight = 210;
+  static const double _overlayHeight = 150;
 
   // Timings
   static const Duration _rotation = Duration(seconds: 9);
@@ -72,7 +73,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   late final TmdbImageResolver _images;
   late final TmdbMovieRemoteDataSource _moviesRemote;
   late final TmdbTvRemoteDataSource _tvRemote;
-
 
   // États
   final Set<int> _hydratedIds = <int>{};
@@ -472,316 +472,333 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   Widget build(BuildContext context) {
     final MovieSummary? movie = _currentMovie;
 
-    return SizedBox(
-      height: _totalHeight,
-      width: double.infinity,
-      child: (widget.movies.isEmpty)
-          ? const _HeroEmpty(overlayHeight: _overlayHeight)
-          : movie == null
-          ? const _HeroSkeleton(overlayHeight: _overlayHeight)
-          : FutureBuilder<_HeroMeta?>(
-              future: _metaFutures[movie.tmdbId!],
-              builder: (context, snap) {
-                final _HeroMeta? meta = snap.data;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: _totalHeight,
+          width: double.infinity,
+          child: (widget.movies.isEmpty)
+              ? const _HeroEmpty(overlayHeight: _overlayHeight)
+              : movie == null
+              ? const _HeroSkeleton(overlayHeight: _overlayHeight)
+              : FutureBuilder<_HeroMeta?>(
+                  future: _metaFutures[movie.tmdbId!],
+                  builder: (context, snap) {
+                    final _HeroMeta? meta = snap.data;
 
-                // Ordre de préférence du fond :
-                // 1) Poster TMDB (no-lang → en → best)
-                // 2) Poster playlist
-                // 3) Backdrop TMDB
-                // 4) Backdrop playlist
-                final String? bgSrc =
-                    _coerceHttpUrl(meta?.posterBg) ??
-                    _coerceHttpUrl(meta?.poster) ??
-                    _coerceHttpUrl(movie.poster.toString()) ??
-                    _coerceHttpUrl(meta?.backdrop) ??
-                    _coerceHttpUrl(movie.backdrop?.toString());
+                    // Ordre de préférence du fond :
+                    // 1) Poster TMDB (no-lang → en → best)
+                    // 2) Poster playlist
+                    // 3) Backdrop TMDB
+                    // 4) Backdrop playlist
+                    final String? bgSrc =
+                        _coerceHttpUrl(meta?.posterBg) ??
+                        _coerceHttpUrl(meta?.poster) ??
+                        _coerceHttpUrl(movie.poster.toString()) ??
+                        _coerceHttpUrl(meta?.backdrop) ??
+                        _coerceHttpUrl(movie.backdrop?.toString());
 
-                final bool hasTitle = meta?.title?.isNotEmpty ?? false;
-
-                final int? year = meta?.year ?? movie.releaseYear;
-                final String yearText = (year ?? '—').toString();
-
-                final double? rating = meta?.rating;
-                final String? ratingText = (rating == null)
-                    ? null
-                    : (rating >= 10
-                          ? rating.toStringAsFixed(0)
-                          : rating.toStringAsFixed(1));
-
-                final String? durationText = _formatDuration(meta?.runtime);
-                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
-
-                Widget buildBackground() {
-                  Widget image;
-                  if (bgSrc != null) {
-                    image = Image.network(
-                      bgSrc,
-                      key: ValueKey(bgSrc),
-                      fit: BoxFit.cover,
-                      alignment: const Alignment(0.0, -0.5),
-                      width: double.infinity,
-                      height: double.infinity,
-                      gaplessPlayback: true,
-                      filterQuality: FilterQuality.low,
-                      errorBuilder: (_, __, ___) {
-                        if (!_backdropNotified) {
-                          _backdropNotified = true;
-                        }
-                        return Image.asset(
-                          AppAssets.placeholderPosterMovie,
+                    Widget buildBackground() {
+                      Widget image;
+                      if (bgSrc != null) {
+                        image = Image.network(
+                          bgSrc,
+                          key: ValueKey(bgSrc),
                           fit: BoxFit.cover,
+                          alignment: const Alignment(0.0, -0.5),
                           width: double.infinity,
                           height: double.infinity,
+                          gaplessPlayback: true,
+                          filterQuality: FilterQuality.low,
+                          errorBuilder: (_, __, ___) {
+                            if (!_backdropNotified) {
+                              _backdropNotified = true;
+                            }
+                            return Image.asset(
+                              AppAssets.placeholderPosterMovie,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            );
+                          },
+                          frameBuilder: (context, child, frame, wasSync) {
+                            if (frame != null && !_backdropNotified) {
+                              _backdropNotified = true;
+                            }
+                            return child;
+                          },
                         );
-                      },
-                      frameBuilder: (context, child, frame, wasSync) {
-                        if (frame != null && !_backdropNotified) {
-                          _backdropNotified = true;
-                        }
-                        return child;
-                      },
-                    );
-                  } else {
-                    image = const ColoredBox(color: Color(0xFF222222));
-                  }
-                  return AnimatedSwitcher(
-                    duration: _fade,
-                    switchInCurve: Curves.easeInOut,
-                    switchOutCurve: Curves.easeInOut,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
-                    },
-                    layoutBuilder: (currentChild, previousChildren) {
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ...previousChildren,
-                          if (currentChild != null) currentChild,
-                        ],
-                      );
-                    },
-                    child: image,
-                  );
-                }
-
-                return Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    Expanded(
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          buildBackground(),
-
-                          // Overlay sombre animé (transition inter-slides)
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: _GlobalOverlay(height: _totalHeight),
-                          ),
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: _BottomOverlay(height: _overlayHeight),
-                          ),
-                          const Positioned(
-                            left: 0,
-                            right: 0,
-                            top: 0,
-                            child: _TopOverlay(height: _overlayHeight),
-                          ),
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 10,
-                            child: Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 150,
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                  ),
-                                  child: hasTitle
-                                      ? AnimatedSwitcher(
-                                          duration: _fade,
-                                          transitionBuilder:
-                                              (child, animation) =>
-                                                  FadeTransition(
-                                                    opacity: animation,
-                                                    child: child,
-                                                  ),
-                                          layoutBuilder: (current, previous) =>
-                                              Stack(
-                                                alignment: Alignment.center,
-                                                children: [
-                                                  ...previous,
-                                                  if (current != null) current,
-                                                ],
-                                              ),
-                                          child: Text(
-                                            meta!.title!,
-                                            key: ValueKey(
-                                              '${movie.tmdbId}_title',
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        )
-                                      : AnimatedSwitcher(
-                                          duration: _fade,
-                                          transitionBuilder:
-                                              (child, animation) =>
-                                                  FadeTransition(
-                                                    opacity: animation,
-                                                    child: child,
-                                                  ),
-                                          layoutBuilder: (current, previous) =>
-                                              Stack(
-                                                alignment: Alignment.center,
-                                                children: [
-                                                  ...previous,
-                                                  if (current != null) current,
-                                                ],
-                                              ),
-                                          child: Text(
-                                            movie.title.value,
-                                            key: ValueKey(
-                                              '${movie.tmdbId}_titleFallback',
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 28,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    AnimatedSwitcher(
-                      duration: _fade,
-                      transitionBuilder: (child, animation) =>
-                          FadeTransition(opacity: animation, child: child),
-                      layoutBuilder: (current, previous) => Stack(
-                        alignment: Alignment.center,
-                        children: [...previous, if (current != null) current],
-                      ),
-                      child: Row(
-                        key: ValueKey('${movie.tmdbId}_pills'),
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (durationText != null)
-                            MoviPill(durationText, large: true),
-                          if (durationText != null && year != null)
-                            const SizedBox(width: 8),
-                          if (year != null) MoviPill(yearText, large: true),
-                          if (year != null && ratingText != null)
-                            const SizedBox(width: 8),
-                          if (ratingText != null)
-                            MoviPill(
-                              ratingText,
-                              trailingIcon: Image.asset(
-                                AppAssets.iconStarFilled,
-                                width: 18,
-                                height: 18,
-                              ),
-                              large: true,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (hasSynopsis)
-                      AnimatedSwitcher(
+                      } else {
+                        image = const ColoredBox(color: Color(0xFF222222));
+                      }
+                      return AnimatedSwitcher(
                         duration: _fade,
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        child: _buildSynopsis(
-                          key: ValueKey('${movie.tmdbId}_synopsis'),
-                          overview: meta!.overview!,
-                          movieId: movie.tmdbId!,
+                        switchInCurve: Curves.easeInOut,
+                        switchOutCurve: Curves.easeInOut,
+                        transitionBuilder: (child, animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                        layoutBuilder: (currentChild, previousChildren) {
+                          return Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          );
+                        },
+                        child: image,
+                      );
+                    }
+
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        buildBackground(),
+
+                        // Overlay sombre animé (transition inter-slides)
+                        const Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _GlobalOverlay(height: _totalHeight),
                         ),
-                      )
-                    else
-                      SizedBox(
-                        height: _synopsisHeight,
-                        child: const SizedBox.shrink(),
-                      ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: MoviPrimaryButton(
-                              label: AppLocalizations.of(context)!.homeWatchNow,
-                              assetIcon: AppAssets.iconPlay,
-                              onPressed: () => _playMovie(context),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Consumer(
-                            builder: (context, ref, _) {
-                              final m = _currentMovie;
-                              if (m == null) {
-                                return MoviFavoriteButton(
-                                  isFavorite: false,
-                                  onPressed: () {},
-                                );
-                              }
-                              final movieId = m.id.value;
-                              final isFavoriteAsync = ref.watch(
-                                movieIsFavoriteProvider(movieId),
-                              );
-                              return isFavoriteAsync.when(
-                                data: (isFavorite) => MoviFavoriteButton(
-                                  isFavorite: isFavorite,
-                                  onPressed: () async {
-                                    await ref.read(
-                                      movieToggleFavoriteProvider.notifier,
-                                    ).toggle(movieId);
-                                  },
+                        const Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: _BottomOverlay(height: _overlayHeight),
+                        ),
+                        const Positioned(
+                          left: 0,
+                          right: 0,
+                          top: 0,
+                          child: _TopOverlay(height: _overlayHeight),
+                        ),
+                        // Titre dans le Stack à 16px du bottomCenter
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 16,
+                          child: FutureBuilder<_HeroMeta?>(
+                            future: _metaFutures[movie.tmdbId!],
+                            builder: (context, snap) {
+                              final _HeroMeta? meta = snap.data;
+                              final bool hasTitle =
+                                  meta?.title?.isNotEmpty ?? false;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
                                 ),
-                                loading: () => MoviFavoriteButton(
-                                  isFavorite: false,
-                                  onPressed: () {},
-                                ),
-                                error: (_, __) => MoviFavoriteButton(
-                                  isFavorite: false,
-                                  onPressed: () {},
+                                child: AnimatedSwitcher(
+                                  duration: _fade,
+                                  transitionBuilder: (child, animation) =>
+                                      FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      ),
+                                  layoutBuilder: (current, previous) => Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      ...previous,
+                                      if (current != null) current,
+                                    ],
+                                  ),
+                                  child: Text(
+                                    hasTitle ? meta!.title! : movie.title.value,
+                                    key: ValueKey(
+                                      hasTitle
+                                          ? '${movie.tmdbId}_title'
+                                          : '${movie.tmdbId}_titleFallback',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: hasTitle ? 24 : 28,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               );
                             },
                           ),
-                        ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+        ),
+        // Pills collées au Stack
+        if (movie != null)
+          FutureBuilder<_HeroMeta?>(
+            future: _metaFutures[movie.tmdbId!],
+            builder: (context, snap) {
+              final _HeroMeta? meta = snap.data;
+
+              final int? year = meta?.year ?? movie.releaseYear;
+              final String yearText = (year ?? '—').toString();
+
+              final double? rating = meta?.rating;
+              final String? ratingText = (rating == null)
+                  ? null
+                  : (rating >= 10
+                        ? rating.toStringAsFixed(0)
+                        : rating.toStringAsFixed(1));
+
+              final String? durationText = _formatDuration(meta?.runtime);
+
+              return AnimatedSwitcher(
+                duration: _fade,
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                layoutBuilder: (current, previous) => Stack(
+                  alignment: Alignment.center,
+                  children: [...previous, if (current != null) current],
+                ),
+                child: Row(
+                  key: ValueKey('${movie.tmdbId}_pills'),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (durationText != null)
+                      MoviPill(durationText, large: true),
+                    if (durationText != null && year != null)
+                      const SizedBox(width: 8),
+                    if (year != null) MoviPill(yearText, large: true),
+                    if (year != null && ratingText != null)
+                      const SizedBox(width: 8),
+                    if (ratingText != null)
+                      MoviPill(
+                        ratingText,
+                        trailingIcon: Image.asset(
+                          AppAssets.iconStarFilled,
+                          width: 18,
+                          height: 18,
+                        ),
+                        large: true,
                       ),
-                    ),
-                    const SizedBox(height: 12),
                   ],
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: 16),
+        // Synopsis après les pills
+        if (movie != null)
+          FutureBuilder<_HeroMeta?>(
+            future: _metaFutures[movie.tmdbId!],
+            builder: (context, snap) {
+              final _HeroMeta? meta = snap.data;
+              final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
+
+              if (!hasSynopsis) {
+                return SizedBox(
+                  height: _synopsisHeight,
+                  child: const SizedBox.shrink(),
                 );
-              },
+              }
+
+              return AnimatedSwitcher(
+                duration: _fade,
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: _buildSynopsis(
+                  key: ValueKey('${movie.tmdbId}_synopsis'),
+                  overview: meta!.overview!,
+                  movieId: movie.tmdbId!,
+                ),
+              );
+            },
+          )
+        else
+          SizedBox(height: _synopsisHeight, child: const SizedBox.shrink()),
+        const SizedBox(height: 16),
+        if (movie != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Consumer(
+                  builder: (context, ref, _) {
+                    final m = _currentMovie;
+                    if (m == null) {
+                      return Expanded(
+                        child: MoviPrimaryButton(
+                          label: AppLocalizations.of(context)!.homeWatchNow,
+                          assetIcon: AppAssets.iconPlay,
+                          onPressed: () => _playMovie(context),
+                        ),
+                      );
+                    }
+                    final historyAsync = ref.watch(
+                      hp.mediaHistoryProvider((
+                        contentId: m.id.value,
+                        type: ContentType.movie,
+                      )),
+                    );
+                    return Expanded(
+                      child: MoviPrimaryButton(
+                        label: historyAsync.when(
+                          data: (entry) => entry != null
+                              ? 'Reprendre la lecture'
+                              : AppLocalizations.of(context)!.homeWatchNow,
+                          loading: () =>
+                              AppLocalizations.of(context)!.homeWatchNow,
+                          error: (_, __) =>
+                              AppLocalizations.of(context)!.homeWatchNow,
+                        ),
+                        assetIcon: AppAssets.iconPlay,
+                        onPressed: () => _playMovie(context),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(width: 16),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final m = _currentMovie;
+                    if (m == null) {
+                      return MoviFavoriteButton(
+                        isFavorite: false,
+                        onPressed: () {},
+                      );
+                    }
+                    final movieId = m.id.value;
+                    final isFavoriteAsync = ref.watch(
+                      movieIsFavoriteProvider(movieId),
+                    );
+                    return isFavoriteAsync.when(
+                      data: (isFavorite) => MoviFavoriteButton(
+                        isFavorite: isFavorite,
+                        onPressed: () async {
+                          await ref
+                              .read(movieToggleFavoriteProvider.notifier)
+                              .toggle(movieId);
+                        },
+                      ),
+                      loading: () => MoviFavoriteButton(
+                        isFavorite: false,
+                        onPressed: () {},
+                      ),
+                      error: (_, __) => MoviFavoriteButton(
+                        isFavorite: false,
+                        onPressed: () {},
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
+          ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 
@@ -914,7 +931,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       // Ouvrir le player
       context.push(
         AppRouteNames.player,
-        extra: VideoSource(url: streamUrl, title: title),
+        extra: VideoSource(
+          url: streamUrl,
+          title: title,
+          contentId: movieId,
+          contentType: ContentType.movie,
+          poster: m.poster,
+        ),
       );
     } catch (e, st) {
       final logger = ref.read(slProvider)<AppLogger>();

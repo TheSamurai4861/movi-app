@@ -14,7 +14,10 @@ import 'package:movi/src/core/widgets/movi_see_all_card.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
+import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
@@ -161,6 +164,44 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     return (idx >= 0 && idx < raw.length - 1) ? raw.substring(idx + 1) : raw;
   }
 
+  void _showMarkAsUnwatchedDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String contentId,
+    ContentType type,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.visibility_off, color: Colors.white),
+              title: const Text(
+                'Marquer comme non vu',
+                style: TextStyle(color: Colors.white),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+                await historyRepo.remove(contentId, type);
+                // Invalider les providers
+                ref.invalidate(hp.homeInProgressProvider);
+                ref.invalidate(libraryPlaylistsProvider);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -245,60 +286,91 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
               const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
               // ===== Section "En cours" =====
-              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: MoviItemsList(
-                    title:
-                        AppLocalizations.of(context)!.homeContinueWatching,
-                    itemSpacing: _itemSpacing,
-                    // Cartes "En cours" font 300x165
-                    estimatedItemWidth: 300,
-                    estimatedItemHeight: 165,
-                    // Pas d’enrichissement pour “En cours” (local-only), donc pas de callback.
-                    items: <Widget>[
-                      ...state.cwMovies.map(
-                        (m) {
-                          final media = MoviMedia(
-                            id: m.id.value,
-                            title: m.title.display,
-                            poster: m.backdrop ?? m.poster,
-                            year: m.releaseYear,
-                            type: MoviMediaType.movie,
-                          );
-                          return ContinueWatchingCard.movie(
-                            title: m.title.value,
-                            poster: (m.backdrop ?? m.poster).toString(),
-                            year: m.releaseYear?.toString() ?? '',
-                            progress: 0,
-                            onTap: () => context.push(AppRouteNames.movie, extra: media),
-                          );
-                        },
-                      ),
-                      ...state.cwShows.map(
-                        (s) {
-                          final media = MoviMedia(
-                            id: s.id.value,
-                            title: s.title.value,
-                            poster: s.backdrop ?? s.poster,
-                            type: MoviMediaType.series,
-                          );
-                          return ContinueWatchingCard.episode(
-                            title: s.title.value,
-                            seriesTitle: s.title.value,
-                            poster: (s.backdrop ?? s.poster).toString(),
-                            seasonEpisode: 'S?? E??',
-                            progress: 0,
-                            onTap: () => context.push(AppRouteNames.tv, extra: media),
-                          );
-                        },
-                      ),
-                    ].take(10).toList(),
-                  ),
-                ),
-
-              // 32 px après "En cours"
-              if (state.cwMovies.isNotEmpty || state.cwShows.isNotEmpty)
-                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+              Consumer(
+                builder: (context, ref, _) {
+                  final inProgressAsync = ref.watch(hp.homeInProgressProvider);
+                  return inProgressAsync.when(
+                    data: (inProgress) {
+                      if (inProgress.isEmpty) {
+                        return const SliverToBoxAdapter(child: SizedBox.shrink());
+                      }
+                      return SliverToBoxAdapter(
+                        child: MoviItemsList(
+                          title: AppLocalizations.of(context)!.homeContinueWatching,
+                          itemSpacing: _itemSpacing,
+                          estimatedItemWidth: 300,
+                          estimatedItemHeight: 165,
+                          items: inProgress.take(10).map((media) {
+                            final moviMedia = MoviMedia(
+                              id: media.contentId,
+                              title: media.title,
+                              poster: media.poster,
+                              type: media.type == ContentType.movie
+                                  ? MoviMediaType.movie
+                                  : MoviMediaType.series,
+                            );
+                            
+                            if (media.type == ContentType.movie) {
+                              return ContinueWatchingCard.movie(
+                                title: media.title,
+                                backdrop: media.backdrop?.toString(),
+                                progress: media.progress,
+                                year: media.year,
+                                duration: media.duration,
+                                rating: media.rating,
+                                onTap: () => context.push(AppRouteNames.movie, extra: moviMedia),
+                                onLongPress: () => _showMarkAsUnwatchedDialog(
+                                  context,
+                                  ref,
+                                  media.contentId,
+                                  media.type,
+                                ),
+                              );
+                            } else {
+                              final seasonEpisode = media.season != null && media.episode != null
+                                  ? 'S${media.season!.toString().padLeft(2, '0')} E${media.episode!.toString().padLeft(2, '0')}'
+                                  : '';
+                              return ContinueWatchingCard.episode(
+                                title: media.episodeTitle ?? media.title, // Utiliser le titre de l'épisode sans numéro
+                                backdrop: media.backdrop?.toString(),
+                                seriesTitle: media.seriesTitle,
+                                seasonEpisode: seasonEpisode,
+                                duration: media.duration,
+                                progress: media.progress,
+                                onTap: () => context.push(AppRouteNames.tv, extra: moviMedia),
+                                onLongPress: () => _showMarkAsUnwatchedDialog(
+                                  context,
+                                  ref,
+                                  media.contentId,
+                                  media.type,
+                                ),
+                              );
+                            }
+                          }).toList(),
+                        ),
+                      );
+                    },
+                    loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                  );
+                },
+              ),
+              
+              Consumer(
+                builder: (context, ref, _) {
+                  final inProgressAsync = ref.watch(hp.homeInProgressProvider);
+                  return inProgressAsync.when(
+                    data: (inProgress) {
+                      if (inProgress.isEmpty) {
+                        return const SliverToBoxAdapter(child: SizedBox.shrink());
+                      }
+                      return const SliverToBoxAdapter(child: SizedBox(height: _sectionGap));
+                    },
+                    loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+                  );
+                },
+              ),
 
               if (state.isLoading && state.iptvLists.isEmpty) ...[
                 SliverToBoxAdapter(

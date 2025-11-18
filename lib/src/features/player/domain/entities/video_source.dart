@@ -1,9 +1,16 @@
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
 /// Représente une source vidéo à lire
 class VideoSource {
   const VideoSource({
     required this.url,
     this.title,
     this.subtitle,
+    this.contentId,
+    this.contentType,
+    this.poster,
+    this.season,
+    this.episode,
   });
 
   /// URL de la vidéo (peut être locale ou distante)
@@ -14,5 +21,20 @@ class VideoSource {
 
   /// Sous-titre/description (optionnel)
   final String? subtitle;
+
+  /// ID du contenu (pour l'historique)
+  final String? contentId;
+
+  /// Type de contenu (pour l'historique)
+  final ContentType? contentType;
+
+  /// Poster du contenu (pour l'historique)
+  final Uri? poster;
+
+  /// Numéro de saison (pour les séries)
+  final int? season;
+
+  /// Numéro d'épisode (pour les séries)
+  final int? episode;
 }
 

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
@@ -20,25 +18,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  static const List<(String code, String label)> _languages =
-      <(String, String)>[
-        ('en-US', 'English (United States)'),
-        ('fr-FR', 'Français (France)'),
-        ('es-ES', 'Español (España)'),
-        ('nl-NL', 'Nederlands (Nederland)'),
-        ('it-IT', 'Italiano (Italia)'),
-        ('pl-PL', 'Polski (Polska)'),
-        ('fr-MM', 'Burgonde'),
-      ];
-
-  String _labelFor(String code) {
-    final entry = _languages.firstWhere(
-      (e) => e.$1.toLowerCase() == code.toLowerCase(),
-      orElse: () => (code, code),
-    );
-    return entry.$2;
-  }
-
   bool _refreshingIptv = false;
 
   Future<void> _refreshIptv() async {
@@ -85,184 +64,333 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Playlists IPTV rafraîchies ($ok/${active.length})${ko > 0 ? ' | erreurs: $ko' : ''}',
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Playlists IPTV rafraîchies ($ok/${active.length})${ko > 0 ? ' | erreurs: $ko' : ''}',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
+          backgroundColor: const Color(0xFF1C1C1E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 3),
         ),
       );
       if (ko > 0 && errors.isNotEmpty) {
         final detail = errors.first;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(detail)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    detail,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF1C1C1E),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
     if (mounted) setState(() => _refreshingIptv = false);
   }
 
-  Future<void> _pickLanguage(BuildContext context, String current) async {
-    final initialIndex = _languages.indexWhere(
-      (e) => e.$1.toLowerCase() == current.toLowerCase(),
-    );
-    int selected = initialIndex >= 0 ? initialIndex : 0;
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) {
-        return Container(
-          height: 250,
-          color: Colors.black,
-          child: Column(
-            children: [
-              SizedBox(
-                height: 200,
-                child: CupertinoPicker(
-                  itemExtent: 44,
-                  scrollController: FixedExtentScrollController(
-                    initialItem: selected,
-                  ),
-                  onSelectedItemChanged: (i) => selected = i,
-                  children: _languages
-                      .map(
-                        (e) => Center(
-                          child: Text(
-                            e.$2,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
+
+  Widget _buildSettingItem({
+    required String title,
+    String? value,
+    VoidCallback? onTap,
+    Widget? trailing,
+    bool showChevronDown = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
                 ),
               ),
-              SizedBox(
-                height: 50,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    CupertinoButton(
-                      child: Text(AppLocalizations.of(ctx)!.actionCancel),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                    CupertinoButton(
-                      child: Text(AppLocalizations.of(ctx)!.actionConfirm),
-                      onPressed: () async {
-                        final code = _languages[selected].$1;
-                        Navigator.of(ctx).pop();
-                        await ref
-                            .read(appStateControllerProvider)
-                            .setPreferredLocale(code);
-                      },
-                    ),
-                  ],
+            ),
+            if (value != null) ...[
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF007AFF),
                 ),
               ),
+              const SizedBox(width: 8),
             ],
+            if (trailing != null)
+              trailing
+            else if (showChevronDown)
+              const Icon(
+                Icons.keyboard_arrow_down,
+                color: Color(0xFF007AFF),
+                size: 20,
+              )
+            else if (onTap != null)
+              const Icon(
+                Icons.chevron_right,
+                color: Colors.white70,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCircle({
+    required String name,
+    required Color color,
+    required IconData icon,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 30,
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 8),
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentCode = ref.watch(currentLanguageCodeProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.settingsTitle)),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: ListView(
-          padding: AppSpacing.page,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           children: [
+            // Titre
             Text(
-              AppLocalizations.of(context)!.settingsGeneralTitle,
-              style: context.textTheme.titleLarge,
+              'Paramètres',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            SwitchListTile(
-              value: ref.watch(currentThemeModeProvider) == ThemeMode.dark,
-              title: Text(AppLocalizations.of(context)!.settingsDarkModeTitle),
-              subtitle: Text(
-                AppLocalizations.of(context)!.settingsDarkModeSubtitle,
-              ),
-              onChanged: (enabled) {
-                final mode = enabled ? ThemeMode.dark : ThemeMode.light;
-                unawaited(
-                  ref.read(appStateControllerProvider).setThemeMode(mode),
-                );
+            const SizedBox(height: 32),
+            // Section Comptes
+            Text(
+              'Comptes',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                _buildProfileCircle(
+                  name: 'Matt',
+                  color: const Color(0xFF007AFF),
+                  icon: Icons.account_circle,
+                ),
+                const SizedBox(width: 24),
+                _buildProfileCircle(
+                  name: 'Manu',
+                  color: const Color(0xFFFF6B9D),
+                  icon: Icons.wb_sunny,
+                ),
+                const SizedBox(width: 24),
+                _buildProfileCircle(
+                  name: 'Ber',
+                  color: const Color(0xFF34C759),
+                  icon: Icons.music_note,
+                ),
+                const SizedBox(width: 24),
+                _buildProfileCircle(
+                  name: 'Ajouter',
+                  color: const Color(0xFF8E8E93),
+                  icon: Icons.add,
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            // Section Paramètres IPTV
+            Text(
+              'Paramètres IPTV',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _buildSettingItem(
+              title: 'Réglages des sources',
+              onTap: () {
+                // TODO: Implémenter la navigation
               },
             ),
-            SwitchListTile(
-              value: false,
-              title: Text(
-                AppLocalizations.of(context)!.settingsNotificationsTitle,
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)!.settingsNotificationsSubtitle,
-              ),
-              onChanged: (_) {},
+            _buildSettingItem(
+              title: 'Fréquence màj',
+              value: 'Tous les jours',
+              showChevronDown: true,
+              onTap: () {
+                // TODO: Implémenter le sélecteur
+              },
             ),
-            const Divider(height: AppSpacing.sectionGap),
-            Text(
-              AppLocalizations.of(context)!.settingsAccountTitle,
-              style: context.textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            ListTile(
-              leading: Icon(Icons.person_outline),
-              title: Text(
-                AppLocalizations.of(context)!.settingsProfileInfoTitle,
-              ),
-              subtitle: Text(
-                AppLocalizations.of(context)!.settingsProfileInfoSubtitle,
-              ),
-              trailing: Icon(Icons.chevron_right),
-            ),
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: Text(AppLocalizations.of(context)!.settingsLanguageLabel),
-              subtitle: Text(_labelFor(currentCode)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _pickLanguage(context, currentCode),
-            ),
-            ListTile(
-              leading: const Icon(Icons.refresh),
-              title: Text(AppLocalizations.of(context)!.settingsRefreshIptvPlaylistsTitle),
-              subtitle: Text(
-                ref.watch(appStateControllerProvider).hasActiveIptvSources
-                    ? AppLocalizations.of(context)!.statusActive
-                    : AppLocalizations.of(context)!.statusNoActiveSource,
-              ),
+            _buildSettingItem(
+              title: AppLocalizations.of(context)!.settingsRefreshIptvPlaylistsTitle,
               trailing: _refreshingIptv
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF007AFF),
+                      ),
                     )
-                  : const Icon(Icons.chevron_right),
+                  : null,
               onTap: _refreshingIptv ? null : _refreshIptv,
             ),
-            const Divider(height: AppSpacing.sectionGap),
+            const SizedBox(height: 32),
+            // Section Paramètres de l'application
             Text(
-              AppLocalizations.of(context)!.settingsAboutTitle,
-              style: context.textTheme.titleLarge,
+              'Paramètres de l\'application',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text(
-                AppLocalizations.of(context)!.settingsLegalMentionsTitle,
-              ),
-              trailing: Icon(Icons.chevron_right),
+            const SizedBox(height: 8),
+            _buildSettingItem(
+              title: 'Langue',
+              value: 'Français',
+              showChevronDown: true,
+              onTap: () {
+                // TODO: Implémenter le sélecteur de langue
+              },
             ),
-            ListTile(
-              leading: Icon(Icons.lock_outline),
-              title: Text(
-                AppLocalizations.of(context)!.settingsPrivacyPolicyTitle,
-              ),
-              trailing: Icon(Icons.chevron_right),
+            _buildSettingItem(
+              title: 'Thème',
+              value: 'Sombre',
+              showChevronDown: true,
+              onTap: () {
+                // TODO: Implémenter le sélecteur de thème
+              },
             ),
+            const SizedBox(height: 32),
+            // Section Paramètres de lecture
+            Text(
+              'Paramètres de lecture',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _buildSettingItem(
+              title: 'Qualité préférée',
+              value: '4K',
+              showChevronDown: true,
+              onTap: () {
+                // TODO: Implémenter le sélecteur
+              },
+            ),
+            _buildSettingItem(
+              title: 'Langue préférée',
+              value: 'Anglais',
+              showChevronDown: true,
+              onTap: () {
+                // TODO: Implémenter le sélecteur
+              },
+            ),
+            _buildSettingItem(
+              title: 'Sous-titres préférés',
+              value: 'Français',
+              showChevronDown: true,
+              onTap: () {
+                // TODO: Implémenter le sélecteur
+              },
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),

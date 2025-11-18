@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/widgets/swipe_back_wrapper.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/person/presentation/providers/person_detail_providers.dart';
@@ -52,7 +54,7 @@ class PersonDetailPage extends ConsumerWidget {
   }
 }
 
-class _PersonDetailContent extends StatelessWidget {
+class _PersonDetailContent extends StatefulWidget {
   const _PersonDetailContent({
     required this.vm,
     required this.person,
@@ -62,16 +64,24 @@ class _PersonDetailContent extends StatelessWidget {
   final PersonSummary person;
 
   @override
+  State<_PersonDetailContent> createState() => _PersonDetailContentState();
+}
+
+class _PersonDetailContentState extends State<_PersonDetailContent> {
+  final Map<String, bool> _biographyExpanded = {};
+
+  @override
   Widget build(BuildContext context) {
     const heroHeight = 500.0;
     final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: cs.surface,
-      body: SafeArea(
-        top: true,
-        bottom: true,
-        child: Column(
+    return SwipeBackWrapper(
+      child: Scaffold(
+        backgroundColor: cs.surface,
+        body: SafeArea(
+          top: true,
+          bottom: true,
+          child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -84,7 +94,7 @@ class _PersonDetailContent extends StatelessWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          _buildHeroImage(context, vm.photo),
+                          _buildHeroImage(context, widget.vm.photo),
                           Positioned(
                             top: 0,
                             left: 0,
@@ -164,7 +174,7 @@ class _PersonDetailContent extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    vm.name,
+                                    widget.vm.name,
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
@@ -173,7 +183,7 @@ class _PersonDetailContent extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '${vm.moviesCount} films - ${vm.showsCount} séries',
+                                    '${widget.vm.moviesCount} films - ${widget.vm.showsCount} séries',
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context).textTheme.bodyLarge
                                         ?.copyWith(
@@ -205,7 +215,7 @@ class _PersonDetailContent extends StatelessWidget {
                                   onPressed: () {
                                     // TODO: Implémenter la lecture aléatoire
                                     final allMedia = [
-                                      ...vm.movies.map(
+                                      ...widget.vm.movies.map(
                                         (m) => MoviMedia(
                                           id: m.id.value,
                                           title: m.title.display,
@@ -214,7 +224,7 @@ class _PersonDetailContent extends StatelessWidget {
                                           type: MoviMediaType.movie,
                                         ),
                                       ),
-                                      ...vm.shows.map(
+                                      ...widget.vm.shows.map(
                                         (s) => MoviMedia(
                                           id: s.id.value,
                                           title: s.title.display,
@@ -242,7 +252,7 @@ class _PersonDetailContent extends StatelessWidget {
                               const SizedBox(width: 16),
                               Consumer(
                                 builder: (context, ref, _) {
-                                  final personId = person.id.value;
+                                  final personId = widget.person.id.value;
                                   final isFavoriteAsync = ref.watch(
                                     personIsFavoriteProvider(personId),
                                   );
@@ -269,14 +279,19 @@ class _PersonDetailContent extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 32),
-                          if (vm.movies.isNotEmpty) ...[
+                          if (widget.vm.biography != null &&
+                              widget.vm.biography!.isNotEmpty) ...[
+                            _buildBiography(context, widget.vm.biography!),
+                            const SizedBox(height: 32),
+                          ],
+                          if (widget.vm.movies.isNotEmpty) ...[
                             MoviItemsList(
                               title: 'Liste des films',
                               estimatedItemWidth: 150,
                               estimatedItemHeight: 300,
                               titlePadding: 0,
                               horizontalPadding: EdgeInsets.zero,
-                              items: vm.movies
+                              items: widget.vm.movies
                                   .map(
                                     (m) => MoviMedia(
                                       id: m.id.value,
@@ -299,14 +314,14 @@ class _PersonDetailContent extends StatelessWidget {
                                   .toList(growable: false),
                             ),
                           ],
-                          if (vm.shows.isNotEmpty) ...[
+                          if (widget.vm.shows.isNotEmpty) ...[
                             MoviItemsList(
                               title: 'Liste des séries',
                               estimatedItemWidth: 150,
                               estimatedItemHeight: 300,
                               titlePadding: 0,
                               horizontalPadding: EdgeInsets.zero,
-                              items: vm.shows
+                              items: widget.vm.shows
                                   .map(
                                     (s) => MoviMedia(
                                       id: s.id.value,
@@ -339,6 +354,7 @@ class _PersonDetailContent extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -366,5 +382,112 @@ class _PersonDetailContent extends StatelessWidget {
         alignment: const Alignment(0.0, 0.1),
       ),
     );
+  }
+
+  Widget _buildBiography(BuildContext context, String biography) {
+    final personId = widget.person.id.value;
+    final isExpanded = _biographyExpanded[personId] ?? false;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final horizontalPadding = AppSpacing.page.left + AppSpacing.page.right;
+    final maxWidth = screenWidth - horizontalPadding;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool needsExpansion = _needsExpansion(biography, maxWidth);
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.page.left),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Biographie',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ) ??
+                    const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: Text(
+                    biography,
+                    maxLines: isExpanded ? null : 3,
+                    overflow: isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              if (needsExpansion)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Center(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        setState(() {
+                          _biographyExpanded[personId] = !isExpanded;
+                        });
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isExpanded
+                                ? AppLocalizations.of(context)!.actionCollapse
+                                : AppLocalizations.of(context)!.actionExpand,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            isExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _needsExpansion(String text, double maxWidth) {
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(fontSize: 16),
+      ),
+      maxLines: 3,
+      textDirection: TextDirection.ltr,
+    );
+    painter.layout(maxWidth: maxWidth);
+    return painter.didExceedMaxLines;
   }
 }

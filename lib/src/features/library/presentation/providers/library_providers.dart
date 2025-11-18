@@ -7,6 +7,7 @@ import 'package:movi/src/features/library/data/repositories/library_repository_i
 import 'package:movi/src/features/library/presentation/widgets/library_filter_pills.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
+import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 
 /// Exposes the LibraryRepository to the presentation layer.
@@ -17,6 +18,7 @@ final libraryRepositoryProvider = Provider<LibraryRepository>((ref) {
     ref.watch(slProvider)<WatchlistLocalRepository>(),
     ref.watch(slProvider)<HistoryLocalRepository>(),
     ref.watch(slProvider)<PlaylistRepository>(),
+    ref.watch(slProvider)<PersonRepository>(),
     userId: userId,
   );
 });
@@ -54,6 +56,20 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   final repository = ref.watch(libraryRepositoryProvider);
 
   final playlists = <LibraryPlaylistItem>[];
+
+  // Médias en cours de lecture
+  final inProgress = await repository.getHistoryInProgress();
+  if (inProgress.isNotEmpty) {
+    playlists.add(
+      LibraryPlaylistItem(
+        id: 'in_progress',
+        title: 'En cours',
+        itemCount: inProgress.length,
+        type: LibraryPlaylistType.inProgress,
+        isPinned: true,
+      ),
+    );
+  }
 
   // Films favoris
   final favoriteMovies = await repository.getLikedMovies();
@@ -141,8 +157,16 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
     );
   }
 
-  // Trier les playlists : les favoris (isPinned: true) en premier
+  // Trier les playlists : "En cours" en premier, puis les autres favoris (isPinned: true)
   playlists.sort((a, b) {
+    // "En cours" toujours en premier
+    if (a.type == LibraryPlaylistType.inProgress &&
+        b.type != LibraryPlaylistType.inProgress)
+      return -1;
+    if (a.type != LibraryPlaylistType.inProgress &&
+        b.type == LibraryPlaylistType.inProgress)
+      return 1;
+    // Ensuite les autres favoris
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
     return 0; // Conserver l'ordre pour les autres
@@ -167,7 +191,8 @@ final filteredLibraryPlaylistsProvider =
                 // Exclure les sagas et les acteurs
                 return !playlist.id.startsWith('saga_') &&
                     playlist.type != LibraryPlaylistType.actor &&
-                    (playlist.type == LibraryPlaylistType.favoriteMovies ||
+                    (playlist.type == LibraryPlaylistType.inProgress ||
+                        playlist.type == LibraryPlaylistType.favoriteMovies ||
                         playlist.type == LibraryPlaylistType.favoriteSeries ||
                         playlist.type == LibraryPlaylistType.watchHistory ||
                         playlist.type == LibraryPlaylistType.userPlaylist);

@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/router/router.dart';
-import 'package:movi/src/core/widgets/movi_media_card.dart';
 import 'package:movi/src/core/models/models.dart';
-import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -24,6 +24,8 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
     PlaylistRepository playlistRepository,
   ) async {
     switch (playlist.type) {
+      case LibraryPlaylistType.inProgress:
+        return await repository.getHistoryInProgress();
       case LibraryPlaylistType.favoriteMovies:
         final movies = await repository.getLikedMovies();
         return movies
@@ -33,6 +35,7 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
                 title: m.title,
                 type: ContentType.movie,
                 poster: m.poster,
+                year: m.releaseYear,
               ),
             )
             .toList();
@@ -95,6 +98,15 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
     }
   }
 
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    if (hours > 0) {
+      return '${hours}h ${minutes.toString().padLeft(2, '0')}m';
+    }
+    return '${minutes}m';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repository = ref.watch(libraryRepositoryProvider);
@@ -110,38 +122,84 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
           children: [
             // En-tête avec bouton retour
             Padding(
-              padding: AppSpacing.page,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Image.asset(
-                      AppAssets.iconBack,
-                      width: 24,
-                      height: 24,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => context.pop(),
-                  ),
-                  Expanded(
-                    child: Text(
-                      playlist.title,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ) ??
-                          const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => context.pop(),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image.asset(AppAssets.iconBack),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Retour',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ) ??
+                              const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+            // Icône et titre centrés
+            FutureBuilder<List<ContentReference>>(
+              future: itemsFuture,
+              builder: (context, snapshot) {
+                final itemCount = snapshot.data?.length ?? 0;
+                return Column(
+                  children: [
+                    const Icon(
+                      Icons.movie,
+                      size: 64,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      playlist.title,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$itemCount éléments',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white70,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 24),
             // Bouton "Lire aléatoirement"
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: FutureBuilder<List<ContentReference>>(
                 future: itemsFuture,
                 builder: (context, snapshot) {
@@ -149,26 +207,10 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
                     return const SizedBox.shrink();
                   }
 
-                  return SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _playRandomly(context, snapshot.data!),
-                      icon: Image.asset(
-                        AppAssets.iconPlay,
-                        width: 20,
-                        height: 20,
-                        color: Colors.white,
-                      ),
-                      label: const Text('Lire aléatoirement'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2160AB),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+                  return MoviPrimaryButton(
+                    label: 'Lire aléatoirement',
+                    assetIcon: AppAssets.iconPlay,
+                    onPressed: () => _playRandomly(context, snapshot.data!),
                   );
                 },
               ),
@@ -209,12 +251,12 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
                   }
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final item = items[index];
-                      return _buildMediaItem(context, item);
+                      return _buildMediaItem(context, ref, item);
                     },
                   );
                 },
@@ -226,84 +268,143 @@ class LibraryPlaylistDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildMediaItem(BuildContext context, ContentReference reference) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: () => _openMedia(context, reference),
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Poster
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: reference.poster != null
-                ? Image.network(
-                    reference.poster!.toString(),
-                    width: 120,
-                    height: 180,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 120,
-                      height: 180,
-                      color: cs.surfaceContainerHighest,
-                      child: const Icon(
-                        Icons.broken_image,
-                        color: Colors.white54,
-                      ),
-                    ),
-                  )
-                : Container(
-                    width: 120,
-                    height: 180,
-                    color: cs.surfaceContainerHighest,
-                    child: const Icon(
-                      Icons.movie,
-                      color: Colors.white54,
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 16),
-          // Informations
-          Expanded(
-            child: Column(
+  Widget _buildMediaItem(BuildContext context, WidgetRef ref, ContentReference reference) {
+    return FutureBuilder<({Duration? duration, int? seasonCount})>(
+      future: _getMediaInfo(ref, reference),
+      builder: (context, snapshot) {
+        final pills = <Widget>[];
+        
+        // Année
+        if (reference.year != null) {
+          pills.add(
+            MoviPill(
+              reference.year.toString(),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+          );
+        }
+        
+        // Durée pour les films ou nombre de saisons pour les séries
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          final data = snapshot.data!;
+          if (reference.type == ContentType.movie && data.duration != null) {
+            pills.add(
+              MoviPill(
+                _formatDuration(data.duration!),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+            );
+          } else if (reference.type == ContentType.series && data.seasonCount != null) {
+            pills.add(
+              MoviPill(
+                '${data.seasonCount} ${data.seasonCount == 1 ? 'saison' : 'saisons'}',
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              ),
+            );
+          }
+        }
+        
+        return GestureDetector(
+          onTap: () => _openMedia(context, reference),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  reference.title.value,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ) ??
-                      const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                // Poster arrondi
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: reference.poster != null
+                      ? Image.network(
+                          reference.poster!.toString(),
+                          width: 100,
+                          height: 150,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 100,
+                            height: 150,
+                            color: const Color(0xFF222222),
+                            child: const Icon(
+                              Icons.broken_image,
+                              color: Colors.white54,
+                              size: 32,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          width: 100,
+                          height: 150,
+                          color: const Color(0xFF222222),
+                          child: const Icon(
+                            Icons.movie,
+                            color: Colors.white54,
+                            size: 32,
+                          ),
+                        ),
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2160AB).withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    reference.type == ContentType.movie ? 'Film' : 'Série',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
+                const SizedBox(width: 16),
+                // Informations
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        reference.title.value,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ) ??
+                            const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
+                      if (pills.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: pills,
+                        ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Future<({Duration? duration, int? seasonCount})> _getMediaInfo(
+    WidgetRef ref,
+    ContentReference reference,
+  ) async {
+    if (reference.type == ContentType.movie) {
+      // MovieSummary n'a pas de durée, on retourne null pour l'instant
+      // TODO: Charger les détails complets du film si nécessaire
+      return (duration: null, seasonCount: null);
+    } else if (reference.type == ContentType.series) {
+      // Pour les séries, récupérer le nombre de saisons
+      try {
+        final repository = ref.read(libraryRepositoryProvider);
+        final series = await repository.getLikedShows();
+        final show = series.firstWhere(
+          (s) => s.id.value == reference.id,
+          orElse: () => throw Exception('Show not found'),
+        );
+        return (duration: null, seasonCount: show.seasonCount);
+      } catch (_) {
+        // Ignorer les erreurs
+      }
+      return (duration: null, seasonCount: null);
+    }
+    return (duration: null, seasonCount: null);
   }
 }
 

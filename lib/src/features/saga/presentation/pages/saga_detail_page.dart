@@ -1,136 +1,379 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class SagaDetailPage extends StatelessWidget {
-  const SagaDetailPage({super.key});
+import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/models/models.dart';
+import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/features/saga/presentation/providers/saga_detail_providers.dart';
+import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+
+class SagaDetailPage extends ConsumerWidget {
+  const SagaDetailPage({super.key, required this.sagaId});
+
+  final String sagaId;
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    if (hours > 0) {
+      return '${hours}h${minutes.toString().padLeft(2, '0')}';
+    }
+    return '${minutes}m';
+  }
+
+  Future<void> _playMovie(BuildContext context, WidgetRef ref, String movieId) async {
+    // TODO: Implémenter la lecture du film depuis la saga
+    // Pour l'instant, ouvrir la page de détail du film
+    final media = MoviMedia(
+      id: movieId,
+      title: '',
+      type: MoviMediaType.movie,
+    );
+    context.push(AppRouteNames.movie, extra: media);
+  }
+
+  Future<void> _startSaga(BuildContext context, WidgetRef ref, SagaDetailViewModel viewModel) async {
+    // Trouver le premier film non visionné ou reprendre le film en cours
+    final inProgressMovieId = await ref.read(sagaInProgressMovieProvider(sagaId).future);
+    
+    if (inProgressMovieId != null) {
+      // Reprendre le film en cours
+      await _playMovie(context, ref, inProgressMovieId);
+    } else {
+      // Commencer par le premier film
+      final movies = viewModel.saga.timeline
+          .where((entry) => entry.reference.type == ContentType.movie)
+          .toList();
+      if (movies.isNotEmpty) {
+        await _playMovie(context, ref, movies.first.reference.id);
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Saga')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Nom de la saga',
-                style: Theme.of(context).textTheme.headlineSmall,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sagaDetailAsync = ref.watch(sagaDetailProvider(sagaId));
+    final inProgressMovieAsync = ref.watch(sagaInProgressMovieProvider(sagaId));
+    final isFavoriteAsync = ref.watch(sagaIsFavoriteProvider(sagaId));
+
+    return SwipeBackWrapper(
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          top: true,
+          bottom: true,
+          child: sagaDetailAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text(
+                'Erreur: $error',
+                style: const TextStyle(color: Colors.white),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '6 films • 2001 – 2024',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                height: 180,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                ),
-                child: const Center(child: Icon(Icons.auto_awesome, size: 48)),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Présentation',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Résumé rapide de la saga pour valider la structure visuelle. Lorem ipsum dolor '
-                'sit amet, consectetur adipiscing elit.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Films et épisodes',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              Column(
-                children: List.generate(
-                  6,
-                  (index) => Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHighest,
-                        child: Text('${index + 1}'),
+            ),
+            data: (viewModel) {
+              final movies = viewModel.saga.timeline
+                  .where((entry) => entry.reference.type == ContentType.movie)
+                  .map((entry) {
+                    final ref = entry.reference;
+                    return MoviMedia(
+                      id: ref.id,
+                      title: ref.title.display,
+                      poster: ref.poster,
+                      year: entry.timelineYear,
+                      type: MoviMediaType.movie,
+                    );
+                  })
+                  .toList();
+
+              // Trier par année
+              movies.sort((a, b) {
+                final yearA = a.year ?? 0;
+                final yearB = b.year ?? 0;
+                return yearA.compareTo(yearB);
+              });
+
+              const heroHeight = 400.0;
+              const overlayHeight = 200.0;
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: heroHeight,
+                      width: double.infinity,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          _buildHeroImage(context, viewModel.poster),
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: 100,
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0xFF141414),
+                                    Color(0x00000000),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 8,
+                            left: 20,
+                            right: 20,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () => context.pop(),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 35,
+                                        height: 35,
+                                        child: Image.asset(
+                                          AppAssets.iconBack,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.actionBack,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: overlayHeight,
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0x00000000),
+                                    Color(0xFF141414),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      title: Text('Titre ${index + 1}'),
-                      subtitle: const Text(
-                        'Date de sortie et description courte',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: 20,
+                        end: 20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 16),
+                          // Titre de la saga
+                          Text(
+                            viewModel.saga.title.display,
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ) ??
+                                const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          // Nombre de films et durée totale
+                          Text(
+                            '${viewModel.movieCount} films - ${_formatDuration(viewModel.totalDuration)}',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  color: Colors.white70,
+                                ) ??
+                                const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          // Boutons d'action
+                          Row(
+                            children: [
+                              // Bouton "Commencer maintenant" ou "Poursuivre"
+                              Expanded(
+                                child: inProgressMovieAsync.when(
+                                  data: (inProgressMovieId) {
+                                    if (inProgressMovieId != null) {
+                                      // Afficher "Poursuivre"
+                                      return MoviPrimaryButton(
+                                        label: 'Poursuivre',
+                                        assetIcon: AppAssets.iconPlay,
+                                        onPressed: () => _startSaga(context, ref, viewModel),
+                                      );
+                                    } else {
+                                      // Afficher "Commencer maintenant"
+                                      return MoviPrimaryButton(
+                                        label: 'Commencer maintenant',
+                                        assetIcon: AppAssets.iconPlay,
+                                        onPressed: () => _startSaga(context, ref, viewModel),
+                                      );
+                                    }
+                                  },
+                                  loading: () => MoviPrimaryButton(
+                                    label: 'Commencer maintenant',
+                                    assetIcon: AppAssets.iconPlay,
+                                    onPressed: () {},
+                                  ),
+                                  error: (_, __) => MoviPrimaryButton(
+                                    label: 'Commencer maintenant',
+                                    assetIcon: AppAssets.iconPlay,
+                                    onPressed: () => _startSaga(context, ref, viewModel),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Bouton favoris
+                              SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: isFavoriteAsync.when(
+                                  data: (isFavorite) => MoviFavoriteButton(
+                                    isFavorite: isFavorite,
+                                    onPressed: () async {
+                                      await ref.read(
+                                        sagaToggleFavoriteProvider.notifier,
+                                      ).toggle(
+                                        sagaId,
+                                        SagaSummary(
+                                          id: viewModel.saga.id,
+                                          tmdbId: viewModel.saga.tmdbId,
+                                          title: viewModel.saga.title,
+                                          cover: viewModel.poster,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  loading: () => MoviFavoriteButton(
+                                    isFavorite: true,
+                                    onPressed: () {},
+                                  ),
+                                  error: (_, __) => MoviFavoriteButton(
+                                    isFavorite: true,
+                                    onPressed: () {},
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Liste des films
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: 20,
+                        end: 20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Liste des films',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                ) ??
+                                const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                          ),
+                          const SizedBox(height: 16),
+                          // Liste horizontale des films
+                          SizedBox(
+                            height: 258,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: movies.length,
+                              separatorBuilder: (_, __) => const SizedBox(width: 16),
+                              itemBuilder: (context, index) {
+                                final movie = movies[index];
+                                return MoviMediaCard(
+                                  media: movie,
+                                  heroTag: 'saga_movie_${movie.id}',
+                                  onTap: (m) => context.push(
+                                    AppRouteNames.movie,
+                                    extra: m,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text('Ressources', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: const [
-                  _ResourceCard(
-                    icon: Icons.description_outlined,
-                    title: 'Guide de visionnage',
-                  ),
-                  _ResourceCard(
-                    icon: Icons.timeline_outlined,
-                    title: 'Chronologie',
-                  ),
-                  _ResourceCard(
-                    icon: Icons.forum_outlined,
-                    title: 'Discussions',
-                  ),
-                ],
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
     );
   }
-}
 
-class _ResourceCard extends StatelessWidget {
-  const _ResourceCard({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      child: Material(
-        borderRadius: BorderRadius.circular(16),
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 28),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-          ),
-        ),
+  Widget _buildHeroImage(BuildContext context, Uri? poster) {
+    if (poster == null) {
+      return Image.asset(
+        AppAssets.placeholderPosterMovie,
+        fit: BoxFit.cover,
+        alignment: const Alignment(0.0, -0.5),
+      );
+    }
+    final mq = MediaQuery.of(context);
+    final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
+    final int cacheWidth = rawPx.clamp(480, 1920);
+    return Image.network(
+      poster.toString(),
+      fit: BoxFit.cover,
+      gaplessPlayback: true,
+      cacheWidth: cacheWidth,
+      filterQuality: FilterQuality.medium,
+      alignment: const Alignment(0.0, -0.5),
+      errorBuilder: (_, __, ___) => Image.asset(
+        AppAssets.placeholderPosterMovie,
+        fit: BoxFit.cover,
+        alignment: const Alignment(0.0, -0.5),
       ),
     );
   }

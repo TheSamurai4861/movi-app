@@ -21,6 +21,10 @@ import 'package:movi/src/core/network/network_executor.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class TvDetailPage extends ConsumerStatefulWidget {
   const TvDetailPage({super.key, this.media});
@@ -36,8 +40,6 @@ enum EpisodeSortOrder { ascending, descending }
 class _TvDetailPageState extends ConsumerState<TvDetailPage>
     with TickerProviderStateMixin {
   bool _overviewExpanded = false;
-  bool _edgeSwipeActive = false;
-  double _edgeSwipeStartX = 0.0;
   late TabController _tabController;
   EpisodeSortOrder _episodeSortOrder = EpisodeSortOrder.ascending;
   String mediaTitle = '—';
@@ -139,31 +141,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     final titleStyle = Theme.of(context).textTheme.headlineSmall;
     const heroHeight = 400.0;
     const overlayHeight = 200.0;
-    return Scaffold(
-      backgroundColor: cs.surface,
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (details) {
-          final dx = details.globalPosition.dx;
-          if (dx <= 24) {
-            _edgeSwipeActive = true;
-            _edgeSwipeStartX = dx;
-          } else {
-            _edgeSwipeActive = false;
-          }
-        },
-        onHorizontalDragUpdate: (details) {
-          if (!_edgeSwipeActive) return;
-          final moved = details.globalPosition.dx - _edgeSwipeStartX;
-          if (moved > 80) {
-            _edgeSwipeActive = false;
-            if (mounted) context.pop();
-          }
-        },
-        onHorizontalDragEnd: (_) {
-          _edgeSwipeActive = false;
-        },
-        child: SafeArea(
+    return SwipeBackWrapper(
+      child: Scaffold(
+        backgroundColor: cs.surface,
+        body: SafeArea(
           top: true,
           bottom: true,
           child: Opacity(
@@ -330,26 +311,75 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                 height: 55,
                                 child: Row(
                                   children: [
-                                    Expanded(
-                                      child: MoviPrimaryButton(
-                                        label: AppLocalizations.of(
-                                          context,
-                                        )!.homeWatchNow,
-                                        assetIcon: AppAssets.iconPlay,
-                                        buttonStyle: FilledButton.styleFrom(
-                                          backgroundColor: AppColors.accent,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              32,
+                                    Consumer(
+                                      builder: (context, ref, _) {
+                                        if (widget.media == null) {
+                                          return Expanded(
+                                            child: MoviPrimaryButton(
+                                              label: AppLocalizations.of(
+                                                context,
+                                              )!.homeWatchNow,
+                                              assetIcon: AppAssets.iconPlay,
+                                              buttonStyle: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.accent,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(32),
+                                                ),
+                                              ),
+                                              onPressed: () => _playSeries(
+                                                context,
+                                                widget.media?.id,
+                                                mediaTitle,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        final historyAsync = ref.watch(
+                                          hp.mediaHistoryProvider((
+                                            contentId: widget.media!.id,
+                                            type: ContentType.series,
+                                          )),
+                                        );
+                                        return Expanded(
+                                          child: MoviPrimaryButton(
+                                            label: historyAsync.when(
+                                              data: (entry) {
+                                                if (entry != null &&
+                                                    entry.season != null &&
+                                                    entry.episode != null) {
+                                                  return 'Reprendre S${entry.season!.toString().padLeft(2, '0')} E${entry.episode!.toString().padLeft(2, '0')}';
+                                                }
+                                                return AppLocalizations.of(
+                                                  context,
+                                                )!.homeWatchNow;
+                                              },
+                                              loading: () =>
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.homeWatchNow,
+                                              error: (_, __) =>
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.homeWatchNow,
+                                            ),
+                                            assetIcon: AppAssets.iconPlay,
+                                            buttonStyle: FilledButton.styleFrom(
+                                              backgroundColor: AppColors.accent,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(32),
+                                              ),
+                                            ),
+                                            onPressed: () => _playSeries(
+                                              context,
+                                              widget.media?.id,
+                                              mediaTitle,
                                             ),
                                           ),
-                                        ),
-                                        onPressed: () => _playSeries(
-                                          context,
-                                          widget.media?.id,
-                                          mediaTitle,
-                                        ),
-                                      ),
+                                        );
+                                      },
                                     ),
                                     const SizedBox(width: 16),
                                     SizedBox(
@@ -362,22 +392,27 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                             tvIsFavoriteProvider(seriesId),
                                           );
                                           return isFavoriteAsync.when(
-                                            data: (isFavorite) => MoviFavoriteButton(
-                                              isFavorite: isFavorite,
-                                              onPressed: () async {
-                                                await ref.read(
-                                                  tvToggleFavoriteProvider.notifier,
-                                                ).toggle(seriesId);
-                                              },
-                                            ),
+                                            data: (isFavorite) =>
+                                                MoviFavoriteButton(
+                                                  isFavorite: isFavorite,
+                                                  onPressed: () async {
+                                                    await ref
+                                                        .read(
+                                                          tvToggleFavoriteProvider
+                                                              .notifier,
+                                                        )
+                                                        .toggle(seriesId);
+                                                  },
+                                                ),
                                             loading: () => MoviFavoriteButton(
                                               isFavorite: false,
                                               onPressed: () {},
                                             ),
-                                            error: (_, __) => MoviFavoriteButton(
-                                              isFavorite: false,
-                                              onPressed: () {},
-                                            ),
+                                            error: (_, __) =>
+                                                MoviFavoriteButton(
+                                                  isFavorite: false,
+                                                  onPressed: () {},
+                                                ),
                                           );
                                         },
                                       ),
@@ -936,21 +971,25 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               try {
                 // Chercher dans tous les items, peu importe le type
                 // Chercher toutes les occurrences pour trouver celle avec un streamId valide
-                final candidates = playlist.items.where(
-                  (item) => item.tmdbId == tmdbId && item.type == XtreamPlaylistItemType.series,
-                ).toList();
-                
+                final candidates = playlist.items
+                    .where(
+                      (item) =>
+                          item.tmdbId == tmdbId &&
+                          item.type == XtreamPlaylistItemType.series,
+                    )
+                    .toList();
+
                 if (candidates.isNotEmpty) {
                   // Préférer celle avec un streamId valide (non nul)
                   final validCandidate = candidates.firstWhere(
                     (item) => item.streamId > 0,
                     orElse: () => candidates.first,
                   );
-                  
+
                   logger.debug(
                     'Série trouvée: ${validCandidate.title} (streamId=${validCandidate.streamId}, tmdbId=${validCandidate.tmdbId}, type=${validCandidate.type.name})',
                   );
-                  
+
                   // Si le streamId est toujours 0, continuer la recherche dans d'autres playlists
                   if (validCandidate.streamId == 0) {
                     logger.debug(
@@ -958,7 +997,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     );
                     continue;
                   }
-                  
+
                   xtreamItem = validCandidate;
                 }
               } catch (_) {
@@ -1019,10 +1058,24 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           ? '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')} - ${episode.title}'
           : '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
 
+      // Récupérer le poster depuis widget.media ou le view model
+      Uri? posterUri = widget.media?.poster;
+      if (posterUri == null && vmAsync.value != null) {
+        posterUri = vmAsync.value!.poster;
+      }
+
       // Ouvrir le player
       context.push(
         AppRouteNames.player,
-        extra: VideoSource(url: streamUrl, title: episodeTitle),
+        extra: VideoSource(
+          url: streamUrl,
+          title: episodeTitle,
+          contentId: seriesId,
+          contentType: ContentType.series,
+          poster: posterUri,
+          season: seasonNumber,
+          episode: episode.episodeNumber,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(

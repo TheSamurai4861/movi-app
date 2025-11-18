@@ -23,6 +23,8 @@ import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart' as hp;
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
@@ -554,12 +556,33 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Expanded(
-                            child: MoviPrimaryButton(
-                              label: AppLocalizations.of(context)!.homeWatchNow,
-                              assetIcon: AppAssets.iconPlay,
-                              onPressed: () => _playMovie(context),
-                            ),
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final m = widget.movie;
+                              if (m == null) {
+                                return Expanded(
+                                  child: MoviPrimaryButton(
+                                    label: AppLocalizations.of(context)!.homeWatchNow,
+                                    assetIcon: AppAssets.iconPlay,
+                                    onPressed: () => _playMovie(context),
+                                  ),
+                                );
+                              }
+                              final historyAsync = ref.watch(
+                                hp.mediaHistoryProvider((contentId: m.id.value, type: ContentType.movie)),
+                              );
+                              return Expanded(
+                                child: MoviPrimaryButton(
+                                  label: historyAsync.when(
+                                    data: (entry) => entry != null ? 'Reprendre la lecture' : AppLocalizations.of(context)!.homeWatchNow,
+                                    loading: () => AppLocalizations.of(context)!.homeWatchNow,
+                                    error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
+                                  ),
+                                  assetIcon: AppAssets.iconPlay,
+                                  onPressed: () => _playMovie(context),
+                                ),
+                              );
+                            },
                           ),
                           const SizedBox(width: 16),
                           Consumer(
@@ -735,7 +758,13 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
       // Ouvrir le player
       context.push(
         AppRouteNames.player,
-        extra: VideoSource(url: streamUrl, title: title),
+        extra: VideoSource(
+          url: streamUrl,
+          title: title,
+          contentId: movieId,
+          contentType: ContentType.movie,
+          poster: m.poster,
+        ),
       );
     } catch (e, st) {
       final logger = ref.read(slProvider)<AppLogger>();

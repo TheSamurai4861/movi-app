@@ -10,6 +10,10 @@ import 'package:movi/src/features/player/data/repositories/media_kit_video_playe
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/player/presentation/widgets/video_player_controls.dart';
 import 'package:movi/src/features/player/presentation/widgets/track_selection_menu.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 
 /// Page de lecture vidéo avec contrôles personnalisés
 class VideoPlayerPage extends ConsumerStatefulWidget {
@@ -43,7 +47,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   SubtitleTrack? _currentSubtitleTrack;
   AudioTrack? _currentAudioTrack;
   final GlobalKey _controlsKey = GlobalKey();
-
+  
   @override
   void initState() {
     super.initState();
@@ -348,6 +352,40 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _startHideControlsTimer();
   }
 
+  Future<void> _onBack(BuildContext context) async {
+    // Sauvegarder l'historique avant de fermer le player
+    final videoSource = widget.videoSource;
+    
+    if (videoSource?.contentId != null &&
+        videoSource?.contentType != null &&
+        _duration > Duration.zero) {
+      try {
+        final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+        await historyRepo.upsertPlay(
+          contentId: videoSource!.contentId!,
+          type: videoSource.contentType!,
+          title: videoSource.title ?? '',
+          poster: videoSource.poster,
+          position: _position,
+          duration: _duration,
+          season: videoSource.season,
+          episode: videoSource.episode,
+        );
+        
+        // Invalider les providers pour rafraîchir la liste
+        ref.invalidate(homeInProgressProvider);
+        ref.invalidate(libraryPlaylistsProvider);
+      } catch (_) {
+        // Ignorer les erreurs
+      }
+    }
+    
+    // Fermer le player
+    if (context.mounted) {
+      context.pop();
+    }
+  }
+
   @override
   void dispose() {
     _hideControlsTimer?.cancel();
@@ -388,9 +426,15 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     final videoSource = widget.videoSource ??
         (GoRouterState.of(context).extra as VideoSource?);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        await _onBack(context);
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: GestureDetector(
         onTapDown: _onScreenTap,
         onDoubleTapDown: _onDoubleTap,
         behavior: HitTestBehavior.opaque,
@@ -426,7 +470,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                   duration: _duration,
                   hasSubtitles: _hasSubtitles,
                   subtitlesEnabled: _subtitlesEnabled,
-                  onBack: () => context.pop(),
+                  onBack: () => _onBack(context),
                   onPlayPause: _togglePlayPause,
                   onSeekForward10: () => _seekForward(10),
                   onSeekForward30: () => _seekForward(30),
@@ -442,6 +486,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
               ),
           ],
         ),
+      ),
       ),
     );
   }

@@ -46,6 +46,7 @@ class AppRouteNames {
   static const person = '/person';
   static const playlist = '/playlist';
   static const libraryPlaylist = '/library/playlist';
+  static const sagaDetail = '/saga/detail';
   static const category = '/category';
   static const saga = '/saga';
   static const tv = '/tv';
@@ -190,10 +191,19 @@ class _RouterBundle {
           },
         ),
         GoRoute(
-          path: AppRouteNames.saga,
+          path: AppRouteNames.sagaDetail,
           name: 'saga_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: SagaDetailPage()),
+          pageBuilder: (context, state) {
+            final sagaId = state.extra is String
+                ? state.extra as String
+                : state.pathParameters['id'];
+            if (sagaId == null) {
+              return MaterialPage(
+                child: Scaffold(body: Center(child: Text('Saga introuvable'))),
+              );
+            }
+            return MaterialPage(child: SagaDetailPage(sagaId: sagaId));
+          },
         ),
         GoRoute(
           path: AppRouteNames.tv,

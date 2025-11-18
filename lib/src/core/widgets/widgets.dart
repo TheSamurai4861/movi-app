@@ -8,3 +8,4 @@ export 'movi_pill.dart';
 export 'movi_primary_button.dart';
 export 'movi_see_all_card.dart';
 export 'overlay_splash.dart';
+export 'swipe_back_wrapper.dart';

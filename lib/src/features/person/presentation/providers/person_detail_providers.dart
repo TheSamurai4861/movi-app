@@ -75,6 +75,7 @@ class PersonDetailViewModel {
     required this.showsCount,
     required this.movies,
     required this.shows,
+    this.biography,
   });
 
   final String name;
@@ -83,6 +84,7 @@ class PersonDetailViewModel {
   final int showsCount;
   final List<MovieSummary> movies;
   final List<TvShowSummary> shows;
+  final String? biography;
 }
 
 final personDetailControllerProvider =
@@ -147,6 +149,7 @@ final personDetailControllerProvider =
     showsCount: shows.length,
     movies: movies,
     shows: shows,
+    biography: person.biography,
   );
 });
 
