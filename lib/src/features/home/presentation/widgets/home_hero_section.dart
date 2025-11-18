@@ -13,7 +13,6 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
-import 'package:movi/src/core/models/models.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -21,7 +20,14 @@ import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/security/credentials_vault.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
+import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
 /// Hero principal de la page d’accueil.
 /// - Affiche d’abord les données disponibles (cache / résumé).
@@ -66,7 +72,6 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   // Sécurité décodage image (px @device)
   static const int _maxHeroCachePx = 1440;
 
-  final ValueNotifier<bool> _favorite = ValueNotifier<bool>(false);
 
   late final TmdbCacheDataSource _cache;
   late final TmdbImageResolver _images;
@@ -104,7 +109,6 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
 
   @override
   void dispose() {
-    _favorite.dispose();
     _langDebounce?.cancel();
     _cancelToken?.cancel('disposed');
     super.dispose();
@@ -554,27 +558,40 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
                             child: MoviPrimaryButton(
                               label: AppLocalizations.of(context)!.homeWatchNow,
                               assetIcon: AppAssets.iconPlay,
-                              onPressed: () {
-                                final m = widget.movie;
-                                if (m == null) return;
-                                final media = MoviMedia(
-                                  id: m.id.value,
-                                  title: m.title.display,
-                                  poster: m.poster,
-                                  year: m.releaseYear,
-                                  type: MoviMediaType.movie,
-                                );
-                                context.push(AppRouteNames.movie, extra: media);
-                              },
+                              onPressed: () => _playMovie(context),
                             ),
                           ),
                           const SizedBox(width: 16),
-                          ValueListenableBuilder<bool>(
-                            valueListenable: _favorite,
-                            builder: (_, isFav, __) {
-                              return MoviFavoriteButton(
-                                isFavorite: isFav,
-                                onPressed: () => _favorite.value = !isFav,
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final m = widget.movie;
+                              if (m == null) {
+                                return MoviFavoriteButton(
+                                  isFavorite: false,
+                                  onPressed: () {},
+                                );
+                              }
+                              final movieId = m.id.value;
+                              final isFavoriteAsync = ref.watch(
+                                movieIsFavoriteProvider(movieId),
+                              );
+                              return isFavoriteAsync.when(
+                                data: (isFavorite) => MoviFavoriteButton(
+                                  isFavorite: isFavorite,
+                                  onPressed: () async {
+                                    await ref.read(
+                                      movieToggleFavoriteProvider.notifier,
+                                    ).toggle(movieId);
+                                  },
+                                ),
+                                loading: () => MoviFavoriteButton(
+                                  isFavorite: false,
+                                  onPressed: () {},
+                                ),
+                                error: (_, __) => MoviFavoriteButton(
+                                  isFavorite: false,
+                                  onPressed: () {},
+                                ),
                               );
                             },
                           ),
@@ -587,6 +604,146 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
               },
             ),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Lecture du film
+  // ---------------------------------------------------------------------------
+
+  Future<void> _playMovie(BuildContext context) async {
+    final m = widget.movie;
+    if (m == null) return;
+
+    try {
+      final locator = ref.read(slProvider);
+      final iptvLocal = locator<IptvLocalRepository>();
+      final vault = locator<CredentialsVault>();
+      final logger = locator<AppLogger>();
+      final urlBuilder = XtreamStreamUrlBuilder(
+        iptvLocal: iptvLocal,
+        vault: vault,
+      );
+
+      final movieId = m.id.value;
+      final title = m.title.display;
+
+      // Chercher l'item Xtream correspondant
+      XtreamPlaylistItem? xtreamItem;
+      final accounts = await iptvLocal.getAccounts();
+
+      logger.debug(
+        'Recherche du film movieId=$movieId dans ${accounts.length} comptes',
+      );
+
+      for (final account in accounts) {
+        final playlists = await iptvLocal.getPlaylists(account.id);
+        logger.debug('Compte ${account.id}: ${playlists.length} playlists');
+
+        // Recherche globale dans toutes les playlists (movies et series)
+        // car certains films peuvent être mal catégorisés
+        for (final playlist in playlists) {
+          logger.debug(
+            'Playlist ${playlist.title} (${playlist.type.name}): ${playlist.items.length} items',
+          );
+
+          // Si l'ID commence par "xtream:", chercher par streamId
+          if (movieId.startsWith('xtream:')) {
+            final streamIdStr = movieId.substring(7);
+            final streamId = int.tryParse(streamIdStr);
+            logger.debug('Recherche par streamId=$streamId (xtream)');
+            if (streamId != null) {
+              try {
+                // Chercher dans tous les items, peu importe le type
+                xtreamItem = playlist.items.firstWhere(
+                  (item) => item.streamId == streamId,
+                );
+                logger.debug(
+                  'Film trouvé: ${xtreamItem.title} (streamId=${xtreamItem.streamId}, tmdbId=${xtreamItem.tmdbId}, type=${xtreamItem.type.name})',
+                );
+              } catch (_) {
+                // Item non trouvé, continuer la recherche
+                logger.debug(
+                  'Film avec streamId=$streamId non trouvé dans ${playlist.title}',
+                );
+              }
+            }
+          } else {
+            // Sinon, chercher par tmdbId
+            final tmdbId = int.tryParse(movieId);
+            logger.debug('Recherche par tmdbId=$tmdbId');
+            if (tmdbId != null) {
+              try {
+                // Chercher dans tous les items, peu importe le type
+                xtreamItem = playlist.items.firstWhere(
+                  (item) => item.tmdbId == tmdbId,
+                );
+                logger.debug(
+                  'Film trouvé: ${xtreamItem.title} (streamId=${xtreamItem.streamId}, tmdbId=${xtreamItem.tmdbId}, type=${xtreamItem.type.name})',
+                );
+              } catch (_) {
+                // Item non trouvé, continuer la recherche
+                logger.debug(
+                  'Film avec tmdbId=$tmdbId non trouvé dans ${playlist.title}',
+                );
+              }
+            }
+          }
+
+          if (xtreamItem != null) break;
+        }
+        if (xtreamItem != null) break;
+      }
+
+      if (xtreamItem == null) {
+        logger.info('Film movieId=$movieId non trouvé dans les playlists');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Film non disponible dans la playlist')),
+        );
+        return;
+      }
+
+      // Construire l'URL de streaming
+      // Vérifier que c'est bien un film, sinon adapter
+      String? streamUrl;
+      if (xtreamItem.type == XtreamPlaylistItemType.movie) {
+        streamUrl = await urlBuilder.buildStreamUrlFromMovieItem(xtreamItem);
+      } else {
+        // Si c'est une série trouvée par erreur, on ne peut pas la lire comme un film
+        logger.warn(
+          'Item trouvé est de type ${xtreamItem.type.name}, pas un film',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Le média trouvé n\'est pas un film')),
+        );
+        return;
+      }
+
+      if (streamUrl == null) {
+        logger.error(
+          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossible de construire l\'URL de streaming'),
+          ),
+        );
+        return;
+      }
+
+      logger.debug('URL de streaming construite: $streamUrl');
+
+      // Ouvrir le player
+      context.push(
+        AppRouteNames.player,
+        extra: VideoSource(url: streamUrl, title: title),
+      );
+    } catch (e, st) {
+      final logger = ref.read(slProvider)<AppLogger>();
+      logger.error('Erreur lors de la lecture du film: $e', e, st);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
   }
 
   void _onLanguageChanged(String newLang) {

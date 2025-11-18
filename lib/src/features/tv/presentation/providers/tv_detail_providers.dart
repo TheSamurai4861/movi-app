@@ -4,26 +4,75 @@ import 'package:get_it/get_it.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
+import 'package:movi/src/features/tv/data/repositories/tv_repository_impl.dart';
+import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
+import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
-import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/core/utils/title_cleaner.dart';
-import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
+import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
+import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+
+/// Provider pour TvRepository avec userId actuel
+final tvRepositoryProvider = Provider<TvRepository>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  return TvRepositoryImpl(
+    ref.watch(slProvider)<TmdbTvRemoteDataSource>(),
+    ref.watch(slProvider)<TmdbImageResolver>(),
+    ref.watch(slProvider)<WatchlistLocalRepository>(),
+    ref.watch(slProvider)<TvLocalDataSource>(),
+    ref.watch(slProvider)<ContinueWatchingLocalRepository>(),
+    ref.watch(slProvider)<AppStateController>(),
+    userId: userId,
+  );
+});
+
+/// Provider pour vérifier si une série est dans les favoris
+final tvIsFavoriteProvider =
+    FutureProvider.family<bool, String>((ref, seriesId) async {
+  final repo = ref.watch(tvRepositoryProvider);
+  return await repo.isInWatchlist(SeriesId(seriesId));
+});
+
+/// Notifier pour basculer le statut favori d'une série
+class TvToggleFavoriteNotifier extends Notifier<void> {
+  @override
+  void build() {
+    // État initial vide, la méthode toggle() fait le travail
+  }
+
+  Future<void> toggle(String seriesId) async {
+    final repo = ref.read(tvRepositoryProvider);
+    final isFavorite = await ref.read(tvIsFavoriteProvider(seriesId).future);
+    await repo.setWatchlist(SeriesId(seriesId), saved: !isFavorite);
+    ref.invalidate(tvIsFavoriteProvider(seriesId));
+    // Invalider les playlists de la bibliothèque pour mettre à jour les favoris
+    ref.invalidate(libraryPlaylistsProvider);
+  }
+}
+
+/// Provider pour basculer le statut favori d'une série
+final tvToggleFavoriteProvider =
+    NotifierProvider<TvToggleFavoriteNotifier, void>(
+  TvToggleFavoriteNotifier.new,
+);
 
 final tvDetailControllerProvider =
     FutureProvider.family<TvDetailViewModel, String>((ref, seriesId) async {
       final lang = ref.watch(currentLanguageCodeProvider);
       final locator = ref.watch(slProvider);
       final logger = locator<AppLogger>();
-      final repo = locator<TvRepository>();
+      final repo = ref.watch(tvRepositoryProvider);
       final id = SeriesId(seriesId);
       final t0 = DateTime.now();
       final detail = await repo.getShow(id);
@@ -62,7 +111,7 @@ class TvDetailProgressiveController
       final lang = ref.read(currentLanguageCodeProvider);
       final locator = ref.read(slProvider);
       final logger = locator<AppLogger>();
-      final repo = locator<TvRepository>();
+      final repo = ref.read(tvRepositoryProvider);
       final iptvLocal = locator<IptvLocalRepository>();
       final id = SeriesId(_seriesId);
 

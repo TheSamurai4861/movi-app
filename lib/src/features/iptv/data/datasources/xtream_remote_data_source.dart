@@ -80,6 +80,41 @@ class XtreamRemoteDataSource {
     return _getStreams(request, action: 'get_series', categoryId: categoryId);
   }
 
+  /// Récupère les informations détaillées d'une série, incluant les épisodes
+  /// Retourne un Map avec la structure : { "episodes": { "1": [{ "id": 123, "episode_num": 1, ... }] } }
+  Future<Map<String, dynamic>> getSeriesInfo(
+    XtreamAccountRequest request, {
+    required int seriesId,
+  }) {
+    return _executor.run<dynamic, Map<String, dynamic>>(
+      request: (client, cancelToken) => client.getUri<dynamic>(
+        request.endpoint.buildUri({
+          'username': request.username,
+          'password': request.password,
+          'action': 'get_series_info',
+          'series_id': seriesId.toString(),
+        }),
+        options: Options(responseType: ResponseType.json),
+        cancelToken: cancelToken,
+      ),
+      mapper: (response) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        } else if (data is String) {
+          final s = data.trim();
+          if (s.startsWith('{')) {
+            final decoded = jsonDecode(s);
+            if (decoded is Map<String, dynamic>) {
+              return decoded;
+            }
+          }
+        }
+        return <String, dynamic>{};
+      },
+    );
+  }
+
   Future<List<XtreamCategoryDto>> _getCategories(
     XtreamAccountRequest request, {
     required String action,

@@ -6,6 +6,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// SQLite singleton (sqflite / sqflite_ffi) avec migrations.
+/// - Version 10 (ajout colonne extension à iptv_episodes pour container_extension)
+/// - Version 9 (ajout table iptv_episodes pour stocker les épisodes IPTV)
+/// - Version 8 (ajout user_id à watchlist pour favoris par utilisateur)
 /// - Version 7 (indexes cache supplémentaires, PRAGMA renforcés)
 /// - Version 6 (retire colonne password de iptv_accounts)
 /// - Desktop (Windows/Linux) utilise sqflite_common_ffi
@@ -39,7 +42,7 @@ class LocalDatabase {
 
     _instance = await openDatabase(
       path,
-      version: 7,
+      version: 10,
       onConfigure: (db) async {
         // Toujours activer les foreign keys.
         await db.execute('PRAGMA foreign_keys = ON;');
@@ -56,7 +59,8 @@ class LocalDatabase {
             title TEXT NOT NULL,
             poster TEXT,
             added_at INTEGER NOT NULL,
-            PRIMARY KEY (content_id, content_type)
+            user_id TEXT NOT NULL DEFAULT 'default',
+            PRIMARY KEY (content_id, content_type, user_id)
           );
         ''');
 
@@ -89,6 +93,19 @@ class LocalDatabase {
             payload TEXT NOT NULL,
             updated_at INTEGER NOT NULL,
             PRIMARY KEY (account_id, category_id)
+          );
+        ''');
+
+        await db.execute('''
+          CREATE TABLE iptv_episodes (
+            account_id TEXT NOT NULL,
+            series_id INTEGER NOT NULL,
+            season_number INTEGER NOT NULL,
+            episode_number INTEGER NOT NULL,
+            episode_id INTEGER NOT NULL,
+            extension TEXT,
+            updated_at INTEGER NOT NULL,
+            PRIMARY KEY (account_id, series_id, season_number, episode_number)
           );
         ''');
 
@@ -155,6 +172,9 @@ class LocalDatabase {
         // --- Indexes (installations fraîches v5+) ---
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
+        );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_iptv_episodes_account_series ON iptv_episodes(account_id, series_id);',
         );
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',
@@ -262,6 +282,55 @@ class LocalDatabase {
         if (oldVersion < 7) {
           await db.execute(
             'CREATE INDEX IF NOT EXISTS idx_content_cache_type ON content_cache(cache_type);',
+          );
+        }
+        if (oldVersion < 8) {
+          // Ajout de la colonne user_id à la table watchlist
+          await db.execute('''
+            CREATE TABLE watchlist_new (
+              content_id TEXT NOT NULL,
+              content_type TEXT NOT NULL,
+              title TEXT NOT NULL,
+              poster TEXT,
+              added_at INTEGER NOT NULL,
+              user_id TEXT NOT NULL DEFAULT 'default',
+              PRIMARY KEY (content_id, content_type, user_id)
+            );
+          ''');
+          await db.execute('''
+            INSERT INTO watchlist_new (
+              content_id, content_type, title, poster, added_at, user_id
+            )
+            SELECT content_id, content_type, title, poster, added_at, 'default'
+            FROM watchlist;
+          ''');
+          await db.execute('DROP TABLE watchlist;');
+          await db.execute('ALTER TABLE watchlist_new RENAME TO watchlist;');
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_watchlist_user_id ON watchlist(user_id);',
+          );
+        }
+        if (oldVersion < 9) {
+          // Création de la table pour stocker les épisodes IPTV
+          await db.execute('''
+            CREATE TABLE iptv_episodes (
+              account_id TEXT NOT NULL,
+              series_id INTEGER NOT NULL,
+              season_number INTEGER NOT NULL,
+              episode_number INTEGER NOT NULL,
+              episode_id INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (account_id, series_id, season_number, episode_number)
+            );
+          ''');
+          await db.execute(
+            'CREATE INDEX IF NOT EXISTS idx_iptv_episodes_account_series ON iptv_episodes(account_id, series_id);',
+          );
+        }
+        if (oldVersion < 10) {
+          // Ajout de la colonne extension pour stocker container_extension
+          await db.execute(
+            'ALTER TABLE iptv_episodes ADD COLUMN extension TEXT;',
           );
         }
       },

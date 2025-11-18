@@ -22,8 +22,9 @@ class MovieRepositoryImpl implements MovieRepository {
     this._watchlist,
     this._local,
     this._continueWatching,
-    this._appState,
-  );
+    this._appState, {
+    String? userId,
+  }) : _userId = userId ?? 'default';
 
   final TmdbMovieRemoteDataSource _remote;
   final TmdbImageResolver _images;
@@ -31,6 +32,7 @@ class MovieRepositoryImpl implements MovieRepository {
   final MovieLocalDataSource _local;
   final ContinueWatchingLocalRepository _continueWatching;
   final AppStateController _appState;
+  final String _userId;
 
   @override
   Future<Movie> getMovie(MovieId id) async {
@@ -105,7 +107,7 @@ class MovieRepositoryImpl implements MovieRepository {
 
   @override
   Future<bool> isInWatchlist(MovieId id) async =>
-      _watchlist.exists(id.value, ContentType.movie);
+      _watchlist.exists(id.value, ContentType.movie, userId: _userId);
 
   @override
   Future<void> setWatchlist(MovieId id, {required bool saved}) async {
@@ -118,10 +120,11 @@ class MovieRepositoryImpl implements MovieRepository {
           title: summary.title.value,
           poster: summary.poster,
           addedAt: DateTime.now(),
+          userId: _userId,
         ),
       );
     } else {
-      await _watchlist.remove(id.value, ContentType.movie);
+      await _watchlist.remove(id.value, ContentType.movie, userId: _userId);
     }
   }
 

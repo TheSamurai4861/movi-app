@@ -333,9 +333,31 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                     SizedBox(
                                       width: 40,
                                       height: 40,
-                                      child: MoviFavoriteButton(
-                                        isFavorite: false,
-                                        onPressed: () {},
+                                      child: Consumer(
+                                        builder: (context, ref, _) {
+                                          final movieId = widget.media!.id;
+                                          final isFavoriteAsync = ref.watch(
+                                            movieIsFavoriteProvider(movieId),
+                                          );
+                                          return isFavoriteAsync.when(
+                                            data: (isFavorite) => MoviFavoriteButton(
+                                              isFavorite: isFavorite,
+                                              onPressed: () async {
+                                                await ref.read(
+                                                  movieToggleFavoriteProvider.notifier,
+                                                ).toggle(movieId);
+                                              },
+                                            ),
+                                            loading: () => MoviFavoriteButton(
+                                              isFavorite: false,
+                                              onPressed: () {},
+                                            ),
+                                            error: (_, __) => MoviFavoriteButton(
+                                              isFavorite: false,
+                                              onPressed: () {},
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ],

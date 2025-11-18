@@ -32,8 +32,9 @@ class TvRepositoryImpl implements TvRepository {
     this._watchlist,
     this._local,
     this._continueWatching,
-    this._appState,
-  );
+    this._appState, {
+    String? userId,
+  }) : _userId = userId ?? 'default';
 
   final TmdbTvRemoteDataSource _remote;
   final TmdbImageResolver _images;
@@ -41,6 +42,7 @@ class TvRepositoryImpl implements TvRepository {
   final TvLocalDataSource _local;
   final ContinueWatchingLocalRepository _continueWatching;
   final AppStateController _appState;
+  final String _userId;
 
   // Concurrence bornée pour le chargement des saisons (évite de spam TMDB)
   static const int _maxConcurrentSeasons = 4;
@@ -164,7 +166,7 @@ class TvRepositoryImpl implements TvRepository {
 
   @override
   Future<bool> isInWatchlist(SeriesId id) =>
-      _watchlist.exists(id.value, ContentType.series);
+      _watchlist.exists(id.value, ContentType.series, userId: _userId);
 
   @override
   Future<void> refreshMetadata(SeriesId id) async {
@@ -183,10 +185,11 @@ class TvRepositoryImpl implements TvRepository {
           title: show.title.value,
           poster: show.poster,
           addedAt: DateTime.now(),
+          userId: _userId,
         ),
       );
     } else {
-      await _watchlist.remove(id.value, ContentType.series);
+      await _watchlist.remove(id.value, ContentType.series, userId: _userId);
     }
   }
 

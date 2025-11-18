@@ -35,6 +35,7 @@ class IptvDataModule {
         sl<XtreamRemoteDataSource>(),
         sl<PlaylistMapper>(),
         sl<XtreamCacheDataSource>(),
+        sl<AppLogger>(),
       ),
     );
 

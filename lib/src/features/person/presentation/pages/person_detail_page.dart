@@ -47,15 +47,19 @@ class PersonDetailPage extends ConsumerWidget {
           ),
         ),
       ),
-      data: (vm) => _PersonDetailContent(vm: vm),
+      data: (vm) => _PersonDetailContent(vm: vm, person: person),
     );
   }
 }
 
 class _PersonDetailContent extends StatelessWidget {
-  const _PersonDetailContent({required this.vm});
+  const _PersonDetailContent({
+    required this.vm,
+    required this.person,
+  });
 
   final PersonDetailViewModel vm;
+  final PersonSummary person;
 
   @override
   Widget build(BuildContext context) {
@@ -236,10 +240,30 @@ class _PersonDetailContent extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              MoviFavoriteButton(
-                                isFavorite: false,
-                                onPressed: () {
-                                  // TODO: Implémenter l'ajout aux favoris
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final personId = person.id.value;
+                                  final isFavoriteAsync = ref.watch(
+                                    personIsFavoriteProvider(personId),
+                                  );
+                                  return isFavoriteAsync.when(
+                                    data: (isFavorite) => MoviFavoriteButton(
+                                      isFavorite: isFavorite,
+                                      onPressed: () async {
+                                        await ref.read(
+                                          personToggleFavoriteProvider.notifier,
+                                        ).toggle(personId);
+                                      },
+                                    ),
+                                    loading: () => MoviFavoriteButton(
+                                      isFavorite: false,
+                                      onPressed: () {},
+                                    ),
+                                    error: (_, __) => MoviFavoriteButton(
+                                      isFavorite: false,
+                                      onPressed: () {},
+                                    ),
+                                  );
                                 },
                               ),
                             ],

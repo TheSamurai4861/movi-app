@@ -15,6 +15,8 @@ import 'package:movi/src/features/category_browser/presentation/models/category_
 import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
 import 'package:movi/src/features/home/presentation/pages/home_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
+import 'package:movi/src/features/library/presentation/pages/library_playlist_detail_page.dart';
+import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
 import 'package:movi/src/features/person/presentation/pages/person_detail_page.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
@@ -43,6 +45,7 @@ class AppRouteNames {
   static const movie = '/movie';
   static const person = '/person';
   static const playlist = '/playlist';
+  static const libraryPlaylist = '/library/playlist';
   static const category = '/category';
   static const saga = '/saga';
   static const tv = '/tv';
@@ -224,6 +227,25 @@ class _RouterBundle {
           name: 'iptv_connect',
           pageBuilder: (context, state) =>
               const MaterialPage(child: IptvConnectPage()),
+        ),
+        GoRoute(
+          path: AppRouteNames.libraryPlaylist,
+          name: 'library_playlist_detail',
+          pageBuilder: (context, state) {
+            final playlist = state.extra is LibraryPlaylistItem
+                ? state.extra as LibraryPlaylistItem
+                : null;
+            if (playlist == null) {
+              return MaterialPage(
+                child: Scaffold(
+                  body: Center(child: Text('Playlist introuvable')),
+                ),
+              );
+            }
+            return MaterialPage(
+              child: LibraryPlaylistDetailPage(playlist: playlist),
+            );
+          },
         ),
       ],
       errorPageBuilder: (context, state) => MaterialPage(

@@ -27,10 +27,26 @@ class XtreamStreamDto {
         (json['releasedate'] ?? json['releaseDate'] ?? json['release_date'])
             ?.toString();
 
+    // Essayer plusieurs noms de champs possibles pour stream_id
+    // Certaines APIs Xtream utilisent 'id' au lieu de 'stream_id' pour les séries
+    dynamic streamIdRaw = json['stream_id'] ??
+        json['id'] ??
+        json['series_id'] ??
+        json['seriesId'];
+
+    int streamId;
+    if (streamIdRaw is int) {
+      streamId = streamIdRaw;
+    } else if (streamIdRaw is num) {
+      streamId = streamIdRaw.toInt();
+    } else if (streamIdRaw is String) {
+      streamId = int.tryParse(streamIdRaw) ?? 0;
+    } else {
+      streamId = 0;
+    }
+
     return XtreamStreamDto(
-      streamId: json['stream_id'] is int
-          ? json['stream_id'] as int
-          : int.tryParse('${json['stream_id']}') ?? 0,
+      streamId: streamId,
       name: json['name']?.toString() ?? 'Untitled',
       streamType: json['stream_type']?.toString() ?? 'vod',
       categoryId: json['category_id']?.toString() ?? '',

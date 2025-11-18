@@ -10,15 +10,21 @@ import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 
 class LibraryRepositoryImpl implements LibraryRepository {
-  LibraryRepositoryImpl(this._watchlist, this._history, this._playlists);
+  LibraryRepositoryImpl(
+    this._watchlist,
+    this._history,
+    this._playlists, {
+    String? userId,
+  }) : _userId = userId ?? 'default';
 
   final WatchlistLocalRepository _watchlist;
   final HistoryLocalRepository _history;
   final PlaylistRepository _playlists;
+  final String _userId;
 
   @override
   Future<List<MovieSummary>> getLikedMovies() async {
-    final entries = await _watchlist.readAll(ContentType.movie);
+    final entries = await _watchlist.readAll(ContentType.movie, userId: _userId);
     return entries
         .where((e) => e.poster != null)
         .map(
@@ -33,7 +39,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   @override
   Future<List<TvShowSummary>> getLikedShows() async {
-    final entries = await _watchlist.readAll(ContentType.series);
+    final entries = await _watchlist.readAll(ContentType.series, userId: _userId);
     return entries
         .where((e) => e.poster != null)
         .map(
@@ -48,7 +54,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   @override
   Future<List<SagaSummary>> getLikedSagas() async {
-    final entries = await _watchlist.readAll(ContentType.saga);
+    final entries = await _watchlist.readAll(ContentType.saga, userId: _userId);
     return entries
         .where((e) => e.poster != null)
         .map(
@@ -63,7 +69,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   @override
   Future<List<PersonSummary>> getLikedPersons() async {
-    final entries = await _watchlist.readAll(ContentType.person);
+    final entries = await _watchlist.readAll(ContentType.person, userId: _userId);
     return entries
         .where((e) => e.poster != null)
         .map(

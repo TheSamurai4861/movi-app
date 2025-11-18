@@ -9,11 +9,23 @@ import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart
 
 import 'package:movi/src/core/storage/database/sqlite_database.dart';
 
+/// Données d'un épisode (ID + extension)
+class EpisodeData {
+  const EpisodeData({
+    required this.episodeId,
+    this.extension,
+  });
+
+  final int episodeId;
+  final String? extension;
+}
+
 /// Repository local pour la persistance des comptes et playlists IPTV.
 /// Implémentation basée sur `sqflite` avec conversions typées et garde-fous.
 class IptvLocalRepository {
   static const String _tblAccounts = 'iptv_accounts';
   static const String _tblPlaylists = 'iptv_playlists';
+  static const String _tblEpisodes = 'iptv_episodes';
 
   Future<Database> get _db => LocalDatabase.instance();
 
@@ -49,6 +61,11 @@ class IptvLocalRepository {
     );
     await db.delete(
       _tblPlaylists,
+      where: 'account_id = ?',
+      whereArgs: <Object?>[id],
+    );
+    await db.delete(
+      _tblEpisodes,
       where: 'account_id = ?',
       whereArgs: <Object?>[id],
     );
@@ -181,6 +198,87 @@ class IptvLocalRepository {
     }
 
     return ids;
+  }
+
+  /// Sauvegarde les épisodes d'une série
+  Future<void> saveEpisodes({
+    required String accountId,
+    required int seriesId,
+    required Map<int, Map<int, EpisodeData>> episodes, // Map<seasonNumber, Map<episodeNumber, EpisodeData>>
+  }) async {
+    final db = await _db;
+    final batch = db.batch();
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // Supprimer les anciens épisodes de cette série
+    batch.delete(
+      _tblEpisodes,
+      where: 'account_id = ? AND series_id = ?',
+      whereArgs: <Object?>[accountId, seriesId],
+    );
+
+    // Ajouter les nouveaux épisodes
+    for (final seasonEntry in episodes.entries) {
+      final seasonNumber = seasonEntry.key;
+      for (final episodeEntry in seasonEntry.value.entries) {
+        final episodeNumber = episodeEntry.key;
+        final episodeData = episodeEntry.value;
+        batch.insert(
+          _tblEpisodes,
+          <String, Object?>{
+            'account_id': accountId,
+            'series_id': seriesId,
+            'season_number': seasonNumber,
+            'episode_number': episodeNumber,
+            'episode_id': episodeData.episodeId,
+            'extension': episodeData.extension,
+            'updated_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  /// Récupère l'ID de l'épisode pour une série donnée
+  Future<int?> getEpisodeId({
+    required String accountId,
+    required int seriesId,
+    required int seasonNumber,
+    required int episodeNumber,
+  }) async {
+    final data = await getEpisodeData(
+      accountId: accountId,
+      seriesId: seriesId,
+      seasonNumber: seasonNumber,
+      episodeNumber: episodeNumber,
+    );
+    return data?.episodeId;
+  }
+
+  /// Récupère les données complètes de l'épisode (ID + extension)
+  Future<EpisodeData?> getEpisodeData({
+    required String accountId,
+    required int seriesId,
+    required int seasonNumber,
+    required int episodeNumber,
+  }) async {
+    final db = await _db;
+    final rows = await db.query(
+      _tblEpisodes,
+      columns: ['episode_id', 'extension'],
+      where: 'account_id = ? AND series_id = ? AND season_number = ? AND episode_number = ?',
+      whereArgs: <Object?>[accountId, seriesId, seasonNumber, episodeNumber],
+      limit: 1,
+    );
+
+    if (rows.isEmpty) return null;
+    final episodeId = rows.first['episode_id'] as int?;
+    final extension = rows.first['extension'] as String?;
+    if (episodeId == null) return null;
+    return EpisodeData(episodeId: episodeId, extension: extension);
   }
 
   // ---------------------------------------------------------------------------

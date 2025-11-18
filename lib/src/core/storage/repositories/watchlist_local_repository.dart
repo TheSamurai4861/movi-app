@@ -10,6 +10,7 @@ class WatchlistEntry {
     required this.title,
     this.poster,
     required this.addedAt,
+    this.userId = 'default',
   });
 
   final String contentId;
@@ -17,13 +18,14 @@ class WatchlistEntry {
   final String title;
   final Uri? poster;
   final DateTime addedAt;
+  final String userId;
 }
 
 abstract class WatchlistLocalRepository {
-  Future<bool> exists(String contentId, ContentType type);
+  Future<bool> exists(String contentId, ContentType type, {String? userId});
   Future<void> upsert(WatchlistEntry entry);
-  Future<void> remove(String contentId, ContentType type);
-  Future<List<WatchlistEntry>> readAll(ContentType type);
+  Future<void> remove(String contentId, ContentType type, {String? userId});
+  Future<List<WatchlistEntry>> readAll(ContentType type, {String? userId});
 }
 
 class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
@@ -32,24 +34,26 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
   Future<Database> get _db => LocalDatabase.instance();
 
   @override
-  Future<bool> exists(String contentId, ContentType type) async {
+  Future<bool> exists(String contentId, ContentType type, {String? userId}) async {
     final db = await _db;
+    final userIdValue = userId ?? 'default';
     final rows = await db.query(
       'watchlist',
-      where: 'content_id = ? AND content_type = ?',
-      whereArgs: [contentId, type.name],
+      where: 'content_id = ? AND content_type = ? AND user_id = ?',
+      whereArgs: [contentId, type.name, userIdValue],
       limit: 1,
     );
     return rows.isNotEmpty;
   }
 
   @override
-  Future<List<WatchlistEntry>> readAll(ContentType type) async {
+  Future<List<WatchlistEntry>> readAll(ContentType type, {String? userId}) async {
     final db = await _db;
+    final userIdValue = userId ?? 'default';
     final rows = await db.query(
       'watchlist',
-      where: 'content_type = ?',
-      whereArgs: [type.name],
+      where: 'content_type = ? AND user_id = ?',
+      whereArgs: [type.name, userIdValue],
       orderBy: 'added_at DESC',
     );
     return rows
@@ -65,18 +69,20 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
             addedAt: DateTime.fromMillisecondsSinceEpoch(
               row['added_at'] as int,
             ),
+            userId: row['user_id'] as String? ?? 'default',
           ),
         )
         .toList();
   }
 
   @override
-  Future<void> remove(String contentId, ContentType type) async {
+  Future<void> remove(String contentId, ContentType type, {String? userId}) async {
     final db = await _db;
+    final userIdValue = userId ?? 'default';
     await db.delete(
       'watchlist',
-      where: 'content_id = ? AND content_type = ?',
-      whereArgs: [contentId, type.name],
+      where: 'content_id = ? AND content_type = ? AND user_id = ?',
+      whereArgs: [contentId, type.name, userIdValue],
     );
   }
 
@@ -89,6 +95,7 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
       'title': entry.title,
       'poster': entry.poster?.toString(),
       'added_at': entry.addedAt.millisecondsSinceEpoch,
+      'user_id': entry.userId,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }

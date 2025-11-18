@@ -16,8 +16,9 @@ import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/network_executor.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
-import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
@@ -354,9 +355,31 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                     SizedBox(
                                       width: 40,
                                       height: 40,
-                                      child: MoviFavoriteButton(
-                                        isFavorite: false,
-                                        onPressed: () {},
+                                      child: Consumer(
+                                        builder: (context, ref, _) {
+                                          final seriesId = widget.media!.id;
+                                          final isFavoriteAsync = ref.watch(
+                                            tvIsFavoriteProvider(seriesId),
+                                          );
+                                          return isFavoriteAsync.when(
+                                            data: (isFavorite) => MoviFavoriteButton(
+                                              isFavorite: isFavorite,
+                                              onPressed: () async {
+                                                await ref.read(
+                                                  tvToggleFavoriteProvider.notifier,
+                                                ).toggle(seriesId);
+                                              },
+                                            ),
+                                            loading: () => MoviFavoriteButton(
+                                              isFavorite: false,
+                                              onPressed: () {},
+                                            ),
+                                            error: (_, __) => MoviFavoriteButton(
+                                              isFavorite: false,
+                                              onPressed: () {},
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                   ],
@@ -846,9 +869,12 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final locator = ref.read(slProvider);
       final iptvLocal = locator<IptvLocalRepository>();
       final vault = locator<CredentialsVault>();
+      final logger = locator<AppLogger>();
+      final networkExecutor = locator<NetworkExecutor>();
       final urlBuilder = XtreamStreamUrlBuilder(
         iptvLocal: iptvLocal,
         vault: vault,
+        networkExecutor: networkExecutor,
       );
 
       // Chercher l'item Xtream correspondant
@@ -856,24 +882,51 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final accounts = await iptvLocal.getAccounts();
       final seriesId = widget.media!.id;
 
+      logger.debug(
+        'Recherche de la série seriesId=$seriesId, saison=$seasonNumber, épisode=${episode.episodeNumber} dans ${accounts.length} comptes',
+      );
+
       for (final account in accounts) {
         final playlists = await iptvLocal.getPlaylists(account.id);
+        logger.debug('Compte ${account.id}: ${playlists.length} playlists');
+        // Recherche globale dans toutes les playlists (movies et series)
+        // car certaines séries peuvent être mal catégorisées
         for (final playlist in playlists) {
-          if (playlist.type != XtreamPlaylistType.series) continue;
-
+          logger.debug(
+            'Playlist ${playlist.title} (${playlist.type.name}): ${playlist.items.length} items',
+          );
           // Si l'ID commence par "xtream:", chercher par streamId
           if (seriesId.startsWith('xtream:')) {
             final streamIdStr = seriesId.substring(7);
             final streamId = int.tryParse(streamIdStr);
             if (streamId != null) {
               try {
-                xtreamItem = playlist.items.firstWhere(
-                  (item) =>
-                      item.streamId == streamId &&
-                      item.type == XtreamPlaylistItemType.series,
+                // Chercher dans tous les items, peu importe le type
+                final found = playlist.items.firstWhere(
+                  (item) => item.streamId == streamId,
                 );
+                logger.debug(
+                  'Série trouvée: ${found.title} (streamId=${found.streamId}, tmdbId=${found.tmdbId}, type=${found.type.name})',
+                );
+                // Vérifier que c'est bien une série et que le streamId est valide
+                if (found.type != XtreamPlaylistItemType.series) {
+                  logger.debug(
+                    'Item trouvé n\'est pas une série (type=${found.type.name}), continuer la recherche',
+                  );
+                  continue;
+                }
+                if (found.streamId == 0) {
+                  logger.debug(
+                    'Série trouvée avec streamId invalide (${found.streamId}), continuer la recherche',
+                  );
+                  continue;
+                }
+                xtreamItem = found;
               } catch (_) {
                 // Item non trouvé, continuer la recherche
+                logger.debug(
+                  'Série avec streamId=$streamId non trouvée dans ${playlist.title}',
+                );
               }
             }
           } else {
@@ -881,13 +934,38 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             final tmdbId = int.tryParse(seriesId);
             if (tmdbId != null) {
               try {
-                xtreamItem = playlist.items.firstWhere(
-                  (item) =>
-                      item.tmdbId == tmdbId &&
-                      item.type == XtreamPlaylistItemType.series,
-                );
+                // Chercher dans tous les items, peu importe le type
+                // Chercher toutes les occurrences pour trouver celle avec un streamId valide
+                final candidates = playlist.items.where(
+                  (item) => item.tmdbId == tmdbId && item.type == XtreamPlaylistItemType.series,
+                ).toList();
+                
+                if (candidates.isNotEmpty) {
+                  // Préférer celle avec un streamId valide (non nul)
+                  final validCandidate = candidates.firstWhere(
+                    (item) => item.streamId > 0,
+                    orElse: () => candidates.first,
+                  );
+                  
+                  logger.debug(
+                    'Série trouvée: ${validCandidate.title} (streamId=${validCandidate.streamId}, tmdbId=${validCandidate.tmdbId}, type=${validCandidate.type.name})',
+                  );
+                  
+                  // Si le streamId est toujours 0, continuer la recherche dans d'autres playlists
+                  if (validCandidate.streamId == 0) {
+                    logger.debug(
+                      'Série trouvée avec streamId invalide (${validCandidate.streamId}), continuer la recherche',
+                    );
+                    continue;
+                  }
+                  
+                  xtreamItem = validCandidate;
+                }
               } catch (_) {
                 // Item non trouvé, continuer la recherche
+                logger.debug(
+                  'Série avec tmdbId=$tmdbId non trouvée dans ${playlist.title}',
+                );
               }
             }
           }
@@ -898,6 +976,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       }
 
       if (xtreamItem == null) {
+        logger.info('Série seriesId=$seriesId non trouvée dans les playlists');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Épisode non disponible dans la playlist'),
@@ -906,6 +985,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         return;
       }
 
+      logger.debug(
+        'Construction URL pour série streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=${episode.episodeNumber}',
+      );
+
       // Construire l'URL de streaming
       final streamUrl = await urlBuilder.buildStreamUrlFromSeriesItem(
         item: xtreamItem,
@@ -913,6 +996,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         episodeNumber: episode.episodeNumber,
       );
       if (streamUrl == null) {
+        logger.error(
+          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=${episode.episodeNumber}',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Impossible de construire l\'URL de streaming'),
@@ -920,6 +1006,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         );
         return;
       }
+
+      logger.debug('URL de streaming construite: $streamUrl');
 
       // Construire le titre de l'épisode
       // Récupérer le titre depuis le ViewModel via le provider

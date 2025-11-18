@@ -97,3 +97,13 @@ final userSettingsControllerProvider =
     NotifierProvider<UserSettingsController, UserSettingsState>(
       UserSettingsController.new,
     );
+
+/// Provider pour obtenir l'ID utilisateur actuel.
+/// Retourne le firstName de l'utilisateur en minuscules, ou 'default' si aucun profil n'est chargé.
+final currentUserIdProvider = Provider<String>((ref) {
+  final state = ref.watch(userSettingsControllerProvider);
+  final profile = state.profile;
+  if (profile == null) return 'default';
+  final firstName = profile.firstName.value.trim().toLowerCase();
+  return firstName.isNotEmpty ? firstName : 'default';
+});
