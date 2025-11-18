@@ -278,7 +278,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Data will be displayed when data/domain is implemented.';
 
   @override
-  String get libraryEmpty => 'No content available yet.';
+  String get libraryEmpty =>
+      'Like movies, series or actors to see them appear here.';
 
   @override
   String get serie => 'Series';

@@ -14,6 +14,7 @@ import 'package:movi/src/features/iptv/application/services/xtream_sync_service.
 import 'package:movi/src/features/iptv/application/services/playlist_mapper.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 
 class IptvDataModule {
   static void register() {
@@ -60,6 +61,7 @@ class IptvDataModule {
           sl<RefreshXtreamCatalog>(),
           sl<XtreamCacheDataSource>(),
           sl<AppLogger>(),
+          interval: sl<IptvSyncPreferences>().syncInterval,
         ),
       );
     }

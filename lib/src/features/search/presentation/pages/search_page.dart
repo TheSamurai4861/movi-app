@@ -11,6 +11,7 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
@@ -58,66 +59,88 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
                 child: Text(
                   AppLocalizations.of(context)!.searchTitle,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                child: TextField(
-                  controller: _textCtrl,
-                  onChanged: (value) {
-                    // Toujours synchroniser la query du contrôleur
-                    ctrl.setQuery(value);
+                child: Builder(
+                  builder: (context) {
+                    final colorScheme = Theme.of(context).colorScheme;
+                    return TextField(
+                      controller: _textCtrl,
+                      onChanged: (value) {
+                        // Toujours synchroniser la query du contrôleur
+                        ctrl.setQuery(value);
 
-                    // Quand on repasse sous 3 caractères → on revient en mode historique
-                    if (value.trim().length < 3) {
-                      unawaited(
-                        ref
-                            .read(searchHistoryControllerProvider.notifier)
-                            .refresh(),
-                      );
-                    }
-                  },
-                  decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)!.searchHint,
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Image.asset(
-                        'assets/icons/search.png',
-                        width: 25,
-                        height: 25,
+                        // Quand on repasse sous 3 caractères → on revient en mode historique
+                        if (value.trim().length < 3) {
+                          unawaited(
+                            ref
+                                .read(searchHistoryControllerProvider.notifier)
+                                .refresh(),
+                          );
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(context)!.searchHint,
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 12, right: 8),
+                          child: Image.asset(
+                            'assets/icons/search.png',
+                            width: 25,
+                            height: 25,
+                          ),
+                        ),
+                        suffixIcon: _textCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: Image.asset(
+                                  'assets/icons/supprimer.png',
+                                  width: 25,
+                                  height: 25,
+                                ),
+                                onPressed: () {
+                                  _textCtrl.clear();
+                                  ctrl.setQuery('');
+                                  unawaited(
+                                    ref
+                                        .read(
+                                          searchHistoryControllerProvider
+                                              .notifier,
+                                        )
+                                        .refresh(),
+                                  );
+                                },
+                                tooltip: AppLocalizations.of(context)!.clear,
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          borderSide: BorderSide(
+                            color: colorScheme.outlineVariant,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          borderSide: BorderSide(
+                            color: colorScheme.outlineVariant,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          borderSide: BorderSide(
+                            color: colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 16,
+                        ),
                       ),
-                    ),
-                    suffixIcon: _textCtrl.text.isNotEmpty
-                        ? IconButton(
-                            icon: Image.asset(
-                              'assets/icons/supprimer.png',
-                              width: 25,
-                              height: 25,
-                            ),
-                            onPressed: () {
-                              _textCtrl.clear();
-                              ctrl.setQuery('');
-                              unawaited(
-                                ref
-                                    .read(
-                                      searchHistoryControllerProvider.notifier,
-                                    )
-                                    .refresh(),
-                              );
-                            },
-                            tooltip: AppLocalizations.of(context)!.clear,
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 32),
@@ -264,9 +287,57 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               .toList(growable: false),
                         ),
                       ],
+                      if (state.sagas.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final filteredSagasAsync = ref.watch(
+                              filteredSagasProvider(state.sagas),
+                            );
+                            return filteredSagasAsync.when(
+                              data: (filteredSagas) {
+                                if (filteredSagas.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return MoviItemsList(
+                                  title: 'Sagas',
+                                  subtitle: AppLocalizations.of(
+                                    context,
+                                  )!.resultsCount(filteredSagas.length),
+                                  estimatedItemWidth: 150,
+                                  estimatedItemHeight: 300,
+                                  titlePadding: 20,
+                                  horizontalPadding:
+                                      const EdgeInsetsDirectional.only(
+                                        start: 20,
+                                        end: 20,
+                                      ),
+                                  items: filteredSagas
+                                      .take(10)
+                                      .toList()
+                                      .asMap()
+                                      .entries
+                                      .map(
+                                        (entry) => _AnimatedSagaCard(
+                                          saga: entry.value,
+                                          delay: Duration(
+                                            milliseconds: entry.key * 100,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                );
+                              },
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, __) => const SizedBox.shrink(),
+                            );
+                          },
+                        ),
+                      ],
                       if (state.movies.isEmpty &&
                           state.shows.isEmpty &&
-                          state.people.isEmpty)
+                          state.people.isEmpty &&
+                          state.sagas.isEmpty)
                         Center(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -602,6 +673,185 @@ class _SearchHistoryList extends ConsumerWidget {
         ),
         hasItems: false,
       ),
+    );
+  }
+}
+
+class _AnimatedSagaCard extends StatefulWidget {
+  const _AnimatedSagaCard({required this.saga, required this.delay});
+
+  final SagaSummary saga;
+  final Duration delay;
+
+  @override
+  State<_AnimatedSagaCard> createState() => _AnimatedSagaCardState();
+}
+
+class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _translateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _translateAnimation = Tween<double>(
+      begin: 15.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, _translateAnimation.value),
+            child: _SagaCard(saga: widget.saga),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SagaCard extends StatelessWidget {
+  const _SagaCard({required this.saga});
+
+  final SagaSummary saga;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textStyle =
+        theme.textTheme.titleSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        );
+
+    return GestureDetector(
+      onTap: () => context.push(AppRouteNames.sagaDetail, extra: saga.id.value),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 150,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _buildPosterImage(saga.cover, 150, 225),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: 150,
+              child: Text(
+                saga.title.display,
+                style: textStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPosterImage(Uri? poster, double width, double height) {
+    if (poster == null) {
+      return Container(
+        width: width,
+        height: height,
+        color: const Color(0xFF222222),
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+        ),
+      );
+    }
+
+    final source = poster.toString().trim();
+    if (source.isEmpty) {
+      return Container(
+        width: width,
+        height: height,
+        color: const Color(0xFF222222),
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+        ),
+      );
+    }
+
+    final scheme = poster.scheme.toLowerCase();
+    if (scheme == 'http' || scheme == 'https') {
+      return Image.network(
+        poster.toString(),
+        width: width,
+        height: height,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: width,
+          height: height,
+          color: const Color(0xFF222222),
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+          ),
+        ),
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.low,
+        cacheWidth: (width * 2).toInt(),
+        cacheHeight: (height * 2).toInt(),
+      );
+    }
+
+    final assetPath = scheme == 'asset' ? poster.path : source;
+    return Image.asset(
+      assetPath,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: width,
+        height: height,
+        color: const Color(0xFF222222),
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+        ),
+      ),
+      cacheWidth: (width * 2).toInt(),
+      cacheHeight: (height * 2).toInt(),
     );
   }
 }

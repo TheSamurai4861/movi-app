@@ -6,13 +6,15 @@ import 'package:movi/src/core/theme/app_colors.dart';
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get dark => _buildTheme(Brightness.dark);
+  static ThemeData dark({Color? accentColor}) =>
+      _buildTheme(Brightness.dark, accentColor: accentColor);
 
-  static ThemeData get light => _buildTheme(Brightness.light);
+  static ThemeData light({Color? accentColor}) =>
+      _buildTheme(Brightness.light, accentColor: accentColor);
 
-  static ThemeData _buildTheme(Brightness brightness) {
+  static ThemeData _buildTheme(Brightness brightness, {Color? accentColor}) {
     final isDark = brightness == Brightness.dark;
-    final colorScheme = _buildColorScheme(isDark);
+    final colorScheme = _buildColorScheme(isDark, accentColor: accentColor);
     final textTheme = _buildTextTheme(isDark);
 
     final backgroundColor = isDark
@@ -148,10 +150,11 @@ class AppTheme {
     );
   }
 
-  static ColorScheme _buildColorScheme(bool isDark) {
+  static ColorScheme _buildColorScheme(bool isDark, {Color? accentColor}) {
+    final effectiveAccentColor = accentColor ?? AppColors.accent;
     final base = ColorScheme.fromSeed(
       brightness: isDark ? Brightness.dark : Brightness.light,
-      seedColor: AppColors.accent,
+      seedColor: effectiveAccentColor,
     );
 
     final surface = isDark
@@ -169,7 +172,7 @@ class AppTheme {
         : AppColors.lightTextSecondary;
 
     return base.copyWith(
-      primary: AppColors.accent,
+      primary: effectiveAccentColor,
       onPrimary: Colors.white,
       surface: surface,
       surfaceContainerHigh: surfaceHigh,
@@ -181,7 +184,7 @@ class AppTheme {
           ? const Color(0xFF2A2A2A)
           : const Color(0xFFE0E3E8),
       inversePrimary: const Color(0xFF9CC4FF),
-      surfaceTint: AppColors.accent,
+      surfaceTint: effectiveAccentColor,
     );
   }
 

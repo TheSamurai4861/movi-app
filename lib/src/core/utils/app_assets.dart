@@ -30,6 +30,10 @@ class AppAssets {
   static const String iconSubtitlesDesactive =
       'assets/icons/subtitles_desactive.png';
   static const String iconChromecast = 'assets/icons/chromecast.png';
+  static const String iconPlus = 'assets/icons/plus.png';
+  static const String iconMovie = 'assets/icons/movie.png';
+  static const String iconSerie = 'assets/icons/serie.png';
+  static const String iconPlaylist = 'assets/icons/playlist.png';
 
   // Placeholders
   static const String placeholderPosterMovie =

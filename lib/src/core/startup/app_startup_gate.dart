@@ -22,7 +22,7 @@ class AppStartupGate extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         home: Scaffold(
           backgroundColor: const Color.fromRGBO(20, 20, 20, 1),
-          body: const Center(child: CircularProgressIndicator()),
+          body: const SizedBox.shrink(),
         ),
       );
     }

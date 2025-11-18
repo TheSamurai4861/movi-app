@@ -632,7 +632,7 @@ abstract class AppLocalizations {
   /// No description provided for @libraryEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No content available yet.'**
+  /// **'Like movies, series or actors to see them appear here.'**
   String get libraryEmpty;
 
   /// No description provided for @serie.

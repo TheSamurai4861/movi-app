@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
 import 'package:movi/src/features/search/domain/usecases/search_instant.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/search/domain/usecases/add_search_query_to_history.dart';
 import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
+import 'package:movi/src/features/saga/domain/usecases/search_sagas.dart';
 
 class SearchState {
   const SearchState({
@@ -15,6 +18,7 @@ class SearchState {
     this.movies = const <MovieSummary>[],
     this.shows = const <TvShowSummary>[],
     this.people = const <PersonSummary>[],
+    this.sagas = const <SagaSummary>[],
     this.isLoading = false,
     this.error,
   });
@@ -23,6 +27,7 @@ class SearchState {
   final List<MovieSummary> movies;
   final List<TvShowSummary> shows;
   final List<PersonSummary> people;
+  final List<SagaSummary> sagas;
   final bool isLoading;
   final String? error;
 
@@ -31,6 +36,7 @@ class SearchState {
     List<MovieSummary>? movies,
     List<TvShowSummary>? shows,
     List<PersonSummary>? people,
+    List<SagaSummary>? sagas,
     bool? isLoading,
     String? error,
   }) {
@@ -39,6 +45,7 @@ class SearchState {
       movies: movies ?? this.movies,
       shows: shows ?? this.shows,
       people: people ?? this.people,
+      sagas: sagas ?? this.sagas,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -47,6 +54,7 @@ class SearchState {
 
 class SearchInstantController extends Notifier<SearchState> {
   late final SearchInstant _instant;
+  late final SearchSagas _searchSagas;
 
   Future<void> Function(String query)? _addToHistory;
   Timer? _debounce;
@@ -56,6 +64,8 @@ class SearchInstantController extends Notifier<SearchState> {
     final locator = ref.watch(slProvider);
     final searchRepo = locator<SearchRepository>();
     _instant = SearchInstant(searchRepo);
+    final sagaRepo = locator<SagaRepository>();
+    _searchSagas = SearchSagas(sagaRepo);
     final historyRepo = ref.watch(searchHistoryRepositoryProvider);
     final addToHistory = AddSearchQueryToHistory(historyRepo);
     _addToHistory = (q) async {
@@ -78,6 +88,7 @@ class SearchInstantController extends Notifier<SearchState> {
         movies: const [],
         shows: const [],
         people: const [],
+        sagas: const [],
         isLoading: false,
         error: null,
       );
@@ -95,6 +106,7 @@ class SearchInstantController extends Notifier<SearchState> {
         movies: const [],
         shows: const [],
         people: const [],
+        sagas: const [],
         isLoading: false,
         error: null,
       );
@@ -110,14 +122,17 @@ class SearchInstantController extends Notifier<SearchState> {
         _instant.movies(query),
         _instant.shows(query),
         _instant.people(query),
+        _searchSagas(query),
       ]);
       final movies = res[0] as List<MovieSummary>;
       final shows = res[1] as List<TvShowSummary>;
       final people = res[2] as List<PersonSummary>;
+      final sagas = res[3] as List<SagaSummary>;
       state = state.copyWith(
         movies: movies,
         shows: shows,
         people: people,
+        sagas: sagas,
         isLoading: false,
       );
     } catch (e) {

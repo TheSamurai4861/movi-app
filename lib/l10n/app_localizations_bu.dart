@@ -133,7 +133,7 @@ class AppLocalizationsBu extends AppLocalizations {
       'Les données s’afficheront quand la couche data/domain sera arrimée.';
 
   @override
-  String get libraryEmpty => 'Point de contenu pour l’instant.';
+  String get libraryEmpty => 'Likez des films, séries ou acteurs pour les voir apparaître ici.';
 
   @override
   String get libraryHeader => 'Ta réserve';

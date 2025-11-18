@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
@@ -166,6 +167,31 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
 
 DateTime? _parseDate(String? date) =>
     date == null || date.isEmpty ? null : DateTime.tryParse(date);
+
+/// Provider pour vérifier la disponibilité des films d'une saga dans la playlist (par sagaId)
+final sagaMoviesAvailabilityProvider = FutureProvider.family<Map<int, bool>, String>((ref, sagaId) async {
+  final sagaRepo = ref.watch(slProvider)<SagaRepository>();
+  final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
+  
+  try {
+    final saga = await sagaRepo.getSaga(SagaId(sagaId));
+    final availableIds = await iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.movie);
+    
+    final availabilityMap = <int, bool>{};
+    for (final entry in saga.timeline) {
+      if (entry.reference.type == ContentType.movie) {
+        final movieId = int.tryParse(entry.reference.id);
+        if (movieId != null) {
+          availabilityMap[movieId] = availableIds.contains(movieId);
+        }
+      }
+    }
+    
+    return availabilityMap;
+  } catch (_) {
+    return <int, bool>{};
+  }
+});
 
 /// Provider pour vérifier si un film de la saga est en cours de visionnage
 final sagaInProgressMovieProvider = FutureProvider.family<String?, String>((ref, sagaId) async {

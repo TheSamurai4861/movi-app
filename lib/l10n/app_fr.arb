@@ -104,8 +104,15 @@
   "recommendationsTitle": "Recommandations",
   "libraryHeader": "Votre vidéothèque",
   "libraryDataInfo": "Les données seront affichées lorsque la couche data/domain sera implémentée.",
-  "libraryEmpty": "Aucun contenu disponible pour le moment.",
+  "libraryEmpty": "Likez des films, séries ou acteurs pour les voir apparaître ici.",
   "serie": "Série",
   "recherche": "Recherche",
-  "notYetAvailable": "Pas encore disponible"
+  "notYetAvailable": "Pas encore disponible",
+  "createPlaylistTitle": "Créer une playlist",
+  "playlistName": "Nom de la playlist",
+  "addMedia": "Ajouter des médias",
+  "renamePlaylist": "Renommer",
+  "deletePlaylist": "Supprimer",
+  "playlistDeleted": "Playlist supprimée",
+  "addedToPlaylist": "Ajouté"
 }

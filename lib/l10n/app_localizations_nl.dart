@@ -192,70 +192,71 @@ class AppLocalizationsNl extends AppLocalizations {
   String get errorRefreshingMetadata => 'Fout bij vernieuwen van metadata';
 
   @override
-  String get actionMarkSeen => 'Mark as seen';
+  String get actionMarkSeen => 'Markeren als gezien';
 
   @override
-  String get actionMarkUnseen => 'Mark as unseen';
+  String get actionMarkUnseen => 'Markeren als niet gezien';
 
   @override
-  String get actionReportProblem => 'Report a problem';
+  String get actionReportProblem => 'Een probleem melden';
 
   @override
-  String get featureComingSoon => 'Feature coming soon';
+  String get featureComingSoon => 'Functie binnenkort beschikbaar';
 
   @override
-  String get actionLoadMore => 'Load more';
+  String get actionLoadMore => 'Meer laden';
 
   @override
-  String get iptvServerUrlLabel => 'Server URL';
+  String get iptvServerUrlLabel => 'Server-URL';
 
   @override
-  String get iptvServerUrlHint => 'Xtream server URL';
+  String get iptvServerUrlHint => 'Xtream server-URL';
 
   @override
-  String get iptvPasswordLabel => 'Password';
+  String get iptvPasswordLabel => 'Wachtwoord';
 
   @override
-  String get iptvPasswordHint => 'Xtream password';
+  String get iptvPasswordHint => 'Xtream wachtwoord';
 
   @override
-  String get actionConnect => 'Connect';
+  String get actionConnect => 'Verbinden';
 
   @override
-  String get settingsRefreshIptvPlaylistsTitle => 'Refresh IPTV playlists';
+  String get settingsRefreshIptvPlaylistsTitle =>
+      'IPTV-afspeellijsten vernieuwen';
 
   @override
-  String get statusActive => 'Active';
+  String get statusActive => 'Actief';
 
   @override
-  String get statusNoActiveSource => 'No active source';
+  String get statusNoActiveSource => 'Geen actieve bron';
 
   @override
-  String get overlayPreparingHome => 'Preparing home…';
+  String get overlayPreparingHome => 'Startpagina voorbereiden…';
 
   @override
-  String get errorPrepareHome => 'Unable to prepare the home page';
+  String get errorPrepareHome => 'Kan de startpagina niet voorbereiden';
 
   @override
-  String get overlayOpeningHome => 'Opening home…';
+  String get overlayOpeningHome => 'Startpagina openen…';
 
   @override
-  String get overlayRefreshingIptvLists => 'Refreshing IPTV lists…';
+  String get overlayRefreshingIptvLists => 'IPTV-lijsten vernieuwen…';
 
   @override
-  String get overlayPreparingMetadata => 'Preparing metadata…';
+  String get overlayPreparingMetadata => 'Metadata voorbereiden…';
 
   @override
-  String get errorHomeLoadTimeout => 'Home load timeout';
+  String get errorHomeLoadTimeout => 'Time-out bij laden startpagina';
 
   @override
-  String get faqLabel => 'FAQ';
+  String get faqLabel => 'Veelgestelde vragen';
 
   @override
-  String get iptvUsernameLabel => 'Username';
+  String get iptvUsernameLabel => 'Gebruikersnaam';
 
   @override
-  String get iptvUsernameHint => 'Xtream username';
+  String get iptvUsernameHint => 'Xtream gebruikersnaam';
 
   @override
   String get actionBack => 'Terug';
@@ -283,7 +284,8 @@ class AppLocalizationsNl extends AppLocalizations {
       'Gegevens worden getoond zodra data/domain is geïmplementeerd.';
 
   @override
-  String get libraryEmpty => 'Geen inhoud beschikbaar op dit moment.';
+  String get libraryEmpty =>
+      'Like films, series of acteurs om ze hier te zien verschijnen.';
 
   @override
   String get serie => 'Serie';

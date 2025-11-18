@@ -18,7 +18,6 @@ import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart'
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-import 'package:movi/src/core/storage/repositories/watchlist_local_repository.dart';
 
 /// Provider pour MovieRepository avec userId actuel
 final movieRepositoryProvider = Provider<MovieRepository>((ref) {

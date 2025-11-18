@@ -283,7 +283,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les données seront affichées lorsque la couche data/domain sera implémentée.';
 
   @override
-  String get libraryEmpty => 'Aucun contenu disponible pour le moment.';
+  String get libraryEmpty =>
+      'Likez des films, séries ou acteurs pour les voir apparaître ici.';
 
   @override
   String get serie => 'Série';
@@ -573,7 +574,8 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
       'Les données s\'afficheront quand la couche data/domain sera arrimée.';
 
   @override
-  String get libraryEmpty => 'Point de contenu pour l\'instant.';
+  String get libraryEmpty =>
+      'Likez des films, séries ou acteurs pour les voir apparaître ici.';
 
   @override
   String get serie => 'Feuilleton';

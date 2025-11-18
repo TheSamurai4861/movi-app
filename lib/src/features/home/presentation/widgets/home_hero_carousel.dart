@@ -31,14 +31,19 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
-/// Carrousel du Hero d’accueil.
+/// Carrousel du Hero d'accueil.
 /// - Affiche une liste de films/séries en rotation automatique.
-/// - Lit d’abord le cache, puis hydrate si nécessaire (cache → full fetch).
-/// - Sélection d’images centralisée pour éliminer les posters avec texte.
+/// - Lit d'abord le cache, puis hydrate si nécessaire (cache → full fetch).
+/// - Sélection d'images centralisée pour éliminer les posters avec texte.
 class HomeHeroCarousel extends ConsumerStatefulWidget {
-  const HomeHeroCarousel({super.key, required this.movies});
+  const HomeHeroCarousel({
+    super.key,
+    required this.movies,
+    this.onLoadingChanged,
+  });
 
   final List<MovieSummary> movies;
+  final ValueChanged<bool>? onLoadingChanged;
 
   @override
   ConsumerState<HomeHeroCarousel> createState() => _HomeHeroCarouselState();
@@ -60,7 +65,7 @@ final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
 class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     with WidgetsBindingObserver {
   // Mise en page
-  static const double _totalHeight = 590;
+  static const double _totalHeight = 500;
   static const double _overlayHeight = 150;
 
   // Timings
@@ -485,6 +490,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
               : FutureBuilder<_HeroMeta?>(
                   future: _metaFutures[movie.tmdbId!],
                   builder: (context, snap) {
+                    final bool isLoadingMeta =
+                        snap.connectionState == ConnectionState.waiting &&
+                        snap.data == null;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      widget.onLoadingChanged?.call(isLoadingMeta);
+                    });
                     final _HeroMeta? meta = snap.data;
 
                     // Ordre de préférence du fond :

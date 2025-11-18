@@ -158,14 +158,12 @@ class TvDetailProgressiveController
 
         // Si pas de tmdbId, essayer de le trouver via recherche TMDB
         int? foundTmdbId = xtreamItem.tmdbId;
-        if (foundTmdbId == null) {
-          foundTmdbId = await _searchTmdbIdForXtreamItem(
+        foundTmdbId ??= await _searchTmdbIdForXtreamItem(
             xtreamItem,
             lang,
             locator,
             logger,
           );
-        }
 
         // Si on a trouvé un tmdbId, charger depuis TMDB
         if (foundTmdbId != null) {

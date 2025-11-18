@@ -5,6 +5,7 @@ import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 
 final appStartupProvider = FutureProvider<void>((ref) async {
@@ -33,5 +34,15 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   LoggingModule.register();
   debugPrint('après LoggingModule.register OK');
   final syncService = sl<XtreamSyncService>();
+  final iptvSyncPrefs = sl<IptvSyncPreferences>();
+  
+  // S'assurer que l'intervalle est appliqué depuis les préférences
+  syncService.setInterval(iptvSyncPrefs.syncInterval);
+  
+  // Écouter le stream pour mettre à jour dynamiquement si les préférences changent
+  iptvSyncPrefs.syncIntervalStream.listen((interval) {
+    syncService.setInterval(interval);
+  });
+  
   syncService.start();
 });

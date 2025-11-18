@@ -31,23 +31,27 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
-/// Hero principal de la page d’accueil.
-/// - Affiche d’abord les données disponibles (cache / résumé).
+/// Hero principal de la page d'accueil.
+/// - Affiche d'abord les données disponibles (cache / résumé).
 /// - Hydrate asynchronement le cache si des métadonnées clés manquent.
-/// - Sélection d’image centralisée : poster TMDB **sans langue** en priorité,
+/// - Sélection d'image centralisée : poster TMDB **sans langue** en priorité,
 ///   sinon EN, sinon meilleur score ; fallback sur poster de la playlist.
 class HomeHeroSection extends ConsumerStatefulWidget {
   const HomeHeroSection({
     super.key,
     required this.movie,
     this.onBackgroundReady,
+    this.onLoadingChanged,
   });
 
   /// Résumé minimal pour initialiser le hero.
   final MovieSummary? movie;
 
-  /// Notifié quand l’image de fond rend sa première frame.
+  /// Notifié quand l'image de fond rend sa première frame.
   final VoidCallback? onBackgroundReady;
+
+  /// Notifié quand l'état de chargement des métadonnées change.
+  final ValueChanged<bool>? onLoadingChanged;
 
   @override
   ConsumerState<HomeHeroSection> createState() => _HomeHeroSectionState();
@@ -68,7 +72,7 @@ final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
 
 class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
   // Mise en page
-  static const double _totalHeight = 890;
+  static const double _totalHeight = 500;
   static const double _overlayHeight = 125;
 
   // Sécurité décodage image (px @device)
@@ -375,6 +379,10 @@ class _HomeHeroSectionState extends ConsumerState<HomeHeroSection> {
           : FutureBuilder<_HeroMeta?>(
               future: _metaFuture,
               builder: (context, snap) {
+                final bool isLoadingMeta = snap.connectionState == ConnectionState.waiting && snap.data == null && _lastMeta == null;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  widget.onLoadingChanged?.call(isLoadingMeta);
+                });
                 final _HeroMeta? meta = snap.data ?? _lastMeta;
                 if (snap.connectionState == ConnectionState.done &&
                     snap.data != null) {

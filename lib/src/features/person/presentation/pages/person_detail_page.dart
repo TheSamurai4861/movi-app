@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
-import 'package:movi/src/core/widgets/swipe_back_wrapper.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/person/presentation/providers/person_detail_providers.dart';
@@ -69,6 +67,24 @@ class _PersonDetailContent extends StatefulWidget {
 
 class _PersonDetailContentState extends State<_PersonDetailContent> {
   final Map<String, bool> _biographyExpanded = {};
+  bool _isTransitioningFromLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _isTransitioningFromLoading = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted) {
+            setState(() {
+              _isTransitioningFromLoading = false;
+            });
+          }
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,10 +97,13 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
         body: SafeArea(
           top: true,
           bottom: true,
-          child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
+          child: AnimatedOpacity(
+            opacity: _isTransitioningFromLoading ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -351,7 +370,8 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
       ),
@@ -389,18 +409,17 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
     final isExpanded = _biographyExpanded[personId] ?? false;
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = AppSpacing.page.left + AppSpacing.page.right;
+    // Le parent Column a déjà un padding de 20px de chaque côté
+    final horizontalPadding = 20.0 + 20.0;
     final maxWidth = screenWidth - horizontalPadding;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool needsExpansion = _needsExpansion(biography, maxWidth);
 
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.page.left),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               Text(
                 'Biographie',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -472,7 +491,6 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                   ),
                 ),
             ],
-          ),
         );
       },
     );

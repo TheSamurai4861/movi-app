@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:movi/src/core/theme/app_colors.dart';
-import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
 
 enum LibraryFilterType {
   playlists,

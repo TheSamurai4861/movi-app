@@ -183,23 +183,28 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
       vsync: this,
     );
 
+    // Initialiser à la valeur finale si déjà sélectionné (pas d'animation au premier build)
+    _controller.value = widget.isSelected ? 1.0 : 0.0;
+
     _translateAnimation = Tween<double>(
       begin: 0.0,
       end: -4.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    if (widget.isSelected) {
-      _controller.forward();
-    }
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _controller.addStatusListener((status) {
+      // Quand l'animation reverse() se termine (revient à 0.0), changer l'icône de bleu à gris
+      // Après un petit délai pour que l'icône soit bien visible au centre avant de changer
       if (status == AnimationStatus.dismissed && !widget.isSelected) {
         if (mounted) {
-          final newIcon = widget.item.inactiveIcon.isNotEmpty
-              ? widget.item.inactiveIcon
-              : widget.item.activeIcon;
-          setState(() {
-            _currentIcon = newIcon;
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted && !widget.isSelected && _controller.value == 0.0) {
+              final newIcon = widget.item.inactiveIcon.isNotEmpty
+                  ? widget.item.inactiveIcon
+                  : widget.item.activeIcon;
+              setState(() {
+                _currentIcon = newIcon;
+              });
+            }
           });
         }
       }
@@ -266,23 +271,35 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                 builder: (context, child) {
                   return Transform.translate(
                     offset: Offset(0, _translateAnimation.value),
-                    child: _currentIcon.isNotEmpty
-                        ? Image.asset(
-                            _currentIcon,
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.medium,
-                          )
-                        : Image.asset(
-                            widget.isSelected
-                                ? widget.item.activeIcon
-                                : widget.item.inactiveIcon,
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.contain,
-                            filterQuality: FilterQuality.medium,
-                          ),
+                    child: AnimatedSwitcher(
+                      duration: _kAnimationDuration,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                      child: _currentIcon.isNotEmpty
+                          ? Image.asset(
+                              _currentIcon,
+                              key: ValueKey(_currentIcon),
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
+                            )
+                          : Image.asset(
+                              widget.isSelected
+                                  ? widget.item.activeIcon
+                                  : widget.item.inactiveIcon,
+                              key: ValueKey(
+                                widget.isSelected
+                                    ? widget.item.activeIcon
+                                    : widget.item.inactiveIcon,
+                              ),
+                              width: 24,
+                              height: 24,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
+                            ),
+                    ),
                   );
                 },
               ),

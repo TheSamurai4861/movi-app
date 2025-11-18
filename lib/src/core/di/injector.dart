@@ -7,6 +7,9 @@ import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/network/config/network_module.dart';
 import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
+import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
+import 'package:movi/src/core/preferences/player_preferences.dart';
+import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/state/state.dart';
 import 'package:movi/src/core/storage/services/storage_module.dart';
 import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
@@ -44,6 +47,9 @@ Future<void> initDependencies({
   await _ensureConfig(appConfig);
   _ensureSecretStore(secretStore);
   await _ensureLocalePreferences();
+  await _ensureIptvSyncPreferences();
+  await _ensurePlayerPreferences();
+  await _ensureAccentColorPreferences();
   _registerLoggingIfReady();
   await StorageModule.register();
   await _registerNetwork(localeProvider: localeProvider);
@@ -76,6 +82,24 @@ Future<void> _ensureLocalePreferences() async {
   final code = '${locale.languageCode}-${locale.countryCode ?? 'US'}';
   final prefs = await LocalePreferences.create(defaultLanguageCode: code);
   sl.registerSingleton<LocalePreferences>(prefs);
+}
+
+Future<void> _ensureIptvSyncPreferences() async {
+  if (sl.isRegistered<IptvSyncPreferences>()) return;
+  final prefs = await IptvSyncPreferences.create();
+  sl.registerSingleton<IptvSyncPreferences>(prefs);
+}
+
+Future<void> _ensurePlayerPreferences() async {
+  if (sl.isRegistered<PlayerPreferences>()) return;
+  final prefs = await PlayerPreferences.create();
+  sl.registerSingleton<PlayerPreferences>(prefs);
+}
+
+Future<void> _ensureAccentColorPreferences() async {
+  if (sl.isRegistered<AccentColorPreferences>()) return;
+  final prefs = await AccentColorPreferences.create();
+  sl.registerSingleton<AccentColorPreferences>(prefs);
 }
 
 void _registerLoggingIfReady() {

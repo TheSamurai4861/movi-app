@@ -9,6 +9,9 @@ import 'package:movi/src/features/library/presentation/widgets/library_playlist_
 import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
 
 /// Exposes the LibraryRepository to the presentation layer.
 /// Le repository est créé avec l'ID utilisateur actuel pour filtrer les favoris.
@@ -117,13 +120,24 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
 
   // Playlists utilisateur
   final userId = ref.read(currentUserIdProvider);
+  final playlistRepository = ref.watch(playlistRepositoryProvider);
   final userPlaylists = await repository.getUserPlaylists(userId);
   for (final playlist in userPlaylists) {
+    // Charger le nombre réel d'éléments depuis la playlist complète
+    int itemCount = 0;
+    try {
+      final playlistDetail = await playlistRepository.getPlaylist(playlist.id);
+      itemCount = playlistDetail.items.length;
+    } catch (_) {
+      // Si erreur, utiliser itemCount du summary ou 0
+      itemCount = playlist.itemCount ?? 0;
+    }
+    
     playlists.add(
       LibraryPlaylistItem(
         id: 'playlist_${playlist.id.value}',
         title: playlist.title.value,
-        itemCount: playlist.itemCount ?? 0,
+        itemCount: itemCount,
         type: LibraryPlaylistType.userPlaylist,
         playlistId: playlist.id.value,
       ),
@@ -153,6 +167,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
         title: saga.title.value,
         itemCount: 0, // TODO: Compter les éléments de la saga
         type: LibraryPlaylistType.userPlaylist, // Utiliser un type approprié
+        photo: saga.cover, // Image hero de la saga
       ),
     );
   }
@@ -161,11 +176,13 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   playlists.sort((a, b) {
     // "En cours" toujours en premier
     if (a.type == LibraryPlaylistType.inProgress &&
-        b.type != LibraryPlaylistType.inProgress)
+        b.type != LibraryPlaylistType.inProgress) {
       return -1;
+    }
     if (a.type != LibraryPlaylistType.inProgress &&
-        b.type == LibraryPlaylistType.inProgress)
+        b.type == LibraryPlaylistType.inProgress) {
       return 1;
+    }
     // Ensuite les autres favoris
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
@@ -175,34 +192,62 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   return playlists;
 });
 
-/// Provider pour filtrer les playlists selon le type de filtre actif
+/// Contrôleur pour la recherche dans la bibliothèque
+class LibrarySearchQueryController extends Notifier<String> {
+  @override
+  String build() => '';
+
+  void setQuery(String query) {
+    state = query;
+  }
+}
+
+/// Provider pour la recherche dans la bibliothèque
+final librarySearchQueryProvider =
+    NotifierProvider<LibrarySearchQueryController, String>(
+      LibrarySearchQueryController.new,
+    );
+
+/// Provider pour filtrer les playlists selon le type de filtre actif et la recherche
 final filteredLibraryPlaylistsProvider =
     Provider<AsyncValue<List<LibraryPlaylistItem>>>((ref) {
       final filter = ref.watch(libraryFilterProvider);
+      final searchQuery = ref.watch(librarySearchQueryProvider);
       final playlistsAsync = ref.watch(libraryPlaylistsProvider);
 
       return playlistsAsync.when(
         data: (playlists) {
-          if (filter == null) return AsyncValue.data(playlists);
+          var filtered = playlists;
 
-          final filtered = playlists.where((playlist) {
-            switch (filter) {
-              case LibraryFilterType.playlists:
-                // Exclure les sagas et les acteurs
-                return !playlist.id.startsWith('saga_') &&
-                    playlist.type != LibraryPlaylistType.actor &&
-                    (playlist.type == LibraryPlaylistType.inProgress ||
-                        playlist.type == LibraryPlaylistType.favoriteMovies ||
-                        playlist.type == LibraryPlaylistType.favoriteSeries ||
-                        playlist.type == LibraryPlaylistType.watchHistory ||
-                        playlist.type == LibraryPlaylistType.userPlaylist);
-              case LibraryFilterType.sagas:
-                // Filtrer les sagas (id commence par 'saga_')
-                return playlist.id.startsWith('saga_');
-              case LibraryFilterType.artistes:
-                return playlist.type == LibraryPlaylistType.actor;
-            }
-          }).toList();
+          // Appliquer le filtre de type
+          if (filter != null) {
+            filtered = filtered.where((playlist) {
+              switch (filter) {
+                case LibraryFilterType.playlists:
+                  // Exclure les sagas et les acteurs
+                  return !playlist.id.startsWith('saga_') &&
+                      playlist.type != LibraryPlaylistType.actor &&
+                      (playlist.type == LibraryPlaylistType.inProgress ||
+                          playlist.type == LibraryPlaylistType.favoriteMovies ||
+                          playlist.type == LibraryPlaylistType.favoriteSeries ||
+                          playlist.type == LibraryPlaylistType.watchHistory ||
+                          playlist.type == LibraryPlaylistType.userPlaylist);
+                case LibraryFilterType.sagas:
+                  // Filtrer les sagas (id commence par 'saga_')
+                  return playlist.id.startsWith('saga_');
+                case LibraryFilterType.artistes:
+                  return playlist.type == LibraryPlaylistType.actor;
+              }
+            }).toList();
+          }
+
+          // Appliquer la recherche
+          if (searchQuery.isNotEmpty) {
+            final query = searchQuery.toLowerCase().trim();
+            filtered = filtered.where((playlist) {
+              return playlist.title.toLowerCase().contains(query);
+            }).toList();
+          }
 
           return AsyncValue.data(filtered);
         },
@@ -226,3 +271,88 @@ final libraryFilterProvider =
     NotifierProvider<LibraryFilterController, LibraryFilterType?>(
       LibraryFilterController.new,
     );
+
+/// Provider pour charger les items d'une playlist spécifique (avec positions)
+final playlistItemsProvider = FutureProvider.family<List<PlaylistItem>, String>((ref, playlistId) async {
+  final playlistRepository = ref.watch(playlistRepositoryProvider);
+  
+  try {
+    final playlistDetail = await playlistRepository.getPlaylist(PlaylistId(playlistId));
+    return playlistDetail.items;
+  } catch (e) {
+    return [];
+  }
+});
+
+/// Provider pour charger les ContentReference d'une playlist (pour compatibilité)
+/// Enrichit les ContentReference avec les années depuis TMDB si manquantes
+final playlistContentReferencesProvider = FutureProvider.family<List<ContentReference>, String>((ref, playlistId) async {
+  final itemsAsync = ref.watch(playlistItemsProvider(playlistId));
+  
+  return itemsAsync.when(
+    loading: () => <ContentReference>[],
+    error: (_, __) => <ContentReference>[],
+    data: (items) async {
+      final references = items.map((item) => item.reference).toList();
+      
+      // Enrichir avec les années depuis TMDB pour les items sans année
+      final sl = ref.read(slProvider);
+      final tmdbClient = sl<TmdbClient>();
+      
+      final enrichedReferences = await Future.wait(
+        references.map((reference) async {
+          // Si l'année est déjà présente, ne pas faire d'appel API
+          if (reference.year != null) return reference;
+          
+          // Extraire l'ID TMDB
+          final tmdbId = int.tryParse(reference.id);
+          if (tmdbId == null) return reference;
+          
+          try {
+            int? year;
+            
+            // Essayer d'abord comme film, puis comme série
+            if (reference.type == ContentType.movie) {
+              try {
+                final json = await tmdbClient.getJson('movie/$tmdbId');
+                final releaseDate = json['release_date']?.toString();
+                if (releaseDate != null && releaseDate.isNotEmpty) {
+                  final dateParts = releaseDate.split('-');
+                  if (dateParts.isNotEmpty) {
+                    year = int.tryParse(dateParts[0]);
+                  }
+                }
+              } catch (_) {
+                // Ignorer les erreurs
+              }
+            } else if (reference.type == ContentType.series) {
+              try {
+                final json = await tmdbClient.getJson('tv/$tmdbId');
+                final firstAirDate = json['first_air_date']?.toString();
+                if (firstAirDate != null && firstAirDate.isNotEmpty) {
+                  final dateParts = firstAirDate.split('-');
+                  if (dateParts.isNotEmpty) {
+                    year = int.tryParse(dateParts[0]);
+                  }
+                }
+              } catch (_) {
+                // Ignorer les erreurs
+              }
+            }
+            
+            // Si on a récupéré une année, mettre à jour la référence
+            if (year != null) {
+              return reference.copyWith(year: Optional.of(year));
+            }
+          } catch (_) {
+            // En cas d'erreur, retourner la référence originale
+          }
+          
+          return reference;
+        }),
+      );
+      
+      return enrichedReferences;
+    },
+  );
+});

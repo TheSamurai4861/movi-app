@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
+import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
+import 'package:movi/src/core/preferences/player_preferences.dart';
+import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 
 final appStateControllerProvider = Provider<AppStateController>(
@@ -48,4 +51,68 @@ final currentThemeModeProvider = Provider<ThemeMode>((ref) {
       .watch(themeModeStreamProvider)
       .maybeWhen(data: (value) => value, orElse: () => ctrl.themeMode);
   return mode;
+});
+
+final iptvSyncPreferencesProvider = Provider<IptvSyncPreferences>((ref) {
+  return sl<IptvSyncPreferences>();
+});
+
+final iptvSyncIntervalStreamProvider = StreamProvider<Duration>((ref) {
+  final prefs = ref.watch(iptvSyncPreferencesProvider);
+  return prefs.syncIntervalStream;
+});
+
+final currentIptvSyncIntervalProvider = Provider<Duration>((ref) {
+  final prefs = ref.watch(iptvSyncPreferencesProvider);
+  final interval = ref
+      .watch(iptvSyncIntervalStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => prefs.syncInterval);
+  return interval;
+});
+
+final playerPreferencesProvider = Provider<PlayerPreferences>((ref) {
+  return sl<PlayerPreferences>();
+});
+
+final preferredAudioLanguageStreamProvider = StreamProvider<String?>((ref) {
+  final prefs = ref.watch(playerPreferencesProvider);
+  return prefs.preferredAudioLanguageStream;
+});
+
+final currentPreferredAudioLanguageProvider = Provider<String?>((ref) {
+  final prefs = ref.watch(playerPreferencesProvider);
+  final language = ref
+      .watch(preferredAudioLanguageStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => prefs.preferredAudioLanguage);
+  return language;
+});
+
+final preferredSubtitleLanguageStreamProvider = StreamProvider<String?>((ref) {
+  final prefs = ref.watch(playerPreferencesProvider);
+  return prefs.preferredSubtitleLanguageStream;
+});
+
+final currentPreferredSubtitleLanguageProvider = Provider<String?>((ref) {
+  final prefs = ref.watch(playerPreferencesProvider);
+  final language = ref
+      .watch(preferredSubtitleLanguageStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => prefs.preferredSubtitleLanguage);
+  return language;
+});
+
+final accentColorPreferencesProvider = Provider<AccentColorPreferences>((ref) {
+  return sl<AccentColorPreferences>();
+});
+
+final accentColorStreamProvider = StreamProvider<Color>((ref) {
+  final prefs = ref.watch(accentColorPreferencesProvider);
+  return prefs.accentColorStream;
+});
+
+final currentAccentColorProvider = Provider<Color>((ref) {
+  final prefs = ref.watch(accentColorPreferencesProvider);
+  final color = ref
+      .watch(accentColorStreamProvider)
+      .maybeWhen(data: (value) => value, orElse: () => prefs.accentColor);
+  return color;
 });

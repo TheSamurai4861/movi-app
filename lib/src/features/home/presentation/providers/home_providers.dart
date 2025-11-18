@@ -214,7 +214,7 @@ final homeInProgressProvider = FutureProvider<List<InProgressMedia>>((ref) async
             final movieRepo = ref.read(movieRepositoryProvider);
             final movie = await movieRepo.getMovie(MovieId(entry.contentId));
             backdrop = await _getBackdropWithNullLanguage(tmdbId, isMovie: true);
-            if (backdrop == null) backdrop = movie.backdrop;
+            backdrop ??= movie.backdrop;
             year = movie.releaseDate.year;
             duration = movie.duration;
             rating = movie.voteAverage;
@@ -223,7 +223,7 @@ final homeInProgressProvider = FutureProvider<List<InProgressMedia>>((ref) async
             final tvRepo = ref.read(tvRepositoryProvider);
             final tvShow = await tvRepo.getShowLite(SeriesId(entry.contentId));
             backdrop = await _getBackdropWithNullLanguage(tmdbId, isMovie: false);
-            if (backdrop == null) backdrop = tvShow.backdrop;
+            backdrop ??= tvShow.backdrop;
             year = tvShow.firstAirDate?.year;
             rating = tvShow.voteAverage;
             seriesTitle = tvShow.title.display;
@@ -257,9 +257,7 @@ final homeInProgressProvider = FutureProvider<List<InProgressMedia>>((ref) async
       }
       
       // Si backdrop n'est pas disponible, utiliser poster comme fallback
-      if (backdrop == null) {
-        backdrop = entry.poster;
-      }
+      backdrop ??= entry.poster;
       
       inProgress.add(
         InProgressMedia(

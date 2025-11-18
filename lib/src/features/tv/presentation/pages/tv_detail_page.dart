@@ -25,6 +25,10 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
+import 'package:movi/src/features/playlist/playlist.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 class TvDetailPage extends ConsumerStatefulWidget {
   const TvDetailPage({super.key, this.media});
@@ -40,6 +44,7 @@ enum EpisodeSortOrder { ascending, descending }
 class _TvDetailPageState extends ConsumerState<TvDetailPage>
     with TickerProviderStateMixin {
   bool _overviewExpanded = false;
+  bool _isTransitioningFromLoading = true;
   late TabController _tabController;
   EpisodeSortOrder _episodeSortOrder = EpisodeSortOrder.ascending;
   String mediaTitle = '—';
@@ -53,6 +58,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   @override
   void initState() {
     super.initState();
+    _isTransitioningFromLoading = true;
     _primeFromArgs();
     _tabController = TabController(length: 1, vsync: this);
   }
@@ -94,6 +100,20 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       ),
       error: (e, st) => _buildErrorScaffold(e),
       data: (vm) {
+        // Démarrer la transition d'opacité après un court délai
+        if (_isTransitioningFromLoading) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              Future.delayed(const Duration(milliseconds: 50), () {
+                if (mounted) {
+                  setState(() {
+                    _isTransitioningFromLoading = false;
+                  });
+                }
+              });
+            }
+          });
+        }
         // Update tab controller synchronously when seasons are loaded
         final seasonsLength = vm.seasons.isEmpty ? 1 : vm.seasons.length;
         if (_tabController.length != seasonsLength) {
@@ -108,7 +128,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           overviewText: vm.overviewText,
           cast: vm.cast,
           seasons: vm.seasons,
-          isLoading: false,
+          isLoading: _isTransitioningFromLoading,
           poster: vm.poster,
           backdrop: vm.backdrop,
         );
@@ -147,8 +167,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         body: SafeArea(
           top: true,
           bottom: true,
-          child: Opacity(
-            opacity: isLoading ? 0.99 : 1.0,
+          child: AnimatedOpacity(
+            opacity: isLoading ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 300),
             child: Column(
               children: [
                 Expanded(
@@ -1098,53 +1119,401 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
-  void _showMoreMenu() {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) {
-        return CupertinoActionSheet(
-          title: Text(mediaTitle),
-          actions: <Widget>[
-            CupertinoActionSheetAction(
-              onPressed: () {
+  Future<void> _showAddToListDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String seriesId,
+  ) async {
+    try {
+      final playlistsAsync = ref.read(libraryPlaylistsProvider);
+      final playlists = await playlistsAsync.value;
+      
+      if (playlists == null || playlists.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucune playlist disponible')),
+          );
+        }
+        return;
+      }
+      
+      // Récupérer les données de la série depuis le provider
+      final vmAsync = ref.read(tvDetailProgressiveControllerProvider(seriesId));
+      final vm = await vmAsync.value;
+      
+      // Utiliser les données du widget si le view model n'est pas disponible
+      final title = vm?.title ?? mediaTitle;
+      final yearTextValue = vm?.yearText ?? yearText;
+      final poster = widget.media?.poster ?? vm?.poster;
+      
+      // Filtrer les playlists selon le type de contenu
+      final playlistRepository = ref.read(slProvider)<PlaylistRepository>();
+      final availablePlaylists = <LibraryPlaylistItem>[];
+      
+      for (final playlist in playlists) {
+        // Exclure les sagas et acteurs
+        if (playlist.id.startsWith('saga_') || 
+            playlist.type == LibraryPlaylistType.actor) {
+          continue;
+        }
+        
+        // Playlists favorites : séries uniquement pour les séries
+        if (playlist.type == LibraryPlaylistType.favoriteSeries) {
+          availablePlaylists.add(playlist);
+          continue;
+        }
+        
+        // Playlists favorites films : exclure pour les séries
+        if (playlist.type == LibraryPlaylistType.favoriteMovies) {
+          continue;
+        }
+        
+        // Playlists utilisateur : vérifier le contenu
+        if (playlist.type == LibraryPlaylistType.userPlaylist &&
+            playlist.playlistId != null) {
+          try {
+            final playlistDetail = await playlistRepository.getPlaylist(
+              PlaylistId(playlist.playlistId!),
+            );
+            
+            // Si la playlist est vide, on peut ajouter
+            if (playlistDetail.items.isEmpty) {
+              availablePlaylists.add(playlist);
+              continue;
+            }
+            
+            // Vérifier si la playlist contient uniquement des séries
+            final hasOnlySeries = playlistDetail.items.every(
+              (item) => item.reference.type == ContentType.series,
+            );
+            
+            // Si la playlist contient uniquement des séries, on peut ajouter la série
+            if (hasOnlySeries) {
+              availablePlaylists.add(playlist);
+            }
+            // Si la playlist contient des films, on ne peut pas ajouter une série
+          } catch (_) {
+            // En cas d'erreur, on inclut la playlist pour ne pas bloquer l'utilisateur
+            availablePlaylists.add(playlist);
+          }
+        }
+      }
+      
+      if (availablePlaylists.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucune playlist disponible pour les séries')),
+          );
+        }
+        return;
+      }
+      
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          title: Text(AppLocalizations.of(context)!.actionAddToList),
+          actions: availablePlaylists.map((playlist) {
+            return CupertinoActionSheetAction(
+              onPressed: () async {
                 Navigator.of(ctx).pop();
-                _onRefreshMetadata();
+                
+                try {
+                  if (playlist.type == LibraryPlaylistType.favoriteSeries) {
+                    // Toggle favori
+                    await ref.read(tvToggleFavoriteProvider.notifier).toggle(seriesId);
+                    ref.invalidate(tvIsFavoriteProvider(seriesId));
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Ajouté à "${playlist.title}"'),
+                        ),
+                      );
+                    }
+                  } else if (playlist.type == LibraryPlaylistType.userPlaylist &&
+                      playlist.playlistId != null) {
+                    // Ajouter à la playlist utilisateur
+                    final addPlaylistItem = AddPlaylistItem(
+                      ref.read(slProvider)<PlaylistRepository>(),
+                    );
+                    
+                    // Utiliser les données disponibles
+                    final year = yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
+                    
+                    await addPlaylistItem.call(
+                      playlistId: PlaylistId(playlist.playlistId!),
+                      item: PlaylistItem(
+                        reference: ContentReference(
+                          id: seriesId,
+                          title: MediaTitle(title),
+                          type: ContentType.series,
+                          poster: poster,
+                          year: year,
+                        ),
+                        addedAt: DateTime.now(),
+                      ),
+                    );
+                    
+                    // Invalider tous les providers nécessaires
+                    ref.invalidate(playlistItemsProvider(playlist.playlistId!));
+                    ref.invalidate(playlistContentReferencesProvider(playlist.playlistId!));
+                    ref.invalidate(libraryPlaylistsProvider);
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Ajouté à "${playlist.title}"'),
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur: $e'),
+                      ),
+                    );
+                  }
+                }
               },
-              child: Text(AppLocalizations.of(context)!.actionRefreshMetadata),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionAddToList),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionMarkSeen),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionMarkUnseen),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionReportProblem),
-            ),
-          ],
+              child: Text(playlist.title),
+            );
+          }).toList(),
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(AppLocalizations.of(context)!.actionCancel),
           ),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du chargement des playlists: $e'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showMoreMenu() {
+    if (widget.media == null) return;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final seriesId = widget.media!.id;
+            final isAvailableAsync = ref.watch(
+              _seriesAvailabilityProvider(seriesId),
+            );
+            final isSeenAsync = ref.watch(_seriesSeenProvider(seriesId));
+
+            final isAvailable = isAvailableAsync.value ?? false;
+            final isSeen = isSeenAsync.value ?? false;
+
+            final actions = <Widget>[
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _onRefreshMetadata();
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.actionRefreshMetadata,
+                ),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showAddToListDialog(context, ref, seriesId);
+                },
+                child: Text(AppLocalizations.of(context)!.actionAddToList),
+              ),
+            ];
+
+            // Ajouter l'option vu/non vu seulement si la série est disponible
+            if (isAvailable) {
+              if (isSeen) {
+                actions.add(
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _markAsUnseen(seriesId);
+                    },
+                    child: Text(AppLocalizations.of(context)!.actionMarkUnseen),
+                  ),
+                );
+              } else {
+                actions.add(
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _markAsSeen(seriesId);
+                    },
+                    child: Text(AppLocalizations.of(context)!.actionMarkSeen),
+                  ),
+                );
+              }
+            }
+
+            actions.add(
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(AppLocalizations.of(context)!.actionReportProblem),
+              ),
+            );
+
+            return CupertinoActionSheet(
+              title: Text(mediaTitle),
+              actions: actions,
+              cancelButton: CupertinoActionSheetAction(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(AppLocalizations.of(context)!.actionCancel),
+              ),
+            );
+          },
         );
       },
     );
   }
+
+  Future<void> _markAsSeen(String seriesId) async {
+    try {
+      final locator = ref.read(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+
+      // Pour une série, on marque comme vu en ajoutant une entrée avec progression 100%
+      // La durée par défaut est de 45 minutes par épisode
+      final duration = const Duration(minutes: 45);
+      await historyRepo.upsertPlay(
+        contentId: seriesId,
+        type: ContentType.series,
+        title: mediaTitle,
+        poster: widget.media?.poster,
+        position: duration, // Position à 100% pour marquer comme vu
+        duration: duration,
+      );
+
+      // Invalider les providers pour mettre à jour l'UI
+      ref.invalidate(_seriesSeenProvider(seriesId));
+      ref.invalidate(libraryPlaylistsProvider);
+      ref.invalidate(hp.homeControllerProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.actionMarkSeen)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+    }
+  }
+
+  Future<void> _markAsUnseen(String seriesId) async {
+    try {
+      final locator = ref.read(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+      final continueWatchingRepo = locator<ContinueWatchingLocalRepository>();
+
+      // Retirer de l'historique (retire tous les épisodes de la série)
+      await historyRepo.remove(seriesId, ContentType.series);
+
+      // Retirer de continue watching (retire tous les épisodes de la série)
+      await continueWatchingRepo.remove(seriesId, ContentType.series);
+
+      // Invalider les providers pour mettre à jour l'UI
+      ref.invalidate(_seriesSeenProvider(seriesId));
+      ref.invalidate(libraryPlaylistsProvider);
+      ref.invalidate(hp.homeControllerProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.actionMarkUnseen),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+    }
+  }
+
+  final _seriesAvailabilityProvider = FutureProvider.family<bool, String>((
+    ref,
+    seriesId,
+  ) async {
+    final locator = ref.read(slProvider);
+    final iptvLocal = locator<IptvLocalRepository>();
+    final accounts = await iptvLocal.getAccounts();
+
+    for (final account in accounts) {
+      final playlists = await iptvLocal.getPlaylists(account.id);
+      for (final playlist in playlists) {
+        if (seriesId.startsWith('xtream:')) {
+          final streamIdStr = seriesId.substring(7);
+          final streamId = int.tryParse(streamIdStr);
+          if (streamId != null) {
+            try {
+              playlist.items.firstWhere(
+                (item) =>
+                    item.streamId == streamId &&
+                    item.type == XtreamPlaylistItemType.series,
+              );
+              return true;
+            } catch (_) {}
+          }
+        } else {
+          final tmdbId = int.tryParse(seriesId);
+          if (tmdbId != null) {
+            try {
+              playlist.items.firstWhere(
+                (item) =>
+                    item.tmdbId == tmdbId &&
+                    item.type == XtreamPlaylistItemType.series,
+              );
+              return true;
+            } catch (_) {}
+          }
+        }
+      }
+    }
+    return false;
+  });
+
+  final _seriesSeenProvider = FutureProvider.family<bool, String>((
+    ref,
+    seriesId,
+  ) async {
+    try {
+      final locator = ref.read(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+      final entries = await historyRepo.readAll(ContentType.series);
+      final entry = entries.firstWhere(
+        (e) => e.contentId == seriesId,
+        orElse: () => throw StateError('Entry not found'),
+      );
+      if (entry.duration == null || entry.duration!.inSeconds <= 0) {
+        return false;
+      }
+      final progress =
+          (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
+      return progress >= 0.9;
+    } catch (_) {
+      return false;
+    }
+  });
 
   void _onRefreshMetadata() async {
     if (widget.media == null) return;

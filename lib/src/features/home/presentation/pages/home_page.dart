@@ -11,6 +11,7 @@ import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
 import 'package:movi/src/core/widgets/movi_media_card.dart';
 import 'package:movi/src/core/widgets/movi_see_all_card.dart';
+import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
@@ -128,6 +129,8 @@ class _HomeContent extends ConsumerStatefulWidget {
 /// - Timeout doux de 5 secondes pour éviter de bloquer l’UI en cas de réseau lent.
 class _HomeContentState extends ConsumerState<_HomeContent> {
   // Enrichissement TMDB désactivé pour les listes: plus de mémo viewport ni recheck.
+  bool _isHeroLoadingMeta = false;
+  
   @override
   void initState() {
     super.initState();
@@ -221,6 +224,8 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     });
 
     final String lang = ref.watch(currentLanguageCodeProvider);
+    final bool showLoadingOverlay = (state.isLoading && state.hero.isEmpty) || _isHeroLoadingMeta;
+    
     return Stack(
       children: [
         RefreshIndicator(
@@ -276,9 +281,23 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
                     ? HomeHeroCarousel(
                         key: ValueKey(lang),
                         movies: state.hero.take(10).toList(growable: false),
+                        onLoadingChanged: (isLoading) {
+                          if (mounted && _isHeroLoadingMeta != isLoading) {
+                            setState(() {
+                              _isHeroLoadingMeta = isLoading;
+                            });
+                          }
+                        },
                       )
                     : HomeHeroSection(
                         movie: state.hero.isNotEmpty ? state.hero.first : null,
+                        onLoadingChanged: (isLoading) {
+                          if (mounted && _isHeroLoadingMeta != isLoading) {
+                            setState(() {
+                              _isHeroLoadingMeta = isLoading;
+                            });
+                          }
+                        },
                       ),
               ),
 
@@ -515,6 +534,12 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
             ],
           ),
         ),
+        if (showLoadingOverlay)
+          AnimatedOpacity(
+            opacity: showLoadingOverlay ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: const OverlaySplash(),
+          ),
       ],
     );
   }

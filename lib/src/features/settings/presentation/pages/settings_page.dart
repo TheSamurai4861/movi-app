@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
+import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
+import 'package:movi/src/core/preferences/player_preferences.dart';
+import 'package:movi/src/core/preferences/accent_color_preferences.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart' as hp;
+import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
 import 'package:movi/l10n/app_localizations.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -20,16 +29,484 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _refreshingIptv = false;
 
+  static const List<(String code, String label)> _availableLanguages = [
+    ('en', 'English'),
+    ('es', 'Español'),
+    ('fr', 'Français'),
+    ('fr-MM', 'Burgonde'),
+    ('it', 'Italiano'),
+    ('nl', 'Nederlands'),
+    ('pl', 'Polski'),
+  ];
+
+  static const List<(Duration? interval, String label)> _syncIntervalOptions = [
+    (null, 'Désactivé'),
+    (Duration(minutes: 60), 'Toutes les heures'),
+    (Duration(minutes: 120), 'Toutes les 2 heures'),
+    (Duration(minutes: 240), 'Toutes les 4 heures'),
+    (Duration(minutes: 360), 'Toutes les 6 heures'),
+    (Duration(minutes: 1440), 'Tous les jours'),
+    (Duration(minutes: 2880), 'Tous les 2 jours'),
+  ];
+
+  // Palette de couleurs modernes (Material Design 3)
+  static const List<(Color color, String name)> _accentColorOptions = [
+    (Color(0xFF2160AB), 'Bleu'), // Couleur par défaut
+    (Color(0xFF007AFF), 'Bleu iOS'),
+    (Color(0xFF6200EE), 'Violet'),
+    (Color(0xFF03DAC6), 'Cyan'),
+    (Color(0xFF018786), 'Turquoise'),
+    (Color(0xFF00C853), 'Vert'),
+    (Color(0xFF64DD17), 'Vert clair'),
+    (Color(0xFFFF6F00), 'Orange'),
+    (Color(0xFFFF5722), 'Orange foncé'),
+    (Color(0xFFE91E63), 'Rose'),
+    (Color(0xFF9C27B0), 'Violet foncé'),
+    (Color(0xFF3F51B5), 'Indigo'),
+    (Color(0xFF2196F3), 'Bleu clair'),
+    (Color(0xFF00BCD4), 'Cyan clair'),
+    (Color(0xFF4CAF50), 'Vert Material'),
+    (Color(0xFFFFC107), 'Ambre'),
+    (Color(0xFFFF9800), 'Orange Material'),
+    (Color(0xFFF44336), 'Rouge'),
+    (Color(0xFFE53935), 'Rouge foncé'),
+    (Color(0xFF795548), 'Marron'),
+  ];
+
+  static const List<(String code, String label)> _playerLanguageOptions = [
+    ('', 'Défaut du lecteur'),
+    ('fr', 'Français'),
+    ('en', 'Anglais'),
+    ('es', 'Espagnol'),
+    ('de', 'Allemand'),
+    ('it', 'Italien'),
+    ('pt', 'Portugais'),
+    ('ru', 'Russe'),
+    ('ja', 'Japonais'),
+    ('ko', 'Coréen'),
+    ('zh', 'Chinois'),
+    ('ar', 'Arabe'),
+    ('nl', 'Néerlandais'),
+    ('pl', 'Polonais'),
+    ('tr', 'Turc'),
+    ('sv', 'Suédois'),
+    ('da', 'Danois'),
+    ('no', 'Norvégien'),
+    ('fi', 'Finnois'),
+    ('cs', 'Tchèque'),
+    ('hu', 'Hongrois'),
+    ('ro', 'Roumain'),
+    ('el', 'Grec'),
+    ('he', 'Hébreu'),
+    ('th', 'Thaï'),
+    ('vi', 'Vietnamien'),
+    ('id', 'Indonésien'),
+    ('hi', 'Hindi'),
+    ('uk', 'Ukrainien'),
+  ];
+
+  String _getLanguageLabel(String code) {
+    // Normaliser le code (enlever le pays si présent, sauf pour fr-MM)
+    String normalizedCode = code.toLowerCase();
+    if (normalizedCode.startsWith('fr-') && !normalizedCode.startsWith('fr-mm')) {
+      normalizedCode = 'fr';
+    } else if (normalizedCode.startsWith('en-')) {
+      normalizedCode = 'en';
+    } else if (normalizedCode.startsWith('es-')) {
+      normalizedCode = 'es';
+    } else if (normalizedCode.startsWith('it-')) {
+      normalizedCode = 'it';
+    } else if (normalizedCode.startsWith('nl-')) {
+      normalizedCode = 'nl';
+    } else if (normalizedCode.startsWith('pl-')) {
+      normalizedCode = 'pl';
+    }
+    
+    // Vérifier si c'est fr-MM (avec casse flexible)
+    if (code.toLowerCase().contains('mm')) {
+      return _availableLanguages
+          .firstWhere((e) => e.$1 == 'fr-MM', orElse: () => ('fr-MM', 'Burgonde'))
+          .$2;
+    }
+    
+    final entry = _availableLanguages.firstWhere(
+      (e) => e.$1.toLowerCase() == normalizedCode,
+      orElse: () => (code, code),
+    );
+    return entry.$2;
+  }
+
+  Future<void> _showLanguageSelector(BuildContext context, String currentCode) async {
+    final localePrefs = ref.read(slProvider)<LocalePreferences>();
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(AppLocalizations.of(context)!.settingsLanguageLabel),
+        actions: [
+          for (final (code, label) in _availableLanguages)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                unawaited(localePrefs.setLanguageCode(code));
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: _isCurrentLanguage(currentCode, code)
+                          ? const Color(0xFF007AFF)
+                          : Colors.white,
+                      fontWeight: _isCurrentLanguage(currentCode, code)
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  if (_isCurrentLanguage(currentCode, code))
+                    const SizedBox(width: 8),
+                  if (_isCurrentLanguage(currentCode, code))
+                    const Icon(
+                      Icons.check,
+                      color: Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(AppLocalizations.of(context)!.actionCancel),
+        ),
+      ),
+    );
+  }
+
+  bool _isCurrentLanguage(String currentCode, String code) {
+    // Normaliser les deux codes pour la comparaison
+    String normalizedCurrent = currentCode.toLowerCase();
+    String normalizedCode = code.toLowerCase();
+    
+    // Gérer le cas spécial de fr-MM
+    if (code == 'fr-MM') {
+      return normalizedCurrent.contains('mm');
+    }
+    
+    // Pour les autres, extraire juste le code langue
+    final currentLang = normalizedCurrent.split('-').first;
+    final codeLang = normalizedCode.split('-').first;
+    
+    return currentLang == codeLang;
+  }
+
+  String _formatSyncInterval(Duration interval) {
+    // Si l'intervalle est très long (>= 365 jours), considérer comme désactivé
+    if (interval.inDays >= 365) return 'Désactivé';
+    
+    final minutes = interval.inMinutes;
+    
+    if (minutes < 60) {
+      return '$minutes minute${minutes > 1 ? 's' : ''}';
+    } else if (minutes < 1440) {
+      final hours = minutes ~/ 60;
+      if (minutes % 60 == 0) {
+        return hours == 1 ? 'Toutes les heures' : 'Toutes les $hours heures';
+      } else {
+        return '$hours h ${minutes % 60} min';
+      }
+    } else {
+      final days = minutes ~/ 1440;
+      if (minutes % 1440 == 0) {
+        return days == 1 ? 'Tous les jours' : 'Tous les $days jours';
+      } else {
+        final hours = (minutes % 1440) ~/ 60;
+        return '$days jour${days > 1 ? 's' : ''} ${hours}h';
+      }
+    }
+  }
+
+  Future<void> _showSyncIntervalSelector(BuildContext context, Duration currentInterval) async {
+    final iptvSyncPrefs = ref.read(slProvider)<IptvSyncPreferences>();
+    final syncService = ref.read(slProvider)<XtreamSyncService>();
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Fréquence màj'),
+        actions: [
+          for (final (interval, label) in _syncIntervalOptions)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                if (interval == null) {
+                  // Pour désactiver, on utilise une durée très longue (1 an)
+                  final disabledInterval = const Duration(days: 365);
+                  unawaited(iptvSyncPrefs.setSyncInterval(disabledInterval));
+                  syncService.setInterval(disabledInterval);
+                } else {
+                  unawaited(iptvSyncPrefs.setSyncInterval(interval));
+                  syncService.setInterval(interval);
+                }
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: _isCurrentSyncInterval(currentInterval, interval)
+                          ? const Color(0xFF007AFF)
+                          : Colors.white,
+                      fontWeight: _isCurrentSyncInterval(currentInterval, interval)
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  if (_isCurrentSyncInterval(currentInterval, interval))
+                    const SizedBox(width: 8),
+                  if (_isCurrentSyncInterval(currentInterval, interval))
+                    const Icon(
+                      Icons.check,
+                      color: Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(AppLocalizations.of(context)!.actionCancel),
+        ),
+      ),
+    );
+  }
+
+  bool _isCurrentSyncInterval(Duration current, Duration? option) {
+    if (option == null) {
+      // Option "Désactivé" - comparer avec une durée très longue
+      return current.inDays >= 365;
+    }
+    // Si current est désactivé (>= 365 jours) et option est null (désactivé)
+    if (current.inDays >= 365) return false; // option n'est pas null ici, donc différent
+    
+    // Comparer les intervalles en minutes
+    return current.inMinutes == option.inMinutes;
+  }
+
+  String _formatPlayerLanguage(String? code, bool isAudio) {
+    if (code == null || code.isEmpty) {
+      return isAudio ? 'Défaut du lecteur' : 'Désactivé';
+    }
+    return LanguageFormatter.formatLanguageCode(code);
+  }
+
+  Future<void> _showAudioLanguageSelector(BuildContext context, String? currentCode) async {
+    final playerPrefs = ref.read(slProvider)<PlayerPreferences>();
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Langue préférée'),
+        actions: [
+          for (final (code, label) in _playerLanguageOptions)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                final selectedCode = code.isEmpty ? null : code;
+                unawaited(playerPrefs.setPreferredAudioLanguage(selectedCode));
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: _isCurrentPlayerLanguage(currentCode, code)
+                          ? const Color(0xFF007AFF)
+                          : Colors.white,
+                      fontWeight: _isCurrentPlayerLanguage(currentCode, code)
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  if (_isCurrentPlayerLanguage(currentCode, code))
+                    const SizedBox(width: 8),
+                  if (_isCurrentPlayerLanguage(currentCode, code))
+                    const Icon(
+                      Icons.check,
+                      color: Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(AppLocalizations.of(context)!.actionCancel),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSubtitleLanguageSelector(BuildContext context, String? currentCode) async {
+    final playerPrefs = ref.read(slProvider)<PlayerPreferences>();
+    
+    // Pour les sous-titres, le premier item devrait être "Désactivé" au lieu de "Défaut du lecteur"
+    final subtitleOptions = _playerLanguageOptions.map((option) {
+      if (option.$1.isEmpty) {
+        return ('', 'Désactivé');
+      }
+      return option;
+    }).toList();
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Sous-titres préférés'),
+        actions: [
+          for (final (code, label) in subtitleOptions)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                final selectedCode = code.isEmpty ? null : code;
+                unawaited(playerPrefs.setPreferredSubtitleLanguage(selectedCode));
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: _isCurrentPlayerLanguage(currentCode, code)
+                          ? const Color(0xFF007AFF)
+                          : Colors.white,
+                      fontWeight: _isCurrentPlayerLanguage(currentCode, code)
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                  ),
+                  if (_isCurrentPlayerLanguage(currentCode, code))
+                    const SizedBox(width: 8),
+                  if (_isCurrentPlayerLanguage(currentCode, code))
+                    const Icon(
+                      Icons.check,
+                      color: Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(AppLocalizations.of(context)!.actionCancel),
+        ),
+      ),
+    );
+  }
+
+  bool _isCurrentPlayerLanguage(String? current, String option) {
+    if (current == null || current.isEmpty) {
+      return option.isEmpty;
+    }
+    if (option.isEmpty) {
+      return current.isEmpty;
+    }
+    // Normaliser les deux codes pour la comparaison (insensible à la casse)
+    final normalizedCurrent = current.toLowerCase().split('-').first;
+    final normalizedOption = option.toLowerCase().split('-').first;
+    return normalizedCurrent == normalizedOption;
+  }
+
+  String _getAccentColorName(Color color) {
+    final option = _accentColorOptions.firstWhere(
+      (e) => e.$1.value == color.value,
+      orElse: () => (color, 'Personnalisé'),
+    );
+    return option.$2;
+  }
+
+  Future<void> _showAccentColorSelector(BuildContext context, Color currentColor) async {
+    final accentColorPrefs = ref.read(slProvider)<AccentColorPreferences>();
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Couleur d\'accent'),
+        actions: [
+          for (final (color, name) in _accentColorOptions)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                unawaited(accentColorPrefs.setAccentColor(color));
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        color: _isCurrentAccentColor(currentColor, color)
+                            ? const Color(0xFF007AFF)
+                            : Colors.white,
+                        fontWeight: _isCurrentAccentColor(currentColor, color)
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  if (_isCurrentAccentColor(currentColor, color))
+                    const SizedBox(width: 8),
+                  if (_isCurrentAccentColor(currentColor, color))
+                    const Icon(
+                      Icons.check,
+                      color: Color(0xFF007AFF),
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(AppLocalizations.of(context)!.actionCancel),
+        ),
+      ),
+    );
+  }
+
+  bool _isCurrentAccentColor(Color current, Color option) {
+    return current.value == option.value;
+  }
+
   Future<void> _refreshIptv() async {
     if (_refreshingIptv) return;
-    var active = ref.read(appStateControllerProvider).activeIptvSourceIds;
+    var active = ref.read(asp.appStateControllerProvider).activeIptvSourceIds;
     if (active.isEmpty) {
       final locator = ref.read(slProvider);
       final iptvLocal = locator<IptvLocalRepository>();
       final accounts = await iptvLocal.getAccounts();
       if (accounts.isNotEmpty) {
         final ids = accounts.map((a) => a.id).toSet();
-        ref.read(appStateControllerProvider).setActiveIptvSources(ids);
+        ref.read(asp.appStateControllerProvider).setActiveIptvSources(ids);
         active = ids;
       }
       if (active.isEmpty) {
@@ -60,6 +537,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         },
       );
     }
+    // Forcer le rafraîchissement de la page d'accueil
+    // Appeler refresh() directement pour s'assurer que les données sont rechargées
+    unawaited(ref.read(hp.homeControllerProvider.notifier).refresh());
+    // Émettre l'événement pour notifier les autres listeners
     ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,7 +613,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
             Expanded(
@@ -156,15 +637,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               const SizedBox(width: 8),
             ],
-            if (trailing != null)
-              trailing
-            else if (showChevronDown)
+            if (trailing != null) ...[
+              trailing,
+              const SizedBox(width: 8),
+            ],
+            if (showChevronDown)
               const Icon(
                 Icons.keyboard_arrow_down,
                 color: Color(0xFF007AFF),
                 size: 20,
               )
-            else if (onTap != null)
+            else if (onTap != null && trailing == null)
               const Icon(
                 Icons.chevron_right,
                 color: Colors.white70,
@@ -215,6 +698,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentLangCode = ref.watch(asp.currentLanguageCodeProvider);
+    final currentLangLabel = _getLanguageLabel(currentLangCode);
+    final currentSyncInterval = ref.watch(asp.currentIptvSyncIntervalProvider);
+    final currentAudioLanguage = ref.watch(asp.currentPreferredAudioLanguageProvider);
+    final currentSubtitleLanguage = ref.watch(asp.currentPreferredSubtitleLanguageProvider);
+    final currentAccentColor = ref.watch(asp.currentAccentColorProvider);
+    
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -300,11 +790,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             _buildSettingItem(
               title: 'Fréquence màj',
-              value: 'Tous les jours',
+              value: _formatSyncInterval(currentSyncInterval),
               showChevronDown: true,
-              onTap: () {
-                // TODO: Implémenter le sélecteur
-              },
+              onTap: () => _showSyncIntervalSelector(context, currentSyncInterval),
             ),
             _buildSettingItem(
               title: AppLocalizations.of(context)!.settingsRefreshIptvPlaylistsTitle,
@@ -336,20 +824,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 8),
             _buildSettingItem(
-              title: 'Langue',
-              value: 'Français',
+              title: AppLocalizations.of(context)!.settingsLanguageLabel,
+              value: currentLangLabel,
               showChevronDown: true,
-              onTap: () {
-                // TODO: Implémenter le sélecteur de langue
-              },
+              onTap: () => _showLanguageSelector(context, currentLangCode),
             ),
             _buildSettingItem(
-              title: 'Thème',
-              value: 'Sombre',
+              title: 'Couleur d\'accent',
+              value: _getAccentColorName(currentAccentColor),
               showChevronDown: true,
-              onTap: () {
-                // TODO: Implémenter le sélecteur de thème
-              },
+              trailing: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: currentAccentColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+              ),
+              onTap: () => _showAccentColorSelector(context, currentAccentColor),
             ),
             const SizedBox(height: 32),
             // Section Paramètres de lecture
@@ -367,28 +863,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 8),
             _buildSettingItem(
-              title: 'Qualité préférée',
-              value: '4K',
-              showChevronDown: true,
-              onTap: () {
-                // TODO: Implémenter le sélecteur
-              },
-            ),
-            _buildSettingItem(
               title: 'Langue préférée',
-              value: 'Anglais',
+              value: _formatPlayerLanguage(currentAudioLanguage, true),
               showChevronDown: true,
-              onTap: () {
-                // TODO: Implémenter le sélecteur
-              },
+              onTap: () => _showAudioLanguageSelector(context, currentAudioLanguage),
             ),
             _buildSettingItem(
               title: 'Sous-titres préférés',
-              value: 'Français',
+              value: _formatPlayerLanguage(currentSubtitleLanguage, false),
               showChevronDown: true,
-              onTap: () {
-                // TODO: Implémenter le sélecteur
-              },
+              onTap: () => _showSubtitleLanguageSelector(context, currentSubtitleLanguage),
             ),
             const SizedBox(height: 32),
           ],

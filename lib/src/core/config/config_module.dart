@@ -111,7 +111,7 @@ LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
     case AppEnvironment.staging:
       return const LoggingConfig(
         minLevel: LogLevel.info,
-        enableConsole: true,
+        enableConsole: false,
         enableFile: true,
         samplingByLevel: {LogLevel.debug: 0.5},
         defaultRateLimitPerMinute: 200,
@@ -120,7 +120,7 @@ LoggingConfig _defaultLoggingFor(EnvironmentFlavor flavor) {
     case AppEnvironment.prod:
       return const LoggingConfig(
         minLevel: LogLevel.warn,
-        enableConsole: true,
+        enableConsole: false,
         enableFile: true,
         samplingByLevel: {LogLevel.debug: 0.1},
         defaultRateLimitPerMinute: 100,

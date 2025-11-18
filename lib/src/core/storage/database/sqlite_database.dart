@@ -31,14 +31,58 @@ class LocalDatabase {
       databaseFactory = databaseFactoryFfi;
     }
 
-    final dir = await getApplicationDocumentsDirectory();
+    // 1. Obtenir le nouveau dossier (Application Support - inaccessible à l'utilisateur)
+    final newDir = await getApplicationSupportDirectory();
 
     // S’assure que le dossier existe (surtout côté desktop portable).
     try {
-      await Directory(dir.path).create(recursive: true);
+      await Directory(newDir.path).create(recursive: true);
     } catch (_) {}
 
-    final path = p.join(dir.path, 'movi.db');
+    final newPath = p.join(newDir.path, 'movi.db');
+
+    // 2. Migration des données existantes depuis l'ancien emplacement si nécessaire
+    final oldDir = await getApplicationDocumentsDirectory();
+    final oldPath = p.join(oldDir.path, 'movi.db');
+    final oldDbFile = File(oldPath);
+    final newDbFile = File(newPath);
+
+    if (await oldDbFile.exists() && !await newDbFile.exists()) {
+      try {
+        debugPrint(
+          '[DB] Migrating database from Documents to Application Support',
+        );
+        // Migrer la DB principale
+        await oldDbFile.copy(newPath);
+
+        // Migrer aussi les fichiers WAL si présents
+        final oldWalPath = '$oldPath-wal';
+        final newWalPath = '$newPath-wal';
+        final oldWalFile = File(oldWalPath);
+        if (await oldWalFile.exists()) {
+          await oldWalFile.copy(newWalPath);
+          await oldWalFile.delete();
+        }
+
+        final oldShmPath = '$oldPath-shm';
+        final newShmPath = '$newPath-shm';
+        final oldShmFile = File(oldShmPath);
+        if (await oldShmFile.exists()) {
+          await oldShmFile.copy(newShmPath);
+          await oldShmFile.delete();
+        }
+
+        // Supprimer l'ancienne DB après migration réussie
+        await oldDbFile.delete();
+        debugPrint('[DB] Database migration completed successfully');
+      } catch (e) {
+        debugPrint('[DB] Failed to migrate database: $e');
+        // Si la migration échoue, on continue avec le nouvel emplacement
+        // L'ancienne DB reste en place comme backup
+      }
+    }
+
+    final path = newPath;
 
     _instance = await openDatabase(
       path,
@@ -358,14 +402,10 @@ class LocalDatabase {
       final result = await db.rawQuery('PRAGMA journal_mode = WAL;');
       debugPrint('[DB] WAL journal_mode result: $result');
     } on DatabaseException catch (e) {
-      debugPrint(
-        '[DB] Failed to enable WAL, continuing without WAL: $e',
-      );
+      debugPrint('[DB] Failed to enable WAL, continuing without WAL: $e');
       // On n'échoue pas l'init : WAL est une optimisation seulement.
     } catch (e) {
-      debugPrint(
-        '[DB] Unexpected error while enabling WAL, continuing: $e',
-      );
+      debugPrint('[DB] Unexpected error while enabling WAL, continuing: $e');
     }
   }
 }

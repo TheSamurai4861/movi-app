@@ -9,7 +9,6 @@ import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -23,7 +22,10 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
-import 'package:movi/src/core/widgets/movi_favorite_button.dart';
+import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
+import 'package:movi/src/features/playlist/playlist.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 class MovieDetailPage extends ConsumerStatefulWidget {
   const MovieDetailPage({super.key, this.media});
@@ -37,6 +39,7 @@ class MovieDetailPage extends ConsumerStatefulWidget {
 class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     with TickerProviderStateMixin {
   bool _overviewExpanded = false;
+  bool _isTransitioningFromLoading = true;
   String mediaTitle = '—';
   String yearText = '—';
   String durationText = '—';
@@ -48,6 +51,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   @override
   void initState() {
     super.initState();
+    _isTransitioningFromLoading = true;
     _primeFromArgs();
   }
 
@@ -80,19 +84,35 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         body: const OverlaySplash(),
       ),
       error: (e, st) => _buildErrorScaffold(e),
-      data: (vm) => _buildWithValues(
-        mediaTitle: vm.title,
-        yearText: vm.yearText,
-        durationText: vm.durationText,
-        ratingText: vm.ratingText,
-        overviewText: vm.overviewText,
-        cast: vm.cast,
-        recommendations: vm.recommendations,
-        isLoading: false,
-        poster: vm.poster,
-        backdrop: vm.backdrop,
-        sagaLink: vm.sagaLink,
-      ),
+      data: (vm) {
+        // Démarrer la transition d'opacité après un court délai
+        if (_isTransitioningFromLoading) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              Future.delayed(const Duration(milliseconds: 50), () {
+                if (mounted) {
+                  setState(() {
+                    _isTransitioningFromLoading = false;
+                  });
+                }
+              });
+            }
+          });
+        }
+        return _buildWithValues(
+          mediaTitle: vm.title,
+          yearText: vm.yearText,
+          durationText: vm.durationText,
+          ratingText: vm.ratingText,
+          overviewText: vm.overviewText,
+          cast: vm.cast,
+          recommendations: vm.recommendations,
+          isLoading: _isTransitioningFromLoading,
+          poster: vm.poster,
+          backdrop: vm.backdrop,
+          sagaLink: vm.sagaLink,
+        );
+      },
     );
   }
 
@@ -128,8 +148,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         body: SafeArea(
           top: true,
           bottom: true,
-          child: Opacity(
-            opacity: isLoading ? 0.99 : 1.0,
+          child: AnimatedOpacity(
+            opacity: isLoading ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 300),
             child: Column(
               children: [
                 Expanded(
@@ -318,7 +339,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                           );
                                         }
                                         final historyAsync = ref.watch(
-                                          hp.mediaHistoryProvider((contentId: widget.media!.id, type: ContentType.movie)),
+                                          _movieHistoryProvider(widget.media!.id),
                                         );
                                         return Expanded(
                                           child: MoviPrimaryButton(
@@ -580,31 +601,22 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                                 ),
                                             action: Padding(
                                               padding: const EdgeInsetsDirectional.only(end: 20),
-                                              child: Consumer(
-                                                builder: (context, ref, _) {
-                                                  final sagaId = sagaLink.id.value;
-                                                  final isFavoriteAsync = ref.watch(
-                                                    sagaIsFavoriteProvider(sagaId),
-                                                  );
-                                                  return isFavoriteAsync.when(
-                                                    data: (isFavorite) => MoviFavoriteButton(
-                                                      isFavorite: isFavorite,
-                                                      onPressed: () async {
-                                                        await ref.read(
-                                                          sagaToggleFavoriteProvider.notifier,
-                                                        ).toggle(sagaId, sagaLink);
-                                                      },
-                                                    ),
-                                                    loading: () => MoviFavoriteButton(
-                                                      isFavorite: false,
-                                                      onPressed: () {},
-                                                    ),
-                                                    error: (_, __) => MoviFavoriteButton(
-                                                      isFavorite: false,
-                                                      onPressed: () {},
-                                                    ),
+                                              child: GestureDetector(
+                                                behavior: HitTestBehavior.opaque,
+                                                onTap: () {
+                                                  context.push(
+                                                    AppRouteNames.sagaDetail,
+                                                    extra: sagaLink.id.value,
                                                   );
                                                 },
+                                                child: Text(
+                                                  'Voir la page',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: AppColors.accent,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                             items: sagaMovies
@@ -694,89 +706,445 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
-  void _showMoreMenu() {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) {
-        return CupertinoActionSheet(
-          title: Text(mediaTitle),
-          actions: <Widget>[
-            CupertinoActionSheetAction(
-              onPressed: () {
+  Future<void> _showAddToListDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String movieId,
+  ) async {
+    try {
+      final playlistsAsync = ref.read(libraryPlaylistsProvider);
+      final playlists = await playlistsAsync.value;
+      
+      if (playlists == null || playlists.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucune playlist disponible')),
+          );
+        }
+        return;
+      }
+    
+      // Récupérer les données du film depuis le provider
+      final vmAsync = ref.read(movieDetailControllerProvider(movieId));
+      final vm = await vmAsync.value;
+      
+      // Utiliser les données du widget si le view model n'est pas disponible
+      final title = vm?.title ?? mediaTitle;
+      final yearTextValue = vm?.yearText ?? yearText;
+      final poster = widget.media?.poster ?? vm?.poster;
+      
+      // Filtrer les playlists selon le type de contenu
+      final playlistRepository = ref.read(slProvider)<PlaylistRepository>();
+      final availablePlaylists = <LibraryPlaylistItem>[];
+      
+      for (final playlist in playlists) {
+        // Exclure les sagas et acteurs
+        if (playlist.id.startsWith('saga_') || 
+            playlist.type == LibraryPlaylistType.actor) {
+          continue;
+        }
+        
+        // Playlists favorites : films uniquement pour les films
+        if (playlist.type == LibraryPlaylistType.favoriteMovies) {
+          availablePlaylists.add(playlist);
+          continue;
+        }
+        
+        // Playlists favorites séries : exclure pour les films
+        if (playlist.type == LibraryPlaylistType.favoriteSeries) {
+          continue;
+        }
+        
+        // Playlists utilisateur : vérifier le contenu
+        if (playlist.type == LibraryPlaylistType.userPlaylist &&
+            playlist.playlistId != null) {
+          try {
+            final playlistDetail = await playlistRepository.getPlaylist(
+              PlaylistId(playlist.playlistId!),
+            );
+            
+            // Si la playlist est vide, on peut ajouter
+            if (playlistDetail.items.isEmpty) {
+              availablePlaylists.add(playlist);
+              continue;
+            }
+            
+            // Vérifier si la playlist contient uniquement des films
+            final hasOnlyMovies = playlistDetail.items.every(
+              (item) => item.reference.type == ContentType.movie,
+            );
+            
+            // Si la playlist contient uniquement des films, on peut ajouter le film
+            if (hasOnlyMovies) {
+              availablePlaylists.add(playlist);
+            }
+            // Si la playlist contient des séries, on ne peut pas ajouter un film
+          } catch (_) {
+            // En cas d'erreur, on inclut la playlist pour ne pas bloquer l'utilisateur
+            availablePlaylists.add(playlist);
+          }
+        }
+      }
+      
+      if (availablePlaylists.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucune playlist disponible pour les films')),
+          );
+        }
+        return;
+      }
+      
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (ctx) => CupertinoActionSheet(
+          title: Text(AppLocalizations.of(context)!.actionAddToList),
+          actions: availablePlaylists.map((playlist) {
+            return CupertinoActionSheetAction(
+              onPressed: () async {
                 Navigator.of(ctx).pop();
-                _onRefreshMetadata();
+                
+                try {
+                  if (playlist.type == LibraryPlaylistType.favoriteMovies) {
+                    // Toggle favori
+                    await ref.read(movieToggleFavoriteProvider.notifier).toggle(movieId);
+                    ref.invalidate(movieIsFavoriteProvider(movieId));
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Ajouté à "${playlist.title}"'),
+                        ),
+                      );
+                    }
+                  } else if (playlist.type == LibraryPlaylistType.userPlaylist &&
+                      playlist.playlistId != null) {
+                    // Ajouter à la playlist utilisateur
+                    final addPlaylistItem = AddPlaylistItem(
+                      ref.read(slProvider)<PlaylistRepository>(),
+                    );
+                    
+                    // Utiliser les données disponibles
+                    final year = yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
+                    
+                    await addPlaylistItem.call(
+                      playlistId: PlaylistId(playlist.playlistId!),
+                      item: PlaylistItem(
+                        reference: ContentReference(
+                          id: movieId,
+                          title: MediaTitle(title),
+                          type: ContentType.movie,
+                          poster: poster,
+                          year: year,
+                        ),
+                        addedAt: DateTime.now(),
+                      ),
+                    );
+                    
+                    // Invalider tous les providers nécessaires
+                    ref.invalidate(playlistItemsProvider(playlist.playlistId!));
+                    ref.invalidate(playlistContentReferencesProvider(playlist.playlistId!));
+                    ref.invalidate(libraryPlaylistsProvider);
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Ajouté à "${playlist.title}"'),
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur: $e'),
+                      ),
+                    );
+                  }
+                }
               },
-              child: Text(AppLocalizations.of(context)!.actionRefreshMetadata),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _onChangeMetadata();
-              },
-              child: Text(AppLocalizations.of(context)!.actionChangeMetadata),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionAddToList),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionMarkSeen),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionMarkUnseen),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(AppLocalizations.of(context)!.actionReportProblem),
-            ),
-          ],
+              child: Text(playlist.title),
+            );
+          }).toList(),
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.of(ctx).pop(),
             child: Text(AppLocalizations.of(context)!.actionCancel),
           ),
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors du chargement des playlists: $e'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showMoreMenu() {
+    if (widget.media == null) return;
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final movieId = widget.media!.id;
+            final isAvailableAsync = ref.watch(
+              _movieAvailabilityProvider(movieId),
+            );
+            final isSeenAsync = ref.watch(
+              _movieSeenProvider(movieId),
+            );
+            
+            final isAvailable = isAvailableAsync.value ?? false;
+            final isSeen = isSeenAsync.value ?? false;
+            
+            final actions = <Widget>[
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _onChangeMetadata();
+                },
+                child: Text(AppLocalizations.of(context)!.actionChangeMetadata),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showAddToListDialog(context, ref, movieId);
+                },
+                child: Text(AppLocalizations.of(context)!.actionAddToList),
+              ),
+            ];
+            
+            // Ajouter l'option vu/non vu seulement si le film est disponible
+            if (isAvailable) {
+              if (isSeen) {
+                actions.add(
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _markAsUnseen(movieId);
+                    },
+                    child: Text(AppLocalizations.of(context)!.actionMarkUnseen),
+                  ),
+                );
+              } else {
+                actions.add(
+                  CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _markAsSeen(movieId);
+                    },
+                    child: Text(AppLocalizations.of(context)!.actionMarkSeen),
+                  ),
+                );
+              }
+            }
+            
+            actions.add(
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+                child: Text(AppLocalizations.of(context)!.actionReportProblem),
+              ),
+            );
+            
+            return CupertinoActionSheet(
+              title: Text(mediaTitle),
+              actions: actions,
+              cancelButton: CupertinoActionSheetAction(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(AppLocalizations.of(context)!.actionCancel),
+              ),
+            );
+          },
         );
       },
     );
   }
-
-  void _onRefreshMetadata() async {
-    if (widget.media == null) return;
+  
+  Future<void> _markAsSeen(String movieId) async {
     try {
       final locator = ref.read(slProvider);
-      final repo = locator<MovieRepository>();
-      final id = MovieId(widget.media!.id);
-      await repo.refreshMetadata(id);
-      // Invalider le provider pour forcer le rechargement
-      ref.invalidate(movieDetailControllerProvider(widget.media!.id));
+      final historyRepo = locator<HistoryLocalRepository>();
+      final iptvLocal = locator<IptvLocalRepository>();
+      
+      // Trouver le film dans les playlists pour obtenir la durée
+      XtreamPlaylistItem? xtreamItem;
+      final accounts = await iptvLocal.getAccounts();
+      
+      for (final account in accounts) {
+        final playlists = await iptvLocal.getPlaylists(account.id);
+        for (final playlist in playlists) {
+          if (movieId.startsWith('xtream:')) {
+            final streamIdStr = movieId.substring(7);
+            final streamId = int.tryParse(streamIdStr);
+            if (streamId != null) {
+              try {
+                xtreamItem = playlist.items.firstWhere(
+                  (item) => item.streamId == streamId,
+                );
+                break;
+              } catch (_) {}
+            }
+          } else {
+            final tmdbId = int.tryParse(movieId);
+            if (tmdbId != null) {
+              try {
+                xtreamItem = playlist.items.firstWhere(
+                  (item) => item.tmdbId == tmdbId,
+                );
+                break;
+              } catch (_) {}
+            }
+          }
+          if (xtreamItem != null) break;
+        }
+        if (xtreamItem != null) break;
+      }
+      
+      // Marquer comme vu avec une durée par défaut (2 heures)
+      final duration = const Duration(hours: 2);
+      await historyRepo.upsertPlay(
+        contentId: movieId,
+        type: ContentType.movie,
+        title: mediaTitle,
+        poster: widget.media?.poster,
+        position: duration, // Position à 100% pour marquer comme vu
+        duration: duration,
+      );
+      
+      // Invalider les providers pour mettre à jour l'UI
+      ref.invalidate(hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)));
+      ref.invalidate(_movieHistoryProvider(movieId));
+      ref.invalidate(_movieSeenProvider(movieId));
+      ref.invalidate(libraryPlaylistsProvider);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.metadataRefreshed),
+            content: Text(AppLocalizations.of(context)!.actionMarkSeen),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.errorRefreshingMetadata,
-            ),
-          ),
+          SnackBar(content: Text('Erreur: $e')),
         );
       }
     }
   }
+  
+  Future<void> _markAsUnseen(String movieId) async {
+    try {
+      final locator = ref.read(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+      final continueWatchingRepo = locator<ContinueWatchingLocalRepository>();
+      
+      // Retirer de l'historique
+      await historyRepo.remove(movieId, ContentType.movie);
+      
+      // Retirer de continue watching
+      await continueWatchingRepo.remove(movieId, ContentType.movie);
+      
+      // Invalider les providers pour mettre à jour l'UI
+      ref.invalidate(hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)));
+      ref.invalidate(_movieHistoryProvider(movieId));
+      ref.invalidate(_movieSeenProvider(movieId));
+      ref.invalidate(libraryPlaylistsProvider);
+      ref.invalidate(hp.homeControllerProvider);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.actionMarkUnseen),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
+  }
+  
+  final _movieAvailabilityProvider = FutureProvider.family<bool, String>((ref, movieId) async {
+    final locator = ref.read(slProvider);
+    final iptvLocal = locator<IptvLocalRepository>();
+    final accounts = await iptvLocal.getAccounts();
+    
+    for (final account in accounts) {
+      final playlists = await iptvLocal.getPlaylists(account.id);
+      for (final playlist in playlists) {
+        if (movieId.startsWith('xtream:')) {
+          final streamIdStr = movieId.substring(7);
+          final streamId = int.tryParse(streamIdStr);
+          if (streamId != null) {
+            try {
+              playlist.items.firstWhere(
+                (item) => item.streamId == streamId && item.type == XtreamPlaylistItemType.movie,
+              );
+              return true;
+            } catch (_) {}
+          }
+        } else {
+          final tmdbId = int.tryParse(movieId);
+          if (tmdbId != null) {
+            try {
+              playlist.items.firstWhere(
+                (item) => item.tmdbId == tmdbId && item.type == XtreamPlaylistItemType.movie,
+              );
+              return true;
+            } catch (_) {}
+          }
+        }
+      }
+    }
+    return false;
+  });
+  
+  final _movieSeenProvider = FutureProvider.family<bool, String>((ref, movieId) async {
+    try {
+      final locator = ref.read(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+      final entries = await historyRepo.readAll(ContentType.movie);
+      final entry = entries.firstWhere(
+        (e) => e.contentId == movieId,
+        orElse: () => throw StateError('Entry not found'),
+      );
+      if (entry.duration == null || entry.duration!.inSeconds <= 0) {
+        return false;
+      }
+      final progress = (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
+      return progress >= 0.9;
+    } catch (_) {
+      return false;
+    }
+  });
+  
+  /// Provider pour obtenir l'entrée d'historique d'un film, peu importe la progression
+  /// Retourne l'entrée si elle existe, même si le film est marqué comme vu (progression >= 90%)
+  final _movieHistoryProvider = FutureProvider.family<HistoryEntry?, String>((ref, movieId) async {
+    try {
+      final locator = ref.read(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+      final entries = await historyRepo.readAll(ContentType.movie);
+      return entries.firstWhere(
+        (e) => e.contentId == movieId,
+        orElse: () => throw StateError('Entry not found'),
+      );
+    } catch (_) {
+      return null;
+    }
+  });
 
   void _onChangeMetadata() {
     ScaffoldMessenger.of(context).showSnackBar(

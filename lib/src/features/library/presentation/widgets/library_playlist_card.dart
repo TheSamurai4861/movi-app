@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 enum LibraryPlaylistType {
   inProgress,
@@ -22,7 +19,9 @@ class LibraryPlaylistCard extends StatelessWidget {
     required this.type,
     this.isPinned = false,
     this.onTap,
-    this.photo, // Photo de profil pour les artistes
+    this.onLongPress,
+    this.photo, // Photo de profil pour les artistes ou image hero pour les sagas
+    this.showItemCount = true, // Par défaut afficher le compteur, sauf pour les sagas
   });
 
   final String title;
@@ -30,16 +29,28 @@ class LibraryPlaylistCard extends StatelessWidget {
   final LibraryPlaylistType type;
   final bool isPinned;
   final VoidCallback? onTap;
-  final Uri? photo; // Photo de profil pour les artistes
+  final VoidCallback? onLongPress;
+  final Uri? photo; // Photo de profil pour les artistes ou image hero pour les sagas
+  final bool showItemCount; // Contrôle l'affichage du compteur d'éléments
 
   Widget _getIcon() {
     switch (type) {
       case LibraryPlaylistType.inProgress:
         return const Icon(Icons.play_circle_outline, color: Colors.white, size: 40);
       case LibraryPlaylistType.favoriteMovies:
-        return const Icon(Icons.movie, color: Colors.white, size: 40);
+        return Image.asset(
+          AppAssets.iconMovie,
+          width: 40,
+          height: 40,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.favoriteSeries:
-        return const Icon(Icons.live_tv, color: Colors.white, size: 40);
+        return Image.asset(
+          AppAssets.iconSerie,
+          width: 40,
+          height: 40,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.watchHistory:
         return Image.asset(
           AppAssets.iconAvancer,
@@ -48,7 +59,12 @@ class LibraryPlaylistCard extends StatelessWidget {
           color: Colors.white,
         );
       case LibraryPlaylistType.userPlaylist:
-        return const Icon(Icons.playlist_play, color: Colors.white, size: 40);
+        return Image.asset(
+          AppAssets.iconPlaylist,
+          width: 40,
+          height: 40,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.actor:
         return Image.asset(
           AppAssets.placeholderPersonActor,
@@ -62,18 +78,19 @@ class LibraryPlaylistCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            // Carré avec photo de profil pour les artistes, ou dégradé avec icône pour les autres
+            // Carré avec photo de profil pour les artistes, image hero pour les sagas, ou dégradé avec icône pour les autres
             Container(
               width: 75,
               height: 75,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                gradient: type == LibraryPlaylistType.actor
+                gradient: (type == LibraryPlaylistType.actor || photo != null)
                     ? null
                     : const LinearGradient(
                         begin: Alignment.topLeft,
@@ -83,11 +100,11 @@ class LibraryPlaylistCard extends StatelessWidget {
                           Color(0xFF0D2745),
                         ],
                       ),
-                color: type == LibraryPlaylistType.actor
+                color: (type == LibraryPlaylistType.actor || photo != null)
                     ? Theme.of(context).colorScheme.surfaceContainerHighest
                     : null,
               ),
-              child: type == LibraryPlaylistType.actor && photo != null
+              child: photo != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.network(
@@ -112,39 +129,43 @@ class LibraryPlaylistCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
                         ) ??
                         const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                           color: Colors.white,
                         ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // Pour les artistes, ne pas afficher le compteur d'éléments
-                  if (type != LibraryPlaylistType.actor) ...[
+                  // Pour les artistes et les sagas, ne pas afficher le compteur d'éléments
+                  if (type != LibraryPlaylistType.actor && showItemCount) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         if (isPinned) ...[
                           const Icon(
                             Icons.push_pin,
-                            size: 20,
+                            size: 25,
                             color: Color(0xFF5493DE),
                           ),
                           const SizedBox(width: 4),
                         ],
                         Text(
                           '$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Colors.white70,
-                              ) ??
-                              const TextStyle(
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontSize: 14,
-                                color: Colors.white70,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ) ??
+                              TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                         ),
                       ],

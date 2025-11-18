@@ -319,24 +319,57 @@ class SagaDetailPage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 16),
                           // Liste horizontale des films
-                          SizedBox(
-                            height: 258,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: movies.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 16),
-                              itemBuilder: (context, index) {
-                                final movie = movies[index];
-                                return MoviMediaCard(
-                                  media: movie,
-                                  heroTag: 'saga_movie_${movie.id}',
-                                  onTap: (m) => context.push(
-                                    AppRouteNames.movie,
-                                    extra: m,
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final availabilityAsync = ref.watch(
+                                sagaMoviesAvailabilityProvider(sagaId),
+                              );
+                              return availabilityAsync.when(
+                                data: (availability) {
+                                  return SizedBox(
+                                    height: 258,
+                                    child: ListView.separated(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: movies.length,
+                                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                      itemBuilder: (context, index) {
+                                        final movie = movies[index];
+                                        final movieId = int.tryParse(movie.id);
+                                        final isAvailable = movieId != null && 
+                                            (availability[movieId] ?? false);
+                                        return _SagaMovieCard(
+                                          media: movie,
+                                          isAvailable: isAvailable,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                                loading: () => const SizedBox(
+                                  height: 258,
+                                  child: Center(child: CircularProgressIndicator()),
+                                ),
+                                error: (_, __) => SizedBox(
+                                  height: 258,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: movies.length,
+                                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                    itemBuilder: (context, index) {
+                                      final movie = movies[index];
+                                      return MoviMediaCard(
+                                        media: movie,
+                                        heroTag: 'saga_movie_${movie.id}',
+                                        onTap: (m) => context.push(
+                                          AppRouteNames.movie,
+                                          extra: m,
+                                        ),
+                                      );
+                                    },
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -374,6 +407,43 @@ class SagaDetailPage extends ConsumerWidget {
         AppAssets.placeholderPosterMovie,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, -0.5),
+      ),
+    );
+  }
+}
+
+class _SagaMovieCard extends StatelessWidget {
+  const _SagaMovieCard({
+    required this.media,
+    required this.isAvailable,
+  });
+
+  final MoviMedia media;
+  final bool isAvailable;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: isAvailable ? 1.0 : 0.5,
+      child: ColorFiltered(
+        colorFilter: isAvailable
+            ? const ColorFilter.mode(Colors.transparent, BlendMode.color)
+            : const ColorFilter.matrix([
+                0.2126, 0.7152, 0.0722, 0, 0,
+                0.2126, 0.7152, 0.0722, 0, 0,
+                0.2126, 0.7152, 0.0722, 0, 0,
+                0, 0, 0, 1, 0,
+              ]),
+        child: MoviMediaCard(
+          media: media,
+          heroTag: 'saga_movie_${media.id}',
+          onTap: isAvailable
+              ? (mm) => context.push(
+                    AppRouteNames.movie,
+                    extra: mm,
+                  )
+              : null,
+        ),
       ),
     );
   }
