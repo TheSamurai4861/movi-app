@@ -63,11 +63,21 @@
   "homeNoIptvSources": "Brak aktywnego źródła IPTV. Dodaj źródło w Ustawieniach, aby zobaczyć kategorie.",
   "homeNoTrends": "Brak treści na czasie"
   ,
+  "actionRefreshMetadata": "Odśwież metadane",
+  "actionChangeMetadata": "Zmień metadane",
+  "actionAddToList": "Dodaj do listy",
+  "metadataRefreshed": "Metadane odświeżone",
+  "errorRefreshingMetadata": "Błąd podczas odświeżania metadanych",
   "actionBack": "Wstecz",
   "actionExpand": "Rozwiń",
+  "actionCollapse": "Zwiń",
+  "actionClearHistory": "Wyczyść historię",
   "castTitle": "Obsada",
   "recommendationsTitle": "Polecane",
   "libraryHeader": "Twoja wideoteka",
   "libraryDataInfo": "Dane zostaną wyświetlone po implementacji warstw data/domain.",
-  "libraryEmpty": "Brak treści na razie."
+  "libraryEmpty": "Brak treści na razie.",
+  "serie": "Serial",
+  "recherche": "Szukaj",
+  "notYetAvailable": "Jeszcze niedostępne"
 }

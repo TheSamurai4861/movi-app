@@ -4,4 +4,5 @@ abstract class SearchHistoryRepository {
   Future<void> add(String query);
   Future<List<SearchHistoryItem>> list();
   Future<void> remove(String query);
+  Future<void> clear();
 }

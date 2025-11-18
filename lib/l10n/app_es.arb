@@ -63,11 +63,21 @@
   "homeNoIptvSources": "No hay fuente IPTV activa. Añade una fuente en Ajustes para ver tus categorías.",
   "homeNoTrends": "No hay contenido en tendencia disponible"
   ,
+  "actionRefreshMetadata": "Actualizar metadatos",
+  "actionChangeMetadata": "Cambiar metadatos",
+  "actionAddToList": "Añadir a una lista",
+  "metadataRefreshed": "Metadatos actualizados",
+  "errorRefreshingMetadata": "Error al actualizar metadatos",
   "actionBack": "Atrás",
   "actionExpand": "Expandir",
+  "actionCollapse": "Contraer",
+  "actionClearHistory": "Borrar historial",
   "castTitle": "Reparto",
   "recommendationsTitle": "Recomendaciones",
   "libraryHeader": "Tu videoteca",
   "libraryDataInfo": "Los datos se mostrarán cuando se implemente data/domain.",
-  "libraryEmpty": "No hay contenido disponible por ahora."
+  "libraryEmpty": "No hay contenido disponible por ahora.",
+  "serie": "Serie",
+  "recherche": "Búsqueda",
+  "notYetAvailable": "Aún no disponible"
 }

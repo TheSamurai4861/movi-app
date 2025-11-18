@@ -61,15 +61,21 @@ class MovieRepositoryImpl implements MovieRepository {
     if (cached != null && cached.isNotEmpty) {
       return cached.map(_mapSummary).whereType<MovieSummary>().toList();
     }
+    // Si le cache est vide ou n'existe pas, récupérer depuis le réseau
+    // Utiliser fetchMovieFull qui inclut les recommandations via append_to_response
     final dto = await _remote.fetchMovieFull(
       movieId,
       language: _appState.preferredLocale,
     );
     final recommendations = dto.recommendations;
-    await _local.saveRecommendations(
-      movieId: movieId,
-      summaries: recommendations,
-    );
+    // Sauvegarder les recommandations dans le cache même si la liste est vide
+    // pour éviter les appels répétés pour les films sans recommandations
+    if (recommendations.isNotEmpty) {
+      await _local.saveRecommendations(
+        movieId: movieId,
+        summaries: recommendations,
+      );
+    }
     return recommendations.map(_mapSummary).whereType<MovieSummary>().toList();
   }
 
@@ -119,10 +125,17 @@ class MovieRepositoryImpl implements MovieRepository {
     }
   }
 
+  @override
+  Future<void> refreshMetadata(MovieId id) async {
+    final movieId = int.parse(id.value);
+    await _local.clearMovieDetail(movieId);
+    await _local.clearRecommendations(movieId);
+  }
+
   Movie _mapDetail(TmdbMovieDetailDto dto) {
     final posterCandidate = dto.posterBackground ?? dto.posterPath;
-    final poster = _images.poster(posterCandidate, size: 'w342');
-    final backdrop = _images.backdrop(dto.backdropPath);
+    final poster = _images.poster(posterCandidate, size: 'w780');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'w1280');
     if (poster == null) {
       throw StateError('Movie ${dto.id} missing poster');
     }

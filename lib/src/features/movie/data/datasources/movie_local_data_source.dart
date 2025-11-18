@@ -55,4 +55,14 @@ class MovieLocalDataSource {
         .toList();
     return items;
   }
+
+  /// Supprime le cache des métadonnées d'un film.
+  Future<void> clearMovieDetail(int movieId) async {
+    await _cacheRepository.remove('movie_detail_$movieId');
+  }
+
+  /// Supprime le cache des recommandations d'un film.
+  Future<void> clearRecommendations(int movieId) async {
+    await _cacheRepository.remove('movie_reco_$movieId');
+  }
 }

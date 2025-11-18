@@ -27,12 +27,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
-    // Charger une première fois l’historique + forcer une query vide.
+    // Charger une première fois l'historique + forcer une query vide.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(
-        ref.read(searchHistoryControllerProvider.notifier).refresh(),
-      );
+      unawaited(ref.read(searchHistoryControllerProvider.notifier).refresh());
       ref.read(searchControllerProvider.notifier).setQuery('');
     });
   }
@@ -129,7 +127,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 _SearchHistoryList(
                   onSelect: (q) {
                     _textCtrl.text = q;
-                    ctrl.setQuery(q);
+                    ctrl.setQueryImmediate(q);
                   },
                 ),
                 const Expanded(child: SizedBox.shrink()),
@@ -166,17 +164,25 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ),
                           items: state.movies
                               .take(10)
+                              .toList()
+                              .asMap()
+                              .entries
                               .map(
-                                (m) => MoviMediaCard(
+                                (entry) => _AnimatedMovieCard(
                                   media: MoviMedia(
-                                    id: m.id.value,
-                                    title: m.title.display,
-                                    poster: m.poster,
-                                    year: m.releaseYear,
+                                    id: entry.value.id.value,
+                                    title: entry.value.title.display,
+                                    poster: entry.value.poster,
+                                    year: entry.value.releaseYear,
                                     type: MoviMediaType.movie,
                                   ),
-                                  onTap: (mm) =>
-                                      context.push(AppRouteNames.movie, extra: mm),
+                                  onTap: (mm) => context.push(
+                                    AppRouteNames.movie,
+                                    extra: mm,
+                                  ),
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
                                 ),
                               )
                               .toList(growable: false),
@@ -198,22 +204,69 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ),
                           items: state.shows
                               .take(10)
+                              .toList()
+                              .asMap()
+                              .entries
                               .map(
-                                (s) => MoviMediaCard(
+                                (entry) => _AnimatedMovieCard(
                                   media: MoviMedia(
-                                    id: s.id.value,
-                                    title: s.title.display,
-                                    poster: s.poster,
+                                    id: entry.value.id.value,
+                                    title: entry.value.title.display,
+                                    poster: entry.value.poster,
                                     type: MoviMediaType.series,
                                   ),
                                   onTap: (mm) =>
                                       context.push(AppRouteNames.tv, extra: mm),
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
                                 ),
                               )
                               .toList(growable: false),
                         ),
                       ],
-                      if (state.movies.isEmpty && state.shows.isEmpty)
+                      if (state.people.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        MoviItemsList(
+                          title: 'Personnalités',
+                          subtitle: AppLocalizations.of(
+                            context,
+                          )!.resultsCount(state.people.length),
+                          estimatedItemWidth: 150,
+                          estimatedItemHeight: 300,
+                          titlePadding: 20,
+                          horizontalPadding: const EdgeInsetsDirectional.only(
+                            start: 20,
+                            end: 20,
+                          ),
+                          items: state.people
+                              .take(10)
+                              .toList()
+                              .asMap()
+                              .entries
+                              .map(
+                                (entry) => _AnimatedPersonCard(
+                                  person: MoviPerson(
+                                    id: entry.value.id.value,
+                                    name: entry.value.name,
+                                    poster: entry.value.photo,
+                                    role: 'Acteur',
+                                  ),
+                                  onTap: (p) => context.push(
+                                    AppRouteNames.person,
+                                    extra: entry.value,
+                                  ),
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                      ],
+                      if (state.movies.isEmpty &&
+                          state.shows.isEmpty &&
+                          state.people.isEmpty)
                         Center(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
@@ -238,24 +291,188 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   }
 }
 
+class _AnimatedPersonCard extends StatefulWidget {
+  const _AnimatedPersonCard({
+    required this.person,
+    required this.onTap,
+    required this.delay,
+  });
+
+  final MoviPerson person;
+  final void Function(MoviPerson) onTap;
+  final Duration delay;
+
+  @override
+  State<_AnimatedPersonCard> createState() => _AnimatedPersonCardState();
+}
+
+class _AnimatedPersonCardState extends State<_AnimatedPersonCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _translateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _translateAnimation = Tween<double>(
+      begin: 15.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, _translateAnimation.value),
+            child: MoviPersonCard(person: widget.person, onTap: widget.onTap),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedMovieCard extends StatefulWidget {
+  const _AnimatedMovieCard({
+    required this.media,
+    required this.onTap,
+    required this.delay,
+  });
+
+  final MoviMedia media;
+  final void Function(MoviMedia) onTap;
+  final Duration delay;
+
+  @override
+  State<_AnimatedMovieCard> createState() => _AnimatedMovieCardState();
+}
+
+class _AnimatedMovieCardState extends State<_AnimatedMovieCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _translateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    _translateAnimation = Tween<double>(
+      begin: 15.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    Future.delayed(widget.delay, () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, _translateAnimation.value),
+            child: MoviMediaCard(media: widget.media, onTap: widget.onTap),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _SearchHistoryList extends ConsumerWidget {
   const _SearchHistoryList({required this.onSelect});
 
   final void Function(String query) onSelect;
 
-  Widget _buildHistorySection(BuildContext context, Widget child) {
+  Widget _buildHistorySection(
+    BuildContext context,
+    WidgetRef ref,
+    Widget child, {
+    required bool hasItems,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
-          child: Text(
-            AppLocalizations.of(context)!.historyTitle,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.historyTitle,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+              if (hasItems)
+                TextButton(
+                  onPressed: () {
+                    ref
+                        .read(searchHistoryControllerProvider.notifier)
+                        .clearAll();
+                  },
+                  child: Text(
+                    AppLocalizations.of(context)!.actionClearHistory,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -275,6 +492,7 @@ class _SearchHistoryList extends ConsumerWidget {
 
         return _buildHistorySection(
           context,
+          ref,
           sorted.isEmpty
               ? Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 0, 0),
@@ -340,10 +558,12 @@ class _SearchHistoryList extends ConsumerWidget {
                     );
                   },
                 ),
+          hasItems: sorted.isNotEmpty,
         );
       },
       loading: () => _buildHistorySection(
         context,
+        ref,
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 20),
           child: SizedBox(
@@ -351,9 +571,11 @@ class _SearchHistoryList extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
         ),
+        hasItems: false,
       ),
       error: (_, __) => _buildHistorySection(
         context,
+        ref,
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
@@ -378,6 +600,7 @@ class _SearchHistoryList extends ConsumerWidget {
             ],
           ),
         ),
+        hasItems: false,
       ),
     );
   }

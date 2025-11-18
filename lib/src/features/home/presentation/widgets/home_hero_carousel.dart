@@ -56,8 +56,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   static const double _totalHeight = 590;
   static const double _overlayHeight = 210;
 
-  
-
   // Timings
   static const Duration _rotation = Duration(seconds: 9);
   static const Duration _fade = Duration(milliseconds: 800);
@@ -75,6 +73,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   final Set<int> _hydratedIds = <int>{};
   final Set<int> _fullyHydratedIds = <int>{};
   final Map<int, Future<_HeroMeta?>> _metaFutures = <int, Future<_HeroMeta?>>{};
+  final Map<int, bool> _synopsisExpanded = <int, bool>{};
 
   int _index = 0;
   Timer? _timer;
@@ -706,37 +705,22 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      height: _synopsisHeight,
-                      child: AnimatedSwitcher(
+                    if (hasSynopsis)
+                      AnimatedSwitcher(
                         duration: _fade,
                         transitionBuilder: (child, animation) =>
                             FadeTransition(opacity: animation, child: child),
-                        layoutBuilder: (current, previous) => Stack(
-                          alignment: Alignment.centerLeft,
-                          children: [...previous, if (current != null) current],
+                        child: _buildSynopsis(
+                          key: ValueKey('${movie.tmdbId}_synopsis'),
+                          overview: meta!.overview!,
+                          movieId: movie.tmdbId!,
                         ),
-                        child: hasSynopsis
-                            ? Padding(
-                                key: ValueKey('${movie.tmdbId}_synopsis'),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.lg,
-                                ),
-                                child: Text(
-                                  meta!.overview!,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.left,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const SizedBox.shrink(),
+                      )
+                    else
+                      SizedBox(
+                        height: _synopsisHeight,
+                        child: const SizedBox.shrink(),
                       ),
-                    ),
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(
@@ -820,6 +804,103 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         }
       }
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI Helpers
+  // ---------------------------------------------------------------------------
+
+  Widget _buildSynopsis({
+    required Key key,
+    required String overview,
+    required int movieId,
+  }) {
+    final bool isExpanded = _synopsisExpanded[movieId] ?? false;
+
+    return LayoutBuilder(
+      key: key,
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth - (AppSpacing.lg * 2);
+        final bool needsExpansion = _needsExpansion(overview, maxWidth);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: Text(
+                  overview,
+                  maxLines: isExpanded ? null : 3,
+                  overflow: isExpanded
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (needsExpansion)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Center(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        setState(() {
+                          _synopsisExpanded[movieId] = !isExpanded;
+                        });
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            isExpanded
+                                ? AppLocalizations.of(context)!.actionCollapse
+                                : AppLocalizations.of(context)!.actionExpand,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            isExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: Colors.white70,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _needsExpansion(String text, double maxWidth) {
+    // Vérifier si le texte dépasse 3 lignes en utilisant un TextPainter
+    final TextPainter painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+      maxLines: 3,
+      textDirection: TextDirection.ltr,
+    );
+    painter.layout(maxWidth: maxWidth);
+    return painter.didExceedMaxLines;
   }
 
   // ---------------------------------------------------------------------------

@@ -419,6 +419,12 @@ abstract class AppLocalizations {
   /// **'No trending content available'**
   String get homeNoTrends;
 
+  /// No description provided for @actionRefreshMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh metadata'**
+  String get actionRefreshMetadata;
+
   /// No description provided for @actionChangeMetadata.
   ///
   /// In en, this message translates to:
@@ -430,6 +436,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to a list'**
   String get actionAddToList;
+
+  /// No description provided for @metadataRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata refreshed'**
+  String get metadataRefreshed;
+
+  /// No description provided for @errorRefreshingMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Error refreshing metadata'**
+  String get errorRefreshingMetadata;
 
   /// No description provided for @actionMarkSeen.
   ///
@@ -575,6 +593,18 @@ abstract class AppLocalizations {
   /// **'Expand'**
   String get actionExpand;
 
+  /// No description provided for @actionCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse'**
+  String get actionCollapse;
+
+  /// No description provided for @actionClearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear history'**
+  String get actionClearHistory;
+
   /// No description provided for @castTitle.
   ///
   /// In en, this message translates to:
@@ -604,6 +634,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No content available yet.'**
   String get libraryEmpty;
+
+  /// No description provided for @serie.
+  ///
+  /// In en, this message translates to:
+  /// **'Series'**
+  String get serie;
+
+  /// No description provided for @recherche.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get recherche;
+
+  /// No description provided for @notYetAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not yet available'**
+  String get notYetAvailable;
 }
 
 class _AppLocalizationsDelegate

@@ -27,6 +27,9 @@ dependencies:
   pool: ^1.5.2
   flutter_secure_storage: ^9.2.4
   clock: ^1.1.2
+  media_kit: ^1.2.2
+  media_kit_video: ^2.0.0
+  media_kit_libs_video: ^1.0.7
 
 dev_dependencies:
   flutter_test:

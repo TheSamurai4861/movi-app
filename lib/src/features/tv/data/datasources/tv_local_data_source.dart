@@ -58,4 +58,9 @@ class TvLocalDataSource {
     if (cached == null) return null;
     return TmdbTvSeasonDetailDto.fromCache(cached);
   }
+
+  /// Supprime le cache des métadonnées d'une série.
+  Future<void> clearShowDetail(int showId) async {
+    await _cacheRepository.remove(_detailKey(showId));
+  }
 }

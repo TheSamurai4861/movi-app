@@ -177,10 +177,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get homeNoTrends => 'Geen trending inhoud beschikbaar';
 
   @override
-  String get actionChangeMetadata => 'Change metadata';
+  String get actionRefreshMetadata => 'Metadata vernieuwen';
 
   @override
-  String get actionAddToList => 'Add to a list';
+  String get actionChangeMetadata => 'Metadata wijzigen';
+
+  @override
+  String get actionAddToList => 'Toevoegen aan een lijst';
+
+  @override
+  String get metadataRefreshed => 'Metadata vernieuwd';
+
+  @override
+  String get errorRefreshingMetadata => 'Fout bij vernieuwen van metadata';
 
   @override
   String get actionMarkSeen => 'Mark as seen';
@@ -255,6 +264,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get actionExpand => 'Uitklappen';
 
   @override
+  String get actionCollapse => 'Inklappen';
+
+  @override
+  String get actionClearHistory => 'Geschiedenis wissen';
+
+  @override
   String get castTitle => 'Cast';
 
   @override
@@ -269,4 +284,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get libraryEmpty => 'Geen inhoud beschikbaar op dit moment.';
+
+  @override
+  String get serie => 'Serie';
+
+  @override
+  String get recherche => 'Zoeken';
+
+  @override
+  String get notYetAvailable => 'Nog niet beschikbaar';
 }

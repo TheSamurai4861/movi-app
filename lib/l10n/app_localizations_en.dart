@@ -172,10 +172,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNoTrends => 'No trending content available';
 
   @override
+  String get actionRefreshMetadata => 'Refresh metadata';
+
+  @override
   String get actionChangeMetadata => 'Change metadata';
 
   @override
   String get actionAddToList => 'Add to a list';
+
+  @override
+  String get metadataRefreshed => 'Metadata refreshed';
+
+  @override
+  String get errorRefreshingMetadata => 'Error refreshing metadata';
 
   @override
   String get actionMarkSeen => 'Mark as seen';
@@ -250,6 +259,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionExpand => 'Expand';
 
   @override
+  String get actionCollapse => 'Collapse';
+
+  @override
+  String get actionClearHistory => 'Clear history';
+
+  @override
   String get castTitle => 'Cast';
 
   @override
@@ -264,4 +279,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get libraryEmpty => 'No content available yet.';
+
+  @override
+  String get serie => 'Series';
+
+  @override
+  String get recherche => 'Search';
+
+  @override
+  String get notYetAvailable => 'Not yet available';
 }

@@ -175,10 +175,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String get homeNoTrends => 'Aucune tendance disponible';
 
   @override
+  String get actionRefreshMetadata => 'Rafraîchir les métadonnées';
+
+  @override
   String get actionChangeMetadata => 'Changer les métadonnées';
 
   @override
   String get actionAddToList => 'Ajouter à une liste';
+
+  @override
+  String get metadataRefreshed => 'Métadonnées rafraîchies';
+
+  @override
+  String get errorRefreshingMetadata =>
+      'Erreur lors du rafraîchissement des métadonnées';
 
   @override
   String get actionMarkSeen => 'Marquer comme vu';
@@ -254,6 +264,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get actionExpand => 'Agrandir';
 
   @override
+  String get actionCollapse => 'Rétrécir';
+
+  @override
+  String get actionClearHistory => 'Supprimer l\'historique';
+
+  @override
   String get castTitle => 'Distribution';
 
   @override
@@ -268,6 +284,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get libraryEmpty => 'Aucun contenu disponible pour le moment.';
+
+  @override
+  String get serie => 'Série';
+
+  @override
+  String get recherche => 'Recherche';
+
+  @override
+  String get notYetAvailable => 'Pas encore disponible';
 }
 
 /// The translations for French, as used in Myanmar (`fr_MM`).
@@ -441,10 +466,20 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
   String get homeNoTrends => 'Point de tendances';
 
   @override
+  String get actionRefreshMetadata => 'Rafraîchir les bilboquets';
+
+  @override
   String get actionChangeMetadata => 'Changer les bilboquets';
 
   @override
   String get actionAddToList => 'Mettre en la liste';
+
+  @override
+  String get metadataRefreshed => 'Bilboquets rafraîchis';
+
+  @override
+  String get errorRefreshingMetadata =>
+      'Couac lors du rafraîchissement des bilboquets';
 
   @override
   String get actionMarkSeen => 'Marquer comme vu';
@@ -519,6 +554,12 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
   String get actionExpand => 'Élargir';
 
   @override
+  String get actionCollapse => 'Rétrécir';
+
+  @override
+  String get actionClearHistory => 'Pourfendre la chronique';
+
+  @override
   String get castTitle => 'Troupe';
 
   @override
@@ -529,8 +570,17 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
 
   @override
   String get libraryDataInfo =>
-      'Les données s’afficheront quand la couche data/domain sera arrimée.';
+      'Les données s\'afficheront quand la couche data/domain sera arrimée.';
 
   @override
-  String get libraryEmpty => 'Point de contenu pour l’instant.';
+  String get libraryEmpty => 'Point de contenu pour l\'instant.';
+
+  @override
+  String get serie => 'Feuilleton';
+
+  @override
+  String get recherche => 'Quête';
+
+  @override
+  String get notYetAvailable => 'Pas encore disponible';
 }

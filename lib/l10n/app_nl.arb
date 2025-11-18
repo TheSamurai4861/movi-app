@@ -63,11 +63,21 @@
   "homeNoIptvSources": "Geen IPTV-bron actief. Voeg een bron toe in Instellingen om je categorieën te zien.",
   "homeNoTrends": "Geen trending inhoud beschikbaar"
   ,
+  "actionRefreshMetadata": "Metadata vernieuwen",
+  "actionChangeMetadata": "Metadata wijzigen",
+  "actionAddToList": "Toevoegen aan een lijst",
+  "metadataRefreshed": "Metadata vernieuwd",
+  "errorRefreshingMetadata": "Fout bij vernieuwen van metadata",
   "actionBack": "Terug",
   "actionExpand": "Uitklappen",
+  "actionCollapse": "Inklappen",
+  "actionClearHistory": "Geschiedenis wissen",
   "castTitle": "Cast",
   "recommendationsTitle": "Aanbevelingen",
   "libraryHeader": "Jouw videotheek",
   "libraryDataInfo": "Gegevens worden getoond zodra data/domain is geïmplementeerd.",
-  "libraryEmpty": "Geen inhoud beschikbaar op dit moment."
+  "libraryEmpty": "Geen inhoud beschikbaar op dit moment.",
+  "serie": "Serie",
+  "recherche": "Zoeken",
+  "notYetAvailable": "Nog niet beschikbaar"
 }

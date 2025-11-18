@@ -17,6 +17,9 @@ import 'package:movi/src/features/home/presentation/pages/home_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
 import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
 import 'package:movi/src/features/person/presentation/pages/person_detail_page.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/features/player/presentation/pages/video_player_page.dart';
+import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/saga/presentation/pages/saga_detail_page.dart';
 import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
@@ -43,6 +46,7 @@ class AppRouteNames {
   static const category = '/category';
   static const saga = '/saga';
   static const tv = '/tv';
+  static const player = '/player';
 }
 
 GoRouter createRouter({
@@ -149,7 +153,9 @@ class _RouterBundle {
           path: AppRouteNames.movie,
           name: 'movie_detail',
           pageBuilder: (context, state) {
-            final media = state.extra is MoviMedia ? state.extra as MoviMedia : null;
+            final media = state.extra is MoviMedia
+                ? state.extra as MoviMedia
+                : null;
             return CustomTransitionPage(
               child: MovieDetailPage(media: media),
               transitionsBuilder: _fadeTransition,
@@ -161,8 +167,14 @@ class _RouterBundle {
         GoRoute(
           path: AppRouteNames.person,
           name: 'person_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: PersonDetailPage()),
+          pageBuilder: (context, state) {
+            final personSummary = state.extra is PersonSummary
+                ? state.extra as PersonSummary
+                : null;
+            return MaterialPage(
+              child: PersonDetailPage(personSummary: personSummary),
+            );
+          },
         ),
         GoRoute(
           path: AppRouteNames.category,
@@ -183,8 +195,29 @@ class _RouterBundle {
         GoRoute(
           path: AppRouteNames.tv,
           name: 'tv_detail',
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: TvDetailPage()),
+          pageBuilder: (context, state) {
+            final media = state.extra is MoviMedia
+                ? state.extra as MoviMedia
+                : null;
+            return CustomTransitionPage(
+              child: TvDetailPage(media: media),
+              transitionsBuilder: _fadeTransition,
+              transitionDuration: const Duration(milliseconds: 300),
+              reverseTransitionDuration: const Duration(milliseconds: 300),
+            );
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.player,
+          name: 'player',
+          pageBuilder: (context, state) {
+            final videoSource = state.extra is VideoSource
+                ? state.extra as VideoSource
+                : null;
+            return MaterialPage(
+              child: VideoPlayerPage(videoSource: videoSource),
+            );
+          },
         ),
         GoRoute(
           path: '/settings/iptv/connect',

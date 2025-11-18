@@ -137,7 +137,7 @@ class MoviBottomNavBar extends StatelessWidget {
   }
 }
 
-class _MoviBottomNavItemWidget extends StatelessWidget {
+class _MoviBottomNavItemWidget extends StatefulWidget {
   const _MoviBottomNavItemWidget({
     required this.item,
     required this.index,
@@ -157,18 +157,94 @@ class _MoviBottomNavItemWidget extends StatelessWidget {
   final TextStyle? textStyle;
 
   @override
+  State<_MoviBottomNavItemWidget> createState() =>
+      _MoviBottomNavItemWidgetState();
+}
+
+class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _translateAnimation;
+  String _currentIcon = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIcon = widget.isSelected
+        ? widget.item.activeIcon
+        : widget.item.inactiveIcon;
+    if (_currentIcon.isEmpty) {
+      _currentIcon = widget.item.inactiveIcon.isNotEmpty
+          ? widget.item.inactiveIcon
+          : widget.item.activeIcon;
+    }
+    _controller = AnimationController(
+      duration: _kAnimationDuration,
+      vsync: this,
+    );
+
+    _translateAnimation = Tween<double>(
+      begin: 0.0,
+      end: -4.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+    if (widget.isSelected) {
+      _controller.forward();
+    }
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed && !widget.isSelected) {
+        if (mounted) {
+          final newIcon = widget.item.inactiveIcon.isNotEmpty
+              ? widget.item.inactiveIcon
+              : widget.item.activeIcon;
+          setState(() {
+            _currentIcon = newIcon;
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(_MoviBottomNavItemWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected != oldWidget.isSelected) {
+      if (widget.isSelected) {
+        final newIcon = widget.item.activeIcon.isNotEmpty
+            ? widget.item.activeIcon
+            : widget.item.inactiveIcon;
+        setState(() {
+          _currentIcon = newIcon;
+        });
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final effectiveStyle = (textStyle ?? const TextStyle(fontSize: 12))
+    final effectiveStyle = (widget.textStyle ?? const TextStyle(fontSize: 12))
         .copyWith(
           fontSize: 12,
           fontWeight: FontWeight.w400,
-          color: isSelected ? selectedTextColor : unselectedTextColor,
+          color: widget.isSelected
+              ? widget.selectedTextColor
+              : widget.unselectedTextColor,
         );
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => onTap(index),
+        onTap: () => widget.onTap(widget.index),
         borderRadius: BorderRadius.circular(999),
         splashColor: Colors.white24,
         highlightColor: Colors.white10,
@@ -176,35 +252,66 @@ class _MoviBottomNavItemWidget extends StatelessWidget {
           duration: _kAnimationDuration,
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            color: isSelected ? _kSelectedBackground : Colors.transparent,
+            color: widget.isSelected
+                ? _kSelectedBackground
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(999),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                isSelected ? item.activeIcon : item.inactiveIcon,
-                width: 24,
-                height: 24,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.medium,
+              AnimatedBuilder(
+                animation: _translateAnimation,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _translateAnimation.value),
+                    child: _currentIcon.isNotEmpty
+                        ? Image.asset(
+                            _currentIcon,
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.medium,
+                          )
+                        : Image.asset(
+                            widget.isSelected
+                                ? widget.item.activeIcon
+                                : widget.item.inactiveIcon,
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.contain,
+                            filterQuality: FilterQuality.medium,
+                          ),
+                  );
+                },
               ),
               AnimatedSwitcher(
                 duration: _kAnimationDuration,
-                child: isSelected
-                    ? Padding(
-                        key: ValueKey('label-${item.label}'),
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          item.label,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: effectiveStyle,
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: widget.isSelected
+                    ? AnimatedDefaultTextStyle(
+                        key: ValueKey(
+                          'label-${widget.item.label}-${widget.isSelected}',
+                        ),
+                        duration: _kAnimationDuration,
+                        style: effectiveStyle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            widget.item.label,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
                       )
-                    : SizedBox.shrink(key: ValueKey('empty-${item.label}')),
+                    : SizedBox.shrink(
+                        key: ValueKey(
+                          'empty-${widget.item.label}-${widget.isSelected}',
+                        ),
+                      ),
               ),
             ],
           ),

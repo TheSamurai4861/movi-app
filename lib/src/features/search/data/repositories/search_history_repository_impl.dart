@@ -15,4 +15,7 @@ class SearchHistoryRepositoryImpl implements SearchHistoryRepository {
 
   @override
   Future<void> remove(String query) => _local.remove(query);
+
+  @override
+  Future<void> clear() => _local.clear();
 }

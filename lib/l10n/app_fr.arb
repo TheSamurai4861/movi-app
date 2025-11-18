@@ -69,8 +69,11 @@
   "homeNoIptvSources": "Aucune source IPTV active. Ajoutez une source dans Paramètres pour voir vos catégories.",
   "homeNoTrends": "Aucune tendance disponible"
   ,
+  "actionRefreshMetadata": "Rafraîchir les métadonnées",
   "actionChangeMetadata": "Changer les métadonnées",
   "actionAddToList": "Ajouter à une liste",
+  "metadataRefreshed": "Métadonnées rafraîchies",
+  "errorRefreshingMetadata": "Erreur lors du rafraîchissement des métadonnées",
   "actionMarkSeen": "Marquer comme vu",
   "actionMarkUnseen": "Marquer comme non vu",
   "actionReportProblem": "Signaler un problème",
@@ -95,9 +98,14 @@
   "iptvUsernameHint": "Identifiant Xtream",
   "actionBack": "Retour",
   "actionExpand": "Agrandir",
+  "actionCollapse": "Rétrécir",
+  "actionClearHistory": "Supprimer l'historique",
   "castTitle": "Distribution",
   "recommendationsTitle": "Recommandations",
   "libraryHeader": "Votre vidéothèque",
   "libraryDataInfo": "Les données seront affichées lorsque la couche data/domain sera implémentée.",
-  "libraryEmpty": "Aucun contenu disponible pour le moment."
+  "libraryEmpty": "Aucun contenu disponible pour le moment.",
+  "serie": "Série",
+  "recherche": "Recherche",
+  "notYetAvailable": "Pas encore disponible"
 }

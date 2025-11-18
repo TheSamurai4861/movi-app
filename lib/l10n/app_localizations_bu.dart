@@ -11,7 +11,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get welcomeTitle => "Que nenni ! Bienv'nû !";
   @override
-  String get welcomeSubtitle => "Remplis tes préférences, c’est point couettos mais utile.";
+  String get welcomeSubtitle =>
+      "Remplis tes préférences, c’est point couettos mais utile.";
   @override
   String get labelUsername => 'Sobriquet';
   @override
@@ -27,7 +28,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get welcomeSourceTitle => "Bienv'nû !";
   @override
-  String get welcomeSourceSubtitle => 'Ajoute une source, que diable, pour personnaliser Movi.';
+  String get welcomeSourceSubtitle =>
+      'Ajoute une source, que diable, pour personnaliser Movi.';
   @override
   String get welcomeSourceAdd => 'Ajouter la souce';
   @override
@@ -61,7 +63,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get validationInvalidUrl => 'L’adresse est point bonne';
   @override
-  String get snackbarSourceAddedBackground => 'Source IPTV ajoutée. Ça s’active en coulisse…';
+  String get snackbarSourceAddedBackground =>
+      'Source IPTV ajoutée. Ça s’active en coulisse…';
   @override
   String get snackbarSourceAddedSynced => 'Source IPTV ajoutée et arrimée';
   @override
@@ -81,7 +84,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get settingsDarkModeTitle => 'Nuit noire';
   @override
-  String get settingsDarkModeSubtitle => 'Active un thème pour besogner la nuit.';
+  String get settingsDarkModeSubtitle =>
+      'Active un thème pour besogner la nuit.';
   @override
   String get settingsNotificationsTitle => 'Avises';
   @override
@@ -105,33 +109,35 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get actionRetry => 'Recommencer';
   @override
-  String get homeErrorSwipeToRetry => 'Un couac est advenu. Tire en bas pour réessayer.';
+  String get homeErrorSwipeToRetry =>
+      'Un couac est advenu. Tire en bas pour réessayer.';
   @override
   String get homeContinueWatching => 'En cours';
   @override
-  String get homeNoIptvSources => 'Point de source IPTV. Ajoute-en dans Ajustes pour voir tes catégories.';
+  String get homeNoIptvSources =>
+      'Point de source IPTV. Ajoute-en dans Ajustes pour voir tes catégories.';
   @override
   String get homeNoTrends => 'Point de tendances';
-  
+
   @override
   String get actionBack => 'Retour';
-  
+
   @override
   String get actionExpand => 'Élargir';
-  
+
   @override
   String get castTitle => 'Troupe';
-  
+
   @override
   String get libraryDataInfo =>
       'Les données s’afficheront quand la couche data/domain sera arrimée.';
-  
+
   @override
   String get libraryEmpty => 'Point de contenu pour l’instant.';
-  
+
   @override
   String get libraryHeader => 'Ta réserve';
-  
+
   @override
   String get recommendationsTitle => 'Conseils';
   @override
@@ -179,7 +185,24 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get faqLabel => 'FAQ';
   @override
-  String get iptvUsernameLabel => 'Nom d’utilisateur';
+  String get iptvUsernameLabel => 'Nom d\'utilisateur';
   @override
   String get iptvUsernameHint => 'Identifiant Xtream';
+  @override
+  String get actionRefreshMetadata => 'Rafraîchir les billets';
+  @override
+  String get metadataRefreshed => 'Billets rafraîchis';
+  @override
+  String get errorRefreshingMetadata =>
+      'Couac lors du rafraîchissement des billets';
+  @override
+  String get actionCollapse => 'Rétrécir';
+  @override
+  String get actionClearHistory => 'Pourfendre l\'historique';
+  @override
+  String get serie => 'Feuilletons';
+  @override
+  String get recherche => 'Quête';
+  @override
+  String get notYetAvailable => 'Point encore disponible';
 }

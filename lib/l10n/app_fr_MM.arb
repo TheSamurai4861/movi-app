@@ -63,8 +63,11 @@
   "homeNoIptvSources": "Point de source IPTV. Ajoute-en dans Ajustes pour voir tes catégories.",
   "homeNoTrends": "Point de tendances"
   ,
+  "actionRefreshMetadata": "Rafraîchir les bilboquets",
   "actionChangeMetadata": "Changer les bilboquets",
   "actionAddToList": "Mettre en la liste",
+  "metadataRefreshed": "Bilboquets rafraîchis",
+  "errorRefreshingMetadata": "Couac lors du rafraîchissement des bilboquets",
   "actionMarkSeen": "Marquer comme vu",
   "actionMarkUnseen": "Marquer comme point vu",
   "actionReportProblem": "Signaler un couac",
@@ -89,9 +92,14 @@
   "iptvUsernameHint": "Identifiant Xtream",
   "actionBack": "Retour",
   "actionExpand": "Élargir",
+  "actionCollapse": "Rétrécir",
+  "actionClearHistory": "Pourfendre la chronique",
   "castTitle": "Troupe",
   "recommendationsTitle": "Conseils",
   "libraryHeader": "Ta réserve",
-  "libraryDataInfo": "Les données s’afficheront quand la couche data/domain sera arrimée.",
-  "libraryEmpty": "Point de contenu pour l’instant."
+  "libraryDataInfo": "Les données s'afficheront quand la couche data/domain sera arrimée.",
+  "libraryEmpty": "Point de contenu pour l'instant.",
+  "serie": "Feuilleton",
+  "recherche": "Quête",
+  "notYetAvailable": "Pas encore disponible"
 }

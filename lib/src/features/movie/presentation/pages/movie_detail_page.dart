@@ -8,7 +8,17 @@ import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/core/security/credentials_vault.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
+import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
 class MovieDetailPage extends ConsumerStatefulWidget {
   const MovieDetailPage({super.key, this.media});
@@ -62,17 +72,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     }
     final vmAsync = ref.watch(movieDetailControllerProvider(widget.media!.id));
     return vmAsync.when(
-      loading: () => _buildWithValues(
-        mediaTitle: mediaTitle,
-        yearText: yearText,
-        durationText: '—',
-        ratingText: ratingText,
-        overviewText: '',
-        cast: const [],
-        recommendations: const [],
-        isLoading: true,
-        poster: widget.media?.poster,
-        backdrop: null,
+      loading: () => Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: const OverlaySplash(),
       ),
       error: (e, st) => _buildErrorScaffold(e),
       data: (vm) => _buildWithValues(
@@ -320,7 +322,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                             ),
                                           ),
                                         ),
-                                        onPressed: () {},
+                                        onPressed: () => _playMovie(
+                                          context,
+                                          widget.media!.id,
+                                          mediaTitle,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 16),
@@ -336,44 +342,49 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              SizedBox(
-                                width: 353,
-                                child: Column(
-                                  children: [
-                                    AnimatedSize(
-                                      duration: const Duration(
-                                        milliseconds: 300,
-                                      ),
-                                      curve: Curves.easeInOut,
-                                      alignment: Alignment.topLeft,
-                                      child: ConstrainedBox(
-                                        constraints: _overviewExpanded
-                                            ? const BoxConstraints()
-                                            : const BoxConstraints(
-                                                maxHeight: 90,
-                                              ),
-                                        child: Stack(
-                                          children: [
-                                            Text(
-                                              overviewText,
-                                              style: Theme.of(
-                                                context,
-                                              ).textTheme.bodyLarge,
-                                              softWrap: true,
-                                            ),
-                                            if (!_overviewExpanded)
-                                              Positioned(
-                                                left: 0,
-                                                right: 0,
-                                                bottom: 0,
-                                                child: IgnorePointer(
-                                                  ignoring: true,
-                                                  child: Container(
-                                                    height: 41,
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                          gradient:
-                                                              LinearGradient(
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final screenWidth = MediaQuery.of(
+                                    context,
+                                  ).size.width;
+                                  final synopsisWidth = screenWidth - 40;
+                                  return SizedBox(
+                                    width: synopsisWidth,
+                                    child: Column(
+                                      children: [
+                                        AnimatedSize(
+                                          duration: const Duration(
+                                            milliseconds: 300,
+                                          ),
+                                          curve: Curves.easeInOut,
+                                          alignment: Alignment.topLeft,
+                                          child: ConstrainedBox(
+                                            constraints: _overviewExpanded
+                                                ? const BoxConstraints()
+                                                : const BoxConstraints(
+                                                    maxHeight: 90,
+                                                  ),
+                                            child: Stack(
+                                              children: [
+                                                Text(
+                                                  overviewText,
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge,
+                                                  softWrap: true,
+                                                ),
+                                                if (!_overviewExpanded)
+                                                  Positioned(
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    child: IgnorePointer(
+                                                      ignoring: true,
+                                                      child: Container(
+                                                        height: 41,
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                              gradient: LinearGradient(
                                                                 begin: Alignment
                                                                     .topCenter,
                                                                 end: Alignment
@@ -387,65 +398,72 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                                                   ),
                                                                 ],
                                                               ),
-                                                        ),
+                                                            ),
+                                                      ),
+                                                    ),
                                                   ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        SizedBox(
+                                          width: 102,
+                                          height: 25,
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              GestureDetector(
+                                                behavior:
+                                                    HitTestBehavior.opaque,
+                                                onTap: () {
+                                                  setState(() {
+                                                    _overviewExpanded =
+                                                        !_overviewExpanded;
+                                                  });
+                                                },
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      _overviewExpanded
+                                                          ? AppLocalizations.of(
+                                                              context,
+                                                            )!.actionCollapse
+                                                          : AppLocalizations.of(
+                                                              context,
+                                                            )!.actionExpand,
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Colors.white70,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Icon(
+                                                      _overviewExpanded
+                                                          ? Icons
+                                                                .keyboard_arrow_up
+                                                          : Icons
+                                                                .keyboard_arrow_down,
+                                                      color: Colors.white70,
+                                                      size: 20,
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 10),
-                                    SizedBox(
-                                      width: 102,
-                                      height: 25,
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          GestureDetector(
-                                            behavior: HitTestBehavior.opaque,
-                                            onTap: () {
-                                              setState(() {
-                                                _overviewExpanded =
-                                                    !_overviewExpanded;
-                                              });
-                                            },
-                                            child: Text(
-                                              AppLocalizations.of(
-                                                context,
-                                              )!.actionExpand,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          SizedBox(
-                                            width: 25,
-                                            height: 25,
-                                            child: AnimatedRotation(
-                                              turns: _overviewExpanded
-                                                  ? 0.5
-                                                  : 0.0,
-                                              duration: const Duration(
-                                                milliseconds: 500,
-                                              ),
-                                              curve: Curves.easeInOut,
-                                              child: Image.asset(
-                                                AppAssets.iconExtend,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -478,7 +496,22 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                     const SizedBox(width: 16),
                                 itemBuilder: (context, index) {
                                   final p = cast[index];
-                                  return MoviPersonCard(person: p);
+                                  return MoviPersonCard(
+                                    person: p,
+                                    onTap: (person) {
+                                      // Convertir MoviPerson en PersonSummary pour la navigation
+                                      final personSummary = PersonSummary(
+                                        id: PersonId(person.id),
+                                        name: person.name,
+                                        role: person.role,
+                                        photo: person.poster,
+                                      );
+                                      context.push(
+                                        AppRouteNames.person,
+                                        extra: personSummary,
+                                      );
+                                    },
+                                  );
                                 },
                               ),
                             ),
@@ -535,13 +568,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     }
     final mq = MediaQuery.of(context);
     final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
-    final int cacheWidth = rawPx.clamp(480, 1440);
+    final int cacheWidth = rawPx.clamp(480, 1920);
     return Image.network(
       uri.toString(),
       fit: BoxFit.cover,
       gaplessPlayback: true,
       cacheWidth: cacheWidth,
-      filterQuality: FilterQuality.low,
+      filterQuality: FilterQuality.medium,
       alignment: const Alignment(0.0, -0.5),
     );
   }
@@ -553,6 +586,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         return CupertinoActionSheet(
           title: Text(mediaTitle),
           actions: <Widget>[
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _onRefreshMetadata();
+              },
+              child: Text(AppLocalizations.of(context)!.actionRefreshMetadata),
+            ),
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(ctx).pop();
@@ -594,11 +634,172 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
+  void _onRefreshMetadata() async {
+    if (widget.media == null) return;
+    try {
+      final locator = ref.read(slProvider);
+      final repo = locator<MovieRepository>();
+      final id = MovieId(widget.media!.id);
+      await repo.refreshMetadata(id);
+      // Invalider le provider pour forcer le rechargement
+      ref.invalidate(movieDetailControllerProvider(widget.media!.id));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.metadataRefreshed),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorRefreshingMetadata,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   void _onChangeMetadata() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.featureComingSoon)),
     );
+  }
+
+  Future<void> _playMovie(
+    BuildContext context,
+    String movieId,
+    String title,
+  ) async {
+    try {
+      final locator = ref.read(slProvider);
+      final iptvLocal = locator<IptvLocalRepository>();
+      final vault = locator<CredentialsVault>();
+      final logger = locator<AppLogger>();
+      final urlBuilder = XtreamStreamUrlBuilder(
+        iptvLocal: iptvLocal,
+        vault: vault,
+      );
+
+      // Chercher l'item Xtream correspondant
+      XtreamPlaylistItem? xtreamItem;
+      final accounts = await iptvLocal.getAccounts();
+
+      logger.debug(
+        'Recherche du film movieId=$movieId dans ${accounts.length} comptes',
+      );
+
+      for (final account in accounts) {
+        final playlists = await iptvLocal.getPlaylists(account.id);
+        logger.debug('Compte ${account.id}: ${playlists.length} playlists');
+
+        // Recherche globale dans toutes les playlists (movies et series)
+        // car certains films peuvent être mal catégorisés
+        for (final playlist in playlists) {
+          logger.debug(
+            'Playlist ${playlist.title} (${playlist.type.name}): ${playlist.items.length} items',
+          );
+
+          // Si l'ID commence par "xtream:", chercher par streamId
+          if (movieId.startsWith('xtream:')) {
+            final streamIdStr = movieId.substring(7);
+            final streamId = int.tryParse(streamIdStr);
+            logger.debug('Recherche par streamId=$streamId (xtream)');
+            if (streamId != null) {
+              try {
+                // Chercher dans tous les items, peu importe le type
+                xtreamItem = playlist.items.firstWhere(
+                  (item) => item.streamId == streamId,
+                );
+                logger.debug(
+                  'Film trouvé: ${xtreamItem.title} (streamId=${xtreamItem.streamId}, tmdbId=${xtreamItem.tmdbId}, type=${xtreamItem.type.name})',
+                );
+              } catch (_) {
+                // Item non trouvé, continuer la recherche
+                logger.debug(
+                  'Film avec streamId=$streamId non trouvé dans ${playlist.title}',
+                );
+              }
+            }
+          } else {
+            // Sinon, chercher par tmdbId
+            final tmdbId = int.tryParse(movieId);
+            logger.debug('Recherche par tmdbId=$tmdbId');
+            if (tmdbId != null) {
+              try {
+                // Chercher dans tous les items, peu importe le type
+                xtreamItem = playlist.items.firstWhere(
+                  (item) => item.tmdbId == tmdbId,
+                );
+                logger.debug(
+                  'Film trouvé: ${xtreamItem.title} (streamId=${xtreamItem.streamId}, tmdbId=${xtreamItem.tmdbId}, type=${xtreamItem.type.name})',
+                );
+              } catch (_) {
+                // Item non trouvé, continuer la recherche
+                logger.debug(
+                  'Film avec tmdbId=$tmdbId non trouvé dans ${playlist.title}',
+                );
+              }
+            }
+          }
+
+          if (xtreamItem != null) break;
+        }
+        if (xtreamItem != null) break;
+      }
+
+      if (xtreamItem == null) {
+        logger.info('Film movieId=$movieId non trouvé dans les playlists');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Film non disponible dans la playlist')),
+        );
+        return;
+      }
+
+      // Construire l'URL de streaming
+      // Vérifier que c'est bien un film, sinon adapter
+      String? streamUrl;
+      if (xtreamItem.type == XtreamPlaylistItemType.movie) {
+        streamUrl = await urlBuilder.buildStreamUrlFromMovieItem(xtreamItem);
+      } else {
+        // Si c'est une série trouvée par erreur, on ne peut pas la lire comme un film
+        logger.warn(
+          'Item trouvé est de type ${xtreamItem.type.name}, pas un film',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Le média trouvé n\'est pas un film')),
+        );
+        return;
+      }
+
+      if (streamUrl == null) {
+        logger.error(
+          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Impossible de construire l\'URL de streaming'),
+          ),
+        );
+        return;
+      }
+
+      logger.debug('URL de streaming construite: $streamUrl');
+
+      // Ouvrir le player
+      context.push(
+        AppRouteNames.player,
+        extra: VideoSource(url: streamUrl, title: title),
+      );
+    } catch (e, st) {
+      final logger = ref.read(slProvider)<AppLogger>();
+      logger.error('Erreur lors de la lecture du film: $e', e, st);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
   }
 }

@@ -45,9 +45,18 @@ class TvRepositoryImpl implements TvRepository {
   // Concurrence bornée pour le chargement des saisons (évite de spam TMDB)
   static const int _maxConcurrentSeasons = 4;
 
+  /// Extrait l'ID numérique d'un SeriesId, gérant les formats "xtream:ID" et "ID".
+  int _extractNumericId(SeriesId id) {
+    final value = id.value;
+    if (value.startsWith('xtream:')) {
+      return int.parse(value.substring(7));
+    }
+    return int.parse(value);
+  }
+
   @override
   Future<TvShow> getShow(SeriesId id) async {
-    final int showId = int.parse(id.value);
+    final int showId = _extractNumericId(id);
 
     // 1) Détail complet (cache → réseau)
     final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
@@ -61,8 +70,19 @@ class TvRepositoryImpl implements TvRepository {
   }
 
   @override
+  Future<TvShow> getShowLite(SeriesId id) async {
+    final int showId = _extractNumericId(id);
+
+    // 1) Détail complet (cache → réseau)
+    final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
+
+    // 2) Mapping avec saisons vides (sans épisodes)
+    return _mapShowLite(detail);
+  }
+
+  @override
   Future<List<Season>> getSeasons(SeriesId id) async {
-    final int showId = int.parse(id.value);
+    final int showId = _extractNumericId(id);
     final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
     final Map<int, TmdbTvSeasonDetailDto> seasonDetails =
         await _loadSeasonsBatched(showId, detail.seasons);
@@ -71,7 +91,7 @@ class TvRepositoryImpl implements TvRepository {
 
   @override
   Future<List<Episode>> getEpisodes(SeriesId id, SeasonId seasonId) async {
-    final int showId = int.parse(id.value);
+    final int showId = _extractNumericId(id);
     final int seasonNumber = int.parse(seasonId.value);
     final TmdbTvSeasonDetailDto season = await _loadSeasonDto(
       showId,
@@ -145,6 +165,12 @@ class TvRepositoryImpl implements TvRepository {
   @override
   Future<bool> isInWatchlist(SeriesId id) =>
       _watchlist.exists(id.value, ContentType.series);
+
+  @override
+  Future<void> refreshMetadata(SeriesId id) async {
+    final int showId = _extractNumericId(id);
+    await _local.clearShowDetail(showId);
+  }
 
   @override
   Future<void> setWatchlist(SeriesId id, {required bool saved}) async {
@@ -248,7 +274,7 @@ class TvRepositoryImpl implements TvRepository {
     TmdbTvDetailDto dto,
     Map<int, TmdbTvSeasonDetailDto> seasonDetails,
   ) {
-    final poster = _images.poster(dto.posterPath, size: 'w342');
+    final poster = _images.poster(dto.posterPath, size: 'w780');
     if (poster == null) {
       // On évite un crash dur : valeur sûre minimale
       throw StateError('TV show ${dto.id} missing poster');
@@ -260,11 +286,12 @@ class TvRepositoryImpl implements TvRepository {
       title: MediaTitle(dto.name),
       synopsis: Synopsis(dto.overview),
       poster: poster,
-      backdrop: _images.backdrop(dto.backdropPath),
+      backdrop: _images.backdrop(dto.backdropPath, size: 'w1280'),
       firstAirDate: _parseDate(dto.firstAirDate),
       lastAirDate: _parseDate(dto.lastAirDate),
       status: _mapStatus(dto.status),
       rating: _mapRating(dto.voteAverage),
+      voteAverage: dto.voteAverage,
       genres: dto.genres,
       cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
       creators: dto.creators
@@ -277,6 +304,56 @@ class TvRepositoryImpl implements TvRepository {
           )
           .toList(growable: false),
       seasons: _mapSeasons(dto.seasons, seasonDetails),
+    );
+  }
+
+  TvShow _mapShowLite(TmdbTvDetailDto dto) {
+    final poster = _images.poster(dto.posterPath, size: 'w780');
+    if (poster == null) {
+      // On évite un crash dur : valeur sûre minimale
+      throw StateError('TV show ${dto.id} missing poster');
+    }
+
+    return TvShow(
+      id: SeriesId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.name),
+      synopsis: Synopsis(dto.overview),
+      poster: poster,
+      backdrop: _images.backdrop(dto.backdropPath, size: 'w1280'),
+      firstAirDate: _parseDate(dto.firstAirDate),
+      lastAirDate: _parseDate(dto.lastAirDate),
+      status: _mapStatus(dto.status),
+      rating: _mapRating(dto.voteAverage),
+      voteAverage: dto.voteAverage,
+      genres: dto.genres,
+      cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
+      creators: dto.creators
+          .map(
+            (c) => PersonSummary(
+              id: PersonId(c.id.toString()),
+              tmdbId: c.id,
+              name: c.name,
+            ),
+          )
+          .toList(growable: false),
+      // Saisons sans épisodes (seront chargées progressivement)
+      seasons: dto.seasons
+          .where((s) => s.seasonNumber >= 0)
+          .map(
+            (season) => Season(
+              id: SeasonId(season.seasonNumber.toString()),
+              seasonNumber: season.seasonNumber,
+              title: MediaTitle(season.name),
+              overview: season.overview.isEmpty
+                  ? null
+                  : Synopsis(season.overview),
+              poster: _images.poster(season.posterPath),
+              episodes: const [], // Pas d'épisodes dans la version lite
+              airDate: _parseDate(season.airDate),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 
@@ -314,6 +391,7 @@ class TvRepositoryImpl implements TvRepository {
             runtime: ep.runtime != null ? Duration(minutes: ep.runtime!) : null,
             airDate: _parseDate(ep.airDate),
             still: _images.still(ep.stillPath),
+            voteAverage: ep.voteAverage,
           ),
         )
         .toList(growable: false);

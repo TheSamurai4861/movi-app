@@ -25,4 +25,7 @@ abstract class MovieRepository {
 
   /// Ajoute ou retire de la watchlist.
   Future<void> setWatchlist(MovieId id, {required bool saved});
+
+  /// Supprime le cache des métadonnées d'un film pour forcer le rechargement.
+  Future<void> refreshMetadata(MovieId id);
 }

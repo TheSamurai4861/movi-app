@@ -96,7 +96,19 @@ class SearchHistoryLocalDataSource {
         '[SearchHistoryLocalDataSource] remove("$query") failed: $e',
         stackTrace: st,
       );
-      // Là aussi, on ne remonte pas l’erreur à l’UI.
+      // Là aussi, on ne remonte pas l'erreur à l'UI.
+    }
+  }
+
+  Future<void> clear() async {
+    try {
+      final key = await _userScopedKey();
+      await _cache.put(key: key, type: _type, payload: {'items': []});
+    } catch (e, st) {
+      dev.log(
+        '[SearchHistoryLocalDataSource] clear() failed: $e',
+        stackTrace: st,
+      );
     }
   }
 

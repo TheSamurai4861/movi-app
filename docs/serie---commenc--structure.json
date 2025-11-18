@@ -1,0 +1,1984 @@
+{
+  "metadata": {
+    "exportedAt": "2025-11-18T14:16:00.405Z",
+    "componentName": "Serie - Commencé",
+    "totalElements": 118,
+    "nestingDepth": 9,
+    "plugin": "Figma to JSON Exporter"
+  },
+  "designTokens": {
+    "colors": {
+      "color-rgb(20, 20, 20)": "rgb(20, 20, 20)",
+      "color-rgb(255, 255, 255)": "rgb(255, 255, 255)",
+      "color-rgb(166, 166, 166)": "rgb(166, 166, 166)",
+      "color-rgb(41, 41, 41)": "rgb(41, 41, 41)",
+      "color-rgb(33, 96, 171)": "rgb(33, 96, 171)"
+    },
+    "fonts": {
+      "montserrat": {
+        "family": "Montserrat",
+        "sizes": {
+          "size-16": "16px",
+          "size-20": "20px",
+          "size-14": "14px"
+        },
+        "weights": {
+          "weight-600": "600",
+          "weight-400": "400",
+          "weight-500": "500"
+        }
+      }
+    },
+    "spacing": {
+      "padding-right-20": "20px",
+      "gap-16": "16px",
+      "gap-6": "6px",
+      "padding-left-20": "20px",
+      "gap-8": "8px",
+      "padding-top-4": "4px",
+      "padding-right-8": "8px",
+      "padding-bottom-4": "4px",
+      "padding-left-8": "8px",
+      "gap-10": "10px",
+      "gap-4": "4px",
+      "padding-top-15": "15px",
+      "padding-right-318": "318px",
+      "padding-bottom-15": "15px",
+      "padding-left-318": "318px",
+      "gap-24": "24px",
+      "gap-14": "14px"
+    },
+    "effects": {}
+  },
+  "structure": {
+    "name": "serie---commenc-",
+    "type": "FRAME",
+    "size": {
+      "w": 393,
+      "h": 1668
+    },
+    "styles": {
+      "bg": "rgb(20, 20, 20)",
+      "layout": {
+        "direction": "row",
+        "gap": 0,
+        "align": {
+          "main": "start",
+          "cross": "start"
+        }
+      }
+    },
+    "children": [
+      {
+        "name": "first",
+        "type": "GROUP",
+        "size": {
+          "w": 393,
+          "h": 333
+        },
+        "children": [
+          {
+            "name": "frame-36",
+            "type": "FRAME",
+            "size": {
+              "w": 393,
+              "h": 280
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 0,
+                "align": {
+                  "main": "start",
+                  "cross": "start"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "list",
+                "type": "FRAME",
+                "size": {
+                  "w": 668,
+                  "h": 277
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 16,
+                    "align": {
+                      "main": "start",
+                      "cross": "start"
+                    },
+                    "padding": [
+                      0,
+                      20,
+                      0,
+                      0
+                    ]
+                  }
+                },
+                "children": [
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "group-15",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "children": [
+                          {
+                            "name": "image-24",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "styles": {
+                              "radius": 16
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "peter-dinklage",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Peter Dinklage",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "thirion",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Thirion",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "group-15",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "children": [
+                          {
+                            "name": "image-25",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "styles": {
+                              "radius": 16
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "kit-harington",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Kit Harington",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "jon-snow",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Jon Snow",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "group-15",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "children": [
+                          {
+                            "name": "image-17",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "styles": {
+                              "radius": 16
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "chase-infiniti",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Chase Infiniti",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "willa",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Willa",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "list-element",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 150,
+                      "h": 277
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "column",
+                        "gap": 6,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "group-15",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 150,
+                          "h": 225
+                        },
+                        "children": [
+                          {
+                            "name": "image-18",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 150,
+                              "h": 225
+                            },
+                            "styles": {
+                              "radius": 16
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "name": "benicio-del---",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Benicio Del...",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "center"
+                          }
+                        }
+                      },
+                      {
+                        "name": "carlos",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 150,
+                          "h": 20
+                        },
+                        "content": "Carlos",
+                        "styles": {
+                          "bg": "rgb(166, 166, 166)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "400",
+                            "align": "center"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "distribution",
+            "type": "TEXT",
+            "size": {
+              "w": 124,
+              "h": 27
+            },
+            "content": "Distribution",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Montserrat",
+                "size": 20,
+                "weight": "600",
+                "align": "left"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "hero",
+        "type": "GROUP",
+        "size": {
+          "w": 393,
+          "h": 688
+        },
+        "children": [
+          {
+            "name": "image-22",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 393,
+              "h": 590
+            }
+          },
+          {
+            "name": "overlay",
+            "type": "GROUP",
+            "size": {
+              "w": 393,
+              "h": 123
+            },
+            "children": [
+              {
+                "name": "rectangle-44",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 393,
+                  "h": 123
+                }
+              },
+              {
+                "name": "rectangle-45",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 393,
+                  "h": 123
+                }
+              }
+            ]
+          },
+          {
+            "name": "hero-content",
+            "type": "FRAME",
+            "size": {
+              "w": 393,
+              "h": 260
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                },
+                "padding": [
+                  0,
+                  20,
+                  0,
+                  20
+                ]
+              }
+            },
+            "children": [
+              {
+                "name": "image-23",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 213,
+                  "h": 100
+                }
+              },
+              {
+                "name": "frame-26",
+                "type": "FRAME",
+                "size": {
+                  "w": 214,
+                  "h": 28
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 8,
+                    "align": {
+                      "main": "start",
+                      "cross": "start"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "pill",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 48,
+                      "h": 28
+                    },
+                    "styles": {
+                      "bg": "rgb(41, 41, 41)",
+                      "radius": 14,
+                      "layout": {
+                        "direction": "row",
+                        "gap": 10,
+                        "align": {
+                          "main": "center",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          4,
+                          8,
+                          4,
+                          8
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "2011",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 32,
+                          "h": 20
+                        },
+                        "content": "2011",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "pill",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 90,
+                      "h": 28
+                    },
+                    "styles": {
+                      "bg": "rgb(41, 41, 41)",
+                      "radius": 14,
+                      "layout": {
+                        "direction": "row",
+                        "gap": 10,
+                        "align": {
+                          "main": "center",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          4,
+                          8,
+                          4,
+                          8
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "8-saisons",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 74,
+                          "h": 20
+                        },
+                        "content": "8 saisons",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "name": "pill",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 60,
+                      "h": 28
+                    },
+                    "styles": {
+                      "bg": "rgb(41, 41, 41)",
+                      "radius": 14,
+                      "layout": {
+                        "direction": "row",
+                        "gap": 4,
+                        "align": {
+                          "main": "center",
+                          "cross": "center"
+                        },
+                        "padding": [
+                          4,
+                          8,
+                          4,
+                          8
+                        ]
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "7-7",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 22,
+                          "h": 20
+                        },
+                        "content": "7.7",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "star",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 18,
+                          "h": 18
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "overview",
+                "type": "GROUP",
+                "size": {
+                  "w": 353,
+                  "h": 100
+                },
+                "children": [
+                  {
+                    "name": "frame-40",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 353,
+                      "h": 90
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "row",
+                        "gap": 0,
+                        "align": {
+                          "main": "start",
+                          "cross": "start"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "il-y-a-tr-s-longtemps----une--poque-oubli-e--une-force-a-d-truit-l--quilibre-des-saisons--dans-un-pays-o--l--t--peut-durer-plusieurs-ann-es-et-l-hiver-toute-une-vie--des-forces-sinistres-et-surnaturelles-se-pressent-aux-portes-du-royaume-des-sept-couronnes--la-confr-rie-de-la-garde-de-nuit--prot-geant-le-royaume-de-toute-cr-ature-pouvant-provenir-d-au-del--du-mur-protecteur--n-a-plus-les-ressources-n-cessaires-pour-assurer-la-s-curit--de-tous--apr-s-un--t--de-dix-ann-es--un-hiver-rigoureux-s-abat-sur-le-royaume-avec-la-promesse-d-un-avenir-des-plus-sombres--pendant-ce-temps--complots-et-rivalit-s-se-jouent-sur-le-continent-pour-s-emparer-du-tr-ne-de-fer--le-symbole-du-pouvoir-absolu-",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 353,
+                          "h": 340
+                        },
+                        "content": "Il y a très longtemps, à une époque oubliée, une force a détruit  l'équilibre des saisons. Dans un pays où l'été peut durer plusieurs  années et l'hiver toute une vie, des forces sinistres et surnaturelles  se pressent aux portes du Royaume des Sept Couronnes. La confrérie de la Garde de Nuit, protégeant le Royaume de toute créature pouvant provenir d'au-delà du Mur protecteur, n'a plus les ressources nécessaires pour  assurer la sécurité de tous. Après un été de dix années, un hiver  rigoureux s'abat sur le Royaume avec la promesse d'un avenir des plus  sombres. Pendant ce temps, complots et rivalités se jouent sur le  continent pour s'emparer du Trône de fer, le symbole du pouvoir absolu.",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "500",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "overlay",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 353,
+                          "h": 41
+                        },
+                        "children": [
+                          {
+                            "name": "rectangle-53",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 353,
+                              "h": 41
+                            }
+                          },
+                          {
+                            "name": "rectangle-54",
+                            "type": "RECTANGLE",
+                            "size": {
+                              "w": 353,
+                              "h": 41
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "frame-41",
+                    "type": "FRAME",
+                    "size": {
+                      "w": 102,
+                      "h": 25
+                    },
+                    "styles": {
+                      "layout": {
+                        "direction": "row",
+                        "gap": 4,
+                        "align": {
+                          "main": "start",
+                          "cross": "center"
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "name": "agrandir",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 73,
+                          "h": 20
+                        },
+                        "content": "Agrandir",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "back",
+                        "type": "RECTANGLE",
+                        "size": {
+                          "w": 25,
+                          "h": 25
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "hero-actions",
+            "type": "FRAME",
+            "size": {
+              "w": 393,
+              "h": 55
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 16,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                },
+                "padding": [
+                  0,
+                  20,
+                  0,
+                  20
+                ]
+              }
+            },
+            "children": [
+              {
+                "name": "btn",
+                "type": "FRAME",
+                "size": {
+                  "w": 302,
+                  "h": 55
+                },
+                "styles": {
+                  "bg": "rgb(33, 96, 171)",
+                  "radius": 32,
+                  "layout": {
+                    "direction": "row",
+                    "gap": 16,
+                    "align": {
+                      "main": "center",
+                      "cross": "center"
+                    },
+                    "padding": [
+                      15,
+                      318,
+                      15,
+                      318
+                    ]
+                  }
+                },
+                "children": [
+                  {
+                    "name": "play",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 25,
+                      "h": 25
+                    }
+                  },
+                  {
+                    "name": "reprendre-s03-e01",
+                    "type": "TEXT",
+                    "size": {
+                      "w": 154,
+                      "h": 20
+                    },
+                    "content": "Reprendre S03 E01",
+                    "styles": {
+                      "bg": "rgb(255, 255, 255)",
+                      "text": {
+                        "family": "Montserrat",
+                        "size": 16,
+                        "weight": "600",
+                        "align": "left"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "name": "favorite-btn",
+                "type": "INSTANCE",
+                "size": {
+                  "w": 0,
+                  "h": 0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "back",
+        "type": "FRAME",
+        "size": {
+          "w": 25,
+          "h": 35
+        },
+        "styles": {
+          "layout": {
+            "direction": "row",
+            "gap": 4,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "more",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 25,
+              "h": 25
+            }
+          }
+        ]
+      },
+      {
+        "name": "group-24",
+        "type": "GROUP",
+        "size": {
+          "w": 353,
+          "h": 35
+        },
+        "children": [
+          {
+            "name": "back",
+            "type": "FRAME",
+            "size": {
+              "w": 116,
+              "h": 35
+            },
+            "styles": {
+              "layout": {
+                "direction": "row",
+                "gap": 0,
+                "align": {
+                  "main": "start",
+                  "cross": "center"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "saison-1",
+                "type": "TEXT",
+                "size": {
+                  "w": 81,
+                  "h": 24
+                },
+                "content": "Saison 1",
+                "styles": {
+                  "bg": "rgb(255, 255, 255)",
+                  "text": {
+                    "family": "Montserrat",
+                    "size": 20,
+                    "weight": "600",
+                    "align": "left"
+                  }
+                }
+              },
+              {
+                "name": "back",
+                "type": "RECTANGLE",
+                "size": {
+                  "w": 35,
+                  "h": 35
+                }
+              }
+            ]
+          },
+          {
+            "name": "descending-sorting",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 25,
+              "h": 25
+            }
+          }
+        ]
+      },
+      {
+        "name": "group-23",
+        "type": "GROUP",
+        "size": {
+          "w": 339,
+          "h": 472
+        },
+        "children": [
+          {
+            "name": "frame-44",
+            "type": "FRAME",
+            "size": {
+              "w": 339,
+              "h": 472
+            },
+            "styles": {
+              "layout": {
+                "direction": "column",
+                "gap": 24,
+                "align": {
+                  "main": "start",
+                  "cross": "start"
+                }
+              }
+            },
+            "children": [
+              {
+                "name": "frame-42",
+                "type": "FRAME",
+                "size": {
+                  "w": 316,
+                  "h": 100
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 14,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "image-26",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 178,
+                      "h": 100
+                    },
+                    "styles": {
+                      "radius": 16
+                    }
+                  },
+                  {
+                    "name": "group-22",
+                    "type": "GROUP",
+                    "size": {
+                      "w": 124,
+                      "h": 96
+                    },
+                    "children": [
+                      {
+                        "name": "l-hiver-vient",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 124,
+                          "h": 20
+                        },
+                        "content": "L’hiver vient",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "group-21",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 114,
+                          "h": 64
+                        },
+                        "children": [
+                          {
+                            "name": "pill",
+                            "type": "FRAME",
+                            "size": {
+                              "w": 104,
+                              "h": 28
+                            },
+                            "styles": {
+                              "bg": "rgb(41, 41, 41)",
+                              "radius": 14,
+                              "layout": {
+                                "direction": "row",
+                                "gap": 4,
+                                "align": {
+                                  "main": "center",
+                                  "cross": "center"
+                                },
+                                "padding": [
+                                  4,
+                                  8,
+                                  4,
+                                  8
+                                ]
+                              }
+                            },
+                            "children": [
+                              {
+                                "name": "17-avril-2011",
+                                "type": "TEXT",
+                                "size": {
+                                  "w": 88,
+                                  "h": 20
+                                },
+                                "content": "17 avril 2011",
+                                "styles": {
+                                  "bg": "rgb(255, 255, 255)",
+                                  "text": {
+                                    "family": "Montserrat",
+                                    "size": 16,
+                                    "weight": "400",
+                                    "align": "left"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "group-20",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 114,
+                              "h": 28
+                            },
+                            "children": [
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 54,
+                                  "h": 25
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "7-7",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 20,
+                                      "h": 17
+                                    },
+                                    "content": "7.7",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 14,
+                                        "weight": "500",
+                                        "align": "left"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "name": "star",
+                                    "type": "RECTANGLE",
+                                    "size": {
+                                      "w": 14,
+                                      "h": 14
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 52,
+                                  "h": 28
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "55m",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 36,
+                                      "h": 20
+                                    },
+                                    "content": "55m",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 16,
+                                        "weight": "400",
+                                        "align": "left"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "frame-43",
+                "type": "FRAME",
+                "size": {
+                  "w": 339,
+                  "h": 100
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 14,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "image-27",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 178,
+                      "h": 100
+                    },
+                    "styles": {
+                      "radius": 16
+                    }
+                  },
+                  {
+                    "name": "group-22",
+                    "type": "GROUP",
+                    "size": {
+                      "w": 147,
+                      "h": 96
+                    },
+                    "children": [
+                      {
+                        "name": "la-route-royale",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 147,
+                          "h": 20
+                        },
+                        "content": "La route royale",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "group-21",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 114,
+                          "h": 64
+                        },
+                        "children": [
+                          {
+                            "name": "pill",
+                            "type": "FRAME",
+                            "size": {
+                              "w": 108,
+                              "h": 28
+                            },
+                            "styles": {
+                              "bg": "rgb(41, 41, 41)",
+                              "radius": 14,
+                              "layout": {
+                                "direction": "row",
+                                "gap": 4,
+                                "align": {
+                                  "main": "center",
+                                  "cross": "center"
+                                },
+                                "padding": [
+                                  4,
+                                  8,
+                                  4,
+                                  8
+                                ]
+                              }
+                            },
+                            "children": [
+                              {
+                                "name": "24-avril-2011",
+                                "type": "TEXT",
+                                "size": {
+                                  "w": 92,
+                                  "h": 20
+                                },
+                                "content": "24 avril 2011",
+                                "styles": {
+                                  "bg": "rgb(255, 255, 255)",
+                                  "text": {
+                                    "family": "Montserrat",
+                                    "size": 16,
+                                    "weight": "400",
+                                    "align": "left"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "group-20",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 114,
+                              "h": 28
+                            },
+                            "children": [
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 54,
+                                  "h": 25
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "7-7",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 20,
+                                      "h": 17
+                                    },
+                                    "content": "7.7",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 14,
+                                        "weight": "500",
+                                        "align": "left"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "name": "star",
+                                    "type": "RECTANGLE",
+                                    "size": {
+                                      "w": 14,
+                                      "h": 14
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 52,
+                                  "h": 28
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "55m",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 36,
+                                      "h": 20
+                                    },
+                                    "content": "55m",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 16,
+                                        "weight": "400",
+                                        "align": "left"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "frame-45",
+                "type": "FRAME",
+                "size": {
+                  "w": 316,
+                  "h": 100
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 14,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "image-26",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 178,
+                      "h": 100
+                    },
+                    "styles": {
+                      "radius": 16
+                    }
+                  },
+                  {
+                    "name": "group-22",
+                    "type": "GROUP",
+                    "size": {
+                      "w": 124,
+                      "h": 96
+                    },
+                    "children": [
+                      {
+                        "name": "l-hiver-vient",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 124,
+                          "h": 20
+                        },
+                        "content": "L’hiver vient",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "group-21",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 114,
+                          "h": 64
+                        },
+                        "children": [
+                          {
+                            "name": "pill",
+                            "type": "FRAME",
+                            "size": {
+                              "w": 104,
+                              "h": 28
+                            },
+                            "styles": {
+                              "bg": "rgb(41, 41, 41)",
+                              "radius": 14,
+                              "layout": {
+                                "direction": "row",
+                                "gap": 4,
+                                "align": {
+                                  "main": "center",
+                                  "cross": "center"
+                                },
+                                "padding": [
+                                  4,
+                                  8,
+                                  4,
+                                  8
+                                ]
+                              }
+                            },
+                            "children": [
+                              {
+                                "name": "17-avril-2011",
+                                "type": "TEXT",
+                                "size": {
+                                  "w": 88,
+                                  "h": 20
+                                },
+                                "content": "17 avril 2011",
+                                "styles": {
+                                  "bg": "rgb(255, 255, 255)",
+                                  "text": {
+                                    "family": "Montserrat",
+                                    "size": 16,
+                                    "weight": "400",
+                                    "align": "left"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "group-20",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 114,
+                              "h": 28
+                            },
+                            "children": [
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 54,
+                                  "h": 25
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "7-7",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 20,
+                                      "h": 17
+                                    },
+                                    "content": "7.7",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 14,
+                                        "weight": "500",
+                                        "align": "left"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "name": "star",
+                                    "type": "RECTANGLE",
+                                    "size": {
+                                      "w": 14,
+                                      "h": 14
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 52,
+                                  "h": 28
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "55m",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 36,
+                                      "h": 20
+                                    },
+                                    "content": "55m",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 16,
+                                        "weight": "400",
+                                        "align": "left"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "name": "frame-46",
+                "type": "FRAME",
+                "size": {
+                  "w": 339,
+                  "h": 100
+                },
+                "styles": {
+                  "layout": {
+                    "direction": "row",
+                    "gap": 14,
+                    "align": {
+                      "main": "start",
+                      "cross": "center"
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "name": "image-27",
+                    "type": "RECTANGLE",
+                    "size": {
+                      "w": 178,
+                      "h": 100
+                    },
+                    "styles": {
+                      "radius": 16
+                    }
+                  },
+                  {
+                    "name": "group-22",
+                    "type": "GROUP",
+                    "size": {
+                      "w": 147,
+                      "h": 96
+                    },
+                    "children": [
+                      {
+                        "name": "la-route-royale",
+                        "type": "TEXT",
+                        "size": {
+                          "w": 147,
+                          "h": 20
+                        },
+                        "content": "La route royale",
+                        "styles": {
+                          "bg": "rgb(255, 255, 255)",
+                          "text": {
+                            "family": "Montserrat",
+                            "size": 16,
+                            "weight": "600",
+                            "align": "left"
+                          }
+                        }
+                      },
+                      {
+                        "name": "group-21",
+                        "type": "GROUP",
+                        "size": {
+                          "w": 114,
+                          "h": 64
+                        },
+                        "children": [
+                          {
+                            "name": "pill",
+                            "type": "FRAME",
+                            "size": {
+                              "w": 108,
+                              "h": 28
+                            },
+                            "styles": {
+                              "bg": "rgb(41, 41, 41)",
+                              "radius": 14,
+                              "layout": {
+                                "direction": "row",
+                                "gap": 4,
+                                "align": {
+                                  "main": "center",
+                                  "cross": "center"
+                                },
+                                "padding": [
+                                  4,
+                                  8,
+                                  4,
+                                  8
+                                ]
+                              }
+                            },
+                            "children": [
+                              {
+                                "name": "24-avril-2011",
+                                "type": "TEXT",
+                                "size": {
+                                  "w": 92,
+                                  "h": 20
+                                },
+                                "content": "24 avril 2011",
+                                "styles": {
+                                  "bg": "rgb(255, 255, 255)",
+                                  "text": {
+                                    "family": "Montserrat",
+                                    "size": 16,
+                                    "weight": "400",
+                                    "align": "left"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "name": "group-20",
+                            "type": "GROUP",
+                            "size": {
+                              "w": 114,
+                              "h": 28
+                            },
+                            "children": [
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 54,
+                                  "h": 25
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "7-7",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 20,
+                                      "h": 17
+                                    },
+                                    "content": "7.7",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 14,
+                                        "weight": "500",
+                                        "align": "left"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "name": "star",
+                                    "type": "RECTANGLE",
+                                    "size": {
+                                      "w": 14,
+                                      "h": 14
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "name": "pill",
+                                "type": "FRAME",
+                                "size": {
+                                  "w": 52,
+                                  "h": 28
+                                },
+                                "styles": {
+                                  "bg": "rgb(41, 41, 41)",
+                                  "radius": 14,
+                                  "layout": {
+                                    "direction": "row",
+                                    "gap": 4,
+                                    "align": {
+                                      "main": "center",
+                                      "cross": "center"
+                                    },
+                                    "padding": [
+                                      4,
+                                      8,
+                                      4,
+                                      8
+                                    ]
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "name": "55m",
+                                    "type": "TEXT",
+                                    "size": {
+                                      "w": 36,
+                                      "h": 20
+                                    },
+                                    "content": "55m",
+                                    "styles": {
+                                      "bg": "rgb(255, 255, 255)",
+                                      "text": {
+                                        "family": "Montserrat",
+                                        "size": 16,
+                                        "weight": "400",
+                                        "align": "left"
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "back",
+        "type": "FRAME",
+        "size": {
+          "w": 92,
+          "h": 35
+        },
+        "styles": {
+          "layout": {
+            "direction": "row",
+            "gap": 0,
+            "align": {
+              "main": "start",
+              "cross": "center"
+            }
+          }
+        },
+        "children": [
+          {
+            "name": "back",
+            "type": "RECTANGLE",
+            "size": {
+              "w": 35,
+              "h": 35
+            }
+          },
+          {
+            "name": "retour",
+            "type": "TEXT",
+            "size": {
+              "w": 57,
+              "h": 20
+            },
+            "content": "Retour",
+            "styles": {
+              "bg": "rgb(255, 255, 255)",
+              "text": {
+                "family": "Montserrat",
+                "size": 16,
+                "weight": "600",
+                "align": "left"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "components": 0,
+    "instances": 1,
+    "frames": 36,
+    "texts": 33,
+    "hasAutoLayout": true,
+    "hasEffects": true
+  }
+}

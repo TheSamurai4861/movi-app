@@ -18,6 +18,7 @@ class TvShow extends Equatable {
     this.lastAirDate,
     this.status,
     this.rating,
+    this.voteAverage,
     this.genres = const [],
     this.cast = const [],
     this.creators = const [],
@@ -34,6 +35,7 @@ class TvShow extends Equatable {
   final DateTime? lastAirDate;
   final SeriesStatus? status;
   final ContentRating? rating;
+  final double? voteAverage;
   final List<String> genres;
   final List<PersonSummary> cast;
   final List<PersonSummary> creators;
@@ -51,6 +53,7 @@ class TvShow extends Equatable {
     lastAirDate,
     status,
     rating,
+    voteAverage,
     genres,
     cast,
     creators,
@@ -98,6 +101,7 @@ class Episode extends Equatable {
     this.runtime,
     this.airDate,
     this.still,
+    this.voteAverage,
   });
 
   final EpisodeId id;
@@ -107,6 +111,7 @@ class Episode extends Equatable {
   final Duration? runtime;
   final DateTime? airDate;
   final Uri? still;
+  final double? voteAverage;
 
   @override
   List<Object?> get props => [
@@ -117,6 +122,7 @@ class Episode extends Equatable {
     runtime,
     airDate,
     still,
+    voteAverage,
   ];
 }
 

@@ -54,7 +54,7 @@ class SearchHistoryController
     }
   }
 
-  /// Suppression d’une query de l’historique puis rechargement.
+  /// Suppression d'une query de l'historique puis rechargement.
   Future<void> remove(String query) async {
     try {
       await _removeHistory(query);
@@ -64,7 +64,20 @@ class SearchHistoryController
         '[SearchHistoryController] remove("$query") failed: $e',
         stackTrace: st,
       );
-      // Là non plus, on ne touche pas à l’état en cas d’erreur.
+      // Là non plus, on ne touche pas à l'état en cas d'erreur.
+    }
+  }
+
+  /// Suppression de tout l'historique puis rechargement.
+  Future<void> clearAll() async {
+    try {
+      await _repo.clear();
+      await refresh();
+    } catch (e, st) {
+      dev.log(
+        '[SearchHistoryController] clearAll() failed: $e',
+        stackTrace: st,
+      );
     }
   }
 

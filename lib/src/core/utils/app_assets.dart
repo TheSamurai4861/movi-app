@@ -20,6 +20,16 @@ class AppAssets {
   static const String iconBack = 'assets/icons/back_icon.png';
   static const String iconMore = 'assets/icons/more_icon.png';
   static const String iconExtend = 'assets/icons/extend_icon.png';
+  static const String iconSort = 'assets/icons/sort.png';
+  static const String iconPause = 'assets/icons/pause.png';
+  static const String iconAvancer = 'assets/icons/avancer.png';
+  static const String iconReculer = 'assets/icons/reculer.png';
+  static const String iconAudio = 'assets/icons/audio.png';
+  static const String iconAudioDesactive = 'assets/icons/audio_desactive.png';
+  static const String iconSubtitles = 'assets/icons/subtitles.png';
+  static const String iconSubtitlesDesactive =
+      'assets/icons/subtitles_desactive.png';
+  static const String iconChromecast = 'assets/icons/chromecast.png';
 
   // Placeholders
   static const String placeholderPosterMovie =
