@@ -261,10 +261,18 @@ class AppLocalizationsIt extends AppLocalizations {
   String get actionBack => 'Indietro';
 
   @override
+  String get actionSeeAll => 'Vedi tutto';
+
+  @override
   String get actionExpand => 'Espandi';
 
   @override
   String get actionCollapse => 'Riduci';
+
+  @override
+  String providerSearchPlaceholder(String provider) {
+    return 'Cerca su $provider...';
+  }
 
   @override
   String get actionClearHistory => 'Cancella cronologia';
@@ -392,6 +400,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get searchSagasTitle => 'Saghe';
+
+  @override
+  String get searchByProvidersTitle => 'Per provider';
 
   @override
   String get personRoleActor => 'Attore';

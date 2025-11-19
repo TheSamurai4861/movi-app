@@ -123,7 +123,13 @@ class AppLocalizationsBu extends AppLocalizations {
   String get actionBack => 'Retour';
 
   @override
+  String get actionSeeAll => 'Voir tout';
+
+  @override
   String get actionExpand => 'Élargir';
+
+  @override
+  String providerSearchPlaceholder(String provider) => 'Rechercher sur $provider...';
 
   @override
   String get castTitle => 'Troupe';
@@ -265,6 +271,8 @@ class AppLocalizationsBu extends AppLocalizations {
   String get searchPeopleTitle => 'Personnalités';
   @override
   String get searchSagasTitle => 'Sagas';
+  @override
+  String get searchByProvidersTitle => 'Par fournisseurs';
   @override
   String get personRoleActor => 'Acteur';
   @override

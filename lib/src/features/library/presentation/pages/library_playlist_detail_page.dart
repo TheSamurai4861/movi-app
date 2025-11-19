@@ -433,6 +433,16 @@ class _LibraryPlaylistDetailPageState
     return '${minutes}m';
   }
 
+  /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
+  Color _darkenColor(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    // Réduire la luminosité à environ 15-20% et réduire la saturation
+    return hsl
+        .withLightness(0.15.clamp(0.0, 1.0))
+        .withSaturation((hsl.saturation * 0.7).clamp(0.0, 1.0))
+        .toColor();
+  }
+
   Widget _getPlaylistIcon() {
     switch (widget.playlist.type) {
       case LibraryPlaylistType.inProgress:
@@ -611,7 +621,10 @@ class _LibraryPlaylistDetailPageState
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [accentColor, Color(0xFF0D2745)],
+                            colors: [
+                              accentColor,
+                              _darkenColor(accentColor),
+                            ],
                           ),
                         ),
                       ),

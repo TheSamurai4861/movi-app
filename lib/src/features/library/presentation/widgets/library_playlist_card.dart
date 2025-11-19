@@ -36,6 +36,16 @@ class LibraryPlaylistCard extends ConsumerWidget {
   final Uri? photo; // Photo de profil pour les artistes ou image hero pour les sagas
   final bool showItemCount; // Contrôle l'affichage du compteur d'éléments
 
+  /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
+  Color _darkenColor(Color color) {
+    final hsl = HSLColor.fromColor(color);
+    // Réduire la luminosité à environ 15-20% et réduire la saturation
+    return hsl
+        .withLightness(0.15.clamp(0.0, 1.0))
+        .withSaturation((hsl.saturation * 0.7).clamp(0.0, 1.0))
+        .toColor();
+  }
+
   Widget _getIcon() {
     switch (type) {
       case LibraryPlaylistType.inProgress:
@@ -96,12 +106,12 @@ class LibraryPlaylistCard extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(16),
                 gradient: (type == LibraryPlaylistType.actor || photo != null)
                     ? null
-                    : const LinearGradient(
+                    : LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF5493DE),
-                          Color(0xFF0D2745),
+                          accentColor,
+                          _darkenColor(accentColor),
                         ],
                       ),
                 color: (type == LibraryPlaylistType.actor || photo != null)

@@ -251,12 +251,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Text(
                     label,
                     style: TextStyle(
+                      fontSize: 16,
                       color: _isCurrentSyncInterval(currentInterval, interval)
                           ? accentColor
                           : Colors.white,
                       fontWeight: _isCurrentSyncInterval(currentInterval, interval)
                           ? FontWeight.w600
-                          : FontWeight.normal,
+                          : FontWeight.w500,
                     ),
                   ),
                   if (_isCurrentSyncInterval(currentInterval, interval))
@@ -320,12 +321,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Text(
                     label,
                     style: TextStyle(
+                      fontSize: 16,
                       color: _isCurrentPlayerLanguage(currentCode, code)
                           ? accentColor
                           : Colors.white,
                       fontWeight: _isCurrentPlayerLanguage(currentCode, code)
                           ? FontWeight.w600
-                          : FontWeight.normal,
+                          : FontWeight.w500,
                     ),
                   ),
                   if (_isCurrentPlayerLanguage(currentCode, code))
@@ -378,12 +380,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Text(
                     label,
                     style: TextStyle(
+                      fontSize: 16,
                       color: _isCurrentPlayerLanguage(currentCode, code)
                           ? accentColor
                           : Colors.white,
                       fontWeight: _isCurrentPlayerLanguage(currentCode, code)
                           ? FontWeight.w600
-                          : FontWeight.normal,
+                          : FontWeight.w500,
                     ),
                   ),
                   if (_isCurrentPlayerLanguage(currentCode, code))

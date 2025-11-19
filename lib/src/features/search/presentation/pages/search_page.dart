@@ -11,6 +11,7 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/features/search/presentation/providers/search_history_providers.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
+import 'package:movi/src/features/search/presentation/widgets/watch_providers_grid.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 
 class SearchPage extends ConsumerStatefulWidget {
@@ -22,12 +23,21 @@ class SearchPage extends ConsumerStatefulWidget {
 
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _textCtrl = TextEditingController();
+  final _focusNode = FocusNode();
 
   bool get _hasQuery => _textCtrl.text.trim().length >= 3;
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    // Écouter les changements de focus pour mettre à jour l'UI
+    _focusNode.addListener(_onFocusChange);
     // Charger une première fois l'historique + forcer une query vide.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -38,7 +48,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
     _textCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -70,6 +82,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     final colorScheme = Theme.of(context).colorScheme;
                     return TextField(
                       controller: _textCtrl,
+                      focusNode: _focusNode,
                       onChanged: (value) {
                         // Toujours synchroniser la query du contrôleur
                         ctrl.setQuery(value);
@@ -146,13 +159,16 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               const SizedBox(height: 32),
 
               // ======= HISTORIQUE OU RÉSULTATS =======
-              if (!_hasQuery) ...[
+              if (!_hasQuery && _focusNode.hasFocus) ...[
                 _SearchHistoryList(
                   onSelect: (q) {
                     _textCtrl.text = q;
                     ctrl.setQueryImmediate(q);
                   },
                 ),
+                const Expanded(child: SizedBox.shrink()),
+              ] else if (!_hasQuery) ...[
+                const WatchProvidersGrid(),
                 const Expanded(child: SizedBox.shrink()),
               ] else if (state.isLoading)
                 const Expanded(

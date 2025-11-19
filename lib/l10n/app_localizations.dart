@@ -591,6 +591,12 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get actionBack;
 
+  /// No description provided for @actionSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See All'**
+  String get actionSeeAll;
+
   /// No description provided for @actionExpand.
   ///
   /// In en, this message translates to:
@@ -602,6 +608,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Collapse'**
   String get actionCollapse;
+
+  /// No description provided for @providerSearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search on {provider}...'**
+  String providerSearchPlaceholder(String provider);
 
   /// No description provided for @actionClearHistory.
   ///
@@ -836,6 +848,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sagas'**
   String get searchSagasTitle;
+
+  /// No description provided for @searchByProvidersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'By Providers'**
+  String get searchByProvidersTitle;
 
   /// No description provided for @personRoleActor.
   ///

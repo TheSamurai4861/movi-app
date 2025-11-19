@@ -261,10 +261,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get actionBack => 'Voltar';
 
   @override
+  String get actionSeeAll => 'Ver tudo';
+
+  @override
   String get actionExpand => 'Expandir';
 
   @override
   String get actionCollapse => 'Recolher';
+
+  @override
+  String providerSearchPlaceholder(String provider) {
+    return 'Pesquisar em $provider...';
+  }
 
   @override
   String get actionClearHistory => 'Limpar histórico';
@@ -392,6 +400,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get searchSagasTitle => 'Sagas';
+
+  @override
+  String get searchByProvidersTitle => 'Por provedores';
 
   @override
   String get personRoleActor => 'Ator';

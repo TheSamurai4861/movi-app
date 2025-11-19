@@ -261,10 +261,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get actionBack => 'Retour';
 
   @override
+  String get actionSeeAll => 'Voir tout';
+
+  @override
   String get actionExpand => 'Agrandir';
 
   @override
   String get actionCollapse => 'Rétrécir';
+
+  @override
+  String providerSearchPlaceholder(String provider) {
+    return 'Rechercher sur $provider...';
+  }
 
   @override
   String get actionClearHistory => 'Supprimer l\'historique';
@@ -392,6 +400,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get searchSagasTitle => 'Sagas';
+
+  @override
+  String get searchByProvidersTitle => 'Par fournisseurs';
 
   @override
   String get personRoleActor => 'Acteur';
@@ -779,10 +790,18 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
   String get actionBack => 'Retour';
 
   @override
+  String get actionSeeAll => 'Voir tout';
+
+  @override
   String get actionExpand => 'Élargir';
 
   @override
   String get actionCollapse => 'Rétrécir';
+
+  @override
+  String providerSearchPlaceholder(String provider) {
+    return 'Rechercher sur $provider...';
+  }
 
   @override
   String get actionClearHistory => 'Pourfendre la chronique';
@@ -910,6 +929,9 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
 
   @override
   String get searchSagasTitle => 'Sagas';
+
+  @override
+  String get searchByProvidersTitle => 'Par fournisseurs';
 
   @override
   String get personRoleActor => 'Acteur';

@@ -91,8 +91,17 @@
   "iptvUsernameLabel": "Nom d’utilisateur",
   "iptvUsernameHint": "Identifiant Xtream",
   "actionBack": "Retour",
+  "actionSeeAll": "Voir tout",
   "actionExpand": "Élargir",
   "actionCollapse": "Rétrécir",
+  "providerSearchPlaceholder": "Rechercher sur {provider}...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "actionClearHistory": "Pourfendre la chronique",
   "castTitle": "Troupe",
   "recommendationsTitle": "Conseils",
@@ -160,6 +169,7 @@
   },
   "searchPeopleTitle": "Personnalités",
   "searchSagasTitle": "Sagas",
+  "searchByProvidersTitle": "Par fournisseurs",
   "personRoleActor": "Acteur",
   "personRoleDirector": "Réalisateur",
   "personRoleCreator": "Créateur",

@@ -5,6 +5,7 @@ import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 import 'package:movi/src/shared/data/services/similarity/hybrid_similarity_service.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
+import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
 import 'package:movi/src/features/search/data/datasources/search_history_local_data_source.dart';
 import 'package:movi/src/features/search/data/search_repository_impl.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
@@ -23,6 +24,11 @@ class SearchDataModule {
     if (!sl.isRegistered<TmdbSearchRemoteDataSource>()) {
       sl.registerLazySingleton<TmdbSearchRemoteDataSource>(
         () => TmdbSearchRemoteDataSource(sl<TmdbClient>(), sl()),
+      );
+    }
+    if (!sl.isRegistered<TmdbWatchProvidersRemoteDataSource>()) {
+      sl.registerLazySingleton<TmdbWatchProvidersRemoteDataSource>(
+        () => TmdbWatchProvidersRemoteDataSource(sl<TmdbClient>()),
       );
     }
     if (!sl.isRegistered<SearchRepository>()) {

@@ -26,6 +26,10 @@ import 'package:movi/src/features/saga/presentation/pages/saga_detail_page.dart'
 import 'package:movi/src/features/search/presentation/models/search_results_args.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
 import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
+import 'package:movi/src/features/search/presentation/pages/provider_results_page.dart';
+import 'package:movi/src/features/search/presentation/models/provider_results_args.dart';
+import 'package:movi/src/features/search/presentation/pages/provider_all_results_page.dart';
+import 'package:movi/src/features/search/presentation/models/provider_all_results_args.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
 import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
@@ -51,6 +55,8 @@ class AppRouteNames {
   static const saga = '/saga';
   static const tv = '/tv';
   static const player = '/player';
+  static const providerResults = '/provider_results';
+  static const providerAllResults = '/provider_all_results';
 }
 
 GoRouter createRouter({
@@ -139,6 +145,39 @@ class _RouterBundle {
                 ? state.extra as SearchResultsPageArgs
                 : null;
             return MaterialPage(child: SearchResultsPage(args: args));
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.providerResults,
+          name: 'provider_results',
+          pageBuilder: (context, state) {
+            final args = state.extra is ProviderResultsArgs
+                ? state.extra as ProviderResultsArgs
+                : null;
+            return MaterialPage(child: ProviderResultsPage(args: args));
+          },
+        ),
+        GoRoute(
+          path: AppRouteNames.providerAllResults,
+          name: 'provider_all_results',
+          pageBuilder: (context, state) {
+            final args = state.extra is ProviderAllResultsArgs
+                ? state.extra as ProviderAllResultsArgs
+                : null;
+            if (args == null) {
+              return MaterialPage(
+                child: Scaffold(
+                  appBar: AppBar(title: const Text('Provider inconnu')),
+                  body: const Center(child: Text('Provider introuvable')),
+                ),
+              );
+            }
+            return MaterialPage(
+              child: ProviderAllResultsPage(
+                args: args,
+                type: args.type,
+              ),
+            );
           },
         ),
         GoRoute(

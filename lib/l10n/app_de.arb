@@ -93,8 +93,17 @@
   "iptvUsernameLabel": "Benutzername",
   "iptvUsernameHint": "Xtream-Benutzername",
   "actionBack": "Zurück",
+  "actionSeeAll": "Alle anzeigen",
   "actionExpand": "Erweitern",
   "actionCollapse": "Reduzieren",
+  "providerSearchPlaceholder": "Suche auf {provider}...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "actionClearHistory": "Verlauf löschen",
   "castTitle": "Besetzung",
   "recommendationsTitle": "Empfehlungen",
@@ -158,6 +167,7 @@
   },
   "searchPeopleTitle": "Personen",
   "searchSagasTitle": "Sagas",
+  "searchByProvidersTitle": "Nach Anbietern",
   "personRoleActor": "Schauspieler",
   "personRoleDirector": "Regisseur",
   "personRoleCreator": "Ersteller",

@@ -91,8 +91,17 @@
   "iptvUsernameLabel": "Gebruikersnaam",
   "iptvUsernameHint": "Xtream gebruikersnaam",
   "actionBack": "Terug",
+  "actionSeeAll": "Alles bekijken",
   "actionExpand": "Uitklappen",
   "actionCollapse": "Inklappen",
+  "providerSearchPlaceholder": "Zoeken op {provider}...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "actionClearHistory": "Geschiedenis wissen",
   "castTitle": "Cast",
   "recommendationsTitle": "Aanbevelingen",
@@ -156,6 +165,7 @@
   },
   "searchPeopleTitle": "Personen",
   "searchSagasTitle": "Saga's",
+  "searchByProvidersTitle": "Per provider",
   "personRoleActor": "Acteur",
   "personRoleDirector": "Regisseur",
   "personRoleCreator": "Maker",
