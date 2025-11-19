@@ -185,189 +185,202 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 )
               else
                 Expanded(
-                  child: ListView(
-                    children: [
-                      if (state.movies.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        MoviItemsList(
-                          title: AppLocalizations.of(context)!.moviesTitle,
-                          subtitle: AppLocalizations.of(
-                            context,
-                          )!.resultsCount(state.movies.length),
-                          estimatedItemWidth: 150,
-                          estimatedItemHeight: 300,
-                          titlePadding: 20,
-                          horizontalPadding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            end: 20,
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      ctrl.setQuery(_textCtrl.text);
+                    },
+                    child: ListView(
+                      children: [
+                        if (state.movies.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          MoviItemsList(
+                            title: AppLocalizations.of(context)!.moviesTitle,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            )!.resultsCount(state.movies.length),
+                            estimatedItemWidth: 150,
+                            estimatedItemHeight: 300,
+                            titlePadding: 20,
+                            horizontalPadding: const EdgeInsetsDirectional.only(
+                              start: 20,
+                              end: 20,
+                            ),
+                            items: state.movies
+                                .take(10)
+                                .toList()
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => _AnimatedMovieCard(
+                                    media: MoviMedia(
+                                      id: entry.value.id.value,
+                                      title: entry.value.title.display,
+                                      poster: entry.value.poster,
+                                      year: entry.value.releaseYear,
+                                      type: MoviMediaType.movie,
+                                    ),
+                                    onTap: (mm) => context.push(
+                                      AppRouteNames.movie,
+                                      extra: mm,
+                                    ),
+                                    delay: Duration(
+                                      milliseconds: entry.key * 100,
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
                           ),
-                          items: state.movies
-                              .take(10)
-                              .toList()
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => _AnimatedMovieCard(
-                                  media: MoviMedia(
-                                    id: entry.value.id.value,
-                                    title: entry.value.title.display,
-                                    poster: entry.value.poster,
-                                    year: entry.value.releaseYear,
-                                    type: MoviMediaType.movie,
+                        ],
+                        if (state.shows.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          MoviItemsList(
+                            title: AppLocalizations.of(context)!.seriesTitle,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            )!.resultsCount(state.shows.length),
+                            estimatedItemWidth: 150,
+                            estimatedItemHeight: 300,
+                            titlePadding: 20,
+                            horizontalPadding: const EdgeInsetsDirectional.only(
+                              start: 20,
+                              end: 20,
+                            ),
+                            items: state.shows
+                                .take(10)
+                                .toList()
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => _AnimatedMovieCard(
+                                    media: MoviMedia(
+                                      id: entry.value.id.value,
+                                      title: entry.value.title.display,
+                                      poster: entry.value.poster,
+                                      type: MoviMediaType.series,
+                                    ),
+                                    onTap: (mm) => context.push(
+                                      AppRouteNames.tv,
+                                      extra: mm,
+                                    ),
+                                    delay: Duration(
+                                      milliseconds: entry.key * 100,
+                                    ),
                                   ),
-                                  onTap: (mm) => context.push(
-                                    AppRouteNames.movie,
-                                    extra: mm,
-                                  ),
-                                  delay: Duration(
-                                    milliseconds: entry.key * 100,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (state.shows.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        MoviItemsList(
-                          title: AppLocalizations.of(context)!.seriesTitle,
-                          subtitle: AppLocalizations.of(
-                            context,
-                          )!.resultsCount(state.shows.length),
-                          estimatedItemWidth: 150,
-                          estimatedItemHeight: 300,
-                          titlePadding: 20,
-                          horizontalPadding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            end: 20,
+                                )
+                                .toList(growable: false),
                           ),
-                          items: state.shows
-                              .take(10)
-                              .toList()
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => _AnimatedMovieCard(
-                                  media: MoviMedia(
-                                    id: entry.value.id.value,
-                                    title: entry.value.title.display,
-                                    poster: entry.value.poster,
-                                    type: MoviMediaType.series,
+                        ],
+                        if (state.people.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          MoviItemsList(
+                            title: AppLocalizations.of(
+                              context,
+                            )!.searchPeopleTitle,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            )!.resultsCount(state.people.length),
+                            estimatedItemWidth: 150,
+                            estimatedItemHeight: 300,
+                            titlePadding: 20,
+                            horizontalPadding: const EdgeInsetsDirectional.only(
+                              start: 20,
+                              end: 20,
+                            ),
+                            items: state.people
+                                .take(10)
+                                .toList()
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => _AnimatedPersonCard(
+                                    person: MoviPerson(
+                                      id: entry.value.id.value,
+                                      name: entry.value.name,
+                                      poster: entry.value.photo,
+                                      role: AppLocalizations.of(
+                                        context,
+                                      )!.personRoleActor,
+                                    ),
+                                    onTap: (p) => context.push(
+                                      AppRouteNames.person,
+                                      extra: entry.value,
+                                    ),
+                                    delay: Duration(
+                                      milliseconds: entry.key * 100,
+                                    ),
                                   ),
-                                  onTap: (mm) =>
-                                      context.push(AppRouteNames.tv, extra: mm),
-                                  delay: Duration(
-                                    milliseconds: entry.key * 100,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (state.people.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        MoviItemsList(
-                          title: AppLocalizations.of(context)!.searchPeopleTitle,
-                          subtitle: AppLocalizations.of(
-                            context,
-                          )!.resultsCount(state.people.length),
-                          estimatedItemWidth: 150,
-                          estimatedItemHeight: 300,
-                          titlePadding: 20,
-                          horizontalPadding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            end: 20,
+                                )
+                                .toList(growable: false),
                           ),
-                          items: state.people
-                              .take(10)
-                              .toList()
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => _AnimatedPersonCard(
-                                  person: MoviPerson(
-                                    id: entry.value.id.value,
-                                    name: entry.value.name,
-                                    poster: entry.value.photo,
-                                    role: AppLocalizations.of(context)!.personRoleActor,
-                                  ),
-                                  onTap: (p) => context.push(
-                                    AppRouteNames.person,
-                                    extra: entry.value,
-                                  ),
-                                  delay: Duration(
-                                    milliseconds: entry.key * 100,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (state.sagas.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final filteredSagasAsync = ref.watch(
-                              filteredSagasProvider(state.sagas),
-                            );
-                            return filteredSagasAsync.when(
-                              data: (filteredSagas) {
-                                if (filteredSagas.isEmpty) {
-                                  return const SizedBox.shrink();
-                                }
-                                return MoviItemsList(
-                                  title: AppLocalizations.of(context)!.searchSagasTitle,
-                                  subtitle: AppLocalizations.of(
-                                    context,
-                                  )!.resultsCount(filteredSagas.length),
-                                  estimatedItemWidth: 150,
-                                  estimatedItemHeight: 300,
-                                  titlePadding: 20,
-                                  horizontalPadding:
-                                      const EdgeInsetsDirectional.only(
-                                        start: 20,
-                                        end: 20,
-                                      ),
-                                  items: filteredSagas
-                                      .take(10)
-                                      .toList()
-                                      .asMap()
-                                      .entries
-                                      .map(
-                                        (entry) => _AnimatedSagaCard(
-                                          saga: entry.value,
-                                          delay: Duration(
-                                            milliseconds: entry.key * 100,
-                                          ),
+                        ],
+                        if (state.sagas.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Consumer(
+                            builder: (context, ref, _) {
+                              final filteredSagasAsync = ref.watch(
+                                filteredSagasProvider(state.sagas),
+                              );
+                              return filteredSagasAsync.when(
+                                data: (filteredSagas) {
+                                  if (filteredSagas.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return MoviItemsList(
+                                    title: AppLocalizations.of(
+                                      context,
+                                    )!.searchSagasTitle,
+                                    subtitle: AppLocalizations.of(
+                                      context,
+                                    )!.resultsCount(filteredSagas.length),
+                                    estimatedItemWidth: 150,
+                                    estimatedItemHeight: 300,
+                                    titlePadding: 20,
+                                    horizontalPadding:
+                                        const EdgeInsetsDirectional.only(
+                                          start: 20,
+                                          end: 20,
                                         ),
-                                      )
-                                      .toList(growable: false),
-                                );
-                              },
-                              loading: () => const SizedBox.shrink(),
-                              error: (_, __) => const SizedBox.shrink(),
-                            );
-                          },
-                        ),
-                      ],
-                      if (state.movies.isEmpty &&
-                          state.shows.isEmpty &&
-                          state.people.isEmpty &&
-                          state.sagas.isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              AppLocalizations.of(context)!.noResults,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
+                                    items: filteredSagas
+                                        .take(10)
+                                        .toList()
+                                        .asMap()
+                                        .entries
+                                        .map(
+                                          (entry) => _AnimatedSagaCard(
+                                            saga: entry.value,
+                                            delay: Duration(
+                                              milliseconds: entry.key * 100,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                  );
+                                },
+                                loading: () => const SizedBox.shrink(),
+                                error: (_, __) => const SizedBox.shrink(),
+                              );
+                            },
+                          ),
+                        ],
+                        if (state.movies.isEmpty &&
+                            state.shows.isEmpty &&
+                            state.people.isEmpty &&
+                            state.sagas.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                AppLocalizations.of(context)!.noResults,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      const SizedBox(height: 100),
-                    ],
+                        const SizedBox(height: 100),
+                      ],
+                    ),
                   ),
                 ),
             ],

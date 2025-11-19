@@ -249,5 +249,8 @@
     "placeholders": {
       "title": { "type": "String" }
     }
-  }
+  },
+  "categoryLoadFailed": "Errore nel caricamento della categoria.",
+  "categoryEmpty": "Nessun elemento in questa categoria.",
+  "categoryLoadingMore": "Caricamento in corso…"
 }

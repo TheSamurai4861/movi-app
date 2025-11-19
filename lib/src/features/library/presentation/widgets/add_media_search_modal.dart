@@ -10,15 +10,11 @@ import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 
 class AddMediaSearchModal extends ConsumerStatefulWidget {
-  const AddMediaSearchModal({
-    super.key,
-    required this.playlistId,
-  });
+  const AddMediaSearchModal({super.key, required this.playlistId});
 
   final String playlistId;
 
@@ -48,7 +44,9 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
 
   Future<void> _loadExistingItems() async {
     try {
-      final itemsAsync = await ref.read(playlistItemsProvider(widget.playlistId).future);
+      final itemsAsync = await ref.read(
+        playlistItemsProvider(widget.playlistId).future,
+      );
       setState(() {
         _addedMediaIds.addAll(itemsAsync.map((item) => item.reference.id));
       });
@@ -72,16 +70,11 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
     }
 
     try {
-      final addPlaylistItem = AddPlaylistItem(
-        ref.read(slProvider)<PlaylistRepository>(),
-      );
+      final addPlaylistItem = ref.read(addPlaylistItemUseCaseProvider);
 
       await addPlaylistItem.call(
         playlistId: PlaylistId(widget.playlistId),
-        item: PlaylistItem(
-          reference: reference,
-          addedAt: DateTime.now(),
-        ),
+        item: PlaylistItem(reference: reference, addedAt: DateTime.now()),
       );
 
       setState(() {
@@ -103,11 +96,9 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     }
   }
@@ -147,12 +138,12 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Row(
                 children: [
-                    Expanded(
-                      child: Text(
-                        'Ajouter des médias',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
+                  Expanded(
+                    child: Text(
+                      'Ajouter des médias',
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white),
                     onPressed: () => Navigator.of(context).pop(),
@@ -226,9 +217,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
             ),
             const SizedBox(height: 32),
             // Résultats de recherche
-            Expanded(
-              child: _buildResults(context, state),
-            ),
+            Expanded(child: _buildResults(context, state)),
           ],
         ),
       ),
@@ -240,13 +229,11 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
       return Center(
         child: Text(
           'Tapez au moins 3 caractères pour rechercher',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white70,
-              ) ??
-              const TextStyle(
-                fontSize: 16,
-                color: Colors.white70,
-              ),
+          style:
+              Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.white70) ??
+              const TextStyle(fontSize: 16, color: Colors.white70),
         ),
       );
     }
@@ -257,10 +244,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
 
     if (state.error != null) {
       return Center(
-        child: Text(
-          state.error!,
-          style: const TextStyle(color: Colors.red),
-        ),
+        child: Text(state.error!, style: const TextStyle(color: Colors.red)),
       );
     }
 
@@ -268,10 +252,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
       return Center(
         child: Text(
           AppLocalizations.of(context)!.noResults,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
         ),
       );
     }
@@ -282,9 +263,9 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
         if (state.movies.isNotEmpty) ...[
           MoviItemsList(
             title: AppLocalizations.of(context)!.moviesTitle,
-            subtitle: AppLocalizations.of(context)!.resultsCount(
-              state.movies.length,
-            ),
+            subtitle: AppLocalizations.of(
+              context,
+            )!.resultsCount(state.movies.length),
             estimatedItemWidth: 150,
             estimatedItemHeight: 300,
             titlePadding: 0,
@@ -316,9 +297,9 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
           const SizedBox(height: 16),
           MoviItemsList(
             title: AppLocalizations.of(context)!.seriesTitle,
-            subtitle: AppLocalizations.of(context)!.resultsCount(
-              state.shows.length,
-            ),
+            subtitle: AppLocalizations.of(
+              context,
+            )!.resultsCount(state.shows.length),
             estimatedItemWidth: 150,
             estimatedItemHeight: 300,
             titlePadding: 0,
@@ -392,4 +373,3 @@ class _MediaCardWithBadge extends StatelessWidget {
     );
   }
 }
-

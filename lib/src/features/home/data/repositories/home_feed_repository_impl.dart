@@ -8,9 +8,12 @@ import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/core/storage/services/cache_policy.dart';
+import 'package:movi/src/shared/domain/services/tmdb_image_selector_service.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/core/shared/failure.dart';
+import 'package:movi/src/core/utils/result.dart';
 
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/movie.dart';
@@ -48,7 +51,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   static const int _heroLimit = 20;
 
   @override
-  Future<List<MovieSummary>> getHeroMovies() async {
+  Future<Result<List<MovieSummary>, Failure>> getHeroMovies() async {
     try {
       final Set<int> availableTmdb = await _collectAvailableTmdbIds();
 
@@ -64,7 +67,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
           final mapped = _mapDtosToHeroCandidates(matched);
           if (mapped.isNotEmpty) {
-            return _takeFirst(mapped, _heroLimit);
+            return Ok<List<MovieSummary>, Failure>(
+              _takeFirst(mapped, _heroLimit),
+            );
           }
           picked = matched;
         }
@@ -75,7 +80,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
           : await _fetchTrendingMoviesPage(1);
       final mappedTrend = _mapDtosToHeroCandidates(trendPage1);
       if (mappedTrend.isNotEmpty) {
-        return _takeFirst(mappedTrend, _heroLimit);
+        return Ok<List<MovieSummary>, Failure>(
+          _takeFirst(mappedTrend, _heroLimit),
+        );
       }
 
       final firstVod = await _pickFirstVodRef();
@@ -83,16 +90,23 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         final MovieSummary? synthetic = _fromContentReferenceToMovieSummary(
           firstVod,
         );
-        if (synthetic != null) return <MovieSummary>[synthetic];
+        if (synthetic != null) {
+          return Ok<List<MovieSummary>, Failure>(<MovieSummary>[synthetic]);
+        }
       }
 
-      return const <MovieSummary>[];
+      // Pas d'erreur mais pas de données pertinentes non plus.
+      return const Ok<List<MovieSummary>, Failure>(<MovieSummary>[]);
     } catch (e, st) {
-      assert(() {
-        debugPrint('[HomeFeedRepositoryImpl] getHeroMovies error: $e\n$st');
-        return true;
-      }());
-      return const <MovieSummary>[];
+      debugPrint('[HomeFeedRepositoryImpl] getHeroMovies error: $e\n$st');
+      return Err<List<MovieSummary>, Failure>(
+        Failure.fromException(
+          e,
+          stackTrace: st,
+          code: 'home_hero_error',
+          context: <String, Object?>{'operation': 'getHeroMovies'},
+        ),
+      );
     }
   }
 
@@ -107,11 +121,27 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   @override
-  Future<Map<String, List<ContentReference>>> getIptvCategoryLists() async {
-    _enrichedIds.clear();
-    return _catalogReader.listCategoryLists(
-      activeSourceIds: _appState.activeIptvSourceIds,
-    );
+  Future<Result<Map<String, List<ContentReference>>, Failure>>
+  getIptvCategoryLists() async {
+    try {
+      _enrichedIds.clear();
+      final lists = await _catalogReader.listCategoryLists(
+        activeSourceIds: _appState.activeIptvSourceIds,
+      );
+      return Ok<Map<String, List<ContentReference>>, Failure>(lists);
+    } catch (e, st) {
+      debugPrint(
+        '[HomeFeedRepositoryImpl] getIptvCategoryLists error: $e\n$st',
+      );
+      return Err<Map<String, List<ContentReference>>, Failure>(
+        Failure.fromException(
+          e,
+          stackTrace: st,
+          code: 'home_iptv_error',
+          context: <String, Object?>{'operation': 'getIptvCategoryLists'},
+        ),
+      );
+    }
   }
 
   @override
@@ -165,7 +195,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         }
 
         final String? posterPath =
-            _PosterSelector.selectBestPosterPath(
+            TmdbImageSelectorService.selectPosterPath(
               (cached['images']?['posters'] as List<dynamic>?) ??
                   const <dynamic>[],
             ) ??
@@ -210,7 +240,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         }
 
         final String? posterPath =
-            _PosterSelector.selectBestPosterPath(
+            TmdbImageSelectorService.selectPosterPath(
               (cached['images']?['posters'] as List<dynamic>?) ??
                   const <dynamic>[],
             ) ??
@@ -344,37 +374,6 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   int? _parseYear(String? raw) {
     if (raw == null || raw.isEmpty || raw.length < 4) return null;
     return int.tryParse(raw.substring(0, 4));
-  }
-}
-
-class _PosterSelector {
-  const _PosterSelector._();
-
-  static String? selectBestPosterPath(List<dynamic> posters) {
-    if (posters.isEmpty) return null;
-
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final list = posters
-        .whereType<Map<String, dynamic>>()
-        .where((m) => m['file_path'] != null)
-        .toList();
-    if (list.isEmpty) return null;
-
-    final noLang = list.where((m) => m['iso_639_1'] == null).toList()
-      ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    final en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
   }
 }
 

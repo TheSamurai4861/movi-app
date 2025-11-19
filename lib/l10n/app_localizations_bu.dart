@@ -129,7 +129,8 @@ class AppLocalizationsBu extends AppLocalizations {
   String get actionExpand => 'Élargir';
 
   @override
-  String providerSearchPlaceholder(String provider) => 'Rechercher sur $provider...';
+  String providerSearchPlaceholder(String provider) =>
+      'Rechercher sur $provider...';
 
   @override
   String get castTitle => 'Troupe';
@@ -139,7 +140,8 @@ class AppLocalizationsBu extends AppLocalizations {
       'Les données s\'afficheront quand la couche data/domain sera arrimée.';
 
   @override
-  String get libraryEmpty => 'Likez des films, séries ou acteurs pour les voir apparaître ici.';
+  String get libraryEmpty =>
+      'Likez des films, séries ou acteurs pour les voir apparaître ici.';
 
   @override
   String get libraryHeader => 'Ta réserve';
@@ -226,7 +228,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String playlistCreatedSuccess(String name) => 'Liste "$name" créée';
   @override
-  String playlistCreateError(String error) => 'Couac lors de la création: $error';
+  String playlistCreateError(String error) =>
+      'Couac lors de la création: $error';
   @override
   String get addedToPlaylist => 'Ajouté';
   @override
@@ -286,7 +289,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get tvNoEpisodesAvailable => 'Point d\'épisode disponible';
   @override
-  String tvResumeSeasonEpisode(int season, int episode) => 'Reprendre S$season E$episode';
+  String tvResumeSeasonEpisode(int season, int episode) =>
+      'Reprendre S$season E$episode';
   @override
   String get sagaViewPage => 'Voir la page';
   @override
@@ -298,7 +302,8 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get sagaMoviesList => 'Liste des films';
   @override
-  String personMoviesCount(int movies, int shows) => '$movies films - $shows séries';
+  String personMoviesCount(int movies, int shows) =>
+      '$movies films - $shows séries';
   @override
   String get personPlayRandomly => 'Lire aléatoirement';
   @override
@@ -340,11 +345,19 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get playlistDeleteTitle => 'Supprimer';
   @override
-  String playlistDeleteConfirm(String title) => 'Êtes-vous sûr de vouloir supprimer "$title" ?';
+  String playlistDeleteConfirm(String title) =>
+      'Êtes-vous sûr de vouloir supprimer "$title" ?';
   @override
   String get playlistDeletedSuccess => 'Liste supprimée';
   @override
   String get playlistItemRemovedSuccess => 'Élément supprimé';
   @override
-  String playlistRemoveItemConfirm(String title) => 'Supprimer "$title" de la liste ?';
+  String playlistRemoveItemConfirm(String title) =>
+      'Supprimer "$title" de la liste ?';
+  @override
+  String get categoryLoadFailed => 'Couac lors du chargement de la catégorie.';
+  @override
+  String get categoryEmpty => 'Point d\'élément dans cette catégorie.';
+  @override
+  String get categoryLoadingMore => 'Chargement en cours…';
 }

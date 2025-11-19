@@ -9,10 +9,18 @@ class RefreshHomeFeed {
   final HomeFeedRepository _repo;
 
   Future<RefreshResult> call() async {
-    final hero = await _repo.getHeroMovies();
-    final iptv = await _repo.getIptvCategoryLists();
+    final heroResult = await _repo.getHeroMovies();
+    final iptvResult = await _repo.getIptvCategoryLists();
     final movies = await _repo.getContinueWatchingMovies();
     final shows = await _repo.getContinueWatchingShows();
+
+    List<MovieSummary> hero = const <MovieSummary>[];
+    Map<String, List<ContentReference>> iptv =
+        const <String, List<ContentReference>>{};
+
+    heroResult.fold(ok: (value) => hero = value, err: (_) {});
+    iptvResult.fold(ok: (value) => iptv = value, err: (_) {});
+
     return RefreshResult(
       hero: hero,
       iptv: iptv,

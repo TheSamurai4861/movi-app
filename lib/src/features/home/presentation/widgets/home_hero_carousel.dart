@@ -16,6 +16,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/services/tmdb_image_selector_service.dart';
 
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
@@ -24,13 +25,9 @@ import 'package:movi/src/features/movie/presentation/providers/movie_detail_prov
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
-import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-import 'package:movi/src/core/security/credentials_vault.dart';
-import 'package:movi/src/core/logging/logger.dart';
-import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
-import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
-import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/features/home/domain/services/movie_playback_service.dart';
 
 /// Carrousel du Hero d'accueil.
 /// - Affiche une liste de films/séries en rotation automatique.
@@ -66,13 +63,13 @@ final _tmdbTvRemoteProvider = Provider<TmdbTvRemoteDataSource>(
 class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     with WidgetsBindingObserver {
   // Mise en page
-  static const double _totalHeight = 500;
-  static const double _overlayHeight = 150;
+  static const double _totalHeight = HomeLayoutConstants.heroTotalHeight;
+  static const double _overlayHeight = HomeLayoutConstants.heroOverlayHeight;
 
   // Timings
-  static const Duration _rotation = Duration(seconds: 9);
-  static const Duration _fade = Duration(milliseconds: 800);
-  static const double _synopsisHeight = 80;
+  static const Duration _rotation = HomeLayoutConstants.heroRotationDuration;
+  static const Duration _fade = HomeLayoutConstants.heroFadeDuration;
+  static const double _synopsisHeight = HomeLayoutConstants.heroSynopsisHeight;
 
   // DI
   late final TmdbCacheDataSource _cache;
@@ -227,9 +224,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
     // Sélection centralisée : poster no-lang → en → best ; logo en → no-lang → best
     final String? posterPath =
-        _ImageSelector.selectPoster(posters) ?? data['poster_path']?.toString();
+        TmdbImageSelectorService.selectPosterPath(posters) ??
+        data['poster_path']?.toString();
     final String? posterBgPath = data['poster_background']?.toString();
-    final String? logoPath = _ImageSelector.selectLogo(logos);
+    final String? logoPath = TmdbImageSelectorService.selectLogoPath(logos);
 
     // Tailles standardisées pour stabilité/perf
     final Uri? posterUri = _images.poster(posterPath, size: 'w500');
@@ -306,22 +304,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
             id,
             language: language,
           );
-          await _cache.putMovieDetail(
-            id,
-            dto.toCache(),
-            language: language,
-          );
+          await _cache.putMovieDetail(id, dto.toCache(), language: language);
           _fullyHydratedIds.add(id);
         } catch (_) {
-          final dto = await _tvRemote.fetchShowFull(
-            id,
-            language: language,
-          );
-          await _cache.putTvDetail(
-            id,
-            dto.toCache(),
-            language: language,
-          );
+          final dto = await _tvRemote.fetchShowFull(id, language: language);
+          await _cache.putTvDetail(id, dto.toCache(), language: language);
           _fullyHydratedIds.add(id);
         }
         if (!mounted) return;
@@ -367,26 +354,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     try {
       _hydratedIds.add(id);
       if (!isTvData) {
-        final dto = await _moviesRemote.fetchMovieFull(
-          id,
-          language: language,
-        );
-        await _cache.putMovieDetail(
-          id,
-          dto.toCache(),
-          language: language,
-        );
+        final dto = await _moviesRemote.fetchMovieFull(id, language: language);
+        await _cache.putMovieDetail(id, dto.toCache(), language: language);
         _fullyHydratedIds.add(id);
       } else {
-        final dto = await _tvRemote.fetchShowFull(
-          id,
-          language: language,
-        );
-        await _cache.putTvDetail(
-          id,
-          dto.toCache(),
-          language: language,
-        );
+        final dto = await _tvRemote.fetchShowFull(id, language: language);
+        await _cache.putTvDetail(id, dto.toCache(), language: language);
         _fullyHydratedIds.add(id);
       }
       if (!mounted) return;
@@ -415,25 +388,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     try {
       _hydratedIds.add(id);
       try {
-        final dto = await _moviesRemote.fetchMovieFull(
-          id,
-          language: language,
-        );
-        await _cache.putMovieDetail(
-          id,
-          dto.toCache(),
-          language: language,
-        );
+        final dto = await _moviesRemote.fetchMovieFull(id, language: language);
+        await _cache.putMovieDetail(id, dto.toCache(), language: language);
       } catch (_) {
-        final dto = await _tvRemote.fetchShowFull(
-          id,
-          language: language,
-        );
-        await _cache.putTvDetail(
-          id,
-          dto.toCache(),
-          language: language,
-        );
+        final dto = await _tvRemote.fetchShowFull(id, language: language);
+        await _cache.putTvDetail(id, dto.toCache(), language: language);
       }
       _fullyHydratedIds.add(id);
       if (!mounted) return;
@@ -453,10 +412,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     if (!mounted) return null;
     final language = ref.read(asp.currentLanguageCodeProvider);
     try {
-      return await _cache.getMovieDetail(
-        id,
-        language: language,
-      );
+      return await _cache.getMovieDetail(id, language: language);
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('HomeHeroCarousel: getMovieDetail($id) failed: $e\n$st');
@@ -469,10 +425,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     if (!mounted) return null;
     final language = ref.read(asp.currentLanguageCodeProvider);
     try {
-      return await _cache.getTvDetail(
-        id,
-        language: language,
-      );
+      return await _cache.getTvDetail(id, language: language);
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('HomeHeroCarousel: getTvDetail($id) failed: $e\n$st');
@@ -769,7 +722,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       child: MoviPrimaryButton(
                         label: historyAsync.when(
                           data: (entry) => entry != null
-                              ? AppLocalizations.of(context)!.homeContinueWatching
+                              ? AppLocalizations.of(
+                                  context,
+                                )!.homeContinueWatching
                               : AppLocalizations.of(context)!.homeWatchNow,
                           loading: () =>
                               AppLocalizations.of(context)!.homeWatchNow,
@@ -832,145 +787,21 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final m = _currentMovie;
     if (m == null) return;
 
-    try {
-      final locator = ref.read(slProvider);
-      final iptvLocal = locator<IptvLocalRepository>();
-      final vault = locator<CredentialsVault>();
-      final logger = locator<AppLogger>();
-      final urlBuilder = XtreamStreamUrlBuilder(
-        iptvLocal: iptvLocal,
-        vault: vault,
-      );
+    if (!mounted || !context.mounted) return;
 
-      final movieId = m.id.value;
-      final title = m.title.display;
+    final playbackService = ref.read(slProvider)<MoviePlaybackService>();
+    final videoSource = await playbackService.findAndBuildStreamUrl(m);
 
-      // Chercher l'item Xtream correspondant
-      XtreamPlaylistItem? xtreamItem;
-      final accounts = await iptvLocal.getAccounts();
-
-      logger.debug(
-        'Recherche du film movieId=$movieId dans ${accounts.length} comptes',
-      );
-
-      for (final account in accounts) {
-        final playlists = await iptvLocal.getPlaylists(account.id);
-        logger.debug('Compte ${account.id}: ${playlists.length} playlists');
-
-        // Recherche globale dans toutes les playlists (movies et series)
-        // car certains films peuvent être mal catégorisés
-        for (final playlist in playlists) {
-          logger.debug(
-            'Playlist ${playlist.title} (${playlist.type.name}): ${playlist.items.length} items',
-          );
-
-          // Si l'ID commence par "xtream:", chercher par streamId
-          if (movieId.startsWith('xtream:')) {
-            final streamIdStr = movieId.substring(7);
-            final streamId = int.tryParse(streamIdStr);
-            logger.debug('Recherche par streamId=$streamId (xtream)');
-            if (streamId != null) {
-              try {
-                // Chercher dans tous les items, peu importe le type
-                xtreamItem = playlist.items.firstWhere(
-                  (item) => item.streamId == streamId,
-                );
-                logger.debug(
-                  'Film trouvé: ${xtreamItem.title} (streamId=${xtreamItem.streamId}, tmdbId=${xtreamItem.tmdbId}, type=${xtreamItem.type.name})',
-                );
-              } catch (_) {
-                // Item non trouvé, continuer la recherche
-                logger.debug(
-                  'Film avec streamId=$streamId non trouvé dans ${playlist.title}',
-                );
-              }
-            }
-          } else {
-            // Sinon, chercher par tmdbId
-            final tmdbId = int.tryParse(movieId);
-            logger.debug('Recherche par tmdbId=$tmdbId');
-            if (tmdbId != null) {
-              try {
-                // Chercher dans tous les items, peu importe le type
-                xtreamItem = playlist.items.firstWhere(
-                  (item) => item.tmdbId == tmdbId,
-                );
-                logger.debug(
-                  'Film trouvé: ${xtreamItem.title} (streamId=${xtreamItem.streamId}, tmdbId=${xtreamItem.tmdbId}, type=${xtreamItem.type.name})',
-                );
-              } catch (_) {
-                // Item non trouvé, continuer la recherche
-                logger.debug(
-                  'Film avec tmdbId=$tmdbId non trouvé dans ${playlist.title}',
-                );
-              }
-            }
-          }
-
-          if (xtreamItem != null) break;
-        }
-        if (xtreamItem != null) break;
-      }
-
-      if (xtreamItem == null) {
-        logger.info('Film movieId=$movieId non trouvé dans les playlists');
-        if (!mounted || !context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Film non disponible dans la playlist')),
-        );
-        return;
-      }
-
-      // Construire l'URL de streaming
-      // Vérifier que c'est bien un film, sinon adapter
-      String? streamUrl;
-      if (xtreamItem.type == XtreamPlaylistItemType.movie) {
-        streamUrl = await urlBuilder.buildStreamUrlFromMovieItem(xtreamItem);
-      } else {
-        // Si c'est une série trouvée par erreur, on ne peut pas la lire comme un film
-        logger.warn(
-          'Item trouvé est de type ${xtreamItem.type.name}, pas un film',
-        );
-        if (!mounted || !context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Le média trouvé n\'est pas un film')),
-        );
-        return;
-      }
-
-      if (streamUrl == null) {
-        logger.error(
-          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}',
-        );
-        if (!mounted || !context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible de construire l\'URL de streaming'),
-          ),
-        );
-        return;
-      }
-
-      logger.debug('URL de streaming construite: $streamUrl');
-
-      // Ouvrir le player
+    if (videoSource == null) {
       if (!mounted || !context.mounted) return;
-      context.push(
-        AppRouteNames.player,
-        extra: VideoSource(
-          url: streamUrl,
-          title: title,
-          contentId: movieId,
-          contentType: ContentType.movie,
-          poster: m.poster,
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Film non disponible dans la playlist')),
       );
-    } catch (e, st) {
-      final logger = ref.read(slProvider)<AppLogger>();
-      logger.error('Erreur lors de la lecture du film: $e', e, st);
-      if (!mounted || !context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      return;
     }
+
+    if (!mounted || !context.mounted) return;
+    context.push(AppRouteNames.player, extra: videoSource);
   }
 
   // ---------------------------------------------------------------------------
@@ -1126,88 +957,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 }
 
-// -----------------------------------------------------------------------------
-// Sélecteur d’images centralisé (poster et logo).
-// Poster : priorité **no-lang** → **en** → meilleur score.
-// Logo   : priorité **en** → **no-lang** → meilleur score.
-// -----------------------------------------------------------------------------
-class _ImageSelector {
-  const _ImageSelector._();
-
-  static String? selectPoster(List<dynamic> posters) {
-    if (posters.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-
-    final List<Map<String, dynamic>> list = posters
-        .whereType<Map<String, dynamic>>()
-        .where((m) => m['file_path'] != null)
-        .toList();
-    if (list.isEmpty) return null;
-
-    final List<Map<String, dynamic>> noLang =
-        list.where((m) => m['iso_639_1'] == null).toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (noLang.isNotEmpty) return pathOf(noLang.first);
-
-    final List<Map<String, dynamic>> en =
-        list
-            .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-            .toList()
-          ..sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    if (en.isNotEmpty) return pathOf(en.first);
-
-    list.sort((a, b) => scoreOf(b).compareTo(scoreOf(a)));
-    return pathOf(list.first);
-  }
-
-  static String? selectLogo(List<dynamic> logos) {
-    if (logos.isEmpty) return null;
-    String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
-    num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
-    double ratioOf(Map<String, dynamic> m) {
-      final w = m['width'];
-      final h = m['height'];
-      final dw = (w is num)
-          ? w.toDouble()
-          : double.tryParse(w?.toString() ?? '') ?? 0;
-      final dh = (h is num)
-          ? h.toDouble()
-          : double.tryParse(h?.toString() ?? '') ?? 0;
-      if (dw <= 0 || dh <= 0) return 0;
-      return dw / dh;
-    }
-
-    final List<Map<String, dynamic>> list = logos
-        .whereType<Map<String, dynamic>>()
-        .where((m) => m['file_path'] != null)
-        .toList();
-    if (list.isEmpty) return null;
-
-    List<Map<String, dynamic>> sortByScore(List<Map<String, dynamic>> l) =>
-        (l..sort((a, b) => scoreOf(b).compareTo(scoreOf(a))));
-    List<Map<String, dynamic>> preferWide(List<Map<String, dynamic>> l) {
-      final wide = l.where((m) => ratioOf(m) >= 2.0).toList();
-      if (wide.isNotEmpty) return sortByScore(wide);
-      return sortByScore(l);
-    }
-
-    final List<Map<String, dynamic>> en = list
-        .where((m) => (m['iso_639_1']?.toString().toLowerCase() == 'en'))
-        .toList();
-    final enPref = preferWide(en);
-    if (enPref.isNotEmpty) return pathOf(enPref.first);
-
-    final List<Map<String, dynamic>> noLang = list
-        .where((m) => m['iso_639_1'] == null)
-        .toList();
-    final noLangPref = preferWide(noLang);
-    if (noLangPref.isNotEmpty) return pathOf(noLangPref.first);
-
-    return pathOf(sortByScore(list).first);
-  }
-}
-
 class _BottomOverlay extends StatelessWidget {
   const _BottomOverlay({required this.height});
   final double height;
@@ -1311,7 +1060,9 @@ class _HeroSkeleton extends StatelessWidget {
                       fit: BoxFit.contain,
                       child: Consumer(
                         builder: (context, ref, _) {
-                          final accentColor = ref.watch(asp.currentAccentColorProvider);
+                          final accentColor = ref.watch(
+                            asp.currentAccentColorProvider,
+                          );
                           return SvgPicture.asset(
                             AppAssets.iconAppLogoSvg,
                             colorFilter: ColorFilter.mode(

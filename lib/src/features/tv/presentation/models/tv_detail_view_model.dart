@@ -36,7 +36,7 @@ class TvDetailViewModel {
     // Parse locale from language code
     final locale = _parseLocale(language);
     final localizations = lookupAppLocalizations(locale);
-    
+
     // Map creators first (directors)
     final creators = detail.creators
         .map(
@@ -101,7 +101,7 @@ class TvDetailViewModel {
     final seasonsCountText = seasonsCount == 1
         ? '$seasonsCount ${localizations.playlistSeasonSingular}'
         : '$seasonsCount ${localizations.playlistSeasonPlural}';
-    
+
     return TvDetailViewModel(
       title: detail.title.display,
       yearText: detail.firstAirDate?.year.toString() ?? '—',
@@ -115,7 +115,7 @@ class TvDetailViewModel {
       language: language,
     );
   }
-  
+
   static Locale _parseLocale(String code) {
     final parts = code.split('-');
     final language = parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : 'en';

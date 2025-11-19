@@ -2,7 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
+import 'package:movi/src/core/startup/app_startup_provider.dart'
+    as app_startup_provider;
 
 class AppStartupGate extends ConsumerWidget {
   const AppStartupGate({super.key, required this.child});
@@ -13,8 +14,10 @@ class AppStartupGate extends ConsumerWidget {
     final state = ref.watch(app_startup_provider.appStartupProvider);
 
     // Flag compile-time pour diagnostiquer les IPA dev.
-    const bool forceStartupDetails =
-        bool.fromEnvironment('FORCE_STARTUP_DETAILS', defaultValue: false);
+    const bool forceStartupDetails = bool.fromEnvironment(
+      'FORCE_STARTUP_DETAILS',
+      defaultValue: false,
+    );
 
     if (state.isLoading) {
       debugPrint('[Startup] loading...');
@@ -70,7 +73,8 @@ class AppStartupGate extends ConsumerWidget {
                   ],
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => ref.refresh(app_startup_provider.appStartupProvider),
+                    onPressed: () =>
+                        ref.refresh(app_startup_provider.appStartupProvider),
                     child: const Text('Réessayer'),
                   ),
                 ],

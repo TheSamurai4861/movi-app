@@ -5,15 +5,18 @@ import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/features/library/data/repositories/library_repository_impl.dart';
+import 'package:movi/src/features/library/library_constants.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_filter_pills.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
+import 'package:movi/src/shared/domain/services/playlist_tmdb_enrichment_service.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
-import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 
 /// Exposes the LibraryRepository to the presentation layer.
 /// Le repository est créé avec l'ID utilisateur actuel pour filtrer les favoris.
@@ -32,6 +35,40 @@ final libraryRepositoryProvider = Provider<LibraryRepository>((ref) {
 final playlistRepositoryProvider = Provider<PlaylistRepository>(
   (ref) => ref.watch(slProvider)<PlaylistRepository>(),
 );
+
+/// Use case providers pour les playlists utilisateur
+final createPlaylistUseCaseProvider = Provider<CreatePlaylist>((ref) {
+  final repo = ref.watch(playlistRepositoryProvider);
+  return CreatePlaylist(repo);
+});
+
+final renamePlaylistUseCaseProvider = Provider<RenamePlaylist>((ref) {
+  final repo = ref.watch(playlistRepositoryProvider);
+  return RenamePlaylist(repo);
+});
+
+final deletePlaylistUseCaseProvider = Provider<DeletePlaylist>((ref) {
+  final repo = ref.watch(playlistRepositoryProvider);
+  return DeletePlaylist(repo);
+});
+
+final removePlaylistItemUseCaseProvider = Provider<RemovePlaylistItem>((ref) {
+  final repo = ref.watch(playlistRepositoryProvider);
+  return RemovePlaylistItem(repo);
+});
+
+final addPlaylistItemUseCaseProvider = Provider<AddPlaylistItem>((ref) {
+  final repo = ref.watch(playlistRepositoryProvider);
+  return AddPlaylistItem(repo);
+});
+
+final tmdbClientProvider = Provider<TmdbClient>((ref) {
+  return ref.watch(slProvider)<TmdbClient>();
+});
+
+final tmdbImageResolverProvider = Provider<TmdbImageResolver>((ref) {
+  return ref.watch(slProvider)<TmdbImageResolver>();
+});
 
 /// Model pour représenter une playlist dans la bibliothèque
 class LibraryPlaylistItem {
@@ -69,7 +106,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   if (inProgress.isNotEmpty) {
     playlists.add(
       LibraryPlaylistItem(
-        id: 'in_progress',
+        id: LibraryConstants.inProgressPlaylistId,
         title: localizations.libraryInProgress,
         itemCount: inProgress.length,
         type: LibraryPlaylistType.inProgress,
@@ -83,7 +120,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   if (favoriteMovies.isNotEmpty) {
     playlists.add(
       LibraryPlaylistItem(
-        id: 'favorite_movies',
+        id: LibraryConstants.favoriteMoviesPlaylistId,
         title: localizations.libraryFavoriteMovies,
         itemCount: favoriteMovies.length,
         type: LibraryPlaylistType.favoriteMovies,
@@ -97,7 +134,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   if (favoriteSeries.isNotEmpty) {
     playlists.add(
       LibraryPlaylistItem(
-        id: 'favorite_series',
+        id: LibraryConstants.favoriteSeriesPlaylistId,
         title: localizations.libraryFavoriteSeries,
         itemCount: favoriteSeries.length,
         type: LibraryPlaylistType.favoriteSeries,
@@ -113,7 +150,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   if (totalHistory > 0) {
     playlists.add(
       LibraryPlaylistItem(
-        id: 'watch_history',
+        id: LibraryConstants.watchHistoryPlaylistId,
         title: localizations.libraryWatchHistory,
         itemCount: totalHistory,
         type: LibraryPlaylistType.watchHistory,
@@ -136,10 +173,10 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
       // Si erreur, utiliser itemCount du summary ou 0
       itemCount = playlist.itemCount ?? 0;
     }
-    
+
     playlists.add(
       LibraryPlaylistItem(
-        id: 'playlist_${playlist.id.value}',
+        id: '${LibraryConstants.userPlaylistPrefix}${playlist.id.value}',
         title: playlist.title.value,
         itemCount: itemCount,
         type: LibraryPlaylistType.userPlaylist,
@@ -153,7 +190,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   for (final person in likedPersons) {
     playlists.add(
       LibraryPlaylistItem(
-        id: 'actor_${person.id.value}',
+        id: '${LibraryConstants.actorPrefix}${person.id.value}',
         title: person.name,
         itemCount: 0, // Les acteurs n'ont pas de compteur d'éléments
         type: LibraryPlaylistType.actor,
@@ -167,9 +204,9 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   for (final saga in likedSagas) {
     playlists.add(
       LibraryPlaylistItem(
-        id: 'saga_${saga.id.value}',
+        id: '${LibraryConstants.sagaPrefix}${saga.id.value}',
         title: saga.title.value,
-        itemCount: 0, 
+        itemCount: 0,
         type: LibraryPlaylistType.userPlaylist, // Utiliser un type approprié
         photo: saga.cover, // Image hero de la saga
       ),
@@ -229,7 +266,7 @@ final filteredLibraryPlaylistsProvider =
               switch (filter) {
                 case LibraryFilterType.playlists:
                   // Exclure les sagas et les acteurs
-                  return !playlist.id.startsWith('saga_') &&
+                  return !playlist.id.startsWith(LibraryConstants.sagaPrefix) &&
                       playlist.type != LibraryPlaylistType.actor &&
                       (playlist.type == LibraryPlaylistType.inProgress ||
                           playlist.type == LibraryPlaylistType.favoriteMovies ||
@@ -237,8 +274,8 @@ final filteredLibraryPlaylistsProvider =
                           playlist.type == LibraryPlaylistType.watchHistory ||
                           playlist.type == LibraryPlaylistType.userPlaylist);
                 case LibraryFilterType.sagas:
-                  // Filtrer les sagas (id commence par 'saga_')
-                  return playlist.id.startsWith('saga_');
+                  // Filtrer les sagas (id commence par le préfixe dédié)
+                  return playlist.id.startsWith(LibraryConstants.sagaPrefix);
                 case LibraryFilterType.artistes:
                   return playlist.type == LibraryPlaylistType.actor;
               }
@@ -277,86 +314,45 @@ final libraryFilterProvider =
     );
 
 /// Provider pour charger les items d'une playlist spécifique (avec positions)
-final playlistItemsProvider = FutureProvider.family<List<PlaylistItem>, String>((ref, playlistId) async {
-  final playlistRepository = ref.watch(playlistRepositoryProvider);
-  
-  try {
-    final playlistDetail = await playlistRepository.getPlaylist(PlaylistId(playlistId));
-    return playlistDetail.items;
-  } catch (e) {
-    return [];
-  }
-});
+final playlistItemsProvider = FutureProvider.family<List<PlaylistItem>, String>(
+  (ref, playlistId) async {
+    final playlistRepository = ref.watch(playlistRepositoryProvider);
+
+    try {
+      final playlistDetail = await playlistRepository.getPlaylist(
+        PlaylistId(playlistId),
+      );
+      return playlistDetail.items;
+    } catch (e) {
+      return [];
+    }
+  },
+);
 
 /// Provider pour charger les ContentReference d'une playlist (pour compatibilité)
 /// Enrichit les ContentReference avec les années depuis TMDB si manquantes
-final playlistContentReferencesProvider = FutureProvider.family<List<ContentReference>, String>((ref, playlistId) async {
-  final itemsAsync = ref.watch(playlistItemsProvider(playlistId));
-  
-  return itemsAsync.when(
-    loading: () => <ContentReference>[],
-    error: (_, __) => <ContentReference>[],
-    data: (items) async {
-      final references = items.map((item) => item.reference).toList();
-      
-      // Enrichir avec les années depuis TMDB pour les items sans année
-      final sl = ref.read(slProvider);
-      final tmdbClient = sl<TmdbClient>();
-      
-      final enrichedReferences = await Future.wait(
-        references.map((reference) async {
-          // Si l'année est déjà présente, ne pas faire d'appel API
-          if (reference.year != null) return reference;
-          
-          // Extraire l'ID TMDB
-          final tmdbId = int.tryParse(reference.id);
-          if (tmdbId == null) return reference;
-          
-          try {
-            int? year;
-            
-            // Essayer d'abord comme film, puis comme série
-            if (reference.type == ContentType.movie) {
-              try {
-                final json = await tmdbClient.getJson('movie/$tmdbId');
-                final releaseDate = json['release_date']?.toString();
-                if (releaseDate != null && releaseDate.isNotEmpty) {
-                  final dateParts = releaseDate.split('-');
-                  if (dateParts.isNotEmpty) {
-                    year = int.tryParse(dateParts[0]);
-                  }
-                }
-              } catch (_) {
-                // Ignorer les erreurs
-              }
-            } else if (reference.type == ContentType.series) {
-              try {
-                final json = await tmdbClient.getJson('tv/$tmdbId');
-                final firstAirDate = json['first_air_date']?.toString();
-                if (firstAirDate != null && firstAirDate.isNotEmpty) {
-                  final dateParts = firstAirDate.split('-');
-                  if (dateParts.isNotEmpty) {
-                    year = int.tryParse(dateParts[0]);
-                  }
-                }
-              } catch (_) {
-                // Ignorer les erreurs
-              }
-            }
-            
-            // Si on a récupéré une année, mettre à jour la référence
-            if (year != null) {
-              return reference.copyWith(year: Optional.of(year));
-            }
-          } catch (_) {
-            // En cas d'erreur, retourner la référence originale
-          }
-          
-          return reference;
-        }),
+final playlistContentReferencesProvider =
+    FutureProvider.family<List<ContentReference>, String>((
+      ref,
+      playlistId,
+    ) async {
+      final itemsAsync = ref.watch(playlistItemsProvider(playlistId));
+
+      return itemsAsync.when(
+        loading: () => <ContentReference>[],
+        error: (_, __) => <ContentReference>[],
+        data: (items) async {
+          final references = items.map((item) => item.reference).toList();
+
+          // Enrichir avec les années depuis TMDB pour les items sans année
+          final enrichedReferences = await Future.wait(
+            references.map((reference) async {
+              final service = playlistTmdbEnrichmentService;
+              return service.enrichYear(reference);
+            }),
+          );
+
+          return enrichedReferences;
+        },
       );
-      
-      return enrichedReferences;
-    },
-  );
-});
+    });

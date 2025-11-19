@@ -41,21 +41,7 @@ class IptvCatalogReader {
     if (playlist == null) return const <ContentReference>[];
     final items = <ContentReference>[];
     for (final it in playlist.items) {
-      final refId = (it.tmdbId != null && it.tmdbId! > 0)
-          ? it.tmdbId!.toString()
-          : 'xtream:${it.streamId}';
-      items.add(
-        ContentReference(
-          id: refId,
-          title: MediaTitle(it.title),
-          type: it.type == XtreamPlaylistItemType.series
-              ? ContentType.series
-              : ContentType.movie,
-          poster: _safePosterUri(it.posterUrl),
-          year: it.releaseYear,
-          rating: it.rating,
-        ),
-      );
+      items.add(_toContentReference(it));
     }
     return items;
   }
@@ -76,19 +62,11 @@ class IptvCatalogReader {
           }
           final poster = _safePosterUri(posterUrl);
           if (poster == null) continue;
-          final refId = (it.tmdbId != null && it.tmdbId! > 0)
-              ? it.tmdbId!.toString()
-              : 'xtream:${it.streamId}';
           results.add(
-            ContentReference(
-              id: refId,
-              title: MediaTitle(title),
-              type: it.type == XtreamPlaylistItemType.series
-                  ? ContentType.series
-                  : ContentType.movie,
-              poster: poster,
-              year: it.releaseYear,
-              rating: it.rating,
+            _toContentReference(
+              it,
+              posterOverride: poster,
+              titleOverride: title,
             ),
           );
         }
@@ -113,21 +91,7 @@ class IptvCatalogReader {
         final key = '${acc.alias}/${_cleanCategoryTitle(pl.title)}';
         final items = <ContentReference>[];
         for (final it in pl.items) {
-          final refId = (it.tmdbId != null && it.tmdbId! > 0)
-              ? it.tmdbId!.toString()
-              : 'xtream:${it.streamId}';
-          items.add(
-            ContentReference(
-              id: refId,
-              title: MediaTitle(it.title),
-              type: it.type == XtreamPlaylistItemType.series
-                  ? ContentType.series
-                  : ContentType.movie,
-              poster: _safePosterUri(it.posterUrl),
-              year: it.releaseYear,
-              rating: it.rating,
-            ),
-          );
+          items.add(_toContentReference(it));
         }
         if (items.isNotEmpty) {
           result[key] = items;
@@ -152,5 +116,26 @@ class IptvCatalogReader {
     final sch = u.scheme.toLowerCase();
     if (sch != 'http' && sch != 'https') return null;
     return u;
+  }
+
+  ContentReference _toContentReference(
+    XtreamPlaylistItem it, {
+    Uri? posterOverride,
+    String? titleOverride,
+  }) {
+    final refId = (it.tmdbId != null && it.tmdbId! > 0)
+        ? it.tmdbId!.toString()
+        : 'xtream:${it.streamId}';
+    final title = (titleOverride ?? it.title).trim();
+    return ContentReference(
+      id: refId,
+      title: MediaTitle(title),
+      type: it.type == XtreamPlaylistItemType.series
+          ? ContentType.series
+          : ContentType.movie,
+      poster: posterOverride ?? _safePosterUri(it.posterUrl),
+      year: it.releaseYear,
+      rating: it.rating,
+    );
   }
 }

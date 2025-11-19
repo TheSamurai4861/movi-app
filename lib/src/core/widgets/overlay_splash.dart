@@ -41,10 +41,7 @@ class OverlaySplash extends ConsumerWidget {
                 child: SvgPicture.asset(
                   AppAssets.iconAppLogoSvg,
                   height: 120,
-                  colorFilter: ColorFilter.mode(
-                    accentColor,
-                    BlendMode.srcIn,
-                  ),
+                  colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
                 ),
               ),
             ),

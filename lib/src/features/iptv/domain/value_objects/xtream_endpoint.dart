@@ -1,4 +1,14 @@
 // ignore_for_file: deprecated_member_use
+//
+// Value object représentant l'URL de base d'un serveur Xtream.
+// Responsable de valider l'URL saisie par l'utilisateur et de construire
+// l'endpoint `player_api.php` attendu par l'API Xtream, en gérant
+// les variantes fréquentes :
+// - URL nue sans chemin       → `/player_api.php`
+// - URL contenant `get.php`   → remplacé par `player_api.php`
+// - URL contenant déjà `player_api.php` → préservée telle quelle
+// Les paramètres de requête existants sont fusionnés avec ceux passés
+// à `buildUri`.
 
 import 'package:equatable/equatable.dart';
 

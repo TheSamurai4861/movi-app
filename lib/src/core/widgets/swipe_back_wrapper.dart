@@ -3,10 +3,7 @@ import 'package:go_router/go_router.dart';
 
 /// Widget wrapper qui permet de revenir en arrière avec un swipe de gauche à droite
 class SwipeBackWrapper extends StatefulWidget {
-  const SwipeBackWrapper({
-    super.key,
-    required this.child,
-  });
+  const SwipeBackWrapper({super.key, required this.child});
 
   final Widget child;
 
@@ -44,4 +41,3 @@ class _SwipeBackWrapperState extends State<SwipeBackWrapper> {
     );
   }
 }
-

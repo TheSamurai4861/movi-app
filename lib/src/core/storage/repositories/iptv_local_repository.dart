@@ -11,10 +11,7 @@ import 'package:movi/src/core/storage/database/sqlite_database.dart';
 
 /// Données d'un épisode (ID + extension)
 class EpisodeData {
-  const EpisodeData({
-    required this.episodeId,
-    this.extension,
-  });
+  const EpisodeData({required this.episodeId, this.extension});
 
   final int episodeId;
   final String? extension;
@@ -204,7 +201,8 @@ class IptvLocalRepository {
   Future<void> saveEpisodes({
     required String accountId,
     required int seriesId,
-    required Map<int, Map<int, EpisodeData>> episodes, // Map<seasonNumber, Map<episodeNumber, EpisodeData>>
+    required Map<int, Map<int, EpisodeData>>
+    episodes, // Map<seasonNumber, Map<episodeNumber, EpisodeData>>
   }) async {
     final db = await _db;
     final batch = db.batch();
@@ -223,19 +221,15 @@ class IptvLocalRepository {
       for (final episodeEntry in seasonEntry.value.entries) {
         final episodeNumber = episodeEntry.key;
         final episodeData = episodeEntry.value;
-        batch.insert(
-          _tblEpisodes,
-          <String, Object?>{
-            'account_id': accountId,
-            'series_id': seriesId,
-            'season_number': seasonNumber,
-            'episode_number': episodeNumber,
-            'episode_id': episodeData.episodeId,
-            'extension': episodeData.extension,
-            'updated_at': now,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        batch.insert(_tblEpisodes, <String, Object?>{
+          'account_id': accountId,
+          'series_id': seriesId,
+          'season_number': seasonNumber,
+          'episode_number': episodeNumber,
+          'episode_id': episodeData.episodeId,
+          'extension': episodeData.extension,
+          'updated_at': now,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
       }
     }
 
@@ -269,7 +263,8 @@ class IptvLocalRepository {
     final rows = await db.query(
       _tblEpisodes,
       columns: ['episode_id', 'extension'],
-      where: 'account_id = ? AND series_id = ? AND season_number = ? AND episode_number = ?',
+      where:
+          'account_id = ? AND series_id = ? AND season_number = ? AND episode_number = ?',
       whereArgs: <Object?>[accountId, seriesId, seasonNumber, episodeNumber],
       limit: 1,
     );
@@ -282,7 +277,7 @@ class IptvLocalRepository {
   }
 
   /// Récupère toutes les saisons et épisodes d'une série depuis le cache local
-  /// Retourne Map<seasonNumber, Map<episodeNumber, EpisodeData>>
+  /// Retourne `Map<seasonNumber, Map<episodeNumber, EpisodeData>>`
   Future<Map<int, Map<int, EpisodeData>>> getAllEpisodesForSeries({
     required String accountId,
     required int seriesId,

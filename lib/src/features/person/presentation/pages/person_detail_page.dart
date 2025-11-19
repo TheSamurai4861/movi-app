@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,15 +12,58 @@ import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'dart:math';
 
-class PersonDetailPage extends ConsumerWidget {
+class PersonDetailPage extends ConsumerStatefulWidget {
   const PersonDetailPage({super.key, this.personSummary});
 
   final PersonSummary? personSummary;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PersonDetailPage> createState() => _PersonDetailPageState();
+}
+
+class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
+  Timer? _autoRefreshTimer;
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
+  static const Duration _loadingTimeout = Duration(seconds: 15);
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoRefreshTimer();
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefreshTimer() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer(_loadingTimeout, () {
+      final person =
+          widget.personSummary ??
+          (GoRouterState.of(context).extra as PersonSummary?);
+      if (mounted && person != null && _retryCount < _maxRetries) {
+        final vmAsync = ref.read(
+          personDetailControllerProvider(person.id.value),
+        );
+        // Si toujours en chargement après le timeout, relancer
+        if (vmAsync.isLoading) {
+          _retryCount++;
+          ref.invalidate(personDetailControllerProvider(person.id.value));
+          _startAutoRefreshTimer();
+        }
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final person =
-        personSummary ?? (GoRouterState.of(context).extra as PersonSummary?);
+        widget.personSummary ??
+        (GoRouterState.of(context).extra as PersonSummary?);
     if (person == null) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -32,6 +77,32 @@ class PersonDetailPage extends ConsumerWidget {
     }
 
     final vmAsync = ref.watch(personDetailControllerProvider(person.id.value));
+
+    // Détecter les erreurs et relancer automatiquement
+    vmAsync.whenOrNull(
+      error: (e, st) {
+        if (mounted && _retryCount < _maxRetries) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _retryCount++;
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  ref.invalidate(
+                    personDetailControllerProvider(person.id.value),
+                  );
+                  _startAutoRefreshTimer();
+                }
+              });
+            }
+          });
+        }
+      },
+      data: (_) {
+        // Le chargement a réussi, annuler le timer et réinitialiser
+        _autoRefreshTimer?.cancel();
+        _retryCount = 0;
+      },
+    );
 
     return vmAsync.when(
       loading: () => Scaffold(
@@ -53,10 +124,7 @@ class PersonDetailPage extends ConsumerWidget {
 }
 
 class _PersonDetailContent extends StatefulWidget {
-  const _PersonDetailContent({
-    required this.vm,
-    required this.person,
-  });
+  const _PersonDetailContent({required this.vm, required this.person});
 
   final PersonDetailViewModel vm;
   final PersonSummary person;
@@ -101,143 +169,237 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
             opacity: _isTransitioningFromLoading ? 0.0 : 1.0,
             duration: const Duration(milliseconds: 300),
             child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: heroHeight,
-                      width: double.infinity,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildHeroImage(context, widget.vm.photo),
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 100,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xFF141414),
-                                    Color(0x00000000),
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          height: heroHeight,
+                          width: double.infinity,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _buildHeroImage(context, widget.vm.photo),
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  height: 100,
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0xFF141414),
+                                        Color(0x00000000),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                left: 20,
+                                right: 20,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () => context.pop(),
+                                      child: Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 35,
+                                            height: 35,
+                                            child: Image.asset(
+                                              AppAssets.iconBack,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            )!.actionBack,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            left: 20,
-                            right: 20,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => context.pop(),
-                                  child: Row(
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  height: 180,
+                                  decoration: const BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0x00000000),
+                                        Color(0xFF141414),
+                                      ],
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.only(
+                                    bottom: 24,
+                                    left: 20,
+                                    right: 20,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      SizedBox(
-                                        width: 35,
-                                        height: 35,
-                                        child: Image.asset(AppAssets.iconBack),
+                                      Text(
+                                        widget.vm.name,
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .headlineSmall
+                                            ?.copyWith(color: Colors.white),
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(height: 8),
                                       Text(
                                         AppLocalizations.of(
                                           context,
-                                        )!.actionBack,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
+                                        )!.personMoviesCount(
+                                          widget.vm.moviesCount,
+                                          widget.vm.showsCount,
                                         ),
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.9,
+                                              ),
+                                            ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: 180,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0x00000000),
-                                    Color(0xFF141414),
-                                  ],
-                                ),
-                              ),
-                              padding: const EdgeInsets.only(
-                                bottom: 24,
-                                left: 20,
-                                right: 20,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                mainAxisSize: MainAxisSize.min,
+                        ),
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 20,
+                            end: 20,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 16),
+                              Row(
                                 children: [
-                                  Text(
-                                    widget.vm.name,
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(color: Colors.white),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    AppLocalizations.of(context)!.personMoviesCount(
-                                      widget.vm.moviesCount,
-                                      widget.vm.showsCount,
+                                  Expanded(
+                                    child: MoviPrimaryButton(
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.personPlayRandomly,
+                                      assetIcon: AppAssets.iconPlay,
+                                      onPressed: () {
+                                        final allMedia = [
+                                          ...widget.vm.movies.map(
+                                            (m) => MoviMedia(
+                                              id: m.id.value,
+                                              title: m.title.display,
+                                              poster: m.poster,
+                                              year: m.releaseYear,
+                                              type: MoviMediaType.movie,
+                                            ),
+                                          ),
+                                          ...widget.vm.shows.map(
+                                            (s) => MoviMedia(
+                                              id: s.id.value,
+                                              title: s.title.display,
+                                              poster: s.poster,
+                                              type: MoviMediaType.series,
+                                            ),
+                                          ),
+                                        ];
+                                        if (allMedia.isNotEmpty) {
+                                          final random = Random();
+                                          final randomMedia =
+                                              allMedia[random.nextInt(
+                                                allMedia.length,
+                                              )];
+                                          context.push(
+                                            randomMedia.type ==
+                                                    MoviMediaType.movie
+                                                ? AppRouteNames.movie
+                                                : AppRouteNames.tv,
+                                            extra: randomMedia,
+                                          );
+                                        }
+                                      },
                                     ),
-                                    textAlign: TextAlign.center,
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(
-                                          color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Consumer(
+                                    builder: (context, ref, _) {
+                                      final personId = widget.person.id.value;
+                                      final isFavoriteAsync = ref.watch(
+                                        personIsFavoriteProvider(personId),
+                                      );
+                                      return isFavoriteAsync.when(
+                                        data: (isFavorite) => MoviFavoriteButton(
+                                          isFavorite: isFavorite,
+                                          onPressed: () async {
+                                            await ref
+                                                .read(
+                                                  personToggleFavoriteProvider
+                                                      .notifier,
+                                                )
+                                                .toggle(personId);
+                                          },
                                         ),
+                                        loading: () => MoviFavoriteButton(
+                                          isFavorite: false,
+                                          onPressed: () {},
+                                        ),
+                                        error: (_, __) => MoviFavoriteButton(
+                                          isFavorite: false,
+                                          onPressed: () {},
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: 20,
-                        end: 20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: MoviPrimaryButton(
-                                  label: AppLocalizations.of(context)!.personPlayRandomly,
-                                  assetIcon: AppAssets.iconPlay,
-                                  onPressed: () {
-                                    
-                                    final allMedia = [
-                                      ...widget.vm.movies.map(
+                              const SizedBox(height: 32),
+                              if (widget.vm.biography != null &&
+                                  widget.vm.biography!.isNotEmpty) ...[
+                                _buildBiography(context, widget.vm.biography!),
+                                const SizedBox(height: 32),
+                              ],
+                              if (widget.vm.movies.isNotEmpty) ...[
+                                MoviItemsList(
+                                  title: AppLocalizations.of(
+                                    context,
+                                  )!.personMoviesList,
+                                  estimatedItemWidth: 150,
+                                  estimatedItemHeight: 300,
+                                  titlePadding: 0,
+                                  horizontalPadding: EdgeInsets.zero,
+                                  items: widget.vm.movies
+                                      .map(
                                         (m) => MoviMedia(
                                           id: m.id.value,
                                           title: m.title.display,
@@ -245,138 +407,63 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                                           year: m.releaseYear,
                                           type: MoviMediaType.movie,
                                         ),
-                                      ),
-                                      ...widget.vm.shows.map(
+                                      )
+                                      .toList()
+                                      .map(
+                                        (media) => MoviMediaCard(
+                                          media: media,
+                                          onTap: (m) => context.push(
+                                            AppRouteNames.movie,
+                                            extra: m,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                ),
+                              ],
+                              if (widget.vm.shows.isNotEmpty) ...[
+                                MoviItemsList(
+                                  title: AppLocalizations.of(
+                                    context,
+                                  )!.personSeriesList,
+                                  estimatedItemWidth: 150,
+                                  estimatedItemHeight: 300,
+                                  titlePadding: 0,
+                                  horizontalPadding: EdgeInsets.zero,
+                                  items: widget.vm.shows
+                                      .map(
                                         (s) => MoviMedia(
                                           id: s.id.value,
                                           title: s.title.display,
                                           poster: s.poster,
                                           type: MoviMediaType.series,
                                         ),
-                                      ),
-                                    ];
-                                    if (allMedia.isNotEmpty) {
-                                      final random = Random();
-                                      final randomMedia =
-                                          allMedia[random.nextInt(
-                                            allMedia.length,
-                                          )];
-                                      context.push(
-                                        randomMedia.type == MoviMediaType.movie
-                                            ? AppRouteNames.movie
-                                            : AppRouteNames.tv,
-                                        extra: randomMedia,
-                                      );
-                                    }
-                                  },
+                                      )
+                                      .toList()
+                                      .map(
+                                        (media) => MoviMediaCard(
+                                          media: media,
+                                          onTap: (m) => context.push(
+                                            AppRouteNames.tv,
+                                            extra: m,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(growable: false),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final personId = widget.person.id.value;
-                                  final isFavoriteAsync = ref.watch(
-                                    personIsFavoriteProvider(personId),
-                                  );
-                                  return isFavoriteAsync.when(
-                                    data: (isFavorite) => MoviFavoriteButton(
-                                      isFavorite: isFavorite,
-                                      onPressed: () async {
-                                        await ref.read(
-                                          personToggleFavoriteProvider.notifier,
-                                        ).toggle(personId);
-                                      },
-                                    ),
-                                    loading: () => MoviFavoriteButton(
-                                      isFavorite: false,
-                                      onPressed: () {},
-                                    ),
-                                    error: (_, __) => MoviFavoriteButton(
-                                      isFavorite: false,
-                                      onPressed: () {},
-                                    ),
-                                  );
-                                },
-                              ),
+                                const SizedBox(height: 32),
+                              ],
                             ],
                           ),
-                          const SizedBox(height: 32),
-                          if (widget.vm.biography != null &&
-                              widget.vm.biography!.isNotEmpty) ...[
-                            _buildBiography(context, widget.vm.biography!),
-                            const SizedBox(height: 32),
-                          ],
-                          if (widget.vm.movies.isNotEmpty) ...[
-                            MoviItemsList(
-                              title: AppLocalizations.of(context)!.personMoviesList,
-                              estimatedItemWidth: 150,
-                              estimatedItemHeight: 300,
-                              titlePadding: 0,
-                              horizontalPadding: EdgeInsets.zero,
-                              items: widget.vm.movies
-                                  .map(
-                                    (m) => MoviMedia(
-                                      id: m.id.value,
-                                      title: m.title.display,
-                                      poster: m.poster,
-                                      year: m.releaseYear,
-                                      type: MoviMediaType.movie,
-                                    ),
-                                  )
-                                  .toList()
-                                  .map(
-                                    (media) => MoviMediaCard(
-                                      media: media,
-                                      onTap: (m) => context.push(
-                                        AppRouteNames.movie,
-                                        extra: m,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                            ),
-                          ],
-                          if (widget.vm.shows.isNotEmpty) ...[
-                            MoviItemsList(
-                              title: AppLocalizations.of(context)!.personSeriesList,
-                              estimatedItemWidth: 150,
-                              estimatedItemHeight: 300,
-                              titlePadding: 0,
-                              horizontalPadding: EdgeInsets.zero,
-                              items: widget.vm.shows
-                                  .map(
-                                    (s) => MoviMedia(
-                                      id: s.id.value,
-                                      title: s.title.display,
-                                      poster: s.poster,
-                                      type: MoviMediaType.series,
-                                    ),
-                                  )
-                                  .toList()
-                                  .map(
-                                    (media) => MoviMediaCard(
-                                      media: media,
-                                      onTap: (m) => context.push(
-                                        AppRouteNames.tv,
-                                        extra: m,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(growable: false),
-                            ),
-                            const SizedBox(height: 32),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-            ],
           ),
         ),
-      ),
       ),
     );
   }
@@ -425,77 +512,78 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-              Text(
-                'Biographie',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ) ??
-                    const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: Text(
-                    biography,
-                    maxLines: isExpanded ? null : 3,
-                    overflow: isExpanded
-                        ? TextOverflow.visible
-                        : TextOverflow.ellipsis,
-                    textAlign: TextAlign.left,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
+            Text(
+              'Biographie',
+              style:
+                  Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ) ??
+                  const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: Text(
+                  biography,
+                  maxLines: isExpanded ? null : 3,
+                  overflow: isExpanded
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
                   ),
                 ),
               ),
-              if (needsExpansion)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Center(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        setState(() {
-                          _biographyExpanded[personId] = !isExpanded;
-                        });
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isExpanded
-                                ? AppLocalizations.of(context)!.actionCollapse
-                                : AppLocalizations.of(context)!.actionExpand,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            isExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
+            ),
+            if (needsExpansion)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Center(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      setState(() {
+                        _biographyExpanded[personId] = !isExpanded;
+                      });
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isExpanded
+                              ? AppLocalizations.of(context)!.actionCollapse
+                              : AppLocalizations.of(context)!.actionExpand,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                             color: Colors.white70,
-                            size: 20,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          isExpanded
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-            ],
+              ),
+          ],
         );
       },
     );
@@ -503,10 +591,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
 
   bool _needsExpansion(String text, double maxWidth) {
     final TextPainter painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: const TextStyle(fontSize: 16),
-      ),
+      text: TextSpan(text: text, style: const TextStyle(fontSize: 16)),
       maxLines: 3,
       textDirection: TextDirection.ltr,
     );

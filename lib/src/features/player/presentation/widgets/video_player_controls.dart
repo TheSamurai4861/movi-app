@@ -26,6 +26,9 @@ class VideoPlayerControls extends ConsumerWidget {
     required this.onChromecast,
     required this.formatDuration,
     this.hasAudioTracks = false,
+    this.onRestart,
+    this.onNextEpisode,
+    this.isSeries = false,
   });
 
   final String title;
@@ -47,6 +50,9 @@ class VideoPlayerControls extends ConsumerWidget {
   final VoidCallback onChromecast;
   final String Function(Duration) formatDuration;
   final bool hasAudioTracks;
+  final VoidCallback? onRestart;
+  final VoidCallback? onNextEpisode;
+  final bool isSeries;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -200,12 +206,15 @@ class VideoPlayerControls extends ConsumerWidget {
                   onTap: onSeekBackward10,
                 ),
                 const SizedBox(width: 24),
-                // Play/Pause (aligné verticalement avec les autres boutons)
-                _ControlButton(
-                  icon: isPlaying ? AppAssets.iconPause : AppAssets.iconPlay,
-                  label: '',
-                  onTap: onPlayPause,
-                  isLarge: true,
+                // Play/Pause (remonté de 16px)
+                Transform.translate(
+                  offset: const Offset(0, -16),
+                  child: _ControlButton(
+                    icon: isPlaying ? AppAssets.iconPause : AppAssets.iconPlay,
+                    label: '',
+                    onTap: onPlayPause,
+                    isLarge: true,
+                  ),
                 ),
                 const SizedBox(width: 24),
                 // Avancer 10s
@@ -273,10 +282,7 @@ class VideoPlayerControls extends ConsumerWidget {
                         ),
                         const Text(
                           ' : ',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.white),
                         ),
                         // Temps total
                         Text(
@@ -287,6 +293,69 @@ class VideoPlayerControls extends ConsumerWidget {
                           ),
                         ),
                         const Spacer(),
+                        // Bouton "Episode suivant" (séries uniquement)
+                        if (isSeries && onNextEpisode != null)
+                          GestureDetector(
+                            onTap: onNextEpisode,
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Episode suivant',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Transform.rotate(
+                                  angle: 3.14159, // 180 degrés en radians
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: Image.asset(AppAssets.iconBack),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Espacement entre "Episode suivant" et "Recommencer" : 24px si les deux existent
+                        if (isSeries &&
+                            onNextEpisode != null &&
+                            onRestart != null)
+                          const SizedBox(width: 24),
+                        // Bouton "Recommencer"
+                        if (onRestart != null)
+                          GestureDetector(
+                            onTap: onRestart,
+                            behavior: HitTestBehavior.opaque,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Recommencer',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: Image.asset(AppAssets.iconReculer),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Espacement avant le bouton audio : 36px
+                        if (onRestart != null)
+                          const SizedBox(width: 36)
+                        else if (isSeries && onNextEpisode != null)
+                          const SizedBox(width: 36),
                         // Bouton audio
                         if (hasAudioTracks)
                           GestureDetector(

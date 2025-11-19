@@ -533,4 +533,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String playlistRemoveItemConfirm(String title) {
     return '\"$title\" uit de lijst verwijderen?';
   }
+
+  @override
+  String get categoryLoadFailed => 'Fout bij het laden van de categorie.';
+
+  @override
+  String get categoryEmpty => 'Geen items in deze categorie.';
+
+  @override
+  String get categoryLoadingMore => 'Meer laden…';
 }

@@ -15,7 +15,10 @@ class TmdbPersonRemoteDataSource {
     return TmdbPersonDetailDto.fromJson(detail, credits);
   }
 
-  Future<List<TmdbPersonDetailDto>> searchPeople(String query, {String? language}) async {
+  Future<List<TmdbPersonDetailDto>> searchPeople(
+    String query, {
+    String? language,
+  }) async {
     final results = await _client.getJson(
       'search/person',
       query: {'query': query},

@@ -16,9 +16,5 @@ void main() {
         debugPrint('DispatcherError: $error');
         return true;
       };
-  runApp(
-    const ProviderScope(
-      child: AppStartupGate(child: MyApp()),
-    ),
-  );
+  runApp(const ProviderScope(child: AppStartupGate(child: MyApp())));
 }

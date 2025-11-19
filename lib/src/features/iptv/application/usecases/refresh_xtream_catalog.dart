@@ -8,12 +8,21 @@ class RefreshXtreamCatalog {
 
   final IptvRepository _repository;
 
-  Future<Result<XtreamCatalogSnapshot, Failure>> call(String accountId) {
-    return _repository
-        .refreshCatalog(accountId)
-        .then<Result<XtreamCatalogSnapshot, Failure>>((value) => Ok(value))
-        .catchError(
-          (error) => Err<XtreamCatalogSnapshot, Failure>(error as Failure),
-        );
+  Future<Result<XtreamCatalogSnapshot, Failure>> call(String accountId) async {
+    try {
+      final snapshot = await _repository.refreshCatalog(accountId);
+      return Ok(snapshot);
+    } on Failure catch (failure) {
+      return Err(failure);
+    } catch (error, stack) {
+      return Err(
+        Failure.fromException(
+          error,
+          stackTrace: stack,
+          code: 'iptv_refresh_catalog',
+          context: {'accountId': accountId},
+        ),
+      );
+    }
   }
 }

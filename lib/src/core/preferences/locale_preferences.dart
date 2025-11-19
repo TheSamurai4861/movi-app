@@ -13,13 +13,13 @@ class LocalePreferences {
     required String themeStorageKey,
     required ThemeMode themeMode,
     required StreamController<ThemeMode> themeController,
-  })  : _storage = storage,
-        _storageKey = storageKey,
-        _languageCode = languageCode,
-        _languageController = languageController,
-        _themeStorageKey = themeStorageKey,
-        _themeMode = themeMode,
-        _themeController = themeController;
+  }) : _storage = storage,
+       _storageKey = storageKey,
+       _languageCode = languageCode,
+       _languageController = languageController,
+       _themeStorageKey = themeStorageKey,
+       _themeMode = themeMode,
+       _themeController = themeController;
 
   static const String _defaultStorageKey = 'prefs.preferred_locale';
 

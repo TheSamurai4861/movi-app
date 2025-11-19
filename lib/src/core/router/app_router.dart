@@ -173,10 +173,7 @@ class _RouterBundle {
               );
             }
             return MaterialPage(
-              child: ProviderAllResultsPage(
-                args: args,
-                type: args.type,
-              ),
+              child: ProviderAllResultsPage(args: args, type: args.type),
             );
           },
         ),

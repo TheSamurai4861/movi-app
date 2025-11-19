@@ -83,7 +83,10 @@ final currentPreferredAudioLanguageProvider = Provider<String?>((ref) {
   final prefs = ref.watch(playerPreferencesProvider);
   final language = ref
       .watch(preferredAudioLanguageStreamProvider)
-      .maybeWhen(data: (value) => value, orElse: () => prefs.preferredAudioLanguage);
+      .maybeWhen(
+        data: (value) => value,
+        orElse: () => prefs.preferredAudioLanguage,
+      );
   return language;
 });
 
@@ -96,7 +99,10 @@ final currentPreferredSubtitleLanguageProvider = Provider<String?>((ref) {
   final prefs = ref.watch(playerPreferencesProvider);
   final language = ref
       .watch(preferredSubtitleLanguageStreamProvider)
-      .maybeWhen(data: (value) => value, orElse: () => prefs.preferredSubtitleLanguage);
+      .maybeWhen(
+        data: (value) => value,
+        orElse: () => prefs.preferredSubtitleLanguage,
+      );
   return language;
 });
 

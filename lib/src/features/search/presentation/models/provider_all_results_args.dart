@@ -12,4 +12,3 @@ class ProviderAllResultsArgs {
   final String providerName;
   final MoviMediaType type; // movie ou series
 }
-

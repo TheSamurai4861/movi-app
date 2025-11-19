@@ -22,8 +22,10 @@ final favoritesRepositoryProvider = Provider<FavoritesRepository>((ref) {
 });
 
 /// Provider pour vérifier si une personne est dans les favoris
-final personIsFavoriteProvider =
-    FutureProvider.family<bool, String>((ref, personId) async {
+final personIsFavoriteProvider = FutureProvider.family<bool, String>((
+  ref,
+  personId,
+) async {
   final watchlist = ref.watch(slProvider)<WatchlistLocalRepository>();
   return await watchlist.exists(
     personId,
@@ -41,10 +43,12 @@ class PersonToggleFavoriteNotifier extends Notifier<void> {
 
   Future<void> toggle(String personId) async {
     final favoritesRepo = ref.read(favoritesRepositoryProvider);
-    final isFavorite = await ref.read(personIsFavoriteProvider(personId).future);
+    final isFavorite = await ref.read(
+      personIsFavoriteProvider(personId).future,
+    );
     final personRepo = ref.read(slProvider)<PersonRepository>();
     final person = await personRepo.getPerson(PersonId(personId));
-    
+
     if (isFavorite) {
       await favoritesRepo.unlikePerson(PersonId(personId));
     } else {
@@ -63,8 +67,8 @@ class PersonToggleFavoriteNotifier extends Notifier<void> {
 /// Provider pour basculer le statut favori d'une personne
 final personToggleFavoriteProvider =
     NotifierProvider<PersonToggleFavoriteNotifier, void>(
-  PersonToggleFavoriteNotifier.new,
-);
+      PersonToggleFavoriteNotifier.new,
+    );
 
 class PersonDetailViewModel {
   const PersonDetailViewModel({
@@ -88,67 +92,66 @@ class PersonDetailViewModel {
 
 final personDetailControllerProvider =
     FutureProvider.family<PersonDetailViewModel, String>((ref, personId) async {
-  final locator = ref.watch(slProvider);
-  final personRepo = locator<PersonRepository>();
-  final iptvLocal = locator<IptvLocalRepository>();
+      final locator = ref.watch(slProvider);
+      final personRepo = locator<PersonRepository>();
+      final iptvLocal = locator<IptvLocalRepository>();
 
-  final id = PersonId(personId);
-  final person = await personRepo.getPerson(id);
+      final id = PersonId(personId);
+      final person = await personRepo.getPerson(id);
 
-  // Récupérer les IDs disponibles dans la playlist IPTV
-  final availableMovieIds = await iptvLocal.getAvailableTmdbIds(
-    type: XtreamPlaylistItemType.movie,
-  );
-  final availableShowIds = await iptvLocal.getAvailableTmdbIds(
-    type: XtreamPlaylistItemType.series,
-  );
-
-  // Filtrer la filmographie pour ne garder que les films/séries disponibles
-  final movies = <MovieSummary>[];
-  final shows = <TvShowSummary>[];
-
-  for (final credit in person.filmography) {
-    final tmdbId = int.tryParse(credit.reference.id);
-    if (tmdbId == null) continue;
-
-    if (credit.reference.type == ContentType.movie &&
-        availableMovieIds.contains(tmdbId) &&
-        credit.reference.poster != null) {
-      movies.add(
-        MovieSummary(
-          id: MovieId(credit.reference.id),
-          tmdbId: tmdbId,
-          title: credit.reference.title,
-          poster: credit.reference.poster!,
-          backdrop: null,
-          releaseYear: credit.year,
-        ),
+      // Récupérer les IDs disponibles dans la playlist IPTV
+      final availableMovieIds = await iptvLocal.getAvailableTmdbIds(
+        type: XtreamPlaylistItemType.movie,
       );
-    } else if (credit.reference.type == ContentType.series &&
-        availableShowIds.contains(tmdbId) &&
-        credit.reference.poster != null) {
-      shows.add(
-        TvShowSummary(
-          id: SeriesId(credit.reference.id),
-          tmdbId: tmdbId,
-          title: credit.reference.title,
-          poster: credit.reference.poster!,
-          backdrop: null,
-          seasonCount: null,
-          status: null,
-        ),
+      final availableShowIds = await iptvLocal.getAvailableTmdbIds(
+        type: XtreamPlaylistItemType.series,
       );
-    }
-  }
 
-  return PersonDetailViewModel(
-    name: person.name.display,
-    photo: person.photo,
-    moviesCount: movies.length,
-    showsCount: shows.length,
-    movies: movies,
-    shows: shows,
-    biography: person.biography,
-  );
-});
+      // Filtrer la filmographie pour ne garder que les films/séries disponibles
+      final movies = <MovieSummary>[];
+      final shows = <TvShowSummary>[];
 
+      for (final credit in person.filmography) {
+        final tmdbId = int.tryParse(credit.reference.id);
+        if (tmdbId == null) continue;
+
+        if (credit.reference.type == ContentType.movie &&
+            availableMovieIds.contains(tmdbId) &&
+            credit.reference.poster != null) {
+          movies.add(
+            MovieSummary(
+              id: MovieId(credit.reference.id),
+              tmdbId: tmdbId,
+              title: credit.reference.title,
+              poster: credit.reference.poster!,
+              backdrop: null,
+              releaseYear: credit.year,
+            ),
+          );
+        } else if (credit.reference.type == ContentType.series &&
+            availableShowIds.contains(tmdbId) &&
+            credit.reference.poster != null) {
+          shows.add(
+            TvShowSummary(
+              id: SeriesId(credit.reference.id),
+              tmdbId: tmdbId,
+              title: credit.reference.title,
+              poster: credit.reference.poster!,
+              backdrop: null,
+              seasonCount: null,
+              status: null,
+            ),
+          );
+        }
+      }
+
+      return PersonDetailViewModel(
+        name: person.name.display,
+        photo: person.photo,
+        moviesCount: movies.length,
+        showsCount: shows.length,
+        movies: movies,
+        shows: shows,
+        biography: person.biography,
+      );
+    });

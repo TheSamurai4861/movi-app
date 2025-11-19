@@ -15,6 +15,14 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
+import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.dart';
+import 'package:movi/src/core/security/credentials_vault.dart';
+import 'package:movi/src/core/network/network_executor.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
 
 /// Page de lecture vidéo avec contrôles personnalisés
 class VideoPlayerPage extends ConsumerStatefulWidget {
@@ -47,6 +55,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   final GlobalKey _controlsKey = GlobalKey();
   bool _tracksInitialized = false;
   bool _resumePositionApplied = false;
+  VideoSource? _currentVideoSource;
 
   @override
   void initState() {
@@ -80,6 +89,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _showControlsWithAnimation();
     _startHideControlsTimer();
 
+    // Initialiser le VideoSource actuel
+    _currentVideoSource = widget.videoSource;
+
     if (widget.videoSource != null) {
       _playerRepository.open(widget.videoSource!);
     }
@@ -101,13 +113,18 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _playerRepository.player.stream.duration.listen((duration) {
       if (mounted && duration != Duration.zero) {
         setState(() => _duration = duration);
-        
+
         // Appliquer la position de reprise une seule fois quand la durée est disponible
-        if (!_resumePositionApplied && 
-            widget.videoSource?.resumePosition != null &&
-            widget.videoSource!.resumePosition! < duration) {
-          _resumePositionApplied = true;
-          _playerRepository.seekTo(widget.videoSource!.resumePosition!);
+        if (!_resumePositionApplied) {
+          // Utiliser la position de reprise du VideoSource actuel si disponible
+          if (_currentVideoSource?.resumePosition != null &&
+              _currentVideoSource!.resumePosition! < duration) {
+            _resumePositionApplied = true;
+            _playerRepository.seekTo(_currentVideoSource!.resumePosition!);
+          } else {
+            // Si pas de position de reprise, commencer depuis le début
+            _resumePositionApplied = true;
+          }
         }
       }
     });
@@ -191,6 +208,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   /// Extrait le code de langue d'une piste audio ou sous-titre
+  /// Transforme les titres en noms de langues lisibles et extrait le code correspondant
   String? _extractLanguageCodeFromTrack(dynamic track) {
     // Essayer d'abord track.language
     if (track.language != null && track.language!.isNotEmpty) {
@@ -201,7 +219,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     if (track.title != null && track.title!.isNotEmpty) {
       final title = track.title!.toLowerCase();
 
-      // Patterns de recherche pour les langues courantes
+      // Mapping des codes de langue vers leurs noms en français et anglais
       final languagePatterns = {
         'fr': ['fr', 'french', 'français', 'francais'],
         'en': ['en', 'english', 'anglais'],
@@ -233,9 +251,24 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         'uk': ['uk', 'ukrainian', 'ukrainien'],
       };
 
+      // Chercher d'abord par code de langue ou nom anglais/français
       for (final entry in languagePatterns.entries) {
         if (entry.value.any((pattern) => title.contains(pattern))) {
           return entry.key;
+        }
+      }
+
+      // Si aucun pattern ne correspond, essayer de détecter depuis le nom formaté
+      // Par exemple, si le titre contient "Français", on cherche le code correspondant
+      final formattedTitle = LanguageFormatter.formatLanguageCode(title);
+      if (formattedTitle != 'Inconnu' &&
+          formattedTitle != title.toUpperCase()) {
+        // Le titre a été reconnu comme une langue, chercher le code correspondant
+        for (final entry in languagePatterns.entries) {
+          final formattedLang = LanguageFormatter.formatLanguageCode(entry.key);
+          if (formattedLang.toLowerCase() == formattedTitle.toLowerCase()) {
+            return entry.key;
+          }
         }
       }
     }
@@ -435,6 +468,336 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _startHideControlsTimer();
   }
 
+  Future<void> _restart() async {
+    await _playerRepository.seekTo(Duration.zero);
+    _startHideControlsTimer();
+  }
+
+  Future<void> _goToNextEpisode() async {
+    final videoSource = widget.videoSource;
+    if (videoSource == null ||
+        videoSource.contentType != ContentType.series ||
+        videoSource.contentId == null ||
+        videoSource.season == null ||
+        videoSource.episode == null) {
+      return;
+    }
+
+    try {
+      final locator = ref.read(slProvider);
+      final iptvLocal = locator<IptvLocalRepository>();
+      final vault = locator<CredentialsVault>();
+      final networkExecutor = locator<NetworkExecutor>();
+      final urlBuilder = XtreamStreamUrlBuilder(
+        iptvLocal: iptvLocal,
+        vault: vault,
+        networkExecutor: networkExecutor,
+      );
+
+      // Charger les données de la série
+      final vmAsync = ref.read(
+        tvDetailProgressiveControllerProvider(videoSource.contentId!),
+      );
+      final vm = vmAsync.value;
+
+      if (vm == null || vm.seasons.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible de charger les données de la série'),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Trouver l'épisode suivant
+      final currentSeason = videoSource.season!;
+      final currentEpisode = videoSource.episode!;
+
+      EpisodeViewModel? nextEpisode;
+      int? nextSeasonNumber;
+      int? nextEpisodeNumber;
+
+      // Chercher dans la saison actuelle
+      final currentSeasonData = vm.seasons.firstWhere(
+        (s) => s.seasonNumber == currentSeason,
+        orElse: () => vm.seasons.first,
+      );
+
+      final currentEpisodeIndex = currentSeasonData.episodes.indexWhere(
+        (e) => e.episodeNumber == currentEpisode,
+      );
+
+      if (currentEpisodeIndex >= 0 &&
+          currentEpisodeIndex < currentSeasonData.episodes.length - 1) {
+        // Épisode suivant dans la même saison
+        nextEpisode = currentSeasonData.episodes[currentEpisodeIndex + 1];
+        nextSeasonNumber = currentSeason;
+        nextEpisodeNumber = nextEpisode.episodeNumber;
+      } else {
+        // Chercher dans la saison suivante
+        final currentSeasonIndex = vm.seasons.indexWhere(
+          (s) => s.seasonNumber == currentSeason,
+        );
+
+        if (currentSeasonIndex >= 0 &&
+            currentSeasonIndex < vm.seasons.length - 1) {
+          final nextSeasonData = vm.seasons[currentSeasonIndex + 1];
+          if (nextSeasonData.episodes.isNotEmpty) {
+            nextEpisode = nextSeasonData.episodes.first;
+            nextSeasonNumber = nextSeasonData.seasonNumber;
+            nextEpisodeNumber = nextEpisode.episodeNumber;
+          }
+        }
+      }
+
+      if (nextEpisode == null ||
+          nextSeasonNumber == null ||
+          nextEpisodeNumber == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucun épisode suivant disponible')),
+          );
+        }
+        return;
+      }
+
+      // Convertir le numéro d'épisode TMDB en numéro Xtream
+      int xtreamEpisodeNumber = nextEpisodeNumber;
+      final isGlobal = _isSeasonUsingGlobalNumbering(
+        nextSeasonNumber,
+        vm.seasons,
+      );
+      if (isGlobal) {
+        xtreamEpisodeNumber = _convertTmdbEpisodeToXtream(
+          nextEpisodeNumber,
+          nextSeasonNumber,
+          vm.seasons,
+        );
+      }
+
+      // Chercher l'item Xtream correspondant
+      XtreamPlaylistItem? xtreamItem;
+      final accounts = await iptvLocal.getAccounts();
+      final seriesId = videoSource.contentId!;
+
+      for (final account in accounts) {
+        final playlists = await iptvLocal.getPlaylists(account.id);
+        for (final playlist in playlists) {
+          if (seriesId.startsWith('xtream:')) {
+            final streamIdStr = seriesId.substring(7);
+            final streamId = int.tryParse(streamIdStr);
+            if (streamId != null) {
+              try {
+                final found = playlist.items.firstWhere(
+                  (item) => item.streamId == streamId,
+                );
+                if (found.type == XtreamPlaylistItemType.series &&
+                    found.streamId > 0) {
+                  xtreamItem = found;
+                }
+              } catch (_) {
+                // Continue
+              }
+            }
+          } else {
+            final tmdbId = int.tryParse(seriesId);
+            if (tmdbId != null) {
+              try {
+                final candidates = playlist.items
+                    .where(
+                      (item) =>
+                          item.tmdbId == tmdbId &&
+                          item.type == XtreamPlaylistItemType.series,
+                    )
+                    .toList();
+
+                if (candidates.isNotEmpty) {
+                  final validCandidate = candidates.firstWhere(
+                    (item) => item.streamId > 0,
+                    orElse: () => candidates.first,
+                  );
+
+                  if (validCandidate.streamId > 0) {
+                    xtreamItem = validCandidate;
+                  }
+                }
+              } catch (_) {
+                // Continue
+              }
+            }
+          }
+
+          if (xtreamItem != null) break;
+        }
+        if (xtreamItem != null) break;
+      }
+
+      if (xtreamItem == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Épisode non disponible dans la playlist'),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Construire l'URL de streaming
+      final streamUrl = await urlBuilder.buildStreamUrlFromSeriesItem(
+        item: xtreamItem,
+        seasonNumber: nextSeasonNumber,
+        episodeNumber: xtreamEpisodeNumber,
+      );
+
+      if (streamUrl == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Impossible de construire l\'URL de streaming'),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Construire le titre de l'épisode
+      final seriesTitle = vm.title;
+      final episodeTitle = nextEpisode.title.isNotEmpty
+          ? '$seriesTitle - S${nextSeasonNumber.toString().padLeft(2, '0')}E${nextEpisodeNumber.toString().padLeft(2, '0')} - ${nextEpisode.title}'
+          : '$seriesTitle - S${nextSeasonNumber.toString().padLeft(2, '0')}E${nextEpisodeNumber.toString().padLeft(2, '0')}';
+
+      // Récupérer le poster
+      Uri? posterUri = videoSource.poster;
+      posterUri ??= vm.poster;
+
+      // Sauvegarder l'historique de l'épisode actuel avant de changer
+      if (_duration > Duration.zero) {
+        try {
+          final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+          await historyRepo.upsertPlay(
+            contentId: videoSource.contentId!,
+            type: videoSource.contentType!,
+            title: videoSource.title ?? '',
+            poster: videoSource.poster,
+            position: _position,
+            duration: _duration,
+            season: currentSeason,
+            episode: currentEpisode,
+          );
+        } catch (_) {
+          // Ignorer les erreurs
+        }
+      }
+
+      // Récupérer la position de reprise depuis l'historique
+      // Si pas de position sauvegardée, on reprendra à 5% lors du chargement
+      Duration? resumePosition;
+      try {
+        final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+        final historyEntry = await historyRepo.getEntry(
+          seriesId,
+          ContentType.series,
+          season: nextSeasonNumber,
+          episode: nextEpisodeNumber,
+        );
+        // Ne pas utiliser resumePosition si elle est inférieure à 5% (considérée comme non commencée)
+        if (historyEntry?.lastPosition != null &&
+            historyEntry!.lastPosition! > Duration.zero) {
+          resumePosition = historyEntry.lastPosition;
+        }
+      } catch (e) {
+        // Ignorer les erreurs
+      }
+
+      // Créer le nouveau VideoSource pour l'épisode suivant
+      final nextVideoSource = VideoSource(
+        url: streamUrl,
+        title: episodeTitle,
+        contentId: seriesId,
+        contentType: ContentType.series,
+        poster: posterUri,
+        season: nextSeasonNumber,
+        episode: nextEpisodeNumber,
+        resumePosition: resumePosition,
+      );
+
+      // Mettre à jour le VideoSource actuel
+      if (mounted) {
+        setState(() {
+          _currentVideoSource = nextVideoSource;
+          _resumePositionApplied =
+              false; // Réinitialiser pour permettre la reprise
+          _tracksInitialized =
+              false; // Réinitialiser pour re-sélectionner les pistes
+          _position = Duration.zero;
+          _duration = Duration.zero;
+        });
+      }
+
+      // Changer l'URL de lecture sans changer de page
+      await _playerRepository.open(nextVideoSource);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+    }
+  }
+
+  /// Détecte si une saison utilise la numérotation globale ou relative
+  bool _isSeasonUsingGlobalNumbering(
+    int seasonNumber,
+    List<SeasonViewModel> seasons,
+  ) {
+    SeasonViewModel season;
+    try {
+      season = seasons.firstWhere((s) => s.seasonNumber == seasonNumber);
+    } catch (_) {
+      season = seasons.first;
+    }
+
+    if (season.episodes.isEmpty) return false;
+
+    final firstEpisodeNumber = season.episodes.first.episodeNumber;
+    if (firstEpisodeNumber > 1) {
+      return true;
+    }
+
+    final lastEpisodeNumber = season.episodes.last.episodeNumber;
+    if (lastEpisodeNumber > season.episodes.length) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Convertit le numéro d'épisode TMDB en numéro relatif à la saison pour Xtream
+  int _convertTmdbEpisodeToXtream(
+    int tmdbEpisodeNumber,
+    int seasonNumber,
+    List<SeasonViewModel> seasons,
+  ) {
+    final isGlobal = _isSeasonUsingGlobalNumbering(seasonNumber, seasons);
+
+    if (!isGlobal) {
+      return tmdbEpisodeNumber;
+    }
+
+    int totalEpisodesBefore = 0;
+    for (final season in seasons) {
+      if (season.seasonNumber > 0 && season.seasonNumber < seasonNumber) {
+        totalEpisodesBefore += season.episodes.length;
+      }
+    }
+
+    final xtreamEpisodeNumber = tmdbEpisodeNumber - totalEpisodesBefore;
+    return xtreamEpisodeNumber > 0 ? xtreamEpisodeNumber : 1;
+  }
+
   Future<void> _showSubtitleMenu() async {
     if (_subtitleTracks.isEmpty) return;
 
@@ -514,15 +877,24 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   void _onChromecast() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Chromecast à venir')));
+    // TODO: Implémenter la fonctionnalité Chromecast
+    // Nécessite l'ajout d'un package comme flutter_cast ou cast_framework
+    // et la configuration des services Google Cast
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fonctionnalité Chromecast à venir'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
     _startHideControlsTimer();
   }
 
   Future<void> _onBack(BuildContext context) async {
     // Sauvegarder l'historique avant de fermer le player
-    final videoSource = widget.videoSource;
+    // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
+    final videoSource = _currentVideoSource ?? widget.videoSource;
 
     if (videoSource?.contentId != null &&
         videoSource?.contentType != null &&
@@ -556,6 +928,36 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
   @override
   void dispose() {
+    // Sauvegarder l'historique de l'épisode actuel avant de fermer
+    // (au cas où l'app se ferme sans passer par _onBack)
+    // C'est l'épisode qu'on regarde actuellement qui sera sauvegardé
+    // et qui sera repris lors de la prochaine ouverture
+    final videoSource = _currentVideoSource ?? widget.videoSource;
+    if (videoSource?.contentId != null &&
+        videoSource?.contentType != null &&
+        _duration > Duration.zero) {
+      try {
+        final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+        // Fire-and-forget : on ne peut pas attendre dans dispose()
+        historyRepo
+            .upsertPlay(
+              contentId: videoSource!.contentId!,
+              type: videoSource.contentType!,
+              title: videoSource.title ?? '',
+              poster: videoSource.poster,
+              position: _position,
+              duration: _duration,
+              season: videoSource.season,
+              episode: videoSource.episode,
+            )
+            .catchError((_) {
+              // Ignorer les erreurs silencieusement
+            });
+      } catch (_) {
+        // Ignorer les erreurs
+      }
+    }
+
     _hideControlsTimer?.cancel();
     _controlsAnimationController.dispose();
 
@@ -591,8 +993,11 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
   @override
   Widget build(BuildContext context) {
+    // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
     final videoSource =
-        widget.videoSource ?? (GoRouterState.of(context).extra as VideoSource?);
+        _currentVideoSource ??
+        widget.videoSource ??
+        (GoRouterState.of(context).extra as VideoSource?);
 
     return PopScope(
       canPop: false,
@@ -648,6 +1053,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                     onChromecast: _onChromecast,
                     formatDuration: _formatDuration,
                     hasAudioTracks: _audioTracks.isNotEmpty,
+                    onRestart: _restart,
+                    onNextEpisode:
+                        videoSource?.contentType == ContentType.series
+                        ? _goToNextEpisode
+                        : null,
+                    isSeries: videoSource?.contentType == ContentType.series,
                   ),
                 ),
             ],

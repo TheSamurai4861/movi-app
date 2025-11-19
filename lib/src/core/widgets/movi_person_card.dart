@@ -15,8 +15,7 @@ Widget _buildPersonImage(
           height: height,
           color: const Color(0xFF222222),
           child: const Center(
-            child:
-                Icon(Icons.broken_image, size: 32, color: Colors.white54),
+            child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
           ),
         )
       : MoviPlaceholderCard(
@@ -142,5 +141,4 @@ class MoviPersonCard extends StatelessWidget {
     if (heroTag == null) return image;
     return Hero(tag: heroTag!, child: image);
   }
-
 }

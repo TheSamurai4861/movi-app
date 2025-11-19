@@ -18,16 +18,22 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 /// Page affichant tous les résultats d'un provider avec pagination au scroll.
 class ProviderAllResultsPage extends ConsumerStatefulWidget {
-  const ProviderAllResultsPage({super.key, required this.args, required this.type});
+  const ProviderAllResultsPage({
+    super.key,
+    required this.args,
+    required this.type,
+  });
 
   final ProviderAllResultsArgs args;
   final MoviMediaType type; // movie ou series
 
   @override
-  ConsumerState<ProviderAllResultsPage> createState() => _ProviderAllResultsPageState();
+  ConsumerState<ProviderAllResultsPage> createState() =>
+      _ProviderAllResultsPageState();
 }
 
-class _ProviderAllResultsPageState extends ConsumerState<ProviderAllResultsPage> {
+class _ProviderAllResultsPageState
+    extends ConsumerState<ProviderAllResultsPage> {
   int _currentPage = 1;
   final List<TmdbMovieSummaryDto> _movies = [];
   final List<TmdbTvSummaryDto> _shows = [];
@@ -189,9 +195,7 @@ class _ProviderAllResultsPageState extends ConsumerState<ProviderAllResultsPage>
                       ),
                     ),
                   ),
-                  SizedBox(
-                    width: 35 + 8 + 50,
-                  ),
+                  SizedBox(width: 35 + 8 + 50),
                 ],
               ),
             ),
@@ -208,12 +212,13 @@ class _ProviderAllResultsPageState extends ConsumerState<ProviderAllResultsPage>
                   : GridView.builder(
                       controller: _scrollController,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 150 / 270,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 150 / 270,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
                       itemCount: items.length + (_isLoading ? 1 : 0),
                       itemBuilder: (context, index) {
                         if (index >= items.length) {
@@ -231,19 +236,21 @@ class _ProviderAllResultsPageState extends ConsumerState<ProviderAllResultsPage>
                             id: m.id.toString(),
                             title: m.title,
                             poster: imageResolver.poster(m.posterPath),
-                            year: m.releaseDate != null && m.releaseDate!.isNotEmpty
+                            year:
+                                m.releaseDate != null &&
+                                    m.releaseDate!.isNotEmpty
                                 ? (m.releaseDate!.length >= 4
-                                    ? int.tryParse(m.releaseDate!.substring(0, 4))
-                                    : null)
+                                      ? int.tryParse(
+                                          m.releaseDate!.substring(0, 4),
+                                        )
+                                      : null)
                                 : null,
                             type: MoviMediaType.movie,
                           );
                           return MoviMediaCard(
                             media: media,
-                            onTap: (mm) => context.push(
-                              AppRouteNames.movie,
-                              extra: mm,
-                            ),
+                            onTap: (mm) =>
+                                context.push(AppRouteNames.movie, extra: mm),
                           );
                         } else {
                           final s = _shows[index];
@@ -255,10 +262,8 @@ class _ProviderAllResultsPageState extends ConsumerState<ProviderAllResultsPage>
                           );
                           return MoviMediaCard(
                             media: media,
-                            onTap: (mm) => context.push(
-                              AppRouteNames.tv,
-                              extra: mm,
-                            ),
+                            onTap: (mm) =>
+                                context.push(AppRouteNames.tv, extra: mm),
                           );
                         }
                       },
@@ -270,4 +275,3 @@ class _ProviderAllResultsPageState extends ConsumerState<ProviderAllResultsPage>
     );
   }
 }
-

@@ -4,10 +4,8 @@ import 'package:movi/src/features/library/domain/repositories/favorites_reposito
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 class FavoritesRepositoryImpl implements FavoritesRepository {
-  FavoritesRepositoryImpl(
-    this._watchlist, {
-    String? userId,
-  }) : _userId = userId ?? 'default';
+  FavoritesRepositoryImpl(this._watchlist, {String? userId})
+    : _userId = userId ?? 'default';
 
   final WatchlistLocalRepository _watchlist;
   final String _userId;

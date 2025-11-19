@@ -91,15 +91,15 @@ class _WatchProviderCard extends ConsumerWidget {
   Color _darkenColor(Color color) {
     final hsl = HSLColor.fromColor(color);
     // Réduire la luminosité à environ 60-70% de la valeur originale
-    return hsl
-        .withLightness((hsl.lightness * 0.65).clamp(0.0, 1.0))
-        .toColor();
+    return hsl.withLightness((hsl.lightness * 0.65).clamp(0.0, 1.0)).toColor();
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final backgroundColor = _getProviderColor(provider.providerId);
-    final popularMediaAsync = ref.watch(providerPopularMediaProvider(provider.providerId));
+    final popularMediaAsync = ref.watch(
+      providerPopularMediaProvider(provider.providerId),
+    );
 
     return InkWell(
       onTap: () {
@@ -119,85 +119,63 @@ class _WatchProviderCard extends ConsumerWidget {
             end: Alignment.topRight,
             colors: [
               backgroundColor, // Couleur de base en bas gauche
-              _darkenColor(backgroundColor), // Couleur plus foncée en haut droite
+              _darkenColor(
+                backgroundColor,
+              ), // Couleur plus foncée en haut droite
             ],
           ),
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Stack(
-          children: [
-            // Affiche du média populaire en haut à droite, penchée
-            popularMediaAsync.when(
-              data: (popularMedia) {
-                if (popularMedia?.posterUrl == null) {
-                  return const SizedBox.shrink();
-                }
-                return Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Transform.rotate(
-                    angle: 0.15, // Rotation d'environ 8-9 degrés vers la droite
-                    child: Container(
-                      width: 60,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: const Offset(2, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.network(
-                              popularMedia!.posterUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                            ),
-                            // Overlay sombre pour assombrir l'affiche
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Backdrop horizontale du média en arrière-plan
+              popularMediaAsync.when(
+                data: (popularMedia) {
+                  if (popularMedia?.backdropUrl == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned.fill(
+                    child: Image.network(
+                      popularMedia!.backdropUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     ),
-                  ),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-            // Texte du provider en bas à gauche
-            Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  provider.providerName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              // Overlay avec la couleur du provider à 50% d'opacité
+              Container(
+                decoration: BoxDecoration(
+                  color: backgroundColor.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
-            ),
-          ],
+              // Texte du provider en bas à gauche
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    provider.providerName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

@@ -9,4 +9,3 @@ class ProviderResultsArgs {
   final int providerId;
   final String providerName;
 }
-

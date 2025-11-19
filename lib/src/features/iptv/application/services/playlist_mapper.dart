@@ -41,22 +41,13 @@ class PlaylistMapper {
     final grouped = <String, List<XtreamPlaylistItem>>{};
 
     for (final stream in streams) {
-      final category = categoryById[stream.categoryId];
-      final categoryName = category?.name ?? 'Sans catégorie';
       grouped.putIfAbsent(stream.categoryId, () => []);
       grouped[stream.categoryId]!.add(
-        XtreamPlaylistItem(
+        _toPlaylistItem(
           accountId: accountId,
-          categoryId: stream.categoryId,
-          categoryName: categoryName,
-          streamId: stream.streamId,
-          title: stream.name,
-          type: itemType,
-          overview: stream.plot,
-          posterUrl: stream.streamIcon,
-          rating: stream.rating ?? stream.rating5Based,
-          releaseYear: _parseYear(stream.released),
-          tmdbId: stream.tmdbId,
+          stream: stream,
+          itemType: itemType,
+          categoryById: categoryById,
         ),
       );
     }
@@ -72,6 +63,29 @@ class PlaylistMapper {
           ),
         )
         .toList(growable: false);
+  }
+
+  XtreamPlaylistItem _toPlaylistItem({
+    required String accountId,
+    required XtreamStreamDto stream,
+    required XtreamPlaylistItemType itemType,
+    required Map<String, XtreamCategoryDto> categoryById,
+  }) {
+    final category = categoryById[stream.categoryId];
+    final categoryName = category?.name ?? 'Sans catégorie';
+    return XtreamPlaylistItem(
+      accountId: accountId,
+      categoryId: stream.categoryId,
+      categoryName: categoryName,
+      streamId: stream.streamId,
+      title: stream.name,
+      type: itemType,
+      overview: stream.plot,
+      posterUrl: stream.streamIcon,
+      rating: stream.rating ?? stream.rating5Based,
+      releaseYear: _parseYear(stream.released),
+      tmdbId: stream.tmdbId,
+    );
   }
 
   int? _parseYear(String? raw) {

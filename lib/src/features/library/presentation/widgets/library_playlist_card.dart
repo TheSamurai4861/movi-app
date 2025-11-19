@@ -24,7 +24,8 @@ class LibraryPlaylistCard extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.photo, // Photo de profil pour les artistes ou image hero pour les sagas
-    this.showItemCount = true, // Par défaut afficher le compteur, sauf pour les sagas
+    this.showItemCount =
+        true, // Par défaut afficher le compteur, sauf pour les sagas
   });
 
   final String title;
@@ -33,7 +34,8 @@ class LibraryPlaylistCard extends ConsumerWidget {
   final bool isPinned;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
-  final Uri? photo; // Photo de profil pour les artistes ou image hero pour les sagas
+  final Uri?
+  photo; // Photo de profil pour les artistes ou image hero pour les sagas
   final bool showItemCount; // Contrôle l'affichage du compteur d'éléments
 
   /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
@@ -49,7 +51,11 @@ class LibraryPlaylistCard extends ConsumerWidget {
   Widget _getIcon() {
     switch (type) {
       case LibraryPlaylistType.inProgress:
-        return const Icon(Icons.play_circle_outline, color: Colors.white, size: 40);
+        return const Icon(
+          Icons.play_circle_outline,
+          color: Colors.white,
+          size: 40,
+        );
       case LibraryPlaylistType.favoriteMovies:
         return Image.asset(
           AppAssets.iconMovie,
@@ -109,10 +115,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
                     : LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          accentColor,
-                          _darkenColor(accentColor),
-                        ],
+                        colors: [accentColor, _darkenColor(accentColor)],
                       ),
                 color: (type == LibraryPlaylistType.actor || photo != null)
                     ? Theme.of(context).colorScheme.surfaceContainerHighest
@@ -126,14 +129,10 @@ class LibraryPlaylistCard extends ConsumerWidget {
                         width: 75,
                         height: 75,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(
-                          child: _getIcon(),
-                        ),
+                        errorBuilder: (_, __, ___) => Center(child: _getIcon()),
                       ),
                     )
-                  : Center(
-                      child: _getIcon(),
-                    ),
+                  : Center(child: _getIcon()),
             ),
             const SizedBox(width: 16),
             // Titre et informations
@@ -143,7 +142,8 @@ class LibraryPlaylistCard extends ConsumerWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style:
+                        Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
@@ -162,24 +162,25 @@ class LibraryPlaylistCard extends ConsumerWidget {
                     Row(
                       children: [
                         if (isPinned) ...[
-                          Icon(
-                            Icons.push_pin,
-                            size: 20,
-                            color: accentColor,
-                          ),
+                          Icon(Icons.push_pin, size: 20, color: accentColor),
                           const SizedBox(width: 4),
                         ],
                         Text(
                           '$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ) ??
                               TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -194,4 +195,3 @@ class LibraryPlaylistCard extends ConsumerWidget {
     );
   }
 }
-

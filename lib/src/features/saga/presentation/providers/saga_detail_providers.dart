@@ -14,15 +14,18 @@ import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart';
 
 /// Provider pour charger les détails d'une saga avec poster en langue null
-final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((ref, sagaId) async {
+final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((
+  ref,
+  sagaId,
+) async {
   final lang = ref.watch(currentLanguageCodeProvider);
   final remoteDataSource = ref.watch(slProvider)<TmdbSagaRemoteDataSource>();
   final images = ref.watch(slProvider)<TmdbImageResolver>();
-  
+
   // Récupérer la saga avec la langue choisie
   final sagaIdInt = int.parse(sagaId);
   final dto = await remoteDataSource.fetchSaga(sagaIdInt, language: lang);
-  
+
   // Construire la saga avec les métadonnées dans la langue choisie
   final saga = Saga(
     id: SagaId(sagaId),
@@ -44,7 +47,7 @@ final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((r
     tags: const [],
     updatedAt: DateTime.now(),
   );
-  
+
   // Récupérer le poster et backdrop en langue null
   Uri? posterWithNullLanguage;
   Uri? backdropWithNullLanguage;
@@ -53,21 +56,25 @@ final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((r
     posterWithNullLanguage = imagesData.poster;
     backdropWithNullLanguage = imagesData.backdrop;
   }
-  
+
   // Utiliser le poster avec langue null si disponible, sinon le cover par défaut
   final poster = posterWithNullLanguage ?? saga.cover;
-  
+
   // Calculer le nombre de films et la durée totale
-  final movies = saga.timeline.where((entry) => entry.reference.type == ContentType.movie).toList();
+  final movies = saga.timeline
+      .where((entry) => entry.reference.type == ContentType.movie)
+      .toList();
   final movieCount = movies.length;
-  
+
   // Calculer la durée totale (nécessite de récupérer les durées depuis TMDB)
   Duration totalDuration = Duration.zero;
   for (final entry in movies) {
     try {
       final movieId = int.tryParse(entry.reference.id);
       if (movieId != null) {
-        final runtimeMinutes = await remoteDataSource.fetchMovieRuntime(movieId);
+        final runtimeMinutes = await remoteDataSource.fetchMovieRuntime(
+          movieId,
+        );
         if (runtimeMinutes != null && runtimeMinutes > 0) {
           totalDuration += Duration(minutes: runtimeMinutes);
         }
@@ -76,7 +83,7 @@ final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((r
       // Ignorer les erreurs
     }
   }
-  
+
   return SagaDetailViewModel(
     saga: saga,
     poster: poster,
@@ -89,7 +96,7 @@ final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((r
 /// Structure pour stocker les images (poster et backdrop) sans langue
 class _SagaImages {
   const _SagaImages({this.poster, this.backdrop});
-  
+
   final Uri? poster;
   final Uri? backdrop;
 }
@@ -99,12 +106,12 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
   try {
     final tmdbClient = sl<TmdbClient>();
     final images = sl<TmdbImageResolver>();
-    
+
     final jsonImages = await tmdbClient.getJson(
       'collection/$collectionId/images',
       query: {'include_image_language': 'null'},
     );
-    
+
     // Récupérer le poster
     final posters = jsonImages['posters'] as List<dynamic>?;
     Uri? posterUri;
@@ -114,14 +121,14 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
           .whereType<Map<String, dynamic>>()
           .where((m) => m['iso_639_1'] == null)
           .toList();
-      
+
       if (noLangPosters.isNotEmpty) {
         final posterPath = noLangPosters.first['file_path']?.toString();
         if (posterPath != null) {
           posterUri = images.poster(posterPath, size: 'w500');
         }
       }
-      
+
       // Fallback sur le premier poster disponible
       if (posterUri == null) {
         final firstPoster = posters.first as Map<String, dynamic>?;
@@ -131,7 +138,7 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
         }
       }
     }
-    
+
     // Récupérer le backdrop
     final backdrops = jsonImages['backdrops'] as List<dynamic>?;
     Uri? backdropUri;
@@ -141,14 +148,14 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
           .whereType<Map<String, dynamic>>()
           .where((m) => m['iso_639_1'] == null)
           .toList();
-      
+
       if (noLangBackdrops.isNotEmpty) {
         final backdropPath = noLangBackdrops.first['file_path']?.toString();
         if (backdropPath != null) {
           backdropUri = images.backdrop(backdropPath, size: 'w780');
         }
       }
-      
+
       // Fallback sur le premier backdrop disponible
       if (backdropUri == null) {
         final firstBackdrop = backdrops.first as Map<String, dynamic>?;
@@ -158,7 +165,7 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
         }
       }
     }
-    
+
     return _SagaImages(poster: posterUri, backdrop: backdropUri);
   } catch (_) {
     return const _SagaImages();
@@ -169,47 +176,53 @@ DateTime? _parseDate(String? date) =>
     date == null || date.isEmpty ? null : DateTime.tryParse(date);
 
 /// Provider pour vérifier la disponibilité des films d'une saga dans la playlist (par sagaId)
-final sagaMoviesAvailabilityProvider = FutureProvider.family<Map<int, bool>, String>((ref, sagaId) async {
-  final sagaRepo = ref.watch(slProvider)<SagaRepository>();
-  final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
-  
-  try {
-    final saga = await sagaRepo.getSaga(SagaId(sagaId));
-    final availableIds = await iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.movie);
-    
-    final availabilityMap = <int, bool>{};
-    for (final entry in saga.timeline) {
-      if (entry.reference.type == ContentType.movie) {
-        final movieId = int.tryParse(entry.reference.id);
-        if (movieId != null) {
-          availabilityMap[movieId] = availableIds.contains(movieId);
+final sagaMoviesAvailabilityProvider =
+    FutureProvider.family<Map<int, bool>, String>((ref, sagaId) async {
+      final sagaRepo = ref.watch(slProvider)<SagaRepository>();
+      final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
+
+      try {
+        final saga = await sagaRepo.getSaga(SagaId(sagaId));
+        final availableIds = await iptvLocal.getAvailableTmdbIds(
+          type: XtreamPlaylistItemType.movie,
+        );
+
+        final availabilityMap = <int, bool>{};
+        for (final entry in saga.timeline) {
+          if (entry.reference.type == ContentType.movie) {
+            final movieId = int.tryParse(entry.reference.id);
+            if (movieId != null) {
+              availabilityMap[movieId] = availableIds.contains(movieId);
+            }
+          }
         }
+
+        return availabilityMap;
+      } catch (_) {
+        return <int, bool>{};
       }
-    }
-    
-    return availabilityMap;
-  } catch (_) {
-    return <int, bool>{};
-  }
-});
+    });
 
 /// Provider pour vérifier si un film de la saga est en cours de visionnage
-final sagaInProgressMovieProvider = FutureProvider.family<String?, String>((ref, sagaId) async {
+final sagaInProgressMovieProvider = FutureProvider.family<String?, String>((
+  ref,
+  sagaId,
+) async {
   final sagaRepo = ref.watch(slProvider)<SagaRepository>();
   final saga = await sagaRepo.getSaga(SagaId(sagaId));
   final historyRepo = ref.watch(slProvider)<HistoryLocalRepository>();
-  
+
   // Récupérer tous les historiques de films
   final allHistory = await historyRepo.readAll(ContentType.movie);
-  final historyMap = {
-    for (final h in allHistory) h.contentId: h,
-  };
-  
+  final historyMap = {for (final h in allHistory) h.contentId: h};
+
   // Vérifier chaque film de la saga
   for (final entry in saga.timeline) {
     if (entry.reference.type == ContentType.movie) {
       final history = historyMap[entry.reference.id];
-      if (history != null && history.duration != null && history.duration! > Duration.zero) {
+      if (history != null &&
+          history.duration != null &&
+          history.duration! > Duration.zero) {
         final progress = history.lastPosition?.inSeconds ?? 0;
         final total = history.duration!.inSeconds;
         // Considérer comme "en cours" si moins de 90% visionné
@@ -219,7 +232,7 @@ final sagaInProgressMovieProvider = FutureProvider.family<String?, String>((ref,
       }
     }
   }
-  
+
   return null;
 });
 
@@ -239,4 +252,3 @@ class SagaDetailViewModel {
   final int movieCount;
   final Duration totalDuration;
 }
-

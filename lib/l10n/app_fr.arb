@@ -281,5 +281,8 @@
         "type": "String"
       }
     }
-  }
+  },
+  "categoryLoadFailed": "Échec du chargement de la catégorie.",
+  "categoryEmpty": "Aucun élément dans cette catégorie.",
+  "categoryLoadingMore": "Chargement en cours…"
 }

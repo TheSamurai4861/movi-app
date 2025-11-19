@@ -5,6 +5,7 @@ import 'package:movi/src/features/tv/tv.dart';
 import 'package:movi/src/features/saga/saga.dart';
 import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
+import 'package:movi/src/features/library/domain/services/history_filter.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -27,7 +28,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   @override
   Future<List<MovieSummary>> getLikedMovies() async {
-    final entries = await _watchlist.readAll(ContentType.movie, userId: _userId);
+    final entries = await _watchlist.readAll(
+      ContentType.movie,
+      userId: _userId,
+    );
     return entries
         .where((e) => e.poster != null)
         .map(
@@ -42,7 +46,10 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   @override
   Future<List<TvShowSummary>> getLikedShows() async {
-    final entries = await _watchlist.readAll(ContentType.series, userId: _userId);
+    final entries = await _watchlist.readAll(
+      ContentType.series,
+      userId: _userId,
+    );
     return entries
         .where((e) => e.poster != null)
         .map(
@@ -72,22 +79,27 @@ class LibraryRepositoryImpl implements LibraryRepository {
 
   @override
   Future<List<PersonSummary>> getLikedPersons() async {
-    final entries = await _watchlist.readAll(ContentType.person, userId: _userId);
+    final entries = await _watchlist.readAll(
+      ContentType.person,
+      userId: _userId,
+    );
     final persons = <PersonSummary>[];
-    
+
     for (final entry in entries) {
       // Si la photo n'est pas disponible dans la base de données, la charger depuis TMDB
       Uri? photo = entry.poster;
       if (photo == null) {
         try {
-          final person = await _personRepository.getPerson(PersonId(entry.contentId));
+          final person = await _personRepository.getPerson(
+            PersonId(entry.contentId),
+          );
           photo = person.photo;
         } catch (e) {
           // Si l'erreur survient, continuer sans photo
           photo = null;
         }
       }
-      
+
       persons.add(
         PersonSummary(
           id: PersonId(entry.contentId),
@@ -96,7 +108,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
         ),
       );
     }
-    
+
     return persons;
   }
 
@@ -104,55 +116,24 @@ class LibraryRepositoryImpl implements LibraryRepository {
   Future<List<ContentReference>> getHistoryCompleted() async {
     final movies = await _history.readAll(ContentType.movie);
     final shows = await _history.readAll(ContentType.series);
-    return [..._filterCompleted(movies), ..._filterCompleted(shows)];
+    return [
+      ...HistoryFilter.completed(movies),
+      ...HistoryFilter.completed(shows),
+    ];
   }
 
   @override
   Future<List<ContentReference>> getHistoryInProgress() async {
     final movies = await _history.readAll(ContentType.movie);
     final shows = await _history.readAll(ContentType.series);
-    return [..._filterInProgress(movies), ..._filterInProgress(shows)];
+    return [
+      ...HistoryFilter.inProgress(movies),
+      ...HistoryFilter.inProgress(shows),
+    ];
   }
 
   @override
   Future<List<PlaylistSummary>> getUserPlaylists(String userId) {
     return _playlists.getUserPlaylists(userId);
-  }
-
-  List<ContentReference> _filterCompleted(List<HistoryEntry> entries) {
-    return entries
-        .where((e) => _progress(e) >= 0.9)
-        .map(
-          (e) => ContentReference(
-            id: e.contentId,
-            title: MediaTitle(e.title),
-            type: e.type,
-            poster: e.poster,
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  List<ContentReference> _filterInProgress(List<HistoryEntry> entries) {
-    return entries
-        .where((e) {
-          final p = _progress(e);
-          return p > 0 && p < 0.9;
-        })
-        .map(
-          (e) => ContentReference(
-            id: e.contentId,
-            title: MediaTitle(e.title),
-            type: e.type,
-            poster: e.poster,
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  double _progress(HistoryEntry e) {
-    if (e.duration == null || e.duration!.inSeconds <= 0) return 0;
-    final pos = e.lastPosition?.inSeconds ?? 0;
-    return pos / e.duration!.inSeconds;
   }
 }

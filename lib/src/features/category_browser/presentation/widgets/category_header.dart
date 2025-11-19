@@ -1,6 +1,8 @@
 // lib/src/features/category_browser/presentation/widgets/category_header.dart
 import 'package:flutter/material.dart';
 
+import 'package:movi/src/core/utils/app_assets.dart';
+
 class CategoryHeader extends StatelessWidget {
   const CategoryHeader({super.key, required this.title, this.onBack});
 
@@ -22,8 +24,12 @@ class CategoryHeader extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Image.asset('assets/icons/back.png', width: 35, height: 35),
+                children: const [
+                  SizedBox(
+                    width: 35,
+                    height: 35,
+                    child: Image(image: AssetImage(AppAssets.iconBack)),
+                  ),
                 ],
               ),
             ),

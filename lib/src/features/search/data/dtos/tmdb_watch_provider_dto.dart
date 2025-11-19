@@ -35,4 +35,3 @@ class TmdbWatchProviderDto {
     return value.toString();
   }
 }
-

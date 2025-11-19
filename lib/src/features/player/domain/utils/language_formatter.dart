@@ -4,7 +4,7 @@ class LanguageFormatter {
   /// Gère les codes courts (fr), les codes avec région (FR_fr, fr-FR), etc.
   static String formatLanguageCode(String? code) {
     if (code == null || code.isEmpty) return 'Inconnu';
-    
+
     // Nettoyer le code (enlever les underscores, tirets, etc.)
     final cleanCode = code
         .replaceAll('_', '-')
@@ -12,7 +12,7 @@ class LanguageFormatter {
         .toLowerCase()
         .split('-')
         .first;
-    
+
     // Mapping des codes de langue courants
     const languageMap = {
       'fr': 'Français',
@@ -44,33 +44,32 @@ class LanguageFormatter {
       'hi': 'Hindi',
       'uk': 'Ukrainien',
     };
-    
+
     return languageMap[cleanCode] ?? code.toUpperCase();
   }
-  
+
   /// Formate un code de langue avec région si disponible
   /// Ex: "fr-FR" -> "Français (France)"
   static String formatLanguageCodeWithRegion(String? code) {
     if (code == null || code.isEmpty) return 'Inconnu';
-    
+
     final parts = code
         .replaceAll('_', '-')
         .replaceAll(' ', '-')
         .toLowerCase()
         .split('-');
-    
+
     if (parts.isEmpty) return 'Inconnu';
-    
+
     final langCode = parts.first;
     final regionCode = parts.length > 1 ? parts[1].toUpperCase() : null;
-    
+
     final language = formatLanguageCode(langCode);
-    
+
     if (regionCode != null && regionCode != langCode.toUpperCase()) {
       return '$language ($regionCode)';
     }
-    
+
     return language;
   }
 }
-

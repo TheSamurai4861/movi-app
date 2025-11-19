@@ -3,11 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
-enum LibraryFilterType {
-  playlists,
-  sagas,
-  artistes,
-}
+enum LibraryFilterType { playlists, sagas, artistes }
 
 class LibraryFilterPills extends ConsumerWidget {
   const LibraryFilterPills({
@@ -34,11 +30,7 @@ class LibraryFilterPills extends ConsumerWidget {
                 color: accentColor,
                 borderRadius: BorderRadius.circular(999),
               ),
-              child: const Icon(
-                Icons.close,
-                size: 16,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.close, size: 16, color: Colors.white),
             ),
           ),
           const SizedBox(width: 8),
@@ -79,7 +71,6 @@ class LibraryFilterPills extends ConsumerWidget {
       ],
     );
   }
-
 }
 
 class _FilterPill extends StatelessWidget {
@@ -121,4 +112,3 @@ class _FilterPill extends StatelessWidget {
     );
   }
 }
-

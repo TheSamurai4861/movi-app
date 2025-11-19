@@ -26,10 +26,11 @@ class TmdbWatchProvidersRemoteDataSource {
 
     // Utiliser la région spécifiée ou FR par défaut
     final region = watchRegion ?? 'FR';
-    
+
     // Vérifier si la région existe dans la liste
     final regions = regionsJson['results'] as List<dynamic>? ?? [];
-    final validRegion = regions.any((r) => r is Map && r['iso_3166_1'] == region)
+    final validRegion =
+        regions.any((r) => r is Map && r['iso_3166_1'] == region)
         ? region
         : 'FR';
 
@@ -42,15 +43,16 @@ class TmdbWatchProvidersRemoteDataSource {
     );
 
     final results = providersJson['results'] as List<dynamic>? ?? [];
-    
+
     return results
         .whereType<Map<String, dynamic>>()
         .map((json) => TmdbWatchProviderDto.fromJson(json))
-        .where((provider) => 
-            provider.logoPath != null && 
-            provider.logoPath!.isNotEmpty &&
-            provider.displayPriority != null)
+        .where(
+          (provider) =>
+              provider.logoPath != null &&
+              provider.logoPath!.isNotEmpty &&
+              provider.displayPriority != null,
+        )
         .toList(growable: false);
   }
 }
-

@@ -4,4 +4,3 @@ void unawaited(Future<void> future) {
   // Ignore les erreurs potentielles
   future.catchError((_) {});
 }
-

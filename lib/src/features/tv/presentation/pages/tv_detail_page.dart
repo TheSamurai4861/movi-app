@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -53,6 +55,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   String overviewText = '';
   List<MoviPerson> cast = const [];
   List<SeasonViewModel> seasons = const [];
+  Timer? _autoRefreshTimer;
+  Timer? _seasonsCheckTimer;
+  int _retryCount = 0;
+  Map<int, DateTime> _seasonLoadingStartTimes = {};
+  static const int _maxRetries = 3;
+  static const Duration _loadingTimeout = Duration(seconds: 15);
+  static const Duration _seasonLoadingTimeout = Duration(seconds: 10);
+  static const Duration _seasonsCheckInterval = Duration(seconds: 3);
 
   @override
   void initState() {
@@ -60,12 +70,200 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     _isTransitioningFromLoading = true;
     _primeFromArgs();
     _tabController = TabController(length: 1, vsync: this);
+    _startAutoRefreshTimer();
+    _startSeasonsCheckTimer();
   }
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
+    _seasonsCheckTimer?.cancel();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _startAutoRefreshTimer() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer(_loadingTimeout, () {
+      if (mounted && _retryCount < _maxRetries) {
+        final vmAsync = ref.read(
+          tvDetailProgressiveControllerProvider(widget.media!.id),
+        );
+        // Si toujours en chargement après le timeout, relancer
+        if (vmAsync.isLoading) {
+          _retryCount++;
+          ref.invalidate(
+            tvDetailProgressiveControllerProvider(widget.media!.id),
+          );
+          _startAutoRefreshTimer();
+        }
+      }
+    });
+  }
+
+  void _startSeasonsCheckTimer() {
+    _seasonsCheckTimer?.cancel();
+    _seasonsCheckTimer = Timer.periodic(_seasonsCheckInterval, (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final vmAsync = ref.read(
+        tvDetailProgressiveControllerProvider(widget.media!.id),
+      );
+      final vm = vmAsync.value;
+
+      if (vm == null) return;
+
+      bool shouldReload = false;
+
+      // Vérifier chaque saison
+      for (final season in vm.seasons) {
+        final seasonKey = season.seasonNumber;
+
+        // Si la saison est en chargement
+        if (season.isLoadingEpisodes) {
+          // Enregistrer le moment où le chargement a commencé
+          if (!_seasonLoadingStartTimes.containsKey(seasonKey)) {
+            _seasonLoadingStartTimes[seasonKey] = DateTime.now();
+          } else {
+            // Vérifier si le chargement prend trop de temps
+            final loadingStart = _seasonLoadingStartTimes[seasonKey]!;
+            final loadingDuration = DateTime.now().difference(loadingStart);
+            if (loadingDuration > _seasonLoadingTimeout) {
+              // Le chargement prend trop de temps, relancer
+              final logger = ref.read(slProvider)<AppLogger>();
+              logger.debug(
+                'Saison ${season.seasonNumber} en chargement depuis ${loadingDuration.inSeconds}s, relance automatique',
+                category: 'tv_detail',
+              );
+              _seasonLoadingStartTimes.remove(seasonKey);
+              shouldReload = true;
+            }
+          }
+        } else {
+          // La saison n'est plus en chargement, retirer du tracking
+          _seasonLoadingStartTimes.remove(seasonKey);
+
+          // Vérifier si la saison devrait avoir des épisodes mais n'en a pas
+          // (saisons normales sauf saison 0 qui peut être vide)
+          // Ne vérifier qu'une seule fois par saison pour éviter les relances multiples
+          if (season.episodes.isEmpty &&
+              season.seasonNumber > 0 &&
+              !season.isLoadingEpisodes &&
+              !_seasonLoadingStartTimes.containsKey(seasonKey)) {
+            // Marquer cette saison comme vérifiée pour éviter les vérifications multiples
+            _seasonLoadingStartTimes[seasonKey] = DateTime.now();
+
+            // Vérifier si des épisodes Xtream existent pour cette saison
+            _checkIfSeasonShouldHaveEpisodes(season.seasonNumber).then((
+              shouldHave,
+            ) {
+              if (shouldHave && mounted) {
+                final logger = ref.read(slProvider)<AppLogger>();
+                logger.debug(
+                  'Saison ${season.seasonNumber} devrait avoir des épisodes (trouvés dans le cache Xtream) mais n\'en a pas, relance automatique',
+                  category: 'tv_detail',
+                );
+                _seasonLoadingStartTimes.remove(seasonKey);
+                ref.invalidate(
+                  tvDetailProgressiveControllerProvider(widget.media!.id),
+                );
+              } else {
+                // Retirer du tracking si pas d'épisodes attendus
+                if (mounted) {
+                  _seasonLoadingStartTimes.remove(seasonKey);
+                }
+              }
+            });
+          }
+        }
+      }
+
+      // Relancer le chargement si nécessaire
+      if (shouldReload) {
+        ref.invalidate(tvDetailProgressiveControllerProvider(widget.media!.id));
+      }
+    });
+  }
+
+  /// Vérifie si une saison devrait avoir des épisodes en vérifiant le cache Xtream
+  Future<bool> _checkIfSeasonShouldHaveEpisodes(int seasonNumber) async {
+    try {
+      if (widget.media == null) return false;
+
+      final locator = ref.read(slProvider);
+      final iptvLocal = locator<IptvLocalRepository>();
+
+      // Vérifier si c'est un ID Xtream
+      String? seriesId;
+      String? accountId;
+
+      if (widget.media!.id.startsWith('xtream:')) {
+        final streamIdStr = widget.media!.id.substring(7);
+        final streamId = int.tryParse(streamIdStr);
+        if (streamId == null) return false;
+
+        final accounts = await iptvLocal.getAccounts();
+        for (final account in accounts) {
+          final playlists = await iptvLocal.getPlaylists(account.id);
+          for (final playlist in playlists) {
+            final found = playlist.items.firstWhere(
+              (item) =>
+                  item.streamId == streamId &&
+                  item.type == XtreamPlaylistItemType.series,
+              orElse: () => playlist.items.first,
+            );
+            if (found.streamId == streamId) {
+              seriesId = streamId.toString();
+              accountId = account.id;
+              break;
+            }
+          }
+          if (accountId != null) break;
+        }
+      } else {
+        // Chercher par tmdbId
+        final tmdbId = int.tryParse(widget.media!.id);
+        if (tmdbId == null) return false;
+
+        final accounts = await iptvLocal.getAccounts();
+        for (final account in accounts) {
+          final playlists = await iptvLocal.getPlaylists(account.id);
+          for (final playlist in playlists) {
+            final found = playlist.items.firstWhere(
+              (item) =>
+                  item.tmdbId == tmdbId &&
+                  item.type == XtreamPlaylistItemType.series &&
+                  item.streamId > 0,
+              orElse: () => playlist.items.first,
+            );
+            if (found.tmdbId == tmdbId && found.streamId > 0) {
+              seriesId = found.streamId.toString();
+              accountId = account.id;
+              break;
+            }
+          }
+          if (accountId != null) break;
+        }
+      }
+
+      if (seriesId == null || accountId == null) return false;
+
+      // Vérifier si des épisodes existent dans le cache pour cette saison
+      final allEpisodes = await iptvLocal.getAllEpisodesForSeries(
+        accountId: accountId,
+        seriesId: int.parse(seriesId),
+      );
+
+      // Vérifier si cette saison a des épisodes dans le cache
+      return allEpisodes.containsKey(seasonNumber) &&
+          allEpisodes[seasonNumber]!.isNotEmpty;
+    } catch (e) {
+      // En cas d'erreur, ne pas relancer
+      return false;
+    }
   }
 
   void _primeFromArgs() {
@@ -92,6 +290,33 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     final vmAsync = ref.watch(
       tvDetailProgressiveControllerProvider(widget.media!.id),
     );
+
+    // Détecter les erreurs et relancer automatiquement
+    vmAsync.whenOrNull(
+      error: (e, st) {
+        if (mounted && _retryCount < _maxRetries) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _retryCount++;
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  ref.invalidate(
+                    tvDetailProgressiveControllerProvider(widget.media!.id),
+                  );
+                  _startAutoRefreshTimer();
+                }
+              });
+            }
+          });
+        }
+      },
+      data: (_) {
+        // Le chargement a réussi, annuler le timer et réinitialiser
+        _autoRefreshTimer?.cancel();
+        _retryCount = 0;
+      },
+    );
+
     return vmAsync.when(
       loading: () => Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -113,6 +338,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             }
           });
         }
+
+        // Vérifier les saisons qui sont en chargement et les tracker
+        for (final season in vm.seasons) {
+          if (season.isLoadingEpisodes) {
+            if (!_seasonLoadingStartTimes.containsKey(season.seasonNumber)) {
+              _seasonLoadingStartTimes[season.seasonNumber] = DateTime.now();
+            }
+          } else {
+            _seasonLoadingStartTimes.remove(season.seasonNumber);
+          }
+        }
+
         // Update tab controller synchronously when seasons are loaded
         final seasonsLength = vm.seasons.isEmpty ? 1 : vm.seasons.length;
         if (_tabController.length != seasonsLength) {
@@ -172,177 +409,245 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             child: Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: heroHeight,
-                          width: double.infinity,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _buildHeroImage(poster, backdrop),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        cs.surface,
-                                        cs.surface.withValues(alpha: 0),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                left: 20,
-                                right: 20,
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => context.pop(),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 35,
-                                            height: 35,
-                                            child: Image.asset(
-                                              AppAssets.iconBack,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            AppLocalizations.of(
-                                              context,
-                                            )!.actionBack,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: cs.onSurface,
-                                            ),
-                                          ),
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      if (widget.media != null) {
+                        ref.invalidate(
+                          tvDetailProgressiveControllerProvider(
+                            widget.media!.id,
+                          ),
+                        );
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: heroHeight,
+                            width: double.infinity,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _buildHeroImage(poster, backdrop),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: 100,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          cs.surface,
+                                          cs.surface.withValues(alpha: 0),
                                         ],
                                       ),
                                     ),
-                                    SizedBox(
-                                      width: 25,
-                                      height: 35,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: _showMoreMenu,
-                                        child: Image.asset(AppAssets.iconMore),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  height: overlayHeight,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        cs.surface.withValues(alpha: 0),
-                                        cs.surface,
-                                      ],
+                                Positioned(
+                                  top: 8,
+                                  left: 20,
+                                  right: 20,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => context.pop(),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 35,
+                                              height: 35,
+                                              child: Image.asset(
+                                                AppAssets.iconBack,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.actionBack,
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: cs.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 25,
+                                        height: 35,
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: _showMoreMenu,
+                                          child: Image.asset(
+                                            AppAssets.iconMore,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: overlayHeight,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          cs.surface.withValues(alpha: 0),
+                                          cs.surface,
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            end: 20,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 16),
-                              Text(
-                                mediaTitle,
-                                style: titleStyle,
-                                textAlign: TextAlign.left,
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                height: 28,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    MoviPill(
-                                      yearText,
-                                      large: true,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      color: cs.surfaceContainerHighest,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    MoviPill(
-                                      seasonsCountText,
-                                      large: true,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      color: cs.surfaceContainerHighest,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    MoviPill(
-                                      ratingText,
-                                      large: true,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      color: cs.surfaceContainerHighest,
-                                      trailingIcon: Image.asset(
-                                        AppAssets.iconStarFilled,
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                    ),
-                                  ],
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(
+                              start: 20,
+                              end: 20,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 16),
+                                Text(
+                                  mediaTitle,
+                                  style: titleStyle,
+                                  textAlign: TextAlign.left,
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                height: 55,
-                                child: Row(
-                                  children: [
-                                    Consumer(
-                                      builder: (context, ref, _) {
-                                        if (widget.media == null) {
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: 28,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      MoviPill(
+                                        yearText,
+                                        large: true,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        color: cs.surfaceContainerHighest,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      MoviPill(
+                                        seasonsCountText,
+                                        large: true,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        color: cs.surfaceContainerHighest,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      MoviPill(
+                                        ratingText,
+                                        large: true,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        color: cs.surfaceContainerHighest,
+                                        trailingIcon: Image.asset(
+                                          AppAssets.iconStarFilled,
+                                          width: 18,
+                                          height: 18,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: 55,
+                                  child: Row(
+                                    children: [
+                                      Consumer(
+                                        builder: (context, ref, _) {
+                                          if (widget.media == null) {
+                                            return Expanded(
+                                              child: MoviPrimaryButton(
+                                                label: AppLocalizations.of(
+                                                  context,
+                                                )!.homeWatchNow,
+                                                assetIcon: AppAssets.iconPlay,
+                                                buttonStyle: FilledButton.styleFrom(
+                                                  backgroundColor: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          32,
+                                                        ),
+                                                  ),
+                                                ),
+                                                onPressed: () => _playSeries(
+                                                  context,
+                                                  widget.media?.id,
+                                                  mediaTitle,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          final historyAsync = ref.watch(
+                                            hp.mediaHistoryProvider((
+                                              contentId: widget.media!.id,
+                                              type: ContentType.series,
+                                            )),
+                                          );
                                           return Expanded(
                                             child: MoviPrimaryButton(
-                                              label: AppLocalizations.of(
-                                                context,
-                                              )!.homeWatchNow,
+                                              label: historyAsync.when(
+                                                data: (entry) {
+                                                  if (entry != null &&
+                                                      entry.season != null &&
+                                                      entry.episode != null) {
+                                                    return AppLocalizations.of(
+                                                      context,
+                                                    )!.tvResumeSeasonEpisode(
+                                                      entry.season!,
+                                                      entry.episode!,
+                                                    );
+                                                  }
+                                                  return AppLocalizations.of(
+                                                    context,
+                                                  )!.homeWatchNow;
+                                                },
+                                                loading: () =>
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.homeWatchNow,
+                                                error: (_, __) =>
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.homeWatchNow,
+                                              ),
                                               assetIcon: AppAssets.iconPlay,
                                               buttonStyle: FilledButton.styleFrom(
-                                                backgroundColor:
-                                                    Theme.of(context).colorScheme.primary,
+                                                backgroundColor: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(32),
@@ -355,227 +660,185 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                               ),
                                             ),
                                           );
-                                        }
-                                        final historyAsync = ref.watch(
-                                          hp.mediaHistoryProvider((
-                                            contentId: widget.media!.id,
-                                            type: ContentType.series,
-                                          )),
-                                        );
-                                        return Expanded(
-                                          child: MoviPrimaryButton(
-                                            label: historyAsync.when(
-                                              data: (entry) {
-                                                if (entry != null &&
-                                                    entry.season != null &&
-                                                    entry.episode != null) {
-                                                  return AppLocalizations.of(context)!.tvResumeSeasonEpisode(
-                                                    entry.season!,
-                                                    entry.episode!,
-                                                  );
-                                                }
-                                                return AppLocalizations.of(
-                                                  context,
-                                                )!.homeWatchNow;
-                                              },
-                                              loading: () =>
-                                                  AppLocalizations.of(
-                                                    context,
-                                                  )!.homeWatchNow,
-                                              error: (_, __) =>
-                                                  AppLocalizations.of(
-                                                    context,
-                                                  )!.homeWatchNow,
-                                            ),
-                                            assetIcon: AppAssets.iconPlay,
-                                            buttonStyle: FilledButton.styleFrom(
-                                              backgroundColor: Theme.of(context).colorScheme.primary,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(32),
-                                              ),
-                                            ),
-                                            onPressed: () => _playSeries(
-                                              context,
-                                              widget.media?.id,
-                                              mediaTitle,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 16),
-                                    SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: Consumer(
-                                        builder: (context, ref, _) {
-                                          final seriesId = widget.media!.id;
-                                          final isFavoriteAsync = ref.watch(
-                                            tvIsFavoriteProvider(seriesId),
-                                          );
-                                          return isFavoriteAsync.when(
-                                            data: (isFavorite) =>
-                                                MoviFavoriteButton(
-                                                  isFavorite: isFavorite,
-                                                  onPressed: () async {
-                                                    await ref
-                                                        .read(
-                                                          tvToggleFavoriteProvider
-                                                              .notifier,
-                                                        )
-                                                        .toggle(seriesId);
-                                                  },
-                                                ),
-                                            loading: () => MoviFavoriteButton(
-                                              isFavorite: false,
-                                              onPressed: () {},
-                                            ),
-                                            error: (_, __) =>
-                                                MoviFavoriteButton(
-                                                  isFavorite: false,
-                                                  onPressed: () {},
-                                                ),
-                                          );
                                         },
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final screenWidth = MediaQuery.of(
-                                    context,
-                                  ).size.width;
-                                  final synopsisWidth = screenWidth - 40;
-                                  return SizedBox(
-                                    width: synopsisWidth,
-                                    child: Column(
-                                      children: [
-                                        AnimatedSize(
-                                          duration: const Duration(
-                                            milliseconds: 300,
-                                          ),
-                                          curve: Curves.easeInOut,
-                                          alignment: Alignment.topLeft,
-                                          child: ConstrainedBox(
-                                            constraints: _overviewExpanded
-                                                ? const BoxConstraints()
-                                                : const BoxConstraints(
-                                                    maxHeight: 90,
+                                      const SizedBox(width: 16),
+                                      SizedBox(
+                                        width: 40,
+                                        height: 40,
+                                        child: Consumer(
+                                          builder: (context, ref, _) {
+                                            final seriesId = widget.media!.id;
+                                            final isFavoriteAsync = ref.watch(
+                                              tvIsFavoriteProvider(seriesId),
+                                            );
+                                            return isFavoriteAsync.when(
+                                              data: (isFavorite) =>
+                                                  MoviFavoriteButton(
+                                                    isFavorite: isFavorite,
+                                                    onPressed: () async {
+                                                      await ref
+                                                          .read(
+                                                            tvToggleFavoriteProvider
+                                                                .notifier,
+                                                          )
+                                                          .toggle(seriesId);
+                                                    },
                                                   ),
-                                            child: Stack(
-                                              children: [
-                                                Text(
-                                                  overviewText,
-                                                  style: Theme.of(
-                                                    context,
-                                                  ).textTheme.bodyLarge,
-                                                  softWrap: true,
-                                                ),
-                                                if (!_overviewExpanded)
-                                                  Positioned(
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    child: IgnorePointer(
-                                                      ignoring: true,
-                                                      child: Container(
-                                                        height: 41,
-                                                        decoration: BoxDecoration(
-                                                          gradient: LinearGradient(
-                                                            begin: Alignment
-                                                                .topCenter,
-                                                            end: Alignment
-                                                                .bottomCenter,
-                                                            colors: [
-                                                              cs.surface
-                                                                  .withValues(
-                                                                    alpha: 0,
-                                                                  ),
-                                                              cs.surface,
-                                                            ],
+                                              loading: () => MoviFavoriteButton(
+                                                isFavorite: false,
+                                                onPressed: () {},
+                                              ),
+                                              error: (_, __) =>
+                                                  MoviFavoriteButton(
+                                                    isFavorite: false,
+                                                    onPressed: () {},
+                                                  ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final screenWidth = MediaQuery.of(
+                                      context,
+                                    ).size.width;
+                                    final synopsisWidth = screenWidth - 40;
+                                    return SizedBox(
+                                      width: synopsisWidth,
+                                      child: Column(
+                                        children: [
+                                          AnimatedSize(
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            curve: Curves.easeInOut,
+                                            alignment: Alignment.topLeft,
+                                            child: ConstrainedBox(
+                                              constraints: _overviewExpanded
+                                                  ? const BoxConstraints()
+                                                  : const BoxConstraints(
+                                                      maxHeight: 90,
+                                                    ),
+                                              child: Stack(
+                                                children: [
+                                                  Text(
+                                                    overviewText,
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.bodyLarge,
+                                                    softWrap: true,
+                                                  ),
+                                                  if (!_overviewExpanded)
+                                                    Positioned(
+                                                      left: 0,
+                                                      right: 0,
+                                                      bottom: 0,
+                                                      child: IgnorePointer(
+                                                        ignoring: true,
+                                                        child: Container(
+                                                          height: 41,
+                                                          decoration: BoxDecoration(
+                                                            gradient: LinearGradient(
+                                                              begin: Alignment
+                                                                  .topCenter,
+                                                              end: Alignment
+                                                                  .bottomCenter,
+                                                              colors: [
+                                                                cs.surface
+                                                                    .withValues(
+                                                                      alpha: 0,
+                                                                    ),
+                                                                cs.surface,
+                                                              ],
+                                                            ),
                                                           ),
                                                         ),
                                                       ),
                                                     ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          SizedBox(
+                                            width: 102,
+                                            height: 25,
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                GestureDetector(
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _overviewExpanded =
+                                                          !_overviewExpanded;
+                                                    });
+                                                  },
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        _overviewExpanded
+                                                            ? AppLocalizations.of(
+                                                                context,
+                                                              )!.actionCollapse
+                                                            : AppLocalizations.of(
+                                                                context,
+                                                              )!.actionExpand,
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: cs.onSurface
+                                                              .withValues(
+                                                                alpha: 0.7,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Icon(
+                                                        _overviewExpanded
+                                                            ? Icons
+                                                                  .keyboard_arrow_up
+                                                            : Icons
+                                                                  .keyboard_arrow_down,
+                                                        color: cs.onSurface
+                                                            .withValues(
+                                                              alpha: 0.7,
+                                                            ),
+                                                        size: 20,
+                                                      ),
+                                                    ],
                                                   ),
+                                                ),
                                               ],
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        SizedBox(
-                                          width: 102,
-                                          height: 25,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              GestureDetector(
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                onTap: () {
-                                                  setState(() {
-                                                    _overviewExpanded =
-                                                        !_overviewExpanded;
-                                                  });
-                                                },
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      _overviewExpanded
-                                                          ? AppLocalizations.of(
-                                                              context,
-                                                            )!.actionCollapse
-                                                          : AppLocalizations.of(
-                                                              context,
-                                                            )!.actionExpand,
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: cs.onSurface
-                                                            .withValues(alpha: 0.7),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Icon(
-                                                      _overviewExpanded
-                                                          ? Icons
-                                                                .keyboard_arrow_up
-                                                          : Icons
-                                                                .keyboard_arrow_down,
-                                                      color: cs.onSurface
-                                                          .withValues(alpha: 0.7),
-                                                      size: 20,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 32),
-                        _buildDistribution(cast),
-                        const SizedBox(height: 32),
-                        if (seasons.isNotEmpty) _buildSeasonsTabs(seasons),
-                        const SizedBox(height: 70),
-                      ],
+                          const SizedBox(height: 32),
+                          _buildDistribution(cast),
+                          const SizedBox(height: 32),
+                          if (seasons.isNotEmpty) _buildSeasonsTabs(seasons),
+                          const SizedBox(height: 70),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -689,7 +952,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       fontWeight: FontWeight.w400,
                     ),
                     tabs: seasons.map((s) {
-                      return Tab(text: AppLocalizations.of(context)!.tvSeasonLabel(s.seasonNumber));
+                      return Tab(
+                        text: AppLocalizations.of(
+                          context,
+                        )!.tvSeasonLabel(s.seasonNumber),
+                      );
                     }).toList(),
                   ),
                 ),
@@ -762,7 +1029,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         child: Text(
           AppLocalizations.of(context)!.tvNoEpisodesAvailable,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       );
@@ -902,7 +1171,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   /// Détecte si une saison utilise la numérotation globale ou relative
-  /// 
+  ///
   /// Retourne true si la saison utilise la numérotation globale (ex: épisode 1055),
   /// false si elle utilise la numérotation relative (ex: épisode 1, 2, 3...).
   bool _isSeasonUsingGlobalNumbering(
@@ -935,7 +1204,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   /// Convertit le numéro d'épisode TMDB en numéro relatif à la saison pour Xtream
-  /// 
+  ///
   /// Détecte automatiquement si la saison utilise la numérotation globale ou relative.
   /// Si globale (ex: épisode 1055 pour la saison 21), convertit en relatif (ex: épisode 55).
   /// Si relative (ex: épisode 1, 2, 3...), utilise le numéro tel quel.
@@ -997,13 +1266,16 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       // Convertir le numéro d'épisode TMDB en numéro Xtream
       int xtreamEpisodeNumber = episode.episodeNumber;
       if (vm != null && vm.seasons.isNotEmpty) {
-        final isGlobal = _isSeasonUsingGlobalNumbering(seasonNumber, vm.seasons);
+        final isGlobal = _isSeasonUsingGlobalNumbering(
+          seasonNumber,
+          vm.seasons,
+        );
         final convertedNumber = _convertTmdbEpisodeToXtream(
           episode.episodeNumber,
           seasonNumber,
           vm.seasons,
         );
-        
+
         if (isGlobal) {
           logger.debug(
             'Conversion épisode TMDB->Xtream (global): S${seasonNumber}E${episode.episodeNumber} (TMDB global) -> S${seasonNumber}E$convertedNumber (Xtream relatif)',
@@ -1218,13 +1490,16 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           contentType: ContentType.series,
           poster: posterUri,
           season: seasonNumber,
-          episode: episode.episodeNumber, // Utiliser le numéro TMDB pour l'affichage
+          episode:
+              episode.episodeNumber, // Utiliser le numéro TMDB pour l'affichage
           resumePosition: resumePosition,
         ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -1248,6 +1523,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           historyEntry.season == null ||
           historyEntry.episode == null) {
         if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sélectionnez un épisode pour le lire')),
         );
@@ -1258,12 +1534,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final episodeNumber = historyEntry.episode!;
 
       // Récupérer le ViewModel pour trouver l'épisode
-      final vmAsync = ref.read(
-        tvDetailProgressiveControllerProvider(seriesId),
-      );
+      final vmAsync = ref.read(tvDetailProgressiveControllerProvider(seriesId));
       final vm = vmAsync.value;
       if (vm == null) {
         if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Chargement des épisodes en cours...')),
         );
@@ -1285,6 +1560,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       // Vérifier si les épisodes sont chargés pour cette saison
       if (season.isLoadingEpisodes || season.episodes.isEmpty) {
         if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Chargement des épisodes en cours...')),
         );
@@ -1302,9 +1578,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final logger = ref.read(slProvider)<AppLogger>();
       logger.error('Erreur lors de la reprise de la série: $e', e);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
-      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -1316,7 +1593,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     try {
       final playlistsAsync = ref.read(libraryPlaylistsProvider);
       final playlists = playlistsAsync.value;
-      
+
       if (playlists == null || playlists.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1325,38 +1602,38 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         }
         return;
       }
-      
+
       // Récupérer les données de la série depuis le provider
       final vmAsync = ref.read(tvDetailProgressiveControllerProvider(seriesId));
       final vm = vmAsync.value;
-      
+
       // Utiliser les données du widget si le view model n'est pas disponible
       final title = vm?.title ?? mediaTitle;
       final yearTextValue = vm?.yearText ?? yearText;
       final poster = widget.media?.poster ?? vm?.poster;
-      
+
       // Filtrer les playlists selon le type de contenu
       final playlistRepository = ref.read(slProvider)<PlaylistRepository>();
       final availablePlaylists = <LibraryPlaylistItem>[];
-      
+
       for (final playlist in playlists) {
         // Exclure les sagas et acteurs
-        if (playlist.id.startsWith('saga_') || 
+        if (playlist.id.startsWith('saga_') ||
             playlist.type == LibraryPlaylistType.actor) {
           continue;
         }
-        
+
         // Playlists favorites : séries uniquement pour les séries
         if (playlist.type == LibraryPlaylistType.favoriteSeries) {
           availablePlaylists.add(playlist);
           continue;
         }
-        
+
         // Playlists favorites films : exclure pour les séries
         if (playlist.type == LibraryPlaylistType.favoriteMovies) {
           continue;
         }
-        
+
         // Playlists utilisateur : vérifier le contenu
         if (playlist.type == LibraryPlaylistType.userPlaylist &&
             playlist.playlistId != null) {
@@ -1364,18 +1641,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             final playlistDetail = await playlistRepository.getPlaylist(
               PlaylistId(playlist.playlistId!),
             );
-            
+
             // Si la playlist est vide, on peut ajouter
             if (playlistDetail.items.isEmpty) {
               availablePlaylists.add(playlist);
               continue;
             }
-            
+
             // Vérifier si la playlist contient uniquement des séries
             final hasOnlySeries = playlistDetail.items.every(
               (item) => item.reference.type == ContentType.series,
             );
-            
+
             // Si la playlist contient uniquement des séries, on peut ajouter la série
             if (hasOnlySeries) {
               availablePlaylists.add(playlist);
@@ -1387,15 +1664,17 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           }
         }
       }
-      
+
       if (!mounted || !context.mounted) return;
       if (availablePlaylists.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aucune playlist disponible pour les séries')),
+          const SnackBar(
+            content: Text('Aucune playlist disponible pour les séries'),
+          ),
         );
         return;
       }
-      
+
       showCupertinoModalPopup<void>(
         context: context,
         builder: (ctx) => CupertinoActionSheet(
@@ -1404,30 +1683,33 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             return CupertinoActionSheetAction(
               onPressed: () async {
                 Navigator.of(ctx).pop();
-                
+
                 try {
                   if (playlist.type == LibraryPlaylistType.favoriteSeries) {
                     // Toggle favori
-                    await ref.read(tvToggleFavoriteProvider.notifier).toggle(seriesId);
+                    await ref
+                        .read(tvToggleFavoriteProvider.notifier)
+                        .toggle(seriesId);
                     ref.invalidate(tvIsFavoriteProvider(seriesId));
-                    
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Ajouté à "${playlist.title}"'),
-                        ),
+                        SnackBar(content: Text('Ajouté à "${playlist.title}"')),
                       );
                     }
-                  } else if (playlist.type == LibraryPlaylistType.userPlaylist &&
+                  } else if (playlist.type ==
+                          LibraryPlaylistType.userPlaylist &&
                       playlist.playlistId != null) {
                     // Ajouter à la playlist utilisateur
                     final addPlaylistItem = AddPlaylistItem(
                       ref.read(slProvider)<PlaylistRepository>(),
                     );
-                    
+
                     // Utiliser les données disponibles
-                    final year = yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
-                    
+                    final year = yearTextValue != '—'
+                        ? int.tryParse(yearTextValue)
+                        : null;
+
                     await addPlaylistItem.call(
                       playlistId: PlaylistId(playlist.playlistId!),
                       item: PlaylistItem(
@@ -1441,27 +1723,25 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         addedAt: DateTime.now(),
                       ),
                     );
-                    
+
                     // Invalider tous les providers nécessaires
                     ref.invalidate(playlistItemsProvider(playlist.playlistId!));
-                    ref.invalidate(playlistContentReferencesProvider(playlist.playlistId!));
+                    ref.invalidate(
+                      playlistContentReferencesProvider(playlist.playlistId!),
+                    );
                     ref.invalidate(libraryPlaylistsProvider);
-                    
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Ajouté à "${playlist.title}"'),
-                        ),
+                        SnackBar(content: Text('Ajouté à "${playlist.title}"')),
                       );
                     }
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                      ),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
                   }
                 }
               },

@@ -532,6 +532,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String playlistRemoveItemConfirm(String title) {
     return 'Supprimer \"$title\" de la playlist ?';
   }
+
+  @override
+  String get categoryLoadFailed => 'Échec du chargement de la catégorie.';
+
+  @override
+  String get categoryEmpty => 'Aucun élément dans cette catégorie.';
+
+  @override
+  String get categoryLoadingMore => 'Chargement en cours…';
 }
 
 /// The translations for French, as used in Myanmar (`fr_MM`).
@@ -1061,4 +1070,13 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
   String playlistRemoveItemConfirm(String title) {
     return 'Supprimer \"$title\" de la liste ?';
   }
+
+  @override
+  String get categoryLoadFailed => 'Couac lors du chargement de la catégorie.';
+
+  @override
+  String get categoryEmpty => 'Point d\'élément dans cette catégorie.';
+
+  @override
+  String get categoryLoadingMore => 'Chargement en cours…';
 }

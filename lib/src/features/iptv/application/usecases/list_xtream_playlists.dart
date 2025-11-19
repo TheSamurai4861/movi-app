@@ -8,12 +8,21 @@ class ListXtreamPlaylists {
 
   final IptvRepository _repository;
 
-  Future<Result<List<XtreamPlaylist>, Failure>> call(String accountId) {
-    return _repository
-        .listPlaylists(accountId)
-        .then<Result<List<XtreamPlaylist>, Failure>>((value) => Ok(value))
-        .catchError(
-          (error) => Err<List<XtreamPlaylist>, Failure>(error as Failure),
-        );
+  Future<Result<List<XtreamPlaylist>, Failure>> call(String accountId) async {
+    try {
+      final playlists = await _repository.listPlaylists(accountId);
+      return Ok(playlists);
+    } on Failure catch (failure) {
+      return Err(failure);
+    } catch (error, stack) {
+      return Err(
+        Failure.fromException(
+          error,
+          stackTrace: stack,
+          code: 'iptv_list_playlists',
+          context: {'accountId': accountId},
+        ),
+      );
+    }
   }
 }

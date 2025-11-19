@@ -532,4 +532,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String playlistRemoveItemConfirm(String title) {
     return 'Rimuovere \"$title\" dalla playlist?';
   }
+
+  @override
+  String get categoryLoadFailed => 'Errore nel caricamento della categoria.';
+
+  @override
+  String get categoryEmpty => 'Nessun elemento in questa categoria.';
+
+  @override
+  String get categoryLoadingMore => 'Caricamento in corso…';
 }

@@ -27,22 +27,27 @@ class SagaDetailPage extends ConsumerWidget {
     return '${minutes}m';
   }
 
-  Future<void> _playMovie(BuildContext context, WidgetRef ref, String movieId) async {
-    
+  Future<void> _playMovie(
+    BuildContext context,
+    WidgetRef ref,
+    String movieId,
+  ) async {
     // Pour l'instant, ouvrir la page de détail du film
-    final media = MoviMedia(
-      id: movieId,
-      title: '',
-      type: MoviMediaType.movie,
-    );
+    final media = MoviMedia(id: movieId, title: '', type: MoviMediaType.movie);
     context.push(AppRouteNames.movie, extra: media);
   }
 
-  Future<void> _startSaga(BuildContext context, WidgetRef ref, SagaDetailViewModel viewModel) async {
+  Future<void> _startSaga(
+    BuildContext context,
+    WidgetRef ref,
+    SagaDetailViewModel viewModel,
+  ) async {
     // Trouver le premier film non visionné ou reprendre le film en cours
-    final inProgressMovieId = await ref.read(sagaInProgressMovieProvider(sagaId).future);
+    final inProgressMovieId = await ref.read(
+      sagaInProgressMovieProvider(sagaId).future,
+    );
     if (!context.mounted) return;
-    
+
     if (inProgressMovieId != null) {
       // Reprendre le film en cours
       if (!context.mounted) return;
@@ -148,9 +153,7 @@ class SagaDetailPage extends ConsumerWidget {
                                       SizedBox(
                                         width: 35,
                                         height: 35,
-                                        child: Image.asset(
-                                          AppAssets.iconBack,
-                                        ),
+                                        child: Image.asset(AppAssets.iconBack),
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
@@ -202,7 +205,10 @@ class SagaDetailPage extends ConsumerWidget {
                           // Titre de la saga
                           Text(
                             viewModel.saga.title.display,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style:
+                                Theme.of(
+                                  context,
+                                ).textTheme.headlineMedium?.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ) ??
@@ -217,7 +223,8 @@ class SagaDetailPage extends ConsumerWidget {
                           // Nombre de films et durée totale
                           Text(
                             '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: Colors.white70,
                                 ) ??
                                 const TextStyle(
@@ -237,28 +244,39 @@ class SagaDetailPage extends ConsumerWidget {
                                     if (inProgressMovieId != null) {
                                       // Afficher "Poursuivre"
                                       return MoviPrimaryButton(
-                                        label: AppLocalizations.of(context)!.sagaContinue,
+                                        label: AppLocalizations.of(
+                                          context,
+                                        )!.sagaContinue,
                                         assetIcon: AppAssets.iconPlay,
-                                        onPressed: () => _startSaga(context, ref, viewModel),
+                                        onPressed: () =>
+                                            _startSaga(context, ref, viewModel),
                                       );
                                     } else {
                                       // Afficher "Commencer maintenant"
                                       return MoviPrimaryButton(
-                                        label: AppLocalizations.of(context)!.sagaStartNow,
+                                        label: AppLocalizations.of(
+                                          context,
+                                        )!.sagaStartNow,
                                         assetIcon: AppAssets.iconPlay,
-                                        onPressed: () => _startSaga(context, ref, viewModel),
+                                        onPressed: () =>
+                                            _startSaga(context, ref, viewModel),
                                       );
                                     }
                                   },
                                   loading: () => MoviPrimaryButton(
-                                    label: AppLocalizations.of(context)!.sagaStartNow,
+                                    label: AppLocalizations.of(
+                                      context,
+                                    )!.sagaStartNow,
                                     assetIcon: AppAssets.iconPlay,
                                     onPressed: () {},
                                   ),
                                   error: (_, __) => MoviPrimaryButton(
-                                    label: AppLocalizations.of(context)!.sagaStartNow,
+                                    label: AppLocalizations.of(
+                                      context,
+                                    )!.sagaStartNow,
                                     assetIcon: AppAssets.iconPlay,
-                                    onPressed: () => _startSaga(context, ref, viewModel),
+                                    onPressed: () =>
+                                        _startSaga(context, ref, viewModel),
                                   ),
                                 ),
                               ),
@@ -271,17 +289,19 @@ class SagaDetailPage extends ConsumerWidget {
                                   data: (isFavorite) => MoviFavoriteButton(
                                     isFavorite: isFavorite,
                                     onPressed: () async {
-                                      await ref.read(
-                                        sagaToggleFavoriteProvider.notifier,
-                                      ).toggle(
-                                        sagaId,
-                                        SagaSummary(
-                                          id: viewModel.saga.id,
-                                          tmdbId: viewModel.saga.tmdbId,
-                                          title: viewModel.saga.title,
-                                          cover: viewModel.poster,
-                                        ),
-                                      );
+                                      await ref
+                                          .read(
+                                            sagaToggleFavoriteProvider.notifier,
+                                          )
+                                          .toggle(
+                                            sagaId,
+                                            SagaSummary(
+                                              id: viewModel.saga.id,
+                                              tmdbId: viewModel.saga.tmdbId,
+                                              title: viewModel.saga.title,
+                                              cover: viewModel.poster,
+                                            ),
+                                          );
                                     },
                                   ),
                                   loading: () => MoviFavoriteButton(
@@ -311,9 +331,9 @@ class SagaDetailPage extends ConsumerWidget {
                         children: [
                           Text(
                             AppLocalizations.of(context)!.sagaMoviesList,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                ) ??
+                            style:
+                                Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(color: Colors.white) ??
                                 const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -334,11 +354,13 @@ class SagaDetailPage extends ConsumerWidget {
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       itemCount: movies.length,
-                                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(width: 16),
                                       itemBuilder: (context, index) {
                                         final movie = movies[index];
                                         final movieId = int.tryParse(movie.id);
-                                        final isAvailable = movieId != null && 
+                                        final isAvailable =
+                                            movieId != null &&
                                             (availability[movieId] ?? false);
                                         return _SagaMovieCard(
                                           media: movie,
@@ -350,14 +372,17 @@ class SagaDetailPage extends ConsumerWidget {
                                 },
                                 loading: () => const SizedBox(
                                   height: 258,
-                                  child: Center(child: CircularProgressIndicator()),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
                                 ),
                                 error: (_, __) => SizedBox(
                                   height: 258,
                                   child: ListView.separated(
                                     scrollDirection: Axis.horizontal,
                                     itemCount: movies.length,
-                                    separatorBuilder: (_, __) => const SizedBox(width: 16),
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(width: 16),
                                     itemBuilder: (context, index) {
                                       final movie = movies[index];
                                       return MoviMediaCard(
@@ -418,10 +443,7 @@ class SagaDetailPage extends ConsumerWidget {
 }
 
 class _SagaMovieCard extends StatelessWidget {
-  const _SagaMovieCard({
-    required this.media,
-    required this.isAvailable,
-  });
+  const _SagaMovieCard({required this.media, required this.isAvailable});
 
   final MoviMedia media;
   final bool isAvailable;
@@ -434,19 +456,32 @@ class _SagaMovieCard extends StatelessWidget {
         colorFilter: isAvailable
             ? const ColorFilter.mode(Colors.transparent, BlendMode.color)
             : const ColorFilter.matrix([
-                0.2126, 0.7152, 0.0722, 0, 0,
-                0.2126, 0.7152, 0.0722, 0, 0,
-                0.2126, 0.7152, 0.0722, 0, 0,
-                0, 0, 0, 1, 0,
+                0.2126,
+                0.7152,
+                0.0722,
+                0,
+                0,
+                0.2126,
+                0.7152,
+                0.0722,
+                0,
+                0,
+                0.2126,
+                0.7152,
+                0.0722,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
               ]),
         child: MoviMediaCard(
           media: media,
           heroTag: 'saga_movie_${media.id}',
           onTap: isAvailable
-              ? (mm) => context.push(
-                    AppRouteNames.movie,
-                    extra: mm,
-                  )
+              ? (mm) => context.push(AppRouteNames.movie, extra: mm)
               : null,
         ),
       ),

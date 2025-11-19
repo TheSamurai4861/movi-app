@@ -35,4 +35,3 @@ abstract class VideoPlayerRepository {
   /// Libère les ressources du player
   void dispose();
 }
-

@@ -14,7 +14,6 @@ import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.da
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
-import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/features/iptv/data/datasources/xtream_remote_data_source.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
@@ -41,8 +40,10 @@ final tvRepositoryProvider = Provider<TvRepository>((ref) {
 });
 
 /// Provider pour vérifier si une série est dans les favoris
-final tvIsFavoriteProvider =
-    FutureProvider.family<bool, String>((ref, seriesId) async {
+final tvIsFavoriteProvider = FutureProvider.family<bool, String>((
+  ref,
+  seriesId,
+) async {
   final repo = ref.watch(tvRepositoryProvider);
   return await repo.isInWatchlist(SeriesId(seriesId));
 });
@@ -67,8 +68,8 @@ class TvToggleFavoriteNotifier extends Notifier<void> {
 /// Provider pour basculer le statut favori d'une série
 final tvToggleFavoriteProvider =
     NotifierProvider<TvToggleFavoriteNotifier, void>(
-  TvToggleFavoriteNotifier.new,
-);
+      TvToggleFavoriteNotifier.new,
+    );
 
 final tvDetailControllerProvider =
     FutureProvider.family<TvDetailViewModel, String>((ref, seriesId) async {
@@ -162,11 +163,11 @@ class TvDetailProgressiveController
         // Si pas de tmdbId, essayer de le trouver via recherche TMDB
         int? foundTmdbId = xtreamItem.tmdbId;
         foundTmdbId ??= await _searchTmdbIdForXtreamItem(
-            xtreamItem,
-            lang,
-            locator,
-            logger,
-          );
+          xtreamItem,
+          lang,
+          locator,
+          logger,
+        );
 
         // Si on a trouvé un tmdbId, charger depuis TMDB (version lite pour plus de rapidité)
         if (foundTmdbId != null) {
@@ -174,7 +175,7 @@ class TvDetailProgressiveController
             final tmdbShow = await repo.getShowLite(
               SeriesId(foundTmdbId.toString()),
             );
-            
+
             // Charger les épisodes Xtream avant de continuer (attendre le chargement)
             // Les épisodes doivent être disponibles depuis Xtream pour le streaming
             await _loadXtreamEpisodesForSeries(
@@ -184,7 +185,7 @@ class TvDetailProgressiveController
               locator: locator,
               logger: logger,
             );
-            
+
             // Mettre à jour avec l'ID Xtream original
             detailLiteNullable = TvShow(
               id: id, // Garder l'ID Xtream original
@@ -201,7 +202,8 @@ class TvDetailProgressiveController
               genres: tmdbShow.genres,
               cast: tmdbShow.cast,
               creators: tmdbShow.creators,
-              seasons: tmdbShow.seasons, // Saisons sans épisodes, seront chargées progressivement
+              seasons: tmdbShow
+                  .seasons, // Saisons sans épisodes, seront chargées progressivement
             );
           } catch (e) {
             logger.warn(
@@ -230,14 +232,14 @@ class TvDetailProgressiveController
               accountId: item.accountId,
               seriesId: streamId,
             );
-            
+
             // Si le cache est vide, charger depuis l'API Xtream
             if (allEpisodes.isEmpty) {
               logger.debug(
                 'Cache vide pour série $streamId, chargement depuis l\'API Xtream',
                 category: 'tv_detail',
               );
-              
+
               try {
                 final remote = locator<XtreamRemoteDataSource>();
                 final vault = locator<CredentialsVault>();
@@ -252,99 +254,104 @@ class TvDetailProgressiveController
                     (a) => a.id == item.accountId,
                     orElse: () => accounts.first,
                   );
-                
-                // Récupérer le mot de passe
-                String? password = await vault.readPassword(account.id);
-                if (password == null || password.isEmpty) {
-                  final hostKey = '${account.endpoint.host}_${account.username}'
-                      .toLowerCase();
-                  if (hostKey != account.id) {
-                    password = await vault.readPassword(hostKey);
+
+                  // Récupérer le mot de passe
+                  String? password = await vault.readPassword(account.id);
+                  if (password == null || password.isEmpty) {
+                    final hostKey =
+                        '${account.endpoint.host}_${account.username}'
+                            .toLowerCase();
+                    if (hostKey != account.id) {
+                      password = await vault.readPassword(hostKey);
+                    }
                   }
-                }
-                if (password == null || password.isEmpty) {
-                  final rawUrlKey = '${account.endpoint.toRawUrl()}_${account.username}'
-                      .toLowerCase();
-                  if (rawUrlKey != account.id) {
-                    password = await vault.readPassword(rawUrlKey);
+                  if (password == null || password.isEmpty) {
+                    final rawUrlKey =
+                        '${account.endpoint.toRawUrl()}_${account.username}'
+                            .toLowerCase();
+                    if (rawUrlKey != account.id) {
+                      password = await vault.readPassword(rawUrlKey);
+                    }
                   }
-                }
-                
-                if (password != null && password.isNotEmpty) {
-                  final request = XtreamAccountRequest(
-                    endpoint: account.endpoint,
-                    username: account.username,
-                    password: password,
-                  );
-                  
-                  // Charger toutes les informations de la série depuis l'API
-                  final seriesInfo = await remote.getSeriesInfo(
-                    request,
-                    seriesId: streamId,
-                  );
-                  
-                  // Parser tous les épisodes depuis la réponse API
-                  allEpisodes = _parseEpisodesFromSeriesInfo(
-                    seriesInfo,
-                    logger: logger,
-                  );
-                  
-                  // Sauvegarder en cache pour les prochaines fois
-                  if (allEpisodes.isNotEmpty) {
-                    // Compter le total d'épisodes pour le log
-                    final totalEpisodes = allEpisodes.values
-                        .fold<int>(0, (sum, episodes) => sum + episodes.length);
-                    logger.debug(
-                      'Épisodes parsés depuis l\'API pour série $streamId: ${allEpisodes.length} saisons, $totalEpisodes épisodes',
-                      category: 'tv_detail',
+
+                  if (password != null && password.isNotEmpty) {
+                    final request = XtreamAccountRequest(
+                      endpoint: account.endpoint,
+                      username: account.username,
+                      password: password,
                     );
-                    
-                    await iptvLocal.saveEpisodes(
-                      accountId: item.accountId,
+
+                    // Charger toutes les informations de la série depuis l'API
+                    final seriesInfo = await remote.getSeriesInfo(
+                      request,
                       seriesId: streamId,
-                      episodes: allEpisodes,
                     );
-                    logger.debug(
-                      'Épisodes sauvegardés en cache pour série $streamId',
-                      category: 'tv_detail',
+
+                    // Parser tous les épisodes depuis la réponse API
+                    allEpisodes = _parseEpisodesFromSeriesInfo(
+                      seriesInfo,
+                      logger: logger,
                     );
-                    
-                    // Vérifier que les épisodes sont bien sauvegardés
-                    final firstSeason = allEpisodes.keys.firstOrNull;
-                    if (firstSeason != null) {
-                      final firstEpisode = allEpisodes[firstSeason]!.keys.firstOrNull;
-                      if (firstEpisode != null) {
-                        final testData = await iptvLocal.getEpisodeData(
-                          accountId: item.accountId,
-                          seriesId: streamId,
-                          seasonNumber: firstSeason,
-                          episodeNumber: firstEpisode,
-                        );
-                        if (testData != null) {
-                          logger.debug(
-                            'Vérification cache: épisode S${firstSeason}E${firstEpisode} trouvé avec episodeId=${testData.episodeId}',
-                            category: 'tv_detail',
+
+                    // Sauvegarder en cache pour les prochaines fois
+                    if (allEpisodes.isNotEmpty) {
+                      // Compter le total d'épisodes pour le log
+                      final totalEpisodes = allEpisodes.values.fold<int>(
+                        0,
+                        (sum, episodes) => sum + episodes.length,
+                      );
+                      logger.debug(
+                        'Épisodes parsés depuis l\'API pour série $streamId: ${allEpisodes.length} saisons, $totalEpisodes épisodes',
+                        category: 'tv_detail',
+                      );
+
+                      await iptvLocal.saveEpisodes(
+                        accountId: item.accountId,
+                        seriesId: streamId,
+                        episodes: allEpisodes,
+                      );
+                      logger.debug(
+                        'Épisodes sauvegardés en cache pour série $streamId',
+                        category: 'tv_detail',
+                      );
+
+                      // Vérifier que les épisodes sont bien sauvegardés
+                      final firstSeason = allEpisodes.keys.firstOrNull;
+                      if (firstSeason != null) {
+                        final firstEpisode =
+                            allEpisodes[firstSeason]!.keys.firstOrNull;
+                        if (firstEpisode != null) {
+                          final testData = await iptvLocal.getEpisodeData(
+                            accountId: item.accountId,
+                            seriesId: streamId,
+                            seasonNumber: firstSeason,
+                            episodeNumber: firstEpisode,
                           );
-                        } else {
-                          logger.warn(
-                            'Vérification cache: épisode S${firstSeason}E${firstEpisode} NON trouvé après sauvegarde!',
-                            category: 'tv_detail',
-                          );
+                          if (testData != null) {
+                            logger.debug(
+                              'Vérification cache: épisode S$firstSeason E$firstEpisode trouvé avec episodeId=${testData.episodeId}',
+                              category: 'tv_detail',
+                            );
+                          } else {
+                            logger.warn(
+                              'Vérification cache: épisode S$firstSeason E$firstEpisode NON trouvé après sauvegarde!',
+                              category: 'tv_detail',
+                            );
+                          }
                         }
                       }
+                    } else {
+                      logger.warn(
+                        'Aucun épisode parsé depuis l\'API pour série $streamId',
+                        category: 'tv_detail',
+                      );
                     }
                   } else {
                     logger.warn(
-                      'Aucun épisode parsé depuis l\'API pour série $streamId',
+                      'Impossible de récupérer le mot de passe pour le compte ${account.id}',
                       category: 'tv_detail',
                     );
                   }
-                } else {
-                  logger.warn(
-                    'Impossible de récupérer le mot de passe pour le compte ${account.id}',
-                    category: 'tv_detail',
-                  );
-                }
                 }
               } catch (e) {
                 logger.warn(
@@ -354,10 +361,10 @@ class TvDetailProgressiveController
                 // Continuer sans épisodes si le chargement API échoue
               }
             }
-            
+
             // Mapper les épisodes en saisons
             xtreamSeasons = _mapXtreamEpisodesToSeasons(allEpisodes);
-            
+
             // S'assurer que les épisodes sont bien sauvegardés avant de continuer
             if (allEpisodes.isNotEmpty) {
               logger.debug(
@@ -414,7 +421,7 @@ class TvDetailProgressiveController
           isSeriesAvailable =
               detailLiteNullable.tmdbId != null &&
               availableSeriesIds.contains(detailLiteNullable.tmdbId);
-          
+
           // Si la série est disponible dans la playlist, charger les épisodes Xtream en arrière-plan
           if (isSeriesAvailable && detailLiteNullable.tmdbId != null) {
             // Trouver l'item Xtream correspondant pour obtenir le streamId et accountId
@@ -595,14 +602,14 @@ class TvDetailProgressiveController
         accountId: accountId,
         seriesId: streamId,
       );
-      
+
       // Si le cache est vide, charger depuis l'API Xtream
       if (allEpisodes.isEmpty) {
         logger.debug(
           'Cache vide pour série $streamId, chargement des épisodes depuis l\'API Xtream',
           category: 'tv_detail',
         );
-        
+
         try {
           final remote = locator<XtreamRemoteDataSource>();
           final vault = locator<CredentialsVault>();
@@ -614,12 +621,12 @@ class TvDetailProgressiveController
             );
             return;
           }
-          
+
           final account = accounts.firstWhere(
             (a) => a.id == accountId,
             orElse: () => accounts.first,
           );
-          
+
           // Récupérer le mot de passe
           String? password = await vault.readPassword(account.id);
           if (password == null || password.isEmpty) {
@@ -630,26 +637,27 @@ class TvDetailProgressiveController
             }
           }
           if (password == null || password.isEmpty) {
-            final rawUrlKey = '${account.endpoint.toRawUrl()}_${account.username}'
-                .toLowerCase();
+            final rawUrlKey =
+                '${account.endpoint.toRawUrl()}_${account.username}'
+                    .toLowerCase();
             if (rawUrlKey != account.id) {
               password = await vault.readPassword(rawUrlKey);
             }
           }
-          
+
           if (password != null && password.isNotEmpty) {
             final request = XtreamAccountRequest(
               endpoint: account.endpoint,
               username: account.username,
               password: password,
             );
-            
+
             // Charger toutes les informations de la série depuis l'API
             final seriesInfo = await remote.getSeriesInfo(
               request,
               seriesId: streamId,
             );
-            
+
             // Log la structure de la réponse pour diagnostiquer
             logger.debug(
               'Réponse API get_series_info pour série $streamId: clés=${seriesInfo.keys.toList()}',
@@ -712,49 +720,55 @@ class TvDetailProgressiveController
                 category: 'tv_detail',
               );
             }
-            
+
             // Parser tous les épisodes depuis la réponse API
             allEpisodes = _parseEpisodesFromSeriesInfo(
               seriesInfo,
               logger: logger,
             );
-            
+
             // Log le résultat du parsing
             if (allEpisodes.isNotEmpty) {
-              final totalParsed = allEpisodes.values
-                  .fold<int>(0, (sum, episodes) => sum + episodes.length);
+              final totalParsed = allEpisodes.values.fold<int>(
+                0,
+                (sum, episodes) => sum + episodes.length,
+              );
               logger.debug(
                 'Parsing réussi: ${allEpisodes.length} saisons, $totalParsed épisodes parsés',
                 category: 'tv_detail',
               );
             } else {
-              final episodesCount = episodesData is List ? episodesData.length : 0;
+              final episodesCount = episodesData is List
+                  ? episodesData.length
+                  : 0;
               logger.warn(
                 'Parsing échoué: aucun épisode parsé depuis la liste de $episodesCount éléments',
                 category: 'tv_detail',
               );
             }
-            
+
             // Sauvegarder en cache pour les prochaines fois
             if (allEpisodes.isNotEmpty) {
-              final totalEpisodes = allEpisodes.values
-                  .fold<int>(0, (sum, episodes) => sum + episodes.length);
+              final totalEpisodes = allEpisodes.values.fold<int>(
+                0,
+                (sum, episodes) => sum + episodes.length,
+              );
               logger.debug(
                 'Épisodes Xtream parsés depuis l\'API pour série $streamId: ${allEpisodes.length} saisons, $totalEpisodes épisodes',
                 category: 'tv_detail',
               );
-              
+
               await iptvLocal.saveEpisodes(
                 accountId: accountId,
                 seriesId: streamId,
                 episodes: allEpisodes,
               );
-              
+
               logger.debug(
                 'Épisodes Xtream sauvegardés en cache pour série $streamId',
                 category: 'tv_detail',
               );
-              
+
               // Vérifier que les épisodes sont bien sauvegardés en testant la récupération du premier épisode
               final firstSeason = allEpisodes.keys.firstOrNull;
               if (firstSeason != null) {
@@ -768,12 +782,12 @@ class TvDetailProgressiveController
                   );
                   if (testData != null) {
                     logger.debug(
-                      'Vérification cache réussie: épisode S${firstSeason}E${firstEpisode} trouvé avec episodeId=${testData.episodeId}',
+                      'Vérification cache réussie: épisode S$firstSeason E$firstEpisode trouvé avec episodeId=${testData.episodeId}',
                       category: 'tv_detail',
                     );
                   } else {
                     logger.warn(
-                      'Vérification cache échouée: épisode S${firstSeason}E${firstEpisode} NON trouvé après sauvegarde!',
+                      'Vérification cache échouée: épisode S$firstSeason E$firstEpisode NON trouvé après sauvegarde!',
                       category: 'tv_detail',
                     );
                   }
@@ -798,8 +812,10 @@ class TvDetailProgressiveController
           );
         }
       } else {
-        final totalEpisodes = allEpisodes.values
-            .fold<int>(0, (sum, episodes) => sum + episodes.length);
+        final totalEpisodes = allEpisodes.values.fold<int>(
+          0,
+          (sum, episodes) => sum + episodes.length,
+        );
         logger.debug(
           'Épisodes Xtream déjà en cache pour série $streamId: ${allEpisodes.length} saisons, $totalEpisodes épisodes',
           category: 'tv_detail',
@@ -820,7 +836,7 @@ class TvDetailProgressiveController
   }) {
     final episodes = <int, Map<int, EpisodeData>>{};
     final episodesData = seriesInfo['episodes'];
-    
+
     if (episodesData == null) {
       // Pas de données d'épisodes dans la réponse
       logger?.debug(
@@ -829,10 +845,10 @@ class TvDetailProgressiveController
       );
       return episodes;
     }
-    
+
     int parsedCount = 0;
     int skippedCount = 0;
-    
+
     // Gérer le cas où episodes est une Map (structure classique)
     if (episodesData is Map<String, dynamic>) {
       for (final seasonEntry in episodesData.entries) {
@@ -841,22 +857,25 @@ class TvDetailProgressiveController
           skippedCount++;
           continue;
         }
-        
+
         final seasonEpisodes = seasonEntry.value;
         if (seasonEpisodes is List) {
           for (final episodeData in seasonEpisodes) {
             if (episodeData is Map<String, dynamic>) {
               // Ordre de priorité pour les champs d'épisode
-              final episodeNum = episodeData['episode_num'] ??
+              final episodeNum =
+                  episodeData['episode_num'] ??
                   episodeData['episode'] ??
                   episodeData['episode_number'];
               // Ordre de priorité pour l'ID : id (string) > stream_id > episode_id
-              final episodeIdRaw = episodeData['id'] ??
+              final episodeIdRaw =
+                  episodeData['id'] ??
                   episodeData['stream_id'] ??
                   episodeData['episode_id'];
-              final extension = episodeData['container_extension']?.toString() ??
+              final extension =
+                  episodeData['container_extension']?.toString() ??
                   episodeData['extension']?.toString();
-              
+
               if (episodeNum != null && episodeIdRaw != null) {
                 final epNum = episodeNum is int
                     ? episodeNum
@@ -865,7 +884,7 @@ class TvDetailProgressiveController
                 final epId = episodeIdRaw is int
                     ? episodeIdRaw
                     : int.tryParse(episodeIdRaw.toString());
-                
+
                 if (epNum != null && epId != null && epId > 0) {
                   episodes.putIfAbsent(
                     seasonNumber,
@@ -890,7 +909,7 @@ class TvDetailProgressiveController
           }
         }
       }
-    } 
+    }
     // Gérer le cas où episodes est une List
     // Structure: List<List<Map>> où chaque sous-liste représente une saison
     else if (episodesData is List) {
@@ -903,21 +922,27 @@ class TvDetailProgressiveController
             for (final episodeData in seasonList) {
               if (episodeData is Map<String, dynamic>) {
                 // Ordre de priorité pour la saison : season > season_num > season_number
-                final seasonNum = episodeData['season'] ??
+                final seasonNum =
+                    episodeData['season'] ??
                     episodeData['season_num'] ??
                     episodeData['season_number'];
                 // Ordre de priorité pour l'épisode : episode_num > episode > episode_number
-                final episodeNum = episodeData['episode_num'] ??
+                final episodeNum =
+                    episodeData['episode_num'] ??
                     episodeData['episode'] ??
                     episodeData['episode_number'];
                 // Ordre de priorité pour l'ID : id (string) > stream_id > episode_id
-                final episodeIdRaw = episodeData['id'] ??
+                final episodeIdRaw =
+                    episodeData['id'] ??
                     episodeData['stream_id'] ??
                     episodeData['episode_id'];
-                final extension = episodeData['container_extension']?.toString() ??
+                final extension =
+                    episodeData['container_extension']?.toString() ??
                     episodeData['extension']?.toString();
-                
-                if (seasonNum != null && episodeNum != null && episodeIdRaw != null) {
+
+                if (seasonNum != null &&
+                    episodeNum != null &&
+                    episodeIdRaw != null) {
                   final seasonNumber = seasonNum is int
                       ? seasonNum
                       : int.tryParse(seasonNum.toString());
@@ -928,8 +953,11 @@ class TvDetailProgressiveController
                   final epId = episodeIdRaw is int
                       ? episodeIdRaw
                       : int.tryParse(episodeIdRaw.toString());
-                  
-                  if (seasonNumber != null && epNum != null && epId != null && epId > 0) {
+
+                  if (seasonNumber != null &&
+                      epNum != null &&
+                      epId != null &&
+                      epId > 0) {
                     episodes.putIfAbsent(
                       seasonNumber,
                       () => <int, EpisodeData>{},
@@ -962,21 +990,27 @@ class TvDetailProgressiveController
         for (final episodeData in episodesData) {
           if (episodeData is Map<String, dynamic>) {
             // Ordre de priorité pour la saison : season > season_num > season_number
-            final seasonNum = episodeData['season'] ??
+            final seasonNum =
+                episodeData['season'] ??
                 episodeData['season_num'] ??
                 episodeData['season_number'];
             // Ordre de priorité pour l'épisode : episode_num > episode > episode_number
-            final episodeNum = episodeData['episode_num'] ??
+            final episodeNum =
+                episodeData['episode_num'] ??
                 episodeData['episode'] ??
                 episodeData['episode_number'];
             // Ordre de priorité pour l'ID : id (string) > stream_id > episode_id
-            final episodeIdRaw = episodeData['id'] ??
+            final episodeIdRaw =
+                episodeData['id'] ??
                 episodeData['stream_id'] ??
                 episodeData['episode_id'];
-            final extension = episodeData['container_extension']?.toString() ??
+            final extension =
+                episodeData['container_extension']?.toString() ??
                 episodeData['extension']?.toString();
-            
-            if (seasonNum != null && episodeNum != null && episodeIdRaw != null) {
+
+            if (seasonNum != null &&
+                episodeNum != null &&
+                episodeIdRaw != null) {
               final seasonNumber = seasonNum is int
                   ? seasonNum
                   : int.tryParse(seasonNum.toString());
@@ -987,12 +1021,12 @@ class TvDetailProgressiveController
               final epId = episodeIdRaw is int
                   ? episodeIdRaw
                   : int.tryParse(episodeIdRaw.toString());
-              
-              if (seasonNumber != null && epNum != null && epId != null && epId > 0) {
-                episodes.putIfAbsent(
-                  seasonNumber,
-                  () => <int, EpisodeData>{},
-                );
+
+              if (seasonNumber != null &&
+                  epNum != null &&
+                  epId != null &&
+                  epId > 0) {
+                episodes.putIfAbsent(seasonNumber, () => <int, EpisodeData>{});
                 episodes[seasonNumber]![epNum] = EpisodeData(
                   episodeId: epId,
                   extension: extension,
@@ -1016,16 +1050,18 @@ class TvDetailProgressiveController
         }
       }
     }
-    
+
     if (logger != null) {
-      final totalEpisodes = episodes.values
-          .fold<int>(0, (sum, seasonEpisodes) => sum + seasonEpisodes.length);
+      final totalEpisodes = episodes.values.fold<int>(
+        0,
+        (sum, seasonEpisodes) => sum + seasonEpisodes.length,
+      );
       logger.debug(
         'Parsing terminé: $parsedCount épisodes parsés, $skippedCount ignorés, ${episodes.length} saisons, $totalEpisodes épisodes au total',
         category: 'tv_detail',
       );
     }
-    
+
     return episodes;
   }
 

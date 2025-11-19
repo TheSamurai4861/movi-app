@@ -41,4 +41,3 @@ class VideoSource {
   /// Position de reprise de lecture (optionnel)
   final Duration? resumePosition;
 }
-

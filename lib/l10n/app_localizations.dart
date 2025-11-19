@@ -1076,6 +1076,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove \"{title}\" from playlist?'**
   String playlistRemoveItemConfirm(String title);
+
+  /// No description provided for @categoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load category.'**
+  String get categoryLoadFailed;
+
+  /// No description provided for @categoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in this category.'**
+  String get categoryEmpty;
+
+  /// No description provided for @categoryLoadingMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading more…'**
+  String get categoryLoadingMore;
 }
 
 class _AppLocalizationsDelegate

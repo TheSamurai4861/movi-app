@@ -9,8 +9,9 @@ import 'package:movi/src/features/search/domain/usecases/list_search_history.dar
 import 'package:movi/src/features/search/domain/usecases/remove_search_history_item.dart';
 
 /// Repository résolu via le service locator.
-final searchHistoryRepositoryProvider =
-    Provider<SearchHistoryRepository>((ref) {
+final searchHistoryRepositoryProvider = Provider<SearchHistoryRepository>((
+  ref,
+) {
   final locator = ref.watch(slProvider);
   return locator<SearchHistoryRepository>();
 });
@@ -18,8 +19,7 @@ final searchHistoryRepositoryProvider =
 /// Contrôleur d’historique basé sur AsyncNotifier.
 /// Ne met JAMAIS l’état en AsyncError : en cas de souci, on renvoie
 /// soit la liste précédente, soit [].
-class SearchHistoryController
-    extends AsyncNotifier<List<SearchHistoryItem>> {
+class SearchHistoryController extends AsyncNotifier<List<SearchHistoryItem>> {
   late final SearchHistoryRepository _repo;
   late final ListSearchHistory _listHistory;
   late final RemoveSearchHistoryItem _removeHistory;
@@ -125,5 +125,5 @@ class SearchHistoryController
 /// Provider Riverpod exposé à l’UI.
 final searchHistoryControllerProvider =
     AsyncNotifierProvider<SearchHistoryController, List<SearchHistoryItem>>(
-  SearchHistoryController.new,
-);
+      SearchHistoryController.new,
+    );

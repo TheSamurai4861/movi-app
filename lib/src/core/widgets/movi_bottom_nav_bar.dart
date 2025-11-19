@@ -15,10 +15,7 @@ const _kBarBackground = Color(0x80666666); // 50% opacity
 const _kAnimationDuration = Duration(milliseconds: 300);
 
 class MoviBottomNavItem {
-  const MoviBottomNavItem({
-    required this.label,
-    required this.icon,
-  });
+  const MoviBottomNavItem({required this.label, required this.icon});
 
   final String label;
   final String icon;
@@ -43,22 +40,10 @@ class MoviBottomNavBar extends ConsumerWidget {
   final List<MoviBottomNavItem>? _customItems;
 
   static const List<MoviBottomNavItem> _defaultItems = [
-    MoviBottomNavItem(
-      label: 'Accueil',
-      icon: AppAssets.navHome,
-    ),
-    MoviBottomNavItem(
-      label: 'Recherche',
-      icon: AppAssets.navSearch,
-    ),
-    MoviBottomNavItem(
-      label: 'Bibliothèque',
-      icon: AppAssets.navLibrary,
-    ),
-    MoviBottomNavItem(
-      label: 'Paramètres',
-      icon: AppAssets.navSettings,
-    ),
+    MoviBottomNavItem(label: 'Accueil', icon: AppAssets.navHome),
+    MoviBottomNavItem(label: 'Recherche', icon: AppAssets.navSearch),
+    MoviBottomNavItem(label: 'Bibliothèque', icon: AppAssets.navLibrary),
+    MoviBottomNavItem(label: 'Paramètres', icon: AppAssets.navSettings),
   ];
 
   @override
@@ -111,22 +96,10 @@ class MoviBottomNavBar extends ConsumerWidget {
   List<MoviBottomNavItem> _localizedItems(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return [
-      MoviBottomNavItem(
-        label: loc.navHome,
-        icon: AppAssets.navHome,
-      ),
-      MoviBottomNavItem(
-        label: loc.navSearch,
-        icon: AppAssets.navSearch,
-      ),
-      MoviBottomNavItem(
-        label: loc.navLibrary,
-        icon: AppAssets.navLibrary,
-      ),
-      MoviBottomNavItem(
-        label: loc.navSettings,
-        icon: AppAssets.navSettings,
-      ),
+      MoviBottomNavItem(label: loc.navHome, icon: AppAssets.navHome),
+      MoviBottomNavItem(label: loc.navSearch, icon: AppAssets.navSearch),
+      MoviBottomNavItem(label: loc.navLibrary, icon: AppAssets.navLibrary),
+      MoviBottomNavItem(label: loc.navSettings, icon: AppAssets.navSettings),
     ];
   }
 }
@@ -208,9 +181,7 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
               : widget.unselectedTextColor,
         );
 
-    final iconColor = widget.isSelected
-        ? widget.accentColor
-        : Colors.white70;
+    final iconColor = widget.isSelected ? widget.accentColor : Colors.white70;
 
     return Material(
       color: Colors.transparent,
@@ -242,10 +213,7 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                       key: ValueKey('${widget.item.icon}-${widget.isSelected}'),
                       width: 24,
                       height: 24,
-                      colorFilter: ColorFilter.mode(
-                        iconColor,
-                        BlendMode.srcIn,
-                      ),
+                      colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                     ),
                   );
                 },

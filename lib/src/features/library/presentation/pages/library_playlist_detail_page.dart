@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/cupertino.dart';
 
-import 'package:movi/src/core/utils/utils.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
-import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_playlist_app_bar.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_playlist_hero.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_playlist_actions_bar.dart';
+import 'package:movi/src/features/library/presentation/widgets/add_media_search_modal.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
-import 'package:movi/src/shared/data/services/tmdb_client.dart';
-import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/features/library/presentation/widgets/add_media_search_modal.dart';
-import 'package:movi/l10n/app_localizations.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
-import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/features/library/domain/services/library_playlist_sorter.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
-enum PlaylistSortType { title, recentlyAdded, yearAscending, yearDescending }
+// Enum déplacé dans le domaine: LibraryPlaylistSortType
 
 class LibraryPlaylistDetailPage extends ConsumerStatefulWidget {
   const LibraryPlaylistDetailPage({super.key, required this.playlist});
@@ -35,78 +34,7 @@ class LibraryPlaylistDetailPage extends ConsumerStatefulWidget {
 
 class _LibraryPlaylistDetailPageState
     extends ConsumerState<LibraryPlaylistDetailPage> {
-  PlaylistSortType? _sortType;
-
-  List<ContentReference> _sortItems(
-    List<ContentReference> items,
-    PlaylistSortType? sortType, {
-    List<PlaylistItem>? playlistItems,
-  }) {
-    if (sortType == null) return items;
-
-    final sorted = List<ContentReference>.from(items);
-
-    switch (sortType) {
-      case PlaylistSortType.title:
-        sorted.sort(
-          (a, b) => a.title.value.toLowerCase().compareTo(
-            b.title.value.toLowerCase(),
-          ),
-        );
-        break;
-      case PlaylistSortType.recentlyAdded:
-        // Pour les playlists utilisateur, utiliser la date d'ajout
-        if (playlistItems != null && playlistItems.isNotEmpty) {
-          sorted.sort((a, b) {
-            final itemA = playlistItems.firstWhere(
-              (pi) => pi.reference.id == a.id,
-              orElse: () => PlaylistItem(reference: a),
-            );
-            final itemB = playlistItems.firstWhere(
-              (pi) => pi.reference.id == b.id,
-              orElse: () => PlaylistItem(reference: b),
-            );
-            final dateA = itemA.addedAt ?? DateTime(1970);
-            final dateB = itemB.addedAt ?? DateTime(1970);
-            // Plus récent en premier
-            return dateB.compareTo(dateA);
-          });
-        }
-        // Pour les autres playlists, garder l'ordre original
-        break;
-      case PlaylistSortType.yearAscending:
-        // Séparer les items avec année et sans année
-        final withYear = <ContentReference>[];
-        final withoutYear = <ContentReference>[];
-        
-        for (final item in sorted) {
-          if (item.year != null) {
-            withYear.add(item);
-          } else {
-            withoutYear.add(item);
-          }
-        }
-        
-        // Trier les items avec année de la plus petite à la plus grande
-        withYear.sort((a, b) {
-          final yearA = a.year ?? 0;
-          final yearB = b.year ?? 0;
-          return yearA.compareTo(yearB);
-        });
-        
-        // Placer les items sans année à la fin
-        return [...withYear, ...withoutYear];
-      case PlaylistSortType.yearDescending:
-        sorted.sort((a, b) {
-          final yearA = a.year ?? 0;
-          final yearB = b.year ?? 0;
-          return yearB.compareTo(yearA);
-        });
-        break;
-    }
-
-    return sorted;
-  }
+  LibraryPlaylistSortType? _sortType;
 
   /// Provider pour les playlists non-utilisateur (favoris, historique, etc.)
   static final _otherPlaylistItemsProvider =
@@ -165,7 +93,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               if (mounted) {
                 setState(() {
-                  _sortType = PlaylistSortType.title;
+                  _sortType = LibraryPlaylistSortType.title;
                 });
               }
             },
@@ -173,9 +101,9 @@ class _LibraryPlaylistDetailPageState
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(AppLocalizations.of(context)!.playlistSortByTitleOption),
-                if (_sortType == PlaylistSortType.title)
+                if (_sortType == LibraryPlaylistSortType.title)
                   const SizedBox(width: 8),
-                if (_sortType == PlaylistSortType.title)
+                if (_sortType == LibraryPlaylistSortType.title)
                   const Icon(Icons.check, size: 20),
               ],
             ),
@@ -185,7 +113,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               if (mounted) {
                 setState(() {
-                  _sortType = PlaylistSortType.recentlyAdded;
+                  _sortType = LibraryPlaylistSortType.recentlyAdded;
                 });
               }
             },
@@ -193,9 +121,9 @@ class _LibraryPlaylistDetailPageState
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(AppLocalizations.of(context)!.playlistSortRecentAdditions),
-                if (_sortType == PlaylistSortType.recentlyAdded)
+                if (_sortType == LibraryPlaylistSortType.recentlyAdded)
                   const SizedBox(width: 8),
-                if (_sortType == PlaylistSortType.recentlyAdded)
+                if (_sortType == LibraryPlaylistSortType.recentlyAdded)
                   const Icon(Icons.check, size: 20),
               ],
             ),
@@ -205,7 +133,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               if (mounted) {
                 setState(() {
-                  _sortType = PlaylistSortType.yearAscending;
+                  _sortType = LibraryPlaylistSortType.yearAscending;
                 });
               }
             },
@@ -213,9 +141,9 @@ class _LibraryPlaylistDetailPageState
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(AppLocalizations.of(context)!.playlistSortOldestFirst),
-                if (_sortType == PlaylistSortType.yearAscending)
+                if (_sortType == LibraryPlaylistSortType.yearAscending)
                   const SizedBox(width: 8),
-                if (_sortType == PlaylistSortType.yearAscending)
+                if (_sortType == LibraryPlaylistSortType.yearAscending)
                   const Icon(Icons.check, size: 20),
               ],
             ),
@@ -225,7 +153,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               if (mounted) {
                 setState(() {
-                  _sortType = PlaylistSortType.yearDescending;
+                  _sortType = LibraryPlaylistSortType.yearDescending;
                 });
               }
             },
@@ -233,9 +161,9 @@ class _LibraryPlaylistDetailPageState
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(AppLocalizations.of(context)!.playlistSortNewestFirst),
-                if (_sortType == PlaylistSortType.yearDescending)
+                if (_sortType == LibraryPlaylistSortType.yearDescending)
                   const SizedBox(width: 8),
-                if (_sortType == PlaylistSortType.yearDescending)
+                if (_sortType == LibraryPlaylistSortType.yearDescending)
                   const Icon(Icons.check, size: 20),
               ],
             ),
@@ -324,11 +252,9 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
 
               try {
-                final renamePlaylist = RenamePlaylist(
-                  ref.read(slProvider)<PlaylistRepository>(),
-                );
+                final renamePlaylist = ref.read(renamePlaylistUseCaseProvider);
 
-                await renamePlaylist.call(
+                await renamePlaylist(
                   id: PlaylistId(widget.playlist.playlistId!),
                   title: MediaTitle(name),
                 );
@@ -337,7 +263,13 @@ class _LibraryPlaylistDetailPageState
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(AppLocalizations.of(context)!.playlistRenamedSuccess(name))),
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.playlistRenamedSuccess(name),
+                      ),
+                    ),
                   );
                 }
               } catch (e) {
@@ -363,7 +295,9 @@ class _LibraryPlaylistDetailPageState
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
         content: Text(
-          AppLocalizations.of(context)!.playlistDeleteConfirm(widget.playlist.title),
+          AppLocalizations.of(
+            context,
+          )!.playlistDeleteConfirm(widget.playlist.title),
         ),
         actions: [
           CupertinoDialogAction(
@@ -376,20 +310,20 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
 
               try {
-                final deletePlaylist = DeletePlaylist(
-                  ref.read(slProvider)<PlaylistRepository>(),
-                );
+                final deletePlaylist = ref.read(deletePlaylistUseCaseProvider);
 
-                await deletePlaylist.call(
-                  PlaylistId(widget.playlist.playlistId!),
-                );
+                await deletePlaylist(PlaylistId(widget.playlist.playlistId!));
 
                 ref.invalidate(libraryPlaylistsProvider);
 
                 if (context.mounted) {
                   context.pop(); // Retourner à la bibliothèque
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(AppLocalizations.of(context)!.playlistDeletedSuccess)),
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(context)!.playlistDeletedSuccess,
+                      ),
+                    ),
                   );
                 }
               } catch (e) {
@@ -433,65 +367,10 @@ class _LibraryPlaylistDetailPageState
     return '${minutes}m';
   }
 
-  /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
-  Color _darkenColor(Color color) {
-    final hsl = HSLColor.fromColor(color);
-    // Réduire la luminosité à environ 15-20% et réduire la saturation
-    return hsl
-        .withLightness(0.15.clamp(0.0, 1.0))
-        .withSaturation((hsl.saturation * 0.7).clamp(0.0, 1.0))
-        .toColor();
-  }
-
-  Widget _getPlaylistIcon() {
-    switch (widget.playlist.type) {
-      case LibraryPlaylistType.inProgress:
-        return const Icon(
-          Icons.play_circle_outline,
-          color: Colors.white,
-          size: 64,
-        );
-      case LibraryPlaylistType.favoriteMovies:
-        return Image.asset(
-          AppAssets.iconMovie,
-          width: 64,
-          height: 64,
-          color: Colors.white,
-        );
-      case LibraryPlaylistType.favoriteSeries:
-        return Image.asset(
-          AppAssets.iconSerie,
-          width: 64,
-          height: 64,
-          color: Colors.white,
-        );
-      case LibraryPlaylistType.watchHistory:
-        return Image.asset(
-          AppAssets.iconAvancer,
-          width: 64,
-          height: 64,
-          color: Colors.white,
-        );
-      case LibraryPlaylistType.userPlaylist:
-        return Image.asset(
-          AppAssets.iconPlaylist,
-          width: 64,
-          height: 64,
-          color: Colors.white,
-        );
-      case LibraryPlaylistType.actor:
-        return MoviPlaceholderCard(
-          type: PlaceholderType.person,
-          width: 64,
-          height: 64,
-        );
-    }
-  }
-
   Future<Uri?> _getBackdropWithNullLanguage(ContentReference reference) async {
     try {
-      final tmdbClient = sl<TmdbClient>();
-      final images = sl<TmdbImageResolver>();
+      final tmdbClient = ref.watch(tmdbClientProvider);
+      final images = ref.watch(tmdbImageResolverProvider);
 
       final tmdbId = int.tryParse(reference.id);
       if (tmdbId == null) return null;
@@ -557,161 +436,23 @@ class _LibraryPlaylistDetailPageState
         bottom: false,
         child: Column(
           children: [
-            // En-tête avec bouton retour et menu (pour playlists utilisateur)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => context.pop(),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 35,
-                          height: 35,
-                          child: Image.asset(AppAssets.iconBack),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          AppLocalizations.of(context)!.actionBack,
-                          style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ) ??
-                              const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  if (widget.playlist.type == LibraryPlaylistType.userPlaylist)
-                    IconButton(
-                      icon: Image.asset(
-                        AppAssets.iconMore,
-                        width: 30,
-                        height: 30,
-                        color: Colors.white,
-                      ),
-                      onPressed: () => _showPlaylistMenu(context, ref),
-                    ),
-                ],
-              ),
+            LibraryPlaylistAppBar(
+              showMenu:
+                  widget.playlist.type == LibraryPlaylistType.userPlaylist,
+              onBack: () => context.pop(),
+              onMenu: widget.playlist.type == LibraryPlaylistType.userPlaylist
+                  ? () => _showPlaylistMenu(context, ref)
+                  : null,
             ),
             // Hero section (350px)
             itemsAsync.when(
               loading: () => const SizedBox(height: 350),
               error: (_, __) => const SizedBox(height: 350),
-              data: (items) {
-                final itemCount = items.length;
-                return SizedBox(
-                  height: 350,
-                  width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Gradient de fond diagonal
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              accentColor,
-                              _darkenColor(accentColor),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Top overlay (100px)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 100,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Color(0xFF141414), Color(0x00000000)],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Bottom overlay (150px)
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 150,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [Color(0xFF141414), Color(0x00000000)],
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Logo centré au milieu
-                      Center(child: _getPlaylistIcon()),
-                      // Titre à 50px du bottom
-                      Positioned(
-                        bottom: 58,
-                        left: 0,
-                        right: 0,
-                        child: Text(
-                          widget.playlist.title,
-                          textAlign: TextAlign.center,
-                          style:
-                              Theme.of(
-                                context,
-                              ).textTheme.headlineSmall?.copyWith(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ) ??
-                              const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                        ),
-                      ),
-                      // Nombre d'éléments à 34px du bottom (16px sous le titre)
-                      Positioned(
-                        bottom: 24,
-                        left: 0,
-                        right: 0,
-                          child: Text(
-                            itemCount == 1
-                                ? AppLocalizations.of(context)!.playlistItemCount(itemCount)
-                                : AppLocalizations.of(context)!.playlistItemCountPlural(itemCount),
-                            textAlign: TextAlign.center,
-                            style:
-                                Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ) ??
-                                const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                          ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              data: (items) => LibraryPlaylistHero(
+                playlist: widget.playlist,
+                accentColor: accentColor,
+                itemCount: items.length,
+              ),
             ),
             // Boutons d'action (collés sous le hero)
             Padding(
@@ -723,102 +464,57 @@ class _LibraryPlaylistDetailPageState
                   final isEmpty = items.isEmpty;
                   // Pour les playlists utilisateur, récupérer les items complets pour le tri
                   final playlistItems = playlistItemsAsync?.value;
-                  final sortedItems = _sortItems(
+                  final sortedItems = LibraryPlaylistSorter.sort(
                     items,
-                    _sortType,
+                    sortType: _sortType,
                     playlistItems: playlistItems,
                   );
 
-                  return Column(
-                    children: [
-                      // Bouton primaire "Lire aléatoirement" (si non vide)
-                      if (!isEmpty)
-                        MoviPrimaryButton(
-                          label: AppLocalizations.of(context)!.playlistPlayRandomly,
-                          assetIcon: AppAssets.iconPlay,
-                          onPressed: () => _playRandomly(context, sortedItems),
-                        ),
-                      // Pills "Ajouter" et "Trier" (si non vide ou playlist utilisateur)
-                      if (!isEmpty ||
-                          widget.playlist.type ==
-                              LibraryPlaylistType.userPlaylist) ...[
-                        if (!isEmpty) const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            // Pill "Ajouter" (uniquement pour playlists utilisateur)
-                            if (widget.playlist.type ==
-                                LibraryPlaylistType.userPlaylist)
-                              GestureDetector(
-                                onTap: () {
-                                  if (widget.playlist.playlistId != null) {
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      builder: (context) => SizedBox(
-                                        height:
-                                            MediaQuery.of(context).size.height *
-                                            0.9,
-                                        child: AddMediaSearchModal(
-                                          playlistId:
-                                              widget.playlist.playlistId!,
-                                        ),
-                                      ),
-                                    ).then((_) {
-                                      // Rafraîchir la liste après ajout
-                                      if (widget.playlist.playlistId != null) {
-                                        ref.invalidate(
-                                          playlistItemsProvider(
-                                            widget.playlist.playlistId!,
-                                          ),
-                                        );
-                                        ref.invalidate(
-                                          playlistContentReferencesProvider(
-                                            widget.playlist.playlistId!,
-                                          ),
-                                        );
-                                      }
-                                      ref.invalidate(libraryPlaylistsProvider);
-                                    });
-                                  }
-                                },
-                                child: MoviPill(
-                                  AppLocalizations.of(context)!.playlistAddButton,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  trailingIcon: Image.asset(
-                                    AppAssets.iconPlus,
-                                    width: 16,
-                                    height: 16,
-                                  ),
+                  return LibraryPlaylistActionsBar(
+                    isEmpty: isEmpty,
+                    isUserPlaylist:
+                        widget.playlist.type ==
+                        LibraryPlaylistType.userPlaylist,
+                    onPlayRandom: isEmpty
+                        ? null
+                        : () => _playRandomly(context, sortedItems),
+                    onAddPressed:
+                        widget.playlist.type ==
+                                LibraryPlaylistType.userPlaylist &&
+                            widget.playlist.playlistId != null
+                        ? () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.9,
+                                child: AddMediaSearchModal(
+                                  playlistId: widget.playlist.playlistId!,
                                 ),
                               ),
-                            // Pill "Trier" (si non vide)
-                            if (!isEmpty) ...[
-                              if (widget.playlist.type ==
-                                  LibraryPlaylistType.userPlaylist)
-                                const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _showSortMenu(context, ref),
-                                child: MoviPill(
-                                  AppLocalizations.of(context)!.playlistSortButton,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
+                            ).then((_) {
+                              // Rafraîchir la liste après ajout
+                              if (widget.playlist.playlistId != null) {
+                                ref.invalidate(
+                                  playlistItemsProvider(
+                                    widget.playlist.playlistId!,
                                   ),
-                                  trailingIcon: const Icon(
-                                    Icons.arrow_drop_down,
-                                    size: 16,
+                                );
+                                ref.invalidate(
+                                  playlistContentReferencesProvider(
+                                    widget.playlist.playlistId!,
                                   ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ],
+                                );
+                              }
+                              ref.invalidate(libraryPlaylistsProvider);
+                            });
+                          }
+                        : null,
+                    onSortPressed: isEmpty
+                        ? null
+                        : () => _showSortMenu(context, ref),
                   );
                 },
               ),
@@ -853,9 +549,9 @@ class _LibraryPlaylistDetailPageState
 
                   // Pour les playlists utilisateur, récupérer les items complets pour le tri
                   final playlistItems = playlistItemsAsync?.value;
-                  final sortedItems = _sortItems(
+                  final sortedItems = LibraryPlaylistSorter.sort(
                     items,
-                    _sortType,
+                    sortType: _sortType,
                     playlistItems: playlistItems,
                   );
 
@@ -1116,7 +812,11 @@ class _LibraryPlaylistDetailPageState
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
-        content: Text(AppLocalizations.of(context)!.playlistRemoveItemConfirm(reference.title.value)),
+        content: Text(
+          AppLocalizations.of(
+            context,
+          )!.playlistRemoveItemConfirm(reference.title.value),
+        ),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -1142,11 +842,9 @@ class _LibraryPlaylistDetailPageState
     String playlistId,
   ) async {
     try {
-      final removePlaylistItem = RemovePlaylistItem(
-        ref.read(slProvider)<PlaylistRepository>(),
-      );
+      final removePlaylistItem = ref.read(removePlaylistItemUseCaseProvider);
 
-      await removePlaylistItem.call(
+      await removePlaylistItem(
         playlistId: PlaylistId(playlistId),
         item: playlistItem,
       );
@@ -1159,7 +857,9 @@ class _LibraryPlaylistDetailPageState
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.playlistItemRemovedSuccess),
+            content: Text(
+              AppLocalizations.of(context)!.playlistItemRemovedSuccess,
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -1179,7 +879,7 @@ class _LibraryPlaylistDetailPageState
   ) async {
     if (reference.type == ContentType.movie) {
       // MovieSummary n'a pas de durée, on retourne null pour l'instant
-  
+
       return (duration: null, seasonCount: null);
     } else if (reference.type == ContentType.series) {
       // Pour les séries, récupérer le nombre de saisons

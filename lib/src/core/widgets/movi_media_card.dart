@@ -154,9 +154,7 @@ class _PosterWithOverlay extends StatelessWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          child: Container(
-            height: height * 0.35
-          ),
+          child: Container(height: height * 0.35),
         ),
       ],
     );

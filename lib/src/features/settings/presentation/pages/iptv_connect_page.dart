@@ -81,11 +81,15 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         LabeledField(
-                          label: AppLocalizations.of(context)!.iptvServerUrlLabel,
+                          label: AppLocalizations.of(
+                            context,
+                          )!.iptvServerUrlLabel,
                           child: TextFormField(
                             controller: _serverCtrl,
                             decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.iptvServerUrlHint,
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.iptvServerUrlHint,
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) {
@@ -118,11 +122,15 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                         ),
                         const SizedBox(height: AppSpacing.md),
                         LabeledField(
-                          label: AppLocalizations.of(context)!.iptvPasswordLabel,
+                          label: AppLocalizations.of(
+                            context,
+                          )!.iptvPasswordLabel,
                           child: TextFormField(
                             controller: _passCtrl,
                             decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.iptvPasswordHint,
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.iptvPasswordHint,
                               border: OutlineInputBorder(),
                             ),
                             validator: (v) => (v == null || v.isEmpty)
@@ -141,8 +149,10 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                           ),
                           child: SizedBox(
                             width: double.infinity,
-                              child: MoviPrimaryButton(
-                              label: AppLocalizations.of(context)!.actionConnect,
+                            child: MoviPrimaryButton(
+                              label: AppLocalizations.of(
+                                context,
+                              )!.actionConnect,
                               onPressed: state.isLoading ? null : _submit,
                               loading: state.isLoading,
                             ),

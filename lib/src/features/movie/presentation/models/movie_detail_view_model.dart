@@ -42,7 +42,7 @@ class MovieDetailViewModel {
     // Parse locale from language code
     final locale = _parseLocale(language);
     final localizations = lookupAppLocalizations(locale);
-    
+
     final dur = detail.duration;
     final h = dur.inHours;
     final mn = dur.inMinutes % 60;

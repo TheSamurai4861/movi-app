@@ -5,11 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
-enum PlaceholderType {
-  person,
-  movie,
-  series,
-}
+enum PlaceholderType { person, movie, series }
 
 /// Placeholder card with accent color background and centered logo.
 class MoviPlaceholderCard extends ConsumerWidget {
@@ -48,7 +44,7 @@ class MoviPlaceholderCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
-    
+
     Widget container = Container(
       width: width,
       height: height,
@@ -62,22 +58,21 @@ class MoviPlaceholderCard extends ConsumerWidget {
           builder: (context, constraints) {
             final effectiveWidth = width ?? constraints.maxWidth;
             final effectiveHeight = height ?? constraints.maxHeight;
-            final iconSize = (effectiveWidth < effectiveHeight 
-                ? effectiveWidth 
-                : effectiveHeight) * 0.4;
-            
+            final iconSize =
+                (effectiveWidth < effectiveHeight
+                    ? effectiveWidth
+                    : effectiveHeight) *
+                0.4;
+
             if (_isSvg()) {
               return SvgPicture.asset(
                 _getIconAsset(),
                 width: iconSize,
                 height: iconSize,
-                colorFilter: ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ),
+                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
               );
             }
-            
+
             return Image.asset(
               _getIconAsset(),
               width: iconSize,
@@ -97,4 +92,3 @@ class MoviPlaceholderCard extends ConsumerWidget {
     return container;
   }
 }
-

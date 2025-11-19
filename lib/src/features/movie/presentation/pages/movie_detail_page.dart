@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +18,8 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
-import 'package:movi/src/features/home/presentation/providers/home_providers.dart' as hp;
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
@@ -45,12 +48,40 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   String overviewText = '';
   List<MoviPerson> cast = const [];
   List<MoviMedia> recommendations = const [];
+  Timer? _autoRefreshTimer;
+  int _retryCount = 0;
+  static const int _maxRetries = 3;
+  static const Duration _loadingTimeout = Duration(seconds: 15);
 
   @override
   void initState() {
     super.initState();
     _isTransitioningFromLoading = true;
     _primeFromArgs();
+    _startAutoRefreshTimer();
+  }
+
+  @override
+  void dispose() {
+    _autoRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startAutoRefreshTimer() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer(_loadingTimeout, () {
+      if (mounted && _retryCount < _maxRetries) {
+        final vmAsync = ref.read(
+          movieDetailControllerProvider(widget.media!.id),
+        );
+        // Si toujours en chargement après le timeout, relancer
+        if (vmAsync.isLoading) {
+          _retryCount++;
+          ref.invalidate(movieDetailControllerProvider(widget.media!.id));
+          _startAutoRefreshTimer();
+        }
+      }
+    });
   }
 
   void _primeFromArgs() {
@@ -76,6 +107,33 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       );
     }
     final vmAsync = ref.watch(movieDetailControllerProvider(widget.media!.id));
+
+    // Détecter les erreurs et relancer automatiquement
+    vmAsync.whenOrNull(
+      error: (e, st) {
+        if (mounted && _retryCount < _maxRetries) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _retryCount++;
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  ref.invalidate(
+                    movieDetailControllerProvider(widget.media!.id),
+                  );
+                  _startAutoRefreshTimer();
+                }
+              });
+            }
+          });
+        }
+      },
+      data: (_) {
+        // Le chargement a réussi, annuler le timer et réinitialiser
+        _autoRefreshTimer?.cancel();
+        _retryCount = 0;
+      },
+    );
+
     return vmAsync.when(
       loading: () => Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -152,180 +210,237 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             child: Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          height: heroHeight,
-                          width: double.infinity,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _buildHeroImage(poster, backdrop),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  height: 100,
-                                  decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Color(0xFF141414),
-                                        Color(0x00000000),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                left: 20,
-                                right: 20,
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => context.pop(),
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 35,
-                                            height: 35,
-                                            child: Image.asset(
-                                              AppAssets.iconBack,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            AppLocalizations.of(
-                                              context,
-                                            )!.actionBack,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
-                                          ),
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      if (widget.media != null) {
+                        ref.invalidate(
+                          movieDetailControllerProvider(widget.media!.id),
+                        );
+                      }
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: heroHeight,
+                            width: double.infinity,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _buildHeroImage(poster, backdrop),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: 100,
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0xFF141414),
+                                          Color(0x00000000),
                                         ],
                                       ),
                                     ),
-                                    SizedBox(
-                                      width: 25,
-                                      height: 35,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: _showMoreMenu,
-                                        child: Image.asset(AppAssets.iconMore),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  height: overlayHeight,
-                                  decoration: const BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Color(0x00000000),
-                                        Color(0xFF141414),
-                                      ],
+                                Positioned(
+                                  top: 8,
+                                  left: 20,
+                                  right: 20,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: () => context.pop(),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 35,
+                                              height: 35,
+                                              child: Image.asset(
+                                                AppAssets.iconBack,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.actionBack,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 25,
+                                        height: 35,
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: _showMoreMenu,
+                                          child: Image.asset(
+                                            AppAssets.iconMore,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: overlayHeight,
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0x00000000),
+                                          Color(0xFF141414),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            end: 20,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 16),
-                              Text(
-                                mediaTitle,
-                                style: titleStyle,
-                                textAlign: TextAlign.left,
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                height: 28,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    MoviPill(
-                                      yearText,
-                                      large: true,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      color: const Color(0xFF292929),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    MoviPill(
-                                      durationText,
-                                      large: true,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      color: const Color(0xFF292929),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    MoviPill(
-                                      ratingText,
-                                      large: true,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      color: const Color(0xFF292929),
-                                      trailingIcon: Image.asset(
-                                        AppAssets.iconStarFilled,
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                    ),
-                                  ],
+                          Padding(
+                            padding: const EdgeInsetsDirectional.only(
+                              start: 20,
+                              end: 20,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 16),
+                                Text(
+                                  mediaTitle,
+                                  style: titleStyle,
+                                  textAlign: TextAlign.left,
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                height: 55,
-                                child: Row(
-                                  children: [
-                                    Consumer(
-                                      builder: (context, ref, _) {
-                                        if (widget.media == null) {
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: 28,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      MoviPill(
+                                        yearText,
+                                        large: true,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        color: const Color(0xFF292929),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      MoviPill(
+                                        durationText,
+                                        large: true,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        color: const Color(0xFF292929),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      MoviPill(
+                                        ratingText,
+                                        large: true,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        color: const Color(0xFF292929),
+                                        trailingIcon: Image.asset(
+                                          AppAssets.iconStarFilled,
+                                          width: 18,
+                                          height: 18,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: 55,
+                                  child: Row(
+                                    children: [
+                                      Consumer(
+                                        builder: (context, ref, _) {
+                                          if (widget.media == null) {
+                                            return Expanded(
+                                              child: MoviPrimaryButton(
+                                                label: AppLocalizations.of(
+                                                  context,
+                                                )!.homeWatchNow,
+                                                assetIcon: AppAssets.iconPlay,
+                                                buttonStyle: FilledButton.styleFrom(
+                                                  backgroundColor: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          32,
+                                                        ),
+                                                  ),
+                                                ),
+                                                onPressed: () => _playMovie(
+                                                  context,
+                                                  widget.media!.id,
+                                                  mediaTitle,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          final historyAsync = ref.watch(
+                                            _movieHistoryProvider(
+                                              widget.media!.id,
+                                            ),
+                                          );
                                           return Expanded(
                                             child: MoviPrimaryButton(
-                                              label: AppLocalizations.of(
-                                                context,
-                                              )!.homeWatchNow,
+                                              label: historyAsync.when(
+                                                data: (entry) => entry != null
+                                                    ? AppLocalizations.of(
+                                                        context,
+                                                      )!.homeContinueWatching
+                                                    : AppLocalizations.of(
+                                                        context,
+                                                      )!.homeWatchNow,
+                                                loading: () =>
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.homeWatchNow,
+                                                error: (_, __) =>
+                                                    AppLocalizations.of(
+                                                      context,
+                                                    )!.homeWatchNow,
+                                              ),
                                               assetIcon: AppAssets.iconPlay,
                                               buttonStyle: FilledButton.styleFrom(
-                                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                                backgroundColor: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
                                                 shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(
-                                                    32,
-                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(32),
                                                 ),
                                               ),
                                               onPressed: () => _playMovie(
@@ -335,342 +450,334 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                               ),
                                             ),
                                           );
-                                        }
-                                        final historyAsync = ref.watch(
-                                          _movieHistoryProvider(widget.media!.id),
-                                        );
-                                        return Expanded(
-                                          child: MoviPrimaryButton(
-                                            label: historyAsync.when(
-                                              data: (entry) => entry != null ? AppLocalizations.of(context)!.homeContinueWatching : AppLocalizations.of(context)!.homeWatchNow,
-                                              loading: () => AppLocalizations.of(context)!.homeWatchNow,
-                                              error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
-                                            ),
-                                            assetIcon: AppAssets.iconPlay,
-                                            buttonStyle: FilledButton.styleFrom(
-                                              backgroundColor: Theme.of(context).colorScheme.primary,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(
-                                                  32,
-                                                ),
-                                              ),
-                                            ),
-                                            onPressed: () => _playMovie(
-                                              context,
-                                              widget.media!.id,
-                                              mediaTitle,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 16),
-                                    SizedBox(
-                                      width: 40,
-                                      height: 40,
-                                      child: Consumer(
-                                        builder: (context, ref, _) {
-                                          final movieId = widget.media!.id;
-                                          final isFavoriteAsync = ref.watch(
-                                            movieIsFavoriteProvider(movieId),
-                                          );
-                                          return isFavoriteAsync.when(
-                                            data: (isFavorite) => MoviFavoriteButton(
-                                              isFavorite: isFavorite,
-                                              onPressed: () async {
-                                                await ref.read(
-                                                  movieToggleFavoriteProvider.notifier,
-                                                ).toggle(movieId);
-                                              },
-                                            ),
-                                            loading: () => MoviFavoriteButton(
-                                              isFavorite: false,
-                                              onPressed: () {},
-                                            ),
-                                            error: (_, __) => MoviFavoriteButton(
-                                              isFavorite: false,
-                                              onPressed: () {},
-                                            ),
-                                          );
                                         },
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final screenWidth = MediaQuery.of(
-                                    context,
-                                  ).size.width;
-                                  final synopsisWidth = screenWidth - 40;
-                                  return SizedBox(
-                                    width: synopsisWidth,
-                                    child: Column(
-                                      children: [
-                                        AnimatedSize(
-                                          duration: const Duration(
-                                            milliseconds: 300,
-                                          ),
-                                          curve: Curves.easeInOut,
-                                          alignment: Alignment.topLeft,
-                                          child: ConstrainedBox(
-                                            constraints: _overviewExpanded
-                                                ? const BoxConstraints()
-                                                : const BoxConstraints(
-                                                    maxHeight: 90,
+                                      const SizedBox(width: 16),
+                                      SizedBox(
+                                        width: 40,
+                                        height: 40,
+                                        child: Consumer(
+                                          builder: (context, ref, _) {
+                                            final movieId = widget.media!.id;
+                                            final isFavoriteAsync = ref.watch(
+                                              movieIsFavoriteProvider(movieId),
+                                            );
+                                            return isFavoriteAsync.when(
+                                              data: (isFavorite) =>
+                                                  MoviFavoriteButton(
+                                                    isFavorite: isFavorite,
+                                                    onPressed: () async {
+                                                      await ref
+                                                          .read(
+                                                            movieToggleFavoriteProvider
+                                                                .notifier,
+                                                          )
+                                                          .toggle(movieId);
+                                                    },
                                                   ),
-                                            child: Stack(
-                                              children: [
-                                                Text(
-                                                  overviewText,
-                                                  style: Theme.of(
-                                                    context,
-                                                  ).textTheme.bodyLarge,
-                                                  softWrap: true,
-                                                ),
-                                                if (!_overviewExpanded)
-                                                  Positioned(
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    child: IgnorePointer(
-                                                      ignoring: true,
-                                                      child: Container(
-                                                        height: 41,
-                                                        decoration:
-                                                            const BoxDecoration(
-                                                              gradient: LinearGradient(
-                                                                begin: Alignment
-                                                                    .topCenter,
-                                                                end: Alignment
-                                                                    .bottomCenter,
-                                                                colors: [
-                                                                  Color(
-                                                                    0x00000000,
-                                                                  ),
-                                                                  Color(
-                                                                    0xFF141414,
-                                                                  ),
-                                                                ],
-                                                              ),
+                                              loading: () => MoviFavoriteButton(
+                                                isFavorite: false,
+                                                onPressed: () {},
+                                              ),
+                                              error: (_, __) =>
+                                                  MoviFavoriteButton(
+                                                    isFavorite: false,
+                                                    onPressed: () {},
+                                                  ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final screenWidth = MediaQuery.of(
+                                      context,
+                                    ).size.width;
+                                    final synopsisWidth = screenWidth - 40;
+                                    return SizedBox(
+                                      width: synopsisWidth,
+                                      child: Column(
+                                        children: [
+                                          AnimatedSize(
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            curve: Curves.easeInOut,
+                                            alignment: Alignment.topLeft,
+                                            child: ConstrainedBox(
+                                              constraints: _overviewExpanded
+                                                  ? const BoxConstraints()
+                                                  : const BoxConstraints(
+                                                      maxHeight: 90,
+                                                    ),
+                                              child: Stack(
+                                                children: [
+                                                  Text(
+                                                    overviewText,
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.bodyLarge,
+                                                    softWrap: true,
+                                                  ),
+                                                  if (!_overviewExpanded)
+                                                    Positioned(
+                                                      left: 0,
+                                                      right: 0,
+                                                      bottom: 0,
+                                                      child: IgnorePointer(
+                                                        ignoring: true,
+                                                        child: Container(
+                                                          height: 41,
+                                                          decoration: const BoxDecoration(
+                                                            gradient: LinearGradient(
+                                                              begin: Alignment
+                                                                  .topCenter,
+                                                              end: Alignment
+                                                                  .bottomCenter,
+                                                              colors: [
+                                                                Color(
+                                                                  0x00000000,
+                                                                ),
+                                                                Color(
+                                                                  0xFF141414,
+                                                                ),
+                                                              ],
                                                             ),
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          SizedBox(
+                                            width: 102,
+                                            height: 25,
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.center,
+                                              children: [
+                                                GestureDetector(
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _overviewExpanded =
+                                                          !_overviewExpanded;
+                                                    });
+                                                  },
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        _overviewExpanded
+                                                            ? AppLocalizations.of(
+                                                                context,
+                                                              )!.actionCollapse
+                                                            : AppLocalizations.of(
+                                                                context,
+                                                              )!.actionExpand,
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          color: Colors.white70,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Icon(
+                                                        _overviewExpanded
+                                                            ? Icons
+                                                                  .keyboard_arrow_up
+                                                            : Icons
+                                                                  .keyboard_arrow_down,
+                                                        color: Colors.white70,
+                                                        size: 20,
+                                                      ),
+                                                    ],
                                                   ),
+                                                ),
                                               ],
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        SizedBox(
-                                          width: 102,
-                                          height: 25,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              GestureDetector(
-                                                behavior:
-                                                    HitTestBehavior.opaque,
-                                                onTap: () {
-                                                  setState(() {
-                                                    _overviewExpanded =
-                                                        !_overviewExpanded;
-                                                  });
-                                                },
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Text(
-                                                      _overviewExpanded
-                                                          ? AppLocalizations.of(
-                                                              context,
-                                                            )!.actionCollapse
-                                                          : AppLocalizations.of(
-                                                              context,
-                                                            )!.actionExpand,
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.white70,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Icon(
-                                                      _overviewExpanded
-                                                          ? Icons
-                                                                .keyboard_arrow_up
-                                                          : Icons
-                                                                .keyboard_arrow_down,
-                                                      color: Colors.white70,
-                                                      size: 20,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsetsDirectional.only(
-                                start: 20,
-                                end: 20,
-                              ),
-                              child: Text(
-                                AppLocalizations.of(context)!.castTitle,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              height: 286,
-                              child: ListView.separated(
+                          ),
+                          const SizedBox(height: 32),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
                                 padding: const EdgeInsetsDirectional.only(
                                   start: 20,
-                                  end: 12,
+                                  end: 20,
                                 ),
-                                scrollDirection: Axis.horizontal,
-                                itemCount: cast.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 16),
-                                itemBuilder: (context, index) {
-                                  final p = cast[index];
-                                  return MoviPersonCard(
-                                    person: p,
-                                    onTap: (person) {
-                                      // Convertir MoviPerson en PersonSummary pour la navigation
-                                      final personSummary = PersonSummary(
-                                        id: PersonId(person.id),
-                                        name: person.name,
-                                        role: person.role,
-                                        photo: person.poster,
-                                      );
-                                      context.push(
-                                        AppRouteNames.person,
-                                        extra: personSummary,
-                                      );
-                                    },
-                                  );
-                                },
+                                child: Text(
+                                  AppLocalizations.of(context)!.castTitle,
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            // Section saga (si le film fait partie d'une saga)
-                            if (sagaLink != null)
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  final sagaMoviesAsync = ref.watch(sagaMoviesProvider(sagaLink));
-                                  return sagaMoviesAsync.when(
-                                    data: (sagaMovies) {
-                                      if (sagaMovies.isEmpty) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          MoviItemsList(
-                                            title: '${AppLocalizations.of(context)!.searchSagasTitle} ${sagaLink.title.display}',
-                                            estimatedItemWidth: 150,
-                                            estimatedItemHeight: 258,
-                                            titlePadding: 20,
-                                            horizontalPadding:
-                                                const EdgeInsetsDirectional.only(
-                                                  start: 20,
-                                                  end: 0,
-                                                ),
-                                            action: Padding(
-                                              padding: const EdgeInsetsDirectional.only(end: 20),
-                                              child: GestureDetector(
-                                                behavior: HitTestBehavior.opaque,
-                                                onTap: () {
-                                                  context.push(
-                                                    AppRouteNames.sagaDetail,
-                                                    extra: sagaLink.id.value,
-                                                  );
-                                                },
-                                                child: Text(
-                                                  'Voir la page',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Theme.of(context).colorScheme.primary,
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 286,
+                                child: ListView.separated(
+                                  padding: const EdgeInsetsDirectional.only(
+                                    start: 20,
+                                    end: 12,
+                                  ),
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: cast.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 16),
+                                  itemBuilder: (context, index) {
+                                    final p = cast[index];
+                                    return MoviPersonCard(
+                                      person: p,
+                                      onTap: (person) {
+                                        // Convertir MoviPerson en PersonSummary pour la navigation
+                                        final personSummary = PersonSummary(
+                                          id: PersonId(person.id),
+                                          name: person.name,
+                                          role: person.role,
+                                          photo: person.poster,
+                                        );
+                                        context.push(
+                                          AppRouteNames.person,
+                                          extra: personSummary,
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              // Section saga (si le film fait partie d'une saga)
+                              if (sagaLink != null)
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    final sagaMoviesAsync = ref.watch(
+                                      sagaMoviesProvider(sagaLink),
+                                    );
+                                    return sagaMoviesAsync.when(
+                                      data: (sagaMovies) {
+                                        if (sagaMovies.isEmpty) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            MoviItemsList(
+                                              title:
+                                                  '${AppLocalizations.of(context)!.searchSagasTitle} ${sagaLink.title.display}',
+                                              estimatedItemWidth: 150,
+                                              estimatedItemHeight: 258,
+                                              titlePadding: 20,
+                                              horizontalPadding:
+                                                  const EdgeInsetsDirectional.only(
+                                                    start: 20,
+                                                    end: 0,
+                                                  ),
+                                              action: Padding(
+                                                padding:
+                                                    const EdgeInsetsDirectional.only(
+                                                      end: 20,
+                                                    ),
+                                                child: GestureDetector(
+                                                  behavior:
+                                                      HitTestBehavior.opaque,
+                                                  onTap: () {
+                                                    context.push(
+                                                      AppRouteNames.sagaDetail,
+                                                      extra: sagaLink.id.value,
+                                                    );
+                                                  },
+                                                  child: Text(
+                                                    'Voir la page',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                            items: sagaMovies
-                                                .map(
-                                                  (m) => MoviMediaCard(
-                                                    media: m,
-                                                    heroTag: 'saga_${m.id}',
-                                                    highlightBorder: m.id == widget.media?.id,
-                                                    onTap: (mm) => context.push(
-                                                      AppRouteNames.movie,
-                                                      extra: mm,
+                                              items: sagaMovies
+                                                  .map(
+                                                    (m) => MoviMediaCard(
+                                                      media: m,
+                                                      heroTag: 'saga_${m.id}',
+                                                      highlightBorder:
+                                                          m.id ==
+                                                          widget.media?.id,
+                                                      onTap: (mm) =>
+                                                          context.push(
+                                                            AppRouteNames.movie,
+                                                            extra: mm,
+                                                          ),
                                                     ),
-                                                  ),
-                                                )
-                                                .toList(growable: false),
-                                          ),
-                                          const SizedBox(height: 24),
-                                        ],
-                                      );
-                                    },
-                                    loading: () => const SizedBox.shrink(),
-                                    error: (_, __) => const SizedBox.shrink(),
-                                  );
-                                },
-                              ),
-                            // Section recommandations
-                            if (recommendations.isNotEmpty)
-                              MoviItemsList(
-                                title: AppLocalizations.of(
-                                  context,
-                                )!.recommendationsTitle,
-                                estimatedItemWidth: 150,
-                                estimatedItemHeight: 258,
-                                titlePadding: 20,
-                                horizontalPadding:
-                                    const EdgeInsetsDirectional.only(
-                                      start: 20,
-                                      end: 0,
-                                    ),
-                                items: recommendations
-                                    .map(
-                                      (m) => MoviMediaCard(
-                                        media: m,
-                                        heroTag: 'reco_${m.id}',
-                                        onTap: (mm) => context.push(
-                                          AppRouteNames.movie,
-                                          extra: mm,
-                                        ),
+                                                  )
+                                                  .toList(growable: false),
+                                            ),
+                                            const SizedBox(height: 24),
+                                          ],
+                                        );
+                                      },
+                                      loading: () => const SizedBox.shrink(),
+                                      error: (_, __) => const SizedBox.shrink(),
+                                    );
+                                  },
+                                ),
+                              // Section recommandations
+                              if (recommendations.isNotEmpty)
+                                MoviItemsList(
+                                  title: AppLocalizations.of(
+                                    context,
+                                  )!.recommendationsTitle,
+                                  estimatedItemWidth: 150,
+                                  estimatedItemHeight: 258,
+                                  titlePadding: 20,
+                                  horizontalPadding:
+                                      const EdgeInsetsDirectional.only(
+                                        start: 20,
+                                        end: 0,
                                       ),
-                                    )
-                                    .toList(growable: false),
-                              ),
-                            const SizedBox(height: 70),
-                          ],
-                        ),
-                      ],
+                                  items: recommendations
+                                      .map(
+                                        (m) => MoviMediaCard(
+                                          media: m,
+                                          heroTag: 'reco_${m.id}',
+                                          onTap: (mm) => context.push(
+                                            AppRouteNames.movie,
+                                            extra: mm,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(growable: false),
+                                ),
+                              const SizedBox(height: 70),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -713,7 +820,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     try {
       final playlistsAsync = ref.read(libraryPlaylistsProvider);
       final playlists = playlistsAsync.value;
-      
+
       if (playlists == null || playlists.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -722,38 +829,38 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         }
         return;
       }
-    
+
       // Récupérer les données du film depuis le provider
       final vmAsync = ref.read(movieDetailControllerProvider(movieId));
       final vm = vmAsync.value;
-      
+
       // Utiliser les données du widget si le view model n'est pas disponible
       final title = vm?.title ?? mediaTitle;
       final yearTextValue = vm?.yearText ?? yearText;
       final poster = widget.media?.poster ?? vm?.poster;
-      
+
       // Filtrer les playlists selon le type de contenu
       final playlistRepository = ref.read(slProvider)<PlaylistRepository>();
       final availablePlaylists = <LibraryPlaylistItem>[];
-      
+
       for (final playlist in playlists) {
         // Exclure les sagas et acteurs
-        if (playlist.id.startsWith('saga_') || 
+        if (playlist.id.startsWith('saga_') ||
             playlist.type == LibraryPlaylistType.actor) {
           continue;
         }
-        
+
         // Playlists favorites : films uniquement pour les films
         if (playlist.type == LibraryPlaylistType.favoriteMovies) {
           availablePlaylists.add(playlist);
           continue;
         }
-        
+
         // Playlists favorites séries : exclure pour les films
         if (playlist.type == LibraryPlaylistType.favoriteSeries) {
           continue;
         }
-        
+
         // Playlists utilisateur : vérifier le contenu
         if (playlist.type == LibraryPlaylistType.userPlaylist &&
             playlist.playlistId != null) {
@@ -761,18 +868,18 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             final playlistDetail = await playlistRepository.getPlaylist(
               PlaylistId(playlist.playlistId!),
             );
-            
+
             // Si la playlist est vide, on peut ajouter
             if (playlistDetail.items.isEmpty) {
               availablePlaylists.add(playlist);
               continue;
             }
-            
+
             // Vérifier si la playlist contient uniquement des films
             final hasOnlyMovies = playlistDetail.items.every(
               (item) => item.reference.type == ContentType.movie,
             );
-            
+
             // Si la playlist contient uniquement des films, on peut ajouter le film
             if (hasOnlyMovies) {
               availablePlaylists.add(playlist);
@@ -784,15 +891,17 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           }
         }
       }
-      
+
       if (!mounted || !context.mounted) return;
       if (availablePlaylists.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aucune playlist disponible pour les films')),
+          const SnackBar(
+            content: Text('Aucune playlist disponible pour les films'),
+          ),
         );
         return;
       }
-      
+
       showCupertinoModalPopup<void>(
         context: context,
         builder: (ctx) => CupertinoActionSheet(
@@ -801,30 +910,33 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             return CupertinoActionSheetAction(
               onPressed: () async {
                 Navigator.of(ctx).pop();
-                
+
                 try {
                   if (playlist.type == LibraryPlaylistType.favoriteMovies) {
                     // Toggle favori
-                    await ref.read(movieToggleFavoriteProvider.notifier).toggle(movieId);
+                    await ref
+                        .read(movieToggleFavoriteProvider.notifier)
+                        .toggle(movieId);
                     ref.invalidate(movieIsFavoriteProvider(movieId));
-                    
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Ajouté à "${playlist.title}"'),
-                        ),
+                        SnackBar(content: Text('Ajouté à "${playlist.title}"')),
                       );
                     }
-                  } else if (playlist.type == LibraryPlaylistType.userPlaylist &&
+                  } else if (playlist.type ==
+                          LibraryPlaylistType.userPlaylist &&
                       playlist.playlistId != null) {
                     // Ajouter à la playlist utilisateur
                     final addPlaylistItem = AddPlaylistItem(
                       ref.read(slProvider)<PlaylistRepository>(),
                     );
-                    
+
                     // Utiliser les données disponibles
-                    final year = yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
-                    
+                    final year = yearTextValue != '—'
+                        ? int.tryParse(yearTextValue)
+                        : null;
+
                     await addPlaylistItem.call(
                       playlistId: PlaylistId(playlist.playlistId!),
                       item: PlaylistItem(
@@ -838,27 +950,25 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                         addedAt: DateTime.now(),
                       ),
                     );
-                    
+
                     // Invalider tous les providers nécessaires
                     ref.invalidate(playlistItemsProvider(playlist.playlistId!));
-                    ref.invalidate(playlistContentReferencesProvider(playlist.playlistId!));
+                    ref.invalidate(
+                      playlistContentReferencesProvider(playlist.playlistId!),
+                    );
                     ref.invalidate(libraryPlaylistsProvider);
-                    
+
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Ajouté à "${playlist.title}"'),
-                        ),
+                        SnackBar(content: Text('Ajouté à "${playlist.title}"')),
                       );
                     }
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Erreur: $e'),
-                      ),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
                   }
                 }
               },
@@ -884,7 +994,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   void _showMoreMenu() {
     if (widget.media == null) return;
-    
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) {
@@ -894,13 +1004,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             final isAvailableAsync = ref.watch(
               _movieAvailabilityProvider(movieId),
             );
-            final isSeenAsync = ref.watch(
-              _movieSeenProvider(movieId),
-            );
-            
+            final isSeenAsync = ref.watch(_movieSeenProvider(movieId));
+
             final isAvailable = isAvailableAsync.value ?? false;
             final isSeen = isSeenAsync.value ?? false;
-            
+
             final actions = <Widget>[
               CupertinoActionSheetAction(
                 onPressed: () {
@@ -917,7 +1025,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                 child: Text(AppLocalizations.of(context)!.actionAddToList),
               ),
             ];
-            
+
             // Ajouter l'option vu/non vu seulement si le film est disponible
             if (isAvailable) {
               if (isSeen) {
@@ -942,7 +1050,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                 );
               }
             }
-            
+
             actions.add(
               CupertinoActionSheetAction(
                 onPressed: () {
@@ -951,7 +1059,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                 child: Text(AppLocalizations.of(context)!.actionReportProblem),
               ),
             );
-            
+
             return CupertinoActionSheet(
               title: Text(mediaTitle),
               actions: actions,
@@ -965,17 +1073,17 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       },
     );
   }
-  
+
   Future<void> _markAsSeen(String movieId) async {
     try {
       final locator = ref.read(slProvider);
       final historyRepo = locator<HistoryLocalRepository>();
       final iptvLocal = locator<IptvLocalRepository>();
-      
+
       // Trouver le film dans les playlists pour obtenir la durée
       XtreamPlaylistItem? xtreamItem;
       final accounts = await iptvLocal.getAccounts();
-      
+
       for (final account in accounts) {
         final playlists = await iptvLocal.getPlaylists(account.id);
         for (final playlist in playlists) {
@@ -1005,7 +1113,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         }
         if (xtreamItem != null) break;
       }
-      
+
       // Marquer comme vu avec une durée par défaut (2 heures)
       final duration = const Duration(hours: 2);
       await historyRepo.upsertPlay(
@@ -1016,48 +1124,50 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         position: duration, // Position à 100% pour marquer comme vu
         duration: duration,
       );
-      
+
       // Invalider les providers pour mettre à jour l'UI
-      ref.invalidate(hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)));
+      ref.invalidate(
+        hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
+      );
       ref.invalidate(_movieHistoryProvider(movieId));
       ref.invalidate(_movieSeenProvider(movieId));
       ref.invalidate(libraryPlaylistsProvider);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.actionMarkSeen),
-          ),
+          SnackBar(content: Text(AppLocalizations.of(context)!.actionMarkSeen)),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     }
   }
-  
+
   Future<void> _markAsUnseen(String movieId) async {
     try {
       final locator = ref.read(slProvider);
       final historyRepo = locator<HistoryLocalRepository>();
       final continueWatchingRepo = locator<ContinueWatchingLocalRepository>();
-      
+
       // Retirer de l'historique
       await historyRepo.remove(movieId, ContentType.movie);
-      
+
       // Retirer de continue watching
       await continueWatchingRepo.remove(movieId, ContentType.movie);
-      
+
       // Invalider les providers pour mettre à jour l'UI
-      ref.invalidate(hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)));
+      ref.invalidate(
+        hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
+      );
       ref.invalidate(_movieHistoryProvider(movieId));
       ref.invalidate(_movieSeenProvider(movieId));
       ref.invalidate(libraryPlaylistsProvider);
       ref.invalidate(hp.homeControllerProvider);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1067,18 +1177,21 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
       }
     }
   }
-  
-  final _movieAvailabilityProvider = FutureProvider.family<bool, String>((ref, movieId) async {
+
+  final _movieAvailabilityProvider = FutureProvider.family<bool, String>((
+    ref,
+    movieId,
+  ) async {
     final locator = ref.read(slProvider);
     final iptvLocal = locator<IptvLocalRepository>();
     final accounts = await iptvLocal.getAccounts();
-    
+
     for (final account in accounts) {
       final playlists = await iptvLocal.getPlaylists(account.id);
       for (final playlist in playlists) {
@@ -1088,7 +1201,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           if (streamId != null) {
             try {
               playlist.items.firstWhere(
-                (item) => item.streamId == streamId && item.type == XtreamPlaylistItemType.movie,
+                (item) =>
+                    item.streamId == streamId &&
+                    item.type == XtreamPlaylistItemType.movie,
               );
               return true;
             } catch (_) {}
@@ -1098,7 +1213,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           if (tmdbId != null) {
             try {
               playlist.items.firstWhere(
-                (item) => item.tmdbId == tmdbId && item.type == XtreamPlaylistItemType.movie,
+                (item) =>
+                    item.tmdbId == tmdbId &&
+                    item.type == XtreamPlaylistItemType.movie,
               );
               return true;
             } catch (_) {}
@@ -1108,8 +1225,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     }
     return false;
   });
-  
-  final _movieSeenProvider = FutureProvider.family<bool, String>((ref, movieId) async {
+
+  final _movieSeenProvider = FutureProvider.family<bool, String>((
+    ref,
+    movieId,
+  ) async {
     try {
       final locator = ref.read(slProvider);
       final historyRepo = locator<HistoryLocalRepository>();
@@ -1121,16 +1241,20 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       if (entry.duration == null || entry.duration!.inSeconds <= 0) {
         return false;
       }
-      final progress = (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
+      final progress =
+          (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
       return progress >= 0.9;
     } catch (_) {
       return false;
     }
   });
-  
+
   /// Provider pour obtenir l'entrée d'historique d'un film, peu importe la progression
   /// Retourne l'entrée si elle existe, même si le film est marqué comme vu (progression >= 90%)
-  final _movieHistoryProvider = FutureProvider.family<HistoryEntry?, String>((ref, movieId) async {
+  final _movieHistoryProvider = FutureProvider.family<HistoryEntry?, String>((
+    ref,
+    movieId,
+  ) async {
     try {
       final locator = ref.read(slProvider);
       final historyRepo = locator<HistoryLocalRepository>();
@@ -1276,7 +1400,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       // Récupérer le poster depuis widget.media ou le view model
       Uri? posterUri = widget.media?.poster;
       if (posterUri == null && widget.media != null) {
-        final vmAsync = ref.read(movieDetailControllerProvider(widget.media!.id));
+        final vmAsync = ref.read(
+          movieDetailControllerProvider(widget.media!.id),
+        );
         vmAsync.whenData((vm) {
           posterUri = vm.poster;
         });
@@ -1286,7 +1412,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       Duration? resumePosition;
       try {
         final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
-        final historyEntry = await historyRepo.getEntry(movieId, ContentType.movie);
+        final historyEntry = await historyRepo.getEntry(
+          movieId,
+          ContentType.movie,
+        );
         resumePosition = historyEntry?.lastPosition;
       } catch (e) {
         // Ignorer les erreurs de récupération de l'historique
@@ -1310,7 +1439,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       final logger = ref.read(slProvider)<AppLogger>();
       logger.error('Erreur lors de la lecture du film: $e', e, st);
       if (!mounted || !context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 }

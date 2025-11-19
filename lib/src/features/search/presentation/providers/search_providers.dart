@@ -44,91 +44,99 @@ final searchResultsControllerProvider =
     >(SearchPagedController.new);
 
 /// Provider pour vérifier la disponibilité des films d'une saga dans la playlist
-final sagaAvailabilityProvider = FutureProvider.family<Map<int, bool>, SagaSummary>((ref, saga) async {
-  final sagaRepo = ref.watch(slProvider)<SagaRepository>();
-  final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
-  
-  try {
-    final sagaDetail = await sagaRepo.getSaga(saga.id);
-    final availableIds = await iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.movie);
-    
-    final availabilityMap = <int, bool>{};
-    for (final entry in sagaDetail.timeline) {
-      if (entry.reference.type == ContentType.movie) {
-        final movieId = int.tryParse(entry.reference.id);
-        if (movieId != null) {
-          availabilityMap[movieId] = availableIds.contains(movieId);
+final sagaAvailabilityProvider =
+    FutureProvider.family<Map<int, bool>, SagaSummary>((ref, saga) async {
+      final sagaRepo = ref.watch(slProvider)<SagaRepository>();
+      final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
+
+      try {
+        final sagaDetail = await sagaRepo.getSaga(saga.id);
+        final availableIds = await iptvLocal.getAvailableTmdbIds(
+          type: XtreamPlaylistItemType.movie,
+        );
+
+        final availabilityMap = <int, bool>{};
+        for (final entry in sagaDetail.timeline) {
+          if (entry.reference.type == ContentType.movie) {
+            final movieId = int.tryParse(entry.reference.id);
+            if (movieId != null) {
+              availabilityMap[movieId] = availableIds.contains(movieId);
+            }
+          }
         }
+
+        return availabilityMap;
+      } catch (_) {
+        return <int, bool>{};
       }
-    }
-    
-    return availabilityMap;
-  } catch (_) {
-    return <int, bool>{};
-  }
-});
+    });
 
 /// Provider pour filtrer les sagas qui ont au moins 1 film disponible dans la playlist
-final filteredSagasProvider = FutureProvider.family<List<SagaSummary>, List<SagaSummary>>((ref, sagas) async {
-  if (sagas.isEmpty) return const [];
-  
-  final filtered = <SagaSummary>[];
-  for (final saga in sagas) {
-    final availability = await ref.watch(sagaAvailabilityProvider(saga).future);
-    if (availability.values.any((available) => available)) {
-      filtered.add(saga);
-    }
-  }
-  
-  return filtered;
-});
+final filteredSagasProvider =
+    FutureProvider.family<List<SagaSummary>, List<SagaSummary>>((
+      ref,
+      sagas,
+    ) async {
+      if (sagas.isEmpty) return const [];
+
+      final filtered = <SagaSummary>[];
+      for (final saga in sagas) {
+        final availability = await ref.watch(
+          sagaAvailabilityProvider(saga).future,
+        );
+        if (availability.values.any((available) => available)) {
+          filtered.add(saga);
+        }
+      }
+
+      return filtered;
+    });
 
 final watchProvidersRemoteDataSourceProvider =
     Provider<TmdbWatchProvidersRemoteDataSource>((ref) {
-  final locator = ref.watch(slProvider);
-  return locator<TmdbWatchProvidersRemoteDataSource>();
-});
+      final locator = ref.watch(slProvider);
+      return locator<TmdbWatchProvidersRemoteDataSource>();
+    });
 
 /// IDs des fournisseurs de streaming dans l'ordre souhaité
 const _providerOrder = [
-  8,    // Netflix
-  337,  // Disney+
-  119,  // Amazon Prime Video
-  350,  // Apple TV+
+  8, // Netflix
+  337, // Disney+
+  119, // Amazon Prime Video
+  350, // Apple TV+
   1899, // HBO Max
-  283,  // Crunchyroll
+  283, // Crunchyroll
 ];
 
 /// Set des fournisseurs connus pour le filtrage
 const _knownProviderIds = {
-  8,    // Netflix
-  337,  // Disney+
-  119,  // Amazon Prime Video
-  350,  // Apple TV+
+  8, // Netflix
+  337, // Disney+
+  119, // Amazon Prime Video
+  350, // Apple TV+
   1899, // HBO Max
-  283,  // Crunchyroll
+  283, // Crunchyroll
 };
 
 /// IDs de providers à exclure explicitement (variantes, channels, etc.)
 const _excludedProviderIds = {
-  2,    // Apple TV (sans le +)
-  531,  // Paramount+ (retiré de la liste)
-  582,  // Paramount+ Amazon Channel
+  2, // Apple TV (sans le +)
+  531, // Paramount+ (retiré de la liste)
+  582, // Paramount+ Amazon Channel
   2303, // Paramount Plus Premium
   2472, // HBO Max Amazon Channel
 };
 
 /// Provider pour récupérer la liste des watch providers disponibles.
 /// Filtre uniquement les providers connus et les trie dans l'ordre spécifié.
-final watchProvidersProvider =
-    FutureProvider<List<TmdbWatchProviderDto>>((ref) async {
+final watchProvidersProvider = FutureProvider<List<TmdbWatchProviderDto>>((
+  ref,
+) async {
   final dataSource = ref.watch(watchProvidersRemoteDataSourceProvider);
   final language = ref.watch(asp.currentLanguageCodeProvider);
-  
-  final providers = await dataSource.fetchWatchProviders(
-    language: language,
-  );
-  
+
+  final providers = await dataSource.fetchWatchProviders(language: language);
+
   // Filtrer uniquement les providers connus
   final knownProviders = providers.where((provider) {
     // Exclure explicitement les IDs dans la liste d'exclusion
@@ -145,7 +153,8 @@ final watchProvidersProvider =
       return false;
     }
     // Exclure Apple TV (sans le +) et autres variantes
-    if (nameLower == 'apple tv' || (nameLower.contains('apple tv') && !nameLower.contains('+'))) {
+    if (nameLower == 'apple tv' ||
+        (nameLower.contains('apple tv') && !nameLower.contains('+'))) {
       return false;
     }
     // Exclure tous les Paramount+
@@ -162,12 +171,12 @@ final watchProvidersProvider =
     }
     return false;
   }).toList();
-  
+
   // Trier selon l'ordre spécifié
   knownProviders.sort((a, b) {
     final indexA = _providerOrder.indexOf(a.providerId);
     final indexB = _providerOrder.indexOf(b.providerId);
-    
+
     // Si les deux sont dans l'ordre, utiliser leur position
     if (indexA != -1 && indexB != -1) {
       return indexA.compareTo(indexB);
@@ -179,73 +188,94 @@ final watchProvidersProvider =
     // Sinon, trier par nom pour les autres
     return a.providerName.compareTo(b.providerName);
   });
-  
+
   return knownProviders;
 });
 
-/// Modèle simple pour stocker le poster d'un média populaire
+/// Modèle simple pour stocker le poster et backdrop d'un média populaire
 class PopularMediaPoster {
-  const PopularMediaPoster({required this.posterUrl, this.isMovie = true});
+  const PopularMediaPoster({
+    required this.posterUrl,
+    this.backdropUrl,
+    this.isMovie = true,
+  });
 
   final String? posterUrl;
+  final String? backdropUrl;
   final bool isMovie;
 }
 
 /// Provider pour récupérer le média le plus populaire (premier résultat) pour un provider.
 /// Récupère d'abord les films, puis les séries si aucun film n'est trouvé.
-final providerPopularMediaProvider = FutureProvider.family<PopularMediaPoster?, int>((ref, providerId) async {
-  try {
-    final client = ref.watch(slProvider)<TmdbClient>();
-    final imageResolver = ref.watch(slProvider)<TmdbImageResolver>();
-    final language = ref.watch(asp.currentLanguageCodeProvider);
+final providerPopularMediaProvider =
+    FutureProvider.family<PopularMediaPoster?, int>((ref, providerId) async {
+      try {
+        final client = ref.watch(slProvider)<TmdbClient>();
+        final imageResolver = ref.watch(slProvider)<TmdbImageResolver>();
+        final language = ref.watch(asp.currentLanguageCodeProvider);
 
-    // Essayer d'abord les films
-    final moviesJson = await client.getJson(
-      'discover/movie',
-      query: {
-        'with_watch_providers': providerId.toString(),
-        'watch_region': 'FR',
-        'page': 1,
-        'sort_by': 'popularity.desc', // Tri par popularité décroissante
-      },
-      language: language,
-    );
+        // Essayer d'abord les films
+        final moviesJson = await client.getJson(
+          'discover/movie',
+          query: {
+            'with_watch_providers': providerId.toString(),
+            'watch_region': 'FR',
+            'page': 1,
+            'sort_by': 'popularity.desc', // Tri par popularité décroissante
+          },
+          language: language,
+        );
 
-    final movieResults = moviesJson['results'] as List<dynamic>? ?? [];
-    if (movieResults.isNotEmpty) {
-      final firstMovie = movieResults.first as Map<String, dynamic>?;
-      final posterPath = firstMovie?['poster_path'] as String?;
-      if (posterPath != null && posterPath.isNotEmpty) {
-        final posterUrl = imageResolver.poster(posterPath);
-        return PopularMediaPoster(posterUrl: posterUrl.toString(), isMovie: true);
+        final movieResults = moviesJson['results'] as List<dynamic>? ?? [];
+        if (movieResults.isNotEmpty) {
+          final firstMovie = movieResults.first as Map<String, dynamic>?;
+          final posterPath = firstMovie?['poster_path'] as String?;
+          final backdropPath = firstMovie?['backdrop_path'] as String?;
+          if (posterPath != null && posterPath.isNotEmpty) {
+            final posterUrl = imageResolver.poster(posterPath);
+            final backdropUrl = backdropPath != null && backdropPath.isNotEmpty
+                ? imageResolver.backdrop(backdropPath).toString()
+                : null;
+            return PopularMediaPoster(
+              posterUrl: posterUrl.toString(),
+              backdropUrl: backdropUrl,
+              isMovie: true,
+            );
+          }
+        }
+
+        // Si aucun film trouvé, essayer les séries
+        final tvJson = await client.getJson(
+          'discover/tv',
+          query: {
+            'with_watch_providers': providerId.toString(),
+            'watch_region': 'FR',
+            'page': 1,
+            'sort_by': 'popularity.desc', // Tri par popularité décroissante
+          },
+          language: language,
+        );
+
+        final tvResults = tvJson['results'] as List<dynamic>? ?? [];
+        if (tvResults.isNotEmpty) {
+          final firstTv = tvResults.first as Map<String, dynamic>?;
+          final posterPath = firstTv?['poster_path'] as String?;
+          final backdropPath = firstTv?['backdrop_path'] as String?;
+          if (posterPath != null && posterPath.isNotEmpty) {
+            final posterUrl = imageResolver.poster(posterPath);
+            final backdropUrl = backdropPath != null && backdropPath.isNotEmpty
+                ? imageResolver.backdrop(backdropPath).toString()
+                : null;
+            return PopularMediaPoster(
+              posterUrl: posterUrl.toString(),
+              backdropUrl: backdropUrl,
+              isMovie: false,
+            );
+          }
+        }
+
+        return null;
+      } catch (_) {
+        return null;
       }
-    }
-
-    // Si aucun film trouvé, essayer les séries
-    final tvJson = await client.getJson(
-      'discover/tv',
-      query: {
-        'with_watch_providers': providerId.toString(),
-        'watch_region': 'FR',
-        'page': 1,
-        'sort_by': 'popularity.desc', // Tri par popularité décroissante
-      },
-      language: language,
-    );
-
-    final tvResults = tvJson['results'] as List<dynamic>? ?? [];
-    if (tvResults.isNotEmpty) {
-      final firstTv = tvResults.first as Map<String, dynamic>?;
-      final posterPath = firstTv?['poster_path'] as String?;
-      if (posterPath != null && posterPath.isNotEmpty) {
-        final posterUrl = imageResolver.poster(posterPath);
-        return PopularMediaPoster(posterUrl: posterUrl.toString(), isMovie: false);
-      }
-    }
-
-    return null;
-  } catch (_) {
-    return null;
-  }
-});
-
+    });

@@ -33,16 +33,24 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   debugPrint('avant LoggingModule.register');
   LoggingModule.register();
   debugPrint('après LoggingModule.register OK');
+
   final syncService = sl<XtreamSyncService>();
   final iptvSyncPrefs = sl<IptvSyncPreferences>();
-  
+
   // S'assurer que l'intervalle est appliqué depuis les préférences
   syncService.setInterval(iptvSyncPrefs.syncInterval);
-  
-  // Écouter le stream pour mettre à jour dynamiquement si les préférences changent
-  iptvSyncPrefs.syncIntervalStream.listen((interval) {
+
+  // Écouter le stream pour mettre à jour dynamiquement si les préférences changent.
+  final sub = iptvSyncPrefs.syncIntervalStream.listen((interval) {
     syncService.setInterval(interval);
   });
-  
+
+  // Assurer un cycle de vie propre : à la destruction du provider de startup,
+  // on arrête le service de sync et on annule l'abonnement aux préférences.
+  ref.onDispose(() {
+    sub.cancel();
+    syncService.stop();
+  });
+
   syncService.start();
 });

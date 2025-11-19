@@ -28,7 +28,8 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   @override
   void initState() {
     super.initState();
-    _args = widget.args ??
+    _args =
+        widget.args ??
         const SearchResultsPageArgs(query: '', type: SearchResultsType.movies);
     final q = _args.query.trim();
     if (q.isNotEmpty) {
@@ -64,7 +65,14 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
                     style: const TextStyle(color: Colors.red),
                   ),
                 ),
-              Expanded(child: _ResultsGrid(state: state)),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(searchResultsControllerProvider(_args));
+                  },
+                  child: _ResultsGrid(state: state),
+                ),
+              ),
               if (state.hasMore)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -112,9 +120,7 @@ class _ResultsGrid extends StatelessWidget {
     final mediaList = items.toList(growable: false);
 
     if (mediaList.isEmpty) {
-      return Center(
-        child: Text(AppLocalizations.of(context)!.noResults),
-      );
+      return Center(child: Text(AppLocalizations.of(context)!.noResults));
     }
 
     return GridView.builder(
@@ -129,7 +135,9 @@ class _ResultsGrid extends StatelessWidget {
         return MoviMediaCard(
           media: mediaList[index],
           onTap: (m) => context.push(
-            m.type == MoviMediaType.movie ? AppRouteNames.movie : AppRouteNames.tv,
+            m.type == MoviMediaType.movie
+                ? AppRouteNames.movie
+                : AppRouteNames.tv,
             extra: m,
           ),
         );

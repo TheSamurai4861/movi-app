@@ -59,8 +59,10 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                   if (index == 0) {
                     // Option "Désactiver"
                     return ListTile(
-                      leading: const Icon(Icons.radio_button_unchecked,
-                          color: Colors.white70),
+                      leading: const Icon(
+                        Icons.radio_button_unchecked,
+                        color: Colors.white70,
+                      ),
                       title: const Text(
                         'Désactiver',
                         style: TextStyle(color: Colors.white),
@@ -74,13 +76,13 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                       },
                     );
                   }
-                  
+
                   final track = tracks[index - 1];
                   final isSelected = currentTrack?.id == track.id;
-                  
+
                   // Formater le titre de la piste
                   final trackTitle = _formatTrackTitle(track);
-                  
+
                   return ListTile(
                     leading: Icon(
                       isSelected
@@ -92,7 +94,9 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                       trackTitle,
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.white70,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                     subtitle: track.title != null && track.title!.isNotEmpty
@@ -124,35 +128,45 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
   String _formatTrackTitle(SubtitleTrack track) {
     // Essayer d'extraire la langue depuis le code de langue ou le titre
     String? languageCode;
-    
+
     if (track.language != null && track.language!.isNotEmpty) {
       languageCode = track.language;
     } else if (track.title != null && track.title!.isNotEmpty) {
       // Essayer d'extraire un code de langue depuis le titre
       final title = track.title!.toLowerCase();
       // Chercher des patterns comme "fr", "french", "français", etc.
-      if (title.contains('fr') || title.contains('french') || title.contains('français')) {
+      if (title.contains('fr') ||
+          title.contains('french') ||
+          title.contains('français')) {
         languageCode = 'fr';
-      } else if (title.contains('en') || title.contains('english') || title.contains('anglais')) {
+      } else if (title.contains('en') ||
+          title.contains('english') ||
+          title.contains('anglais')) {
         languageCode = 'en';
-      } else if (title.contains('es') || title.contains('spanish') || title.contains('espagnol')) {
+      } else if (title.contains('es') ||
+          title.contains('spanish') ||
+          title.contains('espagnol')) {
         languageCode = 'es';
-      } else if (title.contains('de') || title.contains('german') || title.contains('allemand')) {
+      } else if (title.contains('de') ||
+          title.contains('german') ||
+          title.contains('allemand')) {
         languageCode = 'de';
-      } else if (title.contains('it') || title.contains('italian') || title.contains('italien')) {
+      } else if (title.contains('it') ||
+          title.contains('italian') ||
+          title.contains('italien')) {
         languageCode = 'it';
       }
     }
-    
+
     if (languageCode != null) {
       return LanguageFormatter.formatLanguageCodeWithRegion(languageCode);
     }
-    
+
     // Fallback : utiliser le titre ou un label par défaut
     if (track.title != null && track.title!.isNotEmpty) {
       return track.title!;
     }
-    
+
     return 'Piste ${track.id}';
   }
 }
@@ -211,10 +225,10 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final track = tracks[index];
                   final isSelected = currentTrack?.id == track.id;
-                  
+
                   // Formater le titre de la piste
                   final trackTitle = _formatTrackTitle(track);
-                  
+
                   return ListTile(
                     leading: Icon(
                       isSelected
@@ -226,7 +240,9 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                       trackTitle,
                       style: TextStyle(
                         color: isSelected ? Colors.white : Colors.white70,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                     subtitle: track.title != null && track.title!.isNotEmpty
@@ -258,36 +274,45 @@ class AudioTrackSelectionMenu extends StatelessWidget {
   String _formatTrackTitle(AudioTrack track) {
     // Essayer d'extraire la langue depuis le code de langue ou le titre
     String? languageCode;
-    
+
     if (track.language != null && track.language!.isNotEmpty) {
       languageCode = track.language;
     } else if (track.title != null && track.title!.isNotEmpty) {
       // Essayer d'extraire un code de langue depuis le titre
       final title = track.title!.toLowerCase();
       // Chercher des patterns comme "fr", "french", "français", etc.
-      if (title.contains('fr') || title.contains('french') || title.contains('français')) {
+      if (title.contains('fr') ||
+          title.contains('french') ||
+          title.contains('français')) {
         languageCode = 'fr';
-      } else if (title.contains('en') || title.contains('english') || title.contains('anglais')) {
+      } else if (title.contains('en') ||
+          title.contains('english') ||
+          title.contains('anglais')) {
         languageCode = 'en';
-      } else if (title.contains('es') || title.contains('spanish') || title.contains('espagnol')) {
+      } else if (title.contains('es') ||
+          title.contains('spanish') ||
+          title.contains('espagnol')) {
         languageCode = 'es';
-      } else if (title.contains('de') || title.contains('german') || title.contains('allemand')) {
+      } else if (title.contains('de') ||
+          title.contains('german') ||
+          title.contains('allemand')) {
         languageCode = 'de';
-      } else if (title.contains('it') || title.contains('italian') || title.contains('italien')) {
+      } else if (title.contains('it') ||
+          title.contains('italian') ||
+          title.contains('italien')) {
         languageCode = 'it';
       }
     }
-    
+
     if (languageCode != null) {
       return LanguageFormatter.formatLanguageCodeWithRegion(languageCode);
     }
-    
+
     // Fallback : utiliser le titre ou un label par défaut
     if (track.title != null && track.title!.isNotEmpty) {
       return track.title!;
     }
-    
+
     return 'Piste ${track.id}';
   }
 }
-

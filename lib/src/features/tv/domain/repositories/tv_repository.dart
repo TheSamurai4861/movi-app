@@ -3,10 +3,10 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 abstract class TvRepository {
   Future<TvShow> getShow(SeriesId id);
-  
+
   /// Charge les métadonnées de base d'une série sans les épisodes (pour affichage rapide).
   Future<TvShow> getShowLite(SeriesId id);
-  
+
   Future<List<Season>> getSeasons(SeriesId id);
   Future<List<Episode>> getEpisodes(SeriesId id, SeasonId seasonId);
   Future<List<TvShowSummary>> getFeaturedShows();

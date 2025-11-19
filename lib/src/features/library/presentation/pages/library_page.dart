@@ -8,13 +8,12 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/library/library_constants.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_filter_pills.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
-import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
-import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 class LibraryPage extends ConsumerStatefulWidget {
@@ -123,13 +122,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               try {
                 final userId = ref.read(currentUserIdProvider);
                 final playlistId = PlaylistId(
-                  'playlist_${DateTime.now().millisecondsSinceEpoch}',
+                  '${LibraryConstants.userPlaylistPrefix}${DateTime.now().millisecondsSinceEpoch}',
                 );
-                final createPlaylist = CreatePlaylist(
-                  ref.read(slProvider)<PlaylistRepository>(),
-                );
+                final createPlaylist = ref.read(createPlaylistUseCaseProvider);
 
-                await createPlaylist.call(
+                await createPlaylist(
                   id: playlistId,
                   title: MediaTitle(name),
                   owner: userId,
@@ -140,12 +137,24 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(AppLocalizations.of(context)!.playlistCreatedSuccess(name))),
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.playlistCreatedSuccess(name),
+                    ),
+                  ),
                 );
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(AppLocalizations.of(context)!.playlistCreateError(e.toString()))),
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.playlistCreateError(e.toString()),
+                    ),
+                  ),
                 );
               }
             },
@@ -231,9 +240,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               Navigator.of(ctx).pop();
 
               try {
-                final renamePlaylist = RenamePlaylist(
-                  ref.read(slProvider)<PlaylistRepository>(),
-                );
+                final renamePlaylist = ref.read(renamePlaylistUseCaseProvider);
 
                 await renamePlaylist.call(
                   id: PlaylistId(playlist.playlistId!),
@@ -287,9 +294,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               Navigator.of(ctx).pop();
 
               try {
-                final deletePlaylist = DeletePlaylist(
-                  ref.read(slProvider)<PlaylistRepository>(),
-                );
+                final deletePlaylist = ref.read(deletePlaylistUseCaseProvider);
 
                 await deletePlaylist.call(PlaylistId(playlist.playlistId!));
 
@@ -319,14 +324,17 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     if (playlist.type == LibraryPlaylistType.actor) {
       // Pour les acteurs, ouvrir la page acteur
       // L'ID est stocké comme 'actor_123', on extrait juste le numéro
-      final personId = playlist.id.replaceFirst('actor_', '');
+      final personId = playlist.id.replaceFirst(
+        LibraryConstants.actorPrefix,
+        '',
+      );
       context.push(
         AppRouteNames.person,
         extra: PersonSummary(id: PersonId(personId), name: playlist.title),
       );
-    } else if (playlist.id.startsWith('saga_')) {
+    } else if (playlist.id.startsWith(LibraryConstants.sagaPrefix)) {
       // Pour les sagas, ouvrir la page de détail de saga
-      final sagaId = playlist.id.replaceFirst('saga_', '');
+      final sagaId = playlist.id.replaceFirst(LibraryConstants.sagaPrefix, '');
       context.push(AppRouteNames.sagaDetail, extra: sagaId);
     } else {
       // Pour les autres playlists, ouvrir la page de détail
@@ -428,8 +436,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                               .setQuery(text);
                                         },
                                         decoration: InputDecoration(
-                                          hintText:
-                                              AppLocalizations.of(context)!.librarySearchPlaceholder,
+                                          hintText: AppLocalizations.of(
+                                            context,
+                                          )!.librarySearchPlaceholder,
                                           prefixIcon: Padding(
                                             padding: const EdgeInsets.only(
                                               left: 12,
@@ -544,84 +553,105 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                   builder: (context, child) {
                     return Transform.translate(
                       offset: Offset(0, _searchSlideAnimation.value),
-                      child: playlistsAsync.when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (error, stack) => Center(
-                          child: Text(
-                            'Erreur: $error',
-                            style: const TextStyle(color: Colors.white),
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          ref.invalidate(libraryPlaylistsProvider);
+                        },
+                        child: playlistsAsync.when(
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (error, stack) => Center(
+                            child: Text(
+                              'Erreur: $error',
+                              style: const TextStyle(color: Colors.white),
+                            ),
                           ),
-                        ),
-                        data: (playlists) {
-                          if (playlists.isEmpty) {
-                            // Si recherche active mais aucun résultat
-                            if (searchQuery.isNotEmpty) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Text(
-                                    'Aucun résultat pour "$searchQuery"',
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white70,
+                          data: (playlists) {
+                            if (playlists.isEmpty) {
+                              // Si recherche active mais aucun résultat
+                              if (searchQuery.isNotEmpty) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Text(
+                                      'Aucun résultat pour "$searchQuery"',
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white70,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    textAlign: TextAlign.center,
+                                  ),
+                                );
+                              }
+                              // Sinon, bibliothèque vide
+                              return SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.5,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                      ),
+                                      child: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.libraryEmpty,
+                                        style:
+                                            Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge?.copyWith(
+                                              color: Colors.white70,
+                                            ) ??
+                                            const TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.white70,
+                                            ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               );
                             }
-                            // Sinon, bibliothèque vide
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: Text(
-                                  AppLocalizations.of(context)!.libraryEmpty,
-                                  style:
-                                      Theme.of(context).textTheme.bodyLarge
-                                          ?.copyWith(color: Colors.white70) ??
-                                      const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white70,
-                                      ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            );
-                          }
 
-                          // Utiliser une liste verticale pour tous les filtres (même style que les playlists like)
-                          return ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            itemCount: playlists.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final playlist = playlists[index];
-                              return LibraryPlaylistCard(
-                                title: playlist.title,
-                                itemCount: playlist.itemCount,
-                                type: playlist.type,
-                                isPinned: playlist.isPinned,
-                                photo: playlist.photo,
-                                showItemCount: !playlist.id.startsWith('saga_'),
-                                onTap: () => _navigateToPlaylist(playlist),
-                                onLongPress:
-                                    playlist.type ==
-                                        LibraryPlaylistType.userPlaylist
-                                    ? () => _showPlaylistMenu(
-                                        context,
-                                        ref,
-                                        playlist,
-                                      )
-                                    : null,
-                              );
-                            },
-                          );
-                        },
+                            // Utiliser une liste verticale pour tous les filtres (même style que les playlists like)
+                            return ListView.separated(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              itemCount: playlists.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final playlist = playlists[index];
+                                return LibraryPlaylistCard(
+                                  title: playlist.title,
+                                  itemCount: playlist.itemCount,
+                                  type: playlist.type,
+                                  isPinned: playlist.isPinned,
+                                  photo: playlist.photo,
+                                  showItemCount: !playlist.id.startsWith(
+                                    LibraryConstants.sagaPrefix,
+                                  ),
+                                  onTap: () => _navigateToPlaylist(playlist),
+                                  onLongPress:
+                                      playlist.type ==
+                                          LibraryPlaylistType.userPlaylist
+                                      ? () => _showPlaylistMenu(
+                                          context,
+                                          ref,
+                                          playlist,
+                                        )
+                                      : null,
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
                     );
                   },

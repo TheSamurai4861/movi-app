@@ -29,10 +29,7 @@ class WelcomeHeader extends ConsumerWidget {
             AppAssets.iconAppLogoSvg,
             width: 100,
             height: 100,
-            colorFilter: ColorFilter.mode(
-              accentColor,
-              BlendMode.srcIn,
-            ),
+            colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
           ),
         ),
         Padding(

@@ -11,10 +11,10 @@ class AccentColorPreferences {
     required String storageKey,
     required Color accentColor,
     required StreamController<Color> accentColorController,
-  })  : _storage = storage,
-        _storageKey = storageKey,
-        _accentColor = accentColor,
-        _accentColorController = accentColorController;
+  }) : _storage = storage,
+       _storageKey = storageKey,
+       _accentColor = accentColor,
+       _accentColorController = accentColorController;
 
   static const String _defaultStorageKey = 'prefs.accent_color';
 
@@ -26,7 +26,7 @@ class AccentColorPreferences {
   }) async {
     final resolvedStorage = storage ?? const FlutterSecureStorage();
     final defaultColor = defaultAccentColor ?? AppColors.accent;
-    
+
     final persistedColorRaw = await resolvedStorage.read(key: storageKey);
     final initialColor = _parseColor(persistedColorRaw) ?? defaultColor;
 
@@ -79,4 +79,3 @@ class AccentColorPreferences {
     return color.toARGB32().toRadixString(16).toUpperCase();
   }
 }
-

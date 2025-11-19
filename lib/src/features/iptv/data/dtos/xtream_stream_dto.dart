@@ -29,7 +29,8 @@ class XtreamStreamDto {
 
     // Essayer plusieurs noms de champs possibles pour stream_id
     // Certaines APIs Xtream utilisent 'id' au lieu de 'stream_id' pour les séries
-    dynamic streamIdRaw = json['stream_id'] ??
+    dynamic streamIdRaw =
+        json['stream_id'] ??
         json['id'] ??
         json['series_id'] ??
         json['seriesId'];

@@ -29,16 +29,16 @@ class ContinueWatchingCard extends ConsumerWidget {
     VoidCallback? onTap,
     VoidCallback? onLongPress,
   }) => ContinueWatchingCard._(
-        title: title,
-        backdrop: backdrop,
-        progress: progress,
-        year: year,
-        duration: duration,
-        rating: rating,
-        isEpisode: false,
-        onTap: onTap,
-        onLongPress: onLongPress,
-      );
+    title: title,
+    backdrop: backdrop,
+    progress: progress,
+    year: year,
+    duration: duration,
+    rating: rating,
+    isEpisode: false,
+    onTap: onTap,
+    onLongPress: onLongPress,
+  );
 
   factory ContinueWatchingCard.episode({
     required String title,
@@ -50,16 +50,16 @@ class ContinueWatchingCard extends ConsumerWidget {
     VoidCallback? onTap,
     VoidCallback? onLongPress,
   }) => ContinueWatchingCard._(
-        title: title,
-        backdrop: backdrop,
-        progress: progress,
-        duration: duration,
-        seriesTitle: seriesTitle,
-        seasonEpisode: seasonEpisode,
-        isEpisode: true,
-        onTap: onTap,
-        onLongPress: onLongPress,
-      );
+    title: title,
+    backdrop: backdrop,
+    progress: progress,
+    duration: duration,
+    seriesTitle: seriesTitle,
+    seasonEpisode: seasonEpisode,
+    isEpisode: true,
+    onTap: onTap,
+    onLongPress: onLongPress,
+  );
 
   final String title;
   final String? backdrop;
@@ -148,7 +148,10 @@ class ContinueWatchingCard extends ConsumerWidget {
                   ),
                 ),
                 // Content based on type
-                if (isEpisode) _buildEpisodeContent(width) else _buildMovieContent(width),
+                if (isEpisode)
+                  _buildEpisodeContent(width)
+                else
+                  _buildMovieContent(width),
               ],
             ),
           ),
@@ -164,7 +167,7 @@ class ContinueWatchingCard extends ConsumerWidget {
     // - Pills
     // - 16px gap
     // - Bottom (progress bar à 5px)
-    
+
     return Stack(
       children: [
         // Pills row (16px from bottom = 5px progress + 11px)
@@ -223,12 +226,12 @@ class ContinueWatchingCard extends ConsumerWidget {
     // - Pills
     // - 16px gap
     // - Bottom (progress bar à 5px)
-    
+
     // Calculer les positions depuis le bas
     // Pills = 16px from bottom
     // Episode title = 16 + 8 + ~24px pill height = 48px from bottom
     // Series title = 48 + 8 + ~20px text height = 76px from bottom
-    
+
     return Stack(
       children: [
         // Pills row (16px from bottom)
@@ -237,8 +240,11 @@ class ContinueWatchingCard extends ConsumerWidget {
           bottom: 16,
           child: Row(
             children: [
-              if (seasonEpisode != null && seasonEpisode!.isNotEmpty) MoviPill(seasonEpisode!),
-              if (seasonEpisode != null && seasonEpisode!.isNotEmpty && duration != null)
+              if (seasonEpisode != null && seasonEpisode!.isNotEmpty)
+                MoviPill(seasonEpisode!),
+              if (seasonEpisode != null &&
+                  seasonEpisode!.isNotEmpty &&
+                  duration != null)
                 const SizedBox(width: 8),
               if (duration != null) MoviPill(_formatDuration(duration)),
             ],
@@ -285,7 +291,11 @@ class ContinueWatchingCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildBackdropImage(BuildContext context, WidgetRef ref, String? source) {
+  Widget _buildBackdropImage(
+    BuildContext context,
+    WidgetRef ref,
+    String? source,
+  ) {
     if (source != null && source.isNotEmpty && source.startsWith('http')) {
       return Image.network(
         source,

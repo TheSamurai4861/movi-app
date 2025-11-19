@@ -249,5 +249,8 @@
     "placeholders": {
       "title": { "type": "String" }
     }
-  }
+  },
+  "categoryLoadFailed": "Fout bij het laden van de categorie.",
+  "categoryEmpty": "Geen items in deze categorie.",
+  "categoryLoadingMore": "Meer laden…"
 }

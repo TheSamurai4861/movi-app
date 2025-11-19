@@ -75,7 +75,7 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     }
     final tracks = _player.state.tracks.subtitle;
     if (tracks.isEmpty) return;
-    
+
     final track = tracks.firstWhere(
       (t) => t.id == trackId.toString(),
       orElse: () => tracks.first,
@@ -90,7 +90,7 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     }
     final tracks = _player.state.tracks.audio;
     if (tracks.isEmpty) return;
-    
+
     final track = tracks.firstWhere(
       (t) => t.id == trackId.toString(),
       orElse: () => tracks.first,
@@ -103,4 +103,3 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     _player.dispose();
   }
 }
-

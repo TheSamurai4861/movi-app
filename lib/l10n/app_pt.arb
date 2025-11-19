@@ -251,6 +251,9 @@
     "placeholders": {
       "title": { "type": "String" }
     }
-  }
+  },
+  "categoryLoadFailed": "Falha ao carregar a categoria.",
+  "categoryEmpty": "Nenhum item nesta categoria.",
+  "categoryLoadingMore": "Carregando mais…"
 }
 

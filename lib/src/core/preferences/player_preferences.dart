@@ -11,16 +11,18 @@ class PlayerPreferences {
     required String subtitleLanguageStorageKey,
     required String? preferredSubtitleLanguage,
     required StreamController<String?> subtitleLanguageController,
-  })  : _storage = storage,
-        _audioLanguageStorageKey = audioLanguageStorageKey,
-        _preferredAudioLanguage = preferredAudioLanguage,
-        _audioLanguageController = audioLanguageController,
-        _subtitleLanguageStorageKey = subtitleLanguageStorageKey,
-        _preferredSubtitleLanguage = preferredSubtitleLanguage,
-        _subtitleLanguageController = subtitleLanguageController;
+  }) : _storage = storage,
+       _audioLanguageStorageKey = audioLanguageStorageKey,
+       _preferredAudioLanguage = preferredAudioLanguage,
+       _audioLanguageController = audioLanguageController,
+       _subtitleLanguageStorageKey = subtitleLanguageStorageKey,
+       _preferredSubtitleLanguage = preferredSubtitleLanguage,
+       _subtitleLanguageController = subtitleLanguageController;
 
-  static const String _defaultAudioLanguageStorageKey = 'prefs.player_preferred_audio_language';
-  static const String _defaultSubtitleLanguageStorageKey = 'prefs.player_preferred_subtitle_language';
+  static const String _defaultAudioLanguageStorageKey =
+      'prefs.player_preferred_audio_language';
+  static const String _defaultSubtitleLanguageStorageKey =
+      'prefs.player_preferred_subtitle_language';
 
   /// Builds a preferences instance by reading the persisted values from storage.
   static Future<PlayerPreferences> create({
@@ -31,12 +33,16 @@ class PlayerPreferences {
     String subtitleLanguageStorageKey = _defaultSubtitleLanguageStorageKey,
   }) async {
     final resolvedStorage = storage ?? const FlutterSecureStorage();
-    
-    final persistedAudioRaw = await resolvedStorage.read(key: audioLanguageStorageKey);
+
+    final persistedAudioRaw = await resolvedStorage.read(
+      key: audioLanguageStorageKey,
+    );
     final persistedAudio = _normalizeLanguageCode(persistedAudioRaw);
     final initialAudio = persistedAudio ?? defaultAudioLanguage;
 
-    final persistedSubtitleRaw = await resolvedStorage.read(key: subtitleLanguageStorageKey);
+    final persistedSubtitleRaw = await resolvedStorage.read(
+      key: subtitleLanguageStorageKey,
+    );
     final persistedSubtitle = _normalizeLanguageCode(persistedSubtitleRaw);
     final initialSubtitle = persistedSubtitle ?? defaultSubtitleLanguage;
 
@@ -119,7 +125,7 @@ class PlayerPreferences {
     if (code == null) return null;
     final trimmed = code.trim();
     if (trimmed.isEmpty) return null;
-    
+
     // Extraire le code de base (avant le tiret) et convertir en minuscule
     final normalized = trimmed
         .replaceAll('_', '-')
@@ -127,8 +133,7 @@ class PlayerPreferences {
         .toLowerCase()
         .split('-')
         .first;
-    
+
     return normalized.isEmpty ? null : normalized;
   }
 }
-

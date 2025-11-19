@@ -33,7 +33,10 @@ class PersonRepositoryImpl implements PersonRepository {
 
   @override
   Future<List<PersonSummary>> searchPeople(String query) async {
-    final dtos = await _remote.searchPeople(query, language: _locale.languageCode);
+    final dtos = await _remote.searchPeople(
+      query,
+      language: _locale.languageCode,
+    );
     return dtos
         .map(
           (dto) => PersonSummary(
@@ -89,7 +92,10 @@ class PersonRepositoryImpl implements PersonRepository {
     final personId = int.parse(id.value);
     final cached = await _local.getPersonDetail(personId);
     if (cached != null) return cached;
-    final remote = await _remote.fetchPerson(personId, language: _locale.languageCode);
+    final remote = await _remote.fetchPerson(
+      personId,
+      language: _locale.languageCode,
+    );
     await _local.savePersonDetail(remote);
     return remote;
   }

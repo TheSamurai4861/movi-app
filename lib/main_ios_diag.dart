@@ -4,9 +4,7 @@ void main() {
   runApp(
     const MaterialApp(
       home: Scaffold(
-        body: Center(
-          child: Text('Movi iOS diag – ça démarre 👍'),
-        ),
+        body: Center(child: Text('Movi iOS diag – ça démarre 👍')),
       ),
     ),
   );

@@ -275,5 +275,8 @@
         "type": "String"
       }
     }
-  }
+  },
+  "categoryLoadFailed": "Couac lors du chargement de la catégorie.",
+  "categoryEmpty": "Point d'élément dans cette catégorie.",
+  "categoryLoadingMore": "Chargement en cours…"
 }

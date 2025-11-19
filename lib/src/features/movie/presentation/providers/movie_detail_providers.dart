@@ -34,8 +34,10 @@ final movieRepositoryProvider = Provider<MovieRepository>((ref) {
 });
 
 /// Provider pour vérifier si un film est dans les favoris
-final movieIsFavoriteProvider =
-    FutureProvider.family<bool, String>((ref, movieId) async {
+final movieIsFavoriteProvider = FutureProvider.family<bool, String>((
+  ref,
+  movieId,
+) async {
   final repo = ref.watch(movieRepositoryProvider);
   return await repo.isInWatchlist(MovieId(movieId));
 });
@@ -60,8 +62,8 @@ class MovieToggleFavoriteNotifier extends Notifier<void> {
 /// Provider pour basculer le statut favori d'un film
 final movieToggleFavoriteProvider =
     NotifierProvider<MovieToggleFavoriteNotifier, void>(
-  MovieToggleFavoriteNotifier.new,
-);
+      MovieToggleFavoriteNotifier.new,
+    );
 
 final movieDetailControllerProvider =
     FutureProvider.family<MovieDetailViewModel, String>((ref, movieId) async {
@@ -93,15 +95,13 @@ final movieDetailControllerProvider =
 
 /// Provider pour vérifier si une saga est dans les favoris
 /// Utilise l'ID de la saga comme clé pour partager l'état entre tous les films de la saga
-final sagaIsFavoriteProvider =
-    FutureProvider.family<bool, String>((ref, sagaId) async {
+final sagaIsFavoriteProvider = FutureProvider.family<bool, String>((
+  ref,
+  sagaId,
+) async {
   final watchlist = ref.watch(slProvider)<WatchlistLocalRepository>();
   final userId = ref.read(currentUserIdProvider);
-  return await watchlist.exists(
-    sagaId,
-    ContentType.saga,
-    userId: userId,
-  );
+  return await watchlist.exists(sagaId, ContentType.saga, userId: userId);
 });
 
 /// Notifier pour basculer le statut favori d'une saga
@@ -115,13 +115,9 @@ class SagaToggleFavoriteNotifier extends Notifier<void> {
     final watchlist = ref.read(slProvider)<WatchlistLocalRepository>();
     final userId = ref.read(currentUserIdProvider);
     final isFavorite = await ref.read(sagaIsFavoriteProvider(sagaId).future);
-    
+
     if (isFavorite) {
-      await watchlist.remove(
-        sagaId,
-        ContentType.saga,
-        userId: userId,
-      );
+      await watchlist.remove(sagaId, ContentType.saga, userId: userId);
     } else {
       await watchlist.upsert(
         WatchlistEntry(
@@ -134,7 +130,7 @@ class SagaToggleFavoriteNotifier extends Notifier<void> {
         ),
       );
     }
-    
+
     ref.invalidate(sagaIsFavoriteProvider(sagaId));
     // Invalider les playlists de la bibliothèque pour mettre à jour les favoris
     ref.invalidate(libraryPlaylistsProvider);
@@ -144,44 +140,46 @@ class SagaToggleFavoriteNotifier extends Notifier<void> {
 /// Provider pour basculer le statut favori d'une saga
 final sagaToggleFavoriteProvider =
     NotifierProvider<SagaToggleFavoriteNotifier, void>(
-  SagaToggleFavoriteNotifier.new,
-);
+      SagaToggleFavoriteNotifier.new,
+    );
 
 /// Provider pour charger les films d'une saga
-final sagaMoviesProvider = FutureProvider.family<List<MoviMedia>, SagaSummary?>((ref, sagaLink) async {
-  if (sagaLink == null) {
-    return const [];
-  }
-  
-  try {
-    final sagaRepo = ref.watch(slProvider)<SagaRepository>();
-    final saga = await sagaRepo.getSaga(sagaLink.id);
-    
-    // Convertir les SagaEntry en MoviMedia et trier par timelineYear
-    final movies = saga.timeline
-        .where((entry) => entry.reference.type == ContentType.movie)
-        .map((entry) {
-          final ref = entry.reference;
-          return MoviMedia(
-            id: ref.id,
-            title: ref.title.display,
-            poster: ref.poster,
-            year: entry.timelineYear,
-            type: MoviMediaType.movie,
-          );
-        })
-        .toList();
-    
-    // Trier par année de sortie (timelineYear)
-    movies.sort((a, b) {
-      final yearA = a.year ?? 0;
-      final yearB = b.year ?? 0;
-      return yearA.compareTo(yearB);
-    });
-    
-    return movies;
-  } catch (e) {
-    // En cas d'erreur, retourner une liste vide
-    return const [];
-  }
-});
+final sagaMoviesProvider = FutureProvider.family<List<MoviMedia>, SagaSummary?>(
+  (ref, sagaLink) async {
+    if (sagaLink == null) {
+      return const [];
+    }
+
+    try {
+      final sagaRepo = ref.watch(slProvider)<SagaRepository>();
+      final saga = await sagaRepo.getSaga(sagaLink.id);
+
+      // Convertir les SagaEntry en MoviMedia et trier par timelineYear
+      final movies = saga.timeline
+          .where((entry) => entry.reference.type == ContentType.movie)
+          .map((entry) {
+            final ref = entry.reference;
+            return MoviMedia(
+              id: ref.id,
+              title: ref.title.display,
+              poster: ref.poster,
+              year: entry.timelineYear,
+              type: MoviMediaType.movie,
+            );
+          })
+          .toList();
+
+      // Trier par année de sortie (timelineYear)
+      movies.sort((a, b) {
+        final yearA = a.year ?? 0;
+        final yearB = b.year ?? 0;
+        return yearA.compareTo(yearB);
+      });
+
+      return movies;
+    } catch (e) {
+      // En cas d'erreur, retourner une liste vide
+      return const [];
+    }
+  },
+);

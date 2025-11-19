@@ -24,7 +24,8 @@ class ProviderResultsPage extends ConsumerStatefulWidget {
   final ProviderResultsArgs? args;
 
   @override
-  ConsumerState<ProviderResultsPage> createState() => _ProviderResultsPageState();
+  ConsumerState<ProviderResultsPage> createState() =>
+      _ProviderResultsPageState();
 }
 
 class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
@@ -182,15 +183,19 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     final providerName = widget.args!.providerName;
     final colorScheme = Theme.of(context).colorScheme;
     final searchQuery = _searchController.text.toLowerCase().trim();
-    
+
     // Filtrer les résultats par recherche
     final filteredMovies = searchQuery.isEmpty
         ? _movies
-        : _movies.where((m) => m.title.toLowerCase().contains(searchQuery)).toList();
+        : _movies
+              .where((m) => m.title.toLowerCase().contains(searchQuery))
+              .toList();
     final filteredShows = searchQuery.isEmpty
         ? _shows
-        : _shows.where((s) => s.name.toLowerCase().contains(searchQuery)).toList();
-    
+        : _shows
+              .where((s) => s.name.toLowerCase().contains(searchQuery))
+              .toList();
+
     final moviesToShow = filteredMovies.take(10).toList();
     final showsToShow = filteredShows.take(10).toList();
 
@@ -244,7 +249,8 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                   ),
                   // Espaceur pour équilibrer le bouton retour
                   SizedBox(
-                    width: 35 + 8 + 50, // Largeur approximative du bouton retour
+                    width:
+                        35 + 8 + 50, // Largeur approximative du bouton retour
                   ),
                 ],
               ),
@@ -258,8 +264,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                   setState(() {});
                 },
                 decoration: InputDecoration(
-                  hintText: AppLocalizations.of(context)!
-                      .providerSearchPlaceholder(providerName),
+                  hintText: AppLocalizations.of(
+                    context,
+                  )!.providerSearchPlaceholder(providerName),
                   prefixIcon: Padding(
                     padding: const EdgeInsets.only(left: 12, right: 8),
                     child: Image.asset(
@@ -284,15 +291,11 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(999),
-                    borderSide: BorderSide(
-                      color: colorScheme.outlineVariant,
-                    ),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(999),
-                    borderSide: BorderSide(
-                      color: colorScheme.outlineVariant,
-                    ),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(999),
@@ -318,8 +321,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                     MoviItemsList(
                       title: AppLocalizations.of(context)!.moviesTitle,
                       subtitle: filteredMovies.length > 10
-                          ? AppLocalizations.of(context)!
-                              .resultsCount(filteredMovies.length)
+                          ? AppLocalizations.of(
+                              context,
+                            )!.resultsCount(filteredMovies.length)
                           : null,
                       estimatedItemWidth: 150,
                       estimatedItemHeight: 300,
@@ -353,27 +357,28 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                           : null,
                       items: moviesToShow
                           .map((m) {
-                            final imageResolver =
-                                ref.read(slProvider)<TmdbImageResolver>();
+                            final imageResolver = ref.read(
+                              slProvider,
+                            )<TmdbImageResolver>();
                             final media = MoviMedia(
                               id: m.id.toString(),
                               title: m.title,
                               poster: imageResolver.poster(m.posterPath),
-                              year: m.releaseDate != null &&
+                              year:
+                                  m.releaseDate != null &&
                                       m.releaseDate!.isNotEmpty
                                   ? (m.releaseDate!.length >= 4
-                                      ? int.tryParse(
-                                          m.releaseDate!.substring(0, 4))
-                                      : null)
+                                        ? int.tryParse(
+                                            m.releaseDate!.substring(0, 4),
+                                          )
+                                        : null)
                                   : null,
                               type: MoviMediaType.movie,
                             );
                             return MoviMediaCard(
                               media: media,
-                              onTap: (mm) => context.push(
-                                AppRouteNames.movie,
-                                extra: mm,
-                              ),
+                              onTap: (mm) =>
+                                  context.push(AppRouteNames.movie, extra: mm),
                             );
                           })
                           .toList(growable: false),
@@ -384,8 +389,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                     MoviItemsList(
                       title: AppLocalizations.of(context)!.seriesTitle,
                       subtitle: filteredShows.length > 10
-                          ? AppLocalizations.of(context)!
-                              .resultsCount(filteredShows.length)
+                          ? AppLocalizations.of(
+                              context,
+                            )!.resultsCount(filteredShows.length)
                           : null,
                       estimatedItemWidth: 150,
                       estimatedItemHeight: 300,
@@ -419,8 +425,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                           : null,
                       items: showsToShow
                           .map((s) {
-                            final imageResolver =
-                                ref.read(slProvider)<TmdbImageResolver>();
+                            final imageResolver = ref.read(
+                              slProvider,
+                            )<TmdbImageResolver>();
                             final media = MoviMedia(
                               id: s.id.toString(),
                               title: s.name,
@@ -429,10 +436,8 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                             );
                             return MoviMediaCard(
                               media: media,
-                              onTap: (mm) => context.push(
-                                AppRouteNames.tv,
-                                extra: mm,
-                              ),
+                              onTap: (mm) =>
+                                  context.push(AppRouteNames.tv, extra: mm),
                             );
                           })
                           .toList(growable: false),

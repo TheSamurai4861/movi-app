@@ -44,7 +44,12 @@ abstract class HistoryLocalRepository {
 
   Future<void> remove(String contentId, ContentType type);
   Future<List<HistoryEntry>> readAll(ContentType type);
-  Future<HistoryEntry?> getEntry(String contentId, ContentType type, {int? season, int? episode});
+  Future<HistoryEntry?> getEntry(
+    String contentId,
+    ContentType type, {
+    int? season,
+    int? episode,
+  });
 }
 
 class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
@@ -165,29 +170,28 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     final db = await _db;
     String where = 'content_id = ? AND content_type = ?';
     List<Object?> whereArgs = [contentId, type.name];
-    
+
     // Pour les séries, on peut filtrer par saison et épisode si fournis
     if (season != null && episode != null) {
       where += ' AND season = ? AND episode = ?';
       whereArgs.addAll([season, episode]);
     }
-    
+
     final rows = await db.query(
       'history',
       where: where,
       whereArgs: whereArgs,
       limit: 1,
     );
-    
+
     if (rows.isEmpty) return null;
-    
+
     final row = rows.first;
     return HistoryEntry(
       contentId: row['content_id'] as String,
       type: type,
       title: row['title'] as String,
-      poster:
-          row['poster'] != null && (row['poster'] as String).isNotEmpty
+      poster: row['poster'] != null && (row['poster'] as String).isNotEmpty
           ? Uri.tryParse(row['poster'] as String)
           : null,
       lastPlayedAt: DateTime.fromMillisecondsSinceEpoch(

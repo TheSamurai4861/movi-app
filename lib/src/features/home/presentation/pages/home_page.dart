@@ -3,30 +3,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
-import 'package:movi/src/core/widgets/movi_items_list.dart';
-import 'package:movi/src/core/widgets/movi_media_card.dart';
-import 'package:movi/src/core/widgets/movi_see_all_card.dart';
-import 'package:movi/src/core/widgets/overlay_splash.dart';
-import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
-import 'package:movi/src/core/storage/storage.dart';
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
-import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
-import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
-import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-// logging_service n'est plus utilisé sur la page d'accueil
-// overlay_splash supprimé de la page d'accueil
+import 'package:movi/src/features/home/presentation/widgets/home_error_banner.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_continue_watching_section.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_iptv_section.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_loading_overlay.dart';
+import 'package:movi/src/features/home/presentation/widgets/mark_as_unwatched_dialog.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -101,7 +92,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 },
               ),
             ),
-            // Overlay supprimé : le contenu est affiché directement.
           ],
         ),
       ),
@@ -117,19 +107,8 @@ class _HomeContent extends ConsumerStatefulWidget {
 }
 
 /// Gère le contenu Home avec overlay de démarrage.
-///
-/// Comportement de l’overlay:
-/// - Démarre visible et se masque dès que le hero ou le premier viewport
-///   d’items est précaché (premier à terminer gagne).
-/// - Timeout doux de 5 secondes pour éviter de bloquer l’UI en cas de réseau lent.
 class _HomeContentState extends ConsumerState<_HomeContent> {
-  // Enrichissement TMDB désactivé pour les listes: plus de mémo viewport ni recheck.
   bool _isHeroLoadingMeta = false;
-  
-  @override
-  void initState() {
-    super.initState();
-  }
 
   bool _isScheduled = false;
   void _postFrame(VoidCallback fn) {
@@ -146,67 +125,16 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
     try {
       await precacheImage(NetworkImage(url), context);
     } catch (_) {
-      // ignore erreurs réseau; l’overlay ne doit pas bloquer
+      // ignore erreurs réseau; l'overlay ne doit pas bloquer
     }
-  }
-
-  static const double _mediaCardWidth =
-      150; // doit rester aligné avec MoviMediaCard par défaut
-  static const double _itemSpacing = 16; // espace horizontal entre items
-  static const double _sectionGap =
-      32; // espace VERTICAL entre sections MoviItemsList
-
-  // Afficher uniquement le libellé catégorie (sans "serveur/")
-  String _displayCategoryTitle(String raw) {
-    final idx = raw.indexOf('/');
-    return (idx >= 0 && idx < raw.length - 1) ? raw.substring(idx + 1) : raw;
-  }
-
-  void _showMarkAsUnwatchedDialog(
-    BuildContext context,
-    WidgetRef ref,
-    String contentId,
-    ContentType type,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.visibility_off, color: Colors.white),
-              title: const Text(
-                'Marquer comme non vu',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
-                await historyRepo.remove(contentId, type);
-                // Invalider les providers
-                ref.invalidate(hp.homeInProgressProvider);
-                ref.invalidate(libraryPlaylistsProvider);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
 
-    // Précache héro (sans fermer l’overlay) pour accélérer les réaffichages
+    // Précache héro pour accélérer les réaffichages
     _postFrame(() {
       if (state.hero.isNotEmpty) {
         var heroUrl = ((state.hero.first.backdrop) ?? (state.hero.first.poster))
@@ -218,9 +146,9 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
       }
     });
 
-    final String lang = ref.watch(currentLanguageCodeProvider);
-    final bool showLoadingOverlay = (state.isLoading && state.hero.isEmpty) || _isHeroLoadingMeta;
-    
+    final showLoadingOverlay =
+        (state.isLoading && state.hero.isEmpty) || _isHeroLoadingMeta;
+
     return Stack(
       children: [
         RefreshIndicator(
@@ -230,324 +158,52 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
           child: CustomScrollView(
             slivers: [
               if (state.error != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                      AppSpacing.lg,
-                      AppSpacing.md,
-                    ),
-                  child: Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.red.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: Colors.red),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              AppLocalizations.of(context)!
-                                  .homeErrorSwipeToRetry,
-                              style:
-                                  (theme.textTheme.bodyMedium?.copyWith(
-                                    color: Colors.red,
-                                  )) ??
-                                  theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                const SliverToBoxAdapter(child: HomeErrorBanner()),
 
-              // On rend le vrai hero avec le state (évite les rebuilds visibles)
-              SliverToBoxAdapter(
-                child: state.isHeroEmpty
-                    ? const _HeroEmptyBanner()
-                    : HomeHeroCarousel(
-                        key: ValueKey(lang),
-                        movies: state.hero.take(10).toList(growable: false),
-                        onLoadingChanged: (isLoading) {
-                          if (mounted && _isHeroLoadingMeta != isLoading) {
-                            setState(() {
-                              _isHeroLoadingMeta = isLoading;
-                            });
-                          }
-                        },
-                      ),
-              ),
-
-              // Marge après le hero: 32px pour uniformiser l'espacement des sections
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
-
-              // ===== Section "En cours" =====
-              Consumer(
-                builder: (context, ref, _) {
-                  final inProgressAsync = ref.watch(hp.homeInProgressProvider);
-                  return inProgressAsync.when(
-                    data: (inProgress) {
-                      if (inProgress.isEmpty) {
-                        return const SliverToBoxAdapter(child: SizedBox.shrink());
-                      }
-                      return SliverToBoxAdapter(
-                        child: MoviItemsList(
-                          title: AppLocalizations.of(context)!.homeContinueWatching,
-                          itemSpacing: _itemSpacing,
-                          estimatedItemWidth: 300,
-                          estimatedItemHeight: 165,
-                          items: inProgress.take(10).map((media) {
-                            final moviMedia = MoviMedia(
-                              id: media.contentId,
-                              title: media.title,
-                              poster: media.poster,
-                              type: media.type == ContentType.movie
-                                  ? MoviMediaType.movie
-                                  : MoviMediaType.series,
-                            );
-                            
-                            if (media.type == ContentType.movie) {
-                              return ContinueWatchingCard.movie(
-                                title: media.title,
-                                backdrop: media.backdrop?.toString(),
-                                progress: media.progress,
-                                year: media.year,
-                                duration: media.duration,
-                                rating: media.rating,
-                                onTap: () => context.push(AppRouteNames.movie, extra: moviMedia),
-                                onLongPress: () => _showMarkAsUnwatchedDialog(
-                                  context,
-                                  ref,
-                                  media.contentId,
-                                  media.type,
-                                ),
-                              );
-                            } else {
-                              final seasonEpisode = media.season != null && media.episode != null
-                                  ? 'S${media.season!.toString().padLeft(2, '0')} E${media.episode!.toString().padLeft(2, '0')}'
-                                  : '';
-                              return ContinueWatchingCard.episode(
-                                title: media.episodeTitle ?? media.title, // Utiliser le titre de l'épisode sans numéro
-                                backdrop: media.backdrop?.toString(),
-                                seriesTitle: media.seriesTitle,
-                                seasonEpisode: seasonEpisode,
-                                duration: media.duration,
-                                progress: media.progress,
-                                onTap: () => context.push(AppRouteNames.tv, extra: moviMedia),
-                                onLongPress: () => _showMarkAsUnwatchedDialog(
-                                  context,
-                                  ref,
-                                  media.contentId,
-                                  media.type,
-                                ),
-                              );
-                            }
-                          }).toList(),
-                        ),
-                      );
-                    },
-                    loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
-                  );
-                },
-              ),
-              
-              Consumer(
-                builder: (context, ref, _) {
-                  final inProgressAsync = ref.watch(hp.homeInProgressProvider);
-                  return inProgressAsync.when(
-                    data: (inProgress) {
-                      if (inProgress.isEmpty) {
-                        return const SliverToBoxAdapter(child: SizedBox.shrink());
-                      }
-                      return const SliverToBoxAdapter(child: SizedBox(height: _sectionGap));
-                    },
-                    loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-                    error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
-                  );
+              HomeHeroSection(
+                heroMovies: state.hero,
+                onLoadingChanged: (isLoading) {
+                  if (mounted && _isHeroLoadingMeta != isLoading) {
+                    setState(() {
+                      _isHeroLoadingMeta = isLoading;
+                    });
+                  }
                 },
               ),
 
-              if (state.isLoading && state.iptvLists.isEmpty) ...[
-                SliverToBoxAdapter(
-                  child: MoviItemsList(
-                    title: '',
-                    itemSpacing: _itemSpacing,
-                    estimatedItemWidth: _mediaCardWidth,
-                    estimatedItemHeight: 270,
-                    items: List.generate(9, (i) {
-                      return SizedBox(
-                        width: _mediaCardWidth,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: SizedBox(
-                                width: _mediaCardWidth,
-                                height: 225,
-                                child: const ColoredBox(
-                                  color: Color(0xFF222222),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: _mediaCardWidth * 0.8,
-                              height: 16,
-                              child: const ColoredBox(
-                                color: Color(0xFF333333),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
-                SliverToBoxAdapter(
-                  child: MoviItemsList(
-                    title: '',
-                    itemSpacing: _itemSpacing,
-                    estimatedItemWidth: _mediaCardWidth,
-                    estimatedItemHeight: 270,
-                    items: List.generate(9, (i) {
-                      return SizedBox(
-                        width: _mediaCardWidth,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: SizedBox(
-                                width: _mediaCardWidth,
-                                height: 225,
-                                child: const ColoredBox(
-                                  color: Color(0xFF222222),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: _mediaCardWidth * 0.8,
-                              height: 16,
-                              child: const ColoredBox(
-                                color: Color(0xFF333333),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
-              ] else if (state.iptvLists.isEmpty) ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context)!.homeNoIptvSources,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                ),
-              ],
+              const SliverToBoxAdapter(
+                child: SizedBox(height: HomeLayoutConstants.sectionGap),
+              ),
 
-              // ===== Sections IPTV ===== (enrichissement à la volée)
+              HomeContinueWatchingSection(
+                onMarkAsUnwatched: showMarkAsUnwatchedDialog,
+              ),
+
+              const HomeContinueWatchingSpacer(),
+
+              if (state.isLoading && state.iptvLists.isEmpty)
+                SliverToBoxAdapter(child: const HomeIptvLoadingSections())
+              else if (state.iptvLists.isEmpty)
+                const SliverToBoxAdapter(child: HomeNoIptvSourcesMessage()),
+
               for (final entry in state.iptvLists.entries) ...[
                 SliverToBoxAdapter(
-                  child: MoviItemsList(
-                    title: _displayCategoryTitle(
-                      entry.key,
-                    ), // ← étiquette propre
-                    itemSpacing: _itemSpacing,
-                    estimatedItemWidth: _mediaCardWidth,
-                    // Hauteur totale carte = poster (225) + titre (≈20) + marge (12)
-                    // → 225 + 12 + 20 ≈ 257 ; on sécurise à 270 pour éviter overflow.
-                    estimatedItemHeight: 270,
-                    items: [
-                      ...entry.value.take(9).map((r) {
-                        final media = MoviMedia(
-                          id: r.id,
-                          title: r.title.value,
-                          poster: r.poster,
-                          year: r.year,
-                          rating: r.rating,
-                          type: r.type == ContentType.series
-                              ? MoviMediaType.series
-                              : MoviMediaType.movie,
-                        );
-                        return MoviMediaCard(
-                          media: media,
-                          onTap: (m) {
-                            final route = m.type == MoviMediaType.movie
-                                ? AppRouteNames.movie
-                                : AppRouteNames.tv;
-                            context.push(route, extra: m);
-                          },
-                        );
-                      }),
-                      SeeAllCard(
-                        title: _displayCategoryTitle(entry.key),
-                        categoryKey: entry.key,
-                        width: _mediaCardWidth,
-                        posterHeight: 225,
-                        onTap: (args) => context.push('/category', extra: args),
-                      ),
-                    ],
+                  child: HomeIptvSection(
+                    categoryTitle: entry.key,
+                    items: entry.value,
                   ),
                 ),
-                // 32 px entre *chaque* section MoviItemsList IPTV
-                const SliverToBoxAdapter(child: SizedBox(height: _sectionGap)),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: HomeLayoutConstants.sectionGap),
+                ),
               ],
 
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
         ),
-        if (showLoadingOverlay)
-          AnimatedOpacity(
-            opacity: showLoadingOverlay ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            child: const OverlaySplash(),
-          ),
+        HomeLoadingOverlay(show: showLoadingOverlay),
       ],
-    );
-  }
-}
-
-// _ViewportReq supprimé — l’UI n’émet plus de fenêtres de viewport pour enrichir.
-
-class _HeroEmptyBanner extends StatelessWidget {
-  const _HeroEmptyBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Column(
-        children: [
-          const SizedBox(height: 180),
-          Text(
-            AppLocalizations.of(context)!.homeNoTrends,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
     );
   }
 }

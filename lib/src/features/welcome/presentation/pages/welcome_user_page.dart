@@ -63,7 +63,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   String _getLanguageLabel(String code) {
     // Normaliser le code (enlever le pays si présent, sauf pour fr-MM)
     String normalizedCode = code.toLowerCase();
-    if (normalizedCode.startsWith('fr-') && !normalizedCode.startsWith('fr-mm')) {
+    if (normalizedCode.startsWith('fr-') &&
+        !normalizedCode.startsWith('fr-mm')) {
       normalizedCode = 'fr';
     } else if (normalizedCode.startsWith('en-')) {
       normalizedCode = 'en';
@@ -80,14 +81,17 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     } else if (normalizedCode.startsWith('pt-')) {
       normalizedCode = 'pt';
     }
-    
+
     // Vérifier si c'est fr-MM (avec casse flexible)
     if (code.toLowerCase().contains('mm')) {
       return _availableLanguages
-          .firstWhere((e) => e.$1 == 'fr-MM', orElse: () => ('fr-MM', 'Burgonde'))
+          .firstWhere(
+            (e) => e.$1 == 'fr-MM',
+            orElse: () => ('fr-MM', 'Burgonde'),
+          )
           .$2;
     }
-    
+
     final entry = _availableLanguages.firstWhere(
       (e) => e.$1.toLowerCase() == normalizedCode,
       orElse: () => (code, code),
@@ -99,23 +103,23 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     // Normaliser les deux codes pour la comparaison
     String normalizedCurrent = currentCode.toLowerCase();
     String normalizedCode = code.toLowerCase();
-    
+
     // Gérer le cas spécial de fr-MM
     if (code == 'fr-MM') {
       return normalizedCurrent.contains('mm');
     }
-    
+
     // Pour les autres, extraire juste le code langue
     final currentLang = normalizedCurrent.split('-').first;
     final codeLang = normalizedCode.split('-').first;
-    
+
     return currentLang == codeLang;
   }
 
   Future<void> _showLanguageSelector(BuildContext context) async {
     final currentLangCode = _lang;
     final accentColor = ref.read(asp.currentAccentColorProvider);
-    
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -127,7 +131,9 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                 Navigator.of(ctx).pop();
                 setState(() => _lang = code);
                 unawaited(
-                  ref.read(asp.appStateControllerProvider).setPreferredLocale(code),
+                  ref
+                      .read(asp.appStateControllerProvider)
+                      .setPreferredLocale(code),
                 );
               },
               child: Row(
@@ -146,11 +152,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                   if (_isCurrentLanguage(currentLangCode, code))
                     const SizedBox(width: 8),
                   if (_isCurrentLanguage(currentLangCode, code))
-                    Icon(
-                      Icons.check,
-                      color: accentColor,
-                      size: 20,
-                    ),
+                    Icon(Icons.check, color: accentColor, size: 20),
                 ],
               ),
             ),

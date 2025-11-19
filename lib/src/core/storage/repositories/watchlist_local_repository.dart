@@ -34,7 +34,11 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
   Future<Database> get _db => LocalDatabase.instance();
 
   @override
-  Future<bool> exists(String contentId, ContentType type, {String? userId}) async {
+  Future<bool> exists(
+    String contentId,
+    ContentType type, {
+    String? userId,
+  }) async {
     final db = await _db;
     final userIdValue = userId ?? 'default';
     final rows = await db.query(
@@ -47,7 +51,10 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
   }
 
   @override
-  Future<List<WatchlistEntry>> readAll(ContentType type, {String? userId}) async {
+  Future<List<WatchlistEntry>> readAll(
+    ContentType type, {
+    String? userId,
+  }) async {
     final db = await _db;
     final userIdValue = userId ?? 'default';
     final rows = await db.query(
@@ -76,7 +83,11 @@ class WatchlistLocalRepositoryImpl implements WatchlistLocalRepository {
   }
 
   @override
-  Future<void> remove(String contentId, ContentType type, {String? userId}) async {
+  Future<void> remove(
+    String contentId,
+    ContentType type, {
+    String? userId,
+  }) async {
     final db = await _db;
     final userIdValue = userId ?? 'default';
     await db.delete(

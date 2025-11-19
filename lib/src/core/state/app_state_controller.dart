@@ -16,10 +16,12 @@ import 'package:movi/src/core/state/app_state.dart';
 /// - Garantit l'immuabilité des collections exposées.
 class AppStateController extends StateNotifier<AppState> {
   AppStateController(this._localePreferences)
-    : super(AppState(
-        preferredLocale: _localePreferences.languageCode,
-        themeMode: _localePreferences.themeMode,
-      ));
+    : super(
+        AppState(
+          preferredLocale: _localePreferences.languageCode,
+          themeMode: _localePreferences.themeMode,
+        ),
+      );
 
   final LocalePreferences _localePreferences;
   StreamSubscription<String>? _localeSubscription;
