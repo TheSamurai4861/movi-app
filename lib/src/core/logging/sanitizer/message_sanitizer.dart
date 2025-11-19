@@ -18,22 +18,28 @@ class MessageSanitizer {
   };
   final Set<String> _sensitiveKeys;
 
-  static final RegExp _jwtPattern = RegExp(
+  // ignore: deprecated_member_use
+  static final Pattern _jwtPattern = RegExp(
     r'[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+',
   );
-  static final RegExp _bearerPattern = RegExp(
+  // ignore: deprecated_member_use
+  static final Pattern _bearerPattern = RegExp(
     r'Bearer\s+[A-Za-z0-9\-._~+/]+=*',
   );
-  static final RegExp _hexLongPattern = RegExp(r'\b[0-9a-fA-F]{16,}\b');
-  static final RegExp _base64LongPattern = RegExp(
+  // ignore: deprecated_member_use
+  static final Pattern _hexLongPattern = RegExp(r'\b[0-9a-fA-F]{16,}\b');
+  // ignore: deprecated_member_use
+  static final Pattern _base64LongPattern = RegExp(
     r'\b[A-Za-z0-9+/]{24,}={0,2}\b',
   );
-  static final RegExp _cookieHeaderPattern = RegExp(
+  // ignore: deprecated_member_use
+  static final Pattern _cookieHeaderPattern = RegExp(
     r'^(set-)?cookie:\s*.*$',
     caseSensitive: false,
     multiLine: true,
   );
-  static final RegExp _authHeaderPattern = RegExp(
+  // ignore: deprecated_member_use
+  static final Pattern _authHeaderPattern = RegExp(
     r'^authorization:\s*.*$',
     caseSensitive: false,
     multiLine: true,
@@ -84,8 +90,10 @@ class MessageSanitizer {
   String _maskKeyValuePairs(String input) {
     var out = input;
     for (final key in _sensitiveKeys) {
+      // ignore: deprecated_member_use
       final keyPattern = RegExp.escape(key);
-      final pattern = RegExp(
+      // ignore: deprecated_member_use
+      final Pattern pattern = RegExp(
         '($keyPattern)\\s*[:=]\\s*([^;\\n]+)',
         caseSensitive: false,
       );

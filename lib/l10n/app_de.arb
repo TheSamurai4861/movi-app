@@ -1,0 +1,246 @@
+{
+  "welcomeTitle": "Willkommen!",
+  "welcomeSubtitle": "Vervollständige deine Einstellungen, um Movi zu personalisieren.",
+  "labelUsername": "Spitzname",
+  "labelPreferredLanguage": "Bevorzugte Sprache",
+  "actionContinue": "Weiter",
+  "hintUsername": "Dein Spitzname",
+  "errorFillFields": "Bitte fülle die Felder korrekt aus.",
+  "homeWatchNow": "Jetzt ansehen",
+  "welcomeSourceTitle": "Willkommen!",
+  "welcomeSourceSubtitle": "Füge eine Quelle hinzu, um deine Erfahrung in Movi zu personalisieren.",
+  "welcomeSourceAdd": "Quelle hinzufügen",
+  "searchTitle": "Suchen",
+  "searchHint": "Gib deine Suche ein",
+  "clear": "Löschen",
+  "moviesTitle": "Filme",
+  "seriesTitle": "Serien",
+  "noResults": "Keine Ergebnisse",
+  "historyTitle": "Verlauf",
+  "historyEmpty": "Keine kürzlichen Suchen",
+  "delete": "Löschen",
+  "resultsCount": "({count} Ergebnisse)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorUnknown": "Unbekannter Fehler",
+  "errorConnectionFailed": "Verbindungsfehler: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorConnectionGeneric": "Verbindungsfehler",
+  "validationRequired": "Erforderlich",
+  "validationInvalidUrl": "Ungültige URL",
+  "snackbarSourceAddedBackground": "IPTV-Quelle hinzugefügt. Synchronisierung im Hintergrund…",
+  "snackbarSourceAddedSynced": "IPTV-Quelle hinzugefügt und synchronisiert",
+  "navHome": "Startseite",
+  "navSearch": "Suchen",
+  "navLibrary": "Bibliothek",
+  "navSettings": "Einstellungen",
+  "settingsTitle": "Einstellungen",
+  "settingsLanguageLabel": "Anwendungssprache",
+  "settingsGeneralTitle": "Allgemeine Einstellungen",
+  "settingsDarkModeTitle": "Dunkler Modus",
+  "settingsDarkModeSubtitle": "Aktiviere ein nachtfreundliches Design.",
+  "settingsNotificationsTitle": "Benachrichtigungen",
+  "settingsNotificationsSubtitle": "Werde über neue Veröffentlichungen benachrichtigt.",
+  "settingsAccountTitle": "Konto",
+  "settingsProfileInfoTitle": "Profilinformationen",
+  "settingsProfileInfoSubtitle": "Name, Avatar, Einstellungen",
+  "settingsAboutTitle": "Über",
+  "settingsLegalMentionsTitle": "Rechtliche Hinweise",
+  "settingsPrivacyPolicyTitle": "Datenschutzrichtlinie",
+  "actionCancel": "Abbrechen",
+  "actionConfirm": "Bestätigen",
+  "actionRetry": "Wiederholen",
+  "homeErrorSwipeToRetry": "Ein Fehler ist aufgetreten. Nach unten wischen, um erneut zu versuchen.",
+  "homeContinueWatching": "Weiter ansehen",
+  "homeNoIptvSources": "Keine IPTV-Quelle aktiv. Füge eine Quelle in den Einstellungen hinzu, um deine Kategorien zu sehen.",
+  "homeNoTrends": "Keine Trendinhalte verfügbar",
+  "actionRefreshMetadata": "Metadaten aktualisieren",
+  "actionChangeMetadata": "Metadaten ändern",
+  "actionAddToList": "Zu einer Liste hinzufügen",
+  "metadataRefreshed": "Metadaten aktualisiert",
+  "errorRefreshingMetadata": "Fehler beim Aktualisieren der Metadaten",
+  "actionMarkSeen": "Als gesehen markieren",
+  "actionMarkUnseen": "Als nicht gesehen markieren",
+  "actionReportProblem": "Problem melden",
+  "featureComingSoon": "Funktion kommt bald",
+  "actionLoadMore": "Mehr laden",
+  "iptvServerUrlLabel": "Server-URL",
+  "iptvServerUrlHint": "Xtream-Server-URL",
+  "iptvPasswordLabel": "Passwort",
+  "iptvPasswordHint": "Xtream-Passwort",
+  "actionConnect": "Verbinden",
+  "settingsRefreshIptvPlaylistsTitle": "IPTV-Wiedergabelisten aktualisieren",
+  "statusActive": "Aktiv",
+  "statusNoActiveSource": "Keine aktive Quelle",
+  "overlayPreparingHome": "Startseite wird vorbereitet…",
+  "errorPrepareHome": "Startseite konnte nicht vorbereitet werden",
+  "overlayOpeningHome": "Startseite wird geöffnet…",
+  "overlayRefreshingIptvLists": "IPTV-Listen werden aktualisiert…",
+  "overlayPreparingMetadata": "Metadaten werden vorbereitet…",
+  "errorHomeLoadTimeout": "Timeout beim Laden der Startseite",
+  "faqLabel": "FAQ",
+  "iptvUsernameLabel": "Benutzername",
+  "iptvUsernameHint": "Xtream-Benutzername",
+  "actionBack": "Zurück",
+  "actionExpand": "Erweitern",
+  "actionCollapse": "Reduzieren",
+  "actionClearHistory": "Verlauf löschen",
+  "castTitle": "Besetzung",
+  "recommendationsTitle": "Empfehlungen",
+  "libraryHeader": "Deine Videothek",
+  "libraryDataInfo": "Daten werden angezeigt, wenn data/domain implementiert ist.",
+  "libraryEmpty": "Markiere Filme, Serien oder Schauspieler, um sie hier zu sehen.",
+  "serie": "Serie",
+  "recherche": "Suchen",
+  "notYetAvailable": "Noch nicht verfügbar",
+  "createPlaylistTitle": "Playlist erstellen",
+  "playlistName": "Playlist-Name",
+  "addMedia": "Medien hinzufügen",
+  "renamePlaylist": "Umbenennen",
+  "deletePlaylist": "Löschen",
+  "playlistDeleted": "Playlist gelöscht",
+  "playlistCreatedSuccess": "Playlist \"{name}\" erstellt",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Fehler beim Erstellen der Playlist: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Hinzugefügt",
+  "settingsAccountsSection": "Konten",
+  "settingsIptvSection": "IPTV-Einstellungen",
+  "settingsSourcesManagement": "Quellenverwaltung",
+  "settingsSyncFrequency": "Aktualisierungsfrequenz",
+  "settingsAppSection": "App-Einstellungen",
+  "settingsAccentColor": "Akzentfarbe",
+  "settingsPlaybackSection": "Wiedergabeeinstellungen",
+  "settingsPreferredAudioLanguage": "Bevorzugte Sprache",
+  "settingsPreferredSubtitleLanguage": "Bevorzugte Untertitel",
+  "libraryPlaylistsFilter": "Wiedergabelisten",
+  "librarySagasFilter": "Sagas",
+  "libraryArtistsFilter": "Künstler",
+  "librarySearchPlaceholder": "In meiner Bibliothek suchen...",
+  "libraryInProgress": "In Bearbeitung",
+  "libraryFavoriteMovies": "Lieblingsfilme",
+  "libraryFavoriteSeries": "Lieblingsserien",
+  "libraryWatchHistory": "Wiedergabeverlauf",
+  "libraryItemCount": "{count} Element",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "libraryItemCountPlural": "{count} Elemente",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "searchPeopleTitle": "Personen",
+  "searchSagasTitle": "Sagas",
+  "personRoleActor": "Schauspieler",
+  "personRoleDirector": "Regisseur",
+  "personRoleCreator": "Ersteller",
+  "tvDistribution": "Besetzung",
+  "tvSeasonLabel": "Staffel {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "tvNoEpisodesAvailable": "Keine Episoden verfügbar",
+  "tvResumeSeasonEpisode": "Fortsetzen S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": { "type": "int" },
+      "episode": { "type": "int" }
+    }
+  },
+  "sagaViewPage": "Seite ansehen",
+  "sagaStartNow": "Jetzt starten",
+  "sagaContinue": "Fortsetzen",
+  "sagaMovieCount": "{count} Filme",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sagaMoviesList": "Filmliste",
+  "personMoviesCount": "{movies} Filme - {shows} Serien",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": { "type": "int" },
+      "shows": { "type": "int" }
+    }
+  },
+  "personPlayRandomly": "Zufällig abspielen",
+  "personMoviesList": "Filmliste",
+  "personSeriesList": "Serienliste",
+  "playlistPlayRandomly": "Zufällig abspielen",
+  "playlistAddButton": "Hinzufügen",
+  "playlistSortButton": "Sortieren",
+  "playlistSortByTitle": "Sortieren nach",
+  "playlistSortByTitleOption": "Titel",
+  "playlistSortRecentAdditions": "Kürzlich hinzugefügt",
+  "playlistSortOldestFirst": "Älteste zuerst",
+  "playlistSortNewestFirst": "Neueste zuerst",
+  "playlistEmptyMessage": "Keine Elemente in dieser Liste",
+  "playlistItemCount": "{count} Element",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistItemCountPlural": "{count} Elemente",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistSeasonSingular": "Staffel",
+  "playlistSeasonPlural": "Staffeln",
+  "playlistRenameTitle": "Liste umbenennen",
+  "playlistNamePlaceholder": "Listenname",
+  "playlistRenamedSuccess": "Liste umbenannt zu \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "playlistDeleteTitle": "Löschen",
+  "playlistDeleteConfirm": "Möchtest du \"{title}\" wirklich löschen?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "playlistDeletedSuccess": "Liste gelöscht",
+  "playlistItemRemovedSuccess": "Element entfernt",
+  "playlistRemoveItemConfirm": "\"{title}\" aus der Liste entfernen?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  }
+}
+

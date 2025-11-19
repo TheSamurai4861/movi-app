@@ -81,23 +81,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                 navItems: [
                   MoviBottomNavItem(
                     label: AppLocalizations.of(context)!.navHome,
-                    activeIcon: AppAssets.navHomeActive,
-                    inactiveIcon: AppAssets.navHome,
+                    icon: AppAssets.navHome,
                   ),
                   MoviBottomNavItem(
                     label: AppLocalizations.of(context)!.navSearch,
-                    activeIcon: AppAssets.navSearchActive,
-                    inactiveIcon: AppAssets.navSearch,
+                    icon: AppAssets.navSearch,
                   ),
                   MoviBottomNavItem(
                     label: AppLocalizations.of(context)!.navLibrary,
-                    activeIcon: AppAssets.navLibraryActive,
-                    inactiveIcon: AppAssets.navLibrary,
+                    icon: AppAssets.navLibrary,
                   ),
                   MoviBottomNavItem(
                     label: AppLocalizations.of(context)!.navSettings,
-                    activeIcon: AppAssets.navSettingsActive,
-                    inactiveIcon: AppAssets.navSettings,
+                    icon: AppAssets.navSettings,
                   ),
                 ],
                 onItemSelected: (i) {

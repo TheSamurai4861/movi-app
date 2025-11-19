@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/features/library/data/repositories/library_repository_impl.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_filter_pills.dart';
@@ -12,6 +13,7 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 /// Exposes the LibraryRepository to the presentation layer.
 /// Le repository est créé avec l'ID utilisateur actuel pour filtrer les favoris.
@@ -57,6 +59,8 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   ref,
 ) async {
   final repository = ref.watch(libraryRepositoryProvider);
+  final locale = ref.watch(currentLocaleProvider);
+  final localizations = lookupAppLocalizations(locale);
 
   final playlists = <LibraryPlaylistItem>[];
 
@@ -66,7 +70,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
     playlists.add(
       LibraryPlaylistItem(
         id: 'in_progress',
-        title: 'En cours',
+        title: localizations.libraryInProgress,
         itemCount: inProgress.length,
         type: LibraryPlaylistType.inProgress,
         isPinned: true,
@@ -80,7 +84,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
     playlists.add(
       LibraryPlaylistItem(
         id: 'favorite_movies',
-        title: 'Films favoris',
+        title: localizations.libraryFavoriteMovies,
         itemCount: favoriteMovies.length,
         type: LibraryPlaylistType.favoriteMovies,
         isPinned: true,
@@ -94,7 +98,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
     playlists.add(
       LibraryPlaylistItem(
         id: 'favorite_series',
-        title: 'Séries favorites',
+        title: localizations.libraryFavoriteSeries,
         itemCount: favoriteSeries.length,
         type: LibraryPlaylistType.favoriteSeries,
         isPinned: true,
@@ -110,7 +114,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
     playlists.add(
       LibraryPlaylistItem(
         id: 'watch_history',
-        title: 'Historique de visionnage',
+        title: localizations.libraryWatchHistory,
         itemCount: totalHistory,
         type: LibraryPlaylistType.watchHistory,
         isPinned: true,
@@ -165,7 +169,7 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
       LibraryPlaylistItem(
         id: 'saga_${saga.id.value}',
         title: saga.title.value,
-        itemCount: 0, // TODO: Compter les éléments de la saga
+        itemCount: 0, 
         type: LibraryPlaylistType.userPlaylist, // Utiliser un type approprié
         photo: saga.cover, // Image hero de la saga
       ),

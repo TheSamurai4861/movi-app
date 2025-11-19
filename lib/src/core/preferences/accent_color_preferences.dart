@@ -76,7 +76,7 @@ class AccentColorPreferences {
   }
 
   static String _stringifyColor(Color color) {
-    return color.value.toRadixString(16).toUpperCase();
+    return color.toARGB32().toRadixString(16).toUpperCase();
   }
 }
 

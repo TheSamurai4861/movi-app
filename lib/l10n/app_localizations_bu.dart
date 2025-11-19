@@ -12,7 +12,7 @@ class AppLocalizationsBu extends AppLocalizations {
   String get welcomeTitle => "Que nenni ! Bienv'nû !";
   @override
   String get welcomeSubtitle =>
-      "Remplis tes préférences, c’est point couettos mais utile.";
+      "Remplis tes préférences, c'est point couettos mais utile.";
   @override
   String get labelUsername => 'Sobriquet';
   @override
@@ -22,7 +22,7 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get hintUsername => 'Ton sobriquet';
   @override
-  String get errorFillFields => 'Faut point oublier d’emplir les champs.';
+  String get errorFillFields => 'Faut point oublier d\'emplir les champs.';
   @override
   String get homeWatchNow => 'Regarder toutim';
   @override
@@ -61,10 +61,10 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get validationRequired => 'Obligé';
   @override
-  String get validationInvalidUrl => 'L’adresse est point bonne';
+  String get validationInvalidUrl => 'L\'adresse est point bonne';
   @override
   String get snackbarSourceAddedBackground =>
-      'Source IPTV ajoutée. Ça s’active en coulisse…';
+      'Source IPTV ajoutée. Ça s\'active en coulisse…';
   @override
   String get snackbarSourceAddedSynced => 'Source IPTV ajoutée et arrimée';
   @override
@@ -78,7 +78,7 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get settingsTitle => 'Ajustes';
   @override
-  String get settingsLanguageLabel => 'Langage de l’appli';
+  String get settingsLanguageLabel => 'Langage de l\'appli';
   @override
   String get settingsGeneralTitle => 'Préférences générales';
   @override
@@ -130,7 +130,7 @@ class AppLocalizationsBu extends AppLocalizations {
 
   @override
   String get libraryDataInfo =>
-      'Les données s’afficheront quand la couche data/domain sera arrimée.';
+      'Les données s\'afficheront quand la couche data/domain sera arrimée.';
 
   @override
   String get libraryEmpty => 'Likez des films, séries ou acteurs pour les voir apparaître ici.';
@@ -205,4 +205,138 @@ class AppLocalizationsBu extends AppLocalizations {
   String get recherche => 'Quête';
   @override
   String get notYetAvailable => 'Point encore disponible';
+  @override
+  String get createPlaylistTitle => 'Créer une liste';
+  @override
+  String get playlistName => 'Nom de la liste';
+  @override
+  String get addMedia => 'Ajouter des médias';
+  @override
+  String get renamePlaylist => 'Renommer';
+  @override
+  String get deletePlaylist => 'Supprimer';
+  @override
+  String get playlistDeleted => 'Liste supprimée';
+  @override
+  String playlistCreatedSuccess(String name) => 'Liste "$name" créée';
+  @override
+  String playlistCreateError(String error) => 'Couac lors de la création: $error';
+  @override
+  String get addedToPlaylist => 'Ajouté';
+  @override
+  String get settingsAccountsSection => 'Comptoirs';
+  @override
+  String get settingsIptvSection => 'Ajustes IPTV';
+  @override
+  String get settingsSourcesManagement => 'Réglages des sources';
+  @override
+  String get settingsSyncFrequency => 'Fréquence màj';
+  @override
+  String get settingsAppSection => 'Ajustes de l\'appli';
+  @override
+  String get settingsAccentColor => 'Couleur d\'accent';
+  @override
+  String get settingsPlaybackSection => 'Ajustes de lecture';
+  @override
+  String get settingsPreferredAudioLanguage => 'Langage préféré';
+  @override
+  String get settingsPreferredSubtitleLanguage => 'Sous-titres préférés';
+  @override
+  String get libraryPlaylistsFilter => 'Listes';
+  @override
+  String get librarySagasFilter => 'Sagas';
+  @override
+  String get libraryArtistsFilter => 'Artistes';
+  @override
+  String get librarySearchPlaceholder => 'Quérir dans ma réserve...';
+  @override
+  String get libraryInProgress => 'En cours';
+  @override
+  String get libraryFavoriteMovies => 'Bobines favorites';
+  @override
+  String get libraryFavoriteSeries => 'Feuilletons favoris';
+  @override
+  String get libraryWatchHistory => 'Chronique de visionnage';
+  @override
+  String libraryItemCount(int count) => '$count élément';
+  @override
+  String libraryItemCountPlural(int count) => '$count éléments';
+  @override
+  String get searchPeopleTitle => 'Personnalités';
+  @override
+  String get searchSagasTitle => 'Sagas';
+  @override
+  String get personRoleActor => 'Acteur';
+  @override
+  String get personRoleDirector => 'Réalisateur';
+  @override
+  String get personRoleCreator => 'Créateur';
+  @override
+  String get tvDistribution => 'Distribution';
+  @override
+  String tvSeasonLabel(int number) => 'Saison $number';
+  @override
+  String get tvNoEpisodesAvailable => 'Point d\'épisode disponible';
+  @override
+  String tvResumeSeasonEpisode(int season, int episode) => 'Reprendre S$season E$episode';
+  @override
+  String get sagaViewPage => 'Voir la page';
+  @override
+  String get sagaStartNow => 'Commencer maintenant';
+  @override
+  String get sagaContinue => 'Poursuivre';
+  @override
+  String sagaMovieCount(int count) => '$count films';
+  @override
+  String get sagaMoviesList => 'Liste des films';
+  @override
+  String personMoviesCount(int movies, int shows) => '$movies films - $shows séries';
+  @override
+  String get personPlayRandomly => 'Lire aléatoirement';
+  @override
+  String get personMoviesList => 'Liste des films';
+  @override
+  String get personSeriesList => 'Liste des séries';
+  @override
+  String get playlistPlayRandomly => 'Lire aléatoirement';
+  @override
+  String get playlistAddButton => 'Ajouter';
+  @override
+  String get playlistSortButton => 'Trier';
+  @override
+  String get playlistSortByTitle => 'Trier par';
+  @override
+  String get playlistSortByTitleOption => 'Titre';
+  @override
+  String get playlistSortRecentAdditions => 'Ajout récents';
+  @override
+  String get playlistSortOldestFirst => 'Anciens d\'abord';
+  @override
+  String get playlistSortNewestFirst => 'Récents d\'abord';
+  @override
+  String get playlistEmptyMessage => 'Point d\'élément dans cette liste';
+  @override
+  String playlistItemCount(int count) => '$count élément';
+  @override
+  String playlistItemCountPlural(int count) => '$count éléments';
+  @override
+  String get playlistSeasonSingular => 'saison';
+  @override
+  String get playlistSeasonPlural => 'saisons';
+  @override
+  String get playlistRenameTitle => 'Renommer la liste';
+  @override
+  String get playlistNamePlaceholder => 'Nom de la liste';
+  @override
+  String playlistRenamedSuccess(String name) => 'Liste renommée en "$name"';
+  @override
+  String get playlistDeleteTitle => 'Supprimer';
+  @override
+  String playlistDeleteConfirm(String title) => 'Êtes-vous sûr de vouloir supprimer "$title" ?';
+  @override
+  String get playlistDeletedSuccess => 'Liste supprimée';
+  @override
+  String get playlistItemRemovedSuccess => 'Élément supprimé';
+  @override
+  String playlistRemoveItemConfirm(String title) => 'Supprimer "$title" de la liste ?';
 }

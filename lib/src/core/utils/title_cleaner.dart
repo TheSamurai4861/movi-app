@@ -4,7 +4,8 @@ class TitleCleaner {
   TitleCleaner._();
 
   /// Patterns à supprimer du titre (entre parenthèses, crochets, pipes, etc.)
-  static final RegExp _patternToRemove = RegExp(
+  // ignore: deprecated_member_use
+  static final Pattern _patternToRemove = RegExp(
     r'\s*[|]\s*[A-Z]{2,}\s*[|]?' // |FR|, |EN|, etc.
     r'|\s*\([^)]*\)' // (Multi), (VOSTFR), etc.
     r'|\s*\[[^\]]*\]' // [HD], [4K], etc.
@@ -29,6 +30,7 @@ class TitleCleaner {
     }
 
     // Nettoyer les espaces multiples
+    // ignore: deprecated_member_use
     cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
 
     return cleaned;
@@ -39,6 +41,7 @@ class TitleCleaner {
     final cleaned = clean(title);
 
     // Extraire l'année à la fin (format: "Titre (2020)" ou "Titre 2020")
+    // ignore: deprecated_member_use
     final yearMatch = RegExp(r'\s*\(?(\d{4})\)?\s*$').firstMatch(cleaned);
     if (yearMatch != null) {
       final yearStr = yearMatch.group(1);
@@ -47,6 +50,7 @@ class TitleCleaner {
         final titleWithoutYear = cleaned
             .substring(0, yearMatch.start)
             .trim()
+            // ignore: deprecated_member_use
             .replaceAll(RegExp(r'[()]'), '')
             .trim();
         return (cleanedTitle: titleWithoutYear, year: year);

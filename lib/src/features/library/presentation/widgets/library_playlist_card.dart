@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 enum LibraryPlaylistType {
   inProgress,
@@ -11,7 +14,7 @@ enum LibraryPlaylistType {
   actor,
 }
 
-class LibraryPlaylistCard extends StatelessWidget {
+class LibraryPlaylistCard extends ConsumerWidget {
   const LibraryPlaylistCard({
     super.key,
     required this.title,
@@ -66,8 +69,8 @@ class LibraryPlaylistCard extends StatelessWidget {
           color: Colors.white,
         );
       case LibraryPlaylistType.actor:
-        return Image.asset(
-          AppAssets.placeholderPersonActor,
+        return MoviPlaceholderCard(
+          type: PlaceholderType.person,
           width: 40,
           height: 40,
         );
@@ -75,7 +78,8 @@ class LibraryPlaylistCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -148,10 +152,10 @@ class LibraryPlaylistCard extends StatelessWidget {
                     Row(
                       children: [
                         if (isPinned) ...[
-                          const Icon(
+                          Icon(
                             Icons.push_pin,
-                            size: 25,
-                            color: Color(0xFF5493DE),
+                            size: 20,
+                            color: accentColor,
                           ),
                           const SizedBox(width: 4),
                         ],

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 enum LibraryFilterType {
   playlists,
@@ -6,7 +9,7 @@ enum LibraryFilterType {
   artistes,
 }
 
-class LibraryFilterPills extends StatelessWidget {
+class LibraryFilterPills extends ConsumerWidget {
   const LibraryFilterPills({
     super.key,
     required this.activeFilter,
@@ -17,7 +20,8 @@ class LibraryFilterPills extends StatelessWidget {
   final ValueChanged<LibraryFilterType?> onFilterChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     return Row(
       children: [
         if (activeFilter != null) ...[
@@ -27,7 +31,7 @@ class LibraryFilterPills extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF2160AB),
+                color: accentColor,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: const Icon(
@@ -41,8 +45,9 @@ class LibraryFilterPills extends StatelessWidget {
         ],
         // Pills de filtre
         _FilterPill(
-          label: 'Playlists',
+          label: AppLocalizations.of(context)!.libraryPlaylistsFilter,
           isActive: activeFilter == LibraryFilterType.playlists,
+          accentColor: accentColor,
           onTap: () => onFilterChanged(
             activeFilter == LibraryFilterType.playlists
                 ? null
@@ -51,8 +56,9 @@ class LibraryFilterPills extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         _FilterPill(
-          label: 'Sagas',
+          label: AppLocalizations.of(context)!.librarySagasFilter,
           isActive: activeFilter == LibraryFilterType.sagas,
+          accentColor: accentColor,
           onTap: () => onFilterChanged(
             activeFilter == LibraryFilterType.sagas
                 ? null
@@ -61,8 +67,9 @@ class LibraryFilterPills extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         _FilterPill(
-          label: 'Artistes',
+          label: AppLocalizations.of(context)!.libraryArtistsFilter,
           isActive: activeFilter == LibraryFilterType.artistes,
+          accentColor: accentColor,
           onTap: () => onFilterChanged(
             activeFilter == LibraryFilterType.artistes
                 ? null
@@ -73,27 +80,19 @@ class LibraryFilterPills extends StatelessWidget {
     );
   }
 
-  String _getFilterLabel(LibraryFilterType type) {
-    switch (type) {
-      case LibraryFilterType.playlists:
-        return 'Playlists';
-      case LibraryFilterType.sagas:
-        return 'Sagas';
-      case LibraryFilterType.artistes:
-        return 'Artistes';
-    }
-  }
 }
 
 class _FilterPill extends StatelessWidget {
   const _FilterPill({
     required this.label,
     required this.isActive,
+    required this.accentColor,
     required this.onTap,
   });
 
   final String label;
   final bool isActive;
+  final Color accentColor;
   final VoidCallback onTap;
 
   @override
@@ -103,10 +102,10 @@ class _FilterPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF2160AB) : Colors.transparent,
+          color: isActive ? accentColor : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           border: Border.all(
-            color: isActive ? const Color(0xFF2160AB) : Colors.white30,
+            color: isActive ? accentColor : Colors.white30,
             width: 1,
           ),
         ),

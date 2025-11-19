@@ -101,5 +101,169 @@
   "libraryEmpty": "Likez des films, séries ou acteurs pour les voir apparaître ici.",
   "serie": "Feuilleton",
   "recherche": "Quête",
-  "notYetAvailable": "Pas encore disponible"
+  "notYetAvailable": "Pas encore disponible",
+  "createPlaylistTitle": "Créer une liste",
+  "playlistName": "Nom de la liste",
+  "addMedia": "Ajouter des médias",
+  "renamePlaylist": "Renommer",
+  "deletePlaylist": "Supprimer",
+  "playlistDeleted": "Liste supprimée",
+  "playlistCreatedSuccess": "Liste \"{name}\" créée",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Couac lors de la création : {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Ajouté",
+  "settingsAccountsSection": "Comptoirs",
+  "settingsIptvSection": "Ajustes IPTV",
+  "settingsSourcesManagement": "Réglages des sources",
+  "settingsSyncFrequency": "Fréquence màj",
+  "settingsAppSection": "Ajustes de l'appli",
+  "settingsAccentColor": "Couleur d'accent",
+  "settingsPlaybackSection": "Ajustes de lecture",
+  "settingsPreferredAudioLanguage": "Langage préféré",
+  "settingsPreferredSubtitleLanguage": "Sous-titres préférés",
+  "libraryPlaylistsFilter": "Listes",
+  "librarySagasFilter": "Sagas",
+  "libraryArtistsFilter": "Artistes",
+  "librarySearchPlaceholder": "Quérir dans ma réserve...",
+  "libraryInProgress": "En cours",
+  "libraryFavoriteMovies": "Bobines favorites",
+  "libraryFavoriteSeries": "Feuilletons favoris",
+  "libraryWatchHistory": "Chronique de visionnage",
+  "libraryItemCount": "{count} élément",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryItemCountPlural": "{count} éléments",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchPeopleTitle": "Personnalités",
+  "searchSagasTitle": "Sagas",
+  "personRoleActor": "Acteur",
+  "personRoleDirector": "Réalisateur",
+  "personRoleCreator": "Créateur",
+  "tvDistribution": "Troupe",
+  "tvSeasonLabel": "Saison {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tvNoEpisodesAvailable": "Point d'épisode disponible",
+  "tvResumeSeasonEpisode": "Reprendre S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaViewPage": "Voir la page",
+  "sagaStartNow": "Commencer toutim",
+  "sagaContinue": "Poursuivre",
+  "sagaMovieCount": "{count} bobines",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaMoviesList": "Liste des bobines",
+  "personMoviesCount": "{movies} bobines - {shows} feuilletons",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
+    }
+  },
+  "personPlayRandomly": "Lire aléatoirement",
+  "personMoviesList": "Liste des bobines",
+  "personSeriesList": "Liste des feuilletons",
+  "playlistPlayRandomly": "Lire aléatoirement",
+  "playlistAddButton": "Ajouter",
+  "playlistSortButton": "Trier",
+  "playlistSortByTitle": "Trier par",
+  "playlistSortByTitleOption": "Titre",
+  "playlistSortRecentAdditions": "Ajout récents",
+  "playlistSortOldestFirst": "Anciens d'abord",
+  "playlistSortNewestFirst": "Récents d'abord",
+  "playlistEmptyMessage": "Point d'élément dans cette liste",
+  "playlistItemCount": "{count} élément",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistItemCountPlural": "{count} éléments",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSeasonSingular": "saison",
+  "playlistSeasonPlural": "saisons",
+  "playlistRenameTitle": "Renommer la liste",
+  "playlistNamePlaceholder": "Nom de la liste",
+  "playlistRenamedSuccess": "Liste renommée en \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteTitle": "Supprimer",
+  "playlistDeleteConfirm": "Êtes-vous sûr de vouloir supprimer \"{title}\" ?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeletedSuccess": "Liste supprimée",
+  "playlistItemRemovedSuccess": "Élément supprimé",
+  "playlistRemoveItemConfirm": "Supprimer \"{title}\" de la liste ?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  }
 }

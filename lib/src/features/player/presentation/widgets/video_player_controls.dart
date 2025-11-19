@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/core/theme/app_colors.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 /// Widget de contrôles du player vidéo
-class VideoPlayerControls extends StatelessWidget {
+class VideoPlayerControls extends ConsumerWidget {
   const VideoPlayerControls({
     super.key,
     required this.title,
@@ -48,7 +49,7 @@ class VideoPlayerControls extends StatelessWidget {
   final bool hasAudioTracks;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final progress = duration.inMilliseconds == 0
         ? 0.0
         : position.inMilliseconds / duration.inMilliseconds;
@@ -59,11 +60,12 @@ class VideoPlayerControls extends StatelessWidget {
         // Ne rien faire, empêcher la propagation
       },
       behavior: HitTestBehavior.opaque,
-      child: _buildControls(context, progress),
+      child: _buildControls(context, ref, progress),
     );
   }
 
-  Widget _buildControls(BuildContext context, double progress) {
+  Widget _buildControls(BuildContext context, WidgetRef ref, double progress) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -251,8 +253,8 @@ class VideoPlayerControls extends StatelessWidget {
                       child: Slider(
                         value: progress.clamp(0.0, 1.0),
                         onChanged: onSeek,
-                        activeColor: AppColors.accent,
-                        inactiveColor: Colors.white.withOpacity(0.3),
+                        activeColor: accentColor,
+                        inactiveColor: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
                   ),
@@ -354,7 +356,7 @@ class _ControlButton extends StatelessWidget {
             width: buttonSize,
             height: buttonSize,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Center(

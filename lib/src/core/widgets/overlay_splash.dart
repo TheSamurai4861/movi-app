@@ -5,10 +5,13 @@
 // Use across Bootstrap and Home to ensure consistent UX.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
-class OverlaySplash extends StatelessWidget {
+class OverlaySplash extends ConsumerWidget {
   const OverlaySplash({super.key, this.message, this.fadeInDuration});
 
   final String? message;
@@ -17,8 +20,9 @@ class OverlaySplash extends StatelessWidget {
   final Duration? fadeInDuration;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     final bottom = 30.0 + MediaQuery.of(context).padding.bottom;
 
     final duration = fadeInDuration ?? const Duration(milliseconds: 300);
@@ -34,10 +38,13 @@ class OverlaySplash extends StatelessWidget {
             Center(
               child: Semantics(
                 label: 'MOVI splash logo',
-                child: Image.asset(
-                  AppAssets.iconAppLogo,
+                child: SvgPicture.asset(
+                  AppAssets.iconAppLogoSvg,
                   height: 120,
-                  fit: BoxFit.contain,
+                  colorFilter: ColorFilter.mode(
+                    accentColor,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ),
             ),

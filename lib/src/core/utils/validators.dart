@@ -1,11 +1,14 @@
 // lib/src/core/utils/validators.dart
 
+// ignore_for_file: deprecated_member_use, duplicate_ignore
+
 /// Vérifie grossièrement si une chaîne ressemble à une URL http(s).
 /// - Tolère l’absence de schéma (ex: "example.com:8080").
 /// - Ne garantit pas la joignabilité.
 bool looksLikeHttpUrl(String input) {
   final v = input.trim();
   if (v.isEmpty) return false;
+  // ignore: deprecated_member_use
   if (v.contains(RegExp(r'\s'))) return false;
 
   final hasScheme =
@@ -20,6 +23,8 @@ bool looksLikeHttpUrl(String input) {
 bool isValidIp(String input) {
   final v = input.trim();
   if (v.isEmpty) return false;
+  // ignore: duplicate_ignore
+  // ignore: deprecated_member_use
   final ipv4 =
       RegExp(r'^(?:\d{1,3}\.){3}\d{1,3}$').hasMatch(v) &&
       v
@@ -27,6 +32,7 @@ bool isValidIp(String input) {
           .every(
             (octet) => int.tryParse(octet)! >= 0 && int.tryParse(octet)! <= 255,
           );
+  // ignore: deprecated_member_use
   final ipv6 = RegExp(
     r'^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|'
     r'([0-9a-fA-F]{1,4}:){1,7}:|'

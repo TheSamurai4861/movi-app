@@ -162,7 +162,7 @@ class MovieRepositoryImpl implements MovieRepository {
               id: PersonId(crew.id.toString()),
               tmdbId: crew.id,
               name: crew.name,
-              role: 'Director',
+              role: 'Director', // Will be localized in presentation layer
               photo: _images.poster(crew.profilePath),
             ),
           )

@@ -18,10 +18,8 @@ import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/features/library/presentation/widgets/add_media_search_modal.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:movi/src/features/playlist/domain/usecases/rename_playlist.dart';
-import 'package:movi/src/features/playlist/domain/usecases/delete_playlist.dart';
-import 'package:movi/src/features/playlist/domain/usecases/remove_playlist_item.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 enum PlaylistSortType { title, recentlyAdded, yearAscending, yearDescending }
 
@@ -160,7 +158,7 @@ class _LibraryPlaylistDetailPageState
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Trier par'),
+        title: Text(AppLocalizations.of(context)!.playlistSortByTitle),
         actions: [
           CupertinoActionSheetAction(
             onPressed: () {
@@ -174,7 +172,7 @@ class _LibraryPlaylistDetailPageState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Titre'),
+                Text(AppLocalizations.of(context)!.playlistSortByTitleOption),
                 if (_sortType == PlaylistSortType.title)
                   const SizedBox(width: 8),
                 if (_sortType == PlaylistSortType.title)
@@ -194,7 +192,7 @@ class _LibraryPlaylistDetailPageState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Ajout récents'),
+                Text(AppLocalizations.of(context)!.playlistSortRecentAdditions),
                 if (_sortType == PlaylistSortType.recentlyAdded)
                   const SizedBox(width: 8),
                 if (_sortType == PlaylistSortType.recentlyAdded)
@@ -214,7 +212,7 @@ class _LibraryPlaylistDetailPageState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Anciens d\'abord'),
+                Text(AppLocalizations.of(context)!.playlistSortOldestFirst),
                 if (_sortType == PlaylistSortType.yearAscending)
                   const SizedBox(width: 8),
                 if (_sortType == PlaylistSortType.yearAscending)
@@ -234,7 +232,7 @@ class _LibraryPlaylistDetailPageState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Récents d\'abord'),
+                Text(AppLocalizations.of(context)!.playlistSortNewestFirst),
                 if (_sortType == PlaylistSortType.yearDescending)
                   const SizedBox(width: 8),
                 if (_sortType == PlaylistSortType.yearDescending)
@@ -255,7 +253,6 @@ class _LibraryPlaylistDetailPageState
     if (items.isEmpty) return;
     items.shuffle();
     final firstItem = items.first;
-    // TODO: Implémenter la lecture aléatoire
     // Pour l'instant, ouvrir le premier élément
     _openMedia(context, firstItem);
   }
@@ -273,7 +270,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               _showRenameDialog(context, ref);
             },
-            child: const Text('Renommer'),
+            child: Text(AppLocalizations.of(context)!.playlistRenameTitle),
           ),
           CupertinoActionSheetAction(
             isDestructiveAction: true,
@@ -281,7 +278,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               _showDeleteDialog(context, ref);
             },
-            child: const Text('Supprimer'),
+            child: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
@@ -300,12 +297,12 @@ class _LibraryPlaylistDetailPageState
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Renommer la playlist'),
+        title: Text(AppLocalizations.of(context)!.playlistRenameTitle),
         content: Padding(
           padding: const EdgeInsets.only(top: 16),
           child: CupertinoTextField(
             controller: nameController,
-            placeholder: 'Nom de la playlist',
+            placeholder: AppLocalizations.of(context)!.playlistNamePlaceholder,
             autofocus: true,
             padding: const EdgeInsets.all(12),
           ),
@@ -340,7 +337,7 @@ class _LibraryPlaylistDetailPageState
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Playlist renommée en "$name"')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.playlistRenamedSuccess(name))),
                   );
                 }
               } catch (e) {
@@ -364,9 +361,9 @@ class _LibraryPlaylistDetailPageState
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Supprimer la playlist'),
+        title: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
         content: Text(
-          'Êtes-vous sûr de vouloir supprimer "${widget.playlist.title}" ?',
+          AppLocalizations.of(context)!.playlistDeleteConfirm(widget.playlist.title),
         ),
         actions: [
           CupertinoDialogAction(
@@ -392,7 +389,7 @@ class _LibraryPlaylistDetailPageState
                 if (context.mounted) {
                   context.pop(); // Retourner à la bibliothèque
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Playlist supprimée')),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.playlistDeletedSuccess)),
                   );
                 }
               } catch (e) {
@@ -403,7 +400,7 @@ class _LibraryPlaylistDetailPageState
                 }
               }
             },
-            child: const Text('Supprimer'),
+            child: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
           ),
         ],
       ),
@@ -473,8 +470,8 @@ class _LibraryPlaylistDetailPageState
           color: Colors.white,
         );
       case LibraryPlaylistType.actor:
-        return Image.asset(
-          AppAssets.placeholderPersonActor,
+        return MoviPlaceholderCard(
+          type: PlaceholderType.person,
           width: 64,
           height: 64,
         );
@@ -526,6 +523,7 @@ class _LibraryPlaylistDetailPageState
 
   @override
   Widget build(BuildContext context) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     // Pour les playlists utilisateur, utiliser le provider pour permettre l'invalidation
     final itemsAsync =
         widget.playlist.type == LibraryPlaylistType.userPlaylist &&
@@ -566,7 +564,7 @@ class _LibraryPlaylistDetailPageState
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Retour',
+                          AppLocalizations.of(context)!.actionBack,
                           style:
                               Theme.of(context).textTheme.bodyLarge?.copyWith(
                                 color: Colors.white,
@@ -609,11 +607,11 @@ class _LibraryPlaylistDetailPageState
                     children: [
                       // Gradient de fond diagonal
                       Container(
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [Color(0xFF2160AB), Color(0xFF0D2745)],
+                            colors: [accentColor, Color(0xFF0D2745)],
                           ),
                         ),
                       ),
@@ -679,21 +677,23 @@ class _LibraryPlaylistDetailPageState
                         bottom: 24,
                         left: 0,
                         right: 0,
-                        child: Text(
-                          '$itemCount éléments',
-                          textAlign: TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                              ) ??
-                              const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                              ),
-                        ),
+                          child: Text(
+                            itemCount == 1
+                                ? AppLocalizations.of(context)!.playlistItemCount(itemCount)
+                                : AppLocalizations.of(context)!.playlistItemCountPlural(itemCount),
+                            textAlign: TextAlign.center,
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ) ??
+                                const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                          ),
                       ),
                     ],
                   ),
@@ -721,7 +721,7 @@ class _LibraryPlaylistDetailPageState
                       // Bouton primaire "Lire aléatoirement" (si non vide)
                       if (!isEmpty)
                         MoviPrimaryButton(
-                          label: 'Lire aléatoirement',
+                          label: AppLocalizations.of(context)!.playlistPlayRandomly,
                           assetIcon: AppAssets.iconPlay,
                           onPressed: () => _playRandomly(context, sortedItems),
                         ),
@@ -770,7 +770,7 @@ class _LibraryPlaylistDetailPageState
                                   }
                                 },
                                 child: MoviPill(
-                                  'Ajouter',
+                                  AppLocalizations.of(context)!.playlistAddButton,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 8,
@@ -790,7 +790,7 @@ class _LibraryPlaylistDetailPageState
                               GestureDetector(
                                 onTap: () => _showSortMenu(context, ref),
                                 child: MoviPill(
-                                  'Trier',
+                                  AppLocalizations.of(context)!.playlistSortButton,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 8,
@@ -825,7 +825,7 @@ class _LibraryPlaylistDetailPageState
                   if (items.isEmpty) {
                     return Center(
                       child: Text(
-                        'Aucun élément dans cette playlist',
+                        AppLocalizations.of(context)!.playlistEmptyMessage,
                         style:
                             Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: Colors.white70,
@@ -1049,7 +1049,7 @@ class _LibraryPlaylistDetailPageState
                               else if (reference.type == ContentType.series &&
                                   seasonCount != null)
                                 MoviPill(
-                                  '${seasonCount} ${seasonCount == 1 ? 'saison' : 'saisons'}',
+                                  '$seasonCount ${seasonCount == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}',
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
                                     vertical: 4,
@@ -1102,8 +1102,8 @@ class _LibraryPlaylistDetailPageState
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Supprimer'),
-        content: Text('Supprimer "${reference.title.value}" de la playlist ?'),
+        title: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
+        content: Text(AppLocalizations.of(context)!.playlistRemoveItemConfirm(reference.title.value)),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -1115,7 +1115,7 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               _removeItemFromPlaylist(context, ref, playlistItem, playlistId);
             },
-            child: const Text('Supprimer'),
+            child: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
           ),
         ],
       ),
@@ -1145,9 +1145,9 @@ class _LibraryPlaylistDetailPageState
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Élément supprimé'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.playlistItemRemovedSuccess),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -1166,7 +1166,7 @@ class _LibraryPlaylistDetailPageState
   ) async {
     if (reference.type == ContentType.movie) {
       // MovieSummary n'a pas de durée, on retourne null pour l'instant
-      // TODO: Charger les détails complets du film si nécessaire
+  
       return (duration: null, seasonCount: null);
     } else if (reference.type == ContentType.series) {
       // Pour les séries, récupérer le nombre de saisons

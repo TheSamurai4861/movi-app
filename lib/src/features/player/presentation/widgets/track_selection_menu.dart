@@ -69,6 +69,7 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                       selectedTileColor: const Color(0xFF2A2A2A),
                       onTap: () async {
                         await onDisable();
+                        if (!context.mounted) return;
                         Navigator.of(context).pop(null);
                       },
                     );
@@ -98,7 +99,7 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                         ? Text(
                             track.title!,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 12,
                             ),
                           )
@@ -107,6 +108,7 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                     selectedTileColor: const Color(0xFF2A2A2A),
                     onTap: () async {
                       await onTrackSelected(track);
+                      if (!context.mounted) return;
                       Navigator.of(context).pop(track);
                     },
                   );
@@ -231,7 +233,7 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                         ? Text(
                             track.title!,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
+                              color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 12,
                             ),
                           )
@@ -240,6 +242,7 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                     selectedTileColor: const Color(0xFF2A2A2A),
                     onTap: () async {
                       await onTrackSelected(track);
+                      if (!context.mounted) return;
                       Navigator.of(context).pop(track);
                     },
                   );

@@ -8,10 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/router/router.dart';
-import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -285,6 +286,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final int? id = m.tmdbId;
     if (id == null || _hydratedIds.contains(id)) return;
 
+    // Sauvegarder la langue au début pour éviter d'utiliser ref après await
+    if (!mounted) return;
+    final language = ref.read(asp.currentLanguageCodeProvider);
+
     Map<String, dynamic>? data = await _safeGetMovieDetail(id);
     bool isTvData = false;
     if (data == null) {
@@ -299,23 +304,23 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         try {
           final dto = await _moviesRemote.fetchMovieFull(
             id,
-            language: ref.read(currentLanguageCodeProvider),
+            language: language,
           );
           await _cache.putMovieDetail(
             id,
             dto.toCache(),
-            language: ref.read(currentLanguageCodeProvider),
+            language: language,
           );
           _fullyHydratedIds.add(id);
         } catch (_) {
           final dto = await _tvRemote.fetchShowFull(
             id,
-            language: ref.read(currentLanguageCodeProvider),
+            language: language,
           );
           await _cache.putTvDetail(
             id,
             dto.toCache(),
-            language: ref.read(currentLanguageCodeProvider),
+            language: language,
           );
           _fullyHydratedIds.add(id);
         }
@@ -364,23 +369,23 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       if (!isTvData) {
         final dto = await _moviesRemote.fetchMovieFull(
           id,
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
         await _cache.putMovieDetail(
           id,
           dto.toCache(),
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
         _fullyHydratedIds.add(id);
       } else {
         final dto = await _tvRemote.fetchShowFull(
           id,
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
         await _cache.putTvDetail(
           id,
           dto.toCache(),
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
         _fullyHydratedIds.add(id);
       }
@@ -404,27 +409,30 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         _fullyHydratedIds.contains(id)) {
       return;
     }
+    // Sauvegarder la langue au début pour éviter d'utiliser ref après await
+    if (!mounted) return;
+    final language = ref.read(asp.currentLanguageCodeProvider);
     try {
       _hydratedIds.add(id);
       try {
         final dto = await _moviesRemote.fetchMovieFull(
           id,
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
         await _cache.putMovieDetail(
           id,
           dto.toCache(),
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
       } catch (_) {
         final dto = await _tvRemote.fetchShowFull(
           id,
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
         await _cache.putTvDetail(
           id,
           dto.toCache(),
-          language: ref.read(currentLanguageCodeProvider),
+          language: language,
         );
       }
       _fullyHydratedIds.add(id);
@@ -442,10 +450,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   Future<Map<String, dynamic>?> _safeGetMovieDetail(int id) async {
+    if (!mounted) return null;
+    final language = ref.read(asp.currentLanguageCodeProvider);
     try {
       return await _cache.getMovieDetail(
         id,
-        language: ref.read(currentLanguageCodeProvider),
+        language: language,
       );
     } catch (e, st) {
       if (kDebugMode) {
@@ -456,10 +466,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   Future<Map<String, dynamic>?> _safeGetTvDetail(int id) async {
+    if (!mounted) return null;
+    final language = ref.read(asp.currentLanguageCodeProvider);
     try {
       return await _cache.getTvDetail(
         id,
-        language: ref.read(currentLanguageCodeProvider),
+        language: language,
       );
     } catch (e, st) {
       if (kDebugMode) {
@@ -526,11 +538,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                             if (!_backdropNotified) {
                               _backdropNotified = true;
                             }
-                            return Image.asset(
-                              AppAssets.placeholderPosterMovie,
+                            return MoviPlaceholderCard(
+                              type: PlaceholderType.movie,
                               fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
+                              borderRadius: BorderRadius.zero,
                             );
                           },
                           frameBuilder: (context, child, frame, wasSync) {
@@ -758,7 +769,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                       child: MoviPrimaryButton(
                         label: historyAsync.when(
                           data: (entry) => entry != null
-                              ? 'Reprendre la lecture'
+                              ? AppLocalizations.of(context)!.homeContinueWatching
                               : AppLocalizations.of(context)!.homeWatchNow,
                           loading: () =>
                               AppLocalizations.of(context)!.homeWatchNow,
@@ -903,6 +914,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
       if (xtreamItem == null) {
         logger.info('Film movieId=$movieId non trouvé dans les playlists');
+        if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Film non disponible dans la playlist')),
         );
@@ -919,6 +931,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         logger.warn(
           'Item trouvé est de type ${xtreamItem.type.name}, pas un film',
         );
+        if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Le média trouvé n\'est pas un film')),
         );
@@ -929,6 +942,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         logger.error(
           'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}',
         );
+        if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Impossible de construire l\'URL de streaming'),
@@ -940,6 +954,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       logger.debug('URL de streaming construite: $streamUrl');
 
       // Ouvrir le player
+      if (!mounted || !context.mounted) return;
       context.push(
         AppRouteNames.player,
         extra: VideoSource(
@@ -953,9 +968,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     } catch (e, st) {
       final logger = ref.read(slProvider)<AppLogger>();
       logger.error('Erreur lors de la lecture du film: $e', e, st);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (!mounted || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -988,6 +1002,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       if (bgSrc == null) return;
 
       try {
+        if (!mounted || !context.mounted) return;
         await precacheImage(NetworkImage(bgSrc), context);
       } catch (e, st) {
         if (kDebugMode) {
@@ -1294,7 +1309,18 @@ class _HeroSkeleton extends StatelessWidget {
                     height: 120,
                     child: FittedBox(
                       fit: BoxFit.contain,
-                      child: Image.asset(AppAssets.iconAppLogo),
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final accentColor = ref.watch(asp.currentAccentColorProvider);
+                          return SvgPicture.asset(
+                            AppAssets.iconAppLogoSvg,
+                            colorFilter: ColorFilter.mode(
+                              accentColor,
+                              BlendMode.srcIn,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

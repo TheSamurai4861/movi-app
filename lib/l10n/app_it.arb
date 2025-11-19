@@ -101,5 +101,143 @@
   "libraryEmpty": "Metti like a film, serie o attori per vederli apparire qui.",
   "serie": "Serie",
   "recherche": "Ricerca",
-  "notYetAvailable": "Non ancora disponibile"
+  "notYetAvailable": "Non ancora disponibile",
+  "createPlaylistTitle": "Crea playlist",
+  "playlistName": "Nome playlist",
+  "addMedia": "Aggiungi media",
+  "renamePlaylist": "Rinomina",
+  "deletePlaylist": "Elimina",
+  "playlistDeleted": "Playlist eliminata",
+  "playlistCreatedSuccess": "Playlist \"{name}\" creata",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Errore durante la creazione: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Aggiunto",
+  "settingsAccountsSection": "Account",
+  "settingsIptvSection": "Impostazioni IPTV",
+  "settingsSourcesManagement": "Gestione sorgenti",
+  "settingsSyncFrequency": "Frequenza di aggiornamento",
+  "settingsAppSection": "Impostazioni app",
+  "settingsAccentColor": "Colore di accento",
+  "settingsPlaybackSection": "Impostazioni di riproduzione",
+  "settingsPreferredAudioLanguage": "Lingua preferita",
+  "settingsPreferredSubtitleLanguage": "Sottotitoli preferiti",
+  "libraryPlaylistsFilter": "Playlist",
+  "librarySagasFilter": "Saghe",
+  "libraryArtistsFilter": "Artisti",
+  "librarySearchPlaceholder": "Cerca nella mia libreria...",
+  "libraryInProgress": "In corso",
+  "libraryFavoriteMovies": "Film preferiti",
+  "libraryFavoriteSeries": "Serie preferite",
+  "libraryWatchHistory": "Cronologia di visualizzazione",
+  "libraryItemCount": "{count} elemento",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "libraryItemCountPlural": "{count} elementi",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "searchPeopleTitle": "Persone",
+  "searchSagasTitle": "Saghe",
+  "personRoleActor": "Attore",
+  "personRoleDirector": "Regista",
+  "personRoleCreator": "Creatore",
+  "tvDistribution": "Cast",
+  "tvSeasonLabel": "Stagione {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "tvNoEpisodesAvailable": "Nessun episodio disponibile",
+  "tvResumeSeasonEpisode": "Riprendi S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": { "type": "int" },
+      "episode": { "type": "int" }
+    }
+  },
+  "sagaViewPage": "Visualizza pagina",
+  "sagaStartNow": "Inizia ora",
+  "sagaContinue": "Continua",
+  "sagaMovieCount": "{count} film",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sagaMoviesList": "Lista film",
+  "personMoviesCount": "{movies} film - {shows} serie",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": { "type": "int" },
+      "shows": { "type": "int" }
+    }
+  },
+  "personPlayRandomly": "Riproduci casualmente",
+  "personMoviesList": "Lista film",
+  "personSeriesList": "Lista serie",
+  "playlistPlayRandomly": "Riproduci casualmente",
+  "playlistAddButton": "Aggiungi",
+  "playlistSortButton": "Ordina",
+  "playlistSortByTitle": "Ordina per",
+  "playlistSortByTitleOption": "Titolo",
+  "playlistSortRecentAdditions": "Aggiunte recenti",
+  "playlistSortOldestFirst": "Più vecchi prima",
+  "playlistSortNewestFirst": "Più recenti prima",
+  "playlistEmptyMessage": "Nessun elemento in questa playlist",
+  "playlistItemCount": "{count} elemento",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistItemCountPlural": "{count} elementi",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistSeasonSingular": "stagione",
+  "playlistSeasonPlural": "stagioni",
+  "playlistRenameTitle": "Rinomina playlist",
+  "playlistNamePlaceholder": "Nome playlist",
+  "playlistRenamedSuccess": "Playlist rinominata in \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "playlistDeleteTitle": "Elimina",
+  "playlistDeleteConfirm": "Sei sicuro di voler eliminare \"{title}\"?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "playlistDeletedSuccess": "Playlist eliminata",
+  "playlistItemRemovedSuccess": "Elemento rimosso",
+  "playlistRemoveItemConfirm": "Rimuovere \"{title}\" dalla playlist?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  }
 }

@@ -1,12 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/domain/entities/user_profile.dart';
 import 'package:movi/src/features/settings/domain/value_objects/first_name.dart';
@@ -24,7 +24,19 @@ class WelcomeUserPage extends ConsumerStatefulWidget {
 
 class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   final _nameCtrl = TextEditingController();
-  String _lang = 'fr-FR';
+  String _lang = 'fr';
+
+  static const List<(String code, String label)> _availableLanguages = [
+    ('en', 'English'),
+    ('es', 'Español'),
+    ('fr', 'Français'),
+    ('fr-MM', 'Burgonde'),
+    ('de', 'Deutsch'),
+    ('it', 'Italiano'),
+    ('nl', 'Nederlands'),
+    ('pl', 'Polski'),
+    ('pt', 'Português'),
+  ];
 
   @override
   void initState() {
@@ -32,6 +44,13 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(ref.read(userSettingsControllerProvider.notifier).load());
+      // Initialiser _lang depuis la langue actuelle de l'app
+      final currentLang = ref.read(asp.currentLanguageCodeProvider);
+      if (mounted) {
+        setState(() {
+          _lang = currentLang;
+        });
+      }
     });
   }
 
@@ -41,9 +60,113 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     super.dispose();
   }
 
+  String _getLanguageLabel(String code) {
+    // Normaliser le code (enlever le pays si présent, sauf pour fr-MM)
+    String normalizedCode = code.toLowerCase();
+    if (normalizedCode.startsWith('fr-') && !normalizedCode.startsWith('fr-mm')) {
+      normalizedCode = 'fr';
+    } else if (normalizedCode.startsWith('en-')) {
+      normalizedCode = 'en';
+    } else if (normalizedCode.startsWith('es-')) {
+      normalizedCode = 'es';
+    } else if (normalizedCode.startsWith('de-')) {
+      normalizedCode = 'de';
+    } else if (normalizedCode.startsWith('it-')) {
+      normalizedCode = 'it';
+    } else if (normalizedCode.startsWith('nl-')) {
+      normalizedCode = 'nl';
+    } else if (normalizedCode.startsWith('pl-')) {
+      normalizedCode = 'pl';
+    } else if (normalizedCode.startsWith('pt-')) {
+      normalizedCode = 'pt';
+    }
+    
+    // Vérifier si c'est fr-MM (avec casse flexible)
+    if (code.toLowerCase().contains('mm')) {
+      return _availableLanguages
+          .firstWhere((e) => e.$1 == 'fr-MM', orElse: () => ('fr-MM', 'Burgonde'))
+          .$2;
+    }
+    
+    final entry = _availableLanguages.firstWhere(
+      (e) => e.$1.toLowerCase() == normalizedCode,
+      orElse: () => (code, code),
+    );
+    return entry.$2;
+  }
+
+  bool _isCurrentLanguage(String currentCode, String code) {
+    // Normaliser les deux codes pour la comparaison
+    String normalizedCurrent = currentCode.toLowerCase();
+    String normalizedCode = code.toLowerCase();
+    
+    // Gérer le cas spécial de fr-MM
+    if (code == 'fr-MM') {
+      return normalizedCurrent.contains('mm');
+    }
+    
+    // Pour les autres, extraire juste le code langue
+    final currentLang = normalizedCurrent.split('-').first;
+    final codeLang = normalizedCode.split('-').first;
+    
+    return currentLang == codeLang;
+  }
+
+  Future<void> _showLanguageSelector(BuildContext context) async {
+    final currentLangCode = _lang;
+    final accentColor = ref.read(asp.currentAccentColorProvider);
+    
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(AppLocalizations.of(context)!.labelPreferredLanguage),
+        actions: [
+          for (final (code, label) in _availableLanguages)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                setState(() => _lang = code);
+                unawaited(
+                  ref.read(asp.appStateControllerProvider).setPreferredLocale(code),
+                );
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: _isCurrentLanguage(currentLangCode, code)
+                          ? accentColor
+                          : Colors.white,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  if (_isCurrentLanguage(currentLangCode, code))
+                    const SizedBox(width: 8),
+                  if (_isCurrentLanguage(currentLangCode, code))
+                    Icon(
+                      Icons.check,
+                      color: accentColor,
+                      size: 20,
+                    ),
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(AppLocalizations.of(context)!.actionCancel),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(userSettingsControllerProvider);
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -80,157 +203,37 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                         label: AppLocalizations.of(
                           context,
                         )!.labelPreferredLanguage,
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _lang,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'en-US',
-                              child: Text(
-                                'English',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
+                        child: InkWell(
+                          onTap: () => _showLanguageSelector(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
                             ),
-                            DropdownMenuItem(
-                              value: 'fr-FR',
-                              child: Text(
-                                'Français',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
                               ),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            DropdownMenuItem(
-                              value: 'es-ES',
-                              child: Text(
-                                'Español',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _getLanguageLabel(_lang),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'de-DE',
-                              child: Text(
-                                'Deutsch',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
+                                Icon(
+                                  Icons.keyboard_arrow_down,
+                                  color: accentColor,
+                                  size: 20,
                                 ),
-                              ),
+                              ],
                             ),
-                            DropdownMenuItem(
-                              value: 'it-IT',
-                              child: Text(
-                                'Italiano',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'pt-BR',
-                              child: Text(
-                                'Português',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ja-JP',
-                              child: Text(
-                                '日本語',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ko-KR',
-                              child: Text(
-                                '한국어',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'zh-CN',
-                              child: Text(
-                                '中文',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ru-RU',
-                              child: Text(
-                                'Русский',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ar-SA',
-                              child: Text(
-                                'العربية',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'pl-PL',
-                              child: Text(
-                                'Polski',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            DropdownMenuItem(
-                              value: 'fr-MM',
-                              child: Text(
-                                'Burgonde',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => _lang = v ?? 'fr-FR'),
-                          decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
                           ),
                         ),
                       ),
@@ -278,10 +281,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                         );
                                     if (!context.mounted) return;
                                     if (ok) {
-                                      await ref
-                                          .read(appStateControllerProvider)
-                                          .setPreferredLocale(_lang);
-                                      if (!context.mounted) return;
                                       GoRouter.of(
                                         context,
                                       ).go('/settings/iptv/connect');

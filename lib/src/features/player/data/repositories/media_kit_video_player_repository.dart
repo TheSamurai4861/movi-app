@@ -77,7 +77,7 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     if (tracks.isEmpty) return;
     
     final track = tracks.firstWhere(
-      (t) => t.id == trackId,
+      (t) => t.id == trackId.toString(),
       orElse: () => tracks.first,
     );
     await _player.setSubtitleTrack(track);
@@ -92,7 +92,7 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     if (tracks.isEmpty) return;
     
     final track = tracks.firstWhere(
-      (t) => t.id == trackId,
+      (t) => t.id == trackId.toString(),
       orElse: () => tracks.first,
     );
     await _player.setAudioTrack(track);

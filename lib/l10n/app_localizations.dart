@@ -5,12 +5,14 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_it.dart';
 import 'app_localizations_nl.dart';
 import 'app_localizations_pl.dart';
+import 'app_localizations_pt.dart';
 
 // ignore_for_file: type=lint
 
@@ -98,6 +100,7 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('de'),
     Locale('en'),
     Locale('es'),
     Locale('fr'),
@@ -105,6 +108,7 @@ abstract class AppLocalizations {
     Locale('it'),
     Locale('nl'),
     Locale('pl'),
+    Locale('pt'),
   ];
 
   /// No description provided for @welcomeTitle.
@@ -652,6 +656,408 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not yet available'**
   String get notYetAvailable;
+
+  /// No description provided for @createPlaylistTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create playlist'**
+  String get createPlaylistTitle;
+
+  /// No description provided for @playlistName.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist name'**
+  String get playlistName;
+
+  /// No description provided for @addMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Add media'**
+  String get addMedia;
+
+  /// No description provided for @renamePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get renamePlaylist;
+
+  /// No description provided for @deletePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deletePlaylist;
+
+  /// No description provided for @playlistDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist deleted'**
+  String get playlistDeleted;
+
+  /// No description provided for @playlistCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist \"{name}\" created'**
+  String playlistCreatedSuccess(String name);
+
+  /// No description provided for @playlistCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error creating playlist: {error}'**
+  String playlistCreateError(String error);
+
+  /// No description provided for @addedToPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get addedToPlaylist;
+
+  /// No description provided for @settingsAccountsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts'**
+  String get settingsAccountsSection;
+
+  /// No description provided for @settingsIptvSection.
+  ///
+  /// In en, this message translates to:
+  /// **'IPTV Settings'**
+  String get settingsIptvSection;
+
+  /// No description provided for @settingsSourcesManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Source Management'**
+  String get settingsSourcesManagement;
+
+  /// No description provided for @settingsSyncFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Frequency'**
+  String get settingsSyncFrequency;
+
+  /// No description provided for @settingsAppSection.
+  ///
+  /// In en, this message translates to:
+  /// **'App Settings'**
+  String get settingsAppSection;
+
+  /// No description provided for @settingsAccentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent Color'**
+  String get settingsAccentColor;
+
+  /// No description provided for @settingsPlaybackSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback Settings'**
+  String get settingsPlaybackSection;
+
+  /// No description provided for @settingsPreferredAudioLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Language'**
+  String get settingsPreferredAudioLanguage;
+
+  /// No description provided for @settingsPreferredSubtitleLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Subtitles'**
+  String get settingsPreferredSubtitleLanguage;
+
+  /// No description provided for @libraryPlaylistsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists'**
+  String get libraryPlaylistsFilter;
+
+  /// No description provided for @librarySagasFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Sagas'**
+  String get librarySagasFilter;
+
+  /// No description provided for @libraryArtistsFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Artists'**
+  String get libraryArtistsFilter;
+
+  /// No description provided for @librarySearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in my library...'**
+  String get librarySearchPlaceholder;
+
+  /// No description provided for @libraryInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get libraryInProgress;
+
+  /// No description provided for @libraryFavoriteMovies.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite Movies'**
+  String get libraryFavoriteMovies;
+
+  /// No description provided for @libraryFavoriteSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite Series'**
+  String get libraryFavoriteSeries;
+
+  /// No description provided for @libraryWatchHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch History'**
+  String get libraryWatchHistory;
+
+  /// No description provided for @libraryItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} item'**
+  String libraryItemCount(int count);
+
+  /// No description provided for @libraryItemCountPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String libraryItemCountPlural(int count);
+
+  /// No description provided for @searchPeopleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get searchPeopleTitle;
+
+  /// No description provided for @searchSagasTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sagas'**
+  String get searchSagasTitle;
+
+  /// No description provided for @personRoleActor.
+  ///
+  /// In en, this message translates to:
+  /// **'Actor'**
+  String get personRoleActor;
+
+  /// No description provided for @personRoleDirector.
+  ///
+  /// In en, this message translates to:
+  /// **'Director'**
+  String get personRoleDirector;
+
+  /// No description provided for @personRoleCreator.
+  ///
+  /// In en, this message translates to:
+  /// **'Creator'**
+  String get personRoleCreator;
+
+  /// No description provided for @tvDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast'**
+  String get tvDistribution;
+
+  /// No description provided for @tvSeasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Season {number}'**
+  String tvSeasonLabel(int number);
+
+  /// No description provided for @tvNoEpisodesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No episodes available'**
+  String get tvNoEpisodesAvailable;
+
+  /// No description provided for @tvResumeSeasonEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume S{season} E{episode}'**
+  String tvResumeSeasonEpisode(int season, int episode);
+
+  /// No description provided for @sagaViewPage.
+  ///
+  /// In en, this message translates to:
+  /// **'View Page'**
+  String get sagaViewPage;
+
+  /// No description provided for @sagaStartNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Now'**
+  String get sagaStartNow;
+
+  /// No description provided for @sagaContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get sagaContinue;
+
+  /// No description provided for @sagaMovieCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} films'**
+  String sagaMovieCount(int count);
+
+  /// No description provided for @sagaMoviesList.
+  ///
+  /// In en, this message translates to:
+  /// **'Movies List'**
+  String get sagaMoviesList;
+
+  /// No description provided for @personMoviesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{movies} films - {shows} series'**
+  String personMoviesCount(int movies, int shows);
+
+  /// No description provided for @personPlayRandomly.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Randomly'**
+  String get personPlayRandomly;
+
+  /// No description provided for @personMoviesList.
+  ///
+  /// In en, this message translates to:
+  /// **'Movies List'**
+  String get personMoviesList;
+
+  /// No description provided for @personSeriesList.
+  ///
+  /// In en, this message translates to:
+  /// **'Series List'**
+  String get personSeriesList;
+
+  /// No description provided for @playlistPlayRandomly.
+  ///
+  /// In en, this message translates to:
+  /// **'Play Randomly'**
+  String get playlistPlayRandomly;
+
+  /// No description provided for @playlistAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get playlistAddButton;
+
+  /// No description provided for @playlistSortButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get playlistSortButton;
+
+  /// No description provided for @playlistSortByTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort By'**
+  String get playlistSortByTitle;
+
+  /// No description provided for @playlistSortByTitleOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get playlistSortByTitleOption;
+
+  /// No description provided for @playlistSortRecentAdditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Additions'**
+  String get playlistSortRecentAdditions;
+
+  /// No description provided for @playlistSortOldestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest First'**
+  String get playlistSortOldestFirst;
+
+  /// No description provided for @playlistSortNewestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest First'**
+  String get playlistSortNewestFirst;
+
+  /// No description provided for @playlistEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in this playlist'**
+  String get playlistEmptyMessage;
+
+  /// No description provided for @playlistItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} item'**
+  String playlistItemCount(int count);
+
+  /// No description provided for @playlistItemCountPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String playlistItemCountPlural(int count);
+
+  /// No description provided for @playlistSeasonSingular.
+  ///
+  /// In en, this message translates to:
+  /// **'season'**
+  String get playlistSeasonSingular;
+
+  /// No description provided for @playlistSeasonPlural.
+  ///
+  /// In en, this message translates to:
+  /// **'seasons'**
+  String get playlistSeasonPlural;
+
+  /// No description provided for @playlistRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Playlist'**
+  String get playlistRenameTitle;
+
+  /// No description provided for @playlistNamePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist Name'**
+  String get playlistNamePlaceholder;
+
+  /// No description provided for @playlistRenamedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist renamed to \"{name}\"'**
+  String playlistRenamedSuccess(String name);
+
+  /// No description provided for @playlistDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get playlistDeleteTitle;
+
+  /// No description provided for @playlistDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{title}\"?'**
+  String playlistDeleteConfirm(String title);
+
+  /// No description provided for @playlistDeletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist deleted'**
+  String get playlistDeletedSuccess;
+
+  /// No description provided for @playlistItemRemovedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Item removed'**
+  String get playlistItemRemovedSuccess;
+
+  /// No description provided for @playlistRemoveItemConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{title}\" from playlist?'**
+  String playlistRemoveItemConfirm(String title);
 }
 
 class _AppLocalizationsDelegate
@@ -665,12 +1071,14 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) => <String>[
+    'de',
     'en',
     'es',
     'fr',
     'it',
     'nl',
     'pl',
+    'pt',
   ].contains(locale.languageCode);
 
   @override
@@ -692,6 +1100,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'de':
+      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
     case 'es':
@@ -704,6 +1114,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsNl();
     case 'pl':
       return AppLocalizationsPl();
+    case 'pt':
+      return AppLocalizationsPt();
   }
 
   throw FlutterError(

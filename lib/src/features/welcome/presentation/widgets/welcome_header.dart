@@ -1,8 +1,11 @@
 // lib/src/features/welcome/presentation/widgets/welcome_header.dart
 import 'package:flutter/material.dart';
-import 'package:movi/src/core/utils/app_assets.dart'; // <-- importe tes assets
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
-class WelcomeHeader extends StatelessWidget {
+class WelcomeHeader extends ConsumerWidget {
   const WelcomeHeader({
     super.key,
     this.title = 'Bienvenue !',
@@ -13,19 +16,23 @@ class WelcomeHeader extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Image.asset(
-            AppAssets.iconAppLogo,
+          child: SvgPicture.asset(
+            AppAssets.iconAppLogoSvg,
             width: 100,
             height: 100,
-            fit: BoxFit.contain,
+            colorFilter: ColorFilter.mode(
+              accentColor,
+              BlendMode.srcIn,
+            ),
           ),
         ),
         Padding(

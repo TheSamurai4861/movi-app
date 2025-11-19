@@ -294,4 +294,231 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get notYetAvailable => 'Non ancora disponibile';
+
+  @override
+  String get createPlaylistTitle => 'Crea playlist';
+
+  @override
+  String get playlistName => 'Nome playlist';
+
+  @override
+  String get addMedia => 'Aggiungi media';
+
+  @override
+  String get renamePlaylist => 'Rinomina';
+
+  @override
+  String get deletePlaylist => 'Elimina';
+
+  @override
+  String get playlistDeleted => 'Playlist eliminata';
+
+  @override
+  String playlistCreatedSuccess(String name) {
+    return 'Playlist \"$name\" creata';
+  }
+
+  @override
+  String playlistCreateError(String error) {
+    return 'Errore durante la creazione: $error';
+  }
+
+  @override
+  String get addedToPlaylist => 'Aggiunto';
+
+  @override
+  String get settingsAccountsSection => 'Account';
+
+  @override
+  String get settingsIptvSection => 'Impostazioni IPTV';
+
+  @override
+  String get settingsSourcesManagement => 'Gestione sorgenti';
+
+  @override
+  String get settingsSyncFrequency => 'Frequenza di aggiornamento';
+
+  @override
+  String get settingsAppSection => 'Impostazioni app';
+
+  @override
+  String get settingsAccentColor => 'Colore di accento';
+
+  @override
+  String get settingsPlaybackSection => 'Impostazioni di riproduzione';
+
+  @override
+  String get settingsPreferredAudioLanguage => 'Lingua preferita';
+
+  @override
+  String get settingsPreferredSubtitleLanguage => 'Sottotitoli preferiti';
+
+  @override
+  String get libraryPlaylistsFilter => 'Playlist';
+
+  @override
+  String get librarySagasFilter => 'Saghe';
+
+  @override
+  String get libraryArtistsFilter => 'Artisti';
+
+  @override
+  String get librarySearchPlaceholder => 'Cerca nella mia libreria...';
+
+  @override
+  String get libraryInProgress => 'In corso';
+
+  @override
+  String get libraryFavoriteMovies => 'Film preferiti';
+
+  @override
+  String get libraryFavoriteSeries => 'Serie preferite';
+
+  @override
+  String get libraryWatchHistory => 'Cronologia di visualizzazione';
+
+  @override
+  String libraryItemCount(int count) {
+    return '$count elemento';
+  }
+
+  @override
+  String libraryItemCountPlural(int count) {
+    return '$count elementi';
+  }
+
+  @override
+  String get searchPeopleTitle => 'Persone';
+
+  @override
+  String get searchSagasTitle => 'Saghe';
+
+  @override
+  String get personRoleActor => 'Attore';
+
+  @override
+  String get personRoleDirector => 'Regista';
+
+  @override
+  String get personRoleCreator => 'Creatore';
+
+  @override
+  String get tvDistribution => 'Cast';
+
+  @override
+  String tvSeasonLabel(int number) {
+    return 'Stagione $number';
+  }
+
+  @override
+  String get tvNoEpisodesAvailable => 'Nessun episodio disponibile';
+
+  @override
+  String tvResumeSeasonEpisode(int season, int episode) {
+    return 'Riprendi S$season E$episode';
+  }
+
+  @override
+  String get sagaViewPage => 'Visualizza pagina';
+
+  @override
+  String get sagaStartNow => 'Inizia ora';
+
+  @override
+  String get sagaContinue => 'Continua';
+
+  @override
+  String sagaMovieCount(int count) {
+    return '$count film';
+  }
+
+  @override
+  String get sagaMoviesList => 'Lista film';
+
+  @override
+  String personMoviesCount(int movies, int shows) {
+    return '$movies film - $shows serie';
+  }
+
+  @override
+  String get personPlayRandomly => 'Riproduci casualmente';
+
+  @override
+  String get personMoviesList => 'Lista film';
+
+  @override
+  String get personSeriesList => 'Lista serie';
+
+  @override
+  String get playlistPlayRandomly => 'Riproduci casualmente';
+
+  @override
+  String get playlistAddButton => 'Aggiungi';
+
+  @override
+  String get playlistSortButton => 'Ordina';
+
+  @override
+  String get playlistSortByTitle => 'Ordina per';
+
+  @override
+  String get playlistSortByTitleOption => 'Titolo';
+
+  @override
+  String get playlistSortRecentAdditions => 'Aggiunte recenti';
+
+  @override
+  String get playlistSortOldestFirst => 'Più vecchi prima';
+
+  @override
+  String get playlistSortNewestFirst => 'Più recenti prima';
+
+  @override
+  String get playlistEmptyMessage => 'Nessun elemento in questa playlist';
+
+  @override
+  String playlistItemCount(int count) {
+    return '$count elemento';
+  }
+
+  @override
+  String playlistItemCountPlural(int count) {
+    return '$count elementi';
+  }
+
+  @override
+  String get playlistSeasonSingular => 'stagione';
+
+  @override
+  String get playlistSeasonPlural => 'stagioni';
+
+  @override
+  String get playlistRenameTitle => 'Rinomina playlist';
+
+  @override
+  String get playlistNamePlaceholder => 'Nome playlist';
+
+  @override
+  String playlistRenamedSuccess(String name) {
+    return 'Playlist rinominata in \"$name\"';
+  }
+
+  @override
+  String get playlistDeleteTitle => 'Elimina';
+
+  @override
+  String playlistDeleteConfirm(String title) {
+    return 'Sei sicuro di voler eliminare \"$title\"?';
+  }
+
+  @override
+  String get playlistDeletedSuccess => 'Playlist eliminata';
+
+  @override
+  String get playlistItemRemovedSuccess => 'Elemento rimosso';
+
+  @override
+  String playlistRemoveItemConfirm(String title) {
+    return 'Rimuovere \"$title\" dalla playlist?';
+  }
 }

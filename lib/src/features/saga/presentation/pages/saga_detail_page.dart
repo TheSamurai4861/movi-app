@@ -28,7 +28,7 @@ class SagaDetailPage extends ConsumerWidget {
   }
 
   Future<void> _playMovie(BuildContext context, WidgetRef ref, String movieId) async {
-    // TODO: Implémenter la lecture du film depuis la saga
+    
     // Pour l'instant, ouvrir la page de détail du film
     final media = MoviMedia(
       id: movieId,
@@ -41,16 +41,19 @@ class SagaDetailPage extends ConsumerWidget {
   Future<void> _startSaga(BuildContext context, WidgetRef ref, SagaDetailViewModel viewModel) async {
     // Trouver le premier film non visionné ou reprendre le film en cours
     final inProgressMovieId = await ref.read(sagaInProgressMovieProvider(sagaId).future);
+    if (!context.mounted) return;
     
     if (inProgressMovieId != null) {
       // Reprendre le film en cours
+      if (!context.mounted) return;
       await _playMovie(context, ref, inProgressMovieId);
     } else {
       // Commencer par le premier film
+      if (!context.mounted) return;
       final movies = viewModel.saga.timeline
           .where((entry) => entry.reference.type == ContentType.movie)
           .toList();
-      if (movies.isNotEmpty) {
+      if (movies.isNotEmpty && context.mounted) {
         await _playMovie(context, ref, movies.first.reference.id);
       }
     }
@@ -213,7 +216,7 @@ class SagaDetailPage extends ConsumerWidget {
                           const SizedBox(height: 8),
                           // Nombre de films et durée totale
                           Text(
-                            '${viewModel.movieCount} films - ${_formatDuration(viewModel.totalDuration)}',
+                            '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: Colors.white70,
                                 ) ??
@@ -234,26 +237,26 @@ class SagaDetailPage extends ConsumerWidget {
                                     if (inProgressMovieId != null) {
                                       // Afficher "Poursuivre"
                                       return MoviPrimaryButton(
-                                        label: 'Poursuivre',
+                                        label: AppLocalizations.of(context)!.sagaContinue,
                                         assetIcon: AppAssets.iconPlay,
                                         onPressed: () => _startSaga(context, ref, viewModel),
                                       );
                                     } else {
                                       // Afficher "Commencer maintenant"
                                       return MoviPrimaryButton(
-                                        label: 'Commencer maintenant',
+                                        label: AppLocalizations.of(context)!.sagaStartNow,
                                         assetIcon: AppAssets.iconPlay,
                                         onPressed: () => _startSaga(context, ref, viewModel),
                                       );
                                     }
                                   },
                                   loading: () => MoviPrimaryButton(
-                                    label: 'Commencer maintenant',
+                                    label: AppLocalizations.of(context)!.sagaStartNow,
                                     assetIcon: AppAssets.iconPlay,
                                     onPressed: () {},
                                   ),
                                   error: (_, __) => MoviPrimaryButton(
-                                    label: 'Commencer maintenant',
+                                    label: AppLocalizations.of(context)!.sagaStartNow,
                                     assetIcon: AppAssets.iconPlay,
                                     onPressed: () => _startSaga(context, ref, viewModel),
                                   ),
@@ -307,7 +310,7 @@ class SagaDetailPage extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Liste des films',
+                            AppLocalizations.of(context)!.sagaMoviesList,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   color: Colors.white,
                                 ) ??
@@ -387,10 +390,11 @@ class SagaDetailPage extends ConsumerWidget {
 
   Widget _buildHeroImage(BuildContext context, Uri? poster) {
     if (poster == null) {
-      return Image.asset(
-        AppAssets.placeholderPosterMovie,
+      return MoviPlaceholderCard(
+        type: PlaceholderType.movie,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, -0.5),
+        borderRadius: BorderRadius.zero,
       );
     }
     final mq = MediaQuery.of(context);
@@ -403,10 +407,11 @@ class SagaDetailPage extends ConsumerWidget {
       cacheWidth: cacheWidth,
       filterQuality: FilterQuality.medium,
       alignment: const Alignment(0.0, -0.5),
-      errorBuilder: (_, __, ___) => Image.asset(
-        AppAssets.placeholderPosterMovie,
+      errorBuilder: (_, __, ___) => MoviPlaceholderCard(
+        type: PlaceholderType.movie,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, -0.5),
+        borderRadius: BorderRadius.zero,
       ),
     );
   }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:movi/src/core/theme/theme.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
@@ -12,7 +11,6 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
@@ -323,7 +321,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                               )!.homeWatchNow,
                                               assetIcon: AppAssets.iconPlay,
                                               buttonStyle: FilledButton.styleFrom(
-                                                backgroundColor: AppColors.accent,
+                                                backgroundColor: Theme.of(context).colorScheme.primary,
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius: BorderRadius.circular(
                                                     32,
@@ -344,13 +342,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                         return Expanded(
                                           child: MoviPrimaryButton(
                                             label: historyAsync.when(
-                                              data: (entry) => entry != null ? 'Reprendre la lecture' : AppLocalizations.of(context)!.homeWatchNow,
+                                              data: (entry) => entry != null ? AppLocalizations.of(context)!.homeContinueWatching : AppLocalizations.of(context)!.homeWatchNow,
                                               loading: () => AppLocalizations.of(context)!.homeWatchNow,
                                               error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
                                             ),
                                             assetIcon: AppAssets.iconPlay,
                                             buttonStyle: FilledButton.styleFrom(
-                                              backgroundColor: AppColors.accent,
+                                              backgroundColor: Theme.of(context).colorScheme.primary,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius: BorderRadius.circular(
                                                   32,
@@ -590,7 +588,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           MoviItemsList(
-                                            title: 'Saga ${sagaLink.title.display}',
+                                            title: '${AppLocalizations.of(context)!.searchSagasTitle} ${sagaLink.title.display}',
                                             estimatedItemWidth: 150,
                                             estimatedItemHeight: 258,
                                             titlePadding: 20,
@@ -611,10 +609,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                                 },
                                                 child: Text(
                                                   'Voir la page',
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w500,
-                                                    color: AppColors.accent,
+                                                    color: Theme.of(context).colorScheme.primary,
                                                   ),
                                                 ),
                                               ),
@@ -687,10 +685,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   Widget _buildHeroImage(Uri? poster, Uri? backdrop) {
     final Uri? uri = poster ?? backdrop;
     if (uri == null) {
-      return Image.asset(
-        AppAssets.placeholderPosterMovie,
+      return MoviPlaceholderCard(
+        type: PlaceholderType.movie,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, -0.5),
+        borderRadius: BorderRadius.zero,
       );
     }
     final mq = MediaQuery.of(context);
@@ -713,7 +712,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   ) async {
     try {
       final playlistsAsync = ref.read(libraryPlaylistsProvider);
-      final playlists = await playlistsAsync.value;
+      final playlists = playlistsAsync.value;
       
       if (playlists == null || playlists.isEmpty) {
         if (context.mounted) {
@@ -726,7 +725,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     
       // Récupérer les données du film depuis le provider
       final vmAsync = ref.read(movieDetailControllerProvider(movieId));
-      final vm = await vmAsync.value;
+      final vm = vmAsync.value;
       
       // Utiliser les données du widget si le view model n'est pas disponible
       final title = vm?.title ?? mediaTitle;
@@ -786,12 +785,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         }
       }
       
+      if (!mounted || !context.mounted) return;
       if (availablePlaylists.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Aucune playlist disponible pour les films')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucune playlist disponible pour les films')),
+        );
         return;
       }
       
@@ -1236,6 +1234,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
       if (xtreamItem == null) {
         logger.info('Film movieId=$movieId non trouvé dans les playlists');
+        if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Film non disponible dans la playlist')),
         );
@@ -1252,6 +1251,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         logger.warn(
           'Item trouvé est de type ${xtreamItem.type.name}, pas un film',
         );
+        if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Le média trouvé n\'est pas un film')),
         );
@@ -1262,6 +1262,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         logger.error(
           'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}',
         );
+        if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Impossible de construire l\'URL de streaming'),
@@ -1282,6 +1283,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
 
       // Ouvrir le player
+      if (!mounted || !context.mounted) return;
       context.push(
         AppRouteNames.player,
         extra: VideoSource(
@@ -1295,9 +1297,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     } catch (e, st) {
       final logger = ref.read(slProvider)<AppLogger>();
       logger.error('Erreur lors de la lecture du film: $e', e, st);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (!mounted || !context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 }

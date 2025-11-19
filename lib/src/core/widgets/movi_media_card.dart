@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:movi/src/core/models/models.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
-import 'package:movi/src/core/theme/app_colors.dart';
+import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 
 Widget _buildPosterImage(
   Uri? poster,
   double width,
   double height, {
-  String? placeholderAsset,
+  PlaceholderType? placeholderType,
 }) {
-  final Widget placeholder = (placeholderAsset == null)
+  final Widget placeholder = (placeholderType == null)
       ? Container(
           width: width,
           height: height,
@@ -19,11 +18,10 @@ Widget _buildPosterImage(
             child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
           ),
         )
-      : Image.asset(
-          placeholderAsset,
+      : MoviPlaceholderCard(
+          type: placeholderType,
           width: width,
           height: height,
-          fit: BoxFit.cover,
         );
 
   if (poster == null) return placeholder;
@@ -148,9 +146,9 @@ class _PosterWithOverlay extends StatelessWidget {
           media.poster,
           width,
           height,
-          placeholderAsset: media.type == MoviMediaType.movie
-              ? AppAssets.placeholderPosterMovie
-              : AppAssets.placeholderPosterSeries,
+          placeholderType: media.type == MoviMediaType.movie
+              ? PlaceholderType.movie
+              : PlaceholderType.series,
         ),
         Positioned(
           bottom: 0,
@@ -170,7 +168,7 @@ class _PosterWithOverlay extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: AppColors.accent,
+                color: Theme.of(context).colorScheme.primary,
                 width: 2,
               ),
             ),

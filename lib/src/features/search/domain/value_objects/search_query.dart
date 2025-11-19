@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 class SearchQuery {
   const SearchQuery._(this.raw, {this.tmdbId});
 

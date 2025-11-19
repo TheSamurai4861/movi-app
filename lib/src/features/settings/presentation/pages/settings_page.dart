@@ -34,9 +34,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ('es', 'Español'),
     ('fr', 'Français'),
     ('fr-MM', 'Burgonde'),
+    ('de', 'Deutsch'),
     ('it', 'Italiano'),
     ('nl', 'Nederlands'),
     ('pl', 'Polski'),
+    ('pt', 'Português'),
   ];
 
   static const List<(Duration? interval, String label)> _syncIntervalOptions = [
@@ -49,28 +51,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     (Duration(minutes: 2880), 'Tous les 2 jours'),
   ];
 
-  // Palette de couleurs modernes (Material Design 3)
+  // Palette de couleurs pastels
   static const List<(Color color, String name)> _accentColorOptions = [
     (Color(0xFF2160AB), 'Bleu'), // Couleur par défaut
-    (Color(0xFF007AFF), 'Bleu iOS'),
-    (Color(0xFF6200EE), 'Violet'),
-    (Color(0xFF03DAC6), 'Cyan'),
-    (Color(0xFF018786), 'Turquoise'),
-    (Color(0xFF00C853), 'Vert'),
-    (Color(0xFF64DD17), 'Vert clair'),
-    (Color(0xFFFF6F00), 'Orange'),
-    (Color(0xFFFF5722), 'Orange foncé'),
-    (Color(0xFFE91E63), 'Rose'),
-    (Color(0xFF9C27B0), 'Violet foncé'),
-    (Color(0xFF3F51B5), 'Indigo'),
-    (Color(0xFF2196F3), 'Bleu clair'),
-    (Color(0xFF00BCD4), 'Cyan clair'),
-    (Color(0xFF4CAF50), 'Vert Material'),
-    (Color(0xFFFFC107), 'Ambre'),
-    (Color(0xFFFF9800), 'Orange Material'),
-    (Color(0xFFF44336), 'Rouge'),
-    (Color(0xFFE53935), 'Rouge foncé'),
-    (Color(0xFF795548), 'Marron'),
+    (Color(0xFFF48FB1), 'Rose'),
+    (Color(0xFF81C784), 'Vert'),
+    (Color(0xFFBA68C8), 'Violet'),
+    (Color(0xFFFFB74D), 'Orange'),
+    (Color(0xFF4DB6AC), 'Turquoise'),
+    (Color(0xFFFFE082), 'Jaune'),
+    (Color(0xFF7986CB), 'Indigo'),
   ];
 
   static const List<(String code, String label)> _playerLanguageOptions = [
@@ -114,12 +104,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       normalizedCode = 'en';
     } else if (normalizedCode.startsWith('es-')) {
       normalizedCode = 'es';
+    } else if (normalizedCode.startsWith('de-')) {
+      normalizedCode = 'de';
     } else if (normalizedCode.startsWith('it-')) {
       normalizedCode = 'it';
     } else if (normalizedCode.startsWith('nl-')) {
       normalizedCode = 'nl';
     } else if (normalizedCode.startsWith('pl-')) {
       normalizedCode = 'pl';
+    } else if (normalizedCode.startsWith('pt-')) {
+      normalizedCode = 'pt';
     }
     
     // Vérifier si c'est fr-MM (avec casse flexible)
@@ -138,6 +132,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _showLanguageSelector(BuildContext context, String currentCode) async {
     final localePrefs = ref.read(slProvider)<LocalePreferences>();
+    final accentColor = ref.read(asp.currentAccentColorProvider);
     
     showCupertinoModalPopup<void>(
       context: context,
@@ -156,20 +151,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Text(
                     label,
                     style: TextStyle(
+                      fontSize: 16,
                       color: _isCurrentLanguage(currentCode, code)
-                          ? const Color(0xFF007AFF)
+                          ? accentColor
                           : Colors.white,
-                      fontWeight: _isCurrentLanguage(currentCode, code)
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   if (_isCurrentLanguage(currentCode, code))
                     const SizedBox(width: 8),
                   if (_isCurrentLanguage(currentCode, code))
-                    const Icon(
+                    Icon(
                       Icons.check,
-                      color: Color(0xFF007AFF),
+                      color: accentColor,
                       size: 20,
                     ),
                 ],
@@ -230,11 +224,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _showSyncIntervalSelector(BuildContext context, Duration currentInterval) async {
     final iptvSyncPrefs = ref.read(slProvider)<IptvSyncPreferences>();
     final syncService = ref.read(slProvider)<XtreamSyncService>();
+    final accentColor = ref.read(asp.currentAccentColorProvider);
     
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Fréquence màj'),
+        title: Text(AppLocalizations.of(context)!.settingsSyncFrequency),
         actions: [
           for (final (interval, label) in _syncIntervalOptions)
             CupertinoActionSheetAction(
@@ -257,7 +252,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     label,
                     style: TextStyle(
                       color: _isCurrentSyncInterval(currentInterval, interval)
-                          ? const Color(0xFF007AFF)
+                          ? accentColor
                           : Colors.white,
                       fontWeight: _isCurrentSyncInterval(currentInterval, interval)
                           ? FontWeight.w600
@@ -267,9 +262,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   if (_isCurrentSyncInterval(currentInterval, interval))
                     const SizedBox(width: 8),
                   if (_isCurrentSyncInterval(currentInterval, interval))
-                    const Icon(
+                    Icon(
                       Icons.check,
-                      color: Color(0xFF007AFF),
+                      color: accentColor,
                       size: 20,
                     ),
                 ],
@@ -305,11 +300,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _showAudioLanguageSelector(BuildContext context, String? currentCode) async {
     final playerPrefs = ref.read(slProvider)<PlayerPreferences>();
+    final accentColor = ref.read(asp.currentAccentColorProvider);
     
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Langue préférée'),
+        title: Text(AppLocalizations.of(context)!.settingsPreferredAudioLanguage),
         actions: [
           for (final (code, label) in _playerLanguageOptions)
             CupertinoActionSheetAction(
@@ -325,7 +321,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     label,
                     style: TextStyle(
                       color: _isCurrentPlayerLanguage(currentCode, code)
-                          ? const Color(0xFF007AFF)
+                          ? accentColor
                           : Colors.white,
                       fontWeight: _isCurrentPlayerLanguage(currentCode, code)
                           ? FontWeight.w600
@@ -335,9 +331,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   if (_isCurrentPlayerLanguage(currentCode, code))
                     const SizedBox(width: 8),
                   if (_isCurrentPlayerLanguage(currentCode, code))
-                    const Icon(
+                    Icon(
                       Icons.check,
-                      color: Color(0xFF007AFF),
+                      color: accentColor,
                       size: 20,
                     ),
                 ],
@@ -354,6 +350,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _showSubtitleLanguageSelector(BuildContext context, String? currentCode) async {
     final playerPrefs = ref.read(slProvider)<PlayerPreferences>();
+    final accentColor = ref.read(asp.currentAccentColorProvider);
     
     // Pour les sous-titres, le premier item devrait être "Désactivé" au lieu de "Défaut du lecteur"
     final subtitleOptions = _playerLanguageOptions.map((option) {
@@ -366,7 +363,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Sous-titres préférés'),
+        title: Text(AppLocalizations.of(context)!.settingsPreferredSubtitleLanguage),
         actions: [
           for (final (code, label) in subtitleOptions)
             CupertinoActionSheetAction(
@@ -382,7 +379,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     label,
                     style: TextStyle(
                       color: _isCurrentPlayerLanguage(currentCode, code)
-                          ? const Color(0xFF007AFF)
+                          ? accentColor
                           : Colors.white,
                       fontWeight: _isCurrentPlayerLanguage(currentCode, code)
                           ? FontWeight.w600
@@ -392,9 +389,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   if (_isCurrentPlayerLanguage(currentCode, code))
                     const SizedBox(width: 8),
                   if (_isCurrentPlayerLanguage(currentCode, code))
-                    const Icon(
+                    Icon(
                       Icons.check,
-                      color: Color(0xFF007AFF),
+                      color: accentColor,
                       size: 20,
                     ),
                 ],
@@ -424,7 +421,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   String _getAccentColorName(Color color) {
     final option = _accentColorOptions.firstWhere(
-      (e) => e.$1.value == color.value,
+      (e) => e.$1.toARGB32() == color.toARGB32(),
       orElse: () => (color, 'Personnalisé'),
     );
     return option.$2;
@@ -436,7 +433,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Couleur d\'accent'),
+        title: Text(AppLocalizations.of(context)!.settingsAccentColor),
         actions: [
           for (final (color, name) in _accentColorOptions)
             CupertinoActionSheetAction(
@@ -454,7 +451,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       color: color,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -464,21 +461,22 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     child: Text(
                       name,
                       style: TextStyle(
+                        fontSize: 16,
                         color: _isCurrentAccentColor(currentColor, color)
-                            ? const Color(0xFF007AFF)
+                            ? currentColor
                             : Colors.white,
                         fontWeight: _isCurrentAccentColor(currentColor, color)
                             ? FontWeight.w600
-                            : FontWeight.normal,
+                            : FontWeight.w500,
                       ),
                     ),
                   ),
                   if (_isCurrentAccentColor(currentColor, color))
                     const SizedBox(width: 8),
                   if (_isCurrentAccentColor(currentColor, color))
-                    const Icon(
+                    Icon(
                       Icons.check,
-                      color: Color(0xFF007AFF),
+                      color: currentColor,
                       size: 20,
                     ),
                 ],
@@ -494,7 +492,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   bool _isCurrentAccentColor(Color current, Color option) {
-    return current.value == option.value;
+    return current.toARGB32() == option.toARGB32();
   }
 
   Future<void> _refreshIptv() async {
@@ -610,6 +608,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     Widget? trailing,
     bool showChevronDown = false,
   }) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -629,10 +628,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             if (value != null) ...[
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF007AFF),
+                  color: accentColor,
                 ),
               ),
               const SizedBox(width: 8),
@@ -642,9 +641,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               const SizedBox(width: 8),
             ],
             if (showChevronDown)
-              const Icon(
+              Icon(
                 Icons.keyboard_arrow_down,
-                color: Color(0xFF007AFF),
+                color: accentColor,
                 size: 20,
               )
             else if (onTap != null && trailing == null)
@@ -713,7 +712,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           children: [
             // Titre
             Text(
-              'Paramètres',
+              AppLocalizations.of(context)!.settingsTitle,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -727,7 +726,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 32),
             // Section Comptes
             Text(
-              'Comptes',
+              AppLocalizations.of(context)!.settingsAccountsSection,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -744,7 +743,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               children: [
                 _buildProfileCircle(
                   name: 'Matt',
-                  color: const Color(0xFF007AFF),
+                  color: currentAccentColor,
                   icon: Icons.account_circle,
                 ),
                 const SizedBox(width: 24),
@@ -770,7 +769,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 32),
             // Section Paramètres IPTV
             Text(
-              'Paramètres IPTV',
+              AppLocalizations.of(context)!.settingsIptvSection,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -783,13 +782,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 8),
             _buildSettingItem(
-              title: 'Réglages des sources',
+              title: AppLocalizations.of(context)!.settingsSourcesManagement,
               onTap: () {
-                // TODO: Implémenter la navigation
+                
               },
             ),
             _buildSettingItem(
-              title: 'Fréquence màj',
+              title: AppLocalizations.of(context)!.settingsSyncFrequency,
               value: _formatSyncInterval(currentSyncInterval),
               showChevronDown: true,
               onTap: () => _showSyncIntervalSelector(context, currentSyncInterval),
@@ -797,12 +796,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             _buildSettingItem(
               title: AppLocalizations.of(context)!.settingsRefreshIptvPlaylistsTitle,
               trailing: _refreshingIptv
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF007AFF),
+                        color: currentAccentColor,
                       ),
                     )
                   : null,
@@ -811,7 +810,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 32),
             // Section Paramètres de l'application
             Text(
-              'Paramètres de l\'application',
+              AppLocalizations.of(context)!.settingsAppSection,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -830,7 +829,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               onTap: () => _showLanguageSelector(context, currentLangCode),
             ),
             _buildSettingItem(
-              title: 'Couleur d\'accent',
+              title: AppLocalizations.of(context)!.settingsAccentColor,
               value: _getAccentColorName(currentAccentColor),
               showChevronDown: true,
               trailing: Container(
@@ -840,7 +839,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: currentAccentColor,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.3),
+                    color: Colors.white.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -850,7 +849,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: 32),
             // Section Paramètres de lecture
             Text(
-              'Paramètres de lecture',
+              AppLocalizations.of(context)!.settingsPlaybackSection,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -863,17 +862,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
             const SizedBox(height: 8),
             _buildSettingItem(
-              title: 'Langue préférée',
+              title: AppLocalizations.of(context)!.settingsPreferredAudioLanguage,
               value: _formatPlayerLanguage(currentAudioLanguage, true),
               showChevronDown: true,
               onTap: () => _showAudioLanguageSelector(context, currentAudioLanguage),
             ),
             _buildSettingItem(
-              title: 'Sous-titres préférés',
+              title: AppLocalizations.of(context)!.settingsPreferredSubtitleLanguage,
               value: _formatPlayerLanguage(currentSubtitleLanguage, false),
               showChevronDown: true,
               onTap: () => _showSubtitleLanguageSelector(context, currentSubtitleLanguage),
             ),
+            const SizedBox(height: 46),
             const SizedBox(height: 32),
           ],
         ),

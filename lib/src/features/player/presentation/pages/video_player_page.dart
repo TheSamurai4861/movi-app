@@ -505,7 +505,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   void _onChromecast() {
-    // TODO: Implémenter Chromecast
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Chromecast à venir')));
@@ -588,7 +587,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         await _onBack(context);
       },

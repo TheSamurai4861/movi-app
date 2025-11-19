@@ -107,5 +107,169 @@
   "libraryEmpty": "Like movies, series or actors to see them appear here.",
   "serie": "Series",
   "recherche": "Search",
-  "notYetAvailable": "Not yet available"
+  "notYetAvailable": "Not yet available",
+  "createPlaylistTitle": "Create playlist",
+  "playlistName": "Playlist name",
+  "addMedia": "Add media",
+  "renamePlaylist": "Rename",
+  "deletePlaylist": "Delete",
+  "playlistDeleted": "Playlist deleted",
+  "playlistCreatedSuccess": "Playlist \"{name}\" created",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Error creating playlist: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Added",
+  "settingsAccountsSection": "Accounts",
+  "settingsIptvSection": "IPTV Settings",
+  "settingsSourcesManagement": "Source Management",
+  "settingsSyncFrequency": "Update Frequency",
+  "settingsAppSection": "App Settings",
+  "settingsAccentColor": "Accent Color",
+  "settingsPlaybackSection": "Playback Settings",
+  "settingsPreferredAudioLanguage": "Preferred Language",
+  "settingsPreferredSubtitleLanguage": "Preferred Subtitles",
+  "libraryPlaylistsFilter": "Playlists",
+  "librarySagasFilter": "Sagas",
+  "libraryArtistsFilter": "Artists",
+  "librarySearchPlaceholder": "Search in my library...",
+  "libraryInProgress": "In Progress",
+  "libraryFavoriteMovies": "Favorite Movies",
+  "libraryFavoriteSeries": "Favorite Series",
+  "libraryWatchHistory": "Watch History",
+  "libraryItemCount": "{count} item",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryItemCountPlural": "{count} items",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchPeopleTitle": "People",
+  "searchSagasTitle": "Sagas",
+  "personRoleActor": "Actor",
+  "personRoleDirector": "Director",
+  "personRoleCreator": "Creator",
+  "tvDistribution": "Cast",
+  "tvSeasonLabel": "Season {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tvNoEpisodesAvailable": "No episodes available",
+  "tvResumeSeasonEpisode": "Resume S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaViewPage": "View Page",
+  "sagaStartNow": "Start Now",
+  "sagaContinue": "Continue",
+  "sagaMovieCount": "{count} films",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaMoviesList": "Movies List",
+  "personMoviesCount": "{movies} films - {shows} series",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
+    }
+  },
+  "personPlayRandomly": "Play Randomly",
+  "personMoviesList": "Movies List",
+  "personSeriesList": "Series List",
+  "playlistPlayRandomly": "Play Randomly",
+  "playlistAddButton": "Add",
+  "playlistSortButton": "Sort",
+  "playlistSortByTitle": "Sort By",
+  "playlistSortByTitleOption": "Title",
+  "playlistSortRecentAdditions": "Recent Additions",
+  "playlistSortOldestFirst": "Oldest First",
+  "playlistSortNewestFirst": "Newest First",
+  "playlistEmptyMessage": "No items in this playlist",
+  "playlistItemCount": "{count} item",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistItemCountPlural": "{count} items",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSeasonSingular": "season",
+  "playlistSeasonPlural": "seasons",
+  "playlistRenameTitle": "Rename Playlist",
+  "playlistNamePlaceholder": "Playlist Name",
+  "playlistRenamedSuccess": "Playlist renamed to \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteTitle": "Delete",
+  "playlistDeleteConfirm": "Are you sure you want to delete \"{title}\"?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeletedSuccess": "Playlist deleted",
+  "playlistItemRemovedSuccess": "Item removed",
+  "playlistRemoveItemConfirm": "Remove \"{title}\" from playlist?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  }
 }

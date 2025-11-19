@@ -101,5 +101,143 @@
   "libraryEmpty": "Like films, series of acteurs om ze hier te zien verschijnen.",
   "serie": "Serie",
   "recherche": "Zoeken",
-  "notYetAvailable": "Nog niet beschikbaar"
+  "notYetAvailable": "Nog niet beschikbaar",
+  "createPlaylistTitle": "Afspeellijst maken",
+  "playlistName": "Naam afspeellijst",
+  "addMedia": "Media toevoegen",
+  "renamePlaylist": "Hernoemen",
+  "deletePlaylist": "Verwijderen",
+  "playlistDeleted": "Afspeellijst verwijderd",
+  "playlistCreatedSuccess": "Afspeellijst \"{name}\" gemaakt",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Fout bij het maken van de afspeellijst: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Toegevoegd",
+  "settingsAccountsSection": "Accounts",
+  "settingsIptvSection": "IPTV-instellingen",
+  "settingsSourcesManagement": "Bronbeheer",
+  "settingsSyncFrequency": "Updatefrequentie",
+  "settingsAppSection": "App-instellingen",
+  "settingsAccentColor": "Accentkleur",
+  "settingsPlaybackSection": "Afspeelinstellingen",
+  "settingsPreferredAudioLanguage": "Voorkeurstaal",
+  "settingsPreferredSubtitleLanguage": "Voorkeur ondertitels",
+  "libraryPlaylistsFilter": "Afspeellijsten",
+  "librarySagasFilter": "Saga's",
+  "libraryArtistsFilter": "Artiesten",
+  "librarySearchPlaceholder": "Zoeken in mijn bibliotheek...",
+  "libraryInProgress": "Bezig",
+  "libraryFavoriteMovies": "Favoriete films",
+  "libraryFavoriteSeries": "Favoriete series",
+  "libraryWatchHistory": "Kijkgeschiedenis",
+  "libraryItemCount": "{count} item",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "libraryItemCountPlural": "{count} items",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "searchPeopleTitle": "Personen",
+  "searchSagasTitle": "Saga's",
+  "personRoleActor": "Acteur",
+  "personRoleDirector": "Regisseur",
+  "personRoleCreator": "Maker",
+  "tvDistribution": "Cast",
+  "tvSeasonLabel": "Seizoen {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "tvNoEpisodesAvailable": "Geen afleveringen beschikbaar",
+  "tvResumeSeasonEpisode": "Hervatten S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": { "type": "int" },
+      "episode": { "type": "int" }
+    }
+  },
+  "sagaViewPage": "Pagina bekijken",
+  "sagaStartNow": "Nu beginnen",
+  "sagaContinue": "Doorgaan",
+  "sagaMovieCount": "{count} films",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sagaMoviesList": "Filmlijst",
+  "personMoviesCount": "{movies} films - {shows} series",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": { "type": "int" },
+      "shows": { "type": "int" }
+    }
+  },
+  "personPlayRandomly": "Willekeurig afspelen",
+  "personMoviesList": "Filmlijst",
+  "personSeriesList": "Serielijst",
+  "playlistPlayRandomly": "Willekeurig afspelen",
+  "playlistAddButton": "Toevoegen",
+  "playlistSortButton": "Sorteren",
+  "playlistSortByTitle": "Sorteren op",
+  "playlistSortByTitleOption": "Titel",
+  "playlistSortRecentAdditions": "Recent toegevoegd",
+  "playlistSortOldestFirst": "Oudste eerst",
+  "playlistSortNewestFirst": "Nieuwste eerst",
+  "playlistEmptyMessage": "Geen items in deze lijst",
+  "playlistItemCount": "{count} item",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistItemCountPlural": "{count} items",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistSeasonSingular": "seizoen",
+  "playlistSeasonPlural": "seizoenen",
+  "playlistRenameTitle": "Lijst hernoemen",
+  "playlistNamePlaceholder": "Lijstnaam",
+  "playlistRenamedSuccess": "Lijst hernoemd naar \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "playlistDeleteTitle": "Verwijderen",
+  "playlistDeleteConfirm": "Weet je zeker dat je \"{title}\" wilt verwijderen?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "playlistDeletedSuccess": "Lijst verwijderd",
+  "playlistItemRemovedSuccess": "Item verwijderd",
+  "playlistRemoveItemConfirm": "\"{title}\" uit de lijst verwijderen?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  }
 }

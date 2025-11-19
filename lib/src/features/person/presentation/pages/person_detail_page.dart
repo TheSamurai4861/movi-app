@@ -202,11 +202,14 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    '${widget.vm.moviesCount} films - ${widget.vm.showsCount} séries',
+                                    AppLocalizations.of(context)!.personMoviesCount(
+                                      widget.vm.moviesCount,
+                                      widget.vm.showsCount,
+                                    ),
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context).textTheme.bodyLarge
                                         ?.copyWith(
-                                          color: Colors.white.withOpacity(0.9),
+                                          color: Colors.white.withValues(alpha: 0.9),
                                         ),
                                   ),
                                 ],
@@ -229,10 +232,10 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                             children: [
                               Expanded(
                                 child: MoviPrimaryButton(
-                                  label: 'Lire aléatoirement',
+                                  label: AppLocalizations.of(context)!.personPlayRandomly,
                                   assetIcon: AppAssets.iconPlay,
                                   onPressed: () {
-                                    // TODO: Implémenter la lecture aléatoire
+                                    
                                     final allMedia = [
                                       ...widget.vm.movies.map(
                                         (m) => MoviMedia(
@@ -305,7 +308,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                           ],
                           if (widget.vm.movies.isNotEmpty) ...[
                             MoviItemsList(
-                              title: 'Liste des films',
+                              title: AppLocalizations.of(context)!.personMoviesList,
                               estimatedItemWidth: 150,
                               estimatedItemHeight: 300,
                               titlePadding: 0,
@@ -335,7 +338,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                           ],
                           if (widget.vm.shows.isNotEmpty) ...[
                             MoviItemsList(
-                              title: 'Liste des séries',
+                              title: AppLocalizations.of(context)!.personSeriesList,
                               estimatedItemWidth: 150,
                               estimatedItemHeight: 300,
                               titlePadding: 0,
@@ -380,10 +383,11 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
 
   Widget _buildHeroImage(BuildContext context, Uri? photo) {
     if (photo == null) {
-      return Image.asset(
-        AppAssets.placeholderPersonActor,
+      return MoviPlaceholderCard(
+        type: PlaceholderType.person,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, 0.1),
+        borderRadius: BorderRadius.zero,
       );
     }
     final mq = MediaQuery.of(context);
@@ -396,10 +400,11 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
       cacheWidth: cacheWidth,
       filterQuality: FilterQuality.medium,
       alignment: const Alignment(0.0, 0.1),
-      errorBuilder: (_, __, ___) => Image.asset(
-        AppAssets.placeholderPersonActor,
+      errorBuilder: (_, __, ___) => MoviPlaceholderCard(
+        type: PlaceholderType.person,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, 0.1),
+        borderRadius: BorderRadius.zero,
       ),
     );
   }

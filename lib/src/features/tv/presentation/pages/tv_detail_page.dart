@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:movi/src/core/theme/theme.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/models/models.dart';
@@ -14,7 +13,7 @@ import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:intl/intl.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network_executor.dart';
@@ -196,7 +195,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         cs.surface,
-                                        cs.surface.withOpacity(0),
+                                        cs.surface.withValues(alpha: 0),
                                       ],
                                     ),
                                   ),
@@ -260,7 +259,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
                                       colors: [
-                                        cs.surface.withOpacity(0),
+                                        cs.surface.withValues(alpha: 0),
                                         cs.surface,
                                       ],
                                     ),
@@ -343,7 +342,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                               assetIcon: AppAssets.iconPlay,
                                               buttonStyle: FilledButton.styleFrom(
                                                 backgroundColor:
-                                                    AppColors.accent,
+                                                    Theme.of(context).colorScheme.primary,
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(32),
@@ -370,7 +369,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                                 if (entry != null &&
                                                     entry.season != null &&
                                                     entry.episode != null) {
-                                                  return 'Reprendre S${entry.season!.toString().padLeft(2, '0')} E${entry.episode!.toString().padLeft(2, '0')}';
+                                                  return AppLocalizations.of(context)!.tvResumeSeasonEpisode(
+                                                    entry.season!,
+                                                    entry.episode!,
+                                                  );
                                                 }
                                                 return AppLocalizations.of(
                                                   context,
@@ -387,7 +389,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                             ),
                                             assetIcon: AppAssets.iconPlay,
                                             buttonStyle: FilledButton.styleFrom(
-                                              backgroundColor: AppColors.accent,
+                                              backgroundColor: Theme.of(context).colorScheme.primary,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(32),
@@ -490,8 +492,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                                                 .bottomCenter,
                                                             colors: [
                                                               cs.surface
-                                                                  .withOpacity(
-                                                                    0,
+                                                                  .withValues(
+                                                                    alpha: 0,
                                                                   ),
                                                               cs.surface,
                                                             ],
@@ -540,7 +542,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                                         fontWeight:
                                                             FontWeight.w500,
                                                         color: cs.onSurface
-                                                            .withOpacity(0.7),
+                                                            .withValues(alpha: 0.7),
                                                       ),
                                                     ),
                                                     const SizedBox(width: 4),
@@ -551,7 +553,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                                           : Icons
                                                                 .keyboard_arrow_down,
                                                       color: cs.onSurface
-                                                          .withOpacity(0.7),
+                                                          .withValues(alpha: 0.7),
                                                       size: 20,
                                                     ),
                                                   ],
@@ -588,10 +590,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Widget _buildHeroImage(Uri? poster, Uri? backdrop) {
     final Uri? uri = poster ?? backdrop;
     if (uri == null) {
-      return Image.asset(
-        AppAssets.placeholderPosterMovie,
+      return MoviPlaceholderCard(
+        type: PlaceholderType.series,
         fit: BoxFit.cover,
         alignment: const Alignment(0.0, -0.5),
+        borderRadius: BorderRadius.zero,
       );
     }
     final mq = MediaQuery.of(context);
@@ -615,7 +618,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         Padding(
           padding: const EdgeInsetsDirectional.only(start: 20, end: 20),
           child: Text(
-            'Distribution',
+            AppLocalizations.of(context)!.tvDistribution,
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
@@ -675,8 +678,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     labelColor: Theme.of(context).colorScheme.onSurface,
                     unselectedLabelColor: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
-                    indicatorColor: AppColors.accent,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    indicatorColor: Theme.of(context).colorScheme.primary,
                     labelStyle: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -686,7 +689,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       fontWeight: FontWeight.w400,
                     ),
                     tabs: seasons.map((s) {
-                      return Tab(text: 'Saison ${s.seasonNumber}');
+                      return Tab(text: AppLocalizations.of(context)!.tvSeasonLabel(s.seasonNumber));
                     }).toList(),
                   ),
                 ),
@@ -734,8 +737,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        cs.surface.withOpacity(0.3),
-                        cs.surface.withOpacity(0),
+                        cs.surface.withValues(alpha: 0.3),
+                        cs.surface.withValues(alpha: 0),
                       ],
                     ),
                   ),
@@ -757,9 +760,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     if (season.episodes.isEmpty) {
       return Center(
         child: Text(
-          'Aucun épisode disponible',
+          AppLocalizations.of(context)!.tvNoEpisodesAvailable,
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       );
@@ -870,7 +873,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     horizontal: 8,
                     vertical: 4,
                   ),
-                  color: Colors.red.withOpacity(0.5),
+                  color: Colors.red.withValues(alpha: 0.5),
                 ),
               ],
             ],
@@ -881,25 +884,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day} ${_getMonthName(date.month)} ${date.year}';
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'janvier',
-      'février',
-      'mars',
-      'avril',
-      'mai',
-      'juin',
-      'juillet',
-      'août',
-      'septembre',
-      'octobre',
-      'novembre',
-      'décembre',
-    ];
-    return months[month - 1];
+    final locale = Localizations.localeOf(context);
+    return DateFormat('d MMMM yyyy', locale.toString()).format(date);
   }
 
   String _formatDuration(Duration duration) {
@@ -1037,6 +1023,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
       if (xtreamItem == null) {
         logger.info('Série seriesId=$seriesId non trouvée dans les playlists');
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Épisode non disponible dans la playlist'),
@@ -1059,6 +1046,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         logger.error(
           'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=${episode.episodeNumber}',
         );
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Impossible de construire l\'URL de streaming'),
@@ -1086,6 +1074,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       }
 
       // Ouvrir le player
+      if (!mounted) return;
       context.push(
         AppRouteNames.player,
         extra: VideoSource(
@@ -1099,9 +1088,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     }
   }
 
@@ -1126,7 +1114,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   ) async {
     try {
       final playlistsAsync = ref.read(libraryPlaylistsProvider);
-      final playlists = await playlistsAsync.value;
+      final playlists = playlistsAsync.value;
       
       if (playlists == null || playlists.isEmpty) {
         if (context.mounted) {
@@ -1139,7 +1127,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       
       // Récupérer les données de la série depuis le provider
       final vmAsync = ref.read(tvDetailProgressiveControllerProvider(seriesId));
-      final vm = await vmAsync.value;
+      final vm = vmAsync.value;
       
       // Utiliser les données du widget si le view model n'est pas disponible
       final title = vm?.title ?? mediaTitle;
@@ -1199,12 +1187,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         }
       }
       
+      if (!mounted || !context.mounted) return;
       if (availablePlaylists.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Aucune playlist disponible pour les séries')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucune playlist disponible pour les séries')),
+        );
         return;
       }
       

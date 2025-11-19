@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 
 class HybridSimilarityService implements SimilarityService {

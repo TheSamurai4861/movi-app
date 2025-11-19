@@ -1,5 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 class TvDetailViewModel {
   TvDetailViewModel({
@@ -31,13 +33,17 @@ class TvDetailViewModel {
     required String language,
     bool isAvailableInPlaylist = true,
   }) {
+    // Parse locale from language code
+    final locale = _parseLocale(language);
+    final localizations = lookupAppLocalizations(locale);
+    
     // Map creators first (directors)
     final creators = detail.creators
         .map(
           (p) => MoviPerson(
             id: p.id.value,
             name: p.name,
-            role: p.role ?? 'Créateur',
+            role: p.role ?? localizations.personRoleCreator,
             poster: p.photo,
           ),
         )
@@ -90,11 +96,16 @@ class TvDetailViewModel {
               : detail.voteAverage!.toStringAsFixed(1))
         : '—';
 
+    // Format seasons count
+    final seasonsCount = detail.seasons.length;
+    final seasonsCountText = seasonsCount == 1
+        ? '$seasonsCount ${localizations.playlistSeasonSingular}'
+        : '$seasonsCount ${localizations.playlistSeasonPlural}';
+    
     return TvDetailViewModel(
       title: detail.title.display,
       yearText: detail.firstAirDate?.year.toString() ?? '—',
-      seasonsCountText:
-          '${detail.seasons.length} saison${detail.seasons.length > 1 ? 's' : ''}',
+      seasonsCountText: seasonsCountText,
       ratingText: ratingText,
       overviewText: detail.synopsis.value,
       cast: cast,
@@ -103,6 +114,13 @@ class TvDetailViewModel {
       backdrop: detail.backdrop,
       language: language,
     );
+  }
+  
+  static Locale _parseLocale(String code) {
+    final parts = code.split('-');
+    final language = parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : 'en';
+    final country = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : 'US';
+    return Locale(language, country);
   }
 }
 

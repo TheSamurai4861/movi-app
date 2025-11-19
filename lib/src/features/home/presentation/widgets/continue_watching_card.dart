@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/widgets/movi_pill.dart';
+import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 
-class ContinueWatchingCard extends StatelessWidget {
+class ContinueWatchingCard extends ConsumerWidget {
   const ContinueWatchingCard._({
     required this.title,
     this.backdrop,
@@ -87,7 +89,7 @@ class ContinueWatchingCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const double width = 300;
     const double height = 165;
 
@@ -106,7 +108,7 @@ class ContinueWatchingCard extends StatelessWidget {
               children: [
                 // Background image (backdrop paysage)
                 Positioned.fill(
-                  child: _buildBackdropImage(backdrop),
+                  child: _buildBackdropImage(context, ref, backdrop),
                 ),
                 // Bottom gradient overlay
                 Positioned(
@@ -283,20 +285,22 @@ class ContinueWatchingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBackdropImage(String? source) {
+  Widget _buildBackdropImage(BuildContext context, WidgetRef ref, String? source) {
     if (source != null && source.isNotEmpty && source.startsWith('http')) {
       return Image.network(
         source,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Image.asset(
-          AppAssets.placeholderPosterMovie,
+        errorBuilder: (_, __, ___) => MoviPlaceholderCard(
+          type: PlaceholderType.movie,
           fit: BoxFit.cover,
+          borderRadius: BorderRadius.zero,
         ),
       );
     }
-    return Image.asset(
-      AppAssets.placeholderPosterMovie,
+    return MoviPlaceholderCard(
+      type: PlaceholderType.movie,
       fit: BoxFit.cover,
+      borderRadius: BorderRadius.zero,
     );
   }
 }

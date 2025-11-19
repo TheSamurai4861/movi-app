@@ -251,7 +251,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       if (state.people.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         MoviItemsList(
-                          title: 'Personnalités',
+                          title: AppLocalizations.of(context)!.searchPeopleTitle,
                           subtitle: AppLocalizations.of(
                             context,
                           )!.resultsCount(state.people.length),
@@ -273,7 +273,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     id: entry.value.id.value,
                                     name: entry.value.name,
                                     poster: entry.value.photo,
-                                    role: 'Acteur',
+                                    role: AppLocalizations.of(context)!.personRoleActor,
                                   ),
                                   onTap: (p) => context.push(
                                     AppRouteNames.person,
@@ -300,7 +300,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   return const SizedBox.shrink();
                                 }
                                 return MoviItemsList(
-                                  title: 'Sagas',
+                                  title: AppLocalizations.of(context)!.searchSagasTitle,
                                   subtitle: AppLocalizations.of(
                                     context,
                                   )!.resultsCount(filteredSagas.length),

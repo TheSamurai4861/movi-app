@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/features/movie/domain/entities/movie.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 class MovieDetailViewModel {
   MovieDetailViewModel({
@@ -37,6 +39,10 @@ class MovieDetailViewModel {
     required Iterable<MovieSummary> recommendations,
     required String language,
   }) {
+    // Parse locale from language code
+    final locale = _parseLocale(language);
+    final localizations = lookupAppLocalizations(locale);
+    
     final dur = detail.duration;
     final h = dur.inHours;
     final mn = dur.inMinutes % 60;
@@ -45,7 +51,7 @@ class MovieDetailViewModel {
           (p) => MoviPerson(
             id: p.id.value,
             name: p.name,
-            role: p.role ?? '-',
+            role: _localizeRole(p.role, localizations),
             poster: p.photo,
           ),
         )
@@ -78,5 +84,30 @@ class MovieDetailViewModel {
       language: language,
       sagaLink: detail.sagaLink,
     );
+  }
+
+  static Locale _parseLocale(String languageCode) {
+    final parts = languageCode.split('-');
+    if (parts.length == 2) {
+      return Locale(parts[0], parts[1]);
+    }
+    return Locale(languageCode);
+  }
+
+  static String _localizeRole(String? role, AppLocalizations localizations) {
+    if (role == null || role.isEmpty || role == '-') {
+      return '-';
+    }
+    final roleLower = role.toLowerCase();
+    if (roleLower.contains('director') || roleLower.contains('réalisateur')) {
+      return localizations.personRoleDirector;
+    }
+    if (roleLower.contains('actor') || roleLower.contains('acteur')) {
+      return localizations.personRoleActor;
+    }
+    if (roleLower.contains('creator') || roleLower.contains('créateur')) {
+      return localizations.personRoleCreator;
+    }
+    return role;
   }
 }

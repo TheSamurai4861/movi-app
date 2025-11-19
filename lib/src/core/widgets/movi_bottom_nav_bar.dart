@@ -1,31 +1,31 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 
 const _kNavHeight = 72.0;
 const _kContainerPadding = 5.0;
 const _kSelectedBackground = Color(0xB32E2E2E); // 70% opacity
 const _kBarBackground = Color(0x80666666); // 50% opacity
-const _kActiveTextColor = Color.fromRGBO(38, 120, 217, 1);
 const _kAnimationDuration = Duration(milliseconds: 300);
 
 class MoviBottomNavItem {
   const MoviBottomNavItem({
     required this.label,
-    required this.activeIcon,
-    required this.inactiveIcon,
+    required this.icon,
   });
 
   final String label;
-  final String activeIcon;
-  final String inactiveIcon;
+  final String icon;
 }
 
 /// Floating bottom navigation bar with blurred background and rounded items.
-class MoviBottomNavBar extends StatelessWidget {
+class MoviBottomNavBar extends ConsumerWidget {
   MoviBottomNavBar({
     super.key,
     required this.selectedIndex,
@@ -45,28 +45,24 @@ class MoviBottomNavBar extends StatelessWidget {
   static const List<MoviBottomNavItem> _defaultItems = [
     MoviBottomNavItem(
       label: 'Accueil',
-      activeIcon: AppAssets.navHomeActive,
-      inactiveIcon: AppAssets.navHome,
+      icon: AppAssets.navHome,
     ),
     MoviBottomNavItem(
       label: 'Recherche',
-      activeIcon: AppAssets.navSearchActive,
-      inactiveIcon: AppAssets.navSearch,
+      icon: AppAssets.navSearch,
     ),
     MoviBottomNavItem(
       label: 'Bibliothèque',
-      activeIcon: AppAssets.navLibraryActive,
-      inactiveIcon: AppAssets.navLibrary,
+      icon: AppAssets.navLibrary,
     ),
     MoviBottomNavItem(
       label: 'Paramètres',
-      activeIcon: AppAssets.navSettingsActive,
-      inactiveIcon: AppAssets.navSettings,
+      icon: AppAssets.navSettings,
     ),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final items = _customItems ?? _localizedItems(context);
     assert(
       selectedIndex < (items.length),
@@ -74,6 +70,7 @@ class MoviBottomNavBar extends StatelessWidget {
     );
 
     final theme = Theme.of(context);
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
     final unselectedTextColor = Colors.white.withValues(alpha: 0.7);
 
     return ClipRRect(
@@ -98,7 +95,8 @@ class MoviBottomNavBar extends StatelessWidget {
                     index: i,
                     isSelected: selectedIndex == i,
                     onTap: onItemSelected,
-                    selectedTextColor: _kActiveTextColor,
+                    accentColor: accentColor,
+                    selectedTextColor: accentColor,
                     unselectedTextColor: unselectedTextColor,
                     textStyle: theme.textTheme.labelSmall,
                   ),
@@ -115,23 +113,19 @@ class MoviBottomNavBar extends StatelessWidget {
     return [
       MoviBottomNavItem(
         label: loc.navHome,
-        activeIcon: AppAssets.navHomeActive,
-        inactiveIcon: AppAssets.navHome,
+        icon: AppAssets.navHome,
       ),
       MoviBottomNavItem(
         label: loc.navSearch,
-        activeIcon: AppAssets.navSearchActive,
-        inactiveIcon: AppAssets.navSearch,
+        icon: AppAssets.navSearch,
       ),
       MoviBottomNavItem(
         label: loc.navLibrary,
-        activeIcon: AppAssets.navLibraryActive,
-        inactiveIcon: AppAssets.navLibrary,
+        icon: AppAssets.navLibrary,
       ),
       MoviBottomNavItem(
         label: loc.navSettings,
-        activeIcon: AppAssets.navSettingsActive,
-        inactiveIcon: AppAssets.navSettings,
+        icon: AppAssets.navSettings,
       ),
     ];
   }
@@ -143,6 +137,7 @@ class _MoviBottomNavItemWidget extends StatefulWidget {
     required this.index,
     required this.isSelected,
     required this.onTap,
+    required this.accentColor,
     required this.selectedTextColor,
     required this.unselectedTextColor,
     required this.textStyle,
@@ -152,6 +147,7 @@ class _MoviBottomNavItemWidget extends StatefulWidget {
   final int index;
   final bool isSelected;
   final ValueChanged<int> onTap;
+  final Color accentColor;
   final Color selectedTextColor;
   final Color unselectedTextColor;
   final TextStyle? textStyle;
@@ -165,19 +161,10 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _translateAnimation;
-  String _currentIcon = '';
 
   @override
   void initState() {
     super.initState();
-    _currentIcon = widget.isSelected
-        ? widget.item.activeIcon
-        : widget.item.inactiveIcon;
-    if (_currentIcon.isEmpty) {
-      _currentIcon = widget.item.inactiveIcon.isNotEmpty
-          ? widget.item.inactiveIcon
-          : widget.item.activeIcon;
-    }
     _controller = AnimationController(
       duration: _kAnimationDuration,
       vsync: this,
@@ -190,25 +177,6 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
       begin: 0.0,
       end: -4.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    _controller.addStatusListener((status) {
-      // Quand l'animation reverse() se termine (revient à 0.0), changer l'icône de bleu à gris
-      // Après un petit délai pour que l'icône soit bien visible au centre avant de changer
-      if (status == AnimationStatus.dismissed && !widget.isSelected) {
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 50), () {
-            if (mounted && !widget.isSelected && _controller.value == 0.0) {
-              final newIcon = widget.item.inactiveIcon.isNotEmpty
-                  ? widget.item.inactiveIcon
-                  : widget.item.activeIcon;
-              setState(() {
-                _currentIcon = newIcon;
-              });
-            }
-          });
-        }
-      }
-    });
   }
 
   @override
@@ -216,12 +184,6 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
     super.didUpdateWidget(oldWidget);
     if (widget.isSelected != oldWidget.isSelected) {
       if (widget.isSelected) {
-        final newIcon = widget.item.activeIcon.isNotEmpty
-            ? widget.item.activeIcon
-            : widget.item.inactiveIcon;
-        setState(() {
-          _currentIcon = newIcon;
-        });
         _controller.forward();
       } else {
         _controller.reverse();
@@ -245,6 +207,10 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
               ? widget.selectedTextColor
               : widget.unselectedTextColor,
         );
+
+    final iconColor = widget.isSelected
+        ? widget.accentColor
+        : Colors.white70;
 
     return Material(
       color: Colors.transparent,
@@ -271,34 +237,15 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                 builder: (context, child) {
                   return Transform.translate(
                     offset: Offset(0, _translateAnimation.value),
-                    child: AnimatedSwitcher(
-                      duration: _kAnimationDuration,
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
-                      child: _currentIcon.isNotEmpty
-                          ? Image.asset(
-                              _currentIcon,
-                              key: ValueKey(_currentIcon),
-                              width: 24,
-                              height: 24,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.medium,
-                            )
-                          : Image.asset(
-                              widget.isSelected
-                                  ? widget.item.activeIcon
-                                  : widget.item.inactiveIcon,
-                              key: ValueKey(
-                                widget.isSelected
-                                    ? widget.item.activeIcon
-                                    : widget.item.inactiveIcon,
-                              ),
-                              width: 24,
-                              height: 24,
-                              fit: BoxFit.contain,
-                              filterQuality: FilterQuality.medium,
-                            ),
+                    child: SvgPicture.asset(
+                      widget.item.icon,
+                      key: ValueKey('${widget.item.icon}-${widget.isSelected}'),
+                      width: 24,
+                      height: 24,
+                      colorFilter: ColorFilter.mode(
+                        iconColor,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   );
                 },

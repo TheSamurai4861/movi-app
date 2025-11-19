@@ -13,8 +13,6 @@ import 'package:movi/src/features/library/presentation/widgets/library_playlist_
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
-import 'package:movi/src/features/playlist/domain/usecases/rename_playlist.dart';
-import 'package:movi/src/features/playlist/domain/usecases/delete_playlist.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -96,12 +94,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Créer une playlist'),
+        title: Text(AppLocalizations.of(context)!.createPlaylistTitle),
         content: Padding(
           padding: const EdgeInsets.only(top: 16),
           child: CupertinoTextField(
             controller: nameController,
-            placeholder: 'Nom de la playlist',
+            placeholder: AppLocalizations.of(context)!.playlistName,
             autofocus: true,
             padding: const EdgeInsets.all(12),
           ),
@@ -140,17 +138,15 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                 ref.invalidate(libraryPlaylistsProvider);
 
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Playlist "$name" créée')),
-                  );
-                }
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.playlistCreatedSuccess(name))),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erreur lors de la création: $e')),
-                  );
-                }
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(AppLocalizations.of(context)!.playlistCreateError(e.toString()))),
+                );
               }
             },
             child: Text(AppLocalizations.of(context)!.actionConfirm),
@@ -177,7 +173,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               Navigator.of(ctx).pop();
               _showRenameDialog(context, ref, playlist);
             },
-            child: const Text('Renommer'),
+            child: Text(AppLocalizations.of(context)!.renamePlaylist),
           ),
           CupertinoActionSheetAction(
             isDestructiveAction: true,
@@ -185,7 +181,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               Navigator.of(ctx).pop();
               _showDeleteDialog(context, ref, playlist);
             },
-            child: const Text('Supprimer'),
+            child: Text(AppLocalizations.of(context)!.deletePlaylist),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
@@ -208,12 +204,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     showCupertinoDialog(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Renommer la playlist'),
+        title: Text(AppLocalizations.of(context)!.playlistRenameTitle),
         content: Padding(
           padding: const EdgeInsets.only(top: 16),
           child: CupertinoTextField(
             controller: nameController,
-            placeholder: 'Nom de la playlist',
+            placeholder: AppLocalizations.of(context)!.playlistNamePlaceholder,
             autofocus: true,
             padding: const EdgeInsets.all(12),
           ),
@@ -391,8 +387,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     IconButton(
                       icon: Image.asset(
                         AppAssets.iconPlus,
-                        width: 30,
-                        height: 30,
+                        width: 25,
+                        height: 25,
                         color: Colors.white,
                       ),
                       onPressed: _showCreatePlaylistDialog,
@@ -433,7 +429,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                         },
                                         decoration: InputDecoration(
                                           hintText:
-                                              'Rechercher dans ma bibliothèque...',
+                                              AppLocalizations.of(context)!.librarySearchPlaceholder,
                                           prefixIcon: Padding(
                                             padding: const EdgeInsets.only(
                                               left: 12,
