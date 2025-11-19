@@ -1,0 +1,9 @@
+Vérification des conversions corrigées:
+
+Saison 2:
+  Premier épisode: TMDB=62 -=1 (trouvé=True)
+  Dernier épisode: TMDB=77 -=16 (trouvé=True)
+
+Saison 21:
+  Premier épisode: TMDB=892 -=1 (trouvé=True)
+  Épisode 1055: TMDB=1055 -=164 (trouvé=True)

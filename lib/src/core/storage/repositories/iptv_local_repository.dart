@@ -281,6 +281,39 @@ class IptvLocalRepository {
     return EpisodeData(episodeId: episodeId, extension: extension);
   }
 
+  /// Récupère toutes les saisons et épisodes d'une série depuis le cache local
+  /// Retourne Map<seasonNumber, Map<episodeNumber, EpisodeData>>
+  Future<Map<int, Map<int, EpisodeData>>> getAllEpisodesForSeries({
+    required String accountId,
+    required int seriesId,
+  }) async {
+    final db = await _db;
+    final rows = await db.query(
+      _tblEpisodes,
+      where: 'account_id = ? AND series_id = ?',
+      whereArgs: <Object?>[accountId, seriesId],
+      orderBy: 'season_number ASC, episode_number ASC',
+    );
+
+    final result = <int, Map<int, EpisodeData>>{};
+    for (final row in rows) {
+      final seasonNumber = row['season_number'] as int?;
+      final episodeNumber = row['episode_number'] as int?;
+      final episodeId = row['episode_id'] as int?;
+      final extension = row['extension'] as String?;
+
+      if (seasonNumber != null && episodeNumber != null && episodeId != null) {
+        result.putIfAbsent(seasonNumber, () => <int, EpisodeData>{});
+        result[seasonNumber]![episodeNumber] = EpisodeData(
+          episodeId: episodeId,
+          extension: extension,
+        );
+      }
+    }
+
+    return result;
+  }
+
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------

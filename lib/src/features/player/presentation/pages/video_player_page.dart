@@ -46,6 +46,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   AudioTrack? _currentAudioTrack;
   final GlobalKey _controlsKey = GlobalKey();
   bool _tracksInitialized = false;
+  bool _resumePositionApplied = false;
 
   @override
   void initState() {
@@ -100,6 +101,14 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _playerRepository.player.stream.duration.listen((duration) {
       if (mounted && duration != Duration.zero) {
         setState(() => _duration = duration);
+        
+        // Appliquer la position de reprise une seule fois quand la durée est disponible
+        if (!_resumePositionApplied && 
+            widget.videoSource?.resumePosition != null &&
+            widget.videoSource!.resumePosition! < duration) {
+          _resumePositionApplied = true;
+          _playerRepository.seekTo(widget.videoSource!.resumePosition!);
+        }
       }
     });
 

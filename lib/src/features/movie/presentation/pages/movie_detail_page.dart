@@ -1282,6 +1282,17 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         });
       }
 
+      // Récupérer la position de reprise depuis l'historique
+      Duration? resumePosition;
+      try {
+        final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+        final historyEntry = await historyRepo.getEntry(movieId, ContentType.movie);
+        resumePosition = historyEntry?.lastPosition;
+      } catch (e) {
+        // Ignorer les erreurs de récupération de l'historique
+        logger.debug('Impossible de récupérer la position de reprise: $e');
+      }
+
       // Ouvrir le player
       if (!mounted || !context.mounted) return;
       context.push(
@@ -1292,6 +1303,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           contentId: movieId,
           contentType: ContentType.movie,
           poster: posterUri,
+          resumePosition: resumePosition,
         ),
       );
     } catch (e, st) {

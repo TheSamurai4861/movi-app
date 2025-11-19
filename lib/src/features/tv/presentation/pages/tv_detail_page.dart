@@ -901,6 +901,75 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return '${hours}h ${remainingMinutes}m';
   }
 
+  /// Détecte si une saison utilise la numérotation globale ou relative
+  /// 
+  /// Retourne true si la saison utilise la numérotation globale (ex: épisode 1055),
+  /// false si elle utilise la numérotation relative (ex: épisode 1, 2, 3...).
+  bool _isSeasonUsingGlobalNumbering(
+    int seasonNumber,
+    List<SeasonViewModel> seasons,
+  ) {
+    // Trouver la saison
+    final season = seasons.firstWhere(
+      (s) => s.seasonNumber == seasonNumber,
+      orElse: () => seasons.firstOrNull ?? seasons.first,
+    );
+
+    if (season.episodes.isEmpty) return false;
+
+    // Si le premier épisode de la saison a un numéro > 1, c'est probablement global
+    final firstEpisodeNumber = season.episodes.first.episodeNumber;
+    if (firstEpisodeNumber > 1) {
+      return true;
+    }
+
+    // Si le numéro du dernier épisode est supérieur au nombre d'épisodes dans la saison,
+    // c'est probablement global
+    final lastEpisodeNumber = season.episodes.last.episodeNumber;
+    if (lastEpisodeNumber > season.episodes.length) {
+      return true;
+    }
+
+    // Sinon, c'est probablement relatif
+    return false;
+  }
+
+  /// Convertit le numéro d'épisode TMDB en numéro relatif à la saison pour Xtream
+  /// 
+  /// Détecte automatiquement si la saison utilise la numérotation globale ou relative.
+  /// Si globale (ex: épisode 1055 pour la saison 21), convertit en relatif (ex: épisode 55).
+  /// Si relative (ex: épisode 1, 2, 3...), utilise le numéro tel quel.
+  int _convertTmdbEpisodeToXtream(
+    int tmdbEpisodeNumber,
+    int seasonNumber,
+    List<SeasonViewModel> seasons,
+  ) {
+    // Détecter si la saison utilise la numérotation globale
+    final isGlobal = _isSeasonUsingGlobalNumbering(seasonNumber, seasons);
+
+    if (!isGlobal) {
+      // La saison utilise déjà la numérotation relative, utiliser le numéro tel quel
+      return tmdbEpisodeNumber;
+    }
+
+    // La saison utilise la numérotation globale, convertir en relatif
+    // Calculer le nombre total d'épisodes dans toutes les saisons précédentes
+    // IMPORTANT: Exclure la saison 0 car elle n'existe pas dans Xtream
+    int totalEpisodesBefore = 0;
+    for (final season in seasons) {
+      // Ignorer la saison 0 (épisodes spéciaux qui n'existent pas dans Xtream)
+      if (season.seasonNumber > 0 && season.seasonNumber < seasonNumber) {
+        totalEpisodesBefore += season.episodes.length;
+      }
+    }
+
+    // Convertir en numéro relatif à la saison
+    final xtreamEpisodeNumber = tmdbEpisodeNumber - totalEpisodesBefore;
+
+    // Gérer les cas limites : si le calcul donne un numéro <= 0, utiliser 1 comme fallback
+    return xtreamEpisodeNumber > 0 ? xtreamEpisodeNumber : 1;
+  }
+
   Future<void> _openEpisodePlayer(
     EpisodeViewModel episode,
     int seasonNumber,
@@ -919,13 +988,45 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         networkExecutor: networkExecutor,
       );
 
+      // Récupérer le ViewModel pour obtenir toutes les saisons et convertir le numéro d'épisode
+      final vmAsync = ref.read(
+        tvDetailProgressiveControllerProvider(widget.media!.id),
+      );
+      final vm = vmAsync.value;
+
+      // Convertir le numéro d'épisode TMDB en numéro Xtream
+      int xtreamEpisodeNumber = episode.episodeNumber;
+      if (vm != null && vm.seasons.isNotEmpty) {
+        final isGlobal = _isSeasonUsingGlobalNumbering(seasonNumber, vm.seasons);
+        final convertedNumber = _convertTmdbEpisodeToXtream(
+          episode.episodeNumber,
+          seasonNumber,
+          vm.seasons,
+        );
+        
+        if (isGlobal) {
+          logger.debug(
+            'Conversion épisode TMDB->Xtream (global): S${seasonNumber}E${episode.episodeNumber} (TMDB global) -> S${seasonNumber}E$convertedNumber (Xtream relatif)',
+          );
+        } else {
+          logger.debug(
+            'Épisode déjà en numérotation relative: S${seasonNumber}E${episode.episodeNumber} (pas de conversion nécessaire)',
+          );
+        }
+        xtreamEpisodeNumber = convertedNumber;
+      } else {
+        logger.debug(
+          'ViewModel non disponible ou saisons vides, utilisation du numéro d\'épisode original: ${episode.episodeNumber}',
+        );
+      }
+
       // Chercher l'item Xtream correspondant
       XtreamPlaylistItem? xtreamItem;
       final accounts = await iptvLocal.getAccounts();
       final seriesId = widget.media!.id;
 
       logger.debug(
-        'Recherche de la série seriesId=$seriesId, saison=$seasonNumber, épisode=${episode.episodeNumber} dans ${accounts.length} comptes',
+        'Recherche de la série seriesId=$seriesId, saison=$seasonNumber, épisode=$xtreamEpisodeNumber (Xtream) dans ${accounts.length} comptes',
       );
 
       for (final account in accounts) {
@@ -1033,18 +1134,35 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       }
 
       logger.debug(
-        'Construction URL pour série streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=${episode.episodeNumber}',
+        'Construction URL pour série streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=$xtreamEpisodeNumber (Xtream)',
       );
+
+      // Vérifier si l'épisode est en cache avant de construire l'URL
+      final cachedEpisodeData = await iptvLocal.getEpisodeData(
+        accountId: xtreamItem.accountId,
+        seriesId: xtreamItem.streamId,
+        seasonNumber: seasonNumber,
+        episodeNumber: xtreamEpisodeNumber,
+      );
+      if (cachedEpisodeData != null) {
+        logger.debug(
+          'Épisode trouvé en cache: S${seasonNumber}E$xtreamEpisodeNumber -> episodeId=${cachedEpisodeData.episodeId}',
+        );
+      } else {
+        logger.debug(
+          'Épisode NON trouvé en cache: S${seasonNumber}E$xtreamEpisodeNumber, chargement depuis l\'API...',
+        );
+      }
 
       // Construire l'URL de streaming
       final streamUrl = await urlBuilder.buildStreamUrlFromSeriesItem(
         item: xtreamItem,
         seasonNumber: seasonNumber,
-        episodeNumber: episode.episodeNumber,
+        episodeNumber: xtreamEpisodeNumber,
       );
       if (streamUrl == null) {
         logger.error(
-          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=${episode.episodeNumber}',
+          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=$xtreamEpisodeNumber',
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1058,22 +1176,38 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       logger.debug('URL de streaming construite: $streamUrl');
 
       // Construire le titre de l'épisode
-      // Récupérer le titre depuis le ViewModel via le provider
-      final vmAsync = ref.read(
-        tvDetailProgressiveControllerProvider(widget.media!.id),
-      );
-      final seriesTitle = vmAsync.value?.title ?? mediaTitle;
+      // Utiliser le ViewModel déjà récupéré
+      final seriesTitle = vm?.title ?? mediaTitle;
+      // Afficher le numéro d'épisode TMDB dans le titre (pour l'utilisateur)
       final episodeTitle = episode.title.isNotEmpty
           ? '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')} - ${episode.title}'
           : '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
 
       // Récupérer le poster depuis widget.media ou le view model
       Uri? posterUri = widget.media?.poster;
-      if (posterUri == null && vmAsync.value != null) {
-        posterUri = vmAsync.value!.poster;
+      if (posterUri == null && vm != null) {
+        posterUri = vm.poster;
+      }
+
+      // Récupérer la position de reprise depuis l'historique
+      // Utiliser le numéro d'épisode TMDB pour l'historique (c'est ce qui est stocké)
+      Duration? resumePosition;
+      try {
+        final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+        final historyEntry = await historyRepo.getEntry(
+          seriesId,
+          ContentType.series,
+          season: seasonNumber,
+          episode: episode.episodeNumber,
+        );
+        resumePosition = historyEntry?.lastPosition;
+      } catch (e) {
+        // Ignorer les erreurs de récupération de l'historique
+        logger.debug('Impossible de récupérer la position de reprise: $e');
       }
 
       // Ouvrir le player
+      // Utiliser le numéro d'épisode TMDB pour l'affichage dans le player
       if (!mounted) return;
       context.push(
         AppRouteNames.player,
@@ -1084,7 +1218,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           contentType: ContentType.series,
           poster: posterUri,
           season: seasonNumber,
-          episode: episode.episodeNumber,
+          episode: episode.episodeNumber, // Utiliser le numéro TMDB pour l'affichage
+          resumePosition: resumePosition,
         ),
       );
     } catch (e) {
@@ -1098,13 +1233,79 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     String? seriesId,
     String title,
   ) async {
-    if (seriesId == null) return;
+    if (seriesId == null || widget.media == null) return;
 
-    // Pour une série, on ne peut pas jouer directement sans sélectionner un épisode
-    // On pourrait ouvrir le premier épisode disponible, mais pour l'instant on affiche un message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sélectionnez un épisode pour le lire')),
-    );
+    try {
+      // Récupérer l'historique pour trouver l'épisode à reprendre
+      final historyRepo = ref.read(slProvider)<HistoryLocalRepository>();
+      final historyEntry = await historyRepo.getEntry(
+        seriesId,
+        ContentType.series,
+      );
+
+      // Si pas d'historique ou pas d'épisode en cours, afficher un message
+      if (historyEntry == null ||
+          historyEntry.season == null ||
+          historyEntry.episode == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sélectionnez un épisode pour le lire')),
+        );
+        return;
+      }
+
+      final seasonNumber = historyEntry.season!;
+      final episodeNumber = historyEntry.episode!;
+
+      // Récupérer le ViewModel pour trouver l'épisode
+      final vmAsync = ref.read(
+        tvDetailProgressiveControllerProvider(seriesId),
+      );
+      final vm = vmAsync.value;
+      if (vm == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chargement des épisodes en cours...')),
+        );
+        return;
+      }
+
+      // Trouver la saison dans le ViewModel
+      final season = vm.seasons.firstWhere(
+        (s) => s.seasonNumber == seasonNumber,
+        orElse: () {
+          // Si la saison n'existe pas, utiliser la première saison disponible
+          if (vm.seasons.isEmpty) {
+            throw StateError('Aucune saison disponible');
+          }
+          return vm.seasons.first;
+        },
+      );
+
+      // Vérifier si les épisodes sont chargés pour cette saison
+      if (season.isLoadingEpisodes || season.episodes.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chargement des épisodes en cours...')),
+        );
+        return;
+      }
+
+      final episode = season.episodes.firstWhere(
+        (e) => e.episodeNumber == episodeNumber,
+        orElse: () => season.episodes.first,
+      );
+
+      // Lancer l'épisode à reprendre
+      await _openEpisodePlayer(episode, seasonNumber);
+    } catch (e) {
+      final logger = ref.read(slProvider)<AppLogger>();
+      logger.error('Erreur lors de la reprise de la série: $e', e);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
   }
 
   Future<void> _showAddToListDialog(

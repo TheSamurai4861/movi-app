@@ -642,7 +642,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      fontSize: hasTitle ? 24 : 28,
+                                      fontSize: 24,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
                                     ),

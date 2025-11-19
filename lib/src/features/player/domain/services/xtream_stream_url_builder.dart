@@ -104,6 +104,7 @@ class XtreamStreamUrlBuilder {
     }
 
     // Essayer d'abord de récupérer les données de l'épisode depuis le stockage local
+    // Les épisodes doivent être chargés et sauvegardés lors de l'ouverture de la série
     final episodeData = await _iptvLocal.getEpisodeData(
       accountId: item.accountId,
       seriesId: item.streamId,
@@ -120,35 +121,38 @@ class XtreamStreamUrlBuilder {
       );
     }
 
-    // Fallback : essayer de récupérer depuis l'API Xtream et le mettre en cache
-    final apiEpisodeData = await _getEpisodeDataFromApi(
-      seriesId: item.streamId,
-      seasonNumber: seasonNumber,
-      episodeNumber: episodeNumber,
-      accountId: item.accountId,
-    );
-
-    if (apiEpisodeData != null && apiEpisodeData.episodeId > 0) {
-      // Sauvegarder l'épisode avec son extension pour les prochaines fois
-      await _iptvLocal.saveEpisodes(
-        accountId: item.accountId,
+    // Si l'épisode n'est pas en cache, essayer de charger depuis l'API
+    // (ce cas ne devrait normalement pas se produire si les épisodes sont bien chargés à l'ouverture)
+    if (_networkExecutor != null) {
+      final apiEpisodeData = await _getEpisodeDataFromApi(
         seriesId: item.streamId,
-        episodes: {
-          seasonNumber: {
-            episodeNumber: EpisodeData(
-              episodeId: apiEpisodeData.episodeId,
-              extension: apiEpisodeData.extension,
-            ),
-          },
-        },
+        seasonNumber: seasonNumber,
+        episodeNumber: episodeNumber,
+        accountId: item.accountId,
       );
 
-      // Utiliser l'ID réel de l'épisode avec l'extension si disponible
-      return buildEpisodeStreamUrl(
-        episodeId: apiEpisodeData.episodeId,
-        accountId: item.accountId,
-        extension: apiEpisodeData.extension,
-      );
+      if (apiEpisodeData != null && apiEpisodeData.episodeId > 0) {
+        // Sauvegarder l'épisode avec son extension pour les prochaines fois
+        await _iptvLocal.saveEpisodes(
+          accountId: item.accountId,
+          seriesId: item.streamId,
+          episodes: {
+            seasonNumber: {
+              episodeNumber: EpisodeData(
+                episodeId: apiEpisodeData.episodeId,
+                extension: apiEpisodeData.extension,
+              ),
+            },
+          },
+        );
+
+        // Utiliser l'ID réel de l'épisode avec l'extension si disponible
+        return buildEpisodeStreamUrl(
+          episodeId: apiEpisodeData.episodeId,
+          accountId: item.accountId,
+          extension: apiEpisodeData.extension,
+        );
+      }
     }
 
     // Fallback : utiliser seulement l'ID de l'épisode calculé (sans seriesId)

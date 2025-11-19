@@ -20,7 +20,6 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
-import 'package:movi/src/features/home/presentation/widgets/home_hero_section.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
@@ -273,20 +272,9 @@ class _HomeContentState extends ConsumerState<_HomeContent> {
               SliverToBoxAdapter(
                 child: state.isHeroEmpty
                     ? const _HeroEmptyBanner()
-                    : (state.hero.length >= 2)
-                    ? HomeHeroCarousel(
+                    : HomeHeroCarousel(
                         key: ValueKey(lang),
                         movies: state.hero.take(10).toList(growable: false),
-                        onLoadingChanged: (isLoading) {
-                          if (mounted && _isHeroLoadingMeta != isLoading) {
-                            setState(() {
-                              _isHeroLoadingMeta = isLoading;
-                            });
-                          }
-                        },
-                      )
-                    : HomeHeroSection(
-                        movie: state.hero.isNotEmpty ? state.hero.first : null,
                         onLoadingChanged: (isLoading) {
                           if (mounted && _isHeroLoadingMeta != isLoading) {
                             setState(() {

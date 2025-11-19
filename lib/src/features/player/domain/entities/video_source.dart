@@ -11,6 +11,7 @@ class VideoSource {
     this.poster,
     this.season,
     this.episode,
+    this.resumePosition,
   });
 
   /// URL de la vidéo (peut être locale ou distante)
@@ -36,5 +37,8 @@ class VideoSource {
 
   /// Numéro d'épisode (pour les séries)
   final int? episode;
+
+  /// Position de reprise de lecture (optionnel)
+  final Duration? resumePosition;
 }
 

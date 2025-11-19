@@ -196,7 +196,8 @@ final homeInProgressProvider = FutureProvider<List<InProgressMedia>>((ref) async
   
   for (final entry in allEntries) {
     final progress = _calculateProgress(entry);
-    if (progress > 0 && progress < 0.9) {
+    // Un média est considéré en cours seulement si au moins 5% a été regardé
+    if (progress >= 0.05 && progress < 0.9) {
       // Extraire le TMDB ID depuis contentId
       final tmdbId = _extractTmdbId(entry.contentId);
       
@@ -355,7 +356,8 @@ final mediaHistoryProvider = FutureProvider.family<HistoryEntry?, ({String conte
       (e) => e.contentId == params.contentId,
     );
     final progress = _calculateProgress(entry);
-    if (progress > 0 && progress < 0.9) {
+    // Un média est considéré en cours seulement si au moins 5% a été regardé
+    if (progress >= 0.05 && progress < 0.9) {
       return entry;
     }
   } catch (_) {
