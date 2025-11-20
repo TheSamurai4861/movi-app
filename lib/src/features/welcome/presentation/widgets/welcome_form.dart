@@ -6,6 +6,7 @@ import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
+import 'package:movi/src/core/router/app_router.dart';
 
 import 'package:movi/src/features/welcome/presentation/providers/welcome_providers.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
@@ -113,7 +114,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
           ),
         ),
       );
-      context.go('/'); // aller directement à l’accueil
+      GoRouter.of(context).go(AppRouteNames.home);
     } else {
       final err = ref.read(iptvConnectControllerProvider).error;
       final msg = err == null || err.isEmpty
@@ -219,14 +220,43 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
           const SizedBox(height: AppSpacing.xl),
 
           // Actions
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: SizedBox(
+            width: double.infinity,
+            child: MoviPrimaryButton(
+              label: AppLocalizations.of(context)!.welcomeSourceAdd,
+              onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
+              loading: isLoading,
+            ),
+          ),
+        ),
+
+          const SizedBox(height: AppSpacing.md),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: SizedBox(
               width: double.infinity,
-              child: MoviPrimaryButton(
-                label: AppLocalizations.of(context)!.welcomeSourceAdd,
-                onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
-                loading: isLoading,
+              child: OutlinedButton(
+                onPressed: (!isLoading && _isFormValid && !ui.isTesting)
+                    ? () async {
+                        await ref
+                            .read(welcomeControllerProvider.notifier)
+                            .testConnection(
+                              serverUrl: _urlCtrl.text.trim(),
+                              username: _userCtrl.text.trim(),
+                              password: _passCtrl.text,
+                            );
+                        if (!mounted) return;
+                      }
+                    : null,
+                child: ui.isTesting
+                    ? SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(AppLocalizations.of(context)!.actionConnect),
               ),
             ),
           ),

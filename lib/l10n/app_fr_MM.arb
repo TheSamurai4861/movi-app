@@ -72,6 +72,19 @@
   "actionMarkUnseen": "Marquer comme point vu",
   "actionReportProblem": "Signaler un couac",
   "featureComingSoon": "Fonction à venir",
+  "subtitlesMenuTitle": "Sous-titres",
+  "audioMenuTitle": "Audio",
+  "actionDisable": "Désactiver",
+  "defaultTrackLabel": "Piste {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Épisode suivant",
+  "actionRestart": "Recommencer",
+  "errorSeriesDataUnavailable": "Impossible de charger les données de la série",
+  "errorNextEpisodeFailed": "Impossible de déterminer l'épisode suivant",
   "actionLoadMore": "Charger davantage",
   "iptvServerUrlLabel": "Adresse du serveur",
   "iptvServerUrlHint": "Adresse du serveur Xtream",
@@ -279,4 +292,8 @@
   "categoryLoadFailed": "Couac lors du chargement de la catégorie.",
   "categoryEmpty": "Point d'élément dans cette catégorie.",
   "categoryLoadingMore": "Chargement en cours…"
+  ,
+  "personNoData": "Point de personnalité à afficher.",
+  "personGenericError": "Un couac est advenu en chargeant cette personnalité.",
+  "personBiographyTitle": "Biographie"
 }

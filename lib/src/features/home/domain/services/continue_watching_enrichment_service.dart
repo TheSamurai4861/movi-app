@@ -85,22 +85,17 @@ class ContinueWatchingEnrichmentService {
 
             if (entry.season != null && entry.episode != null) {
               try {
-                final seasons = await _tvRepository.getSeasons(
+                final episodes = await _tvRepository.getEpisodes(
                   SeriesId(entry.contentId),
+                  SeasonId(entry.season!.toString()),
                 );
-                final season = seasons.firstWhere(
-                  (s) => s.seasonNumber == entry.season,
-                  orElse: () => seasons.first,
-                );
-                final episode = season.episodes.firstWhere(
+                final episode = episodes.firstWhere(
                   (e) => e.episodeNumber == entry.episode,
-                  orElse: () => season.episodes.first,
+                  orElse: () => episodes.first,
                 );
                 duration = episode.runtime;
                 episodeTitle = episode.title.display;
-              } catch (_) {
-                // Ignorer si l'épisode n'est pas trouvé.
-              }
+              } catch (_) {}
             }
           }
         } catch (_) {

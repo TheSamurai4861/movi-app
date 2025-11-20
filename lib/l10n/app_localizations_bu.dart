@@ -158,6 +158,44 @@ class AppLocalizationsBu extends AppLocalizations {
   String get actionMarkUnseen => 'Marquer comme point vu';
   @override
   String get actionReportProblem => 'Signaler un couac';
+
+  @override
+  String get subtitlesMenuTitle => 'Sous-titres';
+
+  @override
+  String get audioMenuTitle => 'Audio';
+
+  @override
+  String get actionDisable => 'Désactiver';
+
+  @override
+  String defaultTrackLabel(String id) => 'Piste $id';
+
+  @override
+  String get controlRewind10 => '10 s';
+
+  @override
+  String get controlRewind30 => '30 s';
+
+  @override
+  String get controlForward10 => '+ 10 s';
+
+  @override
+  String get controlForward30 => '+ 30 s';
+
+  @override
+  String get actionNextEpisode => 'Episode suivant';
+
+  @override
+  String get actionRestart => 'Recommencer';
+
+  @override
+  String get errorSeriesDataUnavailable =>
+      'Impossible de charger les données de la série';
+
+  @override
+  String get errorNextEpisodeFailed =>
+      'Impossible de déterminer l\'épisode suivant';
   @override
   String get featureComingSoon => 'Fonction à venir';
   @override
@@ -361,17 +399,27 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get categoryLoadingMore => 'Chargement en cours…';
   @override
+  String get movieNoMedia => 'Point de média à afficher';
+  @override
   String get movieNoPlaylistsAvailable => 'Point de liste disponible';
   @override
   String playlistAddedTo(String title) => 'Ajouté à "$title"';
   @override
   String errorWithMessage(String message) => 'Couac: $message';
   @override
-  String get movieNotAvailableInPlaylist => 'Bobine point disponible dans la liste';
+  String get movieNotAvailableInPlaylist =>
+      'Bobine point disponible dans la liste';
   @override
   String errorLoadingPlaylists(String message) =>
       'Couac lors du chargement des listes: $message';
   @override
   String errorPlaybackFailed(String message) =>
       'Couac lors de la lecture de la bobine: $message';
+  @override
+  String get personNoData => 'Point de personnalité à afficher.';
+  @override
+  String get personGenericError =>
+      'Un couac est advenu en chargeant cette personnalité.';
+  @override
+  String get personBiographyTitle => 'Biographie';
 }

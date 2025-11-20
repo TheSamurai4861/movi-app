@@ -22,6 +22,15 @@ class TmdbWatchProviderDto {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'provider_id': providerId,
+      'provider_name': providerName,
+      'logo_path': logoPath,
+      'display_priority': displayPriority,
+    };
+  }
+
   static int? _asInt(dynamic value) {
     if (value is int) return value;
     if (value is num) return value.toInt();

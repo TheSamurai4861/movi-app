@@ -289,4 +289,61 @@ class PlaylistLocalRepository {
         )
         .toList();
   }
+
+  Future<List<PlaylistHeader>> getMostRecentlyUpdated(int limit) async {
+    final db = await _db;
+    final rows = await db.query(
+      'playlists',
+      orderBy: 'updated_at DESC',
+      limit: limit,
+    );
+    return rows
+        .map(
+          (h) => PlaylistHeader(
+            id: h['playlist_id'] as String,
+            title: h['title'] as String,
+            description: h['description'] as String?,
+            cover: (h['cover'] as String?) != null
+                ? Uri.tryParse(h['cover'] as String)
+                : null,
+            owner: h['owner'] as String,
+            isPublic: (h['is_public'] as int) == 1,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              h['created_at'] as int,
+            ),
+            updatedAt: DateTime.fromMillisecondsSinceEpoch(
+              h['updated_at'] as int,
+            ),
+          ),
+        )
+        .toList();
+  }
+
+  Future<void> normalizePositions(String playlistId) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'playlist_items',
+        where: 'playlist_id = ?',
+        whereArgs: [playlistId],
+        orderBy: 'position ASC',
+      );
+      if (rows.isEmpty) return;
+      await txn.rawUpdate(
+        'UPDATE playlist_items SET position = position + 1000000 WHERE playlist_id = ?',
+        [playlistId],
+      );
+      final batch = txn.batch();
+      for (var i = 0; i < rows.length; i++) {
+        final pos = i + 1;
+        batch.update(
+          'playlist_items',
+          {'position': pos},
+          where: 'playlist_id = ? AND content_id = ? AND content_type = ?',
+          whereArgs: [playlistId, rows[i]['content_id'], rows[i]['content_type']],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
 }

@@ -204,6 +204,44 @@ class AppLocalizationsNl extends AppLocalizations {
   String get featureComingSoon => 'Functie binnenkort beschikbaar';
 
   @override
+  String get subtitlesMenuTitle => 'Ondertitels';
+
+  @override
+  String get audioMenuTitle => 'Audio';
+
+  @override
+  String get actionDisable => 'Uitschakelen';
+
+  @override
+  String defaultTrackLabel(String id) {
+    return 'Track $id';
+  }
+
+  @override
+  String get controlRewind10 => '10 s';
+
+  @override
+  String get controlRewind30 => '30 s';
+
+  @override
+  String get controlForward10 => '+ 10 s';
+
+  @override
+  String get controlForward30 => '+ 30 s';
+
+  @override
+  String get actionNextEpisode => 'Volgende aflevering';
+
+  @override
+  String get actionRestart => 'Opnieuw starten';
+
+  @override
+  String get errorSeriesDataUnavailable => 'Kan seriedata niet laden';
+
+  @override
+  String get errorNextEpisodeFailed => 'Kan volgende aflevering niet bepalen';
+
+  @override
   String get actionLoadMore => 'Meer laden';
 
   @override
@@ -569,4 +607,17 @@ class AppLocalizationsNl extends AppLocalizations {
   String errorPlaybackFailed(String message) {
     return 'Fout bij het afspelen van de film: $message';
   }
+
+  @override
+  String get movieNoMedia => 'No media to display';
+
+  @override
+  String get personNoData => 'Geen persoon om te tonen.';
+
+  @override
+  String get personGenericError =>
+      'Er is een fout opgetreden bij het laden van deze persoon.';
+
+  @override
+  String get personBiographyTitle => 'Biografie';
 }

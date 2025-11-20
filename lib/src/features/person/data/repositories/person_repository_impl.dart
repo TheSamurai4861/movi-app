@@ -51,7 +51,19 @@ class PersonRepositoryImpl implements PersonRepository {
 
   @override
   Future<List<PersonSummary>> getFeaturedPeople() async {
-    return searchPeople('a');
+    // Previously used searchPeople('a') as a placeholder to surface some results.
+    // Now backed by TMDB `person/popular` to provide real featured profiles.
+    final dtos = await _remote.popularPeople(language: _locale.languageCode);
+    return dtos
+        .map(
+          (dto) => PersonSummary(
+            id: PersonId(dto.id.toString()),
+            tmdbId: dto.id,
+            name: dto.name,
+            photo: _images.poster(dto.profilePath),
+          ),
+        )
+        .toList();
   }
 
   Person _mapPerson(TmdbPersonDetailDto dto) {

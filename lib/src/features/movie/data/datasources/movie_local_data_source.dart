@@ -7,9 +7,15 @@ class MovieLocalDataSource {
   final ContentCacheRepository _cacheRepository;
   static const _movieDetailType = 'movie_detail';
   static const _recommendationsType = 'movie_recommendations';
-  static const CachePolicy _detailPolicy = CachePolicy(ttl: Duration(hours: 24));
-  static const CachePolicy _recommendationPolicy = CachePolicy(ttl: Duration(hours: 6));
-  static const CachePolicy _defaultPolicy = CachePolicy(ttl: Duration(hours: 24));
+  static const CachePolicy _detailPolicy = CachePolicy(
+    ttl: Duration(hours: 24),
+  );
+  static const CachePolicy _recommendationPolicy = CachePolicy(
+    ttl: Duration(hours: 6),
+  );
+  static const CachePolicy _defaultPolicy = CachePolicy(
+    ttl: Duration(hours: 24),
+  );
 
   Future<void> saveMovieDetail({required TmdbMovieDetailDto dto}) {
     return _cacheRepository.put(

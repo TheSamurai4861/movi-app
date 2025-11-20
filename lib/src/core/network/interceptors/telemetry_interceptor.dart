@@ -3,10 +3,11 @@ import 'package:dio/dio.dart';
 import 'package:movi/src/core/logging/logger.dart';
 
 class TelemetryInterceptor extends Interceptor {
-  TelemetryInterceptor({required this.logger, this.enabled = true});
+  TelemetryInterceptor({required this.logger, this.enabled = true, this.thresholdMs = 400});
 
   final AppLogger logger;
   final bool enabled;
+  final int thresholdMs;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
@@ -33,9 +34,11 @@ class TelemetryInterceptor extends Interceptor {
     final start = options.extra['request-start'] as int?;
     if (start == null) return;
     final duration = DateTime.now().millisecondsSinceEpoch - start;
-    logger.debug(
-      '[HTTP] ${options.method} ${options.path} ($statusCode) - ${duration}ms',
-    );
+    if (duration >= thresholdMs) {
+      logger.debug(
+        '[HTTP] ${options.method} ${options.path} ($statusCode) - ${duration}ms',
+      );
+    }
     options.extra.remove('request-start');
   }
 }

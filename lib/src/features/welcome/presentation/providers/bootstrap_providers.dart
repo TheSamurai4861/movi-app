@@ -42,6 +42,7 @@ class BootstrapController extends Notifier<BootstrapState> {
   Ref get _ref => ref;
   Timer? _timeout;
   bool _started = false;
+  StreamSubscription<AppEvent>? _busSub;
 
   /// Démarre la préparation: observe les événements app-layer, puis enrichit.
   void start() {
@@ -51,7 +52,7 @@ class BootstrapController extends Notifier<BootstrapState> {
     unawaited(LoggingService.log('Bootstrap: start'));
     // Écoute l’événement indiquant la fin de synchro IPTV.
     final bus = _ref.read(appEventBusProvider);
-    bus.stream.listen((event) {
+    _busSub = bus.stream.listen((event) {
       if (event.type == AppEventType.iptvSynced &&
           state.phase == BootPhase.refreshing) {
         unawaited(LoggingService.log('Bootstrap: IPTV synced event received'));
@@ -95,6 +96,8 @@ class BootstrapController extends Notifier<BootstrapState> {
     ref.onDispose(() {
       _timeout?.cancel();
       _timeout = null;
+      _busSub?.cancel();
+      _busSub = null;
     });
   }
 }

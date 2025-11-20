@@ -13,10 +13,11 @@ import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart'
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
-import 'package:movi/src/features/search/data/dtos/tmdb_watch_provider_dto.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/features/search/domain/usecases/load_watch_providers.dart';
+import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   final locator = ref.watch(slProvider);
@@ -30,6 +31,11 @@ final searchInstantUseCaseProvider = Provider<SearchInstant>(
 final searchPaginatedUseCaseProvider = Provider<SearchPaginated>(
   (ref) => SearchPaginated(ref.watch(searchRepositoryProvider)),
 );
+
+final loadWatchProvidersUseCaseProvider = Provider<LoadWatchProviders>((ref) {
+  final locator = ref.watch(slProvider);
+  return locator<LoadWatchProviders>();
+});
 
 final searchControllerProvider =
     NotifierProvider<SearchInstantController, SearchState>(
@@ -129,13 +135,13 @@ const _excludedProviderIds = {
 
 /// Provider pour récupérer la liste des watch providers disponibles.
 /// Filtre uniquement les providers connus et les trie dans l'ordre spécifié.
-final watchProvidersProvider = FutureProvider<List<TmdbWatchProviderDto>>((
+final watchProvidersProvider = FutureProvider<List<WatchProvider>>((
   ref,
 ) async {
-  final dataSource = ref.watch(watchProvidersRemoteDataSourceProvider);
-  final language = ref.watch(asp.currentLanguageCodeProvider);
-
-  final providers = await dataSource.fetchWatchProviders(language: language);
+  final useCase = ref.watch(loadWatchProvidersUseCaseProvider);
+  
+  // On utilise 'FR' par défaut comme dans la logique précédente
+  final providers = await useCase('FR');
 
   // Filtrer uniquement les providers connus
   final knownProviders = providers.where((provider) {

@@ -57,7 +57,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     super.initState();
     _isTransitioningFromLoading = true;
     _primeFromArgs();
-    _startAutoRefreshTimer();
+    // Ne démarrer le timer que si un média est présent
+    if (widget.media != null) {
+      _startAutoRefreshTimer();
+    }
   }
 
   @override
@@ -68,17 +71,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   void _startAutoRefreshTimer() {
     _autoRefreshTimer?.cancel();
+    final mediaId = widget.media?.id;
+    if (mediaId == null) return;
     _autoRefreshTimer = Timer(_loadingTimeout, () {
-      if (mounted && _retryCount < _maxRetries) {
-        final vmAsync = ref.read(
-          mdp.movieDetailControllerProvider(widget.media!.id),
-        );
-        // Si toujours en chargement après le timeout, relancer
-        if (vmAsync.isLoading) {
-          _retryCount++;
-          ref.invalidate(mdp.movieDetailControllerProvider(widget.media!.id));
-          _startAutoRefreshTimer();
-        }
+      if (!mounted || _retryCount >= _maxRetries) return;
+      final vmAsync = ref.read(mdp.movieDetailControllerProvider(mediaId));
+      // Si toujours en chargement après le timeout, relancer
+      if (vmAsync.isLoading) {
+        _retryCount++;
+        ref.invalidate(mdp.movieDetailControllerProvider(mediaId));
+        _startAutoRefreshTimer();
       }
     });
   }
@@ -94,18 +96,19 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    if (widget.media == null) {
+    final media = widget.media;
+    if (media == null) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: const Center(
+        body: Center(
           child: Text(
-            'Aucun média à afficher (media null).',
-            style: TextStyle(color: Colors.white),
+            AppLocalizations.of(context)!.movieNoMedia,
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       );
     }
-    final vmAsync = ref.watch(mdp.movieDetailControllerProvider(widget.media!.id));
+    final vmAsync = ref.watch(mdp.movieDetailControllerProvider(media.id));
 
     // Détecter les erreurs et relancer automatiquement
     vmAsync.whenOrNull(
@@ -116,9 +119,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               _retryCount++;
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted) {
-                  ref.invalidate(
-                    mdp.movieDetailControllerProvider(widget.media!.id),
-                  );
+                  ref.invalidate(mdp.movieDetailControllerProvider(media.id));
                   _startAutoRefreshTimer();
                 }
               });
@@ -166,6 +167,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           poster: vm.poster,
           backdrop: vm.backdrop,
           sagaLink: vm.sagaLink,
+          movieId: media.id,
         );
       },
     );
@@ -195,6 +197,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     Uri? poster,
     Uri? backdrop,
     SagaSummary? sagaLink,
+    required String movieId,
   }) {
     final cs = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.headlineSmall;
@@ -214,11 +217,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () async {
-                      if (widget.media != null) {
-                        ref.invalidate(
-                          mdp.movieDetailControllerProvider(widget.media!.id),
-                        );
-                      }
+                      ref.invalidate(
+                        mdp.movieDetailControllerProvider(movieId),
+                      );
                     },
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -253,7 +254,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                   yearText: yearText,
                                   durationText: durationText,
                                   ratingText: ratingText,
-                                  movieId: widget.media!.id,
+                                  movieId: movieId,
                                   onPlay: () => _playMovie(context, mediaTitle),
                                 ),
                                 const SizedBox(height: AppSpacing.s),
@@ -421,8 +422,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            AppLocalizations.of(context)!
-                                .playlistAddedTo(playlist.title),
+                            AppLocalizations.of(
+                              context,
+                            )!.playlistAddedTo(playlist.title),
                           ),
                         ),
                       );
@@ -433,8 +435,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     final usecase = ref.read(
                       mdp.addMovieToPlaylistUseCaseProvider,
                     );
-                    final year =
-                        yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
+                    final year = yearTextValue != '—'
+                        ? int.tryParse(yearTextValue)
+                        : null;
                     await usecase(
                       playlistId: playlist.playlistId!,
                       movieId: movieId,
@@ -454,8 +457,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            AppLocalizations.of(context)!
-                                .playlistAddedTo(playlist.title),
+                            AppLocalizations.of(
+                              context,
+                            )!.playlistAddedTo(playlist.title),
                           ),
                         ),
                       );
@@ -463,13 +467,12 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(
+                    ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          AppLocalizations.of(context)!
-                              .errorWithMessage(e.toString()),
+                          AppLocalizations.of(
+                            context,
+                          )!.errorWithMessage(e.toString()),
                         ),
                       ),
                     );
@@ -490,8 +493,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!
-                  .errorLoadingPlaylists(e.toString()),
+              AppLocalizations.of(context)!.errorLoadingPlaylists(e.toString()),
             ),
           ),
         );
@@ -500,14 +502,15 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }
 
   void _showMoreMenu() {
-    if (widget.media == null) return;
+    final media = widget.media;
+    if (media == null) return;
 
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) {
         return Consumer(
           builder: (context, ref, _) {
-            final movieId = widget.media!.id;
+            final movieId = media.id;
             final isAvailableAsync = ref.watch(
               mdp.movieAvailabilityProvider(movieId),
             );
@@ -605,9 +608,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               AppLocalizations.of(context)!.errorWithMessage(e.toString()),
@@ -641,9 +642,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               AppLocalizations.of(context)!.errorWithMessage(e.toString()),
@@ -654,8 +653,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     }
   }
 
-  
-
   void _onChangeMetadata() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.featureComingSoon)),
@@ -665,17 +662,19 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   Future<void> _playMovie(BuildContext context, String title) async {
     final logger = ref.read(slProvider)<AppLogger>();
     try {
-      Uri? posterUri = widget.media?.poster;
-      if (posterUri == null && widget.media != null) {
-        final vmAsync = ref.read(
-          mdp.movieDetailControllerProvider(widget.media!.id),
-        );
+      final media = widget.media;
+      if (media == null) return;
+      Uri? posterUri = media.poster;
+      if (posterUri == null) {
+        final vmAsync = ref.read(mdp.movieDetailControllerProvider(media.id));
         vmAsync.whenData((vm) {
           posterUri = vm.poster;
         });
       }
-      final args = (movieId: widget.media!.id, title: title, poster: posterUri);
-      final source = await ref.read(mdp.buildMovieVideoSourceProvider(args).future);
+      final args = (movieId: media.id, title: title, poster: posterUri);
+      final source = await ref.read(
+        mdp.buildMovieVideoSourceProvider(args).future,
+      );
       if (source == null) {
         if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -689,10 +688,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
 
       if (!mounted || !context.mounted) return;
-      context.push(
-        AppRouteNames.player,
-        extra: source,
-      );
+      context.push(AppRouteNames.player, extra: source);
     } catch (e, st) {
       logger.error(
         AppLocalizations.of(context)!.errorPlaybackFailed(e.toString()),
@@ -700,9 +696,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         st,
       );
       if (!mounted || !context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppLocalizations.of(context)!.errorWithMessage(e.toString()),

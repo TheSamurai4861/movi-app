@@ -269,6 +269,8 @@ lib/
 │   │   │   │   │   └── xtream_stream_dto.dart
 │   │   │   │   ├── repositories/
 │   │   │   │   │   └── iptv_repository_impl.dart
+│   │   │   │   ├── services/
+│   │   │   │   │   └── xtream_stream_url_builder_impl.dart
 │   │   │   │   └── iptv_data_module.dart
 │   │   │   ├── domain/
 │   │   │   │   ├── entities/
@@ -286,15 +288,19 @@ lib/
 │   │   ├── library/
 │   │   │   ├── data/
 │   │   │   │   ├── repositories/
+│   │   │   │   │   ├── continue_watching_repository_impl.dart
 │   │   │   │   │   ├── favorites_repository_impl.dart
 │   │   │   │   │   ├── history_repository_impl.dart
-│   │   │   │   │   └── library_repository_impl.dart
+│   │   │   │   │   ├── library_repository_impl.dart
+│   │   │   │   │   └── playback_history_repository_impl.dart
 │   │   │   │   └── library_data_module.dart
 │   │   │   ├── domain/
 │   │   │   │   ├── repositories/
+│   │   │   │   │   ├── continue_watching_repository.dart
 │   │   │   │   │   ├── favorites_repository.dart
 │   │   │   │   │   ├── history_repository.dart
-│   │   │   │   │   └── library_repository.dart
+│   │   │   │   │   ├── library_repository.dart
+│   │   │   │   │   └── playback_history_repository.dart
 │   │   │   │   ├── services/
 │   │   │   │   │   ├── history_filter.dart
 │   │   │   │   │   └── library_playlist_sorter.dart
@@ -325,6 +331,9 @@ lib/
 │   │   │   │   │   └── tmdb_movie_detail_dto.dart
 │   │   │   │   ├── repositories/
 │   │   │   │   │   └── movie_repository_impl.dart
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── iptv_availability_service_impl.dart
+│   │   │   │   │   └── movie_streaming_service_impl.dart
 │   │   │   │   └── movie_data_module.dart
 │   │   │   ├── domain/
 │   │   │   │   ├── entities/
@@ -333,13 +342,21 @@ lib/
 │   │   │   │   │   └── movie_summary.dart
 │   │   │   │   ├── repositories/
 │   │   │   │   │   └── movie_repository.dart
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── iptv_availability_service.dart
+│   │   │   │   │   └── movie_streaming_service.dart
 │   │   │   │   └── usecases/
+│   │   │   │       ├── add_movie_to_playlist.dart
+│   │   │   │       ├── build_movie_video_source.dart
 │   │   │   │       ├── filter_recommendations_by_iptv.dart
 │   │   │   │       ├── get_continue_watching_movies.dart
+│   │   │   │       ├── get_movie_availability_on_iptv.dart
 │   │   │   │       ├── get_movie_credits.dart
 │   │   │   │       ├── get_movie_detail.dart
 │   │   │   │       ├── get_movie_recommendations.dart
 │   │   │   │       ├── is_in_watchlist.dart
+│   │   │   │       ├── mark_movie_as_seen.dart
+│   │   │   │       ├── mark_movie_as_unseen.dart
 │   │   │   │       ├── search_movies.dart
 │   │   │   │       └── toggle_watchlist.dart
 │   │   │   ├── presentation/
@@ -347,8 +364,16 @@ lib/
 │   │   │   │   │   └── movie_detail_view_model.dart
 │   │   │   │   ├── pages/
 │   │   │   │   │   └── movie_detail_page.dart
-│   │   │   │   └── providers/
-│   │   │   │       └── movie_detail_providers.dart
+│   │   │   │   ├── providers/
+│   │   │   │   │   └── movie_detail_providers.dart
+│   │   │   │   └── widgets/
+│   │   │   │       ├── movie_detail_cast_section.dart
+│   │   │   │       ├── movie_detail_hero_section.dart
+│   │   │   │       ├── movie_detail_main_actions.dart
+│   │   │   │       ├── movie_detail_recommendations_section.dart
+│   │   │   │       ├── movie_detail_saga_section.dart
+│   │   │   │       ├── movie_detail_synopsis_section.dart
+│   │   │   │       └── movie_hero_image.dart
 │   │   │   └── movie.dart
 │   │   ├── person/
 │   │   │   ├── data/
@@ -371,12 +396,23 @@ lib/
 │   │   │   │       ├── get_person_filmography.dart
 │   │   │   │       └── search_people.dart
 │   │   │   ├── presentation/
+│   │   │   │   ├── models/
+│   │   │   │   │   └── person_detail_view_model.dart
 │   │   │   │   ├── pages/
 │   │   │   │   │   └── person_detail_page.dart
-│   │   │   │   └── providers/
-│   │   │   │       └── person_detail_providers.dart
+│   │   │   │   ├── providers/
+│   │   │   │   │   └── person_detail_providers.dart
+│   │   │   │   └── widgets/
+│   │   │   │       ├── person_biography_section.dart
+│   │   │   │       ├── person_detail_actions_row.dart
+│   │   │   │       ├── person_detail_hero_section.dart
+│   │   │   │       └── person_filmography_section.dart
 │   │   │   └── person.dart
 │   │   ├── player/
+│   │   │   ├── application/
+│   │   │   │   └── services/
+│   │   │   │       ├── next_episode_service.dart
+│   │   │   │       └── preferred_tracks_selector.dart
 │   │   │   ├── data/
 │   │   │   │   └── repositories/
 │   │   │   │       └── media_kit_video_player_repository.dart
@@ -392,16 +428,21 @@ lib/
 │   │   │   ├── presentation/
 │   │   │   │   ├── pages/
 │   │   │   │   │   └── video_player_page.dart
+│   │   │   │   ├── providers/
+│   │   │   │   │   └── player_providers.dart
 │   │   │   │   └── widgets/
 │   │   │   │       ├── track_selection_menu.dart
 │   │   │   │       └── video_player_controls.dart
 │   │   │   └── player.dart
 │   │   ├── playlist/
+│   │   │   ├── application/
+│   │   │   │   ├── services/
+│   │   │   │   │   └── playlist_filter_service.dart
+│   │   │   │   └── playlist_application_module.dart
 │   │   │   ├── data/
 │   │   │   │   ├── repositories/
 │   │   │   │   │   └── playlist_repository_impl.dart
 │   │   │   │   ├── services/
-│   │   │   │   │   ├── playlist_filter_service.dart
 │   │   │   │   │   └── playlist_ordering_service.dart
 │   │   │   │   └── playlist_data_module.dart
 │   │   │   ├── domain/
@@ -416,6 +457,7 @@ lib/
 │   │   │   │       ├── get_featured_playlists.dart
 │   │   │   │       ├── get_playlist_detail.dart
 │   │   │   │       ├── get_user_playlists.dart
+│   │   │   │       ├── normalize_playlist_positions.dart
 │   │   │   │       ├── remove_playlist_item.dart
 │   │   │   │       ├── rename_playlist.dart
 │   │   │   │       ├── reorder_playlist_item.dart
@@ -450,6 +492,7 @@ lib/
 │   │   │   ├── data/
 │   │   │   │   ├── datasources/
 │   │   │   │   │   ├── search_history_local_data_source.dart
+│   │   │   │   │   ├── search_local_data_source.dart
 │   │   │   │   │   ├── tmdb_search_remote_data_source.dart
 │   │   │   │   │   └── tmdb_watch_providers_remote_data_source.dart
 │   │   │   │   ├── dtos/
@@ -461,13 +504,15 @@ lib/
 │   │   │   ├── domain/
 │   │   │   │   ├── entities/
 │   │   │   │   │   ├── search_history_item.dart
-│   │   │   │   │   └── search_page.dart
+│   │   │   │   │   ├── search_page.dart
+│   │   │   │   │   └── watch_provider.dart
 │   │   │   │   ├── repositories/
 │   │   │   │   │   ├── search_history_repository.dart
 │   │   │   │   │   └── search_repository.dart
 │   │   │   │   ├── usecases/
 │   │   │   │   │   ├── add_search_query_to_history.dart
 │   │   │   │   │   ├── list_search_history.dart
+│   │   │   │   │   ├── load_watch_providers.dart
 │   │   │   │   │   ├── remove_search_history_item.dart
 │   │   │   │   │   ├── search_instant.dart
 │   │   │   │   │   ├── search_movies.dart
@@ -587,7 +632,8 @@ lib/
 │   │   │       │   └── hybrid_similarity_service.dart
 │   │   │       ├── tmdb_cache_data_source.dart
 │   │   │       ├── tmdb_client.dart
-│   │   │       └── tmdb_image_resolver.dart
+│   │   │       ├── tmdb_image_resolver.dart
+│   │   │       └── xtream_lookup_service.dart
 │   │   ├── domain/
 │   │   │   ├── entities/
 │   │   │   │   └── person_summary.dart
@@ -611,25 +657,25 @@ lib/
 ================================================================================
 INDEX DES FICHIERS LIB/ (numéroté)
 ================================================================================
-   1. l10n/app_de.arb  (259 lignes, 9353 octets) *
-   2. l10n/app_en.arb  (288 lignes, 8881 octets) *
-   3. l10n/app_es.arb  (256 lignes, 9311 octets) *
-   4. l10n/app_fr.arb  (288 lignes, 9658 octets) *
-   5. l10n/app_fr_MM.arb  (282 lignes, 9488 octets) *
-   6. l10n/app_it.arb  (256 lignes, 9174 octets) *
-   7. l10n/app_localizations.dart  (1163 lignes, 32491 octets) *
-   8. l10n/app_localizations_bu.dart  (363 lignes, 11916 octets) *
-   9. l10n/app_localizations_de.dart  (546 lignes, 12336 octets) *
-  10. l10n/app_localizations_en.dart  (539 lignes, 11630 octets) *
-  11. l10n/app_localizations_es.dart  (543 lignes, 12310 octets) *
-  12. l10n/app_localizations_fr.dart  (1082 lignes, 24608 octets) *
-  13. l10n/app_localizations_it.dart  (544 lignes, 12170 octets) *
-  14. l10n/app_localizations_nl.dart  (545 lignes, 12109 octets) *
-  15. l10n/app_localizations_pl.dart  (543 lignes, 12183 octets) *
-  16. l10n/app_localizations_pt.dart  (544 lignes, 12315 octets) *
-  17. l10n/app_nl.arb  (256 lignes, 9100 octets) *
-  18. l10n/app_pl.arb  (256 lignes, 9211 octets) *
-  19. l10n/app_pt.arb  (259 lignes, 9340 octets) *
+   1. l10n/app_de.arb  (289 lignes, 10283 octets) *
+   2. l10n/app_en.arb  (319 lignes, 9807 octets) *
+   3. l10n/app_es.arb  (262 lignes, 9529 octets) *
+   4. l10n/app_fr.arb  (319 lignes, 10663 octets) *
+   5. l10n/app_fr_MM.arb  (286 lignes, 9669 octets) *
+   6. l10n/app_it.arb  (286 lignes, 10141 octets) *
+   7. l10n/app_localizations.dart  (1236 lignes, 34676 octets) *
+   8. l10n/app_localizations_bu.dart  (425 lignes, 13617 octets) *
+   9. l10n/app_localizations_de.dart  (626 lignes, 14076 octets) *
+  10. l10n/app_localizations_en.dart  (617 lignes, 13272 octets) *
+  11. l10n/app_localizations_es.dart  (623 lignes, 14017 octets) *
+  12. l10n/app_localizations_fr.dart  (1212 lignes, 27461 octets) *
+  13. l10n/app_localizations_it.dart  (624 lignes, 13950 octets) *
+  14. l10n/app_localizations_nl.dart  (625 lignes, 13837 octets) *
+  15. l10n/app_localizations_pl.dart  (621 lignes, 13892 octets) *
+  16. l10n/app_localizations_pt.dart  (622 lignes, 14023 octets) *
+  17. l10n/app_nl.arb  (286 lignes, 10035 octets) *
+  18. l10n/app_pl.arb  (286 lignes, 10133 octets) *
+  19. l10n/app_pt.arb  (289 lignes, 10246 octets) *
   20. main.dart  (20 lignes, 739 octets) *
   21. main_ios_diag.dart  (11 lignes, 207 octets) *
   22. src/app.dart  (36 lignes, 1383 octets) *
@@ -651,7 +697,7 @@ INDEX DES FICHIERS LIB/ (numéroté)
   38. src/core/config/services/secret_store_io.dart  (144 lignes, 4359 octets) *
   39. src/core/config/services/secret_store_web.dart  (19 lignes, 542 octets) *
   40. src/core/di/di.dart  (10 lignes, 366 octets) *
-  41. src/core/di/injector.dart  (168 lignes, 5918 octets) *
+  41. src/core/di/injector.dart  (170 lignes, 6061 octets) *
   42. src/core/di/test_injector.dart  (42 lignes, 1105 octets) *
   43. src/core/logging/adapters/console_logger.dart  (36 lignes, 1135 octets) *
   44. src/core/logging/adapters/file_logger.dart  (211 lignes, 6152 octets) *
@@ -699,18 +745,18 @@ INDEX DES FICHIERS LIB/ (numéroté)
   86. src/core/storage/repositories/continue_watching_local_repository.dart  (100 lignes, 3016 octets) *
   87. src/core/storage/repositories/history_local_repository.dart  (211 lignes, 5855 octets) *
   88. src/core/storage/repositories/iptv_local_repository.dart  (435 lignes, 13553 octets) *
-  89. src/core/storage/repositories/playlist_local_repository.dart  (292 lignes, 8959 octets) *
+  89. src/core/storage/repositories/playlist_local_repository.dart  (349 lignes, 10761 octets) *
   90. src/core/storage/repositories/secure_storage_repository.dart  (48 lignes, 1464 octets) *
   91. src/core/storage/repositories/watchlist_local_repository.dart  (112 lignes, 3168 octets) *
   92. src/core/storage/services/cache_policy.dart  (12 lignes, 284 octets) *
-  93. src/core/storage/services/storage_module.dart  (68 lignes, 2268 octets) *
+  93. src/core/storage/services/storage_module.dart  (79 lignes, 2644 octets) *
   94. src/core/storage/storage.dart  (9 lignes, 451 octets) *
   95. src/core/storage/storage_failures.dart  (21 lignes, 586 octets) *
   96. src/core/theme/app_colors.dart  (23 lignes, 833 octets) *
   97. src/core/theme/app_theme.dart  (247 lignes, 8776 octets) *
   98. src/core/theme/theme.dart  (2 lignes, 51 octets) *
   99. src/core/utils/app_assets.dart  (31 lignes, 1685 octets) *
- 100. src/core/utils/app_spacing.dart  (32 lignes, 945 octets) *
+ 100. src/core/utils/app_spacing.dart  (20 lignes, 449 octets) *
  101. src/core/utils/context_extensions.dart  (18 lignes, 475 octets) *
  102. src/core/utils/index.dart  (5 lignes, 134 octets) *
  103. src/core/utils/logger_utils.dart  (21 lignes, 734 octets) *
@@ -744,13 +790,13 @@ INDEX DES FICHIERS LIB/ (numéroté)
  131. src/features/category_browser/presentation/providers/category_providers.dart  (128 lignes, 3898 octets) *
  132. src/features/category_browser/presentation/widgets/category_grid.dart  (139 lignes, 4676 octets) *
  133. src/features/category_browser/presentation/widgets/category_header.dart  (54 lignes, 1513 octets) *
- 134. src/features/home/data/home_feed_data_module.dart  (83 lignes, 3531 octets) *
- 135. src/features/home/data/repositories/home_feed_repository_impl.dart  (410 lignes, 12808 octets) *
+ 134. src/features/home/data/home_feed_data_module.dart  (97 lignes, 4117 octets) *
+ 135. src/features/home/data/repositories/home_feed_repository_impl.dart  (433 lignes, 13601 octets) *
  136. src/features/home/domain/entities/in_progress_media.dart  (34 lignes, 875 octets) *
  137. src/features/home/domain/repositories/home_feed_repository.dart  (35 lignes, 1459 octets) *
- 138. src/features/home/domain/services/continue_watching_enrichment_service.dart  (201 lignes, 6960 octets) *
+ 138. src/features/home/domain/services/continue_watching_enrichment_service.dart  (196 lignes, 6753 octets) *
  139. src/features/home/domain/services/home_hero_metadata_service.dart  (195 lignes, 6427 octets) *
- 140. src/features/home/domain/services/movie_playback_service.dart  (145 lignes, 5060 octets) *
+ 140. src/features/home/domain/services/movie_playback_service.dart  (86 lignes, 2966 octets) *
  141. src/features/home/domain/usecases/load_continue_watching_media.dart  (19 lignes, 610 octets) *
  142. src/features/home/domain/usecases/load_home_continue_watching.dart  (12 lignes, 501 octets) *
  143. src/features/home/domain/usecases/load_home_hero.dart  (12 lignes, 439 octets) *
@@ -758,7 +804,7 @@ INDEX DES FICHIERS LIB/ (numéroté)
  145. src/features/home/domain/usecases/refresh_home_feed.dart  (45 lignes, 1393 octets) *
  146. src/features/home/home.dart  (11 lignes, 633 octets) *
  147. src/features/home/presentation/pages/home_page.dart  (209 lignes, 7073 octets) *
- 148. src/features/home/presentation/providers/home_providers.dart  (208 lignes, 6590 octets) *
+ 148. src/features/home/presentation/providers/home_providers.dart  (209 lignes, 6602 octets) *
  149. src/features/home/presentation/widgets/continue_watching_card.dart  (316 lignes, 9185 octets) *
  150. src/features/home/presentation/widgets/home_continue_watching_section.dart  (125 lignes, 4496 octets) *
  151. src/features/home/presentation/widgets/home_error_banner.dart  (43 lignes, 1352 octets) *
@@ -782,219 +828,254 @@ INDEX DES FICHIERS LIB/ (numéroté)
  169. src/features/iptv/data/dtos/xtream_stream_dto.dart  (73 lignes, 2058 octets) *
  170. src/features/iptv/data/iptv_data_module.dart  (69 lignes, 2768 octets) *
  171. src/features/iptv/data/repositories/iptv_repository_impl.dart  (216 lignes, 7196 octets) *
- 172. src/features/iptv/domain/entities/xtream_account.dart  (60 lignes, 1426 octets) *
- 173. src/features/iptv/domain/entities/xtream_catalog_snapshot.dart  (41 lignes, 936 octets) *
- 174. src/features/iptv/domain/entities/xtream_playlist.dart  (24 lignes, 591 octets) *
- 175. src/features/iptv/domain/entities/xtream_playlist_item.dart  (46 lignes, 927 octets) *
- 176. src/features/iptv/domain/failures/iptv_failures.dart  (30 lignes, 755 octets) *
- 177. src/features/iptv/domain/repositories/iptv_repository.dart  (17 lignes, 658 octets) *
- 178. src/features/iptv/domain/value_objects/xtream_endpoint.dart  (73 lignes, 1977 octets) *
- 179. src/features/iptv/iptv.dart  (8 lignes, 423 octets) *
- 180. src/features/library/data/library_data_module.dart  (36 lignes, 1514 octets) *
- 181. src/features/library/data/repositories/favorites_repository_impl.dart  (35 lignes, 1024 octets) *
- 182. src/features/library/data/repositories/history_repository_impl.dart  (30 lignes, 1046 octets) *
- 183. src/features/library/data/repositories/library_repository_impl.dart  (139 lignes, 4120 octets) *
- 184. src/features/library/domain/repositories/favorites_repository.dart  (11 lignes, 254 octets) *
- 185. src/features/library/domain/repositories/history_repository.dart  (6 lignes, 215 octets) *
- 186. src/features/library/domain/repositories/library_repository.dart  (31 lignes, 1310 octets) *
- 187. src/features/library/domain/services/history_filter.dart  (50 lignes, 1719 octets) *
- 188. src/features/library/domain/services/library_playlist_sorter.dart  (71 lignes, 2220 octets) *
- 189. src/features/library/domain/usecases/like_person.dart  (16 lignes, 434 octets) *
- 190. src/features/library/domain/usecases/unlike_person.dart  (12 lignes, 348 octets) *
- 191. src/features/library/library.dart  (3 lignes, 142 octets) *
- 192. src/features/library/library_constants.dart  (22 lignes, 900 octets) *
- 193. src/features/library/presentation/pages/library_page.dart  (666 lignes, 27044 octets) *
- 194. src/features/library/presentation/pages/library_playlist_detail_page.dart  (901 lignes, 34389 octets) *
- 195. src/features/library/presentation/providers/library_providers.dart  (358 lignes, 12606 octets) *
- 196. src/features/library/presentation/widgets/add_media_search_modal.dart  (375 lignes, 12423 octets) *
- 197. src/features/library/presentation/widgets/library_filter_pills.dart  (114 lignes, 3536 octets) *
- 198. src/features/library/presentation/widgets/library_playlist_actions_bar.dart  (119 lignes, 3355 octets) *
- 199. src/features/library/presentation/widgets/library_playlist_app_bar.dart  (46 lignes, 1357 octets) *
- 200. src/features/library/presentation/widgets/library_playlist_card.dart  (197 lignes, 6854 octets) *
- 201. src/features/library/presentation/widgets/library_playlist_hero.dart  (147 lignes, 4647 octets) *
- 202. src/features/movie/data/datasources/movie_local_data_source.dart  (68 lignes, 2154 octets) *
- 203. src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart  (167 lignes, 5380 octets) *
- 204. src/features/movie/data/dtos/tmdb_movie_detail_dto.dart  (385 lignes, 11365 octets) *
- 205. src/features/movie/data/movie_data_module.dart  (36 lignes, 1534 octets) *
- 206. src/features/movie/data/repositories/movie_repository_impl.dart  (225 lignes, 7687 octets) *
- 207. src/features/movie/domain/entities/movie.dart  (63 lignes, 1538 octets) *
- 208. src/features/movie/domain/entities/movie_credit.dart  (19 lignes, 480 octets) *
- 209. src/features/movie/domain/entities/movie_summary.dart  (35 lignes, 710 octets) *
- 210. src/features/movie/domain/repositories/movie_repository.dart  (31 lignes, 1153 octets) *
- 211. src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart  (19 lignes, 755 octets) *
- 212. src/features/movie/domain/usecases/get_continue_watching_movies.dart  (10 lignes, 364 octets) *
- 213. src/features/movie/domain/usecases/get_movie_credits.dart  (11 lignes, 410 octets) *
- 214. src/features/movie/domain/usecases/get_movie_detail.dart  (11 lignes, 391 octets) *
- 215. src/features/movie/domain/usecases/get_movie_recommendations.dart  (12 lignes, 446 octets) *
- 216. src/features/movie/domain/usecases/is_in_watchlist.dart  (10 lignes, 334 octets) *
- 217. src/features/movie/domain/usecases/search_movies.dart  (11 lignes, 361 octets) *
- 218. src/features/movie/domain/usecases/toggle_watchlist.dart  (12 lignes, 378 octets) *
- 219. src/features/movie/movie.dart  (12 lignes, 579 octets) *
- 220. src/features/movie/presentation/models/movie_detail_view_model.dart  (113 lignes, 3516 octets) *
- 221. src/features/movie/presentation/pages/movie_detail_page.dart  (1447 lignes, 63216 octets) *
- 222. src/features/movie/presentation/providers/movie_detail_providers.dart  (185 lignes, 7198 octets) *
- 223. src/features/person/data/datasources/person_local_data_source.dart  (32 lignes, 1067 octets) *
- 224. src/features/person/data/datasources/tmdb_person_remote_data_source.dart  (37 lignes, 1110 octets) *
- 225. src/features/person/data/dtos/tmdb_person_detail_dto.dart  (143 lignes, 4283 octets) *
- 226. src/features/person/data/person_data_module.dart  (32 lignes, 1281 octets) *
- 227. src/features/person/data/repositories/person_repository_impl.dart  (102 lignes, 3505 octets) *
- 228. src/features/person/domain/entities/person.dart  (56 lignes, 1254 octets) *
- 229. src/features/person/domain/repositories/person_repository.dart  (18 lignes, 757 octets) *
- 230. src/features/person/domain/usecases/get_featured_people.dart  (10 lignes, 343 octets) *
- 231. src/features/person/domain/usecases/get_person_detail.dart  (11 lignes, 401 octets) *
- 232. src/features/person/domain/usecases/get_person_filmography.dart  (12 lignes, 434 octets) *
- 233. src/features/person/domain/usecases/search_people.dart  (11 lignes, 358 octets) *
- 234. src/features/person/person.dart  (7 lignes, 338 octets) *
- 235. src/features/person/presentation/pages/person_detail_page.dart  (601 lignes, 25160 octets) *
- 236. src/features/person/presentation/providers/person_detail_providers.dart  (157 lignes, 5495 octets) *
- 237. src/features/player/data/repositories/media_kit_video_player_repository.dart  (105 lignes, 2817 octets) *
- 238. src/features/player/domain/entities/video_source.dart  (43 lignes, 980 octets) *
- 239. src/features/player/domain/repositories/video_player_repository.dart  (37 lignes, 964 octets) *
- 240. src/features/player/domain/services/xtream_stream_url_builder.dart  (307 lignes, 11992 octets) *
- 241. src/features/player/domain/utils/language_formatter.dart  (75 lignes, 2010 octets) *
- 242. src/features/player/player.dart  (4 lignes, 222 octets) *
- 243. src/features/player/presentation/pages/video_player_page.dart  (1070 lignes, 36550 octets) *
- 244. src/features/player/presentation/widgets/track_selection_menu.dart  (318 lignes, 11111 octets) *
- 245. src/features/player/presentation/widgets/video_player_controls.dart  (450 lignes, 15754 octets) *
- 246. src/features/playlist/data/playlist_data_module.dart  (19 lignes, 694 octets) *
- 247. src/features/playlist/data/repositories/playlist_repository_impl.dart  (198 lignes, 5477 octets) *
- 248. src/features/playlist/data/services/playlist_filter_service.dart  (39 lignes, 1407 octets) *
- 249. src/features/playlist/data/services/playlist_ordering_service.dart  (35 lignes, 1014 octets) *
- 250. src/features/playlist/domain/entities/playlist.dart  (86 lignes, 1898 octets) *
- 251. src/features/playlist/domain/repositories/playlist_repository.dart  (37 lignes, 1227 octets) *
- 252. src/features/playlist/domain/usecases/add_playlist_item.dart  (16 lignes, 515 octets) *
- 253. src/features/playlist/domain/usecases/create_playlist.dart  (27 lignes, 706 octets) *
- 254. src/features/playlist/domain/usecases/delete_playlist.dart  (10 lignes, 339 octets) *
- 255. src/features/playlist/domain/usecases/get_featured_playlists.dart  (10 lignes, 365 octets) *
- 256. src/features/playlist/domain/usecases/get_playlist_detail.dart  (11 lignes, 421 octets) *
- 257. src/features/playlist/domain/usecases/get_user_playlists.dart  (11 lignes, 378 octets) *
- 258. src/features/playlist/domain/usecases/remove_playlist_item.dart  (16 lignes, 524 octets) *
- 259. src/features/playlist/domain/usecases/rename_playlist.dart  (13 lignes, 481 octets) *
- 260. src/features/playlist/domain/usecases/reorder_playlist_item.dart  (20 lignes, 545 octets) *
- 261. src/features/playlist/domain/usecases/search_playlists.dart  (11 lignes, 380 octets) *
- 262. src/features/playlist/playlist.dart  (12 lignes, 593 octets) *
- 263. src/features/saga/data/datasources/saga_local_data_source.dart  (32 lignes, 1049 octets) *
- 264. src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart  (30 lignes, 1020 octets) *
- 265. src/features/saga/data/dtos/tmdb_saga_detail_dto.dart  (105 lignes, 2751 octets) *
- 266. src/features/saga/data/repositories/saga_repository_impl.dart  (110 lignes, 3712 octets) *
- 267. src/features/saga/data/saga_data_module.dart  (28 lignes, 1125 octets) *
- 268. src/features/saga/domain/entities/saga.dart  (76 lignes, 1611 octets) *
- 269. src/features/saga/domain/repositories/saga_repository.dart  (8 lignes, 318 octets) *
- 270. src/features/saga/domain/usecases/get_saga_detail.dart  (11 lignes, 381 octets) *
- 271. src/features/saga/domain/usecases/get_user_sagas.dart  (11 lignes, 342 octets) *
- 272. src/features/saga/domain/usecases/search_sagas.dart  (11 lignes, 344 octets) *
- 273. src/features/saga/presentation/pages/saga_detail_page.dart  (490 lignes, 21038 octets) *
- 274. src/features/saga/presentation/providers/saga_detail_providers.dart  (254 lignes, 8819 octets) *
- 275. src/features/saga/saga.dart  (6 lignes, 270 octets) *
- 276. src/features/search/data/datasources/search_history_local_data_source.dart  (164 lignes, 4638 octets) *
- 277. src/features/search/data/datasources/tmdb_search_remote_data_source.dart  (65 lignes, 2326 octets) *
- 278. src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart  (58 lignes, 1977 octets) *
- 279. src/features/search/data/dtos/tmdb_watch_provider_dto.dart  (37 lignes, 1076 octets) *
- 280. src/features/search/data/repositories/search_history_repository_impl.dart  (21 lignes, 709 octets) *
- 281. src/features/search/data/search_data_module.dart  (57 lignes, 2611 octets) *
- 282. src/features/search/data/search_repository_impl.dart  (164 lignes, 5473 octets) *
- 283. src/features/search/domain/entities/search_history_item.dart  (6 lignes, 150 octets) *
- 284. src/features/search/domain/entities/search_page.dart  (13 lignes, 238 octets) *
- 285. src/features/search/domain/repositories/search_history_repository.dart  (8 lignes, 265 octets) *
- 286. src/features/search/domain/repositories/search_repository.dart  (10 lignes, 566 octets) *
- 287. src/features/search/domain/usecases/add_search_query_to_history.dart  (8 lignes, 269 octets) *
- 288. src/features/search/domain/usecases/list_search_history.dart  (9 lignes, 344 octets) *
- 289. src/features/search/domain/usecases/remove_search_history_item.dart  (8 lignes, 272 octets) *
- 290. src/features/search/domain/usecases/search_instant.dart  (25 lignes, 829 octets) *
- 291. src/features/search/domain/usecases/search_movies.dart  (13 lignes, 475 octets) *
- 292. src/features/search/domain/usecases/search_paginated.dart  (16 lignes, 645 octets) *
- 293. src/features/search/domain/usecases/search_people.dart  (13 lignes, 469 octets) *
- 294. src/features/search/domain/usecases/search_shows.dart  (13 lignes, 464 octets) *
- 295. src/features/search/domain/value_objects/search_query.dart  (23 lignes, 584 octets) *
- 296. src/features/search/presentation/controllers/search_instant_controller.dart  (150 lignes, 4543 octets) *
- 297. src/features/search/presentation/controllers/search_paged_controller.dart  (124 lignes, 3807 octets) *
- 298. src/features/search/presentation/models/provider_all_results_args.dart  (14 lignes, 389 octets) *
- 299. src/features/search/presentation/models/provider_results_args.dart  (11 lignes, 257 octets) *
- 300. src/features/search/presentation/models/search_results_args.dart  (9 lignes, 275 octets) *
- 301. src/features/search/presentation/pages/provider_all_results_page.dart  (277 lignes, 9799 octets) *
- 302. src/features/search/presentation/pages/provider_results_page.dart  (469 lignes, 17665 octets) *
- 303. src/features/search/presentation/pages/search_page.dart  (886 lignes, 31618 octets) *
- 304. src/features/search/presentation/pages/search_results_page.dart  (147 lignes, 4893 octets) *
- 305. src/features/search/presentation/providers/search_history_providers.dart  (129 lignes, 4231 octets) *
- 306. src/features/search/presentation/providers/search_providers.dart  (281 lignes, 10206 octets) *
- 307. src/features/search/presentation/widgets/watch_providers_grid.dart  (181 lignes, 6510 octets) *
- 308. src/features/search/search.dart  (11 lignes, 559 octets) *
- 309. src/features/settings/data/datasources/user_settings_local_data_source.dart  (30 lignes, 1108 octets) *
- 310. src/features/settings/data/repositories/user_settings_repository_impl.dart  (28 lignes, 833 octets) *
- 311. src/features/settings/data/settings_data_module.dart  (21 lignes, 860 octets) *
- 312. src/features/settings/domain/entities/user_preferences.dart  (38 lignes, 1014 octets) *
- 313. src/features/settings/domain/entities/user_profile.dart  (9 lignes, 331 octets) *
- 314. src/features/settings/domain/repositories/settings_repository.dart  (9 lignes, 399 octets) *
- 315. src/features/settings/domain/repositories/user_settings_repository.dart  (6 lignes, 195 octets) *
- 316. src/features/settings/domain/usecases/get_user_preferences.dart  (10 lignes, 357 octets) *
- 317. src/features/settings/domain/usecases/get_user_profile.dart  (10 lignes, 341 octets) *
- 318. src/features/settings/domain/usecases/load_user_profile.dart  (9 lignes, 324 octets) *
- 319. src/features/settings/domain/usecases/save_user_profile.dart  (9 lignes, 342 octets) *
- 320. src/features/settings/domain/usecases/update_user_preferences.dart  (12 lignes, 407 octets) *
- 321. src/features/settings/domain/usecases/update_user_profile.dart  (12 lignes, 379 octets) *
- 322. src/features/settings/domain/value_objects/first_name.dart  (11 lignes, 230 octets) *
- 323. src/features/settings/domain/value_objects/language_code.dart  (11 lignes, 256 octets) *
- 324. src/features/settings/domain/value_objects/metadata_preference.dart  (13 lignes, 350 octets) *
- 325. src/features/settings/presentation/pages/iptv_connect_page.dart  (179 lignes, 7235 octets) *
- 326. src/features/settings/presentation/pages/settings_page.dart  (894 lignes, 31475 octets) *
- 327. src/features/settings/presentation/providers/iptv_connect_providers.dart  (102 lignes, 3416 octets) *
- 328. src/features/settings/presentation/providers/user_settings_providers.dart  (109 lignes, 4088 octets) *
- 329. src/features/settings/settings.dart  (10 lignes, 511 octets) *
- 330. src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart  (201 lignes, 6432 octets) *
- 331. src/features/tv/data/datasources/tv_local_data_source.dart  (66 lignes, 2026 octets) *
- 332. src/features/tv/data/dtos/tmdb_tv_detail_dto.dart  (284 lignes, 8364 octets) *
- 333. src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart  (83 lignes, 2223 octets) *
- 334. src/features/tv/data/repositories/tv_repository_impl.dart  (462 lignes, 15046 octets) *
- 335. src/features/tv/data/tv_data_module.dart  (32 lignes, 1316 octets) *
- 336. src/features/tv/domain/entities/tv_show.dart  (160 lignes, 3186 octets) *
- 337. src/features/tv/domain/repositories/tv_repository.dart  (21 lignes, 915 octets) *
- 338. src/features/tv/domain/usecases/get_continue_watching_tv.dart  (10 lignes, 339 octets) *
- 339. src/features/tv/domain/usecases/get_featured_tv_shows.dart  (10 lignes, 330 octets) *
- 340. src/features/tv/domain/usecases/get_season_episodes.dart  (13 lignes, 450 octets) *
- 341. src/features/tv/domain/usecases/get_tv_seasons.dart  (11 lignes, 387 octets) *
- 342. src/features/tv/domain/usecases/get_tv_show_detail.dart  (11 lignes, 384 octets) *
- 343. src/features/tv/domain/usecases/get_tv_watchlist.dart  (10 lignes, 322 octets) *
- 344. src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart  (10 lignes, 328 octets) *
- 345. src/features/tv/domain/usecases/search_tv_shows.dart  (11 lignes, 345 octets) *
- 346. src/features/tv/domain/usecases/toggle_tv_watchlist.dart  (12 lignes, 374 octets) *
- 347. src/features/tv/presentation/models/tv_detail_view_model.dart  (181 lignes, 5095 octets) *
- 348. src/features/tv/presentation/pages/tv_detail_page.dart  (2014 lignes, 81381 octets) *
- 349. src/features/tv/presentation/providers/tv_detail_providers.dart  (1294 lignes, 50057 octets) *
- 350. src/features/tv/tv.dart  (13 lignes, 640 octets) *
- 351. src/features/welcome/presentation/pages/splash_bootstrap_page.dart  (68 lignes, 2051 octets) *
- 352. src/features/welcome/presentation/pages/welcome_page.dart  (106 lignes, 3664 octets) *
- 353. src/features/welcome/presentation/pages/welcome_source_page.dart  (54 lignes, 1930 octets) *
- 354. src/features/welcome/presentation/pages/welcome_user_page.dart  (312 lignes, 12256 octets) *
- 355. src/features/welcome/presentation/providers/bootstrap_providers.dart  (164 lignes, 5023 octets) *
- 356. src/features/welcome/presentation/providers/welcome_providers.dart  (115 lignes, 3448 octets) *
- 357. src/features/welcome/presentation/utils/error_presenter.dart  (15 lignes, 848 octets) *
- 358. src/features/welcome/presentation/widgets/labeled_field.dart  (25 lignes, 686 octets) *
- 359. src/features/welcome/presentation/widgets/welcome_faq_row.dart  (34 lignes, 994 octets) *
- 360. src/features/welcome/presentation/widgets/welcome_form.dart  (250 lignes, 8661 octets) *
- 361. src/features/welcome/presentation/widgets/welcome_header.dart  (55 lignes, 1614 octets) *
- 362. src/features/welcome/welcome.dart  (4 lignes, 202 octets) *
- 363. src/shared/data/services/similarity/hybrid_similarity_service.dart  (171 lignes, 5025 octets) *
- 364. src/shared/data/services/tmdb_cache_data_source.dart  (185 lignes, 5829 octets) *
- 365. src/shared/data/services/tmdb_client.dart  (222 lignes, 7163 octets) *
- 366. src/shared/data/services/tmdb_image_resolver.dart  (154 lignes, 4894 octets) *
- 367. src/shared/domain/entities/person_summary.dart  (22 lignes, 461 octets) *
- 368. src/shared/domain/services/content_repository.dart  (6 lignes, 271 octets) *
- 369. src/shared/domain/services/playlist_tmdb_enrichment_service.dart  (76 lignes, 2693 octets) *
- 370. src/shared/domain/services/preferences_service.dart  (5 lignes, 191 octets) *
- 371. src/shared/domain/services/similarity_service.dart  (5 lignes, 206 octets) *
- 372. src/shared/domain/services/tmdb_image_selector_service.dart  (87 lignes, 3322 octets) *
- 373. src/shared/domain/value_objects/content_rating.dart  (1 lignes, 53 octets) *
- 374. src/shared/domain/value_objects/content_reference.dart  (80 lignes, 2104 octets) *
- 375. src/shared/domain/value_objects/media_id.dart  (48 lignes, 797 octets) *
- 376. src/shared/domain/value_objects/media_title.dart  (10 lignes, 170 octets) *
- 377. src/shared/domain/value_objects/synopsis.dart  (8 lignes, 134 octets) *
- 378. src/shared/services.dart  (6 lignes, 300 octets) *
+ 172. src/features/iptv/data/services/xtream_stream_url_builder_impl.dart  (214 lignes, 8008 octets) *
+ 173. src/features/iptv/domain/entities/xtream_account.dart  (60 lignes, 1426 octets) *
+ 174. src/features/iptv/domain/entities/xtream_catalog_snapshot.dart  (41 lignes, 936 octets) *
+ 175. src/features/iptv/domain/entities/xtream_playlist.dart  (24 lignes, 591 octets) *
+ 176. src/features/iptv/domain/entities/xtream_playlist_item.dart  (46 lignes, 927 octets) *
+ 177. src/features/iptv/domain/failures/iptv_failures.dart  (24 lignes, 610 octets) *
+ 178. src/features/iptv/domain/repositories/iptv_repository.dart  (17 lignes, 658 octets) *
+ 179. src/features/iptv/domain/value_objects/xtream_endpoint.dart  (73 lignes, 1977 octets) *
+ 180. src/features/iptv/iptv.dart  (8 lignes, 423 octets) *
+ 181. src/features/library/data/library_data_module.dart  (54 lignes, 2357 octets) *
+ 182. src/features/library/data/repositories/continue_watching_repository_impl.dart  (13 lignes, 530 octets) *
+ 183. src/features/library/data/repositories/favorites_repository_impl.dart  (35 lignes, 1024 octets) *
+ 184. src/features/library/data/repositories/history_repository_impl.dart  (30 lignes, 1046 octets) *
+ 185. src/features/library/data/repositories/library_repository_impl.dart  (139 lignes, 4120 octets) *
+ 186. src/features/library/data/repositories/playback_history_repository_impl.dart  (65 lignes, 1586 octets) *
+ 187. src/features/library/domain/repositories/continue_watching_repository.dart  (5 lignes, 184 octets) *
+ 188. src/features/library/domain/repositories/favorites_repository.dart  (11 lignes, 254 octets) *
+ 189. src/features/library/domain/repositories/history_repository.dart  (6 lignes, 215 octets) *
+ 190. src/features/library/domain/repositories/library_repository.dart  (31 lignes, 1310 octets) *
+ 191. src/features/library/domain/repositories/playback_history_repository.dart  (46 lignes, 1001 octets) *
+ 192. src/features/library/domain/services/history_filter.dart  (50 lignes, 1719 octets) *
+ 193. src/features/library/domain/services/library_playlist_sorter.dart  (71 lignes, 2220 octets) *
+ 194. src/features/library/domain/usecases/like_person.dart  (16 lignes, 434 octets) *
+ 195. src/features/library/domain/usecases/unlike_person.dart  (12 lignes, 348 octets) *
+ 196. src/features/library/library.dart  (3 lignes, 142 octets) *
+ 197. src/features/library/library_constants.dart  (22 lignes, 900 octets) *
+ 198. src/features/library/presentation/pages/library_page.dart  (666 lignes, 27044 octets) *
+ 199. src/features/library/presentation/pages/library_playlist_detail_page.dart  (901 lignes, 34389 octets) *
+ 200. src/features/library/presentation/providers/library_providers.dart  (358 lignes, 12606 octets) *
+ 201. src/features/library/presentation/widgets/add_media_search_modal.dart  (375 lignes, 12423 octets) *
+ 202. src/features/library/presentation/widgets/library_filter_pills.dart  (114 lignes, 3536 octets) *
+ 203. src/features/library/presentation/widgets/library_playlist_actions_bar.dart  (119 lignes, 3355 octets) *
+ 204. src/features/library/presentation/widgets/library_playlist_app_bar.dart  (46 lignes, 1357 octets) *
+ 205. src/features/library/presentation/widgets/library_playlist_card.dart  (197 lignes, 6854 octets) *
+ 206. src/features/library/presentation/widgets/library_playlist_hero.dart  (147 lignes, 4647 octets) *
+ 207. src/features/movie/data/datasources/movie_local_data_source.dart  (133 lignes, 4016 octets) *
+ 208. src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart  (167 lignes, 5380 octets) *
+ 209. src/features/movie/data/dtos/tmdb_movie_detail_dto.dart  (385 lignes, 11365 octets) *
+ 210. src/features/movie/data/movie_data_module.dart  (109 lignes, 4626 octets) *
+ 211. src/features/movie/data/repositories/movie_repository_impl.dart  (250 lignes, 8392 octets) *
+ 212. src/features/movie/data/services/iptv_availability_service_impl.dart  (38 lignes, 1349 octets) *
+ 213. src/features/movie/data/services/movie_streaming_service_impl.dart  (57 lignes, 1984 octets) *
+ 214. src/features/movie/domain/entities/movie.dart  (63 lignes, 1538 octets) *
+ 215. src/features/movie/domain/entities/movie_credit.dart  (19 lignes, 480 octets) *
+ 216. src/features/movie/domain/entities/movie_summary.dart  (35 lignes, 710 octets) *
+ 217. src/features/movie/domain/repositories/movie_repository.dart  (31 lignes, 1153 octets) *
+ 218. src/features/movie/domain/services/iptv_availability_service.dart  (3 lignes, 92 octets) *
+ 219. src/features/movie/domain/services/movie_streaming_service.dart  (9 lignes, 240 octets) *
+ 220. src/features/movie/domain/usecases/add_movie_to_playlist.dart  (33 lignes, 991 octets) *
+ 221. src/features/movie/domain/usecases/build_movie_video_source.dart  (39 lignes, 1208 octets) *
+ 222. src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart  (19 lignes, 755 octets) *
+ 223. src/features/movie/domain/usecases/get_continue_watching_movies.dart  (10 lignes, 364 octets) *
+ 224. src/features/movie/domain/usecases/get_movie_availability_on_iptv.dart  (7 lignes, 310 octets) *
+ 225. src/features/movie/domain/usecases/get_movie_credits.dart  (11 lignes, 410 octets) *
+ 226. src/features/movie/domain/usecases/get_movie_detail.dart  (11 lignes, 391 octets) *
+ 227. src/features/movie/domain/usecases/get_movie_recommendations.dart  (12 lignes, 446 octets) *
+ 228. src/features/movie/domain/usecases/is_in_watchlist.dart  (10 lignes, 334 octets) *
+ 229. src/features/movie/domain/usecases/mark_movie_as_seen.dart  (24 lignes, 650 octets) *
+ 230. src/features/movie/domain/usecases/mark_movie_as_unseen.dart  (14 lignes, 634 octets) *
+ 231. src/features/movie/domain/usecases/search_movies.dart  (11 lignes, 361 octets) *
+ 232. src/features/movie/domain/usecases/toggle_watchlist.dart  (12 lignes, 378 octets) *
+ 233. src/features/movie/movie.dart  (12 lignes, 579 octets) *
+ 234. src/features/movie/presentation/models/movie_detail_view_model.dart  (113 lignes, 3516 octets) *
+ 235. src/features/movie/presentation/pages/movie_detail_page.dart  (708 lignes, 24855 octets) *
+ 236. src/features/movie/presentation/providers/movie_detail_providers.dart  (290 lignes, 10745 octets) *
+ 237. src/features/movie/presentation/widgets/movie_detail_cast_section.dart  (40 lignes, 1372 octets) *
+ 238. src/features/movie/presentation/widgets/movie_detail_hero_section.dart  (109 lignes, 3329 octets) *
+ 239. src/features/movie/presentation/widgets/movie_detail_main_actions.dart  (122 lignes, 4262 octets) *
+ 240. src/features/movie/presentation/widgets/movie_detail_recommendations_section.dart  (32 lignes, 1110 octets) *
+ 241. src/features/movie/presentation/widgets/movie_detail_saga_section.dart  (80 lignes, 2850 octets) *
+ 242. src/features/movie/presentation/widgets/movie_detail_synopsis_section.dart  (103 lignes, 3611 octets) *
+ 243. src/features/movie/presentation/widgets/movie_hero_image.dart  (33 lignes, 946 octets) *
+ 244. src/features/person/data/datasources/person_local_data_source.dart  (32 lignes, 1067 octets) *
+ 245. src/features/person/data/datasources/tmdb_person_remote_data_source.dart  (59 lignes, 1711 octets) *
+ 246. src/features/person/data/dtos/tmdb_person_detail_dto.dart  (143 lignes, 4283 octets) *
+ 247. src/features/person/data/person_data_module.dart  (32 lignes, 1281 octets) *
+ 248. src/features/person/data/repositories/person_repository_impl.dart  (114 lignes, 3973 octets) *
+ 249. src/features/person/domain/entities/person.dart  (56 lignes, 1254 octets) *
+ 250. src/features/person/domain/repositories/person_repository.dart  (18 lignes, 757 octets) *
+ 251. src/features/person/domain/usecases/get_featured_people.dart  (10 lignes, 343 octets) *
+ 252. src/features/person/domain/usecases/get_person_detail.dart  (11 lignes, 401 octets) *
+ 253. src/features/person/domain/usecases/get_person_filmography.dart  (12 lignes, 434 octets) *
+ 254. src/features/person/domain/usecases/search_people.dart  (11 lignes, 358 octets) *
+ 255. src/features/person/person.dart  (7 lignes, 338 octets) *
+ 256. src/features/person/presentation/models/person_detail_view_model.dart  (40 lignes, 1118 octets) *
+ 257. src/features/person/presentation/pages/person_detail_page.dart  (289 lignes, 10631 octets) *
+ 258. src/features/person/presentation/providers/person_detail_providers.dart  (182 lignes, 7197 octets) *
+ 259. src/features/person/presentation/widgets/person_biography_section.dart  (109 lignes, 3620 octets) *
+ 260. src/features/person/presentation/widgets/person_detail_actions_row.dart  (78 lignes, 2556 octets) *
+ 261. src/features/person/presentation/widgets/person_detail_hero_section.dart  (162 lignes, 5120 octets) *
+ 262. src/features/person/presentation/widgets/person_filmography_section.dart  (68 lignes, 2097 octets) *
+ 263. src/features/player/application/services/next_episode_service.dart  (215 lignes, 7279 octets) *
+ 264. src/features/player/application/services/preferred_tracks_selector.dart  (84 lignes, 2694 octets) *
+ 265. src/features/player/data/repositories/media_kit_video_player_repository.dart  (110 lignes, 2994 octets) *
+ 266. src/features/player/domain/entities/video_source.dart  (43 lignes, 980 octets) *
+ 267. src/features/player/domain/repositories/video_player_repository.dart  (37 lignes, 964 octets) *
+ 268. src/features/player/domain/services/xtream_stream_url_builder.dart  (23 lignes, 610 octets) *
+ 269. src/features/player/domain/utils/language_formatter.dart  (163 lignes, 4967 octets) *
+ 270. src/features/player/player.dart  (4 lignes, 222 octets) *
+ 271. src/features/player/presentation/pages/video_player_page.dart  (648 lignes, 21550 octets) *
+ 272. src/features/player/presentation/providers/player_providers.dart  (24 lignes, 1120 octets) *
+ 273. src/features/player/presentation/widgets/track_selection_menu.dart  (241 lignes, 8596 octets) *
+ 274. src/features/player/presentation/widgets/video_player_controls.dart  (451 lignes, 16032 octets) *
+ 275. src/features/playlist/application/playlist_application_module.dart  (13 lignes, 445 octets) *
+ 276. src/features/playlist/application/services/playlist_filter_service.dart  (44 lignes, 1711 octets) *
+ 277. src/features/playlist/data/playlist_data_module.dart  (19 lignes, 694 octets) *
+ 278. src/features/playlist/data/repositories/playlist_repository_impl.dart  (198 lignes, 5699 octets) *
+ 279. src/features/playlist/data/services/playlist_ordering_service.dart  (35 lignes, 1014 octets) *
+ 280. src/features/playlist/domain/entities/playlist.dart  (86 lignes, 1898 octets) *
+ 281. src/features/playlist/domain/repositories/playlist_repository.dart  (58 lignes, 2322 octets) *
+ 282. src/features/playlist/domain/usecases/add_playlist_item.dart  (16 lignes, 515 octets) *
+ 283. src/features/playlist/domain/usecases/create_playlist.dart  (27 lignes, 706 octets) *
+ 284. src/features/playlist/domain/usecases/delete_playlist.dart  (10 lignes, 339 octets) *
+ 285. src/features/playlist/domain/usecases/get_featured_playlists.dart  (10 lignes, 365 octets) *
+ 286. src/features/playlist/domain/usecases/get_playlist_detail.dart  (11 lignes, 421 octets) *
+ 287. src/features/playlist/domain/usecases/get_user_playlists.dart  (11 lignes, 378 octets) *
+ 288. src/features/playlist/domain/usecases/normalize_playlist_positions.dart  (8 lignes, 364 octets) *
+ 289. src/features/playlist/domain/usecases/remove_playlist_item.dart  (16 lignes, 524 octets) *
+ 290. src/features/playlist/domain/usecases/rename_playlist.dart  (13 lignes, 481 octets) *
+ 291. src/features/playlist/domain/usecases/reorder_playlist_item.dart  (20 lignes, 545 octets) *
+ 292. src/features/playlist/domain/usecases/search_playlists.dart  (11 lignes, 380 octets) *
+ 293. src/features/playlist/playlist.dart  (13 lignes, 653 octets) *
+ 294. src/features/saga/data/datasources/saga_local_data_source.dart  (40 lignes, 1546 octets) *
+ 295. src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart  (30 lignes, 1020 octets) *
+ 296. src/features/saga/data/dtos/tmdb_saga_detail_dto.dart  (105 lignes, 2751 octets) *
+ 297. src/features/saga/data/repositories/saga_repository_impl.dart  (113 lignes, 3858 octets) *
+ 298. src/features/saga/data/saga_data_module.dart  (58 lignes, 2132 octets) *
+ 299. src/features/saga/domain/entities/saga.dart  (76 lignes, 1611 octets) *
+ 300. src/features/saga/domain/repositories/saga_repository.dart  (19 lignes, 879 octets) *
+ 301. src/features/saga/domain/usecases/get_saga_detail.dart  (11 lignes, 381 octets) *
+ 302. src/features/saga/domain/usecases/get_user_sagas.dart  (11 lignes, 342 octets) *
+ 303. src/features/saga/domain/usecases/search_sagas.dart  (11 lignes, 344 octets) *
+ 304. src/features/saga/presentation/pages/saga_detail_page.dart  (503 lignes, 21657 octets) *
+ 305. src/features/saga/presentation/providers/saga_detail_providers.dart  (206 lignes, 7025 octets) *
+ 306. src/features/saga/saga.dart  (6 lignes, 270 octets) *
+ 307. src/features/search/data/datasources/search_history_local_data_source.dart  (164 lignes, 4638 octets) *
+ 308. src/features/search/data/datasources/search_local_data_source.dart  (51 lignes, 1573 octets) *
+ 309. src/features/search/data/datasources/tmdb_search_remote_data_source.dart  (65 lignes, 2326 octets) *
+ 310. src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart  (117 lignes, 3741 octets) *
+ 311. src/features/search/data/dtos/tmdb_watch_provider_dto.dart  (46 lignes, 1277 octets) *
+ 312. src/features/search/data/repositories/search_history_repository_impl.dart  (21 lignes, 709 octets) *
+ 313. src/features/search/data/search_data_module.dart  (71 lignes, 3147 octets) *
+ 314. src/features/search/data/search_repository_impl.dart  (271 lignes, 8806 octets) *
+ 315. src/features/search/domain/entities/search_history_item.dart  (6 lignes, 150 octets) *
+ 316. src/features/search/domain/entities/search_page.dart  (13 lignes, 238 octets) *
+ 317. src/features/search/domain/entities/watch_provider.dart  (18 lignes, 430 octets) *
+ 318. src/features/search/domain/repositories/search_history_repository.dart  (8 lignes, 265 octets) *
+ 319. src/features/search/domain/repositories/search_repository.dart  (24 lignes, 969 octets) *
+ 320. src/features/search/domain/usecases/add_search_query_to_history.dart  (8 lignes, 269 octets) *
+ 321. src/features/search/domain/usecases/list_search_history.dart  (9 lignes, 344 octets) *
+ 322. src/features/search/domain/usecases/load_watch_providers.dart  (31 lignes, 993 octets) *
+ 323. src/features/search/domain/usecases/remove_search_history_item.dart  (8 lignes, 272 octets) *
+ 324. src/features/search/domain/usecases/search_instant.dart  (25 lignes, 829 octets) *
+ 325. src/features/search/domain/usecases/search_movies.dart  (13 lignes, 475 octets) *
+ 326. src/features/search/domain/usecases/search_paginated.dart  (16 lignes, 645 octets) *
+ 327. src/features/search/domain/usecases/search_people.dart  (13 lignes, 469 octets) *
+ 328. src/features/search/domain/usecases/search_shows.dart  (13 lignes, 464 octets) *
+ 329. src/features/search/domain/value_objects/search_query.dart  (23 lignes, 584 octets) *
+ 330. src/features/search/presentation/controllers/search_instant_controller.dart  (150 lignes, 4543 octets) *
+ 331. src/features/search/presentation/controllers/search_paged_controller.dart  (124 lignes, 3807 octets) *
+ 332. src/features/search/presentation/models/provider_all_results_args.dart  (14 lignes, 389 octets) *
+ 333. src/features/search/presentation/models/provider_results_args.dart  (11 lignes, 257 octets) *
+ 334. src/features/search/presentation/models/search_results_args.dart  (9 lignes, 275 octets) *
+ 335. src/features/search/presentation/pages/provider_all_results_page.dart  (244 lignes, 8344 octets) *
+ 336. src/features/search/presentation/pages/provider_results_page.dart  (469 lignes, 17665 octets) *
+ 337. src/features/search/presentation/pages/search_page.dart  (886 lignes, 31618 octets) *
+ 338. src/features/search/presentation/pages/search_results_page.dart  (147 lignes, 4893 octets) *
+ 339. src/features/search/presentation/providers/search_history_providers.dart  (129 lignes, 4231 octets) *
+ 340. src/features/search/presentation/providers/search_providers.dart  (287 lignes, 10408 octets) *
+ 341. src/features/search/presentation/widgets/watch_providers_grid.dart  (181 lignes, 6500 octets) *
+ 342. src/features/search/search.dart  (11 lignes, 559 octets) *
+ 343. src/features/settings/data/datasources/user_settings_local_data_source.dart  (30 lignes, 1108 octets) *
+ 344. src/features/settings/data/repositories/user_settings_repository_impl.dart  (28 lignes, 833 octets) *
+ 345. src/features/settings/data/settings_data_module.dart  (21 lignes, 860 octets) *
+ 346. src/features/settings/domain/entities/user_preferences.dart  (38 lignes, 1014 octets) *
+ 347. src/features/settings/domain/entities/user_profile.dart  (9 lignes, 331 octets) *
+ 348. src/features/settings/domain/repositories/settings_repository.dart  (9 lignes, 399 octets) *
+ 349. src/features/settings/domain/repositories/user_settings_repository.dart  (6 lignes, 195 octets) *
+ 350. src/features/settings/domain/usecases/get_user_preferences.dart  (10 lignes, 357 octets) *
+ 351. src/features/settings/domain/usecases/get_user_profile.dart  (10 lignes, 341 octets) *
+ 352. src/features/settings/domain/usecases/load_user_profile.dart  (9 lignes, 324 octets) *
+ 353. src/features/settings/domain/usecases/save_user_profile.dart  (9 lignes, 342 octets) *
+ 354. src/features/settings/domain/usecases/update_user_preferences.dart  (12 lignes, 407 octets) *
+ 355. src/features/settings/domain/usecases/update_user_profile.dart  (12 lignes, 379 octets) *
+ 356. src/features/settings/domain/value_objects/first_name.dart  (11 lignes, 230 octets) *
+ 357. src/features/settings/domain/value_objects/language_code.dart  (11 lignes, 256 octets) *
+ 358. src/features/settings/domain/value_objects/metadata_preference.dart  (13 lignes, 350 octets) *
+ 359. src/features/settings/presentation/pages/iptv_connect_page.dart  (179 lignes, 7235 octets) *
+ 360. src/features/settings/presentation/pages/settings_page.dart  (895 lignes, 31483 octets) *
+ 361. src/features/settings/presentation/providers/iptv_connect_providers.dart  (102 lignes, 3416 octets) *
+ 362. src/features/settings/presentation/providers/user_settings_providers.dart  (109 lignes, 4088 octets) *
+ 363. src/features/settings/settings.dart  (10 lignes, 511 octets) *
+ 364. src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart  (201 lignes, 6432 octets) *
+ 365. src/features/tv/data/datasources/tv_local_data_source.dart  (66 lignes, 2026 octets) *
+ 366. src/features/tv/data/dtos/tmdb_tv_detail_dto.dart  (284 lignes, 8364 octets) *
+ 367. src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart  (83 lignes, 2223 octets) *
+ 368. src/features/tv/data/repositories/tv_repository_impl.dart  (462 lignes, 15046 octets) *
+ 369. src/features/tv/data/tv_data_module.dart  (32 lignes, 1316 octets) *
+ 370. src/features/tv/domain/entities/tv_show.dart  (160 lignes, 3186 octets) *
+ 371. src/features/tv/domain/repositories/tv_repository.dart  (21 lignes, 915 octets) *
+ 372. src/features/tv/domain/usecases/get_continue_watching_tv.dart  (10 lignes, 339 octets) *
+ 373. src/features/tv/domain/usecases/get_featured_tv_shows.dart  (10 lignes, 330 octets) *
+ 374. src/features/tv/domain/usecases/get_season_episodes.dart  (13 lignes, 450 octets) *
+ 375. src/features/tv/domain/usecases/get_tv_seasons.dart  (11 lignes, 387 octets) *
+ 376. src/features/tv/domain/usecases/get_tv_show_detail.dart  (11 lignes, 384 octets) *
+ 377. src/features/tv/domain/usecases/get_tv_watchlist.dart  (10 lignes, 322 octets) *
+ 378. src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart  (10 lignes, 328 octets) *
+ 379. src/features/tv/domain/usecases/search_tv_shows.dart  (11 lignes, 345 octets) *
+ 380. src/features/tv/domain/usecases/toggle_tv_watchlist.dart  (12 lignes, 374 octets) *
+ 381. src/features/tv/presentation/models/tv_detail_view_model.dart  (181 lignes, 5095 octets) *
+ 382. src/features/tv/presentation/pages/tv_detail_page.dart  (2014 lignes, 81405 octets) *
+ 383. src/features/tv/presentation/providers/tv_detail_providers.dart  (1388 lignes, 53028 octets) *
+ 384. src/features/tv/tv.dart  (13 lignes, 640 octets) *
+ 385. src/features/welcome/presentation/pages/splash_bootstrap_page.dart  (68 lignes, 2051 octets) *
+ 386. src/features/welcome/presentation/pages/welcome_page.dart  (106 lignes, 3664 octets) *
+ 387. src/features/welcome/presentation/pages/welcome_source_page.dart  (54 lignes, 1930 octets) *
+ 388. src/features/welcome/presentation/pages/welcome_user_page.dart  (312 lignes, 12256 octets) *
+ 389. src/features/welcome/presentation/providers/bootstrap_providers.dart  (164 lignes, 5023 octets) *
+ 390. src/features/welcome/presentation/providers/welcome_providers.dart  (115 lignes, 3448 octets) *
+ 391. src/features/welcome/presentation/utils/error_presenter.dart  (15 lignes, 848 octets) *
+ 392. src/features/welcome/presentation/widgets/labeled_field.dart  (25 lignes, 686 octets) *
+ 393. src/features/welcome/presentation/widgets/welcome_faq_row.dart  (34 lignes, 994 octets) *
+ 394. src/features/welcome/presentation/widgets/welcome_form.dart  (250 lignes, 8661 octets) *
+ 395. src/features/welcome/presentation/widgets/welcome_header.dart  (55 lignes, 1614 octets) *
+ 396. src/features/welcome/welcome.dart  (4 lignes, 202 octets) *
+ 397. src/shared/data/services/similarity/hybrid_similarity_service.dart  (171 lignes, 5025 octets) *
+ 398. src/shared/data/services/tmdb_cache_data_source.dart  (185 lignes, 5829 octets) *
+ 399. src/shared/data/services/tmdb_client.dart  (222 lignes, 7163 octets) *
+ 400. src/shared/data/services/tmdb_image_resolver.dart  (154 lignes, 4894 octets) *
+ 401. src/shared/data/services/xtream_lookup_service.dart  (72 lignes, 2441 octets) *
+ 402. src/shared/domain/entities/person_summary.dart  (22 lignes, 461 octets) *
+ 403. src/shared/domain/services/content_repository.dart  (6 lignes, 271 octets) *
+ 404. src/shared/domain/services/playlist_tmdb_enrichment_service.dart  (76 lignes, 2693 octets) *
+ 405. src/shared/domain/services/preferences_service.dart  (5 lignes, 191 octets) *
+ 406. src/shared/domain/services/similarity_service.dart  (5 lignes, 206 octets) *
+ 407. src/shared/domain/services/tmdb_image_selector_service.dart  (87 lignes, 3322 octets) *
+ 408. src/shared/domain/value_objects/content_rating.dart  (1 lignes, 53 octets) *
+ 409. src/shared/domain/value_objects/content_reference.dart  (80 lignes, 2104 octets) *
+ 410. src/shared/domain/value_objects/media_id.dart  (48 lignes, 797 octets) *
+ 411. src/shared/domain/value_objects/media_title.dart  (10 lignes, 170 octets) *
+ 412. src/shared/domain/value_objects/synopsis.dart  (8 lignes, 134 octets) *
+ 413. src/shared/services.dart  (6 lignes, 300 octets) *
 
-Total indexés: 378
-Marqués '*' = sélection actuelle (378 fichiers)
+Total indexés: 413
+Marqués '*' = sélection actuelle (413 fichiers)
 
 ================================================================================
-OUTLINE DES FICHIERS SÉLECTIONNÉS (378)
+OUTLINE DES FICHIERS SÉLECTIONNÉS (413)
 ================================================================================
 
 --------------------------------------------------------------------------------
@@ -1045,10 +1126,15 @@ FILE #7: l10n/app_localizations.dart
   L1048: playlistRenamedSuccess — (String name)
   L1060: playlistDeleteConfirm — (String title)
   L1078: playlistRemoveItemConfirm — (String title)
-  L1099: _AppLocalizationsDelegate
+  L1108: playlistAddedTo — (String title)
+  L1114: errorWithMessage — (String message)
+  L1126: errorLoadingPlaylists — (String message)
+  L1132: errorPlaybackFailed — (String message)
+  L1161: defaultTrackLabel — (String id)
+  L1172: _AppLocalizationsDelegate
 [METHODS _AppLocalizationsDelegate]
-  L1101: _AppLocalizationsDelegate — (…)
-  L1104: load — (Locale locale)
+  L1174: _AppLocalizationsDelegate — (…)
+  L1177: load — (Locale locale)
 
 --------------------------------------------------------------------------------
 FILE #8: l10n/app_localizations_bu.dart
@@ -1058,11 +1144,13 @@ FILE #8: l10n/app_localizations_bu.dart
 [METHODS AppLocalizationsBu]
   L   9: AppLocalizationsBu — (…)
   L 132: providerSearchPlaceholder — (String provider)
-  L 231: playlistCreateError — (String error)
-  L 292: tvResumeSeasonEpisode — (int season, int episode)
-  L 305: personMoviesCount — (int movies, int shows)
-  L 348: playlistDeleteConfirm — (String title)
-  L 355: playlistRemoveItemConfirm — (String title)
+  L 269: playlistCreateError — (String error)
+  L 330: tvResumeSeasonEpisode — (int season, int episode)
+  L 343: personMoviesCount — (int movies, int shows)
+  L 386: playlistDeleteConfirm — (String title)
+  L 393: playlistRemoveItemConfirm — (String title)
+  L 413: errorLoadingPlaylists — (String message)
+  L 416: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #9: l10n/app_localizations_de.dart
@@ -1073,20 +1161,25 @@ FILE #9: l10n/app_localizations_de.dart
   L   9: AppLocalizationsDe — (…)
   L  74: resultsCount — (int count)
   L  82: errorConnectionFailed — (String error)
-  L 275: providerSearchPlaceholder — (String provider)
-  L 327: playlistCreatedSuccess — (String name)
-  L 332: playlistCreateError — (String error)
-  L 391: libraryItemCount — (int count)
-  L 396: libraryItemCountPlural — (int count)
-  L 422: tvSeasonLabel — (int number)
-  L 430: tvResumeSeasonEpisode — (int season, int episode)
-  L 444: sagaMovieCount — (int count)
-  L 452: personMoviesCount — (int movies, int shows)
-  L 493: playlistItemCount — (int count)
-  L 498: playlistItemCountPlural — (int count)
-  L 515: playlistRenamedSuccess — (String name)
-  L 523: playlistDeleteConfirm — (String title)
-  L 534: playlistRemoveItemConfirm — (String title)
+  L 131: defaultTrackLabel — (String id)
+  L 315: providerSearchPlaceholder — (String provider)
+  L 367: playlistCreatedSuccess — (String name)
+  L 372: playlistCreateError — (String error)
+  L 431: libraryItemCount — (int count)
+  L 436: libraryItemCountPlural — (int count)
+  L 462: tvSeasonLabel — (int number)
+  L 470: tvResumeSeasonEpisode — (int season, int episode)
+  L 484: sagaMovieCount — (int count)
+  L 492: personMoviesCount — (int movies, int shows)
+  L 533: playlistItemCount — (int count)
+  L 538: playlistItemCountPlural — (int count)
+  L 555: playlistRenamedSuccess — (String name)
+  L 563: playlistDeleteConfirm — (String title)
+  L 574: playlistRemoveItemConfirm — (String title)
+  L 591: playlistAddedTo — (String title)
+  L 596: errorWithMessage — (String message)
+  L 605: errorLoadingPlaylists — (String message)
+  L 610: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #10: l10n/app_localizations_en.dart
@@ -1097,20 +1190,25 @@ FILE #10: l10n/app_localizations_en.dart
   L   9: AppLocalizationsEn — (…)
   L  73: resultsCount — (int count)
   L  81: errorConnectionFailed — (String error)
-  L 268: providerSearchPlaceholder — (String provider)
-  L 320: playlistCreatedSuccess — (String name)
-  L 325: playlistCreateError — (String error)
-  L 384: libraryItemCount — (int count)
-  L 389: libraryItemCountPlural — (int count)
-  L 415: tvSeasonLabel — (int number)
-  L 423: tvResumeSeasonEpisode — (int season, int episode)
-  L 437: sagaMovieCount — (int count)
-  L 445: personMoviesCount — (int movies, int shows)
-  L 486: playlistItemCount — (int count)
-  L 491: playlistItemCountPlural — (int count)
-  L 508: playlistRenamedSuccess — (String name)
-  L 516: playlistDeleteConfirm — (String title)
-  L 527: playlistRemoveItemConfirm — (String title)
+  L 232: defaultTrackLabel — (String id)
+  L 306: providerSearchPlaceholder — (String provider)
+  L 358: playlistCreatedSuccess — (String name)
+  L 363: playlistCreateError — (String error)
+  L 422: libraryItemCount — (int count)
+  L 427: libraryItemCountPlural — (int count)
+  L 453: tvSeasonLabel — (int number)
+  L 461: tvResumeSeasonEpisode — (int season, int episode)
+  L 475: sagaMovieCount — (int count)
+  L 483: personMoviesCount — (int movies, int shows)
+  L 524: playlistItemCount — (int count)
+  L 529: playlistItemCountPlural — (int count)
+  L 546: playlistRenamedSuccess — (String name)
+  L 554: playlistDeleteConfirm — (String title)
+  L 565: playlistRemoveItemConfirm — (String title)
+  L 582: playlistAddedTo — (String title)
+  L 587: errorWithMessage — (String message)
+  L 596: errorLoadingPlaylists — (String message)
+  L 601: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #11: l10n/app_localizations_es.dart
@@ -1121,20 +1219,25 @@ FILE #11: l10n/app_localizations_es.dart
   L   9: AppLocalizationsEs — (…)
   L  74: resultsCount — (int count)
   L  82: errorConnectionFailed — (String error)
-  L 272: providerSearchPlaceholder — (String provider)
-  L 324: playlistCreatedSuccess — (String name)
-  L 329: playlistCreateError — (String error)
-  L 388: libraryItemCount — (int count)
-  L 393: libraryItemCountPlural — (int count)
-  L 419: tvSeasonLabel — (int number)
-  L 427: tvResumeSeasonEpisode — (int season, int episode)
-  L 441: sagaMovieCount — (int count)
-  L 449: personMoviesCount — (int movies, int shows)
-  L 490: playlistItemCount — (int count)
-  L 495: playlistItemCountPlural — (int count)
-  L 512: playlistRenamedSuccess — (String name)
-  L 520: playlistDeleteConfirm — (String title)
-  L 531: playlistRemoveItemConfirm — (String title)
+  L 130: defaultTrackLabel — (String id)
+  L 312: providerSearchPlaceholder — (String provider)
+  L 364: playlistCreatedSuccess — (String name)
+  L 369: playlistCreateError — (String error)
+  L 428: libraryItemCount — (int count)
+  L 433: libraryItemCountPlural — (int count)
+  L 459: tvSeasonLabel — (int number)
+  L 467: tvResumeSeasonEpisode — (int season, int episode)
+  L 481: sagaMovieCount — (int count)
+  L 489: personMoviesCount — (int movies, int shows)
+  L 530: playlistItemCount — (int count)
+  L 535: playlistItemCountPlural — (int count)
+  L 552: playlistRenamedSuccess — (String name)
+  L 560: playlistDeleteConfirm — (String title)
+  L 571: playlistRemoveItemConfirm — (String title)
+  L 588: playlistAddedTo — (String title)
+  L 593: errorWithMessage — (String message)
+  L 602: errorLoadingPlaylists — (String message)
+  L 607: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #12: l10n/app_localizations_fr.dart
@@ -1145,39 +1248,45 @@ FILE #12: l10n/app_localizations_fr.dart
   L   9: AppLocalizationsFr — (…)
   L  74: resultsCount — (int count)
   L  82: errorConnectionFailed — (String error)
-  L 273: providerSearchPlaceholder — (String provider)
-  L 325: playlistCreatedSuccess — (String name)
-  L 330: playlistCreateError — (String error)
-  L 389: libraryItemCount — (int count)
-  L 394: libraryItemCountPlural — (int count)
-  L 420: tvSeasonLabel — (int number)
-  L 428: tvResumeSeasonEpisode — (int season, int episode)
-  L 442: sagaMovieCount — (int count)
-  L 450: personMoviesCount — (int movies, int shows)
-  L 491: playlistItemCount — (int count)
-  L 496: playlistItemCountPlural — (int count)
-  L 513: playlistRenamedSuccess — (String name)
-  L 521: playlistDeleteConfirm — (String title)
-  L 532: playlistRemoveItemConfirm — (String title)
-  L 547: AppLocalizationsFrMm
+  L 212: defaultTrackLabel — (String id)
+  L 313: providerSearchPlaceholder — (String provider)
+  L 365: playlistCreatedSuccess — (String name)
+  L 370: playlistCreateError — (String error)
+  L 429: libraryItemCount — (int count)
+  L 434: libraryItemCountPlural — (int count)
+  L 460: tvSeasonLabel — (int number)
+  L 468: tvResumeSeasonEpisode — (int season, int episode)
+  L 482: sagaMovieCount — (int count)
+  L 490: personMoviesCount — (int movies, int shows)
+  L 531: playlistItemCount — (int count)
+  L 536: playlistItemCountPlural — (int count)
+  L 553: playlistRenamedSuccess — (String name)
+  L 561: playlistDeleteConfirm — (String title)
+  L 572: playlistRemoveItemConfirm — (String title)
+  L 589: playlistAddedTo — (String title)
+  L 594: errorWithMessage — (String message)
+  L 603: errorLoadingPlaylists — (String message)
+  L 608: errorPlaybackFailed — (String message)
+  L 627: AppLocalizationsFrMm
 [METHODS AppLocalizationsFrMm]
-  L 548: AppLocalizationsFrMm — (…)
-  L 613: resultsCount — (int count)
-  L 621: errorConnectionFailed — (String error)
-  L 811: providerSearchPlaceholder — (String provider)
-  L 863: playlistCreatedSuccess — (String name)
-  L 868: playlistCreateError — (String error)
-  L 927: libraryItemCount — (int count)
-  L 932: libraryItemCountPlural — (int count)
-  L 958: tvSeasonLabel — (int number)
-  L 966: tvResumeSeasonEpisode — (int season, int episode)
-  L 980: sagaMovieCount — (int count)
-  L 988: personMoviesCount — (int movies, int shows)
-  L1029: playlistItemCount — (int count)
-  L1034: playlistItemCountPlural — (int count)
-  L1051: playlistRenamedSuccess — (String name)
-  L1059: playlistDeleteConfirm — (String title)
-  L1070: playlistRemoveItemConfirm — (String title)
+  L 628: AppLocalizationsFrMm — (…)
+  L 693: resultsCount — (int count)
+  L 701: errorConnectionFailed — (String error)
+  L 891: defaultTrackLabel — (String id)
+  L 931: providerSearchPlaceholder — (String provider)
+  L 983: playlistCreatedSuccess — (String name)
+  L 988: playlistCreateError — (String error)
+  L1047: libraryItemCount — (int count)
+  L1052: libraryItemCountPlural — (int count)
+  L1078: tvSeasonLabel — (int number)
+  L1086: tvResumeSeasonEpisode — (int season, int episode)
+  L1100: sagaMovieCount — (int count)
+  L1108: personMoviesCount — (int movies, int shows)
+  L1149: playlistItemCount — (int count)
+  L1154: playlistItemCountPlural — (int count)
+  L1171: playlistRenamedSuccess — (String name)
+  L1179: playlistDeleteConfirm — (String title)
+  L1190: playlistRemoveItemConfirm — (String title)
 
 --------------------------------------------------------------------------------
 FILE #13: l10n/app_localizations_it.dart
@@ -1188,20 +1297,25 @@ FILE #13: l10n/app_localizations_it.dart
   L   9: AppLocalizationsIt — (…)
   L  74: resultsCount — (int count)
   L  82: errorConnectionFailed — (String error)
-  L 273: providerSearchPlaceholder — (String provider)
-  L 325: playlistCreatedSuccess — (String name)
-  L 330: playlistCreateError — (String error)
-  L 389: libraryItemCount — (int count)
-  L 394: libraryItemCountPlural — (int count)
-  L 420: tvSeasonLabel — (int number)
-  L 428: tvResumeSeasonEpisode — (int season, int episode)
-  L 442: sagaMovieCount — (int count)
-  L 450: personMoviesCount — (int movies, int shows)
-  L 491: playlistItemCount — (int count)
-  L 496: playlistItemCountPlural — (int count)
-  L 513: playlistRenamedSuccess — (String name)
-  L 521: playlistDeleteConfirm — (String title)
-  L 532: playlistRemoveItemConfirm — (String title)
+  L 131: defaultTrackLabel — (String id)
+  L 313: providerSearchPlaceholder — (String provider)
+  L 365: playlistCreatedSuccess — (String name)
+  L 370: playlistCreateError — (String error)
+  L 429: libraryItemCount — (int count)
+  L 434: libraryItemCountPlural — (int count)
+  L 460: tvSeasonLabel — (int number)
+  L 468: tvResumeSeasonEpisode — (int season, int episode)
+  L 482: sagaMovieCount — (int count)
+  L 490: personMoviesCount — (int movies, int shows)
+  L 531: playlistItemCount — (int count)
+  L 536: playlistItemCountPlural — (int count)
+  L 553: playlistRenamedSuccess — (String name)
+  L 561: playlistDeleteConfirm — (String title)
+  L 572: playlistRemoveItemConfirm — (String title)
+  L 589: playlistAddedTo — (String title)
+  L 594: errorWithMessage — (String message)
+  L 603: errorLoadingPlaylists — (String message)
+  L 608: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #14: l10n/app_localizations_nl.dart
@@ -1212,20 +1326,25 @@ FILE #14: l10n/app_localizations_nl.dart
   L   9: AppLocalizationsNl — (…)
   L  74: resultsCount — (int count)
   L  82: errorConnectionFailed — (String error)
-  L 274: providerSearchPlaceholder — (String provider)
-  L 326: playlistCreatedSuccess — (String name)
-  L 331: playlistCreateError — (String error)
-  L 390: libraryItemCount — (int count)
-  L 395: libraryItemCountPlural — (int count)
-  L 421: tvSeasonLabel — (int number)
-  L 429: tvResumeSeasonEpisode — (int season, int episode)
-  L 443: sagaMovieCount — (int count)
-  L 451: personMoviesCount — (int movies, int shows)
-  L 492: playlistItemCount — (int count)
-  L 497: playlistItemCountPlural — (int count)
-  L 514: playlistRenamedSuccess — (String name)
-  L 522: playlistDeleteConfirm — (String title)
-  L 533: playlistRemoveItemConfirm — (String title)
+  L 131: defaultTrackLabel — (String id)
+  L 314: providerSearchPlaceholder — (String provider)
+  L 366: playlistCreatedSuccess — (String name)
+  L 371: playlistCreateError — (String error)
+  L 430: libraryItemCount — (int count)
+  L 435: libraryItemCountPlural — (int count)
+  L 461: tvSeasonLabel — (int number)
+  L 469: tvResumeSeasonEpisode — (int season, int episode)
+  L 483: sagaMovieCount — (int count)
+  L 491: personMoviesCount — (int movies, int shows)
+  L 532: playlistItemCount — (int count)
+  L 537: playlistItemCountPlural — (int count)
+  L 554: playlistRenamedSuccess — (String name)
+  L 562: playlistDeleteConfirm — (String title)
+  L 573: playlistRemoveItemConfirm — (String title)
+  L 590: playlistAddedTo — (String title)
+  L 595: errorWithMessage — (String message)
+  L 604: errorLoadingPlaylists — (String message)
+  L 609: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #15: l10n/app_localizations_pl.dart
@@ -1236,20 +1355,25 @@ FILE #15: l10n/app_localizations_pl.dart
   L   9: AppLocalizationsPl — (…)
   L  73: resultsCount — (int count)
   L  81: errorConnectionFailed — (String error)
-  L 272: providerSearchPlaceholder — (String provider)
-  L 324: playlistCreatedSuccess — (String name)
-  L 329: playlistCreateError — (String error)
-  L 388: libraryItemCount — (int count)
-  L 393: libraryItemCountPlural — (int count)
-  L 419: tvSeasonLabel — (int number)
-  L 427: tvResumeSeasonEpisode — (int season, int episode)
-  L 441: sagaMovieCount — (int count)
-  L 449: personMoviesCount — (int movies, int shows)
-  L 490: playlistItemCount — (int count)
-  L 495: playlistItemCountPlural — (int count)
-  L 512: playlistRenamedSuccess — (String name)
-  L 520: playlistDeleteConfirm — (String title)
-  L 531: playlistRemoveItemConfirm — (String title)
+  L 130: defaultTrackLabel — (String id)
+  L 312: providerSearchPlaceholder — (String provider)
+  L 364: playlistCreatedSuccess — (String name)
+  L 369: playlistCreateError — (String error)
+  L 428: libraryItemCount — (int count)
+  L 433: libraryItemCountPlural — (int count)
+  L 459: tvSeasonLabel — (int number)
+  L 467: tvResumeSeasonEpisode — (int season, int episode)
+  L 481: sagaMovieCount — (int count)
+  L 489: personMoviesCount — (int movies, int shows)
+  L 530: playlistItemCount — (int count)
+  L 535: playlistItemCountPlural — (int count)
+  L 552: playlistRenamedSuccess — (String name)
+  L 560: playlistDeleteConfirm — (String title)
+  L 571: playlistRemoveItemConfirm — (String title)
+  L 588: playlistAddedTo — (String title)
+  L 593: errorWithMessage — (String message)
+  L 601: errorLoadingPlaylists — (String message)
+  L 606: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #16: l10n/app_localizations_pt.dart
@@ -1260,20 +1384,25 @@ FILE #16: l10n/app_localizations_pt.dart
   L   9: AppLocalizationsPt — (…)
   L  74: resultsCount — (int count)
   L  82: errorConnectionFailed — (String error)
-  L 273: providerSearchPlaceholder — (String provider)
-  L 325: playlistCreatedSuccess — (String name)
-  L 330: playlistCreateError — (String error)
-  L 389: libraryItemCount — (int count)
-  L 394: libraryItemCountPlural — (int count)
-  L 420: tvSeasonLabel — (int number)
-  L 428: tvResumeSeasonEpisode — (int season, int episode)
-  L 442: sagaMovieCount — (int count)
-  L 450: personMoviesCount — (int movies, int shows)
-  L 491: playlistItemCount — (int count)
-  L 496: playlistItemCountPlural — (int count)
-  L 513: playlistRenamedSuccess — (String name)
-  L 521: playlistDeleteConfirm — (String title)
-  L 532: playlistRemoveItemConfirm — (String title)
+  L 131: defaultTrackLabel — (String id)
+  L 313: providerSearchPlaceholder — (String provider)
+  L 365: playlistCreatedSuccess — (String name)
+  L 370: playlistCreateError — (String error)
+  L 429: libraryItemCount — (int count)
+  L 434: libraryItemCountPlural — (int count)
+  L 460: tvSeasonLabel — (int number)
+  L 468: tvResumeSeasonEpisode — (int season, int episode)
+  L 482: sagaMovieCount — (int count)
+  L 490: personMoviesCount — (int movies, int shows)
+  L 531: playlistItemCount — (int count)
+  L 536: playlistItemCountPlural — (int count)
+  L 553: playlistRenamedSuccess — (String name)
+  L 561: playlistDeleteConfirm — (String title)
+  L 572: playlistRemoveItemConfirm — (String title)
+  L 589: playlistAddedTo — (String title)
+  L 594: errorWithMessage — (String message)
+  L 602: errorLoadingPlaylists — (String message)
+  L 607: errorPlaybackFailed — (String message)
 
 --------------------------------------------------------------------------------
 FILE #17: l10n/app_nl.arb
@@ -1920,10 +2049,10 @@ FILE #92: src/core/storage/services/cache_policy.dart
 FILE #93: src/core/storage/services/storage_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  13: StorageModule
+  L  15: StorageModule
 [METHODS StorageModule]
-  L  14: register — ()
-  L  62: dispose — ()
+  L  16: register — ()
+  L  73: dispose — ()
 
 --------------------------------------------------------------------------------
 FILE #94: src/core/storage/storage.dart
@@ -1983,11 +2112,7 @@ FILE #99: src/core/utils/app_assets.dart
 FILE #100: src/core/utils/app_spacing.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   4: AppSpacing
-[METHODS AppSpacing]
-  L   5: AppSpacing._ — (…)
-  L  28: vertical — (double value) => SizedBox(height: value)
-  L  31: horizontal — (double value) => SizedBox(width: value)
+  L   3: AppSpacing
 
 --------------------------------------------------------------------------------
 FILE #101: src/core/utils/context_extensions.dart
@@ -2281,21 +2406,21 @@ FILE #133: src/features/category_browser/presentation/widgets/category_header.da
 FILE #134: src/features/home/data/home_feed_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  21: HomeFeedDataModule
+  L  22: HomeFeedDataModule
 [METHODS HomeFeedDataModule]
-  L  22: register — ()
+  L  23: register — ()
 
 --------------------------------------------------------------------------------
 FILE #135: src/features/home/data/repositories/home_feed_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  26: HomeFeedRepositoryImpl
+  L  27: HomeFeedRepositoryImpl
 [METHODS HomeFeedRepositoryImpl]
-  L  27: HomeFeedRepositoryImpl — (…)
-  L  54: getHeroMovies — ()
-  L 114: getContinueWatchingMovies — ()
-  L 119: getContinueWatchingShows — ()
-  L 380: _MovieLiteDto
+  L  28: HomeFeedRepositoryImpl — (…)
+  L  53: getHeroMovies — ()
+  L 113: getContinueWatchingMovies — ()
+  L 131: getContinueWatchingShows — ()
+  L 403: _MovieLiteDto
 
 --------------------------------------------------------------------------------
 FILE #136: src/features/home/domain/entities/in_progress_media.dart
@@ -2330,7 +2455,7 @@ FILE #139: src/features/home/domain/services/home_hero_metadata_service.dart
 FILE #140: src/features/home/domain/services/movie_playback_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  14: MoviePlaybackService
+  L  15: MoviePlaybackService
 
 --------------------------------------------------------------------------------
 FILE #141: src/features/home/domain/usecases/load_continue_watching_media.dart
@@ -2653,31 +2778,37 @@ FILE #171: src/features/iptv/data/repositories/iptv_repository_impl.dart
   L 204: _RemoteCatalogData
 
 --------------------------------------------------------------------------------
-FILE #172: src/features/iptv/domain/entities/xtream_account.dart
+FILE #172: src/features/iptv/data/services/xtream_stream_url_builder_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: XtreamStreamUrlBuilderImpl
+
+--------------------------------------------------------------------------------
+FILE #173: src/features/iptv/domain/entities/xtream_account.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: XtreamAccount
 
 --------------------------------------------------------------------------------
-FILE #173: src/features/iptv/domain/entities/xtream_catalog_snapshot.dart
+FILE #174: src/features/iptv/domain/entities/xtream_catalog_snapshot.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: XtreamCatalogSnapshot
 
 --------------------------------------------------------------------------------
-FILE #174: src/features/iptv/domain/entities/xtream_playlist.dart
+FILE #175: src/features/iptv/domain/entities/xtream_playlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: XtreamPlaylist
 
 --------------------------------------------------------------------------------
-FILE #175: src/features/iptv/domain/entities/xtream_playlist_item.dart
+FILE #176: src/features/iptv/domain/entities/xtream_playlist_item.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: XtreamPlaylistItem
 
 --------------------------------------------------------------------------------
-FILE #176: src/features/iptv/domain/failures/iptv_failures.dart
+FILE #177: src/features/iptv/domain/failures/iptv_failures.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: AuthFailure
@@ -2690,17 +2821,15 @@ FILE #176: src/features/iptv/domain/failures/iptv_failures.dart
 [METHODS MissingCredentialsFailure]
   L  12: MissingCredentialsFailure — (…)
   L  16: InvalidEndpointFailure
-[METHODS InvalidEndpointFailure]
-  L  17: InvalidEndpointFailure — (…)
 
 --------------------------------------------------------------------------------
-FILE #177: src/features/iptv/domain/repositories/iptv_repository.dart
+FILE #178: src/features/iptv/domain/repositories/iptv_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: IptvRepository
 
 --------------------------------------------------------------------------------
-FILE #178: src/features/iptv/domain/value_objects/xtream_endpoint.dart
+FILE #179: src/features/iptv/domain/value_objects/xtream_endpoint.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  15: XtreamEndpoint
@@ -2712,25 +2841,34 @@ FILE #178: src/features/iptv/domain/value_objects/xtream_endpoint.dart
   L  41: buildUri — (Map<String, String> params)
 
 --------------------------------------------------------------------------------
-FILE #179: src/features/iptv/iptv.dart
+FILE #180: src/features/iptv/iptv.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #180: src/features/library/data/library_data_module.dart
+FILE #181: src/features/library/data/library_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  12: LibraryDataModule
+  L  16: LibraryDataModule
 [METHODS LibraryDataModule]
-  L  13: register — ()
+  L  17: register — ()
 
 --------------------------------------------------------------------------------
-FILE #181: src/features/library/data/repositories/favorites_repository_impl.dart
+FILE #182: src/features/library/data/repositories/continue_watching_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: ContinueWatchingRepositoryImpl
+[METHODS ContinueWatchingRepositoryImpl]
+  L   6: ContinueWatchingRepositoryImpl — (…)
+  L  10: remove — (String contentId, ContentType type)
+
+--------------------------------------------------------------------------------
+FILE #183: src/features/library/data/repositories/favorites_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: FavoritesRepositoryImpl
 
 --------------------------------------------------------------------------------
-FILE #182: src/features/library/data/repositories/history_repository_impl.dart
+FILE #184: src/features/library/data/repositories/history_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: HistoryRepositoryImpl
@@ -2740,19 +2878,35 @@ FILE #182: src/features/library/data/repositories/history_repository_impl.dart
   L  22: getInProgress — ()
 
 --------------------------------------------------------------------------------
-FILE #183: src/features/library/data/repositories/library_repository_impl.dart
+FILE #185: src/features/library/data/repositories/library_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  14: LibraryRepositoryImpl
 
 --------------------------------------------------------------------------------
-FILE #184: src/features/library/domain/repositories/favorites_repository.dart
+FILE #186: src/features/library/data/repositories/playback_history_repository_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: PlaybackHistoryRepositoryImpl
+[METHODS PlaybackHistoryRepositoryImpl]
+  L   6: PlaybackHistoryRepositoryImpl — (…)
+
+--------------------------------------------------------------------------------
+FILE #187: src/features/library/domain/repositories/continue_watching_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: ContinueWatchingRepository
+[METHODS ContinueWatchingRepository]
+  L   4: remove — (String contentId, ContentType type)
+
+--------------------------------------------------------------------------------
+FILE #188: src/features/library/domain/repositories/favorites_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: FavoritesRepository
 
 --------------------------------------------------------------------------------
-FILE #185: src/features/library/domain/repositories/history_repository.dart
+FILE #189: src/features/library/domain/repositories/history_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: HistoryRepository
@@ -2761,7 +2915,7 @@ FILE #185: src/features/library/domain/repositories/history_repository.dart
   L   5: getInProgress — ()
 
 --------------------------------------------------------------------------------
-FILE #186: src/features/library/domain/repositories/library_repository.dart
+FILE #190: src/features/library/domain/repositories/library_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  10: LibraryRepository
@@ -2775,7 +2929,14 @@ FILE #186: src/features/library/domain/repositories/library_repository.dart
   L  30: getUserPlaylists — (String userId)
 
 --------------------------------------------------------------------------------
-FILE #187: src/features/library/domain/services/history_filter.dart
+FILE #191: src/features/library/domain/repositories/playback_history_repository.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: PlaybackHistoryEntry
+  L  25: PlaybackHistoryRepository
+
+--------------------------------------------------------------------------------
+FILE #192: src/features/library/domain/services/history_filter.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: HistoryFilter
@@ -2787,13 +2948,13 @@ FILE #187: src/features/library/domain/services/history_filter.dart
   L  45: _progress — (HistoryEntry e)
 
 --------------------------------------------------------------------------------
-FILE #188: src/features/library/domain/services/library_playlist_sorter.dart
+FILE #193: src/features/library/domain/services/library_playlist_sorter.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: LibraryPlaylistSorter
 
 --------------------------------------------------------------------------------
-FILE #189: src/features/library/domain/usecases/like_person.dart
+FILE #194: src/features/library/domain/usecases/like_person.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: LikePerson
@@ -2801,7 +2962,7 @@ FILE #189: src/features/library/domain/usecases/like_person.dart
   L   5: LikePerson — (…)
 
 --------------------------------------------------------------------------------
-FILE #190: src/features/library/domain/usecases/unlike_person.dart
+FILE #195: src/features/library/domain/usecases/unlike_person.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: UnlikePerson
@@ -2810,11 +2971,11 @@ FILE #190: src/features/library/domain/usecases/unlike_person.dart
   L   9: call — (PersonId id)
 
 --------------------------------------------------------------------------------
-FILE #191: src/features/library/library.dart
+FILE #196: src/features/library/library.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #192: src/features/library/library_constants.dart
+FILE #197: src/features/library/library_constants.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: LibraryConstants
@@ -2822,7 +2983,7 @@ FILE #192: src/features/library/library_constants.dart
   L   6: LibraryConstants._ — (…)
 
 --------------------------------------------------------------------------------
-FILE #193: src/features/library/presentation/pages/library_page.dart
+FILE #198: src/features/library/presentation/pages/library_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  19: LibraryPage
@@ -2842,7 +3003,7 @@ FILE #193: src/features/library/presentation/pages/library_page.dart
   L 346: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #194: src/features/library/presentation/pages/library_playlist_detail_page.dart
+FILE #199: src/features/library/presentation/pages/library_playlist_detail_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  25: LibraryPlaylistDetailPage
@@ -2852,7 +3013,7 @@ FILE #194: src/features/library/presentation/pages/library_playlist_detail_page.
   L  35: _LibraryPlaylistDetailPageState
 
 --------------------------------------------------------------------------------
-FILE #195: src/features/library/presentation/providers/library_providers.dart
+FILE #200: src/features/library/presentation/providers/library_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  74: LibraryPlaylistItem
@@ -2864,7 +3025,7 @@ FILE #195: src/features/library/presentation/providers/library_providers.dart
   L 305: setFilter — (LibraryFilterType? filter)
 
 --------------------------------------------------------------------------------
-FILE #196: src/features/library/presentation/widgets/add_media_search_modal.dart
+FILE #201: src/features/library/presentation/widgets/add_media_search_modal.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  16: AddMediaSearchModal
@@ -2884,49 +3045,49 @@ FILE #196: src/features/library/presentation/widgets/add_media_search_modal.dart
   L 336: _MediaCardWithBadge
 
 --------------------------------------------------------------------------------
-FILE #197: src/features/library/presentation/widgets/library_filter_pills.dart
+FILE #202: src/features/library/presentation/widgets/library_filter_pills.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   8: LibraryFilterPills
   L  76: _FilterPill
 
 --------------------------------------------------------------------------------
-FILE #198: src/features/library/presentation/widgets/library_playlist_actions_bar.dart
+FILE #203: src/features/library/presentation/widgets/library_playlist_actions_bar.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: LibraryPlaylistActionsBar
   L  67: _ActionButton
 
 --------------------------------------------------------------------------------
-FILE #199: src/features/library/presentation/widgets/library_playlist_app_bar.dart
+FILE #204: src/features/library/presentation/widgets/library_playlist_app_bar.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: LibraryPlaylistAppBar
 
 --------------------------------------------------------------------------------
-FILE #200: src/features/library/presentation/widgets/library_playlist_card.dart
+FILE #205: src/features/library/presentation/widgets/library_playlist_card.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  17: LibraryPlaylistCard
 
 --------------------------------------------------------------------------------
-FILE #201: src/features/library/presentation/widgets/library_playlist_hero.dart
+FILE #206: src/features/library/presentation/widgets/library_playlist_hero.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: LibraryPlaylistHero
 
 --------------------------------------------------------------------------------
-FILE #202: src/features/movie/data/datasources/movie_local_data_source.dart
+FILE #207: src/features/movie/data/datasources/movie_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: MovieLocalDataSource
 [METHODS MovieLocalDataSource]
   L   5: MovieLocalDataSource — (…)
-  L  17: saveMovieDetail — ({required TmdbMovieDetailDto dto})
-  L  25: getMovieDetail — (int movieId)
+  L  20: saveMovieDetail — ({required TmdbMovieDetailDto dto})
+  L  28: getMovieDetail — (int movieId)
 
 --------------------------------------------------------------------------------
-FILE #203: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
+FILE #208: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: TmdbMovieRemoteDataSource
@@ -2934,7 +3095,7 @@ FILE #203: src/features/movie/data/datasources/tmdb_movie_remote_data_source.dar
   L  12: TmdbMovieRemoteDataSource — (…)
 
 --------------------------------------------------------------------------------
-FILE #204: src/features/movie/data/dtos/tmdb_movie_detail_dto.dart
+FILE #209: src/features/movie/data/dtos/tmdb_movie_detail_dto.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: TmdbMovieDetailDto
@@ -2948,39 +3109,51 @@ FILE #204: src/features/movie/data/dtos/tmdb_movie_detail_dto.dart
   L 318: TmdbMovieSummaryDto
 
 --------------------------------------------------------------------------------
-FILE #205: src/features/movie/data/movie_data_module.dart
+FILE #210: src/features/movie/data/movie_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  12: MovieDataModule
+  L  27: MovieDataModule
 [METHODS MovieDataModule]
-  L  13: register — ()
+  L  28: register — ()
 
 --------------------------------------------------------------------------------
-FILE #206: src/features/movie/data/repositories/movie_repository_impl.dart
+FILE #211: src/features/movie/data/repositories/movie_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  18: MovieRepositoryImpl
+  L  20: MovieRepositoryImpl
 
 --------------------------------------------------------------------------------
-FILE #207: src/features/movie/domain/entities/movie.dart
+FILE #212: src/features/movie/data/services/iptv_availability_service_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: IptvAvailabilityServiceImpl
+
+--------------------------------------------------------------------------------
+FILE #213: src/features/movie/data/services/movie_streaming_service_impl.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: MovieStreamingServiceImpl
+
+--------------------------------------------------------------------------------
+FILE #214: src/features/movie/domain/entities/movie.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  10: Movie
 
 --------------------------------------------------------------------------------
-FILE #208: src/features/movie/domain/entities/movie_credit.dart
+FILE #215: src/features/movie/domain/entities/movie_credit.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: MovieCredit
 
 --------------------------------------------------------------------------------
-FILE #209: src/features/movie/domain/entities/movie_summary.dart
+FILE #216: src/features/movie/domain/entities/movie_summary.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: MovieSummary
 
 --------------------------------------------------------------------------------
-FILE #210: src/features/movie/domain/repositories/movie_repository.dart
+FILE #217: src/features/movie/domain/repositories/movie_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: MovieRepository
@@ -2995,7 +3168,37 @@ FILE #210: src/features/movie/domain/repositories/movie_repository.dart
   L  30: refreshMetadata — (MovieId id)
 
 --------------------------------------------------------------------------------
-FILE #211: src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart
+FILE #218: src/features/movie/domain/services/iptv_availability_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   1: IptvAvailabilityService
+[METHODS IptvAvailabilityService]
+  L   2: isMovieAvailable — (String movieId)
+
+--------------------------------------------------------------------------------
+FILE #219: src/features/movie/domain/services/movie_streaming_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: MovieStreamingService
+
+--------------------------------------------------------------------------------
+FILE #220: src/features/movie/domain/usecases/add_movie_to_playlist.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: AddMovieToPlaylist
+[METHODS AddMovieToPlaylist]
+  L   8: AddMovieToPlaylist — (…)
+
+--------------------------------------------------------------------------------
+FILE #221: src/features/movie/domain/usecases/build_movie_video_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: BuildMovieVideoSource
+[METHODS BuildMovieVideoSource]
+  L   7: BuildMovieVideoSource — (…)
+
+--------------------------------------------------------------------------------
+FILE #222: src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: FilterRecommendationsByIptvAvailability
@@ -3004,7 +3207,7 @@ FILE #211: src/features/movie/domain/usecases/filter_recommendations_by_iptv.dar
   L  10: call — (List<MovieSummary> recommendations)
 
 --------------------------------------------------------------------------------
-FILE #212: src/features/movie/domain/usecases/get_continue_watching_movies.dart
+FILE #223: src/features/movie/domain/usecases/get_continue_watching_movies.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetContinueWatchingMovies
@@ -3013,7 +3216,16 @@ FILE #212: src/features/movie/domain/usecases/get_continue_watching_movies.dart
   L   9: call — () => _repository.getContinueWatching()
 
 --------------------------------------------------------------------------------
-FILE #213: src/features/movie/domain/usecases/get_movie_credits.dart
+FILE #224: src/features/movie/domain/usecases/get_movie_availability_on_iptv.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: GetMovieAvailabilityOnIptv
+[METHODS GetMovieAvailabilityOnIptv]
+  L   4: GetMovieAvailabilityOnIptv — (…)
+  L   6: call — (String movieId) => _availability.isMovieAvailable(movieId)
+
+--------------------------------------------------------------------------------
+FILE #225: src/features/movie/domain/usecases/get_movie_credits.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetMovieCredits
@@ -3022,7 +3234,7 @@ FILE #213: src/features/movie/domain/usecases/get_movie_credits.dart
   L  10: call — (MovieId id) => _repository.getCredits(id)
 
 --------------------------------------------------------------------------------
-FILE #214: src/features/movie/domain/usecases/get_movie_detail.dart
+FILE #226: src/features/movie/domain/usecases/get_movie_detail.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetMovieDetail
@@ -3031,7 +3243,7 @@ FILE #214: src/features/movie/domain/usecases/get_movie_detail.dart
   L  10: call — (MovieId id) => _repository.getMovie(id)
 
 --------------------------------------------------------------------------------
-FILE #215: src/features/movie/domain/usecases/get_movie_recommendations.dart
+FILE #227: src/features/movie/domain/usecases/get_movie_recommendations.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetMovieRecommendations
@@ -3040,7 +3252,7 @@ FILE #215: src/features/movie/domain/usecases/get_movie_recommendations.dart
   L  10: call — (MovieId id)
 
 --------------------------------------------------------------------------------
-FILE #216: src/features/movie/domain/usecases/is_in_watchlist.dart
+FILE #228: src/features/movie/domain/usecases/is_in_watchlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: IsMovieInWatchlist
@@ -3049,7 +3261,24 @@ FILE #216: src/features/movie/domain/usecases/is_in_watchlist.dart
   L   9: call — (MovieId id) => _repository.isInWatchlist(id)
 
 --------------------------------------------------------------------------------
-FILE #217: src/features/movie/domain/usecases/search_movies.dart
+FILE #229: src/features/movie/domain/usecases/mark_movie_as_seen.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: MarkMovieAsSeen
+[METHODS MarkMovieAsSeen]
+  L   5: MarkMovieAsSeen — (…)
+
+--------------------------------------------------------------------------------
+FILE #230: src/features/movie/domain/usecases/mark_movie_as_unseen.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: MarkMovieAsUnseen
+[METHODS MarkMovieAsUnseen]
+  L   6: MarkMovieAsUnseen — (…)
+  L  10: call — (String movieId)
+
+--------------------------------------------------------------------------------
+FILE #231: src/features/movie/domain/usecases/search_movies.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SearchMovies
@@ -3058,7 +3287,7 @@ FILE #217: src/features/movie/domain/usecases/search_movies.dart
   L   9: call — (String query)
 
 --------------------------------------------------------------------------------
-FILE #218: src/features/movie/domain/usecases/toggle_watchlist.dart
+FILE #232: src/features/movie/domain/usecases/toggle_watchlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: ToggleWatchlist
@@ -3067,17 +3296,17 @@ FILE #218: src/features/movie/domain/usecases/toggle_watchlist.dart
   L   9: call — (MovieId id, {required bool saved})
 
 --------------------------------------------------------------------------------
-FILE #219: src/features/movie/movie.dart
+FILE #233: src/features/movie/movie.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #220: src/features/movie/presentation/models/movie_detail_view_model.dart
+FILE #234: src/features/movie/presentation/models/movie_detail_view_model.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: MovieDetailViewModel
 
 --------------------------------------------------------------------------------
-FILE #221: src/features/movie/presentation/pages/movie_detail_page.dart
+FILE #235: src/features/movie/presentation/pages/movie_detail_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  31: MovieDetailPage
@@ -3086,28 +3315,85 @@ FILE #221: src/features/movie/presentation/pages/movie_detail_page.dart
   L  37: createState — () => _MovieDetailPageState()
   L  40: _MovieDetailPageState
 [METHODS _MovieDetailPageState]
-  L  57: initState — ()
-  L  65: dispose — ()
-  L  70: _startAutoRefreshTimer — ()
-  L  87: _primeFromArgs — ()
-  L  97: build — (BuildContext context)
-  L 175: _buildErrorScaffold — (Object e)
+  L  56: initState — ()
+  L  67: dispose — ()
+  L  72: _startAutoRefreshTimer — ()
+  L  88: _primeFromArgs — ()
+  L  98: build — (BuildContext context)
+  L 176: _buildErrorScaffold — (Object e)
 
 --------------------------------------------------------------------------------
-FILE #222: src/features/movie/presentation/providers/movie_detail_providers.dart
+FILE #236: src/features/movie/presentation/providers/movie_detail_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  46: MovieToggleFavoriteNotifier
+  L  52: MovieToggleFavoriteNotifier
 [METHODS MovieToggleFavoriteNotifier]
-  L  48: build — ()
-  L  52: toggle — (String movieId)
-  L 108: SagaToggleFavoriteNotifier
+  L  54: build — ()
+  L  58: toggle — (String movieId)
+  L 187: SagaToggleFavoriteNotifier
 [METHODS SagaToggleFavoriteNotifier]
-  L 110: build — ()
-  L 114: toggle — (String sagaId, SagaSummary sagaLink)
+  L 189: build — ()
+  L 193: toggle — (String sagaId, SagaSummary sagaLink)
 
 --------------------------------------------------------------------------------
-FILE #223: src/features/person/data/datasources/person_local_data_source.dart
+FILE #237: src/features/movie/presentation/widgets/movie_detail_cast_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: MovieDetailCastSection
+[METHODS MovieDetailCastSection]
+  L  10: MovieDetailCastSection — (…)
+  L  14: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #238: src/features/movie/presentation/widgets/movie_detail_hero_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: MovieDetailHeroSection
+
+--------------------------------------------------------------------------------
+FILE #239: src/features/movie/presentation/widgets/movie_detail_main_actions.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  11: MovieDetailMainActions
+
+--------------------------------------------------------------------------------
+FILE #240: src/features/movie/presentation/widgets/movie_detail_recommendations_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: MovieDetailRecommendationsSection
+[METHODS MovieDetailRecommendationsSection]
+  L   9: MovieDetailRecommendationsSection — (…)
+  L  13: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #241: src/features/movie/presentation/widgets/movie_detail_saga_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: MovieDetailSagaSection
+
+--------------------------------------------------------------------------------
+FILE #242: src/features/movie/presentation/widgets/movie_detail_synopsis_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: MovieDetailSynopsisSection
+[METHODS MovieDetailSynopsisSection]
+  L   4: MovieDetailSynopsisSection — (…)
+  L   8: createState — ()
+  L  12: _MovieDetailSynopsisSectionState
+[METHODS _MovieDetailSynopsisSectionState]
+  L  17: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #243: src/features/movie/presentation/widgets/movie_hero_image.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: MovieHeroImage
+[METHODS MovieHeroImage]
+  L   5: MovieHeroImage — (…)
+  L  11: build — (BuildContext context)
+
+--------------------------------------------------------------------------------
+FILE #244: src/features/person/data/datasources/person_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: PersonLocalDataSource
@@ -3117,7 +3403,7 @@ FILE #223: src/features/person/data/datasources/person_local_data_source.dart
   L  24: getPersonDetail — (int id)
 
 --------------------------------------------------------------------------------
-FILE #224: src/features/person/data/datasources/tmdb_person_remote_data_source.dart
+FILE #245: src/features/person/data/datasources/tmdb_person_remote_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: TmdbPersonRemoteDataSource
@@ -3126,14 +3412,14 @@ FILE #224: src/features/person/data/datasources/tmdb_person_remote_data_source.d
   L   9: fetchPerson — (int id, {String? language})
 
 --------------------------------------------------------------------------------
-FILE #225: src/features/person/data/dtos/tmdb_person_detail_dto.dart
+FILE #246: src/features/person/data/dtos/tmdb_person_detail_dto.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: TmdbPersonDetailDto
   L  97: TmdbPersonCreditDto
 
 --------------------------------------------------------------------------------
-FILE #226: src/features/person/data/person_data_module.dart
+FILE #247: src/features/person/data/person_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: PersonDataModule
@@ -3141,7 +3427,7 @@ FILE #226: src/features/person/data/person_data_module.dart
   L  12: register — ()
 
 --------------------------------------------------------------------------------
-FILE #227: src/features/person/data/repositories/person_repository_impl.dart
+FILE #248: src/features/person/data/repositories/person_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  14: PersonRepositoryImpl
@@ -3151,13 +3437,13 @@ FILE #227: src/features/person/data/repositories/person_repository_impl.dart
   L  29: getFilmography — (PersonId id)
   L  35: searchPeople — (String query)
   L  53: getFeaturedPeople — ()
-  L  57: _mapPerson — (TmdbPersonDetailDto dto)
-  L  72: _mapCredit — (TmdbPersonCreditDto dto)
-  L  88: _parseDate — (String? date)
-  L  91: _loadPerson — (PersonId id)
+  L  69: _mapPerson — (TmdbPersonDetailDto dto)
+  L  84: _mapCredit — (TmdbPersonCreditDto dto)
+  L 100: _parseDate — (String? date)
+  L 103: _loadPerson — (PersonId id)
 
 --------------------------------------------------------------------------------
-FILE #228: src/features/person/domain/entities/person.dart
+FILE #249: src/features/person/domain/entities/person.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: Person
@@ -3166,7 +3452,7 @@ FILE #228: src/features/person/domain/entities/person.dart
   L  48: PersonCredit — (…)
 
 --------------------------------------------------------------------------------
-FILE #229: src/features/person/domain/repositories/person_repository.dart
+FILE #250: src/features/person/domain/repositories/person_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: PersonRepository
@@ -3177,7 +3463,7 @@ FILE #229: src/features/person/domain/repositories/person_repository.dart
   L  17: getFeaturedPeople — ()
 
 --------------------------------------------------------------------------------
-FILE #230: src/features/person/domain/usecases/get_featured_people.dart
+FILE #251: src/features/person/domain/usecases/get_featured_people.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetFeaturedPeople
@@ -3186,7 +3472,7 @@ FILE #230: src/features/person/domain/usecases/get_featured_people.dart
   L   9: call — () => _repository.getFeaturedPeople()
 
 --------------------------------------------------------------------------------
-FILE #231: src/features/person/domain/usecases/get_person_detail.dart
+FILE #252: src/features/person/domain/usecases/get_person_detail.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetPersonDetail
@@ -3195,7 +3481,7 @@ FILE #231: src/features/person/domain/usecases/get_person_detail.dart
   L  10: call — (PersonId id) => _repository.getPerson(id)
 
 --------------------------------------------------------------------------------
-FILE #232: src/features/person/domain/usecases/get_person_filmography.dart
+FILE #253: src/features/person/domain/usecases/get_person_filmography.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetPersonFilmography
@@ -3204,7 +3490,7 @@ FILE #232: src/features/person/domain/usecases/get_person_filmography.dart
   L  10: call — (PersonId id)
 
 --------------------------------------------------------------------------------
-FILE #233: src/features/person/domain/usecases/search_people.dart
+FILE #254: src/features/person/domain/usecases/search_people.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SearchPeople
@@ -3213,47 +3499,99 @@ FILE #233: src/features/person/domain/usecases/search_people.dart
   L   9: call — (String query)
 
 --------------------------------------------------------------------------------
-FILE #234: src/features/person/person.dart
+FILE #255: src/features/person/person.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #235: src/features/person/presentation/pages/person_detail_page.dart
+FILE #256: src/features/person/presentation/models/person_detail_view_model.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  15: PersonDetailPage
+  L   9: PersonDetailViewModel
+
+--------------------------------------------------------------------------------
+FILE #257: src/features/person/presentation/pages/person_detail_page.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  17: PersonDetailPage
 [METHODS PersonDetailPage]
-  L  16: PersonDetailPage — (…)
-  L  21: createState — () => _PersonDetailPageState()
-  L  24: _PersonDetailPageState
+  L  18: PersonDetailPage — (…)
+  L  23: createState — () => _PersonDetailPageState()
+  L  26: _PersonDetailPageState
 [METHODS _PersonDetailPageState]
-  L  31: initState — ()
-  L  37: dispose — ()
-  L  42: _startAutoRefreshTimer — ()
-  L  63: build — (BuildContext context)
-  L 126: _PersonDetailContent
+  L  33: initState — ()
+  L  39: dispose — ()
+  L  44: _startAutoRefreshTimer — ()
+  L  65: build — (BuildContext context)
+  L 149: _PersonDetailContent
 [METHODS _PersonDetailContent]
-  L 127: _PersonDetailContent — (…)
-  L 133: createState — () => _PersonDetailContentState()
-  L 136: _PersonDetailContentState
+  L 150: _PersonDetailContent — (…)
+  L 156: createState — () => _PersonDetailContentState()
+  L 159: _PersonDetailContentState
 [METHODS _PersonDetailContentState]
-  L 141: initState — ()
-  L 158: build — (BuildContext context)
-  L 471: _buildHeroImage — (BuildContext context, Uri? photo)
-  L 499: _buildBiography — (BuildContext context, String biography)
-  L 592: _needsExpansion — (String text, double maxWidth)
+  L 163: initState — ()
+  L 180: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #236: src/features/person/presentation/providers/person_detail_providers.dart
+FILE #258: src/features/person/presentation/providers/person_detail_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  38: PersonToggleFavoriteNotifier
+  L  82: PersonToggleFavoriteNotifier
 [METHODS PersonToggleFavoriteNotifier]
-  L  40: build — ()
-  L  44: toggle — (String personId)
-  L  73: PersonDetailViewModel
+  L  84: build — ()
+  L  88: toggle — (String personId)
 
 --------------------------------------------------------------------------------
-FILE #237: src/features/player/data/repositories/media_kit_video_player_repository.dart
+FILE #259: src/features/person/presentation/widgets/person_biography_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   6: PersonBiographySection
+  L  18: _PersonBiographySectionState
+[METHODS _PersonBiographySectionState]
+  L  22: build — (BuildContext context)
+  L  99: _needsExpansion — (String text, double maxWidth)
+
+--------------------------------------------------------------------------------
+FILE #260: src/features/person/presentation/widgets/person_detail_actions_row.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  13: PersonDetailActionsRow
+
+--------------------------------------------------------------------------------
+FILE #261: src/features/person/presentation/widgets/person_detail_hero_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: PersonDetailHeroSection
+
+--------------------------------------------------------------------------------
+FILE #262: src/features/person/presentation/widgets/person_filmography_section.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   9: PersonFilmographySection
+
+--------------------------------------------------------------------------------
+FILE #263: src/features/player/application/services/next_episode_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   8: NextEpisodeFailure
+[METHODS NextEpisodeFailure]
+  L   9: NextEpisodeFailure — (…)
+  L  14: NextEpisodeResult
+  L  24: NextEpisodeService
+
+--------------------------------------------------------------------------------
+FILE #264: src/features/player/application/services/preferred_tracks_selector.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: PreferredTracksSelection
+  L  17: PreferredTracksSelector
+[METHODS PreferredTracksSelector]
+  L  22: select — (Tracks tracks)
+  L  63: _normalizeLanguageCode — (String? code)
+  L  66: _matchesLanguageCode — (String? trackLanguage, String? preferredCode)
+  L  75: _extractLanguageCodeFromTrack — (dynamic track)
+
+--------------------------------------------------------------------------------
+FILE #265: src/features/player/data/repositories/media_kit_video_player_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: MediaKitVideoPlayerRepository
@@ -3270,15 +3608,16 @@ FILE #237: src/features/player/data/repositories/media_kit_video_player_reposito
   L  71: setSubtitleTrack — (int? trackId)
   L  87: setAudioTrack — (int? trackId)
   L 102: dispose — ()
+  L 106: toEngineVolume — (double domainVolume)
 
 --------------------------------------------------------------------------------
-FILE #238: src/features/player/domain/entities/video_source.dart
+FILE #266: src/features/player/domain/entities/video_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: VideoSource
 
 --------------------------------------------------------------------------------
-FILE #239: src/features/player/domain/repositories/video_player_repository.dart
+FILE #267: src/features/player/domain/repositories/video_player_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: VideoPlayerRepository
@@ -3296,77 +3635,97 @@ FILE #239: src/features/player/domain/repositories/video_player_repository.dart
   L  36: dispose — ()
 
 --------------------------------------------------------------------------------
-FILE #240: src/features/player/domain/services/xtream_stream_url_builder.dart
+FILE #268: src/features/player/domain/services/xtream_stream_url_builder.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  10: XtreamStreamUrlBuilder
+  L   3: XtreamStreamUrlBuilder
 
 --------------------------------------------------------------------------------
-FILE #241: src/features/player/domain/utils/language_formatter.dart
+FILE #269: src/features/player/domain/utils/language_formatter.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   2: LanguageFormatter
+  L   3: LanguageFormatter
 [METHODS LanguageFormatter]
-  L   5: formatLanguageCode — (String? code)
-  L  53: formatLanguageCodeWithRegion — (String? code)
+  L   6: formatLanguageCode — (String? code)
+  L  54: formatLanguageCodeWithRegion — (String? code)
+  L  77: detectLanguageCodeFromTitle — (String title)
+  L 118: formatTrackLabel — (SubtitleTrack track)
+  L 130: formatTrackLabelAudio — (AudioTrack track)
+  L 142: normalizeLanguageCode — (String? code)
+  L 153: _normalizeLanguage — (String? code)
 
 --------------------------------------------------------------------------------
-FILE #242: src/features/player/player.dart
+FILE #270: src/features/player/player.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #243: src/features/player/presentation/pages/video_player_page.dart
+FILE #271: src/features/player/presentation/pages/video_player_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  28: VideoPlayerPage
+  L  27: VideoPlayerPage
 [METHODS VideoPlayerPage]
-  L  29: VideoPlayerPage — (…)
-  L  34: createState — () => _VideoPlayerPageState()
-  L  37: _VideoPlayerPageState
+  L  28: VideoPlayerPage — (…)
+  L  33: createState — () => _VideoPlayerPageState()
+  L  36: _VideoPlayerPageState
 [METHODS _VideoPlayerPageState]
-  L  61: initState — ()
+  L  60: initState — ()
   L 100: _setupListeners — ()
-  L 187: _normalizeLanguageCode — (String? code)
-  L 199: _matchesLanguageCode — (String? trackLanguage, String? preferredCode)
-  L 212: _extractLanguageCodeFromTrack — (dynamic track)
-  L 280: _selectPreferredTracks — (Tracks tracks)
-  L 357: _startHideControlsTimer — ()
-  L 375: _showControlsWithAnimation — ()
-  L 381: _hideControlsWithAnimation — ()
-  L 389: _onScreenTap — (TapDownDetails details)
-  L 416: _onDoubleTap — (TapDownDetails details)
-  L 446: _togglePlayPause — ()
-  L 455: _seekForward — (int seconds)
-  L 460: _seekBackward — (int seconds)
-  L 465: _onSeek — (double value)
-  L 471: _restart — ()
-  L 476: _goToNextEpisode — ()
-  L 752: _isSeasonUsingGlobalNumbering — (int seasonNumber, List<SeasonViewModel> seasons,)
-  L 779: _convertTmdbEpisodeToXtream — (int tmdbEpisodeNumber, int seasonNumber, List<SeasonViewModel> seasons,)
-  L 801: _showSubtitleMenu — ()
-  L 845: _showAudioMenu — ()
-  L 879: _onChromecast — ()
-  L 894: _onBack — (BuildContext context)
-  L 930: dispose — ()
-  L 979: _formatDuration — (Duration d)
-  L 995: build — (BuildContext context)
+  L 187: _startHideControlsTimer — ()
+  L 205: _showControlsWithAnimation — ()
+  L 211: _hideControlsWithAnimation — ()
+  L 219: _onScreenTap — (TapDownDetails details)
+  L 246: _onDoubleTap — (TapDownDetails details)
+  L 276: _togglePlayPause — ()
+  L 285: _seekForward — (int seconds)
+  L 290: _seekBackward — (int seconds)
+  L 295: _onSeek — (double value)
+  L 301: _restart — ()
+  L 306: _goToNextEpisode — ()
+  L 378: _showSubtitleMenu — ()
+  L 422: _showAudioMenu — ()
+  L 456: _onChromecast — ()
+  L 472: _onBack — (BuildContext context)
+  L 508: dispose — ()
+  L 557: _formatDuration — (Duration d)
+  L 573: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #244: src/features/player/presentation/widgets/track_selection_menu.dart
+FILE #272: src/features/player/presentation/providers/player_providers.dart
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+FILE #273: src/features/player/presentation/widgets/track_selection_menu.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   6: SubtitleTrackSelectionMenu
-  L 175: AudioTrackSelectionMenu
+  L   7: SubtitleTrackSelectionMenu
+  L 137: AudioTrackSelectionMenu
 
 --------------------------------------------------------------------------------
-FILE #245: src/features/player/presentation/widgets/video_player_controls.dart
+FILE #274: src/features/player/presentation/widgets/video_player_controls.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   7: VideoPlayerControls
-  L 398: _ControlButton
+  L   8: VideoPlayerControls
+  L 399: _ControlButton
 
 --------------------------------------------------------------------------------
-FILE #246: src/features/playlist/data/playlist_data_module.dart
+FILE #275: src/features/playlist/application/playlist_application_module.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: PlaylistApplicationModule
+[METHODS PlaylistApplicationModule]
+  L   6: register — ()
+
+--------------------------------------------------------------------------------
+FILE #276: src/features/playlist/application/services/playlist_filter_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L  10: PlaylistFilterService
+[METHODS PlaylistFilterService]
+  L  11: PlaylistFilterService — (…)
+  L  16: filterUnavailable — (Playlist playlist)
+
+--------------------------------------------------------------------------------
+FILE #277: src/features/playlist/data/playlist_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: PlaylistDataModule
@@ -3374,24 +3733,15 @@ FILE #246: src/features/playlist/data/playlist_data_module.dart
   L   7: register — ()
 
 --------------------------------------------------------------------------------
-FILE #247: src/features/playlist/data/repositories/playlist_repository_impl.dart
+FILE #278: src/features/playlist/data/repositories/playlist_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   8: PlaylistRepositoryImpl
+  L  14: PlaylistRepositoryImpl
 [METHODS PlaylistRepositoryImpl]
-  L   9: PlaylistRepositoryImpl — (…)
+  L  15: PlaylistRepositoryImpl — (…)
 
 --------------------------------------------------------------------------------
-FILE #248: src/features/playlist/data/services/playlist_filter_service.dart
---------------------------------------------------------------------------------
-[CLASS]
-  L   6: PlaylistFilterService
-[METHODS PlaylistFilterService]
-  L   7: PlaylistFilterService — (…)
-  L  11: filterUnavailable — (Playlist playlist)
-
---------------------------------------------------------------------------------
-FILE #249: src/features/playlist/data/services/playlist_ordering_service.dart
+FILE #279: src/features/playlist/data/services/playlist_ordering_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: PlaylistOrderingService
@@ -3400,7 +3750,7 @@ FILE #249: src/features/playlist/data/services/playlist_ordering_service.dart
   L   6: normalizePositions — (Playlist playlist)
 
 --------------------------------------------------------------------------------
-FILE #250: src/features/playlist/domain/entities/playlist.dart
+FILE #280: src/features/playlist/domain/entities/playlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   8: Playlist
@@ -3408,18 +3758,18 @@ FILE #250: src/features/playlist/domain/entities/playlist.dart
   L  69: PlaylistSummary
 
 --------------------------------------------------------------------------------
-FILE #251: src/features/playlist/domain/repositories/playlist_repository.dart
+FILE #281: src/features/playlist/domain/repositories/playlist_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   5: PlaylistRepository
+  L   9: PlaylistRepository
 [METHODS PlaylistRepository]
-  L   6: getPlaylist — (PlaylistId id)
-  L   7: getUserPlaylists — (String userId)
-  L   8: getFeaturedPlaylists — ()
-  L   9: searchPlaylists — (String query)
+  L  11: getPlaylist — (PlaylistId id)
+  L  13: getUserPlaylists — (String userId)
+  L  15: getFeaturedPlaylists — ()
+  L  17: searchPlaylists — (String query)
 
 --------------------------------------------------------------------------------
-FILE #252: src/features/playlist/domain/usecases/add_playlist_item.dart
+FILE #282: src/features/playlist/domain/usecases/add_playlist_item.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: AddPlaylistItem
@@ -3427,7 +3777,7 @@ FILE #252: src/features/playlist/domain/usecases/add_playlist_item.dart
   L   6: AddPlaylistItem — (…)
 
 --------------------------------------------------------------------------------
-FILE #253: src/features/playlist/domain/usecases/create_playlist.dart
+FILE #283: src/features/playlist/domain/usecases/create_playlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: CreatePlaylist
@@ -3435,7 +3785,7 @@ FILE #253: src/features/playlist/domain/usecases/create_playlist.dart
   L   6: CreatePlaylist — (…)
 
 --------------------------------------------------------------------------------
-FILE #254: src/features/playlist/domain/usecases/delete_playlist.dart
+FILE #284: src/features/playlist/domain/usecases/delete_playlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: DeletePlaylist
@@ -3444,7 +3794,7 @@ FILE #254: src/features/playlist/domain/usecases/delete_playlist.dart
   L   9: call — (PlaylistId id) => _repository.deletePlaylist(id)
 
 --------------------------------------------------------------------------------
-FILE #255: src/features/playlist/domain/usecases/get_featured_playlists.dart
+FILE #285: src/features/playlist/domain/usecases/get_featured_playlists.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetFeaturedPlaylists
@@ -3453,7 +3803,7 @@ FILE #255: src/features/playlist/domain/usecases/get_featured_playlists.dart
   L   9: call — () => _repository.getFeaturedPlaylists()
 
 --------------------------------------------------------------------------------
-FILE #256: src/features/playlist/domain/usecases/get_playlist_detail.dart
+FILE #286: src/features/playlist/domain/usecases/get_playlist_detail.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetPlaylistDetail
@@ -3462,7 +3812,7 @@ FILE #256: src/features/playlist/domain/usecases/get_playlist_detail.dart
   L  10: call — (PlaylistId id) => _repository.getPlaylist(id)
 
 --------------------------------------------------------------------------------
-FILE #257: src/features/playlist/domain/usecases/get_user_playlists.dart
+FILE #287: src/features/playlist/domain/usecases/get_user_playlists.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetUserPlaylists
@@ -3471,7 +3821,16 @@ FILE #257: src/features/playlist/domain/usecases/get_user_playlists.dart
   L   9: call — (String userId)
 
 --------------------------------------------------------------------------------
-FILE #258: src/features/playlist/domain/usecases/remove_playlist_item.dart
+FILE #288: src/features/playlist/domain/usecases/normalize_playlist_positions.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: NormalizePlaylistPositions
+[METHODS NormalizePlaylistPositions]
+  L   5: NormalizePlaylistPositions — (…)
+  L   7: call — (PlaylistId id) => _repository.normalizePositions(id)
+
+--------------------------------------------------------------------------------
+FILE #289: src/features/playlist/domain/usecases/remove_playlist_item.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: RemovePlaylistItem
@@ -3479,7 +3838,7 @@ FILE #258: src/features/playlist/domain/usecases/remove_playlist_item.dart
   L   6: RemovePlaylistItem — (…)
 
 --------------------------------------------------------------------------------
-FILE #259: src/features/playlist/domain/usecases/rename_playlist.dart
+FILE #290: src/features/playlist/domain/usecases/rename_playlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: RenamePlaylist
@@ -3488,7 +3847,7 @@ FILE #259: src/features/playlist/domain/usecases/rename_playlist.dart
   L  10: call — ({required PlaylistId id, required MediaTitle title})
 
 --------------------------------------------------------------------------------
-FILE #260: src/features/playlist/domain/usecases/reorder_playlist_item.dart
+FILE #291: src/features/playlist/domain/usecases/reorder_playlist_item.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: ReorderPlaylistItem
@@ -3496,7 +3855,7 @@ FILE #260: src/features/playlist/domain/usecases/reorder_playlist_item.dart
   L   5: ReorderPlaylistItem — (…)
 
 --------------------------------------------------------------------------------
-FILE #261: src/features/playlist/domain/usecases/search_playlists.dart
+FILE #292: src/features/playlist/domain/usecases/search_playlists.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SearchPlaylists
@@ -3505,21 +3864,21 @@ FILE #261: src/features/playlist/domain/usecases/search_playlists.dart
   L   9: call — (String query)
 
 --------------------------------------------------------------------------------
-FILE #262: src/features/playlist/playlist.dart
+FILE #293: src/features/playlist/playlist.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #263: src/features/saga/data/datasources/saga_local_data_source.dart
+FILE #294: src/features/saga/data/datasources/saga_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   5: SagaLocalDataSource
+  L  10: SagaLocalDataSource
 [METHODS SagaLocalDataSource]
-  L   6: SagaLocalDataSource — (…)
-  L  16: saveSagaDetail — (TmdbSagaDetailDto dto)
-  L  24: getSagaDetail — (int sagaId)
+  L  11: SagaLocalDataSource — (…)
+  L  22: saveSagaDetail — (TmdbSagaDetailDto dto)
+  L  32: getSagaDetail — (int sagaId)
 
 --------------------------------------------------------------------------------
-FILE #264: src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart
+FILE #295: src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: TmdbSagaRemoteDataSource
@@ -3530,34 +3889,34 @@ FILE #264: src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart
   L  20: searchSagas — (String query)
 
 --------------------------------------------------------------------------------
-FILE #265: src/features/saga/data/dtos/tmdb_saga_detail_dto.dart
+FILE #296: src/features/saga/data/dtos/tmdb_saga_detail_dto.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: TmdbSagaDetailDto
   L  55: TmdbSagaPartDto
 
 --------------------------------------------------------------------------------
-FILE #266: src/features/saga/data/repositories/saga_repository_impl.dart
+FILE #297: src/features/saga/data/repositories/saga_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  12: SagaRepositoryImpl
 [METHODS SagaRepositoryImpl]
   L  13: SagaRepositoryImpl — (…)
   L  21: getSaga — (SagaId id)
-  L  77: getUserSagas — (String userId)
-  L  93: searchSagas — (String query)
-  L 108: _parseDate — (String? date)
+  L  81: getUserSagas — (String userId)
+  L  96: searchSagas — (String query)
+  L 111: _parseDate — (String? date)
 
 --------------------------------------------------------------------------------
-FILE #267: src/features/saga/data/saga_data_module.dart
+FILE #298: src/features/saga/data/saga_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  10: SagaDataModule
+  L  14: SagaDataModule
 [METHODS SagaDataModule]
-  L  11: register — ()
+  L  15: register — ()
 
 --------------------------------------------------------------------------------
-FILE #268: src/features/saga/domain/entities/saga.dart
+FILE #299: src/features/saga/domain/entities/saga.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   8: Saga
@@ -3565,17 +3924,17 @@ FILE #268: src/features/saga/domain/entities/saga.dart
   L  59: SagaSummary
 
 --------------------------------------------------------------------------------
-FILE #269: src/features/saga/domain/repositories/saga_repository.dart
+FILE #300: src/features/saga/domain/repositories/saga_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   4: SagaRepository
+  L   9: SagaRepository
 [METHODS SagaRepository]
-  L   5: getSaga — (SagaId id)
-  L   6: getUserSagas — (String userId)
-  L   7: searchSagas — (String query)
+  L  11: getSaga — (SagaId id)
+  L  16: getUserSagas — (String userId)
+  L  18: searchSagas — (String query)
 
 --------------------------------------------------------------------------------
-FILE #270: src/features/saga/domain/usecases/get_saga_detail.dart
+FILE #301: src/features/saga/domain/usecases/get_saga_detail.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetSagaDetail
@@ -3584,7 +3943,7 @@ FILE #270: src/features/saga/domain/usecases/get_saga_detail.dart
   L  10: call — (SagaId id) => _repository.getSaga(id)
 
 --------------------------------------------------------------------------------
-FILE #271: src/features/saga/domain/usecases/get_user_sagas.dart
+FILE #302: src/features/saga/domain/usecases/get_user_sagas.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetUserSagas
@@ -3593,7 +3952,7 @@ FILE #271: src/features/saga/domain/usecases/get_user_sagas.dart
   L   9: call — (String userId)
 
 --------------------------------------------------------------------------------
-FILE #272: src/features/saga/domain/usecases/search_sagas.dart
+FILE #303: src/features/saga/domain/usecases/search_sagas.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SearchSagas
@@ -3602,7 +3961,7 @@ FILE #272: src/features/saga/domain/usecases/search_sagas.dart
   L   9: call — (String query)
 
 --------------------------------------------------------------------------------
-FILE #273: src/features/saga/presentation/pages/saga_detail_page.dart
+FILE #304: src/features/saga/presentation/pages/saga_detail_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  16: SagaDetailPage
@@ -3612,27 +3971,27 @@ FILE #273: src/features/saga/presentation/pages/saga_detail_page.dart
   L  30: _playMovie — (BuildContext context, WidgetRef ref, String movieId,)
   L  40: _startSaga — (BuildContext context, WidgetRef ref, SagaDetailViewModel viewModel,)
   L  68: build — (BuildContext context, WidgetRef ref)
-  L 416: _buildHeroImage — (BuildContext context, Uri? poster)
-  L 445: _SagaMovieCard
+  L 429: _buildHeroImage — (BuildContext context, Uri? poster)
+  L 458: _SagaMovieCard
 [METHODS _SagaMovieCard]
-  L 446: _SagaMovieCard — (…)
-  L 452: build — (BuildContext context)
+  L 459: _SagaMovieCard — (…)
+  L 465: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #274: src/features/saga/presentation/providers/saga_detail_providers.dart
+FILE #305: src/features/saga/presentation/providers/saga_detail_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  97: _SagaImages
+  L  50: _SagaImages
 [METHODS _SagaImages]
-  L  98: _SagaImages — (…)
-  L 240: SagaDetailViewModel
+  L  51: _SagaImages — (…)
+  L 192: SagaDetailViewModel
 
 --------------------------------------------------------------------------------
-FILE #275: src/features/saga/saga.dart
+FILE #306: src/features/saga/saga.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #276: src/features/search/data/datasources/search_history_local_data_source.dart
+FILE #307: src/features/search/data/datasources/search_history_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: SearchHistoryLocalDataSource
@@ -3648,7 +4007,17 @@ FILE #276: src/features/search/data/datasources/search_history_local_data_source
   L 156: _parseDate — (dynamic input)
 
 --------------------------------------------------------------------------------
-FILE #277: src/features/search/data/datasources/tmdb_search_remote_data_source.dart
+FILE #308: src/features/search/data/datasources/search_local_data_source.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   4: SearchLocalDataSource
+[METHODS SearchLocalDataSource]
+  L   5: SearchLocalDataSource — (…)
+  L  12: getWatchProviders — (String region)
+  L  38: cacheWatchProviders — (String region, List<TmdbWatchProviderDto> providers)
+
+--------------------------------------------------------------------------------
+FILE #309: src/features/search/data/datasources/tmdb_search_remote_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: TmdbSearchRemoteDataSource
@@ -3656,21 +4025,21 @@ FILE #277: src/features/search/data/datasources/tmdb_search_remote_data_source.d
   L   8: TmdbSearchRemoteDataSource — (…)
 
 --------------------------------------------------------------------------------
-FILE #278: src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart
+FILE #310: src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   8: TmdbWatchProvidersRemoteDataSource
+  L  11: TmdbWatchProvidersRemoteDataSource
 [METHODS TmdbWatchProvidersRemoteDataSource]
-  L   9: TmdbWatchProvidersRemoteDataSource — (…)
+  L  12: TmdbWatchProvidersRemoteDataSource — (…)
 
 --------------------------------------------------------------------------------
-FILE #279: src/features/search/data/dtos/tmdb_watch_provider_dto.dart
+FILE #311: src/features/search/data/dtos/tmdb_watch_provider_dto.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: TmdbWatchProviderDto
 
 --------------------------------------------------------------------------------
-FILE #280: src/features/search/data/repositories/search_history_repository_impl.dart
+FILE #312: src/features/search/data/repositories/search_history_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: SearchHistoryRepositoryImpl
@@ -3682,23 +4051,23 @@ FILE #280: src/features/search/data/repositories/search_history_repository_impl.
   L  20: clear — () => _local.clear()
 
 --------------------------------------------------------------------------------
-FILE #281: src/features/search/data/search_data_module.dart
+FILE #313: src/features/search/data/search_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  15: SearchDataModule
+  L  17: SearchDataModule
 [METHODS SearchDataModule]
-  L  16: register — ()
+  L  18: register — ()
 
 --------------------------------------------------------------------------------
-FILE #282: src/features/search/data/search_repository_impl.dart
+FILE #314: src/features/search/data/search_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  15: SearchRepositoryImpl
+  L  21: SearchRepositoryImpl
 [METHODS SearchRepositoryImpl]
-  L  16: SearchRepositoryImpl — (…)
+  L  22: SearchRepositoryImpl — (…)
 
 --------------------------------------------------------------------------------
-FILE #283: src/features/search/domain/entities/search_history_item.dart
+FILE #315: src/features/search/domain/entities/search_history_item.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: SearchHistoryItem
@@ -3706,13 +4075,19 @@ FILE #283: src/features/search/domain/entities/search_history_item.dart
   L   2: SearchHistoryItem — (…)
 
 --------------------------------------------------------------------------------
-FILE #284: src/features/search/domain/entities/search_page.dart
+FILE #316: src/features/search/domain/entities/search_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: SearchPage
 
 --------------------------------------------------------------------------------
-FILE #285: src/features/search/domain/repositories/search_history_repository.dart
+FILE #317: src/features/search/domain/entities/watch_provider.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   3: WatchProvider
+
+--------------------------------------------------------------------------------
+FILE #318: src/features/search/domain/repositories/search_history_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: SearchHistoryRepository
@@ -3723,17 +4098,18 @@ FILE #285: src/features/search/domain/repositories/search_history_repository.dar
   L   7: clear — ()
 
 --------------------------------------------------------------------------------
-FILE #286: src/features/search/domain/repositories/search_repository.dart
+FILE #319: src/features/search/domain/repositories/search_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L   6: SearchRepository
+  L   7: SearchRepository
 [METHODS SearchRepository]
-  L   7: searchMovies — (String query, {int page = 1})
-  L   8: searchShows — (String query, {int page = 1})
-  L   9: searchPeople — (String query, {int page = 1})
+  L   8: searchMovies — (String query, {int page = 1})
+  L   9: searchShows — (String query, {int page = 1})
+  L  10: searchPeople — (String query, {int page = 1})
+  L  11: getWatchProviders — (String region)
 
 --------------------------------------------------------------------------------
-FILE #287: src/features/search/domain/usecases/add_search_query_to_history.dart
+FILE #320: src/features/search/domain/usecases/add_search_query_to_history.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: AddSearchQueryToHistory
@@ -3742,7 +4118,7 @@ FILE #287: src/features/search/domain/usecases/add_search_query_to_history.dart
   L   7: call — (String query) => _repo.add(query)
 
 --------------------------------------------------------------------------------
-FILE #288: src/features/search/domain/usecases/list_search_history.dart
+FILE #321: src/features/search/domain/usecases/list_search_history.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: ListSearchHistory
@@ -3751,7 +4127,16 @@ FILE #288: src/features/search/domain/usecases/list_search_history.dart
   L   8: call — () => _repo.list()
 
 --------------------------------------------------------------------------------
-FILE #289: src/features/search/domain/usecases/remove_search_history_item.dart
+FILE #322: src/features/search/domain/usecases/load_watch_providers.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   7: LoadWatchProviders
+[METHODS LoadWatchProviders]
+  L   8: LoadWatchProviders — (…)
+  L  12: call — (String region)
+
+--------------------------------------------------------------------------------
+FILE #323: src/features/search/domain/usecases/remove_search_history_item.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: RemoveSearchHistoryItem
@@ -3760,7 +4145,7 @@ FILE #289: src/features/search/domain/usecases/remove_search_history_item.dart
   L   7: call — (String query) => _repo.remove(query)
 
 --------------------------------------------------------------------------------
-FILE #290: src/features/search/domain/usecases/search_instant.dart
+FILE #324: src/features/search/domain/usecases/search_instant.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: SearchInstant
@@ -3771,7 +4156,7 @@ FILE #290: src/features/search/domain/usecases/search_instant.dart
   L  21: people — (String query)
 
 --------------------------------------------------------------------------------
-FILE #291: src/features/search/domain/usecases/search_movies.dart
+FILE #325: src/features/search/domain/usecases/search_movies.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: SearchMovies
@@ -3780,7 +4165,7 @@ FILE #291: src/features/search/domain/usecases/search_movies.dart
   L  10: call — (String query, {int page = 1})
 
 --------------------------------------------------------------------------------
-FILE #292: src/features/search/domain/usecases/search_paginated.dart
+FILE #326: src/features/search/domain/usecases/search_paginated.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: SearchPaginated
@@ -3790,7 +4175,7 @@ FILE #292: src/features/search/domain/usecases/search_paginated.dart
   L  14: shows — (String query, {int page = 1})
 
 --------------------------------------------------------------------------------
-FILE #293: src/features/search/domain/usecases/search_people.dart
+FILE #327: src/features/search/domain/usecases/search_people.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: SearchPeople
@@ -3799,7 +4184,7 @@ FILE #293: src/features/search/domain/usecases/search_people.dart
   L  10: call — (String query, {int page = 1})
 
 --------------------------------------------------------------------------------
-FILE #294: src/features/search/domain/usecases/search_shows.dart
+FILE #328: src/features/search/domain/usecases/search_shows.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: SearchShows
@@ -3808,7 +4193,7 @@ FILE #294: src/features/search/domain/usecases/search_shows.dart
   L  10: call — (String query, {int page = 1})
 
 --------------------------------------------------------------------------------
-FILE #295: src/features/search/domain/value_objects/search_query.dart
+FILE #329: src/features/search/domain/value_objects/search_query.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: SearchQuery
@@ -3817,7 +4202,7 @@ FILE #295: src/features/search/domain/value_objects/search_query.dart
   L  11: parse — (String input)
 
 --------------------------------------------------------------------------------
-FILE #296: src/features/search/presentation/controllers/search_instant_controller.dart
+FILE #330: src/features/search/presentation/controllers/search_instant_controller.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  15: SearchState
@@ -3829,7 +4214,7 @@ FILE #296: src/features/search/presentation/controllers/search_instant_controlle
   L 118: _performSearch — (String query)
 
 --------------------------------------------------------------------------------
-FILE #297: src/features/search/presentation/controllers/search_paged_controller.dart
+FILE #331: src/features/search/presentation/controllers/search_paged_controller.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: SearchResultsState
@@ -3841,19 +4226,19 @@ FILE #297: src/features/search/presentation/controllers/search_paged_controller.
   L  95: fetchNextPage — ()
 
 --------------------------------------------------------------------------------
-FILE #298: src/features/search/presentation/models/provider_all_results_args.dart
+FILE #332: src/features/search/presentation/models/provider_all_results_args.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: ProviderAllResultsArgs
 
 --------------------------------------------------------------------------------
-FILE #299: src/features/search/presentation/models/provider_results_args.dart
+FILE #333: src/features/search/presentation/models/provider_results_args.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: ProviderResultsArgs
 
 --------------------------------------------------------------------------------
-FILE #300: src/features/search/presentation/models/search_results_args.dart
+FILE #334: src/features/search/presentation/models/search_results_args.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SearchResultsPageArgs
@@ -3861,20 +4246,20 @@ FILE #300: src/features/search/presentation/models/search_results_args.dart
   L   5: SearchResultsPageArgs — (…)
 
 --------------------------------------------------------------------------------
-FILE #301: src/features/search/presentation/pages/provider_all_results_page.dart
+FILE #335: src/features/search/presentation/pages/provider_all_results_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L  20: ProviderAllResultsPage
-  L  35: _ProviderAllResultsPageState
+  L  17: ProviderAllResultsPage
+  L  32: _ProviderAllResultsPageState
 [METHODS _ProviderAllResultsPageState]
-  L  45: initState — ()
-  L  55: dispose — ()
-  L  60: _onScroll — ()
-  L  69: _loadMore — ()
-  L 143: build — (BuildContext context)
+  L  42: initState — ()
+  L  52: dispose — ()
+  L  57: _onScroll — ()
+  L  66: _loadMore — ()
+  L 119: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #302: src/features/search/presentation/pages/provider_results_page.dart
+FILE #336: src/features/search/presentation/pages/provider_results_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  21: ProviderResultsPage
@@ -3890,7 +4275,7 @@ FILE #302: src/features/search/presentation/pages/provider_results_page.dart
   L 175: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #303: src/features/search/presentation/pages/search_page.dart
+FILE #337: src/features/search/presentation/pages/search_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  17: SearchPage
@@ -3934,7 +4319,7 @@ FILE #303: src/features/search/presentation/pages/search_page.dart
   L 822: _buildPosterImage — (Uri? poster, double width, double height)
 
 --------------------------------------------------------------------------------
-FILE #304: src/features/search/presentation/pages/search_results_page.dart
+FILE #338: src/features/search/presentation/pages/search_results_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  16: SearchResultsPage
@@ -3951,7 +4336,7 @@ FILE #304: src/features/search/presentation/pages/search_results_page.dart
   L 100: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #305: src/features/search/presentation/providers/search_history_providers.dart
+FILE #339: src/features/search/presentation/providers/search_history_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  22: SearchHistoryController
@@ -3963,13 +4348,13 @@ FILE #305: src/features/search/presentation/providers/search_history_providers.d
   L  85: refresh — ()
 
 --------------------------------------------------------------------------------
-FILE #306: src/features/search/presentation/providers/search_providers.dart
+FILE #340: src/features/search/presentation/providers/search_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
-  L 196: PopularMediaPoster
+  L 202: PopularMediaPoster
 
 --------------------------------------------------------------------------------
-FILE #307: src/features/search/presentation/widgets/watch_providers_grid.dart
+FILE #341: src/features/search/presentation/widgets/watch_providers_grid.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  13: WatchProvidersGrid
@@ -3984,11 +4369,11 @@ FILE #307: src/features/search/presentation/widgets/watch_providers_grid.dart
   L  98: build — (BuildContext context, WidgetRef ref)
 
 --------------------------------------------------------------------------------
-FILE #308: src/features/search/search.dart
+FILE #342: src/features/search/search.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #309: src/features/settings/data/datasources/user_settings_local_data_source.dart
+FILE #343: src/features/settings/data/datasources/user_settings_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: UserSettingsLocalDataSource
@@ -3998,7 +4383,7 @@ FILE #309: src/features/settings/data/datasources/user_settings_local_data_sourc
   L  21: load — ()
 
 --------------------------------------------------------------------------------
-FILE #310: src/features/settings/data/repositories/user_settings_repository_impl.dart
+FILE #344: src/features/settings/data/repositories/user_settings_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   7: UserSettingsRepositoryImpl
@@ -4008,7 +4393,7 @@ FILE #310: src/features/settings/data/repositories/user_settings_repository_impl
   L  21: load — ()
 
 --------------------------------------------------------------------------------
-FILE #311: src/features/settings/data/settings_data_module.dart
+FILE #345: src/features/settings/data/settings_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   8: SettingsDataModule
@@ -4016,13 +4401,13 @@ FILE #311: src/features/settings/data/settings_data_module.dart
   L   9: register — ()
 
 --------------------------------------------------------------------------------
-FILE #312: src/features/settings/domain/entities/user_preferences.dart
+FILE #346: src/features/settings/domain/entities/user_preferences.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: UserPreferences
 
 --------------------------------------------------------------------------------
-FILE #313: src/features/settings/domain/entities/user_profile.dart
+FILE #347: src/features/settings/domain/entities/user_profile.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: UserProfile
@@ -4030,7 +4415,7 @@ FILE #313: src/features/settings/domain/entities/user_profile.dart
   L   5: UserProfile — (…)
 
 --------------------------------------------------------------------------------
-FILE #314: src/features/settings/domain/repositories/settings_repository.dart
+FILE #348: src/features/settings/domain/repositories/settings_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SettingsRepository
@@ -4041,7 +4426,7 @@ FILE #314: src/features/settings/domain/repositories/settings_repository.dart
   L   8: updateProfile — (UserProfile profile)
 
 --------------------------------------------------------------------------------
-FILE #315: src/features/settings/domain/repositories/user_settings_repository.dart
+FILE #349: src/features/settings/domain/repositories/user_settings_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: UserSettingsRepository
@@ -4050,7 +4435,7 @@ FILE #315: src/features/settings/domain/repositories/user_settings_repository.da
   L   5: load — ()
 
 --------------------------------------------------------------------------------
-FILE #316: src/features/settings/domain/usecases/get_user_preferences.dart
+FILE #350: src/features/settings/domain/usecases/get_user_preferences.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetUserPreferences
@@ -4059,7 +4444,7 @@ FILE #316: src/features/settings/domain/usecases/get_user_preferences.dart
   L   9: call — () => _repository.getPreferences()
 
 --------------------------------------------------------------------------------
-FILE #317: src/features/settings/domain/usecases/get_user_profile.dart
+FILE #351: src/features/settings/domain/usecases/get_user_profile.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetUserProfile
@@ -4068,7 +4453,7 @@ FILE #317: src/features/settings/domain/usecases/get_user_profile.dart
   L   9: call — () => _repository.getUserProfile()
 
 --------------------------------------------------------------------------------
-FILE #318: src/features/settings/domain/usecases/load_user_profile.dart
+FILE #352: src/features/settings/domain/usecases/load_user_profile.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: LoadUserProfile
@@ -4077,7 +4462,7 @@ FILE #318: src/features/settings/domain/usecases/load_user_profile.dart
   L   8: call — () => _repo.load()
 
 --------------------------------------------------------------------------------
-FILE #319: src/features/settings/domain/usecases/save_user_profile.dart
+FILE #353: src/features/settings/domain/usecases/save_user_profile.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SaveUserProfile
@@ -4086,7 +4471,7 @@ FILE #319: src/features/settings/domain/usecases/save_user_profile.dart
   L   8: call — (UserProfile profile) => _repo.save(profile)
 
 --------------------------------------------------------------------------------
-FILE #320: src/features/settings/domain/usecases/update_user_preferences.dart
+FILE #354: src/features/settings/domain/usecases/update_user_preferences.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: UpdateUserPreferences
@@ -4095,7 +4480,7 @@ FILE #320: src/features/settings/domain/usecases/update_user_preferences.dart
   L   9: call — (UserPreferences preferences)
 
 --------------------------------------------------------------------------------
-FILE #321: src/features/settings/domain/usecases/update_user_profile.dart
+FILE #355: src/features/settings/domain/usecases/update_user_profile.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: UpdateUserProfile
@@ -4104,7 +4489,7 @@ FILE #321: src/features/settings/domain/usecases/update_user_profile.dart
   L   9: call — (UserProfile profile)
 
 --------------------------------------------------------------------------------
-FILE #322: src/features/settings/domain/value_objects/first_name.dart
+FILE #356: src/features/settings/domain/value_objects/first_name.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: FirstName
@@ -4113,7 +4498,7 @@ FILE #322: src/features/settings/domain/value_objects/first_name.dart
   L   6: tryParse — (String input)
 
 --------------------------------------------------------------------------------
-FILE #323: src/features/settings/domain/value_objects/language_code.dart
+FILE #357: src/features/settings/domain/value_objects/language_code.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: LanguageCode
@@ -4122,7 +4507,7 @@ FILE #323: src/features/settings/domain/value_objects/language_code.dart
   L   6: tryParse — (String input)
 
 --------------------------------------------------------------------------------
-FILE #324: src/features/settings/domain/value_objects/metadata_preference.dart
+FILE #358: src/features/settings/domain/value_objects/metadata_preference.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: MetadataPreference
@@ -4131,7 +4516,7 @@ FILE #324: src/features/settings/domain/value_objects/metadata_preference.dart
   L   8: tryParse — (String input)
 
 --------------------------------------------------------------------------------
-FILE #325: src/features/settings/presentation/pages/iptv_connect_page.dart
+FILE #359: src/features/settings/presentation/pages/iptv_connect_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: IptvConnectPage
@@ -4145,7 +4530,7 @@ FILE #325: src/features/settings/presentation/pages/iptv_connect_page.dart
   L  60: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #326: src/features/settings/presentation/pages/settings_page.dart
+FILE #360: src/features/settings/presentation/pages/settings_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  23: SettingsPage
@@ -4160,17 +4545,17 @@ FILE #326: src/features/settings/presentation/pages/settings_page.dart
   L 202: _formatSyncInterval — (Duration interval)
   L 228: _showSyncIntervalSelector — (BuildContext context, Duration currentInterval,)
   L 287: _isCurrentSyncInterval — (Duration current, Duration? option)
-  L 300: _formatPlayerLanguage — (String? code, bool isAudio)
-  L 307: _showAudioLanguageSelector — (BuildContext context, String? currentCode,)
-  L 359: _showSubtitleLanguageSelector — (BuildContext context, String? currentCode,)
-  L 421: _isCurrentPlayerLanguage — (String? current, String option)
-  L 434: _getAccentColorName — (Color color)
-  L 442: _showAccentColorSelector — (BuildContext context, Color currentColor,)
-  L 505: _isCurrentAccentColor — (Color current, Color option)
-  L 509: _refreshIptv — ()
+  L 301: _formatPlayerLanguage — (String? code, bool isAudio)
+  L 308: _showAudioLanguageSelector — (BuildContext context, String? currentCode,)
+  L 360: _showSubtitleLanguageSelector — (BuildContext context, String? currentCode,)
+  L 422: _isCurrentPlayerLanguage — (String? current, String option)
+  L 435: _getAccentColorName — (Color color)
+  L 443: _showAccentColorSelector — (BuildContext context, Color currentColor,)
+  L 506: _isCurrentAccentColor — (Color current, Color option)
+  L 510: _refreshIptv — ()
 
 --------------------------------------------------------------------------------
-FILE #327: src/features/settings/presentation/providers/iptv_connect_providers.dart
+FILE #361: src/features/settings/presentation/providers/iptv_connect_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  22: IptvConnectState
@@ -4183,7 +4568,7 @@ FILE #327: src/features/settings/presentation/providers/iptv_connect_providers.d
   L  42: build — ()
 
 --------------------------------------------------------------------------------
-FILE #328: src/features/settings/presentation/providers/user_settings_providers.dart
+FILE #362: src/features/settings/presentation/providers/user_settings_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  23: UserSettingsState
@@ -4196,11 +4581,11 @@ FILE #328: src/features/settings/presentation/providers/user_settings_providers.
   L  75: save — (UserProfile profile)
 
 --------------------------------------------------------------------------------
-FILE #329: src/features/settings/settings.dart
+FILE #363: src/features/settings/settings.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #330: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
+FILE #364: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  12: TmdbTvRemoteDataSource
@@ -4208,7 +4593,7 @@ FILE #330: src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart
   L  13: TmdbTvRemoteDataSource — (…)
 
 --------------------------------------------------------------------------------
-FILE #331: src/features/tv/data/datasources/tv_local_data_source.dart
+FILE #365: src/features/tv/data/datasources/tv_local_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: TvLocalDataSource
@@ -4222,7 +4607,7 @@ FILE #331: src/features/tv/data/datasources/tv_local_data_source.dart
   L  63: clearShowDetail — (int showId)
 
 --------------------------------------------------------------------------------
-FILE #332: src/features/tv/data/dtos/tmdb_tv_detail_dto.dart
+FILE #366: src/features/tv/data/dtos/tmdb_tv_detail_dto.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: TmdbTvDetailDto
@@ -4235,20 +4620,20 @@ FILE #332: src/features/tv/data/dtos/tmdb_tv_detail_dto.dart
   L 245: TmdbTvSummaryDto
 
 --------------------------------------------------------------------------------
-FILE #333: src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart
+FILE #367: src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: TmdbTvSeasonDetailDto
   L  39: TmdbTvEpisodeDto
 
 --------------------------------------------------------------------------------
-FILE #334: src/features/tv/data/repositories/tv_repository_impl.dart
+FILE #368: src/features/tv/data/repositories/tv_repository_impl.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  28: TvRepositoryImpl
 
 --------------------------------------------------------------------------------
-FILE #335: src/features/tv/data/tv_data_module.dart
+FILE #369: src/features/tv/data/tv_data_module.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  12: TvDataModule
@@ -4256,7 +4641,7 @@ FILE #335: src/features/tv/data/tv_data_module.dart
   L  13: register — ()
 
 --------------------------------------------------------------------------------
-FILE #336: src/features/tv/domain/entities/tv_show.dart
+FILE #370: src/features/tv/domain/entities/tv_show.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: TvShow
@@ -4265,7 +4650,7 @@ FILE #336: src/features/tv/domain/entities/tv_show.dart
   L 129: TvShowSummary
 
 --------------------------------------------------------------------------------
-FILE #337: src/features/tv/domain/repositories/tv_repository.dart
+FILE #371: src/features/tv/domain/repositories/tv_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: TvRepository
@@ -4283,7 +4668,7 @@ FILE #337: src/features/tv/domain/repositories/tv_repository.dart
   L  20: refreshMetadata — (SeriesId id)
 
 --------------------------------------------------------------------------------
-FILE #338: src/features/tv/domain/usecases/get_continue_watching_tv.dart
+FILE #372: src/features/tv/domain/usecases/get_continue_watching_tv.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetContinueWatchingTv
@@ -4292,7 +4677,7 @@ FILE #338: src/features/tv/domain/usecases/get_continue_watching_tv.dart
   L   9: call — () => _repository.getContinueWatching()
 
 --------------------------------------------------------------------------------
-FILE #339: src/features/tv/domain/usecases/get_featured_tv_shows.dart
+FILE #373: src/features/tv/domain/usecases/get_featured_tv_shows.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetFeaturedTvShows
@@ -4301,7 +4686,7 @@ FILE #339: src/features/tv/domain/usecases/get_featured_tv_shows.dart
   L   9: call — () => _repository.getFeaturedShows()
 
 --------------------------------------------------------------------------------
-FILE #340: src/features/tv/domain/usecases/get_season_episodes.dart
+FILE #374: src/features/tv/domain/usecases/get_season_episodes.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetSeasonEpisodes
@@ -4310,7 +4695,7 @@ FILE #340: src/features/tv/domain/usecases/get_season_episodes.dart
   L  10: call — (SeriesId showId, SeasonId seasonId)
 
 --------------------------------------------------------------------------------
-FILE #341: src/features/tv/domain/usecases/get_tv_seasons.dart
+FILE #375: src/features/tv/domain/usecases/get_tv_seasons.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetTvSeasons
@@ -4319,7 +4704,7 @@ FILE #341: src/features/tv/domain/usecases/get_tv_seasons.dart
   L  10: call — (SeriesId id) => _repository.getSeasons(id)
 
 --------------------------------------------------------------------------------
-FILE #342: src/features/tv/domain/usecases/get_tv_show_detail.dart
+FILE #376: src/features/tv/domain/usecases/get_tv_show_detail.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: GetTvShowDetail
@@ -4328,7 +4713,7 @@ FILE #342: src/features/tv/domain/usecases/get_tv_show_detail.dart
   L  10: call — (SeriesId id) => _repository.getShow(id)
 
 --------------------------------------------------------------------------------
-FILE #343: src/features/tv/domain/usecases/get_tv_watchlist.dart
+FILE #377: src/features/tv/domain/usecases/get_tv_watchlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: GetTvWatchlist
@@ -4337,7 +4722,7 @@ FILE #343: src/features/tv/domain/usecases/get_tv_watchlist.dart
   L   9: call — () => _repository.getUserWatchlist()
 
 --------------------------------------------------------------------------------
-FILE #344: src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart
+FILE #378: src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: IsTvShowInWatchlist
@@ -4346,7 +4731,7 @@ FILE #344: src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart
   L   9: call — (SeriesId id) => _repository.isInWatchlist(id)
 
 --------------------------------------------------------------------------------
-FILE #345: src/features/tv/domain/usecases/search_tv_shows.dart
+FILE #379: src/features/tv/domain/usecases/search_tv_shows.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: SearchTvShows
@@ -4355,7 +4740,7 @@ FILE #345: src/features/tv/domain/usecases/search_tv_shows.dart
   L   9: call — (String query)
 
 --------------------------------------------------------------------------------
-FILE #346: src/features/tv/domain/usecases/toggle_tv_watchlist.dart
+FILE #380: src/features/tv/domain/usecases/toggle_tv_watchlist.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: ToggleTvWatchlist
@@ -4364,7 +4749,7 @@ FILE #346: src/features/tv/domain/usecases/toggle_tv_watchlist.dart
   L   9: call — (SeriesId id, {required bool saved})
 
 --------------------------------------------------------------------------------
-FILE #347: src/features/tv/presentation/models/tv_detail_view_model.dart
+FILE #381: src/features/tv/presentation/models/tv_detail_view_model.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   6: TvDetailViewModel
@@ -4372,7 +4757,7 @@ FILE #347: src/features/tv/presentation/models/tv_detail_view_model.dart
   L 159: EpisodeViewModel
 
 --------------------------------------------------------------------------------
-FILE #348: src/features/tv/presentation/pages/tv_detail_page.dart
+FILE #382: src/features/tv/presentation/pages/tv_detail_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  34: TvDetailPage
@@ -4391,7 +4776,7 @@ FILE #348: src/features/tv/presentation/pages/tv_detail_page.dart
   L 375: _buildErrorScaffold — (Object e)
 
 --------------------------------------------------------------------------------
-FILE #349: src/features/tv/presentation/providers/tv_detail_providers.dart
+FILE #383: src/features/tv/presentation/providers/tv_detail_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  52: TvToggleFavoriteNotifier
@@ -4403,14 +4788,15 @@ FILE #349: src/features/tv/presentation/providers/tv_detail_providers.dart
   L 101: TvDetailProgressiveController — (…)
   L 108: build — ()
   L 113: _loadProgressive — ()
-  L 513: _searchTmdbIdForXtreamItem — (XtreamPlaylistItem item, String language, GetIt locator, AppLogger logger,)
+  L 512: reloadSeasonEpisodes — (int seasonNumber)
+  L 607: _searchTmdbIdForXtreamItem — (XtreamPlaylistItem item, String language, GetIt locator, AppLogger logger,)
 
 --------------------------------------------------------------------------------
-FILE #350: src/features/tv/tv.dart
+FILE #384: src/features/tv/tv.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #351: src/features/welcome/presentation/pages/splash_bootstrap_page.dart
+FILE #385: src/features/welcome/presentation/pages/splash_bootstrap_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  11: SplashBootstrapPage
@@ -4422,7 +4808,7 @@ FILE #351: src/features/welcome/presentation/pages/splash_bootstrap_page.dart
   L  23: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #352: src/features/welcome/presentation/pages/welcome_page.dart
+FILE #386: src/features/welcome/presentation/pages/welcome_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  16: WelcomePage
@@ -4430,7 +4816,7 @@ FILE #352: src/features/welcome/presentation/pages/welcome_page.dart
   L  17: WelcomePage — (…)
 
 --------------------------------------------------------------------------------
-FILE #353: src/features/welcome/presentation/pages/welcome_source_page.dart
+FILE #387: src/features/welcome/presentation/pages/welcome_source_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: WelcomeSourcePage
@@ -4439,7 +4825,7 @@ FILE #353: src/features/welcome/presentation/pages/welcome_source_page.dart
   L  13: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #354: src/features/welcome/presentation/pages/welcome_user_page.dart
+FILE #388: src/features/welcome/presentation/pages/welcome_user_page.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  18: WelcomeUserPage
@@ -4456,7 +4842,7 @@ FILE #354: src/features/welcome/presentation/pages/welcome_user_page.dart
   L 169: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #355: src/features/welcome/presentation/providers/bootstrap_providers.dart
+FILE #389: src/features/welcome/presentation/providers/bootstrap_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  17: BootstrapState
@@ -4471,7 +4857,7 @@ FILE #355: src/features/welcome/presentation/providers/bootstrap_providers.dart
   L 160: AppPreloadTimeoutException — (…)
 
 --------------------------------------------------------------------------------
-FILE #356: src/features/welcome/presentation/providers/welcome_providers.dart
+FILE #390: src/features/welcome/presentation/providers/welcome_providers.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: WelcomeUiState
@@ -4482,11 +4868,11 @@ FILE #356: src/features/welcome/presentation/providers/welcome_providers.dart
   L  52: updateUrlPreview — (String raw)
 
 --------------------------------------------------------------------------------
-FILE #357: src/features/welcome/presentation/utils/error_presenter.dart
+FILE #391: src/features/welcome/presentation/utils/error_presenter.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #358: src/features/welcome/presentation/widgets/labeled_field.dart
+FILE #392: src/features/welcome/presentation/widgets/labeled_field.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: LabeledField
@@ -4495,7 +4881,7 @@ FILE #358: src/features/welcome/presentation/widgets/labeled_field.dart
   L  11: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #359: src/features/welcome/presentation/widgets/welcome_faq_row.dart
+FILE #393: src/features/welcome/presentation/widgets/welcome_faq_row.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   4: WelcomeFaqRow
@@ -4504,7 +4890,7 @@ FILE #359: src/features/welcome/presentation/widgets/welcome_faq_row.dart
   L  10: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #360: src/features/welcome/presentation/widgets/welcome_form.dart
+FILE #394: src/features/welcome/presentation/widgets/welcome_form.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  17: WelcomeForm
@@ -4518,17 +4904,17 @@ FILE #360: src/features/welcome/presentation/widgets/welcome_form.dart
   L 134: build — (BuildContext context)
 
 --------------------------------------------------------------------------------
-FILE #361: src/features/welcome/presentation/widgets/welcome_header.dart
+FILE #395: src/features/welcome/presentation/widgets/welcome_header.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   8: WelcomeHeader
 
 --------------------------------------------------------------------------------
-FILE #362: src/features/welcome/welcome.dart
+FILE #396: src/features/welcome/welcome.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #363: src/shared/data/services/similarity/hybrid_similarity_service.dart
+FILE #397: src/shared/data/services/similarity/hybrid_similarity_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: HybridSimilarityService
@@ -4544,7 +4930,7 @@ FILE #363: src/shared/data/services/similarity/hybrid_similarity_service.dart
   L 147: _levenshteinDistance — (String s1, String s2)
 
 --------------------------------------------------------------------------------
-FILE #364: src/shared/data/services/tmdb_cache_data_source.dart
+FILE #398: src/shared/data/services/tmdb_cache_data_source.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  20: TmdbCacheDataSource
@@ -4559,7 +4945,7 @@ FILE #364: src/shared/data/services/tmdb_cache_data_source.dart
   L 182: _MemoEntry — (…)
 
 --------------------------------------------------------------------------------
-FILE #365: src/shared/data/services/tmdb_client.dart
+FILE #399: src/shared/data/services/tmdb_client.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  14: TmdbClient
@@ -4569,7 +4955,7 @@ FILE #365: src/shared/data/services/tmdb_client.dart
   L 216: toString — ()
 
 --------------------------------------------------------------------------------
-FILE #366: src/shared/data/services/tmdb_image_resolver.dart
+FILE #400: src/shared/data/services/tmdb_image_resolver.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L  15: TmdbImageResolver
@@ -4580,13 +4966,19 @@ FILE #366: src/shared/data/services/tmdb_image_resolver.dart
   L 145: TmdbImagePair
 
 --------------------------------------------------------------------------------
-FILE #367: src/shared/domain/entities/person_summary.dart
+FILE #401: src/shared/data/services/xtream_lookup_service.dart
+--------------------------------------------------------------------------------
+[CLASS]
+  L   5: XtreamLookupService
+
+--------------------------------------------------------------------------------
+FILE #402: src/shared/domain/entities/person_summary.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   5: PersonSummary
 
 --------------------------------------------------------------------------------
-FILE #368: src/shared/domain/services/content_repository.dart
+FILE #403: src/shared/domain/services/content_repository.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   3: ContentRepository
@@ -4595,7 +4987,7 @@ FILE #368: src/shared/domain/services/content_repository.dart
   L   5: fetchFeatured — ()
 
 --------------------------------------------------------------------------------
-FILE #369: src/shared/domain/services/playlist_tmdb_enrichment_service.dart
+FILE #404: src/shared/domain/services/playlist_tmdb_enrichment_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: PlaylistTmdbEnrichmentService
@@ -4607,7 +4999,7 @@ FILE #369: src/shared/domain/services/playlist_tmdb_enrichment_service.dart
   L  64: _parseYear — (String? raw)
 
 --------------------------------------------------------------------------------
-FILE #370: src/shared/domain/services/preferences_service.dart
+FILE #405: src/shared/domain/services/preferences_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   2: PreferencesService
@@ -4616,7 +5008,7 @@ FILE #370: src/shared/domain/services/preferences_service.dart
   L   4: isDarkModeEnabled — ()
 
 --------------------------------------------------------------------------------
-FILE #371: src/shared/domain/services/similarity_service.dart
+FILE #406: src/shared/domain/services/similarity_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: SimilarityService
@@ -4624,7 +5016,7 @@ FILE #371: src/shared/domain/services/similarity_service.dart
   L   4: score — (String original, String result)
 
 --------------------------------------------------------------------------------
-FILE #372: src/shared/domain/services/tmdb_image_selector_service.dart
+FILE #407: src/shared/domain/services/tmdb_image_selector_service.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   8: TmdbImageSelectorService
@@ -4634,11 +5026,11 @@ FILE #372: src/shared/domain/services/tmdb_image_selector_service.dart
   L  40: selectLogoPath — (List<dynamic> logos)
 
 --------------------------------------------------------------------------------
-FILE #373: src/shared/domain/value_objects/content_rating.dart
+FILE #408: src/shared/domain/value_objects/content_rating.dart
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
-FILE #374: src/shared/domain/value_objects/content_reference.dart
+FILE #409: src/shared/domain/value_objects/content_reference.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   9: ContentReference
@@ -4649,7 +5041,7 @@ FILE #374: src/shared/domain/value_objects/content_reference.dart
   L  79: absent — () => Optional<T?>._(null)
 
 --------------------------------------------------------------------------------
-FILE #375: src/shared/domain/value_objects/media_id.dart
+FILE #410: src/shared/domain/value_objects/media_id.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: MovieId
@@ -4675,7 +5067,7 @@ FILE #375: src/shared/domain/value_objects/media_id.dart
   L  44: PlaylistId — (…)
 
 --------------------------------------------------------------------------------
-FILE #376: src/shared/domain/value_objects/media_title.dart
+FILE #411: src/shared/domain/value_objects/media_title.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: MediaTitle
@@ -4683,7 +5075,7 @@ FILE #376: src/shared/domain/value_objects/media_title.dart
   L   2: MediaTitle — (…)
 
 --------------------------------------------------------------------------------
-FILE #377: src/shared/domain/value_objects/synopsis.dart
+FILE #412: src/shared/domain/value_objects/synopsis.dart
 --------------------------------------------------------------------------------
 [CLASS]
   L   1: Synopsis
@@ -4691,6 +5083,6 @@ FILE #377: src/shared/domain/value_objects/synopsis.dart
   L   2: Synopsis — (…)
 
 --------------------------------------------------------------------------------
-FILE #378: src/shared/services.dart
+FILE #413: src/shared/services.dart
 --------------------------------------------------------------------------------
 

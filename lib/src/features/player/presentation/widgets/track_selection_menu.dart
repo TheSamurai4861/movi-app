@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
 
 /// Menu de sélection des pistes de sous-titres
@@ -33,8 +34,8 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  const Text(
-                    'Sous-titres',
+                  Text(
+                    AppLocalizations.of(context)!.subtitlesMenuTitle,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -63,8 +64,8 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                         Icons.radio_button_unchecked,
                         color: Colors.white70,
                       ),
-                      title: const Text(
-                        'Désactiver',
+                      title: Text(
+                        AppLocalizations.of(context)!.actionDisable,
                         style: TextStyle(color: Colors.white),
                       ),
                       selected: currentTrack == null,
@@ -81,7 +82,11 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                   final isSelected = currentTrack?.id == track.id;
 
                   // Formater le titre de la piste
-                  final trackTitle = _formatTrackTitle(track);
+                  final label = LanguageFormatter.formatTrackLabel(track);
+                  final trackTitle = label.isNotEmpty
+                      ? label
+                      : AppLocalizations.of(context)!
+                          .defaultTrackLabel(track.id.toString());
 
                   return ListTile(
                     leading: Icon(
@@ -125,50 +130,7 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
     );
   }
 
-  String _formatTrackTitle(SubtitleTrack track) {
-    // Essayer d'extraire la langue depuis le code de langue ou le titre
-    String? languageCode;
-
-    if (track.language != null && track.language!.isNotEmpty) {
-      languageCode = track.language;
-    } else if (track.title != null && track.title!.isNotEmpty) {
-      // Essayer d'extraire un code de langue depuis le titre
-      final title = track.title!.toLowerCase();
-      // Chercher des patterns comme "fr", "french", "français", etc.
-      if (title.contains('fr') ||
-          title.contains('french') ||
-          title.contains('français')) {
-        languageCode = 'fr';
-      } else if (title.contains('en') ||
-          title.contains('english') ||
-          title.contains('anglais')) {
-        languageCode = 'en';
-      } else if (title.contains('es') ||
-          title.contains('spanish') ||
-          title.contains('espagnol')) {
-        languageCode = 'es';
-      } else if (title.contains('de') ||
-          title.contains('german') ||
-          title.contains('allemand')) {
-        languageCode = 'de';
-      } else if (title.contains('it') ||
-          title.contains('italian') ||
-          title.contains('italien')) {
-        languageCode = 'it';
-      }
-    }
-
-    if (languageCode != null) {
-      return LanguageFormatter.formatLanguageCodeWithRegion(languageCode);
-    }
-
-    // Fallback : utiliser le titre ou un label par défaut
-    if (track.title != null && track.title!.isNotEmpty) {
-      return track.title!;
-    }
-
-    return 'Piste ${track.id}';
-  }
+  
 }
 
 /// Menu de sélection des pistes audio
@@ -200,8 +162,8 @@ class AudioTrackSelectionMenu extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  const Text(
-                    'Audio',
+                  Text(
+                    AppLocalizations.of(context)!.audioMenuTitle,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -227,7 +189,11 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                   final isSelected = currentTrack?.id == track.id;
 
                   // Formater le titre de la piste
-                  final trackTitle = _formatTrackTitle(track);
+                  final label = LanguageFormatter.formatTrackLabelAudio(track);
+                  final trackTitle = label.isNotEmpty
+                      ? label
+                      : AppLocalizations.of(context)!
+                          .defaultTrackLabel(track.id.toString());
 
                   return ListTile(
                     leading: Icon(
@@ -271,48 +237,5 @@ class AudioTrackSelectionMenu extends StatelessWidget {
     );
   }
 
-  String _formatTrackTitle(AudioTrack track) {
-    // Essayer d'extraire la langue depuis le code de langue ou le titre
-    String? languageCode;
-
-    if (track.language != null && track.language!.isNotEmpty) {
-      languageCode = track.language;
-    } else if (track.title != null && track.title!.isNotEmpty) {
-      // Essayer d'extraire un code de langue depuis le titre
-      final title = track.title!.toLowerCase();
-      // Chercher des patterns comme "fr", "french", "français", etc.
-      if (title.contains('fr') ||
-          title.contains('french') ||
-          title.contains('français')) {
-        languageCode = 'fr';
-      } else if (title.contains('en') ||
-          title.contains('english') ||
-          title.contains('anglais')) {
-        languageCode = 'en';
-      } else if (title.contains('es') ||
-          title.contains('spanish') ||
-          title.contains('espagnol')) {
-        languageCode = 'es';
-      } else if (title.contains('de') ||
-          title.contains('german') ||
-          title.contains('allemand')) {
-        languageCode = 'de';
-      } else if (title.contains('it') ||
-          title.contains('italian') ||
-          title.contains('italien')) {
-        languageCode = 'it';
-      }
-    }
-
-    if (languageCode != null) {
-      return LanguageFormatter.formatLanguageCodeWithRegion(languageCode);
-    }
-
-    // Fallback : utiliser le titre ou un label par défaut
-    if (track.title != null && track.title!.isNotEmpty) {
-      return track.title!;
-    }
-
-    return 'Piste ${track.id}';
-  }
+  
 }

@@ -199,6 +199,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featureComingSoon => 'Feature coming soon';
 
   @override
+  String get subtitlesMenuTitle => 'Subtitles';
+
+  @override
+  String get audioMenuTitle => 'Audio';
+
+  @override
+  String get actionDisable => 'Disable';
+
+  @override
+  String defaultTrackLabel(String id) {
+    return 'Track $id';
+  }
+
+  @override
+  String get controlRewind10 => '10 s';
+
+  @override
+  String get controlRewind30 => '30 s';
+
+  @override
+  String get controlForward10 => '+ 10 s';
+
+  @override
+  String get controlForward30 => '+ 30 s';
+
+  @override
+  String get actionNextEpisode => 'Next episode';
+
+  @override
+  String get actionRestart => 'Restart';
+
+  @override
+  String get errorSeriesDataUnavailable => 'Unable to load series data';
+
+  @override
+  String get errorNextEpisodeFailed => 'Unable to determine next episode';
+
+  @override
   String get actionLoadMore => 'Load more';
 
   @override
@@ -563,4 +601,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorPlaybackFailed(String message) {
     return 'Error playing movie: $message';
   }
+
+  @override
+  String get movieNoMedia => 'No media to display';
+
+  @override
+  String get personNoData => 'No person to display.';
+
+  @override
+  String get personGenericError =>
+      'An error occurred while loading this person.';
+
+  @override
+  String get personBiographyTitle => 'Biography';
 }

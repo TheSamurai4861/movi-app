@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/features/person/domain/repositories/person_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/favorites_repository.dart';
 import 'package:movi/src/features/library/data/repositories/favorites_repository_impl.dart';
@@ -8,9 +9,17 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/person/presentation/models/person_detail_view_model.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/features/person/data/datasources/tmdb_person_remote_data_source.dart';
+import 'package:movi/src/features/person/data/datasources/person_local_data_source.dart';
+import 'package:movi/src/features/person/data/repositories/person_repository_impl.dart';
+import 'package:movi/src/features/person/domain/usecases/get_featured_people.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
 
 /// Provider pour FavoritesRepository avec userId actuel
 final favoritesRepositoryProvider = Provider<FavoritesRepository>((ref) {
@@ -19,6 +28,41 @@ final favoritesRepositoryProvider = Provider<FavoritesRepository>((ref) {
     ref.watch(slProvider)<WatchlistLocalRepository>(),
     userId: userId,
   );
+});
+
+/// DI unifiée — Person: Remote DS
+final tmdbPersonRemoteDataSourceProvider =
+    Provider<TmdbPersonRemoteDataSource>((ref) {
+  final client = ref.watch(slProvider)<TmdbClient>();
+  return TmdbPersonRemoteDataSource(client);
+});
+
+/// DI unifiée — Person: Local DS
+final personLocalDataSourceProvider = Provider<PersonLocalDataSource>((ref) {
+  final cache = ref.watch(slProvider)<ContentCacheRepository>();
+  final locale = ref.watch(slProvider)<LocalePreferences>();
+  return PersonLocalDataSource(cache, locale);
+});
+
+/// DI unifiée — Person: Repository
+final personRepositoryProvider = Provider<PersonRepository>((ref) {
+  final remote = ref.watch(tmdbPersonRemoteDataSourceProvider);
+  final images = ref.watch(slProvider)<TmdbImageResolver>();
+  final local = ref.watch(personLocalDataSourceProvider);
+  final locale = ref.watch(slProvider)<LocalePreferences>();
+  return PersonRepositoryImpl(remote, images, local, locale);
+});
+
+/// Use case provider — GetFeaturedPeople
+final getFeaturedPeopleUseCaseProvider = Provider<GetFeaturedPeople>((ref) {
+  final repo = ref.watch(personRepositoryProvider);
+  return GetFeaturedPeople(repo);
+});
+
+/// Featured people list (popular)
+final featuredPeopleProvider = FutureProvider<List<PersonSummary>>((ref) async {
+  final usecase = ref.watch(getFeaturedPeopleUseCaseProvider);
+  return usecase();
 });
 
 /// Provider pour vérifier si une personne est dans les favoris
@@ -46,7 +90,7 @@ class PersonToggleFavoriteNotifier extends Notifier<void> {
     final isFavorite = await ref.read(
       personIsFavoriteProvider(personId).future,
     );
-    final personRepo = ref.read(slProvider)<PersonRepository>();
+    final personRepo = ref.read(personRepositoryProvider);
     final person = await personRepo.getPerson(PersonId(personId));
 
     if (isFavorite) {
@@ -70,31 +114,12 @@ final personToggleFavoriteProvider =
       PersonToggleFavoriteNotifier.new,
     );
 
-class PersonDetailViewModel {
-  const PersonDetailViewModel({
-    required this.name,
-    required this.photo,
-    required this.moviesCount,
-    required this.showsCount,
-    required this.movies,
-    required this.shows,
-    this.biography,
-  });
-
-  final String name;
-  final Uri? photo;
-  final int moviesCount;
-  final int showsCount;
-  final List<MovieSummary> movies;
-  final List<TvShowSummary> shows;
-  final String? biography;
-}
+// PersonDetailViewModel moved to presentation/models to keep providers focused.
 
 final personDetailControllerProvider =
     FutureProvider.family<PersonDetailViewModel, String>((ref, personId) async {
-      final locator = ref.watch(slProvider);
-      final personRepo = locator<PersonRepository>();
-      final iptvLocal = locator<IptvLocalRepository>();
+      final personRepo = ref.watch(personRepositoryProvider);
+      final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
 
       final id = PersonId(personId);
       final person = await personRepo.getPerson(id);

@@ -20,7 +20,7 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network_executor.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
-import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
+import 'package:movi/src/features/iptv/data/services/xtream_stream_url_builder_impl.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
@@ -279,10 +279,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     if (widget.media == null) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: const Center(
+        body: Center(
           child: Text(
-            'Aucun média à afficher (media null).',
-            style: TextStyle(color: Colors.white),
+            AppLocalizations.of(context)!.movieNoMedia,
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       );
@@ -1251,7 +1251,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final vault = locator<CredentialsVault>();
       final logger = locator<AppLogger>();
       final networkExecutor = locator<NetworkExecutor>();
-      final urlBuilder = XtreamStreamUrlBuilder(
+      final urlBuilder = XtreamStreamUrlBuilderImpl(
         iptvLocal: iptvLocal,
         vault: vault,
         networkExecutor: networkExecutor,
@@ -1484,7 +1484,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       context.push(
         AppRouteNames.player,
         extra: VideoSource(
-          url: streamUrl,
+          url: streamUrl.toString(),
           title: episodeTitle,
           contentId: seriesId,
           contentType: ContentType.series,

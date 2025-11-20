@@ -509,6 +509,100 @@ class TvDetailProgressiveController
     }
   }
 
+  Future<void> reloadSeasonEpisodes(int seasonNumber) async {
+    final vm = state.value;
+    if (vm == null) return;
+    try {
+      final repo = ref.read(tvRepositoryProvider);
+      final id = SeriesId(_seriesId);
+      final seasonIndex = vm.seasons.indexWhere(
+        (s) => s.seasonNumber == seasonNumber,
+      );
+      if (seasonIndex == -1) return;
+
+      final updatedSeasons = List<SeasonViewModel>.from(vm.seasons);
+      updatedSeasons[seasonIndex] = updatedSeasons[seasonIndex].copyWith(
+        isLoadingEpisodes: true,
+      );
+      state = AsyncValue.data(
+        TvDetailViewModel(
+          title: vm.title,
+          yearText: vm.yearText,
+          seasonsCountText: vm.seasonsCountText,
+          ratingText: vm.ratingText,
+          overviewText: vm.overviewText,
+          cast: vm.cast,
+          seasons: updatedSeasons,
+          poster: vm.poster,
+          backdrop: vm.backdrop,
+          language: vm.language,
+        ),
+      );
+
+      final seasonId = SeasonId(seasonNumber.toString());
+      final episodes = await repo.getEpisodes(id, seasonId);
+      final now = DateTime.now();
+      final episodesVm = episodes
+          .map(
+            (e) => EpisodeViewModel(
+              id: e.id.value,
+              episodeNumber: e.episodeNumber,
+              title: e.title.display,
+              overview: e.overview?.value,
+              runtime: e.runtime,
+              airDate: e.airDate,
+              still: e.still,
+              voteAverage: e.voteAverage,
+              isAvailableInPlaylist:
+                  e.airDate == null || e.airDate!.isBefore(now),
+            ),
+          )
+          .toList(growable: false);
+
+      updatedSeasons[seasonIndex] = updatedSeasons[seasonIndex].copyWith(
+        episodes: episodesVm,
+        isLoadingEpisodes: false,
+      );
+      state = AsyncValue.data(
+        TvDetailViewModel(
+          title: vm.title,
+          yearText: vm.yearText,
+          seasonsCountText: vm.seasonsCountText,
+          ratingText: vm.ratingText,
+          overviewText: vm.overviewText,
+          cast: vm.cast,
+          seasons: updatedSeasons,
+          poster: vm.poster,
+          backdrop: vm.backdrop,
+          language: vm.language,
+        ),
+      );
+    } catch (e) {
+      final vm = state.value;
+      if (vm != null) {
+        final updatedSeasons = vm.seasons
+            .map((s) => s.seasonNumber == seasonNumber
+                ? s.copyWith(isLoadingEpisodes: false)
+                : s)
+            .toList();
+        state = AsyncValue.data(
+          TvDetailViewModel(
+            title: vm.title,
+            yearText: vm.yearText,
+            seasonsCountText: vm.seasonsCountText,
+            ratingText: vm.ratingText,
+            overviewText: vm.overviewText,
+            cast: vm.cast,
+            seasons: updatedSeasons,
+            poster: vm.poster,
+            backdrop: vm.backdrop,
+            language: vm.language,
+          ),
+        );
+      }
+    }
+  }
+
   /// Recherche un tmdbId pour un item Xtream en utilisant le titre nettoyé
   Future<int?> _searchTmdbIdForXtreamItem(
     XtreamPlaylistItem item,
@@ -1292,3 +1386,36 @@ class TvDetailProgressiveController
     state = AsyncValue.data(updatedVm);
   }
 }
+
+final episodesBySeasonProvider = FutureProvider.family<List<Episode>, ({String seriesId, int seasonNumber})>((ref, args) async {
+  final repo = ref.watch(tvRepositoryProvider);
+  final id = SeriesId(args.seriesId);
+  final seasonId = SeasonId(args.seasonNumber.toString());
+  return repo.getEpisodes(id, seasonId);
+});
+
+final watchlistStatusProvider = FutureProvider.family<bool, String>((ref, seriesId) async {
+  final repo = ref.watch(tvRepositoryProvider);
+  return repo.isInWatchlist(SeriesId(seriesId));
+});
+
+final continueWatchingProvider = FutureProvider<List<TvShowSummary>>((ref) async {
+  final repo = ref.watch(tvRepositoryProvider);
+  return repo.getContinueWatching();
+});
+
+final tvAvailabilityProvider = FutureProvider.family<bool, String>((ref, seriesId) async {
+  final locator = ref.read(slProvider);
+  final iptvLocal = locator<IptvLocalRepository>();
+  if (seriesId.startsWith('xtream:')) return true;
+  final repo = ref.read(tvRepositoryProvider);
+  try {
+    final detail = await repo.getShowLite(SeriesId(seriesId));
+    final tmdbId = detail.tmdbId;
+    if (tmdbId == null) return false;
+    final available = await iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.series);
+    return available.contains(tmdbId);
+  } catch (_) {
+    return false;
+  }
+});

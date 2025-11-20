@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
-import 'package:movi/src/features/search/data/dtos/tmdb_watch_provider_dto.dart';
+import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/models/provider_results_args.dart';
 
@@ -71,7 +71,7 @@ class WatchProvidersGrid extends ConsumerWidget {
 class _WatchProviderCard extends ConsumerWidget {
   const _WatchProviderCard({required this.provider});
 
-  final TmdbWatchProviderDto provider;
+  final WatchProvider provider;
 
   Color _getProviderColor(int providerId) {
     // Palette de couleurs par défaut pour les providers connus

@@ -4,7 +4,7 @@ import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
-import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
+import 'package:movi/src/features/iptv/data/services/xtream_stream_url_builder_impl.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
@@ -33,7 +33,7 @@ class MoviePlaybackService {
   /// Retourne `null` si le film n'est pas trouvé ou si une erreur survient.
   Future<VideoSource?> findAndBuildStreamUrl(MovieSummary movie) async {
     try {
-      final urlBuilder = XtreamStreamUrlBuilder(
+      final urlBuilder = XtreamStreamUrlBuilderImpl(
         iptvLocal: _iptvLocal,
         vault: _vault,
       );
@@ -72,7 +72,7 @@ class MoviePlaybackService {
       _logger.debug('URL de streaming construite: $streamUrl');
 
       return VideoSource(
-        url: streamUrl,
+        url: streamUrl.toString(),
         title: title,
         contentId: movieId,
         contentType: ContentType.movie,
@@ -83,6 +83,4 @@ class MoviePlaybackService {
       return null;
     }
   }
-
-  
 }

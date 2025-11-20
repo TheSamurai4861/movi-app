@@ -44,7 +44,12 @@ class PlaybackHistoryRepositoryImpl implements PlaybackHistoryRepository {
     int? season,
     int? episode,
   }) async {
-    final e = await _local.getEntry(contentId, type, season: season, episode: episode);
+    final e = await _local.getEntry(
+      contentId,
+      type,
+      season: season,
+      episode: episode,
+    );
     if (e == null) return null;
     return PlaybackHistoryEntry(
       contentId: e.contentId,

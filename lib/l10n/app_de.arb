@@ -74,6 +74,19 @@
   "actionMarkUnseen": "Als nicht gesehen markieren",
   "actionReportProblem": "Problem melden",
   "featureComingSoon": "Funktion kommt bald",
+  "subtitlesMenuTitle": "Untertitel",
+  "audioMenuTitle": "Audio",
+  "actionDisable": "Deaktivieren",
+  "defaultTrackLabel": "Spur {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Nächste Episode",
+  "actionRestart": "Neu starten",
+  "errorSeriesDataUnavailable": "Seriendaten können nicht geladen werden",
+  "errorNextEpisodeFailed": "Nächste Episode kann nicht bestimmt werden",
   "actionLoadMore": "Mehr laden",
   "iptvServerUrlLabel": "Server-URL",
   "iptvServerUrlHint": "Xtream-Server-URL",
@@ -281,5 +294,9 @@
       "message": { "type": "String" }
     }
   }
+  ,
+  "personNoData": "Keine Person anzuzeigen.",
+  "personGenericError": "Beim Laden dieser Person ist ein Fehler aufgetreten.",
+  "personBiographyTitle": "Biografie"
 }
 

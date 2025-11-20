@@ -477,6 +477,78 @@ abstract class AppLocalizations {
   /// **'Feature coming soon'**
   String get featureComingSoon;
 
+  /// No description provided for @subtitlesMenuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get subtitlesMenuTitle;
+
+  /// No description provided for @audioMenuTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get audioMenuTitle;
+
+  /// No description provided for @actionDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get actionDisable;
+
+  /// No description provided for @defaultTrackLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Track {id}'**
+  String defaultTrackLabel(String id);
+
+  /// No description provided for @controlRewind10.
+  ///
+  /// In en, this message translates to:
+  /// **'10 s'**
+  String get controlRewind10;
+
+  /// No description provided for @controlRewind30.
+  ///
+  /// In en, this message translates to:
+  /// **'30 s'**
+  String get controlRewind30;
+
+  /// No description provided for @controlForward10.
+  ///
+  /// In en, this message translates to:
+  /// **'+ 10 s'**
+  String get controlForward10;
+
+  /// No description provided for @controlForward30.
+  ///
+  /// In en, this message translates to:
+  /// **'+ 30 s'**
+  String get controlForward30;
+
+  /// No description provided for @actionNextEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Next episode'**
+  String get actionNextEpisode;
+
+  /// No description provided for @actionRestart.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart'**
+  String get actionRestart;
+
+  /// No description provided for @errorSeriesDataUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load series data'**
+  String get errorSeriesDataUnavailable;
+
+  /// No description provided for @errorNextEpisodeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to determine next episode'**
+  String get errorNextEpisodeFailed;
+
   /// No description provided for @actionLoadMore.
   ///
   /// In en, this message translates to:
@@ -1130,6 +1202,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error playing movie: {message}'**
   String errorPlaybackFailed(String message);
+
+  /// No description provided for @movieNoMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'No media to display'**
+  String get movieNoMedia;
+
+  /// No description provided for @personNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No person to display.'**
+  String get personNoData;
+
+  /// No description provided for @personGenericError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred while loading this person.'**
+  String get personGenericError;
+
+  /// No description provided for @personBiographyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Biography'**
+  String get personBiographyTitle;
 }
 
 class _AppLocalizationsDelegate

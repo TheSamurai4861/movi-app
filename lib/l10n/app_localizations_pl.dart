@@ -202,6 +202,44 @@ class AppLocalizationsPl extends AppLocalizations {
   String get featureComingSoon => 'Funkcja wkrótce dostępna';
 
   @override
+  String get subtitlesMenuTitle => 'Napisy';
+
+  @override
+  String get audioMenuTitle => 'Dźwięk';
+
+  @override
+  String get actionDisable => 'Wyłącz';
+
+  @override
+  String defaultTrackLabel(String id) {
+    return 'Ścieżka $id';
+  }
+
+  @override
+  String get controlRewind10 => '10 s';
+
+  @override
+  String get controlRewind30 => '30 s';
+
+  @override
+  String get controlForward10 => '+ 10 s';
+
+  @override
+  String get controlForward30 => '+ 30 s';
+
+  @override
+  String get actionNextEpisode => 'Następny odcinek';
+
+  @override
+  String get actionRestart => 'Uruchom ponownie';
+
+  @override
+  String get errorSeriesDataUnavailable => 'Nie można załadować danych serialu';
+
+  @override
+  String get errorNextEpisodeFailed => 'Nie można określić następnego odcinka';
+
+  @override
   String get actionLoadMore => 'Załaduj więcej';
 
   @override
@@ -566,4 +604,16 @@ class AppLocalizationsPl extends AppLocalizations {
   String errorPlaybackFailed(String message) {
     return 'Błąd podczas odtwarzania filmu: $message';
   }
+
+  @override
+  String get movieNoMedia => 'No media to display';
+
+  @override
+  String get personNoData => 'Brak osoby do wyświetlenia.';
+
+  @override
+  String get personGenericError => 'Wystąpił błąd podczas ładowania tej osoby.';
+
+  @override
+  String get personBiographyTitle => 'Biografia';
 }

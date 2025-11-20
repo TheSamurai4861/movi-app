@@ -14,8 +14,6 @@ class WelcomeFaqRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
         children: [
-          Text('Des questions ?', style: t.bodyLarge),
-          const SizedBox(width: 12),
           InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(6),

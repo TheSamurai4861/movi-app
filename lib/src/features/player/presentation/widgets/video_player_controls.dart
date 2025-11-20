@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
@@ -156,8 +157,8 @@ class VideoPlayerControls extends ConsumerWidget {
                           child: Image.asset(AppAssets.iconBack),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Quitter',
+                        Text(
+                          AppLocalizations.of(context)!.actionBack,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -195,14 +196,14 @@ class VideoPlayerControls extends ConsumerWidget {
                 // Reculer 30s
                 _ControlButton(
                   icon: AppAssets.iconReculer,
-                  label: '30 s',
+                  label: AppLocalizations.of(context)!.controlRewind30,
                   onTap: onSeekBackward30,
                 ),
                 const SizedBox(width: 16),
                 // Reculer 10s
                 _ControlButton(
                   icon: AppAssets.iconReculer,
-                  label: '10 s',
+                  label: AppLocalizations.of(context)!.controlRewind10,
                   onTap: onSeekBackward10,
                 ),
                 const SizedBox(width: 24),
@@ -220,14 +221,14 @@ class VideoPlayerControls extends ConsumerWidget {
                 // Avancer 10s
                 _ControlButton(
                   icon: AppAssets.iconAvancer,
-                  label: '+ 10 s',
+                  label: AppLocalizations.of(context)!.controlForward10,
                   onTap: onSeekForward10,
                 ),
                 const SizedBox(width: 16),
                 // Avancer 30s
                 _ControlButton(
                   icon: AppAssets.iconAvancer,
-                  label: '+ 30 s',
+                  label: AppLocalizations.of(context)!.controlForward30,
                   onTap: onSeekForward30,
                 ),
               ],
@@ -301,8 +302,8 @@ class VideoPlayerControls extends ConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Episode suivant',
+                                Text(
+                                  AppLocalizations.of(context)!.actionNextEpisode,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -334,8 +335,8 @@ class VideoPlayerControls extends ConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  'Recommencer',
+                                Text(
+                                  AppLocalizations.of(context)!.actionRestart,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,

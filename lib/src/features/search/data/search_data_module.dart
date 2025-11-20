@@ -7,10 +7,12 @@ import 'package:movi/src/shared/data/services/similarity/hybrid_similarity_servi
 import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
 import 'package:movi/src/features/search/data/datasources/search_history_local_data_source.dart';
+import 'package:movi/src/features/search/data/datasources/search_local_data_source.dart';
 import 'package:movi/src/features/search/data/search_repository_impl.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
 import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
 import 'package:movi/src/features/search/data/repositories/search_history_repository_impl.dart';
+import 'package:movi/src/features/search/domain/usecases/load_watch_providers.dart';
 
 class SearchDataModule {
   static void register() {
@@ -31,10 +33,17 @@ class SearchDataModule {
         () => TmdbWatchProvidersRemoteDataSource(sl<TmdbClient>()),
       );
     }
+    if (!sl.isRegistered<SearchLocalDataSource>()) {
+      sl.registerLazySingleton<SearchLocalDataSource>(
+        () => SearchLocalDataSource(sl()),
+      );
+    }
     if (!sl.isRegistered<SearchRepository>()) {
       sl.registerLazySingleton<SearchRepository>(
         () => SearchRepositoryImpl(
           sl<TmdbSearchRemoteDataSource>(),
+          sl<TmdbWatchProvidersRemoteDataSource>(),
+          sl<SearchLocalDataSource>(),
           sl<TmdbImageResolver>(),
           sl<IptvCatalogReader>(),
           sl<SimilarityService>(),
@@ -52,6 +61,11 @@ class SearchDataModule {
         () => SearchHistoryRepositoryImpl(sl<SearchHistoryLocalDataSource>()),
       );
     }
-    // Keep minimal aggregation service for existing UI (delegation can be added later)
+    // Use Cases
+    if (!sl.isRegistered<LoadWatchProviders>()) {
+      sl.registerLazySingleton<LoadWatchProviders>(
+        () => LoadWatchProviders(sl<SearchRepository>()),
+      );
+    }
   }
 }

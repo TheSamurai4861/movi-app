@@ -72,22 +72,26 @@ final movieToggleFavoriteProvider =
     );
 
 /// Providers pour les nouveaux use cases
-final buildMovieVideoSourceUseCaseProvider = Provider<BuildMovieVideoSource>((
-  ref,
-) => ref.watch(slProvider)<BuildMovieVideoSource>());
+final buildMovieVideoSourceUseCaseProvider = Provider<BuildMovieVideoSource>(
+  (ref) => ref.watch(slProvider)<BuildMovieVideoSource>(),
+);
 
 final getMovieAvailabilityOnIptvUseCaseProvider =
-    Provider<GetMovieAvailabilityOnIptv>((ref) =>
-        ref.watch(slProvider)<GetMovieAvailabilityOnIptv>());
+    Provider<GetMovieAvailabilityOnIptv>(
+      (ref) => ref.watch(slProvider)<GetMovieAvailabilityOnIptv>(),
+    );
 
-final markMovieAsSeenUseCaseProvider =
-    Provider<MarkMovieAsSeen>((ref) => ref.watch(slProvider)<MarkMovieAsSeen>());
+final markMovieAsSeenUseCaseProvider = Provider<MarkMovieAsSeen>(
+  (ref) => ref.watch(slProvider)<MarkMovieAsSeen>(),
+);
 
-final markMovieAsUnseenUseCaseProvider = Provider<MarkMovieAsUnseen>((ref) =>
-    ref.watch(slProvider)<MarkMovieAsUnseen>());
+final markMovieAsUnseenUseCaseProvider = Provider<MarkMovieAsUnseen>(
+  (ref) => ref.watch(slProvider)<MarkMovieAsUnseen>(),
+);
 
-final addMovieToPlaylistUseCaseProvider = Provider<AddMovieToPlaylist>((ref) =>
-    ref.watch(slProvider)<AddMovieToPlaylist>());
+final addMovieToPlaylistUseCaseProvider = Provider<AddMovieToPlaylist>(
+  (ref) => ref.watch(slProvider)<AddMovieToPlaylist>(),
+);
 
 final movieDetailControllerProvider =
     FutureProvider.family<MovieDetailViewModel, String>((ref, movieId) async {
@@ -118,29 +122,36 @@ final movieDetailControllerProvider =
     });
 
 /// Disponibilité du film sur IPTV
-final movieAvailabilityProvider = FutureProvider.family<bool, String>((ref, id) async {
+final movieAvailabilityProvider = FutureProvider.family<bool, String>((
+  ref,
+  id,
+) async {
   final usecase = ref.watch(getMovieAvailabilityOnIptvUseCaseProvider);
   return await usecase(id);
 });
 
 /// Entrée d'historique brute pour un film
-final movieHistoryProvider = FutureProvider.family<PlaybackHistoryEntry?, String>((ref, id) async {
-  try {
-    final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
-    return await historyRepo.getEntry(id, ContentType.movie);
-  } catch (_) {
-    return null;
-  }
-});
+final movieHistoryProvider =
+    FutureProvider.family<PlaybackHistoryEntry?, String>((ref, id) async {
+      try {
+        final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
+        return await historyRepo.getEntry(id, ContentType.movie);
+      } catch (_) {
+        return null;
+      }
+    });
 
 /// Statut vu/non vu basé sur l'historique
 final movieSeenProvider = FutureProvider.family<bool, String>((ref, id) async {
   try {
     final entry = await ref.read(movieHistoryProvider(id).future);
-    if (entry == null || entry.duration == null || entry.duration!.inSeconds <= 0) {
+    if (entry == null ||
+        entry.duration == null ||
+        entry.duration!.inSeconds <= 0) {
       return false;
     }
-    final progress = (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
+    final progress =
+        (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
     return progress >= 0.9;
   } catch (_) {
     return false;
@@ -148,10 +159,18 @@ final movieSeenProvider = FutureProvider.family<bool, String>((ref, id) async {
 });
 
 /// Construction de la VideoSource du film
-final buildMovieVideoSourceProvider = FutureProvider.family<VideoSource?, ({String movieId, String title, Uri? poster})>((ref, args) async {
-  final usecase = ref.watch(buildMovieVideoSourceUseCaseProvider);
-  return await usecase(movieId: args.movieId, title: args.title, poster: args.poster);
-});
+final buildMovieVideoSourceProvider =
+    FutureProvider.family<
+      VideoSource?,
+      ({String movieId, String title, Uri? poster})
+    >((ref, args) async {
+      final usecase = ref.watch(buildMovieVideoSourceUseCaseProvider);
+      return await usecase(
+        movieId: args.movieId,
+        title: args.title,
+        poster: args.poster,
+      );
+    });
 
 /// Provider pour vérifier si une saga est dans les favoris
 /// Utilise l'ID de la saga comme clé pour partager l'état entre tous les films de la saga

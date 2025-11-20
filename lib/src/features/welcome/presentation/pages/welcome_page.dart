@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/router/app_router.dart';
 
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_form.dart';
@@ -45,7 +46,7 @@ class WelcomePage extends ConsumerWidget {
           ),
         ),
       );
-      context.go('/bootstrap'); // Aller d'abord au splash de préparation
+      GoRouter.of(context).go(AppRouteNames.bootstrap);
     } else if (!success && context.mounted) {
       final error =
           ref.read(iptvConnectControllerProvider).error ??
@@ -75,7 +76,11 @@ class WelcomePage extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const WelcomeHeader(),
+                  WelcomeHeader(
+                    title: AppLocalizations.of(context)!.welcomeSourceTitle,
+                    subtitle:
+                        AppLocalizations.of(context)!.welcomeSourceSubtitle,
+                  ),
                   const SizedBox(height: AppSpacing.xl),
 
                   // 🔸 On passe la fonction _onConnect au formulaire

@@ -1,5 +1,17 @@
 # Rapport d’analyse — `src/features/person`
 
+> Plan d’implémentation associé: `docs/steps/person_feature_impl_plan.md`
+
+## Checklist d’exécution (référence rapide)
+- [ ] Unifier la DI via Providers Riverpod (sans `slProvider` en présentation)
+- [ ] Découper `PersonDetailPage` en sous-widgets (hero, actions, bio, filmographie)
+- [ ] Déplacer `PersonDetailViewModel` dans `presentation/models`
+- [ ] Corriger i18n (ajouter clés, remplacer chaînes en dur) et error handling
+- [ ] Clarifier/améliorer `GetFeaturedPeople` (popular TMDB ou liste curatée)
+- [ ] Polishing (const, espacements, layout biographie) + tests ciblés
+
+---
+
 ## 1. Résumé global (vue d’ensemble)
 
 Le dossier `features/person` est globalement **propre et bien structuré**, dans la continuité de la feature `movie` :

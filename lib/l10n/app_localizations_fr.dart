@@ -203,6 +203,46 @@ class AppLocalizationsFr extends AppLocalizations {
   String get featureComingSoon => 'Fonctionnalité à venir';
 
   @override
+  String get subtitlesMenuTitle => 'Sous-titres';
+
+  @override
+  String get audioMenuTitle => 'Audio';
+
+  @override
+  String get actionDisable => 'Désactiver';
+
+  @override
+  String defaultTrackLabel(String id) {
+    return 'Piste $id';
+  }
+
+  @override
+  String get controlRewind10 => '10 s';
+
+  @override
+  String get controlRewind30 => '30 s';
+
+  @override
+  String get controlForward10 => '+ 10 s';
+
+  @override
+  String get controlForward30 => '+ 30 s';
+
+  @override
+  String get actionNextEpisode => 'Épisode suivant';
+
+  @override
+  String get actionRestart => 'Recommencer';
+
+  @override
+  String get errorSeriesDataUnavailable =>
+      'Impossible de charger les données de la série';
+
+  @override
+  String get errorNextEpisodeFailed =>
+      'Impossible de déterminer l\'épisode suivant';
+
+  @override
   String get actionLoadMore => 'Charger plus';
 
   @override
@@ -568,6 +608,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String errorPlaybackFailed(String message) {
     return 'Erreur lors de la lecture du film: $message';
   }
+
+  @override
+  String get movieNoMedia => 'Aucun média à afficher';
+
+  @override
+  String get personNoData => 'Aucune personnalité à afficher.';
+
+  @override
+  String get personGenericError =>
+      'Une erreur est survenue lors du chargement de cette personnalité.';
+
+  @override
+  String get personBiographyTitle => 'Biographie';
 }
 
 /// The translations for French, as used in Myanmar (`fr_MM`).
@@ -767,6 +820,46 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
 
   @override
   String get featureComingSoon => 'Fonction à venir';
+
+  @override
+  String get subtitlesMenuTitle => 'Sous-titres';
+
+  @override
+  String get audioMenuTitle => 'Audio';
+
+  @override
+  String get actionDisable => 'Désactiver';
+
+  @override
+  String defaultTrackLabel(String id) {
+    return 'Piste $id';
+  }
+
+  @override
+  String get controlRewind10 => '10 s';
+
+  @override
+  String get controlRewind30 => '30 s';
+
+  @override
+  String get controlForward10 => '+ 10 s';
+
+  @override
+  String get controlForward30 => '+ 30 s';
+
+  @override
+  String get actionNextEpisode => 'Épisode suivant';
+
+  @override
+  String get actionRestart => 'Recommencer';
+
+  @override
+  String get errorSeriesDataUnavailable =>
+      'Impossible de charger les données de la série';
+
+  @override
+  String get errorNextEpisodeFailed =>
+      'Impossible de déterminer l\'épisode suivant';
 
   @override
   String get actionLoadMore => 'Charger davantage';
@@ -1106,4 +1199,14 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
 
   @override
   String get categoryLoadingMore => 'Chargement en cours…';
+
+  @override
+  String get personNoData => 'Point de personnalité à afficher.';
+
+  @override
+  String get personGenericError =>
+      'Un couac est advenu en chargeant cette personnalité.';
+
+  @override
+  String get personBiographyTitle => 'Biographie';
 }

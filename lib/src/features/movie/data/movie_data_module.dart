@@ -1,9 +1,11 @@
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
 import 'package:movi/src/features/movie/domain/services/movie_streaming_service.dart';
 import 'package:movi/src/features/movie/domain/services/iptv_availability_service.dart';
@@ -20,6 +22,7 @@ import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_unseen.dar
 import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
+import 'package:movi/src/features/movie/data/repositories/movie_repository_impl.dart';
 
 class MovieDataModule {
   static void register() {
@@ -30,7 +33,17 @@ class MovieDataModule {
     sl.registerLazySingleton<MovieLocalDataSource>(
       () => MovieLocalDataSource(sl()),
     );
-    // Instanciation de MovieRepository déléguée aux providers Riverpod
+    // Enregistrer MovieRepository pour les services qui le consomment via GetIt
+    sl.registerLazySingleton<MovieRepository>(
+      () => MovieRepositoryImpl(
+        sl<TmdbMovieRemoteDataSource>(),
+        sl<TmdbImageResolver>(),
+        sl<WatchlistLocalRepository>(),
+        sl<MovieLocalDataSource>(),
+        sl<ContinueWatchingLocalRepository>(),
+        sl<AppStateController>(),
+      ),
+    );
 
     sl.registerLazySingleton<FilterRecommendationsByIptvAvailability>(
       () => FilterRecommendationsByIptvAvailability(sl<IptvLocalRepository>()),

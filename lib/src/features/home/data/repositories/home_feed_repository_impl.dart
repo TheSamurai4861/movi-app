@@ -22,32 +22,31 @@ import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source
 import 'package:movi/src/features/tv/tv.dart';
 
 import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/home/domain/usecases/load_continue_watching_media.dart';
 
 class HomeFeedRepositoryImpl implements HomeFeedRepository {
   HomeFeedRepositoryImpl(
     this._moviesRemote,
     this._tvRemote,
     this._catalogReader,
-    this._movieRepository,
-    this._tvRepository,
     this._images,
     this._appState,
     this._tmdbCache,
+    this._continueWatching,
   );
 
   final TmdbMovieRemoteDataSource _moviesRemote;
   final TmdbTvRemoteDataSource _tvRemote;
   final IptvCatalogReader _catalogReader;
-  final MovieRepository _movieRepository;
-  final TvRepository _tvRepository;
   final TmdbImageResolver _images;
   final AppStateController _appState;
   final TmdbCacheDataSource _tmdbCache;
+  final LoadContinueWatchingMedia _continueWatching;
 
-  final Set<String> _enrichedIds = <String>{};
+  final Set<String> _enrichedKeys = <String>{};
 
   static const String _trendingWindow = 'week';
-  static const int _maxTrendingPages = 3;
+  static const int _maxTrendingPages = 1;
   static const int _heroLimit = 20;
 
   @override
@@ -111,20 +110,44 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   @override
-  Future<List<MovieSummary>> getContinueWatchingMovies() {
-    return _movieRepository.getContinueWatching();
+  Future<List<MovieSummary>> getContinueWatchingMovies() async {
+    final items = await _continueWatching();
+    return items
+        .where((e) => e.type == ContentType.movie && e.poster != null)
+        .map(
+          (e) => MovieSummary(
+            id: MovieId(e.contentId),
+            title: MediaTitle(e.title),
+            poster: e.poster!,
+            backdrop: e.backdrop,
+            releaseYear: e.year,
+            tags: const [],
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override
-  Future<List<TvShowSummary>> getContinueWatchingShows() {
-    return _tvRepository.getContinueWatching();
+  Future<List<TvShowSummary>> getContinueWatchingShows() async {
+    final items = await _continueWatching();
+    return items
+        .where((e) => e.type == ContentType.series && e.poster != null)
+        .map(
+          (e) => TvShowSummary(
+            id: SeriesId(e.contentId),
+            title: MediaTitle(e.seriesTitle ?? e.title),
+            poster: e.poster!,
+            backdrop: e.backdrop,
+          ),
+        )
+        .toList(growable: false);
   }
 
   @override
   Future<Result<Map<String, List<ContentReference>>, Failure>>
   getIptvCategoryLists() async {
     try {
-      _enrichedIds.clear();
+      _enrichedKeys.clear();
       final lists = await _catalogReader.listCategoryLists(
         activeSourceIds: _appState.activeIptvSourceIds,
       );
@@ -152,7 +175,8 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     int? idNum = int.tryParse(ref.id);
     final bool isSeries = ref.type == ContentType.series;
 
-    if (_enrichedIds.contains(ref.id)) return ref;
+    final key = '${ref.type.name}|${ref.id}';
+    if (_enrichedKeys.contains(key)) return ref;
 
     if (idNum == null) {
       try {
@@ -217,7 +241,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
           rating: (cached['vote_average'] as num?)?.toDouble() ?? ref.rating,
         );
 
-        _enrichedIds.add(ref.id);
+        _enrichedKeys.add(key);
         return result;
       } else {
         Map<String, dynamic>? cached = await _tmdbCache.getMovieDetail(
@@ -263,7 +287,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
           rating: (cached['vote_average'] as num?)?.toDouble() ?? ref.rating,
         );
 
-        _enrichedIds.add(ref.id);
+        _enrichedKeys.add(key);
         return result;
       }
     } catch (e, st) {

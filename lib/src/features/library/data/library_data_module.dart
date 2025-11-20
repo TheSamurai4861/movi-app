@@ -45,7 +45,9 @@ class LibraryDataModule {
 
     if (!sl.isRegistered<ContinueWatchingRepository>()) {
       sl.registerLazySingleton<ContinueWatchingRepository>(
-        () => ContinueWatchingRepositoryImpl(sl<ContinueWatchingLocalRepository>()),
+        () => ContinueWatchingRepositoryImpl(
+          sl<ContinueWatchingLocalRepository>(),
+        ),
       );
     }
   }

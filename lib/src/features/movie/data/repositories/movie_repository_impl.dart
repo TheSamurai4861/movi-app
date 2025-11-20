@@ -45,10 +45,7 @@ class MovieRepositoryImpl implements MovieRepository {
       return _mapDetail(cached);
     }
     try {
-      final dto = await _remote.fetchMovieFull(
-        movieId,
-        language: lang,
-      );
+      final dto = await _remote.fetchMovieFull(movieId, language: lang);
       await _local.saveMovieDetailLang(dto: dto, lang: lang);
       if (dto.recommendations.isNotEmpty) {
         await _local.saveRecommendationsLang(
@@ -57,11 +54,7 @@ class MovieRepositoryImpl implements MovieRepository {
           summaries: dto.recommendations,
         );
       }
-      dev.log(
-        'movie_detail_saved',
-        name: 'MovieRepositoryImpl',
-        error: null,
-      );
+      dev.log('movie_detail_saved', name: 'MovieRepositoryImpl', error: null);
       return _mapDetail(dto);
     } catch (e, st) {
       dev.log(
@@ -94,17 +87,11 @@ class MovieRepositoryImpl implements MovieRepository {
   Future<List<MovieSummary>> getRecommendations(MovieId id) async {
     final movieId = int.parse(id.value);
     final lang = _appState.preferredLocale;
-    final cached = await _local.getRecommendationsLang(
-      movieId,
-      lang: lang,
-    );
+    final cached = await _local.getRecommendationsLang(movieId, lang: lang);
     if (cached != null && cached.isNotEmpty) {
       return cached.map(_mapSummary).whereType<MovieSummary>().toList();
     }
-    final dto = await _remote.fetchMovieFull(
-      movieId,
-      language: lang,
-    );
+    final dto = await _remote.fetchMovieFull(movieId, language: lang);
     final recommendations = dto.recommendations;
     if (recommendations.isNotEmpty) {
       await _local.saveRecommendationsLang(

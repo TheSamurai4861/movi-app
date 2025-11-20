@@ -38,7 +38,7 @@ class WelcomeSourcePage extends StatelessWidget {
                         label: AppLocalizations.of(context)!.welcomeSourceAdd,
                         onPressed: () {
                           if (!context.mounted) return;
-                          GoRouter.of(context).go('/settings/iptv/connect');
+                          GoRouter.of(context).goNamed('iptv_connect');
                         },
                       ),
                     ),

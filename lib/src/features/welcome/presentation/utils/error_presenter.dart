@@ -1,15 +1,21 @@
+import 'package:flutter/widgets.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/network/network.dart';
 
-/// Traduit un NetworkFailure en message FR court et cohérent pour l’UI.
-String presentFailure(NetworkFailure f) {
-  if (f is TimeoutFailure) return 'La connexion a expiré. Réessaie plus tard.';
-  if (f is ConnectionFailure) return 'Impossible de se connecter au serveur.';
-  if (f is UnauthorizedFailure) return 'Identifiants incorrects (401).';
-  if (f is ForbiddenFailure) return 'Accès refusé (403).';
-  if (f is NotFoundFailure) return 'Endpoint introuvable (404).';
-  if (f is RateLimitedFailure) return 'Trop de requêtes. Réessaie plus tard.';
-  if (f is ServerFailure) return 'Erreur serveur (${f.statusCode ?? ''}).';
-  if (f is EmptyResponseFailure) return 'Réponse vide du serveur.';
-  if (f is CancelledFailure) return 'Requête annulée.';
-  return 'Erreur inconnue.';
+/// Traduit un NetworkFailure en message localisé et concis pour l’UI.
+String presentFailure(BuildContext context, NetworkFailure f) {
+  final l10n = AppLocalizations.of(context)!;
+  if (f is TimeoutFailure) return l10n.errorConnectionGeneric;
+  if (f is ConnectionFailure) return l10n.errorConnectionGeneric;
+  if (f is UnauthorizedFailure) return l10n.errorConnectionFailed('401');
+  if (f is ForbiddenFailure) return l10n.errorConnectionFailed('403');
+  if (f is NotFoundFailure) return l10n.errorConnectionFailed('404');
+  if (f is RateLimitedFailure) return l10n.errorConnectionFailed('429');
+  if (f is ServerFailure) {
+    final code = (f.statusCode ?? '').toString();
+    return l10n.errorConnectionFailed(code);
+  }
+  if (f is EmptyResponseFailure) return l10n.errorConnectionFailed('Empty');
+  if (f is CancelledFailure) return l10n.errorConnectionGeneric;
+  return l10n.errorUnknown;
 }

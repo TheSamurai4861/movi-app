@@ -54,10 +54,12 @@ Future<void> initDependencies({
   await StorageModule.register();
   await _registerNetwork(localeProvider: localeProvider);
   _registerTmdbInfrastructure();
+  // Enregistrer l'état avant les modules pour garantir AppStateController
+  // disponible lors de l'enregistrement des services dépendants.
+  _registerState();
   if (registerFeatureModules) {
     _registerFeatureModules();
   }
-  _registerState();
 }
 
 Future<void> _ensureConfig(AppConfig? config) async {

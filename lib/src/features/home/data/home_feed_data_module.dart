@@ -23,18 +23,8 @@ class HomeFeedDataModule {
   static void register() {
     if (sl.isRegistered<HomeFeedRepository>()) return;
 
-    sl.registerLazySingleton<HomeFeedRepository>(
-      () => HomeFeedRepositoryImpl(
-        sl<TmdbMovieRemoteDataSource>(),
-        sl<TmdbTvRemoteDataSource>(),
-        sl<IptvCatalogReader>(),
-        sl<MovieRepository>(),
-        sl<TvRepository>(),
-        sl<TmdbImageResolver>(),
-        sl<AppStateController>(),
-        sl<TmdbCacheDataSource>(),
-      ),
-    );
+    // L'enregistrement de HomeFeedRepository est effectué plus bas,
+    // après les services requis (ContinueWatching).
 
     // Enregistrer le service de lookup Xtream
     if (!sl.isRegistered<XtreamLookupService>()) {
@@ -87,9 +77,21 @@ class HomeFeedDataModule {
     // Use case LoadContinueWatchingMedia
     if (!sl.isRegistered<LoadContinueWatchingMedia>()) {
       sl.registerLazySingleton<LoadContinueWatchingMedia>(
-        () =>
-            LoadContinueWatchingMedia(sl<ContinueWatchingEnrichmentService>()),
+        () => LoadContinueWatchingMedia(sl<ContinueWatchingEnrichmentService>()),
       );
     }
+
+    // Enregistrer HomeFeedRepository après les dépendances nécessaires
+    sl.registerLazySingleton<HomeFeedRepository>(
+      () => HomeFeedRepositoryImpl(
+        sl<TmdbMovieRemoteDataSource>(),
+        sl<TmdbTvRemoteDataSource>(),
+        sl<IptvCatalogReader>(),
+        sl<TmdbImageResolver>(),
+        sl<AppStateController>(),
+        sl<TmdbCacheDataSource>(),
+        sl<LoadContinueWatchingMedia>(),
+      ),
+    );
   }
 }

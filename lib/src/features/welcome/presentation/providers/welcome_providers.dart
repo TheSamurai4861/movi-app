@@ -22,14 +22,18 @@ class WelcomeUiState {
   WelcomeUiState copyWith({
     bool? isTesting,
     bool? isObscured,
-    String? errorMessage, // passer explicitement null pour effacer
+    bool clearErrorMessage = false,
+    bool clearEndpointPreview = false,
+    String? errorMessage,
     String? endpointPreview,
   }) {
     return WelcomeUiState(
       isTesting: isTesting ?? this.isTesting,
       isObscured: isObscured ?? this.isObscured,
-      errorMessage: errorMessage,
-      endpointPreview: endpointPreview,
+      errorMessage:
+          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
+      endpointPreview:
+          clearEndpointPreview ? null : (endpointPreview ?? this.endpointPreview),
     );
   }
 }
@@ -51,7 +55,11 @@ class WelcomeController extends Notifier<WelcomeUiState> {
   /// Met à jour l’aperçu de l’endpoint en validant l’URL (sans lever d’exception UI)
   void updateUrlPreview(String raw) {
     final ep = XtreamEndpoint.tryParse(raw);
-    state = state.copyWith(endpointPreview: ep?.toRawUrl(), errorMessage: null);
+    state = state.copyWith(
+      endpointPreview: ep?.toRawUrl(),
+      clearEndpointPreview: ep == null,
+      clearErrorMessage: true,
+    );
   }
 
   /// Teste la connexion Xtream sans rien créer dans l’app (ping rapide).
@@ -62,7 +70,7 @@ class WelcomeController extends Notifier<WelcomeUiState> {
     required String password,
   }) async {
     if (state.isTesting) return false;
-    state = state.copyWith(isTesting: true, errorMessage: null);
+    state = state.copyWith(isTesting: true, clearErrorMessage: true);
 
     try {
       final endpoint = XtreamEndpoint.parse(serverUrl);
@@ -79,7 +87,7 @@ class WelcomeController extends Notifier<WelcomeUiState> {
         mapper: (_) => true,
       );
 
-      state = state.copyWith(isTesting: false, errorMessage: null);
+      state = state.copyWith(isTesting: false, clearErrorMessage: true);
       return ok;
     } on NetworkFailure catch (f) {
       state = state.copyWith(isTesting: false, errorMessage: f.message);
@@ -89,17 +97,14 @@ class WelcomeController extends Notifier<WelcomeUiState> {
       state = state.copyWith(isTesting: false, errorMessage: f.message);
       return false;
     } catch (e) {
-      state = state.copyWith(
-        isTesting: false,
-        errorMessage: 'Erreur inattendue',
-      );
+      state = state.copyWith(isTesting: false, errorMessage: 'Erreur inattendue');
       return false;
     }
   }
 
   void clearError() {
     if (state.errorMessage != null) {
-      state = state.copyWith(errorMessage: null);
+      state = state.copyWith(clearErrorMessage: true);
     }
   }
 }

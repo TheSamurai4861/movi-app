@@ -74,9 +74,12 @@ class SagaRepositoryImpl implements SagaRepository {
   }
 
   @override
+  /// Returns user sagas scoped by `userId` using the watchlist storage.
+  ///
+  /// Entries are ordered by `added_at DESC` at the storage level and mapped
+  /// to `SagaSummary`, filtering out items without a poster.
   Future<List<SagaSummary>> getUserSagas(String userId) async {
-    // User-specific storage not implemented; reuse generic watchlist with type 'saga'.
-    final entries = await _watchlist.readAll(ContentType.saga);
+    final entries = await _watchlist.readAll(ContentType.saga, userId: userId);
     return entries
         .where((e) => e.poster != null)
         .map(

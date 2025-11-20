@@ -5,22 +5,32 @@ import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/features/person/data/dtos/tmdb_person_detail_dto.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/features/search/domain/entities/search_page.dart';
+import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
+import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
+import 'package:movi/src/features/search/data/datasources/search_local_data_source.dart';
+import 'package:movi/src/features/search/data/dtos/tmdb_watch_provider_dto.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
+import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
 
 class SearchRepositoryImpl implements SearchRepository {
   SearchRepositoryImpl(
     this._remote,
+    this._watchProvidersRemote,
+    this._local,
     this._images,
     this._catalogReader,
     this._similarity,
   );
 
   final TmdbSearchRemoteDataSource _remote;
+  final TmdbWatchProvidersRemoteDataSource _watchProvidersRemote;
+  final SearchLocalDataSource _local;
   final TmdbImageResolver _images;
   final IptvCatalogReader _catalogReader;
   final SimilarityService _similarity;
@@ -153,12 +163,109 @@ class SearchRepositoryImpl implements SearchRepository {
     );
   }
 
+  @override
+  Future<List<WatchProvider>> getWatchProviders(String region) async {
+    final cached = await _local.getWatchProviders(region);
+    if (cached != null) {
+      return cached.map(_mapWatchProvider).toList();
+    }
+    
+    final remote = await _watchProvidersRemote.fetchWatchProviders(watchRegion: region);
+    await _local.cacheWatchProviders(region, remote);
+    
+    return remote.map(_mapWatchProvider).toList();
+  }
+
+  @override
+  Future<SearchPage<MovieSummary>> getMoviesByProvider(
+    int providerId, {
+    String region = 'FR',
+    int page = 1,
+  }) async {
+    final remote = await _watchProvidersRemote.getMoviesByProvider(
+      providerId,
+      region: region,
+      page: page,
+    );
+    final items = <MovieSummary>[];
+    for (final dto in remote.items) {
+      final poster = _images.poster(dto.posterPath);
+      if (poster != null) {
+        items.add(_mapMovieDto(dto, poster));
+      }
+    }
+    return SearchPage(
+      items: items,
+      page: remote.page,
+      totalPages: remote.totalPages,
+    );
+  }
+
+  @override
+  Future<SearchPage<TvShowSummary>> getShowsByProvider(
+    int providerId, {
+    String region = 'FR',
+    int page = 1,
+  }) async {
+    final remote = await _watchProvidersRemote.getShowsByProvider(
+      providerId,
+      region: region,
+      page: page,
+    );
+    final items = <TvShowSummary>[];
+    for (final dto in remote.items) {
+      final poster = _images.poster(dto.posterPath);
+      if (poster != null) {
+        items.add(_mapTvDto(dto, poster));
+      }
+    }
+    return SearchPage(
+      items: items,
+      page: remote.page,
+      totalPages: remote.totalPages,
+    );
+  }
+
   PersonSummary _mapPerson(TmdbPersonDetailDto dto) {
     return PersonSummary(
       id: PersonId(dto.id.toString()),
       tmdbId: dto.id,
       name: dto.name,
       photo: _images.poster(dto.profilePath),
+    );
+  }
+
+  WatchProvider _mapWatchProvider(TmdbWatchProviderDto dto) {
+    return WatchProvider(
+      providerId: dto.providerId,
+      providerName: dto.providerName,
+      logoPath: _images.poster(dto.logoPath)?.toString(),
+      displayPriority: dto.displayPriority,
+    );
+  }
+
+  MovieSummary _mapMovieDto(TmdbMovieSummaryDto dto, Uri poster) {
+    return MovieSummary(
+      id: MovieId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.title),
+      poster: poster,
+      backdrop: _images.backdrop(dto.backdropPath),
+      releaseYear: dto.releaseDate != null && dto.releaseDate!.length >= 4
+          ? int.tryParse(dto.releaseDate!.substring(0, 4))
+          : null,
+    );
+  }
+
+  TvShowSummary _mapTvDto(TmdbTvSummaryDto dto, Uri poster) {
+    return TvShowSummary(
+      id: SeriesId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.name),
+      poster: poster,
+      backdrop: _images.backdrop(dto.backdropPath),
+      seasonCount: null,
+      status: null,
     );
   }
 }

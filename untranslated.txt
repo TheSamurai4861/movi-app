@@ -1,4 +1,8 @@
 {
+  "de": [
+    "movieNoMedia"
+  ],
+
   "es": [
     "movieNoPlaylistsAvailable",
     "playlistAddedTo",
@@ -14,6 +18,23 @@
     "errorWithMessage",
     "movieNotAvailableInPlaylist",
     "errorLoadingPlaylists",
-    "errorPlaybackFailed"
+    "errorPlaybackFailed",
+    "movieNoMedia"
+  ],
+
+  "it": [
+    "movieNoMedia"
+  ],
+
+  "nl": [
+    "movieNoMedia"
+  ],
+
+  "pl": [
+    "movieNoMedia"
+  ],
+
+  "pt": [
+    "movieNoMedia"
   ]
 }

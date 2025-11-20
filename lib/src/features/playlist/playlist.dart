@@ -10,3 +10,4 @@ export 'domain/usecases/remove_playlist_item.dart';
 export 'domain/usecases/rename_playlist.dart';
 export 'domain/usecases/reorder_playlist_item.dart';
 export 'domain/usecases/search_playlists.dart';
+export 'domain/usecases/normalize_playlist_positions.dart';

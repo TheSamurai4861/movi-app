@@ -78,6 +78,19 @@
   "actionMarkUnseen": "Marquer comme non vu",
   "actionReportProblem": "Signaler un problème",
   "featureComingSoon": "Fonctionnalité à venir",
+  "subtitlesMenuTitle": "Sous-titres",
+  "audioMenuTitle": "Audio",
+  "actionDisable": "Désactiver",
+  "defaultTrackLabel": "Piste {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Épisode suivant",
+  "actionRestart": "Recommencer",
+  "errorSeriesDataUnavailable": "Impossible de charger les données de la série",
+  "errorNextEpisodeFailed": "Impossible de déterminer l'épisode suivant",
   "actionLoadMore": "Charger plus",
   "iptvServerUrlLabel": "URL du serveur",
   "iptvServerUrlHint": "URL du serveur Xtream",
@@ -311,4 +324,9 @@
       "message": { "type": "String" }
     }
   }
+  ,
+  "movieNoMedia": "Aucun média à afficher",
+  "personNoData": "Aucune personnalité à afficher.",
+  "personGenericError": "Une erreur est survenue lors du chargement de cette personnalité.",
+  "personBiographyTitle": "Biographie"
 }

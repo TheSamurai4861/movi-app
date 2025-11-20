@@ -4,8 +4,8 @@ import 'package:movi/src/features/player/domain/repositories/video_player_reposi
 
 /// Implémentation du VideoPlayerRepository avec media_kit
 class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
-  MediaKitVideoPlayerRepository() {
-    _player = Player();
+  MediaKitVideoPlayerRepository({Player? player}) {
+    _player = player ?? Player();
   }
 
   late final Player _player;
@@ -48,7 +48,7 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
 
   @override
   Future<void> setVolume(double volume) async {
-    await _player.setVolume(volume.clamp(0.0, 100.0));
+    await _player.setVolume(toEngineVolume(volume));
   }
 
   @override
@@ -101,5 +101,10 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
   @override
   void dispose() {
     _player.dispose();
+  }
+
+  static double toEngineVolume(double domainVolume) {
+    final clamped = domainVolume.clamp(0.0, 1.0);
+    return (clamped * 100).roundToDouble();
   }
 }

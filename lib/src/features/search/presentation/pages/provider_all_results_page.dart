@@ -8,13 +8,10 @@ import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:go_router/go_router.dart';
-import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/shared/data/services/tmdb_client.dart';
-import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
-import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
 import 'package:movi/src/features/search/presentation/models/provider_all_results_args.dart';
-import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
+import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 
 /// Page affichant tous les résultats d'un provider avec pagination au scroll.
 class ProviderAllResultsPage extends ConsumerStatefulWidget {
@@ -35,8 +32,8 @@ class ProviderAllResultsPage extends ConsumerStatefulWidget {
 class _ProviderAllResultsPageState
     extends ConsumerState<ProviderAllResultsPage> {
   int _currentPage = 1;
-  final List<TmdbMovieSummaryDto> _movies = [];
-  final List<TmdbTvSummaryDto> _shows = [];
+  final List<MovieSummary> _movies = [];
+  final List<TvShowSummary> _shows = [];
   bool _isLoading = false;
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
@@ -74,55 +71,34 @@ class _ProviderAllResultsPageState
     });
 
     try {
-      final client = ref.read(slProvider)<TmdbClient>();
-      final language = ref.read(asp.currentLanguageCodeProvider);
+      final useCase = ref.read(loadWatchProvidersUseCaseProvider);
       final providerId = widget.args.providerId;
 
       if (widget.type == MoviMediaType.movie) {
-        final json = await client.getJson(
-          'discover/movie',
-          query: {
-            'with_watch_providers': providerId.toString(),
-            'watch_region': 'FR',
-            'page': _currentPage,
-          },
-          language: language,
+        final page = await useCase.getMovies(
+          providerId,
+          region: 'FR',
+          page: _currentPage,
         );
 
-        final results = (json['results'] as List<dynamic>? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .map((e) => TmdbMovieSummaryDto.fromJson(e))
-            .toList();
-
-        final totalPages = json['total_pages'] as int? ?? 1;
-
+        if (!mounted) return;
         setState(() {
-          _movies.addAll(results);
-          _hasMore = _currentPage < totalPages;
+          _movies.addAll(page.items);
+          _hasMore = _currentPage < page.totalPages;
           _currentPage++;
           _isLoading = false;
         });
       } else {
-        final json = await client.getJson(
-          'discover/tv',
-          query: {
-            'with_watch_providers': providerId.toString(),
-            'watch_region': 'FR',
-            'page': _currentPage,
-          },
-          language: language,
+        final page = await useCase.getShows(
+          providerId,
+          region: 'FR',
+          page: _currentPage,
         );
 
-        final results = (json['results'] as List<dynamic>? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .map((e) => TmdbTvSummaryDto.fromJson(e))
-            .toList();
-
-        final totalPages = json['total_pages'] as int? ?? 1;
-
+        if (!mounted) return;
         setState(() {
-          _shows.addAll(results);
-          _hasMore = _currentPage < totalPages;
+          _shows.addAll(page.items);
+          _hasMore = _currentPage < page.totalPages;
           _currentPage++;
           _isLoading = false;
         });
@@ -144,8 +120,7 @@ class _ProviderAllResultsPageState
     final title = widget.type == MoviMediaType.movie
         ? AppLocalizations.of(context)!.moviesTitle
         : AppLocalizations.of(context)!.seriesTitle;
-    final items = widget.type == MoviMediaType.movie ? _movies : _shows;
-    final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
+    final itemsCount = widget.type == MoviMediaType.movie ? _movies.length : _shows.length;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -202,7 +177,7 @@ class _ProviderAllResultsPageState
             const SizedBox(height: 16),
             // Grille avec pagination au scroll
             Expanded(
-              child: items.isEmpty && !_isLoading
+              child: itemsCount == 0 && !_isLoading
                   ? Center(
                       child: Text(
                         AppLocalizations.of(context)!.noResults,
@@ -219,9 +194,9 @@ class _ProviderAllResultsPageState
                             crossAxisSpacing: 16,
                             mainAxisSpacing: 16,
                           ),
-                      itemCount: items.length + (_isLoading ? 1 : 0),
+                      itemCount: itemsCount + (_isLoading ? 1 : 0),
                       itemBuilder: (context, index) {
-                        if (index >= items.length) {
+                        if (index >= itemsCount) {
                           return const Center(
                             child: Padding(
                               padding: EdgeInsets.all(16),
@@ -234,17 +209,9 @@ class _ProviderAllResultsPageState
                           final m = _movies[index];
                           final media = MoviMedia(
                             id: m.id.toString(),
-                            title: m.title,
-                            poster: imageResolver.poster(m.posterPath),
-                            year:
-                                m.releaseDate != null &&
-                                    m.releaseDate!.isNotEmpty
-                                ? (m.releaseDate!.length >= 4
-                                      ? int.tryParse(
-                                          m.releaseDate!.substring(0, 4),
-                                        )
-                                      : null)
-                                : null,
+                            title: m.title.value,
+                            poster: m.poster,
+                            year: m.releaseYear,
                             type: MoviMediaType.movie,
                           );
                           return MoviMediaCard(
@@ -256,8 +223,8 @@ class _ProviderAllResultsPageState
                           final s = _shows[index];
                           final media = MoviMedia(
                             id: s.id.toString(),
-                            title: s.name,
-                            poster: imageResolver.poster(s.posterPath),
+                            title: s.title.value,
+                            poster: s.poster,
                             type: MoviMediaType.series,
                           );
                           return MoviMediaCard(

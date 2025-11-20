@@ -78,6 +78,19 @@
   "actionMarkUnseen": "Mark as unseen",
   "actionReportProblem": "Report a problem",
   "featureComingSoon": "Feature coming soon",
+  "subtitlesMenuTitle": "Subtitles",
+  "audioMenuTitle": "Audio",
+  "actionDisable": "Disable",
+  "defaultTrackLabel": "Track {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Next episode",
+  "actionRestart": "Restart",
+  "errorSeriesDataUnavailable": "Unable to load series data",
+  "errorNextEpisodeFailed": "Unable to determine next episode",
   "actionLoadMore": "Load more",
   "iptvServerUrlLabel": "Server URL",
   "iptvServerUrlHint": "Xtream server URL",
@@ -311,4 +324,9 @@
       "message": { "type": "String" }
     }
   }
+  ,
+  "movieNoMedia": "No media to display",
+  "personNoData": "No person to display.",
+  "personGenericError": "An error occurred while loading this person.",
+  "personBiographyTitle": "Biography"
 }

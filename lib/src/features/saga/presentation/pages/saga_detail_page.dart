@@ -79,9 +79,22 @@ class SagaDetailPage extends ConsumerWidget {
           child: sagaDetailAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, stack) => Center(
-              child: Text(
-                'Erreur: $error',
-                style: const TextStyle(color: Colors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(context)!.errorWithMessage(error.toString()),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => ref.refresh(sagaDetailProvider(sagaId)),
+                    child: Text(AppLocalizations.of(context)!.actionRetry),
+                  ),
+                ],
               ),
             ),
             data: (viewModel) {

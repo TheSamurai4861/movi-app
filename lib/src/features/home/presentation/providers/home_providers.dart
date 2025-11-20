@@ -89,18 +89,21 @@ class HomeState {
 
 /// Contrôleur Home avec enrichissement batché + annulation propre.
 class HomeController extends Notifier<HomeState> {
-  late final HomeFeedRepository _repo;
-  late final LoadHomeHero _loadHero;
-  late final LoadHomeContinueWatching _loadCw;
-  late final LoadHomeIptvSections _loadIptv;
+  HomeFeedRepository? _repo;
+  LoadHomeHero? _loadHero;
+  LoadHomeContinueWatching? _loadCw;
+  LoadHomeIptvSections? _loadIptv;
   StreamSubscription<AppEvent>? _eventSub;
 
   @override
   HomeState build() {
-    _repo = ref.watch(homeFeedRepositoryProvider);
-    _loadHero = LoadHomeHero(_repo);
-    _loadCw = LoadHomeContinueWatching(_repo);
-    _loadIptv = LoadHomeIptvSections(_repo);
+    if (_repo == null) {
+      final r = ref.watch(homeFeedRepositoryProvider);
+      _repo = r;
+      _loadHero = LoadHomeHero(r);
+      _loadCw = LoadHomeContinueWatching(r);
+      _loadIptv = LoadHomeIptvSections(r);
+    }
     if (_eventSub == null) {
       final bus = ref.watch(appEventBusProvider);
       _eventSub = bus.stream.listen((event) {
@@ -119,15 +122,12 @@ class HomeController extends Notifier<HomeState> {
   Future<void> load() async {
     if (state.isLoading) return;
     state = state.copyWith(isLoading: true, error: null);
-    final heroF = _loadHero();
-    final iptvF = _loadIptv();
-    final moviesF = _loadCw.movies();
-    final showsF = _loadCw.shows();
+    final heroF = _loadHero!.call();
+    final iptvF = _loadIptv!.call();
 
     final heroResult = await heroF;
     final iptvResult = await iptvF;
-    final movies = await moviesF;
-    final shows = await showsF;
+    // Première passe: hero + iptv pour un premier rendu rapide
 
     List<MovieSummary> hero = const <MovieSummary>[];
     Map<String, List<ContentReference>> iptv =
@@ -146,13 +146,20 @@ class HomeController extends Notifier<HomeState> {
 
     state = state.copyWith(
       hero: hero,
-      cwMovies: movies,
-      cwShows: shows,
       iptvLists: iptv,
       isLoading: false,
       isHeroEmpty: hero.isEmpty,
       error: error,
     );
+
+    // Deuxième passe asynchrone: enrichir Continue Watching après premier rendu
+    // sans bloquer l'affichage initial
+    unawaited(_loadCw!.movies().then((movies) {
+      state = state.copyWith(cwMovies: movies);
+    }));
+    unawaited(_loadCw!.shows().then((shows) {
+      state = state.copyWith(cwShows: shows);
+    }));
   }
 
   Future<void> refresh() => load();

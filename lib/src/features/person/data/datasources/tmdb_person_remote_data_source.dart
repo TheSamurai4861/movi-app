@@ -34,4 +34,26 @@ class TmdbPersonRemoteDataSource {
         )
         .toList();
   }
+
+  /// Returns TMDB popular people page (lightweight items).
+  /// Maps each item to a `TmdbPersonDetailDto` with empty credits.
+  Future<List<TmdbPersonDetailDto>> popularPeople({
+    String? language,
+    int page = 1,
+  }) async {
+    final list = await _client.getJsonList(
+      'person/popular',
+      query: {'page': page},
+      language: language,
+    );
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(
+          (item) => TmdbPersonDetailDto.fromJson(item, {
+            'cast': const [],
+            'crew': const [],
+          }),
+        )
+        .toList();
+  }
 }

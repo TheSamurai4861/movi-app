@@ -72,6 +72,19 @@
   "actionMarkUnseen": "Markeren als niet gezien",
   "actionReportProblem": "Een probleem melden",
   "featureComingSoon": "Functie binnenkort beschikbaar",
+  "subtitlesMenuTitle": "Ondertitels",
+  "audioMenuTitle": "Audio",
+  "actionDisable": "Uitschakelen",
+  "defaultTrackLabel": "Track {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Volgende aflevering",
+  "actionRestart": "Opnieuw starten",
+  "errorSeriesDataUnavailable": "Kan seriedata niet laden",
+  "errorNextEpisodeFailed": "Kan volgende aflevering niet bepalen",
   "actionLoadMore": "Meer laden",
   "iptvServerUrlLabel": "Server-URL",
   "iptvServerUrlHint": "Xtream server-URL",
@@ -279,4 +292,8 @@
       "message": { "type": "String" }
     }
   }
+  ,
+  "personNoData": "Geen persoon om te tonen.",
+  "personGenericError": "Er is een fout opgetreden bij het laden van deze persoon.",
+  "personBiographyTitle": "Biografie"
 }

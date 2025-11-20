@@ -1,52 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
-import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
-import 'package:movi/src/shared/domain/value_objects/media_title.dart';
-import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
-import 'package:movi/src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart';
+import 'package:movi/src/features/saga/domain/usecases/get_saga_detail.dart';
 
 /// Provider pour charger les détails d'une saga avec poster en langue null
 final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((
   ref,
   sagaId,
 ) async {
-  final lang = ref.watch(currentLanguageCodeProvider);
-  final remoteDataSource = ref.watch(slProvider)<TmdbSagaRemoteDataSource>();
-  final images = ref.watch(slProvider)<TmdbImageResolver>();
-
-  // Récupérer la saga avec la langue choisie
-  final sagaIdInt = int.parse(sagaId);
-  final dto = await remoteDataSource.fetchSaga(sagaIdInt, language: lang);
-
-  // Construire la saga avec les métadonnées dans la langue choisie
-  final saga = Saga(
-    id: SagaId(sagaId),
-    tmdbId: dto.id,
-    title: MediaTitle(dto.name),
-    synopsis: dto.overview.isEmpty ? null : Synopsis(dto.overview),
-    cover: images.poster(dto.posterPath),
-    timeline: dto.parts.map((part) {
-      return SagaEntry(
-        reference: ContentReference(
-          id: part.id.toString(),
-          title: MediaTitle(part.title),
-          type: ContentType.movie,
-          poster: images.poster(part.posterPath),
-        ),
-        timelineYear: _parseDate(part.releaseDate)?.year,
-      );
-    }).toList(),
-    tags: const [],
-    updatedAt: DateTime.now(),
-  );
+  final getSaga = ref.watch(slProvider)<GetSagaDetail>();
+  final saga = await getSaga(SagaId(sagaId));
 
   // Récupérer le poster et backdrop en langue null
   Uri? posterWithNullLanguage;
@@ -60,29 +30,12 @@ final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((
   // Utiliser le poster avec langue null si disponible, sinon le cover par défaut
   final poster = posterWithNullLanguage ?? saga.cover;
 
-  // Calculer le nombre de films et la durée totale
+  // Calculer le nombre de films
   final movies = saga.timeline
       .where((entry) => entry.reference.type == ContentType.movie)
       .toList();
   final movieCount = movies.length;
-
-  // Calculer la durée totale (nécessite de récupérer les durées depuis TMDB)
-  Duration totalDuration = Duration.zero;
-  for (final entry in movies) {
-    try {
-      final movieId = int.tryParse(entry.reference.id);
-      if (movieId != null) {
-        final runtimeMinutes = await remoteDataSource.fetchMovieRuntime(
-          movieId,
-        );
-        if (runtimeMinutes != null && runtimeMinutes > 0) {
-          totalDuration += Duration(minutes: runtimeMinutes);
-        }
-      }
-    } catch (_) {
-      // Ignorer les erreurs
-    }
-  }
+  final totalDuration = Duration.zero;
 
   return SagaDetailViewModel(
     saga: saga,
@@ -172,8 +125,7 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
   }
 }
 
-DateTime? _parseDate(String? date) =>
-    date == null || date.isEmpty ? null : DateTime.tryParse(date);
+//
 
 /// Provider pour vérifier la disponibilité des films d'une saga dans la playlist (par sagaId)
 final sagaMoviesAvailabilityProvider =

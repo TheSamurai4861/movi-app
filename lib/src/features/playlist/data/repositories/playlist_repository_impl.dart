@@ -5,6 +5,12 @@ import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
 import 'package:movi/src/core/storage/storage.dart';
 
+/// Data-layer implementation of [PlaylistRepository] backed by local storage.
+///
+/// Applies explicit business rules:
+/// - `addItem` requires an existing header and uses a timestamp fallback
+///   when position is missing.
+/// - `getFeaturedPlaylists` relies on storage ordering by `updated_at DESC`.
 class PlaylistRepositoryImpl implements PlaylistRepository {
   PlaylistRepositoryImpl(this._local);
 
@@ -53,21 +59,10 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     required PlaylistId playlistId,
     required PlaylistItem item,
   }) async {
+    /// Ensure header exists before adding an item.
     final header = await _local.getPlaylist(playlistId.value);
     if (header == null) {
-      // Create playlist header if missing (owner unknown: fallback to 'local')
-      await _local.upsertHeader(
-        PlaylistHeader(
-          id: playlistId.value,
-          title: 'Playlist',
-          description: null,
-          cover: null,
-          owner: 'local',
-          isPublic: false,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        ),
-      );
+      throw StateError('Playlist ${playlistId.value} not found');
     }
     await _local.addItem(
       playlistId.value,
@@ -110,10 +105,9 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
 
   @override
   Future<List<PlaylistSummary>> getFeaturedPlaylists() async {
-    // Use most recently updated playlists as featured
-    final headers = await _local.searchByTitle('');
+    /// Deterministic featured selection based on last update timestamp.
+    final headers = await _local.getMostRecentlyUpdated(10);
     return headers
-        .take(10)
         .map(
           (h) => PlaylistSummary(
             id: PlaylistId(h.id),
@@ -163,6 +157,12 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
           ),
         )
         .toList();
+  }
+
+  @override
+  Future<void> normalizePositions(PlaylistId id) {
+    /// Delegate normalization to storage to ensure atomic renumbering.
+    return _local.normalizePositions(id.value);
   }
 
   Playlist _mapDetail(PlaylistDetailRow detail) {
