@@ -1,2230 +1,2677 @@
 {
-  "root": "D:\\Home\\TheSamurai\\DEV\\FLUTTER\\movi-app\\lib",
-  "output": "D:\\Home\\TheSamurai\\DEV\\FLUTTER\\movi-app\\outline.txt",
+  "root": "C:\\Famille\\Venom\\DEV\\flutter\\movi-app\\lib",
+  "output": "C:\\Famille\\Venom\\DEV\\flutter\\movi-app\\outline.txt",
   "content_output": "files_dump.txt",
-  "total_indexed": 314,
-  "selected_count": 22,
+  "total_indexed": 378,
+  "selected_count": 21,
   "selected_nums": [
-    14,
-    48,
-    52,
-    58,
-    69,
-    70,
-    118,
-    121,
-    125,
-    126,
-    128,
-    129,
-    164,
-    167,
-    170,
-    252,
-    263,
-    266,
-    270,
-    274,
-    302,
-    303
+    330,
+    331,
+    332,
+    333,
+    334,
+    335,
+    336,
+    337,
+    338,
+    339,
+    340,
+    341,
+    342,
+    343,
+    344,
+    345,
+    346,
+    347,
+    348,
+    349,
+    350
   ],
   "files": [
     {
       "num": 1,
-      "path": "l10n/app_en.arb",
-      "lines": 71,
-      "bytes": 2466,
+      "path": "l10n/app_de.arb",
+      "lines": 259,
+      "bytes": 9353,
       "selected": false
     },
     {
       "num": 2,
-      "path": "l10n/app_es.arb",
-      "lines": 65,
-      "bytes": 2620,
+      "path": "l10n/app_en.arb",
+      "lines": 288,
+      "bytes": 8881,
       "selected": false
     },
     {
       "num": 3,
-      "path": "l10n/app_fr.arb",
-      "lines": 71,
-      "bytes": 2682,
+      "path": "l10n/app_es.arb",
+      "lines": 256,
+      "bytes": 9311,
       "selected": false
     },
     {
       "num": 4,
-      "path": "l10n/app_it.arb",
-      "lines": 65,
-      "bytes": 2633,
+      "path": "l10n/app_fr.arb",
+      "lines": 288,
+      "bytes": 9658,
       "selected": false
     },
     {
       "num": 5,
-      "path": "l10n/app_localizations.dart",
-      "lines": 458,
-      "bytes": 13369,
+      "path": "l10n/app_fr_MM.arb",
+      "lines": 282,
+      "bytes": 9488,
       "selected": false
     },
     {
       "num": 6,
-      "path": "l10n/app_localizations_en.dart",
-      "lines": 173,
-      "bytes": 3837,
+      "path": "l10n/app_it.arb",
+      "lines": 256,
+      "bytes": 9174,
       "selected": false
     },
     {
       "num": 7,
-      "path": "l10n/app_localizations_es.dart",
-      "lines": 176,
-      "bytes": 4053,
+      "path": "l10n/app_localizations.dart",
+      "lines": 1163,
+      "bytes": 32491,
       "selected": false
     },
     {
       "num": 8,
-      "path": "l10n/app_localizations_fr.dart",
-      "lines": 176,
-      "bytes": 4070,
+      "path": "l10n/app_localizations_bu.dart",
+      "lines": 363,
+      "bytes": 11916,
       "selected": false
     },
     {
       "num": 9,
-      "path": "l10n/app_localizations_it.dart",
-      "lines": 177,
-      "bytes": 4062,
+      "path": "l10n/app_localizations_de.dart",
+      "lines": 546,
+      "bytes": 12336,
       "selected": false
     },
     {
       "num": 10,
-      "path": "l10n/app_localizations_nl.dart",
-      "lines": 178,
-      "bytes": 3996,
+      "path": "l10n/app_localizations_en.dart",
+      "lines": 539,
+      "bytes": 11630,
       "selected": false
     },
     {
       "num": 11,
-      "path": "l10n/app_nl.arb",
-      "lines": 65,
-      "bytes": 2555,
+      "path": "l10n/app_localizations_es.dart",
+      "lines": 543,
+      "bytes": 12310,
       "selected": false
     },
     {
       "num": 12,
-      "path": "main.dart",
-      "lines": 21,
-      "bytes": 638,
+      "path": "l10n/app_localizations_fr.dart",
+      "lines": 1082,
+      "bytes": 24608,
       "selected": false
     },
     {
       "num": 13,
-      "path": "main_ios_diag.dart",
-      "lines": 13,
-      "bytes": 227,
+      "path": "l10n/app_localizations_it.dart",
+      "lines": 544,
+      "bytes": 12170,
       "selected": false
     },
     {
       "num": 14,
-      "path": "src/app.dart",
-      "lines": 40,
-      "bytes": 1317,
-      "selected": true
+      "path": "l10n/app_localizations_nl.dart",
+      "lines": 545,
+      "bytes": 12109,
+      "selected": false
     },
     {
       "num": 15,
+      "path": "l10n/app_localizations_pl.dart",
+      "lines": 543,
+      "bytes": 12183,
+      "selected": false
+    },
+    {
+      "num": 16,
+      "path": "l10n/app_localizations_pt.dart",
+      "lines": 544,
+      "bytes": 12315,
+      "selected": false
+    },
+    {
+      "num": 17,
+      "path": "l10n/app_nl.arb",
+      "lines": 256,
+      "bytes": 9100,
+      "selected": false
+    },
+    {
+      "num": 18,
+      "path": "l10n/app_pl.arb",
+      "lines": 256,
+      "bytes": 9211,
+      "selected": false
+    },
+    {
+      "num": 19,
+      "path": "l10n/app_pt.arb",
+      "lines": 259,
+      "bytes": 9340,
+      "selected": false
+    },
+    {
+      "num": 20,
+      "path": "main.dart",
+      "lines": 20,
+      "bytes": 739,
+      "selected": false
+    },
+    {
+      "num": 21,
+      "path": "main_ios_diag.dart",
+      "lines": 11,
+      "bytes": 207,
+      "selected": false
+    },
+    {
+      "num": 22,
+      "path": "src/app.dart",
+      "lines": 36,
+      "bytes": 1383,
+      "selected": false
+    },
+    {
+      "num": 23,
       "path": "src/core/config/config.dart",
       "lines": 12,
       "bytes": 474,
       "selected": false
     },
     {
-      "num": 16,
+      "num": 24,
       "path": "src/core/config/config_module.dart",
       "lines": 130,
-      "bytes": 3685,
+      "bytes": 3687,
       "selected": false
     },
     {
-      "num": 17,
+      "num": 25,
       "path": "src/core/config/env/dev_environment.dart",
       "lines": 119,
       "bytes": 3821,
       "selected": false
     },
     {
-      "num": 18,
+      "num": 26,
       "path": "src/core/config/env/environment.dart",
       "lines": 38,
       "bytes": 1122,
       "selected": false
     },
     {
-      "num": 19,
+      "num": 27,
       "path": "src/core/config/env/environment_loader.dart",
       "lines": 91,
       "bytes": 2829,
       "selected": false
     },
     {
-      "num": 20,
+      "num": 28,
       "path": "src/core/config/models/app_config.dart",
       "lines": 211,
       "bytes": 8140,
       "selected": false
     },
     {
-      "num": 21,
+      "num": 29,
       "path": "src/core/config/models/app_metadata.dart",
       "lines": 35,
       "bytes": 874,
       "selected": false
     },
     {
-      "num": 22,
+      "num": 30,
       "path": "src/core/config/models/feature_flags.dart",
       "lines": 70,
       "bytes": 1841,
       "selected": false
     },
     {
-      "num": 23,
+      "num": 31,
       "path": "src/core/config/models/logging_config.dart",
       "lines": 210,
       "bytes": 7575,
       "selected": false
     },
     {
-      "num": 24,
+      "num": 32,
       "path": "src/core/config/models/network_endpoints.dart",
       "lines": 173,
       "bytes": 5202,
       "selected": false
     },
     {
-      "num": 25,
+      "num": 33,
       "path": "src/core/config/providers/config_provider.dart",
       "lines": 35,
       "bytes": 1025,
       "selected": false
     },
     {
-      "num": 26,
+      "num": 34,
       "path": "src/core/config/providers/overrides.dart",
       "lines": 40,
       "bytes": 1653,
       "selected": false
     },
     {
-      "num": 27,
+      "num": 35,
+      "path": "src/core/config/providers/repository_providers.dart",
+      "lines": 12,
+      "bytes": 505,
+      "selected": false
+    },
+    {
+      "num": 36,
       "path": "src/core/config/services/platform_selector.dart",
       "lines": 42,
       "bytes": 1070,
       "selected": false
     },
     {
-      "num": 28,
+      "num": 37,
       "path": "src/core/config/services/secret_store.dart",
       "lines": 2,
       "bytes": 133,
       "selected": false
     },
     {
-      "num": 29,
+      "num": 38,
       "path": "src/core/config/services/secret_store_io.dart",
       "lines": 144,
       "bytes": 4359,
       "selected": false
     },
     {
-      "num": 30,
+      "num": 39,
       "path": "src/core/config/services/secret_store_web.dart",
       "lines": 19,
       "bytes": 542,
       "selected": false
     },
     {
-      "num": 31,
+      "num": 40,
       "path": "src/core/di/di.dart",
       "lines": 10,
       "bytes": 366,
       "selected": false
     },
     {
-      "num": 32,
+      "num": 41,
       "path": "src/core/di/injector.dart",
-      "lines": 141,
-      "bytes": 4777,
+      "lines": 168,
+      "bytes": 5918,
       "selected": false
     },
     {
-      "num": 33,
+      "num": 42,
       "path": "src/core/di/test_injector.dart",
       "lines": 42,
       "bytes": 1105,
       "selected": false
     },
     {
-      "num": 34,
+      "num": 43,
       "path": "src/core/logging/adapters/console_logger.dart",
       "lines": 36,
       "bytes": 1135,
       "selected": false
     },
     {
-      "num": 35,
+      "num": 44,
       "path": "src/core/logging/adapters/file_logger.dart",
       "lines": 211,
       "bytes": 6152,
       "selected": false
     },
     {
-      "num": 36,
+      "num": 45,
       "path": "src/core/logging/category_logger.dart",
       "lines": 32,
       "bytes": 642,
       "selected": false
     },
     {
-      "num": 37,
+      "num": 46,
       "path": "src/core/logging/level_filtering_logger.dart",
       "lines": 45,
       "bytes": 1038,
       "selected": false
     },
     {
-      "num": 38,
+      "num": 47,
       "path": "src/core/logging/logger.dart",
       "lines": 45,
       "bytes": 1160,
       "selected": false
     },
     {
-      "num": 39,
+      "num": 48,
       "path": "src/core/logging/logging.dart",
       "lines": 1,
       "bytes": 31,
       "selected": false
     },
     {
-      "num": 40,
+      "num": 49,
       "path": "src/core/logging/logging_module.dart",
       "lines": 69,
       "bytes": 2297,
       "selected": false
     },
     {
-      "num": 41,
+      "num": 50,
       "path": "src/core/logging/logging_service.dart",
       "lines": 28,
       "bytes": 704,
       "selected": false
     },
     {
-      "num": 42,
+      "num": 51,
       "path": "src/core/logging/rate_limiting_logger.dart",
       "lines": 99,
       "bytes": 2479,
       "selected": false
     },
     {
-      "num": 43,
+      "num": 52,
       "path": "src/core/logging/sampling_logger.dart",
       "lines": 55,
       "bytes": 1409,
       "selected": false
     },
     {
-      "num": 44,
+      "num": 53,
       "path": "src/core/logging/sanitizer/message_sanitizer.dart",
-      "lines": 96,
-      "bytes": 2779,
+      "lines": 104,
+      "bytes": 3081,
       "selected": false
     },
     {
-      "num": 45,
+      "num": 54,
       "path": "src/core/models/models.dart",
       "lines": 2,
       "bytes": 53,
       "selected": false
     },
     {
-      "num": 46,
+      "num": 55,
       "path": "src/core/models/movi_media.dart",
       "lines": 50,
       "bytes": 1196,
       "selected": false
     },
     {
-      "num": 47,
+      "num": 56,
       "path": "src/core/models/movi_person.dart",
       "lines": 38,
       "bytes": 798,
       "selected": false
     },
     {
-      "num": 48,
+      "num": 57,
       "path": "src/core/network/config/network_module.dart",
       "lines": 82,
       "bytes": 2527,
-      "selected": true
+      "selected": false
     },
     {
-      "num": 49,
+      "num": 58,
       "path": "src/core/network/dio_failure_mapper.dart",
       "lines": 34,
       "bytes": 1213,
       "selected": false
     },
     {
-      "num": 50,
+      "num": 59,
       "path": "src/core/network/http_client_factory.dart",
       "lines": 59,
       "bytes": 1802,
       "selected": false
     },
     {
-      "num": 51,
+      "num": 60,
       "path": "src/core/network/interceptors/auth_interceptor.dart",
       "lines": 138,
       "bytes": 3457,
       "selected": false
     },
     {
-      "num": 52,
+      "num": 61,
       "path": "src/core/network/interceptors/locale_interceptor.dart",
       "lines": 19,
       "bytes": 544,
-      "selected": true
+      "selected": false
     },
     {
-      "num": 53,
+      "num": 62,
       "path": "src/core/network/interceptors/retry_interceptor.dart",
       "lines": 74,
       "bytes": 2074,
       "selected": false
     },
     {
-      "num": 54,
+      "num": 63,
       "path": "src/core/network/interceptors/telemetry_interceptor.dart",
       "lines": 41,
       "bytes": 1231,
       "selected": false
     },
     {
-      "num": 55,
+      "num": 64,
       "path": "src/core/network/network.dart",
       "lines": 8,
       "bytes": 341,
       "selected": false
     },
     {
-      "num": 56,
+      "num": 65,
       "path": "src/core/network/network_executor.dart",
       "lines": 573,
       "bytes": 16808,
       "selected": false
     },
     {
-      "num": 57,
+      "num": 66,
       "path": "src/core/network/network_failures.dart",
       "lines": 56,
       "bytes": 1648,
       "selected": false
     },
     {
-      "num": 58,
-      "path": "src/core/preferences/locale_preferences.dart",
-      "lines": 127,
-      "bytes": 4130,
-      "selected": true
+      "num": 67,
+      "path": "src/core/preferences/accent_color_preferences.dart",
+      "lines": 81,
+      "bytes": 2633,
+      "selected": false
     },
     {
-      "num": 59,
+      "num": 68,
+      "path": "src/core/preferences/iptv_sync_preferences.dart",
+      "lines": 78,
+      "bytes": 2775,
+      "selected": false
+    },
+    {
+      "num": 69,
+      "path": "src/core/preferences/locale_preferences.dart",
+      "lines": 127,
+      "bytes": 4123,
+      "selected": false
+    },
+    {
+      "num": 70,
+      "path": "src/core/preferences/player_preferences.dart",
+      "lines": 139,
+      "bytes": 5551,
+      "selected": false
+    },
+    {
+      "num": 71,
       "path": "src/core/preferences/preferences.dart",
       "lines": 1,
       "bytes": 34,
       "selected": false
     },
     {
-      "num": 60,
+      "num": 72,
       "path": "src/core/router/app_router.dart",
-      "lines": 312,
-      "bytes": 10226,
+      "lines": 421,
+      "bytes": 14758,
       "selected": false
     },
     {
-      "num": 61,
+      "num": 73,
       "path": "src/core/router/router.dart",
       "lines": 1,
       "bytes": 26,
       "selected": false
     },
     {
-      "num": 62,
+      "num": 74,
       "path": "src/core/security/credentials_vault.dart",
       "lines": 37,
       "bytes": 1100,
       "selected": false
     },
     {
-      "num": 63,
+      "num": 75,
       "path": "src/core/security/secure_credentials_vault.dart",
       "lines": 85,
       "bytes": 2581,
       "selected": false
     },
     {
-      "num": 64,
+      "num": 76,
       "path": "src/core/shared/failure.dart",
       "lines": 49,
       "bytes": 1044,
       "selected": false
     },
     {
-      "num": 65,
+      "num": 77,
       "path": "src/core/startup/app_startup_gate.dart",
-      "lines": 87,
-      "bytes": 2906,
+      "lines": 91,
+      "bytes": 2920,
       "selected": false
     },
     {
-      "num": 66,
+      "num": 78,
       "path": "src/core/startup/app_startup_provider.dart",
-      "lines": 32,
-      "bytes": 1261,
+      "lines": 56,
+      "bytes": 2108,
       "selected": false
     },
     {
-      "num": 67,
+      "num": 79,
       "path": "src/core/state/app_event_bus.dart",
       "lines": 33,
       "bytes": 666,
       "selected": false
     },
     {
-      "num": 68,
+      "num": 80,
       "path": "src/core/state/app_state.dart",
       "lines": 38,
       "bytes": 936,
       "selected": false
     },
     {
-      "num": 69,
+      "num": 81,
       "path": "src/core/state/app_state_controller.dart",
-      "lines": 132,
-      "bytes": 4669,
-      "selected": true
+      "lines": 134,
+      "bytes": 4692,
+      "selected": false
     },
     {
-      "num": 70,
+      "num": 82,
       "path": "src/core/state/app_state_provider.dart",
-      "lines": 51,
-      "bytes": 1799,
-      "selected": true
+      "lines": 124,
+      "bytes": 4302,
+      "selected": false
     },
     {
-      "num": 71,
+      "num": 83,
       "path": "src/core/state/state.dart",
       "lines": 4,
       "bytes": 124,
       "selected": false
     },
     {
-      "num": 72,
+      "num": 84,
       "path": "src/core/storage/database/sqlite_database.dart",
-      "lines": 302,
-      "bytes": 9665,
+      "lines": 411,
+      "bytes": 14148,
       "selected": false
     },
     {
-      "num": 73,
+      "num": 85,
       "path": "src/core/storage/repositories/content_cache_repository.dart",
       "lines": 68,
       "bytes": 1828,
       "selected": false
     },
     {
-      "num": 74,
+      "num": 86,
       "path": "src/core/storage/repositories/continue_watching_local_repository.dart",
       "lines": 100,
       "bytes": 3016,
       "selected": false
     },
     {
-      "num": 75,
+      "num": 87,
       "path": "src/core/storage/repositories/history_local_repository.dart",
-      "lines": 156,
-      "bytes": 4298,
+      "lines": 211,
+      "bytes": 5855,
       "selected": false
     },
     {
-      "num": 76,
+      "num": 88,
       "path": "src/core/storage/repositories/iptv_local_repository.dart",
-      "lines": 309,
-      "bytes": 9479,
+      "lines": 435,
+      "bytes": 13553,
       "selected": false
     },
     {
-      "num": 77,
+      "num": 89,
       "path": "src/core/storage/repositories/playlist_local_repository.dart",
       "lines": 292,
       "bytes": 8959,
       "selected": false
     },
     {
-      "num": 78,
+      "num": 90,
       "path": "src/core/storage/repositories/secure_storage_repository.dart",
       "lines": 48,
       "bytes": 1464,
       "selected": false
     },
     {
-      "num": 79,
+      "num": 91,
       "path": "src/core/storage/repositories/watchlist_local_repository.dart",
-      "lines": 94,
-      "bytes": 2645,
+      "lines": 112,
+      "bytes": 3168,
       "selected": false
     },
     {
-      "num": 80,
+      "num": 92,
       "path": "src/core/storage/services/cache_policy.dart",
       "lines": 12,
       "bytes": 284,
       "selected": false
     },
     {
-      "num": 81,
+      "num": 93,
       "path": "src/core/storage/services/storage_module.dart",
       "lines": 68,
       "bytes": 2268,
       "selected": false
     },
     {
-      "num": 82,
+      "num": 94,
       "path": "src/core/storage/storage.dart",
       "lines": 9,
       "bytes": 451,
       "selected": false
     },
     {
-      "num": 83,
+      "num": 95,
       "path": "src/core/storage/storage_failures.dart",
       "lines": 21,
       "bytes": 586,
       "selected": false
     },
     {
-      "num": 84,
+      "num": 96,
       "path": "src/core/theme/app_colors.dart",
       "lines": 23,
       "bytes": 833,
       "selected": false
     },
     {
-      "num": 85,
+      "num": 97,
       "path": "src/core/theme/app_theme.dart",
-      "lines": 244,
-      "bytes": 8528,
+      "lines": 247,
+      "bytes": 8776,
       "selected": false
     },
     {
-      "num": 86,
+      "num": 98,
       "path": "src/core/theme/theme.dart",
       "lines": 2,
       "bytes": 51,
       "selected": false
     },
     {
-      "num": 87,
+      "num": 99,
       "path": "src/core/utils/app_assets.dart",
-      "lines": 20,
-      "bytes": 1070,
+      "lines": 31,
+      "bytes": 1685,
       "selected": false
     },
     {
-      "num": 88,
+      "num": 100,
       "path": "src/core/utils/app_spacing.dart",
       "lines": 32,
       "bytes": 945,
       "selected": false
     },
     {
-      "num": 89,
+      "num": 101,
       "path": "src/core/utils/context_extensions.dart",
       "lines": 18,
       "bytes": 475,
       "selected": false
     },
     {
-      "num": 90,
+      "num": 102,
       "path": "src/core/utils/index.dart",
       "lines": 5,
       "bytes": 134,
       "selected": false
     },
     {
-      "num": 91,
+      "num": 103,
       "path": "src/core/utils/logger_utils.dart",
       "lines": 21,
       "bytes": 734,
       "selected": false
     },
     {
-      "num": 92,
+      "num": 104,
       "path": "src/core/utils/result.dart",
       "lines": 48,
       "bytes": 1207,
       "selected": false
     },
     {
-      "num": 93,
+      "num": 105,
+      "path": "src/core/utils/title_cleaner.dart",
+      "lines": 62,
+      "bytes": 2171,
+      "selected": false
+    },
+    {
+      "num": 106,
+      "path": "src/core/utils/unawaited.dart",
+      "lines": 6,
+      "bytes": 250,
+      "selected": false
+    },
+    {
+      "num": 107,
       "path": "src/core/utils/utils.dart",
       "lines": 4,
       "bytes": 115,
       "selected": false
     },
     {
-      "num": 94,
+      "num": 108,
       "path": "src/core/utils/validators.dart",
-      "lines": 47,
-      "bytes": 1654,
+      "lines": 53,
+      "bytes": 1850,
       "selected": false
     },
     {
-      "num": 95,
+      "num": 109,
       "path": "src/core/widgets/movi_bottom_nav_bar.dart",
-      "lines": 189,
-      "bytes": 5840,
+      "lines": 256,
+      "bytes": 8516,
       "selected": false
     },
     {
-      "num": 96,
+      "num": 110,
       "path": "src/core/widgets/movi_favorite_button.dart",
       "lines": 79,
       "bytes": 2441,
       "selected": false
     },
     {
-      "num": 97,
+      "num": 111,
       "path": "src/core/widgets/movi_items_list.dart",
       "lines": 284,
       "bytes": 9459,
       "selected": false
     },
     {
-      "num": 98,
+      "num": 112,
       "path": "src/core/widgets/movi_marquee_text.dart",
       "lines": 233,
       "bytes": 6317,
       "selected": false
     },
     {
-      "num": 99,
+      "num": 113,
       "path": "src/core/widgets/movi_media_card.dart",
-      "lines": 152,
-      "bytes": 4004,
+      "lines": 190,
+      "bytes": 5231,
       "selected": false
     },
     {
-      "num": 100,
+      "num": 114,
       "path": "src/core/widgets/movi_person_card.dart",
-      "lines": 123,
-      "bytes": 3365,
+      "lines": 144,
+      "bytes": 3933,
       "selected": false
     },
     {
-      "num": 101,
+      "num": 115,
       "path": "src/core/widgets/movi_pill.dart",
       "lines": 78,
       "bytes": 2241,
       "selected": false
     },
     {
-      "num": 102,
+      "num": 116,
+      "path": "src/core/widgets/movi_placeholder_card.dart",
+      "lines": 94,
+      "bytes": 2586,
+      "selected": false
+    },
+    {
+      "num": 117,
       "path": "src/core/widgets/movi_primary_button.dart",
       "lines": 124,
       "bytes": 3369,
       "selected": false
     },
     {
-      "num": 103,
+      "num": 118,
       "path": "src/core/widgets/movi_see_all_card.dart",
       "lines": 136,
       "bytes": 3946,
       "selected": false
     },
     {
-      "num": 104,
+      "num": 119,
       "path": "src/core/widgets/overlay_splash.dart",
-      "lines": 75,
-      "bytes": 2330,
+      "lines": 79,
+      "bytes": 2632,
       "selected": false
     },
     {
-      "num": 105,
+      "num": 120,
+      "path": "src/core/widgets/swipe_back_wrapper.dart",
+      "lines": 43,
+      "bytes": 1247,
+      "selected": false
+    },
+    {
+      "num": 121,
       "path": "src/core/widgets/widgets.dart",
-      "lines": 10,
-      "bytes": 321,
+      "lines": 12,
+      "bytes": 392,
       "selected": false
     },
     {
-      "num": 106,
+      "num": 122,
       "path": "src/features/category_browser/category_browser.dart",
       "lines": 4,
       "bytes": 206,
       "selected": false
     },
     {
-      "num": 107,
+      "num": 123,
       "path": "src/features/category_browser/data/category_browser_data_module.dart",
       "lines": 20,
       "bytes": 871,
       "selected": false
     },
     {
-      "num": 108,
+      "num": 124,
       "path": "src/features/category_browser/data/datasources/category_local_data_source.dart",
-      "lines": 16,
-      "bytes": 660,
+      "lines": 164,
+      "bytes": 5220,
       "selected": false
     },
     {
-      "num": 109,
+      "num": 125,
       "path": "src/features/category_browser/data/repositories/category_repository_impl.dart",
-      "lines": 17,
-      "bytes": 718,
+      "lines": 27,
+      "bytes": 1018,
       "selected": false
     },
     {
-      "num": 110,
+      "num": 126,
       "path": "src/features/category_browser/domain/repositories/category_repository.dart",
-      "lines": 10,
-      "bytes": 550,
+      "lines": 20,
+      "bytes": 927,
       "selected": false
     },
     {
-      "num": 111,
+      "num": 127,
       "path": "src/features/category_browser/domain/value_objects/category_key.dart",
-      "lines": 24,
-      "bytes": 777,
+      "lines": 51,
+      "bytes": 1771,
       "selected": false
     },
     {
-      "num": 112,
+      "num": 128,
+      "path": "src/features/category_browser/domain/value_objects/paginated_result.dart",
+      "lines": 21,
+      "bytes": 505,
+      "selected": false
+    },
+    {
+      "num": 129,
       "path": "src/features/category_browser/presentation/models/category_args.dart",
       "lines": 6,
       "bytes": 229,
       "selected": false
     },
     {
-      "num": 113,
+      "num": 130,
       "path": "src/features/category_browser/presentation/pages/category_page.dart",
-      "lines": 38,
-      "bytes": 1409,
+      "lines": 115,
+      "bytes": 3623,
       "selected": false
     },
     {
-      "num": 114,
+      "num": 131,
       "path": "src/features/category_browser/presentation/providers/category_providers.dart",
-      "lines": 104,
-      "bytes": 2990,
+      "lines": 128,
+      "bytes": 3898,
       "selected": false
     },
     {
-      "num": 115,
+      "num": 132,
       "path": "src/features/category_browser/presentation/widgets/category_grid.dart",
-      "lines": 55,
-      "bytes": 1958,
+      "lines": 139,
+      "bytes": 4676,
       "selected": false
     },
     {
-      "num": 116,
+      "num": 133,
       "path": "src/features/category_browser/presentation/widgets/category_header.dart",
-      "lines": 48,
-      "bytes": 1346,
+      "lines": 54,
+      "bytes": 1513,
       "selected": false
     },
     {
-      "num": 117,
+      "num": 134,
       "path": "src/features/home/data/home_feed_data_module.dart",
-      "lines": 30,
-      "bytes": 1347,
+      "lines": 83,
+      "bytes": 3531,
       "selected": false
     },
     {
-      "num": 118,
+      "num": 135,
       "path": "src/features/home/data/repositories/home_feed_repository_impl.dart",
-      "lines": 411,
-      "bytes": 12664,
-      "selected": true
-    },
-    {
-      "num": 119,
-      "path": "src/features/home/domain/repositories/home_feed_repository.dart",
-      "lines": 32,
-      "bytes": 1321,
+      "lines": 410,
+      "bytes": 12808,
       "selected": false
     },
     {
-      "num": 120,
+      "num": 136,
+      "path": "src/features/home/domain/entities/in_progress_media.dart",
+      "lines": 34,
+      "bytes": 875,
+      "selected": false
+    },
+    {
+      "num": 137,
+      "path": "src/features/home/domain/repositories/home_feed_repository.dart",
+      "lines": 35,
+      "bytes": 1459,
+      "selected": false
+    },
+    {
+      "num": 138,
+      "path": "src/features/home/domain/services/continue_watching_enrichment_service.dart",
+      "lines": 201,
+      "bytes": 6960,
+      "selected": false
+    },
+    {
+      "num": 139,
+      "path": "src/features/home/domain/services/home_hero_metadata_service.dart",
+      "lines": 195,
+      "bytes": 6427,
+      "selected": false
+    },
+    {
+      "num": 140,
+      "path": "src/features/home/domain/services/movie_playback_service.dart",
+      "lines": 145,
+      "bytes": 5060,
+      "selected": false
+    },
+    {
+      "num": 141,
+      "path": "src/features/home/domain/usecases/load_continue_watching_media.dart",
+      "lines": 19,
+      "bytes": 610,
+      "selected": false
+    },
+    {
+      "num": 142,
       "path": "src/features/home/domain/usecases/load_home_continue_watching.dart",
       "lines": 12,
       "bytes": 501,
       "selected": false
     },
     {
-      "num": 121,
+      "num": 143,
       "path": "src/features/home/domain/usecases/load_home_hero.dart",
-      "lines": 10,
-      "bytes": 320,
-      "selected": true
+      "lines": 12,
+      "bytes": 439,
+      "selected": false
     },
     {
-      "num": 122,
+      "num": 144,
       "path": "src/features/home/domain/usecases/load_home_iptv_sections.dart",
-      "lines": 11,
-      "bytes": 367,
+      "lines": 13,
+      "bytes": 486,
       "selected": false
     },
     {
-      "num": 123,
+      "num": 145,
       "path": "src/features/home/domain/usecases/refresh_home_feed.dart",
-      "lines": 37,
-      "bytes": 1101,
+      "lines": 45,
+      "bytes": 1393,
       "selected": false
     },
     {
-      "num": 124,
+      "num": 146,
       "path": "src/features/home/home.dart",
-      "lines": 4,
-      "bytes": 224,
+      "lines": 11,
+      "bytes": 633,
       "selected": false
     },
     {
-      "num": 125,
+      "num": 147,
       "path": "src/features/home/presentation/pages/home_page.dart",
-      "lines": 443,
-      "bytes": 17402,
-      "selected": true
+      "lines": 209,
+      "bytes": 7073,
+      "selected": false
     },
     {
-      "num": 126,
+      "num": 148,
       "path": "src/features/home/presentation/providers/home_providers.dart",
-      "lines": 145,
-      "bytes": 4316,
-      "selected": true
+      "lines": 208,
+      "bytes": 6590,
+      "selected": false
     },
     {
-      "num": 127,
+      "num": 149,
       "path": "src/features/home/presentation/widgets/continue_watching_card.dart",
-      "lines": 207,
-      "bytes": 6414,
+      "lines": 316,
+      "bytes": 9185,
       "selected": false
     },
     {
-      "num": 128,
+      "num": 150,
+      "path": "src/features/home/presentation/widgets/home_continue_watching_section.dart",
+      "lines": 125,
+      "bytes": 4496,
+      "selected": false
+    },
+    {
+      "num": 151,
+      "path": "src/features/home/presentation/widgets/home_error_banner.dart",
+      "lines": 43,
+      "bytes": 1352,
+      "selected": false
+    },
+    {
+      "num": 152,
       "path": "src/features/home/presentation/widgets/home_hero_carousel.dart",
-      "lines": 1088,
-      "bytes": 39049,
-      "selected": true
+      "lines": 1149,
+      "bytes": 40882,
+      "selected": false
     },
     {
-      "num": 129,
+      "num": 153,
       "path": "src/features/home/presentation/widgets/home_hero_section.dart",
-      "lines": 811,
-      "bytes": 28657,
-      "selected": true
+      "lines": 58,
+      "bytes": 1746,
+      "selected": false
     },
     {
-      "num": 130,
+      "num": 154,
+      "path": "src/features/home/presentation/widgets/home_iptv_section.dart",
+      "lines": 127,
+      "bytes": 4310,
+      "selected": false
+    },
+    {
+      "num": 155,
+      "path": "src/features/home/presentation/widgets/home_layout_constants.dart",
+      "lines": 36,
+      "bytes": 1480,
+      "selected": false
+    },
+    {
+      "num": 156,
+      "path": "src/features/home/presentation/widgets/home_loading_overlay.dart",
+      "lines": 20,
+      "bytes": 571,
+      "selected": false
+    },
+    {
+      "num": 157,
+      "path": "src/features/home/presentation/widgets/home_loading_skeleton.dart",
+      "lines": 34,
+      "bytes": 1123,
+      "selected": false
+    },
+    {
+      "num": 158,
+      "path": "src/features/home/presentation/widgets/mark_as_unwatched_dialog.dart",
+      "lines": 48,
+      "bytes": 1676,
+      "selected": false
+    },
+    {
+      "num": 159,
       "path": "src/features/iptv/application/iptv_catalog_reader.dart",
-      "lines": 156,
-      "bytes": 5097,
+      "lines": 141,
+      "bytes": 4425,
       "selected": false
     },
     {
-      "num": 131,
+      "num": 160,
       "path": "src/features/iptv/application/services/playlist_mapper.dart",
-      "lines": 83,
-      "bytes": 2854,
+      "lines": 97,
+      "bytes": 3190,
       "selected": false
     },
     {
-      "num": 132,
+      "num": 161,
       "path": "src/features/iptv/application/services/xtream_sync_service.dart",
-      "lines": 89,
-      "bytes": 2454,
+      "lines": 149,
+      "bytes": 4812,
       "selected": false
     },
     {
-      "num": 133,
+      "num": 162,
       "path": "src/features/iptv/application/usecases/add_xtream_source.dart",
-      "lines": 28,
-      "bytes": 992,
+      "lines": 46,
+      "bytes": 1404,
       "selected": false
     },
     {
-      "num": 134,
+      "num": 163,
       "path": "src/features/iptv/application/usecases/list_xtream_playlists.dart",
-      "lines": 19,
-      "bytes": 694,
+      "lines": 28,
+      "bytes": 863,
       "selected": false
     },
     {
-      "num": 135,
+      "num": 164,
       "path": "src/features/iptv/application/usecases/refresh_xtream_catalog.dart",
-      "lines": 19,
-      "bytes": 708,
+      "lines": 28,
+      "bytes": 874,
       "selected": false
     },
     {
-      "num": 136,
+      "num": 165,
       "path": "src/features/iptv/data/datasources/xtream_cache_data_source.dart",
-      "lines": 15,
-      "bytes": 423,
+      "lines": 54,
+      "bytes": 1705,
       "selected": false
     },
     {
-      "num": 137,
+      "num": 166,
       "path": "src/features/iptv/data/datasources/xtream_remote_data_source.dart",
-      "lines": 182,
-      "bytes": 5429,
+      "lines": 217,
+      "bytes": 6621,
       "selected": false
     },
     {
-      "num": 138,
+      "num": 167,
       "path": "src/features/iptv/data/dtos/xtream_auth_dto.dart",
       "lines": 32,
       "bytes": 909,
       "selected": false
     },
     {
-      "num": 139,
+      "num": 168,
       "path": "src/features/iptv/data/dtos/xtream_category_dto.dart",
       "lines": 13,
       "bytes": 347,
       "selected": false
     },
     {
-      "num": 140,
+      "num": 169,
       "path": "src/features/iptv/data/dtos/xtream_stream_dto.dart",
-      "lines": 56,
-      "bytes": 1601,
+      "lines": 73,
+      "bytes": 2058,
       "selected": false
     },
     {
-      "num": 141,
+      "num": 170,
       "path": "src/features/iptv/data/iptv_data_module.dart",
-      "lines": 68,
-      "bytes": 2627,
+      "lines": 69,
+      "bytes": 2768,
       "selected": false
     },
     {
-      "num": 142,
+      "num": 171,
       "path": "src/features/iptv/data/repositories/iptv_repository_impl.dart",
-      "lines": 103,
-      "bytes": 3581,
+      "lines": 216,
+      "bytes": 7196,
       "selected": false
     },
     {
-      "num": 143,
+      "num": 172,
       "path": "src/features/iptv/domain/entities/xtream_account.dart",
       "lines": 60,
       "bytes": 1426,
       "selected": false
     },
     {
-      "num": 144,
+      "num": 173,
       "path": "src/features/iptv/domain/entities/xtream_catalog_snapshot.dart",
       "lines": 41,
       "bytes": 936,
       "selected": false
     },
     {
-      "num": 145,
+      "num": 174,
       "path": "src/features/iptv/domain/entities/xtream_playlist.dart",
       "lines": 24,
       "bytes": 591,
       "selected": false
     },
     {
-      "num": 146,
+      "num": 175,
       "path": "src/features/iptv/domain/entities/xtream_playlist_item.dart",
       "lines": 46,
       "bytes": 927,
       "selected": false
     },
     {
-      "num": 147,
+      "num": 176,
       "path": "src/features/iptv/domain/failures/iptv_failures.dart",
-      "lines": 13,
-      "bytes": 327,
+      "lines": 30,
+      "bytes": 755,
       "selected": false
     },
     {
-      "num": 148,
+      "num": 177,
       "path": "src/features/iptv/domain/repositories/iptv_repository.dart",
       "lines": 17,
       "bytes": 658,
       "selected": false
     },
     {
-      "num": 149,
+      "num": 178,
       "path": "src/features/iptv/domain/value_objects/xtream_endpoint.dart",
-      "lines": 61,
-      "bytes": 1409,
+      "lines": 73,
+      "bytes": 1977,
       "selected": false
     },
     {
-      "num": 150,
+      "num": 179,
       "path": "src/features/iptv/iptv.dart",
       "lines": 8,
       "bytes": 423,
       "selected": false
     },
     {
-      "num": 151,
+      "num": 180,
       "path": "src/features/library/data/library_data_module.dart",
-      "lines": 34,
-      "bytes": 1427,
+      "lines": 36,
+      "bytes": 1514,
       "selected": false
     },
     {
-      "num": 152,
+      "num": 181,
       "path": "src/features/library/data/repositories/favorites_repository_impl.dart",
-      "lines": 32,
-      "bytes": 904,
+      "lines": 35,
+      "bytes": 1024,
       "selected": false
     },
     {
-      "num": 153,
+      "num": 182,
       "path": "src/features/library/data/repositories/history_repository_impl.dart",
-      "lines": 61,
-      "bytes": 1969,
+      "lines": 30,
+      "bytes": 1046,
       "selected": false
     },
     {
-      "num": 154,
+      "num": 183,
       "path": "src/features/library/data/repositories/library_repository_impl.dart",
-      "lines": 134,
-      "bytes": 4192,
+      "lines": 139,
+      "bytes": 4120,
       "selected": false
     },
     {
-      "num": 155,
+      "num": 184,
       "path": "src/features/library/domain/repositories/favorites_repository.dart",
       "lines": 11,
       "bytes": 254,
       "selected": false
     },
     {
-      "num": 156,
+      "num": 185,
       "path": "src/features/library/domain/repositories/history_repository.dart",
       "lines": 6,
       "bytes": 215,
       "selected": false
     },
     {
-      "num": 157,
+      "num": 186,
       "path": "src/features/library/domain/repositories/library_repository.dart",
       "lines": 31,
       "bytes": 1310,
       "selected": false
     },
     {
-      "num": 158,
+      "num": 187,
+      "path": "src/features/library/domain/services/history_filter.dart",
+      "lines": 50,
+      "bytes": 1719,
+      "selected": false
+    },
+    {
+      "num": 188,
+      "path": "src/features/library/domain/services/library_playlist_sorter.dart",
+      "lines": 71,
+      "bytes": 2220,
+      "selected": false
+    },
+    {
+      "num": 189,
       "path": "src/features/library/domain/usecases/like_person.dart",
       "lines": 16,
       "bytes": 434,
       "selected": false
     },
     {
-      "num": 159,
+      "num": 190,
       "path": "src/features/library/domain/usecases/unlike_person.dart",
       "lines": 12,
       "bytes": 348,
       "selected": false
     },
     {
-      "num": 160,
+      "num": 191,
       "path": "src/features/library/library.dart",
       "lines": 3,
       "bytes": 142,
       "selected": false
     },
     {
-      "num": 161,
+      "num": 192,
+      "path": "src/features/library/library_constants.dart",
+      "lines": 22,
+      "bytes": 900,
+      "selected": false
+    },
+    {
+      "num": 193,
       "path": "src/features/library/presentation/pages/library_page.dart",
-      "lines": 42,
-      "bytes": 1333,
+      "lines": 666,
+      "bytes": 27044,
       "selected": false
     },
     {
-      "num": 162,
+      "num": 194,
+      "path": "src/features/library/presentation/pages/library_playlist_detail_page.dart",
+      "lines": 901,
+      "bytes": 34389,
+      "selected": false
+    },
+    {
+      "num": 195,
       "path": "src/features/library/presentation/providers/library_providers.dart",
-      "lines": 9,
-      "bytes": 372,
+      "lines": 358,
+      "bytes": 12606,
       "selected": false
     },
     {
-      "num": 163,
+      "num": 196,
+      "path": "src/features/library/presentation/widgets/add_media_search_modal.dart",
+      "lines": 375,
+      "bytes": 12423,
+      "selected": false
+    },
+    {
+      "num": 197,
+      "path": "src/features/library/presentation/widgets/library_filter_pills.dart",
+      "lines": 114,
+      "bytes": 3536,
+      "selected": false
+    },
+    {
+      "num": 198,
+      "path": "src/features/library/presentation/widgets/library_playlist_actions_bar.dart",
+      "lines": 119,
+      "bytes": 3355,
+      "selected": false
+    },
+    {
+      "num": 199,
+      "path": "src/features/library/presentation/widgets/library_playlist_app_bar.dart",
+      "lines": 46,
+      "bytes": 1357,
+      "selected": false
+    },
+    {
+      "num": 200,
+      "path": "src/features/library/presentation/widgets/library_playlist_card.dart",
+      "lines": 197,
+      "bytes": 6854,
+      "selected": false
+    },
+    {
+      "num": 201,
+      "path": "src/features/library/presentation/widgets/library_playlist_hero.dart",
+      "lines": 147,
+      "bytes": 4647,
+      "selected": false
+    },
+    {
+      "num": 202,
       "path": "src/features/movie/data/datasources/movie_local_data_source.dart",
-      "lines": 58,
-      "bytes": 1808,
+      "lines": 68,
+      "bytes": 2154,
       "selected": false
     },
     {
-      "num": 164,
+      "num": 203,
       "path": "src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart",
       "lines": 167,
       "bytes": 5380,
-      "selected": true
+      "selected": false
     },
     {
-      "num": 165,
+      "num": 204,
       "path": "src/features/movie/data/dtos/tmdb_movie_detail_dto.dart",
-      "lines": 375,
-      "bytes": 11150,
+      "lines": 385,
+      "bytes": 11365,
       "selected": false
     },
     {
-      "num": 166,
+      "num": 205,
       "path": "src/features/movie/data/movie_data_module.dart",
-      "lines": 31,
-      "bytes": 1281,
+      "lines": 36,
+      "bytes": 1534,
       "selected": false
     },
     {
-      "num": 167,
+      "num": 206,
       "path": "src/features/movie/data/repositories/movie_repository_impl.dart",
-      "lines": 204,
-      "bytes": 6607,
-      "selected": true
-    },
-    {
-      "num": 168,
-      "path": "src/features/movie/domain/entities/movie.dart",
-      "lines": 60,
-      "bytes": 1470,
+      "lines": 225,
+      "bytes": 7687,
       "selected": false
     },
     {
-      "num": 169,
+      "num": 207,
+      "path": "src/features/movie/domain/entities/movie.dart",
+      "lines": 63,
+      "bytes": 1538,
+      "selected": false
+    },
+    {
+      "num": 208,
       "path": "src/features/movie/domain/entities/movie_credit.dart",
       "lines": 19,
       "bytes": 480,
       "selected": false
     },
     {
-      "num": 170,
+      "num": 209,
       "path": "src/features/movie/domain/entities/movie_summary.dart",
       "lines": 35,
       "bytes": 710,
-      "selected": true
-    },
-    {
-      "num": 171,
-      "path": "src/features/movie/domain/repositories/movie_repository.dart",
-      "lines": 28,
-      "bytes": 1027,
       "selected": false
     },
     {
-      "num": 172,
+      "num": 210,
+      "path": "src/features/movie/domain/repositories/movie_repository.dart",
+      "lines": 31,
+      "bytes": 1153,
+      "selected": false
+    },
+    {
+      "num": 211,
+      "path": "src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart",
+      "lines": 19,
+      "bytes": 755,
+      "selected": false
+    },
+    {
+      "num": 212,
       "path": "src/features/movie/domain/usecases/get_continue_watching_movies.dart",
       "lines": 10,
       "bytes": 364,
       "selected": false
     },
     {
-      "num": 173,
+      "num": 213,
       "path": "src/features/movie/domain/usecases/get_movie_credits.dart",
       "lines": 11,
       "bytes": 410,
       "selected": false
     },
     {
-      "num": 174,
+      "num": 214,
       "path": "src/features/movie/domain/usecases/get_movie_detail.dart",
       "lines": 11,
       "bytes": 391,
       "selected": false
     },
     {
-      "num": 175,
+      "num": 215,
       "path": "src/features/movie/domain/usecases/get_movie_recommendations.dart",
       "lines": 12,
       "bytes": 446,
       "selected": false
     },
     {
-      "num": 176,
+      "num": 216,
       "path": "src/features/movie/domain/usecases/is_in_watchlist.dart",
       "lines": 10,
       "bytes": 334,
       "selected": false
     },
     {
-      "num": 177,
+      "num": 217,
       "path": "src/features/movie/domain/usecases/search_movies.dart",
       "lines": 11,
       "bytes": 361,
       "selected": false
     },
     {
-      "num": 178,
+      "num": 218,
       "path": "src/features/movie/domain/usecases/toggle_watchlist.dart",
       "lines": 12,
       "bytes": 378,
       "selected": false
     },
     {
-      "num": 179,
+      "num": 219,
       "path": "src/features/movie/movie.dart",
       "lines": 12,
       "bytes": 579,
       "selected": false
     },
     {
-      "num": 180,
-      "path": "src/features/movie/presentation/pages/movie_detail_page.dart",
-      "lines": 148,
-      "bytes": 5820,
+      "num": 220,
+      "path": "src/features/movie/presentation/models/movie_detail_view_model.dart",
+      "lines": 113,
+      "bytes": 3516,
       "selected": false
     },
     {
-      "num": 181,
+      "num": 221,
+      "path": "src/features/movie/presentation/pages/movie_detail_page.dart",
+      "lines": 1447,
+      "bytes": 63216,
+      "selected": false
+    },
+    {
+      "num": 222,
+      "path": "src/features/movie/presentation/providers/movie_detail_providers.dart",
+      "lines": 185,
+      "bytes": 7198,
+      "selected": false
+    },
+    {
+      "num": 223,
       "path": "src/features/person/data/datasources/person_local_data_source.dart",
       "lines": 32,
       "bytes": 1067,
       "selected": false
     },
     {
-      "num": 182,
+      "num": 224,
       "path": "src/features/person/data/datasources/tmdb_person_remote_data_source.dart",
-      "lines": 30,
-      "bytes": 971,
+      "lines": 37,
+      "bytes": 1110,
       "selected": false
     },
     {
-      "num": 183,
+      "num": 225,
       "path": "src/features/person/data/dtos/tmdb_person_detail_dto.dart",
       "lines": 143,
       "bytes": 4283,
       "selected": false
     },
     {
-      "num": 184,
+      "num": 226,
       "path": "src/features/person/data/person_data_module.dart",
-      "lines": 31,
-      "bytes": 1248,
+      "lines": 32,
+      "bytes": 1281,
       "selected": false
     },
     {
-      "num": 185,
+      "num": 227,
       "path": "src/features/person/data/repositories/person_repository_impl.dart",
-      "lines": 94,
-      "bytes": 3286,
+      "lines": 102,
+      "bytes": 3505,
       "selected": false
     },
     {
-      "num": 186,
+      "num": 228,
       "path": "src/features/person/domain/entities/person.dart",
       "lines": 56,
       "bytes": 1254,
       "selected": false
     },
     {
-      "num": 187,
+      "num": 229,
       "path": "src/features/person/domain/repositories/person_repository.dart",
       "lines": 18,
       "bytes": 757,
       "selected": false
     },
     {
-      "num": 188,
+      "num": 230,
       "path": "src/features/person/domain/usecases/get_featured_people.dart",
       "lines": 10,
       "bytes": 343,
       "selected": false
     },
     {
-      "num": 189,
+      "num": 231,
       "path": "src/features/person/domain/usecases/get_person_detail.dart",
       "lines": 11,
       "bytes": 401,
       "selected": false
     },
     {
-      "num": 190,
+      "num": 232,
       "path": "src/features/person/domain/usecases/get_person_filmography.dart",
       "lines": 12,
       "bytes": 434,
       "selected": false
     },
     {
-      "num": 191,
+      "num": 233,
       "path": "src/features/person/domain/usecases/search_people.dart",
       "lines": 11,
       "bytes": 358,
       "selected": false
     },
     {
-      "num": 192,
+      "num": 234,
       "path": "src/features/person/person.dart",
       "lines": 7,
       "bytes": 338,
       "selected": false
     },
     {
-      "num": 193,
+      "num": 235,
       "path": "src/features/person/presentation/pages/person_detail_page.dart",
-      "lines": 124,
-      "bytes": 4356,
+      "lines": 601,
+      "bytes": 25160,
       "selected": false
     },
     {
-      "num": 194,
+      "num": 236,
+      "path": "src/features/person/presentation/providers/person_detail_providers.dart",
+      "lines": 157,
+      "bytes": 5495,
+      "selected": false
+    },
+    {
+      "num": 237,
+      "path": "src/features/player/data/repositories/media_kit_video_player_repository.dart",
+      "lines": 105,
+      "bytes": 2817,
+      "selected": false
+    },
+    {
+      "num": 238,
+      "path": "src/features/player/domain/entities/video_source.dart",
+      "lines": 43,
+      "bytes": 980,
+      "selected": false
+    },
+    {
+      "num": 239,
+      "path": "src/features/player/domain/repositories/video_player_repository.dart",
+      "lines": 37,
+      "bytes": 964,
+      "selected": false
+    },
+    {
+      "num": 240,
+      "path": "src/features/player/domain/services/xtream_stream_url_builder.dart",
+      "lines": 307,
+      "bytes": 11992,
+      "selected": false
+    },
+    {
+      "num": 241,
+      "path": "src/features/player/domain/utils/language_formatter.dart",
+      "lines": 75,
+      "bytes": 2010,
+      "selected": false
+    },
+    {
+      "num": 242,
+      "path": "src/features/player/player.dart",
+      "lines": 4,
+      "bytes": 222,
+      "selected": false
+    },
+    {
+      "num": 243,
+      "path": "src/features/player/presentation/pages/video_player_page.dart",
+      "lines": 1070,
+      "bytes": 36550,
+      "selected": false
+    },
+    {
+      "num": 244,
+      "path": "src/features/player/presentation/widgets/track_selection_menu.dart",
+      "lines": 318,
+      "bytes": 11111,
+      "selected": false
+    },
+    {
+      "num": 245,
+      "path": "src/features/player/presentation/widgets/video_player_controls.dart",
+      "lines": 450,
+      "bytes": 15754,
+      "selected": false
+    },
+    {
+      "num": 246,
       "path": "src/features/playlist/data/playlist_data_module.dart",
       "lines": 19,
       "bytes": 694,
       "selected": false
     },
     {
-      "num": 195,
+      "num": 247,
       "path": "src/features/playlist/data/repositories/playlist_repository_impl.dart",
       "lines": 198,
       "bytes": 5477,
       "selected": false
     },
     {
-      "num": 196,
+      "num": 248,
       "path": "src/features/playlist/data/services/playlist_filter_service.dart",
       "lines": 39,
       "bytes": 1407,
       "selected": false
     },
     {
-      "num": 197,
+      "num": 249,
       "path": "src/features/playlist/data/services/playlist_ordering_service.dart",
       "lines": 35,
       "bytes": 1014,
       "selected": false
     },
     {
-      "num": 198,
+      "num": 250,
       "path": "src/features/playlist/domain/entities/playlist.dart",
       "lines": 86,
       "bytes": 1898,
       "selected": false
     },
     {
-      "num": 199,
+      "num": 251,
       "path": "src/features/playlist/domain/repositories/playlist_repository.dart",
       "lines": 37,
       "bytes": 1227,
       "selected": false
     },
     {
-      "num": 200,
+      "num": 252,
       "path": "src/features/playlist/domain/usecases/add_playlist_item.dart",
       "lines": 16,
       "bytes": 515,
       "selected": false
     },
     {
-      "num": 201,
+      "num": 253,
       "path": "src/features/playlist/domain/usecases/create_playlist.dart",
       "lines": 27,
       "bytes": 706,
       "selected": false
     },
     {
-      "num": 202,
+      "num": 254,
       "path": "src/features/playlist/domain/usecases/delete_playlist.dart",
       "lines": 10,
       "bytes": 339,
       "selected": false
     },
     {
-      "num": 203,
+      "num": 255,
       "path": "src/features/playlist/domain/usecases/get_featured_playlists.dart",
       "lines": 10,
       "bytes": 365,
       "selected": false
     },
     {
-      "num": 204,
+      "num": 256,
       "path": "src/features/playlist/domain/usecases/get_playlist_detail.dart",
       "lines": 11,
       "bytes": 421,
       "selected": false
     },
     {
-      "num": 205,
+      "num": 257,
       "path": "src/features/playlist/domain/usecases/get_user_playlists.dart",
       "lines": 11,
       "bytes": 378,
       "selected": false
     },
     {
-      "num": 206,
+      "num": 258,
       "path": "src/features/playlist/domain/usecases/remove_playlist_item.dart",
       "lines": 16,
       "bytes": 524,
       "selected": false
     },
     {
-      "num": 207,
+      "num": 259,
       "path": "src/features/playlist/domain/usecases/rename_playlist.dart",
       "lines": 13,
       "bytes": 481,
       "selected": false
     },
     {
-      "num": 208,
+      "num": 260,
       "path": "src/features/playlist/domain/usecases/reorder_playlist_item.dart",
       "lines": 20,
       "bytes": 545,
       "selected": false
     },
     {
-      "num": 209,
+      "num": 261,
       "path": "src/features/playlist/domain/usecases/search_playlists.dart",
       "lines": 11,
       "bytes": 380,
       "selected": false
     },
     {
-      "num": 210,
+      "num": 262,
       "path": "src/features/playlist/playlist.dart",
       "lines": 12,
       "bytes": 593,
       "selected": false
     },
     {
-      "num": 211,
+      "num": 263,
       "path": "src/features/saga/data/datasources/saga_local_data_source.dart",
       "lines": 32,
       "bytes": 1049,
       "selected": false
     },
     {
-      "num": 212,
+      "num": 264,
       "path": "src/features/saga/data/datasources/tmdb_saga_remote_data_source.dart",
-      "lines": 29,
-      "bytes": 918,
+      "lines": 30,
+      "bytes": 1020,
       "selected": false
     },
     {
-      "num": 213,
+      "num": 265,
       "path": "src/features/saga/data/dtos/tmdb_saga_detail_dto.dart",
       "lines": 105,
       "bytes": 2751,
       "selected": false
     },
     {
-      "num": 214,
+      "num": 266,
       "path": "src/features/saga/data/repositories/saga_repository_impl.dart",
       "lines": 110,
       "bytes": 3712,
       "selected": false
     },
     {
-      "num": 215,
+      "num": 267,
       "path": "src/features/saga/data/saga_data_module.dart",
       "lines": 28,
       "bytes": 1125,
       "selected": false
     },
     {
-      "num": 216,
+      "num": 268,
       "path": "src/features/saga/domain/entities/saga.dart",
       "lines": 76,
       "bytes": 1611,
       "selected": false
     },
     {
-      "num": 217,
+      "num": 269,
       "path": "src/features/saga/domain/repositories/saga_repository.dart",
       "lines": 8,
       "bytes": 318,
       "selected": false
     },
     {
-      "num": 218,
+      "num": 270,
       "path": "src/features/saga/domain/usecases/get_saga_detail.dart",
       "lines": 11,
       "bytes": 381,
       "selected": false
     },
     {
-      "num": 219,
+      "num": 271,
       "path": "src/features/saga/domain/usecases/get_user_sagas.dart",
       "lines": 11,
       "bytes": 342,
       "selected": false
     },
     {
-      "num": 220,
+      "num": 272,
       "path": "src/features/saga/domain/usecases/search_sagas.dart",
       "lines": 11,
       "bytes": 344,
       "selected": false
     },
     {
-      "num": 221,
+      "num": 273,
       "path": "src/features/saga/presentation/pages/saga_detail_page.dart",
-      "lines": 137,
-      "bytes": 4562,
+      "lines": 490,
+      "bytes": 21038,
       "selected": false
     },
     {
-      "num": 222,
+      "num": 274,
+      "path": "src/features/saga/presentation/providers/saga_detail_providers.dart",
+      "lines": 254,
+      "bytes": 8819,
+      "selected": false
+    },
+    {
+      "num": 275,
       "path": "src/features/saga/saga.dart",
       "lines": 6,
       "bytes": 270,
       "selected": false
     },
     {
-      "num": 223,
+      "num": 276,
       "path": "src/features/search/data/datasources/search_history_local_data_source.dart",
-      "lines": 152,
-      "bytes": 4346,
+      "lines": 164,
+      "bytes": 4638,
       "selected": false
     },
     {
-      "num": 224,
+      "num": 277,
       "path": "src/features/search/data/datasources/tmdb_search_remote_data_source.dart",
       "lines": 65,
       "bytes": 2326,
       "selected": false
     },
     {
-      "num": 225,
+      "num": 278,
+      "path": "src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart",
+      "lines": 58,
+      "bytes": 1977,
+      "selected": false
+    },
+    {
+      "num": 279,
+      "path": "src/features/search/data/dtos/tmdb_watch_provider_dto.dart",
+      "lines": 37,
+      "bytes": 1076,
+      "selected": false
+    },
+    {
+      "num": 280,
       "path": "src/features/search/data/repositories/search_history_repository_impl.dart",
-      "lines": 18,
-      "bytes": 654,
+      "lines": 21,
+      "bytes": 709,
       "selected": false
     },
     {
-      "num": 226,
+      "num": 281,
       "path": "src/features/search/data/search_data_module.dart",
-      "lines": 51,
-      "bytes": 2289,
+      "lines": 57,
+      "bytes": 2611,
       "selected": false
     },
     {
-      "num": 227,
+      "num": 282,
       "path": "src/features/search/data/search_repository_impl.dart",
       "lines": 164,
       "bytes": 5473,
       "selected": false
     },
     {
-      "num": 228,
+      "num": 283,
       "path": "src/features/search/domain/entities/search_history_item.dart",
       "lines": 6,
       "bytes": 150,
       "selected": false
     },
     {
-      "num": 229,
+      "num": 284,
       "path": "src/features/search/domain/entities/search_page.dart",
       "lines": 13,
       "bytes": 238,
       "selected": false
     },
     {
-      "num": 230,
+      "num": 285,
       "path": "src/features/search/domain/repositories/search_history_repository.dart",
-      "lines": 7,
-      "bytes": 241,
+      "lines": 8,
+      "bytes": 265,
       "selected": false
     },
     {
-      "num": 231,
+      "num": 286,
       "path": "src/features/search/domain/repositories/search_repository.dart",
       "lines": 10,
       "bytes": 566,
       "selected": false
     },
     {
-      "num": 232,
+      "num": 287,
       "path": "src/features/search/domain/usecases/add_search_query_to_history.dart",
       "lines": 8,
       "bytes": 269,
       "selected": false
     },
     {
-      "num": 233,
+      "num": 288,
       "path": "src/features/search/domain/usecases/list_search_history.dart",
       "lines": 9,
       "bytes": 344,
       "selected": false
     },
     {
-      "num": 234,
+      "num": 289,
       "path": "src/features/search/domain/usecases/remove_search_history_item.dart",
       "lines": 8,
       "bytes": 272,
       "selected": false
     },
     {
-      "num": 235,
+      "num": 290,
       "path": "src/features/search/domain/usecases/search_instant.dart",
-      "lines": 19,
-      "bytes": 613,
+      "lines": 25,
+      "bytes": 829,
       "selected": false
     },
     {
-      "num": 236,
+      "num": 291,
       "path": "src/features/search/domain/usecases/search_movies.dart",
       "lines": 13,
       "bytes": 475,
       "selected": false
     },
     {
-      "num": 237,
+      "num": 292,
       "path": "src/features/search/domain/usecases/search_paginated.dart",
       "lines": 16,
       "bytes": 645,
       "selected": false
     },
     {
-      "num": 238,
+      "num": 293,
       "path": "src/features/search/domain/usecases/search_people.dart",
       "lines": 13,
       "bytes": 469,
       "selected": false
     },
     {
-      "num": 239,
+      "num": 294,
       "path": "src/features/search/domain/usecases/search_shows.dart",
       "lines": 13,
       "bytes": 464,
       "selected": false
     },
     {
-      "num": 240,
+      "num": 295,
       "path": "src/features/search/domain/value_objects/search_query.dart",
-      "lines": 21,
-      "bytes": 541,
+      "lines": 23,
+      "bytes": 584,
       "selected": false
     },
     {
-      "num": 241,
+      "num": 296,
       "path": "src/features/search/presentation/controllers/search_instant_controller.dart",
-      "lines": 105,
-      "bytes": 3142,
+      "lines": 150,
+      "bytes": 4543,
       "selected": false
     },
     {
-      "num": 242,
+      "num": 297,
       "path": "src/features/search/presentation/controllers/search_paged_controller.dart",
       "lines": 124,
       "bytes": 3807,
       "selected": false
     },
     {
-      "num": 243,
+      "num": 298,
+      "path": "src/features/search/presentation/models/provider_all_results_args.dart",
+      "lines": 14,
+      "bytes": 389,
+      "selected": false
+    },
+    {
+      "num": 299,
+      "path": "src/features/search/presentation/models/provider_results_args.dart",
+      "lines": 11,
+      "bytes": 257,
+      "selected": false
+    },
+    {
+      "num": 300,
       "path": "src/features/search/presentation/models/search_results_args.dart",
       "lines": 9,
       "bytes": 275,
       "selected": false
     },
     {
-      "num": 244,
+      "num": 301,
+      "path": "src/features/search/presentation/pages/provider_all_results_page.dart",
+      "lines": 277,
+      "bytes": 9799,
+      "selected": false
+    },
+    {
+      "num": 302,
+      "path": "src/features/search/presentation/pages/provider_results_page.dart",
+      "lines": 469,
+      "bytes": 17665,
+      "selected": false
+    },
+    {
+      "num": 303,
       "path": "src/features/search/presentation/pages/search_page.dart",
-      "lines": 378,
-      "bytes": 14155,
+      "lines": 886,
+      "bytes": 31618,
       "selected": false
     },
     {
-      "num": 245,
+      "num": 304,
       "path": "src/features/search/presentation/pages/search_results_page.dart",
-      "lines": 129,
-      "bytes": 4260,
+      "lines": 147,
+      "bytes": 4893,
       "selected": false
     },
     {
-      "num": 246,
+      "num": 305,
       "path": "src/features/search/presentation/providers/search_history_providers.dart",
-      "lines": 116,
-      "bytes": 3942,
+      "lines": 129,
+      "bytes": 4231,
       "selected": false
     },
     {
-      "num": 247,
+      "num": 306,
       "path": "src/features/search/presentation/providers/search_providers.dart",
-      "lines": 34,
-      "bytes": 1441,
+      "lines": 281,
+      "bytes": 10206,
       "selected": false
     },
     {
-      "num": 248,
+      "num": 307,
+      "path": "src/features/search/presentation/widgets/watch_providers_grid.dart",
+      "lines": 181,
+      "bytes": 6510,
+      "selected": false
+    },
+    {
+      "num": 308,
       "path": "src/features/search/search.dart",
       "lines": 11,
       "bytes": 559,
       "selected": false
     },
     {
-      "num": 249,
+      "num": 309,
       "path": "src/features/settings/data/datasources/user_settings_local_data_source.dart",
       "lines": 30,
       "bytes": 1108,
       "selected": false
     },
     {
-      "num": 250,
+      "num": 310,
       "path": "src/features/settings/data/repositories/user_settings_repository_impl.dart",
       "lines": 28,
       "bytes": 833,
       "selected": false
     },
     {
-      "num": 251,
+      "num": 311,
       "path": "src/features/settings/data/settings_data_module.dart",
       "lines": 21,
       "bytes": 860,
       "selected": false
     },
     {
-      "num": 252,
+      "num": 312,
       "path": "src/features/settings/domain/entities/user_preferences.dart",
       "lines": 38,
       "bytes": 1014,
-      "selected": true
+      "selected": false
     },
     {
-      "num": 253,
+      "num": 313,
       "path": "src/features/settings/domain/entities/user_profile.dart",
       "lines": 9,
       "bytes": 331,
       "selected": false
     },
     {
-      "num": 254,
+      "num": 314,
       "path": "src/features/settings/domain/repositories/settings_repository.dart",
       "lines": 9,
       "bytes": 399,
       "selected": false
     },
     {
-      "num": 255,
+      "num": 315,
       "path": "src/features/settings/domain/repositories/user_settings_repository.dart",
       "lines": 6,
       "bytes": 195,
       "selected": false
     },
     {
-      "num": 256,
+      "num": 316,
       "path": "src/features/settings/domain/usecases/get_user_preferences.dart",
       "lines": 10,
       "bytes": 357,
       "selected": false
     },
     {
-      "num": 257,
+      "num": 317,
       "path": "src/features/settings/domain/usecases/get_user_profile.dart",
       "lines": 10,
       "bytes": 341,
       "selected": false
     },
     {
-      "num": 258,
+      "num": 318,
       "path": "src/features/settings/domain/usecases/load_user_profile.dart",
       "lines": 9,
       "bytes": 324,
       "selected": false
     },
     {
-      "num": 259,
+      "num": 319,
       "path": "src/features/settings/domain/usecases/save_user_profile.dart",
       "lines": 9,
       "bytes": 342,
       "selected": false
     },
     {
-      "num": 260,
+      "num": 320,
       "path": "src/features/settings/domain/usecases/update_user_preferences.dart",
       "lines": 12,
       "bytes": 407,
       "selected": false
     },
     {
-      "num": 261,
+      "num": 321,
       "path": "src/features/settings/domain/usecases/update_user_profile.dart",
       "lines": 12,
       "bytes": 379,
       "selected": false
     },
     {
-      "num": 262,
+      "num": 322,
       "path": "src/features/settings/domain/value_objects/first_name.dart",
       "lines": 11,
       "bytes": 230,
       "selected": false
     },
     {
-      "num": 263,
+      "num": 323,
       "path": "src/features/settings/domain/value_objects/language_code.dart",
       "lines": 11,
       "bytes": 256,
-      "selected": true
+      "selected": false
     },
     {
-      "num": 264,
+      "num": 324,
       "path": "src/features/settings/domain/value_objects/metadata_preference.dart",
       "lines": 13,
       "bytes": 350,
       "selected": false
     },
     {
-      "num": 265,
+      "num": 325,
       "path": "src/features/settings/presentation/pages/iptv_connect_page.dart",
-      "lines": 169,
-      "bytes": 6754,
+      "lines": 179,
+      "bytes": 7235,
       "selected": false
     },
     {
-      "num": 266,
+      "num": 326,
       "path": "src/features/settings/presentation/pages/settings_page.dart",
-      "lines": 160,
-      "bytes": 6171,
-      "selected": true
+      "lines": 894,
+      "bytes": 31475,
+      "selected": false
     },
     {
-      "num": 267,
+      "num": 327,
       "path": "src/features/settings/presentation/providers/iptv_connect_providers.dart",
       "lines": 102,
       "bytes": 3416,
       "selected": false
     },
     {
-      "num": 268,
+      "num": 328,
       "path": "src/features/settings/presentation/providers/user_settings_providers.dart",
-      "lines": 99,
-      "bytes": 3621,
+      "lines": 109,
+      "bytes": 4088,
       "selected": false
     },
     {
-      "num": 269,
+      "num": 329,
       "path": "src/features/settings/settings.dart",
       "lines": 10,
       "bytes": 511,
       "selected": false
     },
     {
-      "num": 270,
+      "num": 330,
       "path": "src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart",
-      "lines": 195,
-      "bytes": 6238,
+      "lines": 201,
+      "bytes": 6432,
       "selected": true
     },
     {
-      "num": 271,
+      "num": 331,
       "path": "src/features/tv/data/datasources/tv_local_data_source.dart",
-      "lines": 61,
-      "bytes": 1859,
-      "selected": false
+      "lines": 66,
+      "bytes": 2026,
+      "selected": true
     },
     {
-      "num": 272,
+      "num": 332,
       "path": "src/features/tv/data/dtos/tmdb_tv_detail_dto.dart",
       "lines": 284,
       "bytes": 8364,
-      "selected": false
-    },
-    {
-      "num": 273,
-      "path": "src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart",
-      "lines": 83,
-      "bytes": 2223,
-      "selected": false
-    },
-    {
-      "num": 274,
-      "path": "src/features/tv/data/repositories/tv_repository_impl.dart",
-      "lines": 381,
-      "bytes": 12285,
       "selected": true
     },
     {
-      "num": 275,
+      "num": 333,
+      "path": "src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart",
+      "lines": 83,
+      "bytes": 2223,
+      "selected": true
+    },
+    {
+      "num": 334,
+      "path": "src/features/tv/data/repositories/tv_repository_impl.dart",
+      "lines": 462,
+      "bytes": 15046,
+      "selected": true
+    },
+    {
+      "num": 335,
       "path": "src/features/tv/data/tv_data_module.dart",
       "lines": 32,
       "bytes": 1316,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 276,
+      "num": 336,
       "path": "src/features/tv/domain/entities/tv_show.dart",
-      "lines": 154,
-      "bytes": 3050,
-      "selected": false
+      "lines": 160,
+      "bytes": 3186,
+      "selected": true
     },
     {
-      "num": 277,
+      "num": 337,
       "path": "src/features/tv/domain/repositories/tv_repository.dart",
-      "lines": 14,
-      "bytes": 644,
-      "selected": false
+      "lines": 21,
+      "bytes": 915,
+      "selected": true
     },
     {
-      "num": 278,
+      "num": 338,
       "path": "src/features/tv/domain/usecases/get_continue_watching_tv.dart",
       "lines": 10,
       "bytes": 339,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 279,
+      "num": 339,
       "path": "src/features/tv/domain/usecases/get_featured_tv_shows.dart",
       "lines": 10,
       "bytes": 330,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 280,
+      "num": 340,
       "path": "src/features/tv/domain/usecases/get_season_episodes.dart",
       "lines": 13,
       "bytes": 450,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 281,
+      "num": 341,
       "path": "src/features/tv/domain/usecases/get_tv_seasons.dart",
       "lines": 11,
       "bytes": 387,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 282,
+      "num": 342,
       "path": "src/features/tv/domain/usecases/get_tv_show_detail.dart",
       "lines": 11,
       "bytes": 384,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 283,
+      "num": 343,
       "path": "src/features/tv/domain/usecases/get_tv_watchlist.dart",
       "lines": 10,
       "bytes": 322,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 284,
+      "num": 344,
       "path": "src/features/tv/domain/usecases/is_tv_show_in_watchlist.dart",
       "lines": 10,
       "bytes": 328,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 285,
+      "num": 345,
       "path": "src/features/tv/domain/usecases/search_tv_shows.dart",
       "lines": 11,
       "bytes": 345,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 286,
+      "num": 346,
       "path": "src/features/tv/domain/usecases/toggle_tv_watchlist.dart",
       "lines": 12,
       "bytes": 374,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 287,
+      "num": 347,
+      "path": "src/features/tv/presentation/models/tv_detail_view_model.dart",
+      "lines": 181,
+      "bytes": 5095,
+      "selected": true
+    },
+    {
+      "num": 348,
       "path": "src/features/tv/presentation/pages/tv_detail_page.dart",
-      "lines": 124,
-      "bytes": 4637,
-      "selected": false
+      "lines": 2014,
+      "bytes": 81381,
+      "selected": true
     },
     {
-      "num": 288,
+      "num": 349,
+      "path": "src/features/tv/presentation/providers/tv_detail_providers.dart",
+      "lines": 1294,
+      "bytes": 50057,
+      "selected": true
+    },
+    {
+      "num": 350,
       "path": "src/features/tv/tv.dart",
       "lines": 13,
       "bytes": 640,
-      "selected": false
+      "selected": true
     },
     {
-      "num": 289,
+      "num": 351,
       "path": "src/features/welcome/presentation/pages/splash_bootstrap_page.dart",
-      "lines": 63,
-      "bytes": 1900,
+      "lines": 68,
+      "bytes": 2051,
       "selected": false
     },
     {
-      "num": 290,
+      "num": 352,
       "path": "src/features/welcome/presentation/pages/welcome_page.dart",
       "lines": 106,
       "bytes": 3664,
       "selected": false
     },
     {
-      "num": 291,
+      "num": 353,
       "path": "src/features/welcome/presentation/pages/welcome_source_page.dart",
       "lines": 54,
       "bytes": 1930,
       "selected": false
     },
     {
-      "num": 292,
+      "num": 354,
       "path": "src/features/welcome/presentation/pages/welcome_user_page.dart",
-      "lines": 289,
-      "bytes": 12577,
+      "lines": 312,
+      "bytes": 12256,
       "selected": false
     },
     {
-      "num": 293,
+      "num": 355,
       "path": "src/features/welcome/presentation/providers/bootstrap_providers.dart",
-      "lines": 161,
-      "bytes": 4981,
+      "lines": 164,
+      "bytes": 5023,
       "selected": false
     },
     {
-      "num": 294,
+      "num": 356,
       "path": "src/features/welcome/presentation/providers/welcome_providers.dart",
       "lines": 115,
       "bytes": 3448,
       "selected": false
     },
     {
-      "num": 295,
+      "num": 357,
       "path": "src/features/welcome/presentation/utils/error_presenter.dart",
       "lines": 15,
       "bytes": 848,
       "selected": false
     },
     {
-      "num": 296,
+      "num": 358,
       "path": "src/features/welcome/presentation/widgets/labeled_field.dart",
       "lines": 25,
       "bytes": 686,
       "selected": false
     },
     {
-      "num": 297,
+      "num": 359,
       "path": "src/features/welcome/presentation/widgets/welcome_faq_row.dart",
-      "lines": 33,
-      "bytes": 910,
+      "lines": 34,
+      "bytes": 994,
       "selected": false
     },
     {
-      "num": 298,
+      "num": 360,
       "path": "src/features/welcome/presentation/widgets/welcome_form.dart",
-      "lines": 246,
-      "bytes": 8404,
+      "lines": 250,
+      "bytes": 8661,
       "selected": false
     },
     {
-      "num": 299,
+      "num": 361,
       "path": "src/features/welcome/presentation/widgets/welcome_header.dart",
-      "lines": 51,
-      "bytes": 1338,
+      "lines": 55,
+      "bytes": 1614,
       "selected": false
     },
     {
-      "num": 300,
+      "num": 362,
       "path": "src/features/welcome/welcome.dart",
       "lines": 4,
       "bytes": 202,
       "selected": false
     },
     {
-      "num": 301,
+      "num": 363,
       "path": "src/shared/data/services/similarity/hybrid_similarity_service.dart",
-      "lines": 169,
-      "bytes": 4982,
+      "lines": 171,
+      "bytes": 5025,
       "selected": false
     },
     {
-      "num": 302,
+      "num": 364,
       "path": "src/shared/data/services/tmdb_cache_data_source.dart",
       "lines": 185,
       "bytes": 5829,
-      "selected": true
-    },
-    {
-      "num": 303,
-      "path": "src/shared/data/services/tmdb_client.dart",
-      "lines": 212,
-      "bytes": 6836,
-      "selected": true
-    },
-    {
-      "num": 304,
-      "path": "src/shared/data/services/tmdb_image_resolver.dart",
-      "lines": 154,
-      "bytes": 4871,
       "selected": false
     },
     {
-      "num": 305,
+      "num": 365,
+      "path": "src/shared/data/services/tmdb_client.dart",
+      "lines": 222,
+      "bytes": 7163,
+      "selected": false
+    },
+    {
+      "num": 366,
+      "path": "src/shared/data/services/tmdb_image_resolver.dart",
+      "lines": 154,
+      "bytes": 4894,
+      "selected": false
+    },
+    {
+      "num": 367,
       "path": "src/shared/domain/entities/person_summary.dart",
       "lines": 22,
       "bytes": 461,
       "selected": false
     },
     {
-      "num": 306,
+      "num": 368,
       "path": "src/shared/domain/services/content_repository.dart",
       "lines": 6,
       "bytes": 271,
       "selected": false
     },
     {
-      "num": 307,
+      "num": 369,
+      "path": "src/shared/domain/services/playlist_tmdb_enrichment_service.dart",
+      "lines": 76,
+      "bytes": 2693,
+      "selected": false
+    },
+    {
+      "num": 370,
       "path": "src/shared/domain/services/preferences_service.dart",
       "lines": 5,
       "bytes": 191,
       "selected": false
     },
     {
-      "num": 308,
+      "num": 371,
       "path": "src/shared/domain/services/similarity_service.dart",
       "lines": 5,
       "bytes": 206,
       "selected": false
     },
     {
-      "num": 309,
+      "num": 372,
+      "path": "src/shared/domain/services/tmdb_image_selector_service.dart",
+      "lines": 87,
+      "bytes": 3322,
+      "selected": false
+    },
+    {
+      "num": 373,
       "path": "src/shared/domain/value_objects/content_rating.dart",
       "lines": 1,
       "bytes": 53,
       "selected": false
     },
     {
-      "num": 310,
+      "num": 374,
       "path": "src/shared/domain/value_objects/content_reference.dart",
       "lines": 80,
       "bytes": 2104,
       "selected": false
     },
     {
-      "num": 311,
+      "num": 375,
       "path": "src/shared/domain/value_objects/media_id.dart",
       "lines": 48,
       "bytes": 797,
       "selected": false
     },
     {
-      "num": 312,
+      "num": 376,
       "path": "src/shared/domain/value_objects/media_title.dart",
       "lines": 10,
       "bytes": 170,
       "selected": false
     },
     {
-      "num": 313,
+      "num": 377,
       "path": "src/shared/domain/value_objects/synopsis.dart",
       "lines": 8,
       "bytes": 134,
       "selected": false
     },
     {
-      "num": 314,
+      "num": 378,
       "path": "src/shared/services.dart",
-      "lines": 5,
-      "bytes": 241,
+      "lines": 6,
+      "bytes": 300,
       "selected": false
     }
   ]
