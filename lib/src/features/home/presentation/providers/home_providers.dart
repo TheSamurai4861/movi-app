@@ -191,8 +191,9 @@ final mediaHistoryProvider =
         final entry = entries.firstWhere(
           (e) => e.contentId == params.contentId,
         );
-        if (entry.duration == null || entry.duration!.inSeconds <= 0)
+        if (entry.duration == null || entry.duration!.inSeconds <= 0) {
           return null;
+        }
         final pos = entry.lastPosition?.inSeconds ?? 0;
         final progress = pos / entry.duration!.inSeconds;
         // Un média est considéré en cours seulement si la progression est comprise

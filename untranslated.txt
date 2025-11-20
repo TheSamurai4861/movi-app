@@ -1,1 +1,19 @@
-{}
+{
+  "es": [
+    "movieNoPlaylistsAvailable",
+    "playlistAddedTo",
+    "errorWithMessage",
+    "movieNotAvailableInPlaylist",
+    "errorLoadingPlaylists",
+    "errorPlaybackFailed"
+  ],
+
+  "fr_MM": [
+    "movieNoPlaylistsAvailable",
+    "playlistAddedTo",
+    "errorWithMessage",
+    "movieNotAvailableInPlaylist",
+    "errorLoadingPlaylists",
+    "errorPlaybackFailed"
+  ]
+}

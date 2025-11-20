@@ -5,9 +5,13 @@ import 'package:movi/src/features/person/person.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/favorites_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/history_repository.dart';
+import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
+import 'package:movi/src/features/library/domain/repositories/continue_watching_repository.dart';
 import 'package:movi/src/features/library/data/repositories/library_repository_impl.dart';
 import 'package:movi/src/features/library/data/repositories/favorites_repository_impl.dart';
 import 'package:movi/src/features/library/data/repositories/history_repository_impl.dart';
+import 'package:movi/src/features/library/data/repositories/playback_history_repository_impl.dart';
+import 'package:movi/src/features/library/data/repositories/continue_watching_repository_impl.dart';
 
 class LibraryDataModule {
   static void register() {
@@ -30,6 +34,18 @@ class LibraryDataModule {
     if (!sl.isRegistered<HistoryRepository>()) {
       sl.registerLazySingleton<HistoryRepository>(
         () => HistoryRepositoryImpl(sl<HistoryLocalRepository>()),
+      );
+    }
+
+    if (!sl.isRegistered<PlaybackHistoryRepository>()) {
+      sl.registerLazySingleton<PlaybackHistoryRepository>(
+        () => PlaybackHistoryRepositoryImpl(sl<HistoryLocalRepository>()),
+      );
+    }
+
+    if (!sl.isRegistered<ContinueWatchingRepository>()) {
+      sl.registerLazySingleton<ContinueWatchingRepository>(
+        () => ContinueWatchingRepositoryImpl(sl<ContinueWatchingLocalRepository>()),
       );
     }
   }

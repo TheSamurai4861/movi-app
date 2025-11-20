@@ -8,7 +8,7 @@ void main() {
   group('PlaylistMapper.buildPlaylists', () {
     const mapper = PlaylistMapper();
 
-    XtreamStreamDto _stream({
+    XtreamStreamDto makeStream({
       required int id,
       required String name,
       required String categoryId,
@@ -33,11 +33,11 @@ void main() {
       ];
 
       final movieStreams = [
-        _stream(id: 10, name: 'Movie A', categoryId: '1', tmdbId: 100),
-        _stream(id: 11, name: 'Movie B', categoryId: '1'),
+        makeStream(id: 10, name: 'Movie A', categoryId: '1', tmdbId: 100),
+        makeStream(id: 11, name: 'Movie B', categoryId: '1'),
       ];
       final seriesStreams = [
-        _stream(id: 20, name: 'Show A', categoryId: '2', tmdbId: 200),
+        makeStream(id: 20, name: 'Show A', categoryId: '2', tmdbId: 200),
       ];
 
       final playlists = mapper.buildPlaylists(
@@ -76,7 +76,7 @@ void main() {
       final playlists = mapper.buildPlaylists(
         accountId: 'acc1',
         movieCategories: const [],
-        movieStreams: [_stream(id: 10, name: 'Movie A', categoryId: 'X')],
+        movieStreams: [makeStream(id: 10, name: 'Movie A', categoryId: 'X')],
         seriesCategories: const [],
         seriesStreams: const [],
       );

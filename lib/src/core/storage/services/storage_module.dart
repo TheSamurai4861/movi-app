@@ -5,6 +5,8 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/security/secure_credentials_vault.dart';
 import 'package:movi/src/core/storage/database/sqlite_database.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
+import 'package:movi/src/core/logging/logger.dart';
 
 /// Registers all storage-layer dependencies.
 ///
@@ -55,6 +57,15 @@ class StorageModule {
     if (!sl.isRegistered<CredentialsVault>()) {
       sl.registerLazySingleton<CredentialsVault>(
         () => SecureCredentialsVault(),
+      );
+    }
+
+    if (!sl.isRegistered<XtreamLookupService>()) {
+      sl.registerLazySingleton<XtreamLookupService>(
+        () => XtreamLookupService(
+          iptvLocal: sl<IptvLocalRepository>(),
+          logger: sl<AppLogger>(),
+        ),
       );
     }
   }

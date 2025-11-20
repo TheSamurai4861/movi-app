@@ -252,5 +252,31 @@
   },
   "categoryLoadFailed": "Fout bij het laden van de categorie.",
   "categoryEmpty": "Geen items in deze categorie.",
-  "categoryLoadingMore": "Meer laden…"
+  "categoryLoadingMore": "Meer laden…",
+  "movieNoPlaylistsAvailable": "Geen playlist beschikbaar",
+  "playlistAddedTo": "Toegevoegd aan \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Fout: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film niet beschikbaar in de playlist",
+  "errorLoadingPlaylists": "Fout bij het laden van playlists: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Fout bij het afspelen van de film: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  }
 }

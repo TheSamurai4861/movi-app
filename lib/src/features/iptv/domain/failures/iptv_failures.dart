@@ -15,16 +15,10 @@ class MissingCredentialsFailure extends Failure {
 /// URL de serveur Xtream invalide ou mal formée.
 class InvalidEndpointFailure extends Failure {
   const InvalidEndpointFailure(
-    String message, {
+    super.message, {
     String? code,
-    StackTrace? stackTrace,
-    Object? cause,
-    Map<String, Object?>? context,
-  }) : super(
-         message,
-         code: code ?? 'iptv_invalid_endpoint',
-         stackTrace: stackTrace,
-         cause: cause,
-         context: context,
-       );
+    super.stackTrace,
+    super.cause,
+    super.context,
+  }) : super(code: code ?? 'iptv_invalid_endpoint');
 }

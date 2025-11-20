@@ -360,4 +360,18 @@ class AppLocalizationsBu extends AppLocalizations {
   String get categoryEmpty => 'Point d\'élément dans cette catégorie.';
   @override
   String get categoryLoadingMore => 'Chargement en cours…';
+  @override
+  String get movieNoPlaylistsAvailable => 'Point de liste disponible';
+  @override
+  String playlistAddedTo(String title) => 'Ajouté à "$title"';
+  @override
+  String errorWithMessage(String message) => 'Couac: $message';
+  @override
+  String get movieNotAvailableInPlaylist => 'Bobine point disponible dans la liste';
+  @override
+  String errorLoadingPlaylists(String message) =>
+      'Couac lors du chargement des listes: $message';
+  @override
+  String errorPlaybackFailed(String message) =>
+      'Couac lors de la lecture de la bobine: $message';
 }

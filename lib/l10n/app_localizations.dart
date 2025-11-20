@@ -1094,6 +1094,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Loading more…'**
   String get categoryLoadingMore;
+
+  /// No description provided for @movieNoPlaylistsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlist available'**
+  String get movieNoPlaylistsAvailable;
+
+  /// No description provided for @playlistAddedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to \"{title}\"'**
+  String playlistAddedTo(String title);
+
+  /// No description provided for @errorWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String errorWithMessage(String message);
+
+  /// No description provided for @movieNotAvailableInPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie not available in the playlist'**
+  String get movieNotAvailableInPlaylist;
+
+  /// No description provided for @errorLoadingPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading playlists: {message}'**
+  String errorLoadingPlaylists(String message);
+
+  /// No description provided for @errorPlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Error playing movie: {message}'**
+  String errorPlaybackFailed(String message);
 }
 
 class _AppLocalizationsDelegate

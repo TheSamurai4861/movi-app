@@ -541,6 +541,33 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get categoryLoadingMore => 'Chargement en cours…';
+
+  @override
+  String get movieNoPlaylistsAvailable => 'Aucune playlist disponible';
+
+  @override
+  String playlistAddedTo(String title) {
+    return 'Ajouté à \"$title\"';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Erreur: $message';
+  }
+
+  @override
+  String get movieNotAvailableInPlaylist =>
+      'Film non disponible dans la playlist';
+
+  @override
+  String errorLoadingPlaylists(String message) {
+    return 'Erreur lors du chargement des playlists: $message';
+  }
+
+  @override
+  String errorPlaybackFailed(String message) {
+    return 'Erreur lors de la lecture du film: $message';
+  }
 }
 
 /// The translations for French, as used in Myanmar (`fr_MM`).

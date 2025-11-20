@@ -58,7 +58,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Timer? _autoRefreshTimer;
   Timer? _seasonsCheckTimer;
   int _retryCount = 0;
-  Map<int, DateTime> _seasonLoadingStartTimes = {};
+  final Map<int, DateTime> _seasonLoadingStartTimes = {};
   static const int _maxRetries = 3;
   static const Duration _loadingTimeout = Duration(seconds: 15);
   static const Duration _seasonLoadingTimeout = Duration(seconds: 10);

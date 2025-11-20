@@ -290,8 +290,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return current.inDays >= 365;
     }
     // Si current est désactivé (>= 365 jours) et option est null (désactivé)
-    if (current.inDays >= 365)
+    if (current.inDays >= 365) {
       return false; // option n'est pas null ici, donc différent
+    }
 
     // Comparer les intervalles en minutes
     return current.inMinutes == option.inMinutes;

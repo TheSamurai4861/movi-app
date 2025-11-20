@@ -3,7 +3,6 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
 import 'package:movi/src/features/movie/data/repositories/movie_repository_impl.dart';
 import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
@@ -18,17 +17,24 @@ import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart'
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/core/models/models.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/features/movie/domain/usecases/build_movie_video_source.dart';
+import 'package:movi/src/features/movie/domain/usecases/get_movie_availability_on_iptv.dart';
+import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_seen.dart';
+import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_unseen.dart';
+import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.dart';
+import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 
 /// Provider pour MovieRepository avec userId actuel
 final movieRepositoryProvider = Provider<MovieRepository>((ref) {
   final userId = ref.watch(currentUserIdProvider);
   return MovieRepositoryImpl(
-    ref.watch(slProvider)<TmdbMovieRemoteDataSource>(),
-    ref.watch(slProvider)<TmdbImageResolver>(),
-    ref.watch(slProvider)<WatchlistLocalRepository>(),
-    ref.watch(slProvider)<MovieLocalDataSource>(),
-    ref.watch(slProvider)<ContinueWatchingLocalRepository>(),
-    ref.watch(slProvider)<AppStateController>(),
+    ref.watch(tmdbMovieRemoteDataSourceProvider),
+    ref.watch(tmdbImageResolverProvider),
+    ref.watch(watchlistLocalRepositoryProvider),
+    ref.watch(movieLocalDataSourceProvider),
+    ref.watch(continueWatchingLocalRepositoryProvider),
+    ref.watch(appStateControllerProvider),
     userId: userId,
   );
 });
@@ -65,6 +71,24 @@ final movieToggleFavoriteProvider =
       MovieToggleFavoriteNotifier.new,
     );
 
+/// Providers pour les nouveaux use cases
+final buildMovieVideoSourceUseCaseProvider = Provider<BuildMovieVideoSource>((
+  ref,
+) => ref.watch(slProvider)<BuildMovieVideoSource>());
+
+final getMovieAvailabilityOnIptvUseCaseProvider =
+    Provider<GetMovieAvailabilityOnIptv>((ref) =>
+        ref.watch(slProvider)<GetMovieAvailabilityOnIptv>());
+
+final markMovieAsSeenUseCaseProvider =
+    Provider<MarkMovieAsSeen>((ref) => ref.watch(slProvider)<MarkMovieAsSeen>());
+
+final markMovieAsUnseenUseCaseProvider = Provider<MarkMovieAsUnseen>((ref) =>
+    ref.watch(slProvider)<MarkMovieAsUnseen>());
+
+final addMovieToPlaylistUseCaseProvider = Provider<AddMovieToPlaylist>((ref) =>
+    ref.watch(slProvider)<AddMovieToPlaylist>());
+
 final movieDetailControllerProvider =
     FutureProvider.family<MovieDetailViewModel, String>((ref, movieId) async {
       final lang = ref.watch(currentLanguageCodeProvider);
@@ -92,6 +116,42 @@ final movieDetailControllerProvider =
         language: lang,
       );
     });
+
+/// Disponibilité du film sur IPTV
+final movieAvailabilityProvider = FutureProvider.family<bool, String>((ref, id) async {
+  final usecase = ref.watch(getMovieAvailabilityOnIptvUseCaseProvider);
+  return await usecase(id);
+});
+
+/// Entrée d'historique brute pour un film
+final movieHistoryProvider = FutureProvider.family<PlaybackHistoryEntry?, String>((ref, id) async {
+  try {
+    final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
+    return await historyRepo.getEntry(id, ContentType.movie);
+  } catch (_) {
+    return null;
+  }
+});
+
+/// Statut vu/non vu basé sur l'historique
+final movieSeenProvider = FutureProvider.family<bool, String>((ref, id) async {
+  try {
+    final entry = await ref.read(movieHistoryProvider(id).future);
+    if (entry == null || entry.duration == null || entry.duration!.inSeconds <= 0) {
+      return false;
+    }
+    final progress = (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
+    return progress >= 0.9;
+  } catch (_) {
+    return false;
+  }
+});
+
+/// Construction de la VideoSource du film
+final buildMovieVideoSourceProvider = FutureProvider.family<VideoSource?, ({String movieId, String title, Uri? poster})>((ref, args) async {
+  final usecase = ref.watch(buildMovieVideoSourceUseCaseProvider);
+  return await usecase(movieId: args.movieId, title: args.title, poster: args.poster);
+});
 
 /// Provider pour vérifier si une saga est dans les favoris
 /// Utilise l'ID de la saga comme clé pour partager l'état entre tous les films de la saga
@@ -183,3 +243,29 @@ final sagaMoviesProvider = FutureProvider.family<List<MoviMedia>, SagaSummary?>(
     }
   },
 );
+
+/// Providers DI pour les dépendances Movie
+final tmdbMovieRemoteDataSourceProvider = Provider<TmdbMovieRemoteDataSource>((
+  ref,
+) {
+  return ref.watch(slProvider)<TmdbMovieRemoteDataSource>();
+});
+
+final movieLocalDataSourceProvider = Provider<MovieLocalDataSource>((ref) {
+  return ref.watch(slProvider)<MovieLocalDataSource>();
+});
+
+final watchlistLocalRepositoryProvider = Provider<WatchlistLocalRepository>((
+  ref,
+) {
+  return ref.watch(slProvider)<WatchlistLocalRepository>();
+});
+
+final continueWatchingLocalRepositoryProvider =
+    Provider<ContinueWatchingLocalRepository>((ref) {
+      return ref.watch(slProvider)<ContinueWatchingLocalRepository>();
+    });
+
+final tmdbImageResolverProvider = Provider<TmdbImageResolver>((ref) {
+  return ref.watch(slProvider)<TmdbImageResolver>();
+});

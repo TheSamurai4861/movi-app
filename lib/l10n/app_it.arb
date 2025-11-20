@@ -117,6 +117,32 @@
   "renamePlaylist": "Rinomina",
   "deletePlaylist": "Elimina",
   "playlistDeleted": "Playlist eliminata",
+  "movieNoPlaylistsAvailable": "Nessuna playlist disponibile",
+  "playlistAddedTo": "Aggiunto a \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Errore: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film non disponibile nella playlist",
+  "errorLoadingPlaylists": "Errore durante il caricamento delle playlist: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Errore durante la riproduzione del film: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
   "playlistCreatedSuccess": "Playlist \"{name}\" creata",
   "@playlistCreatedSuccess": {
     "placeholders": {

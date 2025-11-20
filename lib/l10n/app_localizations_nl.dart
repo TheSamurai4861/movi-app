@@ -542,4 +542,31 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get categoryLoadingMore => 'Meer laden…';
+
+  @override
+  String get movieNoPlaylistsAvailable => 'Geen playlist beschikbaar';
+
+  @override
+  String playlistAddedTo(String title) {
+    return 'Toegevoegd aan \"$title\"';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Fout: $message';
+  }
+
+  @override
+  String get movieNotAvailableInPlaylist =>
+      'Film niet beschikbaar in de playlist';
+
+  @override
+  String errorLoadingPlaylists(String message) {
+    return 'Fout bij het laden van playlists: $message';
+  }
+
+  @override
+  String errorPlaybackFailed(String message) {
+    return 'Fout bij het afspelen van de film: $message';
+  }
 }

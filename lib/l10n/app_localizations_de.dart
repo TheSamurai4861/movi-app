@@ -543,4 +543,31 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get categoryLoadingMore => 'Lade mehr…';
+
+  @override
+  String get movieNoPlaylistsAvailable => 'Keine Playlist verfügbar';
+
+  @override
+  String playlistAddedTo(String title) {
+    return 'Hinzugefügt zu \"$title\"';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Fehler: $message';
+  }
+
+  @override
+  String get movieNotAvailableInPlaylist =>
+      'Film nicht in der Playlist verfügbar';
+
+  @override
+  String errorLoadingPlaylists(String message) {
+    return 'Fehler beim Laden der Playlists: $message';
+  }
+
+  @override
+  String errorPlaybackFailed(String message) {
+    return 'Fehler beim Abspielen des Films: $message';
+  }
 }

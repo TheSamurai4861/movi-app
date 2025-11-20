@@ -86,7 +86,7 @@ void main() {
       createdAt: DateTime(2020, 1, 1),
     );
 
-    XtreamPlaylist _playlist(
+    XtreamPlaylist makePlaylist(
       String id,
       String title,
       List<XtreamPlaylistItem> items,
@@ -100,7 +100,7 @@ void main() {
       );
     }
 
-    XtreamPlaylistItem _item({
+    XtreamPlaylistItem makeItem({
       required int streamId,
       required String title,
       XtreamPlaylistItemType type = XtreamPlaylistItemType.movie,
@@ -141,10 +141,10 @@ void main() {
 
     test('listCategory retourne les items de la catégorie nettoyée', () async {
       final items = [
-        _item(streamId: 1, title: 'Movie A', tmdbId: 100, year: 2020),
-        _item(streamId: 2, title: 'Movie B', posterUrl: 'http://poster'),
+        makeItem(streamId: 1, title: 'Movie A', tmdbId: 100, year: 2020),
+        makeItem(streamId: 2, title: 'Movie B', posterUrl: 'http://poster'),
       ];
-      final playlists = [_playlist('cat1', 'Movies/Action', items)];
+      final playlists = [makePlaylist('cat1', 'Movies/Action', items)];
 
       final repo = _FakeIptvLocalRepository(
         accounts: [account],
@@ -165,10 +165,14 @@ void main() {
 
     test('searchCatalog filtre par titre et poster valide', () async {
       final items = [
-        _item(streamId: 1, title: 'Good Movie', posterUrl: 'http://ok'),
-        _item(streamId: 2, title: 'Bad Movie', posterUrl: ''), // pas de poster
+        makeItem(streamId: 1, title: 'Good Movie', posterUrl: 'http://ok'),
+        makeItem(
+          streamId: 2,
+          title: 'Bad Movie',
+          posterUrl: '',
+        ), // pas de poster
       ];
-      final playlists = [_playlist('cat1', 'Movies/Action', items)];
+      final playlists = [makePlaylist('cat1', 'Movies/Action', items)];
 
       final repo = _FakeIptvLocalRepository(
         accounts: [account],
@@ -185,9 +189,9 @@ void main() {
 
     test('listCategoryLists construit des clés alias/cleanedTitle', () async {
       final items = [
-        _item(streamId: 1, title: 'Movie A', posterUrl: 'http://ok'),
+        makeItem(streamId: 1, title: 'Movie A', posterUrl: 'http://ok'),
       ];
-      final playlists = [_playlist('cat1', 'Movies/Action', items)];
+      final playlists = [makePlaylist('cat1', 'Movies/Action', items)];
 
       final repo = _FakeIptvLocalRepository(
         accounts: [account],

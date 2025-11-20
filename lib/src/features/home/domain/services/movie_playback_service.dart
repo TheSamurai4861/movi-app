@@ -5,6 +5,7 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
+import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 /// Service pour gérer la lecture de films depuis le hero de la page d'accueil.
@@ -16,13 +17,16 @@ class MoviePlaybackService {
     required IptvLocalRepository iptvLocal,
     required CredentialsVault vault,
     required AppLogger logger,
+    required XtreamLookupService lookup,
   }) : _iptvLocal = iptvLocal,
        _vault = vault,
-       _logger = logger;
+       _logger = logger,
+       _lookup = lookup;
 
   final IptvLocalRepository _iptvLocal;
   final CredentialsVault _vault;
   final AppLogger _logger;
+  final XtreamLookupService _lookup;
 
   /// Recherche un film dans les playlists Xtream et construit la source vidéo.
   ///
@@ -38,7 +42,7 @@ class MoviePlaybackService {
       final title = movie.title.display;
 
       // Chercher l'item Xtream correspondant
-      final xtreamItem = await _findXtreamItem(movieId);
+      final xtreamItem = await _lookup.findItemByMovieId(movieId);
 
       if (xtreamItem == null) {
         _logger.info('Film movieId=$movieId non trouvé dans les playlists');
@@ -80,66 +84,5 @@ class MoviePlaybackService {
     }
   }
 
-  /// Recherche un item Xtream par son ID (streamId ou tmdbId).
-  Future<XtreamPlaylistItem?> _findXtreamItem(String movieId) async {
-    final accounts = await _iptvLocal.getAccounts();
-
-    _logger.debug(
-      'Recherche du film movieId=$movieId dans ${accounts.length} comptes',
-    );
-
-    for (final account in accounts) {
-      final playlists = await _iptvLocal.getPlaylists(account.id);
-      _logger.debug('Compte ${account.id}: ${playlists.length} playlists');
-
-      // Recherche globale dans toutes les playlists (movies et series)
-      // car certains films peuvent être mal catégorisés
-      for (final playlist in playlists) {
-        _logger.debug(
-          'Playlist ${playlist.title} (${playlist.type.name}): ${playlist.items.length} items',
-        );
-
-        XtreamPlaylistItem? item;
-
-        // Si l'ID commence par "xtream:", chercher par streamId
-        if (movieId.startsWith('xtream:')) {
-          final streamIdStr = movieId.substring(7);
-          final streamId = int.tryParse(streamIdStr);
-          _logger.debug('Recherche par streamId=$streamId (xtream)');
-          if (streamId != null) {
-            try {
-              item = playlist.items.firstWhere((i) => i.streamId == streamId);
-              _logger.debug(
-                'Film trouvé: ${item.title} (streamId=${item.streamId}, tmdbId=${item.tmdbId}, type=${item.type.name})',
-              );
-            } catch (_) {
-              _logger.debug(
-                'Film avec streamId=$streamId non trouvé dans ${playlist.title}',
-              );
-            }
-          }
-        } else {
-          // Sinon, chercher par tmdbId
-          final tmdbId = int.tryParse(movieId);
-          _logger.debug('Recherche par tmdbId=$tmdbId');
-          if (tmdbId != null) {
-            try {
-              item = playlist.items.firstWhere((i) => i.tmdbId == tmdbId);
-              _logger.debug(
-                'Film trouvé: ${item.title} (streamId=${item.streamId}, tmdbId=${item.tmdbId}, type=${item.type.name})',
-              );
-            } catch (_) {
-              _logger.debug(
-                'Film avec tmdbId=$tmdbId non trouvé dans ${playlist.title}',
-              );
-            }
-          }
-        }
-
-        if (item != null) return item;
-      }
-    }
-
-    return null;
-  }
+  
 }

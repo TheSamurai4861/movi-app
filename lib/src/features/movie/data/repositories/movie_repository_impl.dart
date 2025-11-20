@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:movi/src/features/movie/domain/entities/movie.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
@@ -14,6 +15,7 @@ import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_
 import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
+import 'package:movi/src/core/shared/failure.dart';
 
 class MovieRepositoryImpl implements MovieRepository {
   MovieRepositoryImpl(
@@ -37,16 +39,48 @@ class MovieRepositoryImpl implements MovieRepository {
   @override
   Future<Movie> getMovie(MovieId id) async {
     final movieId = int.parse(id.value);
-    final cached = await _local.getMovieDetail(movieId);
+    final lang = _appState.preferredLocale;
+    final cached = await _local.getMovieDetailLang(movieId, lang: lang);
     if (cached != null) {
       return _mapDetail(cached);
     }
-    final remote = await _remote.fetchMovieFull(
-      movieId,
-      language: _appState.preferredLocale,
-    );
-    await _local.saveMovieDetail(dto: remote);
-    return _mapDetail(remote);
+    try {
+      final dto = await _remote.fetchMovieFull(
+        movieId,
+        language: lang,
+      );
+      await _local.saveMovieDetailLang(dto: dto, lang: lang);
+      if (dto.recommendations.isNotEmpty) {
+        await _local.saveRecommendationsLang(
+          movieId: movieId,
+          lang: lang,
+          summaries: dto.recommendations,
+        );
+      }
+      dev.log(
+        'movie_detail_saved',
+        name: 'MovieRepositoryImpl',
+        error: null,
+      );
+      return _mapDetail(dto);
+    } catch (e, st) {
+      dev.log(
+        'getMovie_failed',
+        name: 'MovieRepositoryImpl',
+        error: e,
+        stackTrace: st,
+      );
+      throw Failure.fromException(
+        e,
+        stackTrace: st,
+        code: 'movie_detail_fetch_failed',
+        context: <String, Object?>{
+          'operation': 'getMovie',
+          'movieId': movieId,
+          'lang': lang,
+        },
+      );
+    }
   }
 
   @override
@@ -59,22 +93,23 @@ class MovieRepositoryImpl implements MovieRepository {
   @override
   Future<List<MovieSummary>> getRecommendations(MovieId id) async {
     final movieId = int.parse(id.value);
-    final cached = await _local.getRecommendations(movieId);
+    final lang = _appState.preferredLocale;
+    final cached = await _local.getRecommendationsLang(
+      movieId,
+      lang: lang,
+    );
     if (cached != null && cached.isNotEmpty) {
       return cached.map(_mapSummary).whereType<MovieSummary>().toList();
     }
-    // Si le cache est vide ou n'existe pas, récupérer depuis le réseau
-    // Utiliser fetchMovieFull qui inclut les recommandations via append_to_response
     final dto = await _remote.fetchMovieFull(
       movieId,
-      language: _appState.preferredLocale,
+      language: lang,
     );
     final recommendations = dto.recommendations;
-    // Sauvegarder les recommandations dans le cache même si la liste est vide
-    // pour éviter les appels répétés pour les films sans recommandations
     if (recommendations.isNotEmpty) {
-      await _local.saveRecommendations(
+      await _local.saveRecommendationsLang(
         movieId: movieId,
+        lang: lang,
         summaries: recommendations,
       );
     }
@@ -131,8 +166,11 @@ class MovieRepositoryImpl implements MovieRepository {
   @override
   Future<void> refreshMetadata(MovieId id) async {
     final movieId = int.parse(id.value);
+    final lang = _appState.preferredLocale;
     await _local.clearMovieDetail(movieId);
     await _local.clearRecommendations(movieId);
+    await _local.clearMovieDetailLang(movieId, lang);
+    await _local.clearRecommendationsLang(movieId, lang);
   }
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {

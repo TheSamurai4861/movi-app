@@ -254,6 +254,32 @@
   },
   "categoryLoadFailed": "Fehler beim Laden der Kategorie.",
   "categoryEmpty": "Keine Elemente in dieser Kategorie.",
-  "categoryLoadingMore": "Lade mehr…"
+  "categoryLoadingMore": "Lade mehr…",
+  "movieNoPlaylistsAvailable": "Keine Playlist verfügbar",
+  "playlistAddedTo": "Hinzugefügt zu \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Fehler: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film nicht in der Playlist verfügbar",
+  "errorLoadingPlaylists": "Fehler beim Laden der Playlists: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Fehler beim Abspielen des Films: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  }
 }
 

@@ -540,4 +540,31 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get categoryLoadingMore => 'Cargando más…';
+
+  @override
+  String get movieNoPlaylistsAvailable => 'No playlist available';
+
+  @override
+  String playlistAddedTo(String title) {
+    return 'Added to \"$title\"';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Error: $message';
+  }
+
+  @override
+  String get movieNotAvailableInPlaylist =>
+      'Movie not available in the playlist';
+
+  @override
+  String errorLoadingPlaylists(String message) {
+    return 'Error loading playlists: $message';
+  }
+
+  @override
+  String errorPlaybackFailed(String message) {
+    return 'Error playing movie: $message';
+  }
 }

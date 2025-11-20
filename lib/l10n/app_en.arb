@@ -284,5 +284,31 @@
   },
   "categoryLoadFailed": "Failed to load category.",
   "categoryEmpty": "No items in this category.",
-  "categoryLoadingMore": "Loading more…"
+  "categoryLoadingMore": "Loading more…",
+  "movieNoPlaylistsAvailable": "No playlist available",
+  "playlistAddedTo": "Added to \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Error: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Movie not available in the playlist",
+  "errorLoadingPlaylists": "Error loading playlists: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Error playing movie: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  }
 }

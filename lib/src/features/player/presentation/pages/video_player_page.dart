@@ -877,7 +877,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   void _onChromecast() {
-    // TODO: Implémenter la fonctionnalité Chromecast
     // Nécessite l'ajout d'un package comme flutter_cast ou cast_framework
     // et la configuration des services Google Cast
     if (mounted) {

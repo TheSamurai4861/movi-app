@@ -13,6 +13,7 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
 import 'package:movi/src/features/home/domain/services/movie_playback_service.dart';
+import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/features/home/domain/services/home_hero_metadata_service.dart';
 import 'package:movi/src/features/home/domain/services/continue_watching_enrichment_service.dart';
 import 'package:movi/src/features/home/domain/usecases/load_continue_watching_media.dart';
@@ -35,6 +36,16 @@ class HomeFeedDataModule {
       ),
     );
 
+    // Enregistrer le service de lookup Xtream
+    if (!sl.isRegistered<XtreamLookupService>()) {
+      sl.registerLazySingleton<XtreamLookupService>(
+        () => XtreamLookupService(
+          iptvLocal: sl<IptvLocalRepository>(),
+          logger: sl<AppLogger>(),
+        ),
+      );
+    }
+
     // Enregistrer le service de playback
     if (!sl.isRegistered<MoviePlaybackService>()) {
       sl.registerLazySingleton<MoviePlaybackService>(
@@ -42,6 +53,7 @@ class HomeFeedDataModule {
           iptvLocal: sl<IptvLocalRepository>(),
           vault: sl<CredentialsVault>(),
           logger: sl<AppLogger>(),
+          lookup: sl<XtreamLookupService>(),
         ),
       );
     }
