@@ -1,0 +1,2063 @@
+# DUMP FROM: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets
+
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\app_restart.dart
+========================================================================================================================
+
+import 'package:flutter/widgets.dart';
+
+class AppRestart extends StatefulWidget {
+  const AppRestart({super.key, required this.child});
+
+  final Widget child;
+
+  static void restartApp(BuildContext context) {
+    final state = context.findAncestorStateOfType<_AppRestartState>();
+    state?.restart();
+  }
+
+  @override
+  State<AppRestart> createState() => _AppRestartState();
+}
+
+class _AppRestartState extends State<AppRestart> {
+  Key _key = UniqueKey();
+
+  void restart() {
+    setState(() {
+      _key = UniqueKey();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(
+      key: _key,
+      child: widget.child,
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\launch_error_panel.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+
+import 'package:movi/src/core/widgets/movi_primary_button.dart';
+
+class LaunchErrorPanel extends StatelessWidget {
+  const LaunchErrorPanel({
+    super.key,
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+    this.details,
+    this.showDetails = false,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+  final String? details;
+  final bool showDetails;
+
+  static const int _detailsMaxChars = 300;
+  static const int _detailsMaxLines = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final detailsText = _truncateDetails(details);
+    final showDetailsText = showDetails && detailsText != null;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge,
+            ),
+            if (showDetailsText) ...[
+              const SizedBox(height: 12),
+              Text(
+                detailsText,
+                textAlign: TextAlign.center,
+                maxLines: _detailsMaxLines,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 24),
+            MoviPrimaryButton(
+              label: retryLabel,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String? _truncateDetails(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.length <= _detailsMaxChars) return trimmed;
+    return '${trimmed.substring(0, _detailsMaxChars)}...';
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_bottom_nav_bar.dart
+========================================================================================================================
+
+import 'dart:ui';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/l10n/app_localizations.dart';
+
+const _kNavHeight = 72.0;
+const _kContainerPadding = 5.0;
+const _kAndroidBottomSpacing = 32.0;
+const _kSelectedBackground = Color(0xFF262626); // 100% opacity
+const _kBarBackground = Color(0x4D666666); // ~30% opacity pour laisser le blur visible
+const _kAnimationDuration = Duration(milliseconds: 300);
+
+class MoviBottomNavItem {
+  const MoviBottomNavItem({required this.label, required this.icon});
+
+  final String label;
+  final String icon;
+}
+
+/// Floating bottom navigation bar with blurred background and rounded items.
+class MoviBottomNavBar extends ConsumerWidget {
+  MoviBottomNavBar({
+    super.key,
+    required this.selectedIndex,
+    required this.onItemSelected,
+    List<MoviBottomNavItem>? navItems,
+  }) : assert(selectedIndex >= 0),
+       _customItems = navItems,
+       assert(
+         (navItems ?? _defaultItems).isNotEmpty,
+         'MoviBottomNavBar requires at least one item.',
+       );
+
+  static const double height = _kNavHeight;
+
+  final int selectedIndex;
+  final ValueChanged<int> onItemSelected;
+  final List<MoviBottomNavItem>? _customItems;
+
+  static const List<MoviBottomNavItem> _defaultItems = [
+    MoviBottomNavItem(label: 'Accueil', icon: AppAssets.navHome),
+    MoviBottomNavItem(label: 'Recherche', icon: AppAssets.navSearch),
+    MoviBottomNavItem(label: 'Bibliothèque', icon: AppAssets.navLibrary),
+    MoviBottomNavItem(label: 'Paramètres', icon: AppAssets.navSettings),
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = _customItems ?? _localizedItems(context);
+    assert(
+      selectedIndex < (items.length),
+      'selectedIndex ($selectedIndex) must be within the items list.',
+    );
+
+    final theme = Theme.of(context);
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
+    final unselectedTextColor = Colors.white.withValues(alpha: 0.7);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: _kNavHeight,
+          width: double.infinity,
+          padding: const EdgeInsets.all(_kContainerPadding),
+          decoration: BoxDecoration(
+            color: _kBarBackground,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _MoviBottomNavItemWidget(
+                    item: items[i],
+                    index: i,
+                    isSelected: selectedIndex == i,
+                    onTap: onItemSelected,
+                    accentColor: accentColor,
+                    selectedTextColor: accentColor,
+                    unselectedTextColor: unselectedTextColor,
+                    textStyle: theme.textTheme.labelSmall,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<MoviBottomNavItem> _localizedItems(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+    return [
+      MoviBottomNavItem(label: loc.navHome, icon: AppAssets.navHome),
+      MoviBottomNavItem(label: loc.navSearch, icon: AppAssets.navSearch),
+      MoviBottomNavItem(label: loc.navLibrary, icon: AppAssets.navLibrary),
+      MoviBottomNavItem(label: loc.navSettings, icon: AppAssets.navSettings),
+    ];
+  }
+}
+
+class _MoviBottomNavItemWidget extends StatefulWidget {
+  const _MoviBottomNavItemWidget({
+    required this.item,
+    required this.index,
+    required this.isSelected,
+    required this.onTap,
+    required this.accentColor,
+    required this.selectedTextColor,
+    required this.unselectedTextColor,
+    required this.textStyle,
+  });
+
+  final MoviBottomNavItem item;
+  final int index;
+  final bool isSelected;
+  final ValueChanged<int> onTap;
+  final Color accentColor;
+  final Color selectedTextColor;
+  final Color unselectedTextColor;
+  final TextStyle? textStyle;
+
+  @override
+  State<_MoviBottomNavItemWidget> createState() =>
+      _MoviBottomNavItemWidgetState();
+}
+
+class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _translateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: _kAnimationDuration,
+      vsync: this,
+    );
+
+    // Initialiser à la valeur finale si déjà sélectionné (pas d'animation au premier build)
+    _controller.value = widget.isSelected ? 1.0 : 0.0;
+
+    _translateAnimation = Tween<double>(
+      begin: 0.0,
+      end: -4.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void didUpdateWidget(_MoviBottomNavItemWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelected != oldWidget.isSelected) {
+      if (widget.isSelected) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveStyle = (widget.textStyle ?? const TextStyle(fontSize: 12))
+        .copyWith(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: widget.isSelected
+              ? widget.selectedTextColor
+              : widget.unselectedTextColor,
+        );
+
+    final iconColor = widget.isSelected ? widget.accentColor : Colors.white70;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => widget.onTap(widget.index),
+        borderRadius: BorderRadius.circular(999),
+        splashColor: Colors.white24,
+        highlightColor: Colors.white10,
+        child: AnimatedContainer(
+          duration: _kAnimationDuration,
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? _kSelectedBackground
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedBuilder(
+                animation: _translateAnimation,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _translateAnimation.value),
+                    child: SvgPicture.asset(
+                      widget.item.icon,
+                      key: ValueKey('${widget.item.icon}-${widget.isSelected}'),
+                      width: 24,
+                      height: 24,
+                      colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                    ),
+                  );
+                },
+              ),
+              AnimatedSwitcher(
+                duration: _kAnimationDuration,
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: widget.isSelected
+                    ? AnimatedDefaultTextStyle(
+                        key: ValueKey(
+                          'label-${widget.item.label}-${widget.isSelected}',
+                        ),
+                        duration: _kAnimationDuration,
+                        style: effectiveStyle,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            widget.item.label,
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      )
+                    : SizedBox.shrink(
+                        key: ValueKey(
+                          'empty-${widget.item.label}-${widget.isSelected}',
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+double moviNavBarHeight() => _kNavHeight;
+
+double moviNavBarBottomOffset(BuildContext context) {
+  final bottomInset = MediaQuery.of(context).padding.bottom;
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    return bottomInset + _kAndroidBottomSpacing;
+  }
+  return bottomInset;
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_favorite_button.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+
+import 'package:movi/src/core/utils/app_assets.dart';
+
+/// Favorite toggle button using asset images.
+/// - Crossfades (opacity) between unfilled and filled stars in 300ms.
+/// - Images are 36px, the tappable box is 35x35 to match spec.
+/// - Triggers the provided [onPressed] callback when tapped.
+class MoviFavoriteButton extends StatelessWidget {
+  final bool isFavorite;
+  final VoidCallback onPressed;
+
+  /// Optional custom asset paths. Defaults to AppAssets star icons.
+  final String filledAsset;
+  final String unfilledAsset;
+
+  /// Size of the tappable area (width & height). Defaults to 35.
+  final double size;
+
+  const MoviFavoriteButton({
+    super.key,
+    required this.isFavorite,
+    required this.onPressed,
+    this.filledAsset = AppAssets.iconStarFilled,
+    this.unfilledAsset = AppAssets.iconStarUnfilled,
+    this.size = 35,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const duration = Duration(milliseconds: 300);
+
+    return Semantics(
+      button: true,
+      toggled: isFavorite,
+      label: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(size / 2),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Unfilled star (visible when not favorite)
+                AnimatedOpacity(
+                  duration: duration,
+                  curve: Curves.easeInOut,
+                  opacity: isFavorite ? 0.0 : 1.0,
+                  child: Image.asset(
+                    unfilledAsset,
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                // Filled star (visible when favorite)
+                AnimatedOpacity(
+                  duration: duration,
+                  curve: Curves.easeInOut,
+                  opacity: isFavorite ? 1.0 : 0.0,
+                  child: Image.asset(
+                    filledAsset,
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_items_list.dart
+========================================================================================================================
+
+import 'dart:async';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+
+/// Liste horizontale avec titre et sous-titre optionnel.
+/// Émet des fenêtres d'index visibles (start, count) pour l’enrichissement paresseux.
+/// Optimisations :
+/// - garde de visibilité verticale,
+/// - debounce des notifications,
+/// - déduplication des fenêtres envoyées,
+/// - calcul robuste du padding horizontal (RTL/LTR),
+/// - prise en compte des changements de largeur via LayoutBuilder.
+class MoviItemsList extends StatefulWidget {
+  const MoviItemsList({
+    super.key,
+    required this.title,
+    required this.items,
+    this.subtitle,
+    this.action,
+    this.itemSpacing = 16,
+    this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
+    this.titlePadding = 20,
+    this.onViewportChanged,
+    this.estimatedItemWidth,
+    this.estimatedItemHeight,
+    this.preloadAhead = 2,
+    this.verticalPreloadMargin = 150,
+    this.debounceMs = 240,
+  }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
+
+  final String title;
+  final String? subtitle;
+  final List<Widget> items;
+
+  /// Action optionnelle à droite du header (ex: bouton "Voir tout").
+  final Widget? action;
+
+  /// Espacement entre cartes.
+  final double itemSpacing;
+
+  /// Padding horizontal appliqué sur la rangée de cartes.
+  final EdgeInsetsGeometry horizontalPadding;
+
+  /// Padding appliqué à la ligne de titre.
+  final double titlePadding;
+
+  /// Callback lorsque la fenêtre visible a potentiellement changé.
+  /// Signature: (startIndexInclus, count>=1).
+  final void Function(int start, int count)? onViewportChanged;
+
+  /// Largeur estimée d’une carte (hors spacing). Sans valeur, aucun callback n’est émis.
+  final double? estimatedItemWidth;
+
+  /// Hauteur estimée d’une carte; utilisée pour contraindre la `ListView` horizontale.
+  /// Si non renseignée, une hauteur par défaut est appliquée.
+  final double? estimatedItemHeight;
+
+  /// Marge de préchargement verticale (px) avant/après l’entrée à l’écran.
+  final double verticalPreloadMargin;
+
+  /// Nombre d’items à précharger de chaque côté de la fenêtre visible.
+  final int preloadAhead;
+
+  /// Durée du debounce des notifications de viewport.
+  final int debounceMs;
+
+  @override
+  State<MoviItemsList> createState() => _MoviItemsListState();
+}
+
+class _MoviItemsListState extends State<MoviItemsList> {
+  final ScrollController _hCtrl = ScrollController();
+  ScrollPosition? _vpos; // position du scroll vertical parent
+  Timer? _debounce;
+
+  int? _lastStart;
+  int? _lastCount;
+  double? _lastViewportWidth;
+  
+  // Flag pour éviter l'accumulation de callbacks
+  bool _pendingNotify = false;
+
+  // ---- Utilities
+
+  EdgeInsets _resolvedHorizontalPadding(BuildContext context) {
+    return widget.horizontalPadding.resolve(Directionality.of(context));
+  }
+
+  double _effectiveViewportWidth(BoxConstraints constraints) {
+    final pads = _resolvedHorizontalPadding(context);
+    final width = constraints.maxWidth.isFinite
+        ? constraints.maxWidth
+        : (context.size?.width ?? 0);
+    final effective = width - pads.left - pads.right;
+    return effective > 0 ? effective : 0;
+  }
+
+  void _scheduleNotify() {
+    if (widget.onViewportChanged == null || widget.estimatedItemWidth == null) {
+      return;
+    }
+    _debounce?.cancel();
+    _debounce = Timer(Duration(milliseconds: widget.debounceMs), _notifyNow);
+  }
+  
+  /// Planifie un callback de notification si aucun n'est déjà en attente
+  void _scheduleNotifyIfNeeded() {
+    if (_pendingNotify || !mounted) return;
+    _pendingNotify = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingNotify = false;
+      if (mounted) {
+        _attachVerticalListener();
+        _notifyNow();
+      }
+    });
+  }
+
+  void _attachVerticalListener() {
+    final pos = Scrollable.maybeOf(context)?.position;
+    if (_vpos == pos) return;
+    _vpos?.isScrollingNotifier.removeListener(_scheduleNotify);
+    _vpos = pos;
+    _vpos?.isScrollingNotifier.addListener(_scheduleNotify);
+  }
+
+  bool _isRoughlyVerticallyVisible() {
+    final ro = context.findRenderObject();
+    if (ro is! RenderBox || !ro.hasSize) return false;
+    final size = ro.size;
+    final topLeft = ro.localToGlobal(Offset.zero);
+    final screenH = MediaQuery.of(context).size.height;
+    final margin = widget.verticalPreloadMargin;
+    final top = topLeft.dy;
+    final bottom = top + size.height;
+    return bottom > -margin && top < screenH + margin;
+  }
+
+  void _notifyNow() {
+    if (!mounted) return;
+    final cb = widget.onViewportChanged;
+    final cardW = widget.estimatedItemWidth;
+    if (cb == null || cardW == null) return;
+    if (!_isRoughlyVerticallyVisible()) return;
+    if (!_hCtrl.hasClients) return;
+    if (widget.items.isEmpty) return;
+
+    // On récupère la largeur connue via _lastViewportWidth (mise à jour par LayoutBuilder).
+    final viewportWidth = _lastViewportWidth ?? (context.size?.width ?? 0);
+    if (viewportWidth <= 0) return;
+
+    final unit = cardW + widget.itemSpacing;
+    if (unit <= 0) return;
+
+    final pads = _resolvedHorizontalPadding(context);
+    final effectiveWidth = viewportWidth - pads.left - pads.right;
+    if (effectiveWidth <= 0) return;
+
+    final maxIndex = widget.items.length - 1;
+    int start = (_hCtrl.offset / unit).floor();
+    if (start < 0) start = 0;
+    if (start > maxIndex) start = maxIndex;
+
+    int visible = (effectiveWidth / unit).ceil();
+    if (visible < 1) visible = 1;
+    if (visible > widget.items.length) visible = widget.items.length;
+
+    final preload = widget.preloadAhead;
+    final startWithPreload = math.max(0, start - preload);
+    final endWithPreload = math.min(maxIndex, start + visible - 1 + preload);
+    final count = math.max(0, endWithPreload - startWithPreload + 1);
+
+    if (_lastStart == startWithPreload && _lastCount == count) return;
+    _lastStart = startWithPreload;
+    _lastCount = count;
+
+    cb(startWithPreload, count);
+  }
+
+  // ---- Lifecycle
+
+  @override
+  void initState() {
+    super.initState();
+    _hCtrl.addListener(_scheduleNotify);
+    _scheduleNotifyIfNeeded();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _attachVerticalListener();
+    _scheduleNotifyIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant MoviItemsList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items.length != widget.items.length ||
+        oldWidget.estimatedItemWidth != widget.estimatedItemWidth ||
+        oldWidget.itemSpacing != widget.itemSpacing ||
+        oldWidget.horizontalPadding != widget.horizontalPadding) {
+      _scheduleNotifyIfNeeded();
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _vpos?.isScrollingNotifier.removeListener(_scheduleNotify);
+    _vpos = null;
+    _hCtrl
+      ..removeListener(_scheduleNotify)
+      ..dispose();
+    super.dispose();
+  }
+
+  // ---- UI
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    if (widget.items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsetsDirectional.only(
+            start: widget.titlePadding,
+            end: widget.titlePadding,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: textTheme.titleLarge,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (widget.subtitle != null)
+                Text(
+                  widget.subtitle!,
+                  style:
+                      textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFA6A6A6),
+                      ) ??
+                      const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFFA6A6A6),
+                      ),
+                ),
+              if (widget.action != null) const SizedBox(width: 8),
+              if (widget.action != null) widget.action!,
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width =
+                _effectiveViewportWidth(
+                  constraints,
+                ) + // largeur utile (sans padding)
+                _resolvedHorizontalPadding(context).left +
+                _resolvedHorizontalPadding(context).right;
+            if (_lastViewportWidth != width) {
+              _lastViewportWidth = width;
+              // On notifie avec debounce pour limiter la pression en cas de resize.
+              _scheduleNotify();
+            }
+            // Liste horizontale construite paresseusement pour éviter le chargement massif d'images.
+            return SizedBox(
+              height: widget.estimatedItemHeight ?? 240,
+              child: ListView.separated(
+                controller: _hCtrl,
+                scrollDirection: Axis.horizontal,
+                clipBehavior: Clip.none,
+                padding: widget.horizontalPadding,
+                cacheExtent: widget.estimatedItemWidth != null
+                    ? (widget.estimatedItemWidth! * 2)
+                    : null,
+                itemCount: widget.items.length,
+                itemBuilder: (context, i) => widget.items[i],
+                separatorBuilder: (context, _) =>
+                    SizedBox(width: widget.itemSpacing),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_marquee_text.dart
+========================================================================================================================
+
+import 'dart:async';
+import 'package:flutter/material.dart';
+
+/// Scrolling text with gradient fade on both sides, used for titles and labels.
+class MoviMarqueeText extends StatefulWidget {
+  const MoviMarqueeText({
+    super.key,
+    required this.text,
+    required this.style,
+    required this.maxWidth,
+    this.pause = const Duration(seconds: 1),
+    this.speed = 40.0,
+  });
+
+  final String text;
+  final TextStyle style;
+  final double maxWidth;
+  final Duration pause;
+  final double speed; // px per second
+
+  @override
+  State<MoviMarqueeText> createState() => _MoviMarqueeTextState();
+}
+
+class _MoviMarqueeTextState extends State<MoviMarqueeText>
+    with SingleTickerProviderStateMixin {
+  final ScrollController _scrollController = ScrollController();
+  Future<void>? _loop;
+  double _textWidth = 0;
+  bool _shouldAnimate = false;
+  bool _disposed = false;
+  bool _gradientVisible = false;
+  late final AnimationController _gradientController;
+
+  @override
+  void initState() {
+    super.initState();
+    _gradientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateMetrics());
+  }
+
+  @override
+  void didUpdateWidget(covariant MoviMarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text ||
+        oldWidget.style != widget.style ||
+        oldWidget.maxWidth != widget.maxWidth) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _updateMetrics());
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _loop = null;
+    _scrollController.dispose();
+    _gradientController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textWidget = Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
+        overflow: TextOverflow.visible,
+      ),
+    );
+
+    return SizedBox(
+      height: widget.style.fontSize != null ? widget.style.fontSize! * 1.5 : 24,
+      width: widget.maxWidth,
+      child: AnimatedBuilder(
+        animation: _gradientController,
+        builder: (context, child) {
+          final strength = _gradientController.value;
+          final leftColor = Color.lerp(
+            Colors.white,
+            Colors.transparent,
+            strength,
+          )!;
+          final rightColor = Color.lerp(
+            Colors.white,
+            Colors.transparent,
+            strength,
+          )!;
+
+          return ClipRect(
+            child: ShaderMask(
+              shaderCallback: (rect) {
+                final adjusted = Rect.fromLTWH(
+                  rect.left - 1,
+                  rect.top,
+                  rect.width + 4,
+                  rect.height,
+                );
+                return LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [leftColor, Colors.white, Colors.white, rightColor],
+                  stops: const [0.0, 0.08, 0.92, 1.0],
+                ).createShader(adjusted);
+              },
+              blendMode: BlendMode.dstIn,
+              child: child,
+            ),
+          );
+        },
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          physics: const NeverScrollableScrollPhysics(),
+          child: textWidget,
+        ),
+      ),
+    );
+  }
+
+  void _updateMetrics() {
+    if (_disposed) return;
+    final width = _measureTextWidth(widget.text, widget.style);
+    final shouldAnimate = width > widget.maxWidth + 1;
+
+    setState(() {
+      _textWidth = width;
+      _shouldAnimate = shouldAnimate;
+    });
+
+    if (!shouldAnimate) {
+      _setGradient(false);
+      _resetScroll();
+      return;
+    }
+
+    _startLoop();
+  }
+
+  void _startLoop() {
+    if (_disposed || !_shouldAnimate) return;
+    if (_loop != null) return;
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+    _setGradient(false);
+    _loop = _runLoop().whenComplete(() => _loop = null);
+  }
+
+  void _resetScroll() {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_disposed || !_scrollController.hasClients) return;
+        _scrollController.jumpTo(0);
+      });
+    }
+  }
+
+  Future<void> _runLoop() async {
+    while (!_disposed && _shouldAnimate) {
+      _setGradient(false);
+      await Future.delayed(widget.pause);
+      if (_disposed || !_shouldAnimate) break;
+      _setGradient(true);
+      await _animateTo(_maxExtent());
+      if (_disposed || !_shouldAnimate) break;
+      await Future.delayed(widget.pause);
+      if (_disposed || !_shouldAnimate) break;
+      _setGradient(true);
+      await _animateTo(0);
+    }
+    _setGradient(false);
+  }
+
+  double _maxExtent() =>
+      (_textWidth - widget.maxWidth).clamp(0.0, double.infinity);
+
+  Future<void> _animateTo(double target) async {
+    if (!_scrollController.hasClients) return;
+    final current = _scrollController.offset;
+    final distance = (target - current).abs();
+    if (distance < 0.5) {
+      _scrollController.jumpTo(target);
+      if (target == 0 || target == _maxExtent()) {
+        _setGradient(false);
+      }
+      return;
+    }
+
+    final durationMs = (distance / widget.speed * 1000)
+        .clamp(300, 6000)
+        .toInt();
+    try {
+      await _scrollController.animateTo(
+        target,
+        duration: Duration(milliseconds: durationMs),
+        curve: Curves.easeInOut,
+      );
+    } catch (_) {
+      // Ignore if controller disposed mid-animation.
+    }
+
+    if (target == 0 || target == _maxExtent()) {
+      _setGradient(false);
+    }
+  }
+
+  double _measureTextWidth(String text, TextStyle style) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    return painter.size.width;
+  }
+
+  void _setGradient(bool show) {
+    if (_disposed) return;
+    if (_gradientVisible == show) return;
+    _gradientVisible = show;
+    if (show) {
+      _gradientController.forward();
+    } else {
+      _gradientController.reverse();
+    }
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_media_card.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
+import 'package:movi/src/core/widgets/movi_marquee_text.dart';
+import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
+
+Widget _buildPosterImage(
+  Uri? poster,
+  double width,
+  double height, {
+  PlaceholderType? placeholderType,
+}) {
+  final Widget placeholder = (placeholderType == null)
+      ? Container(
+          width: width,
+          height: height,
+          color: const Color(0xFF222222),
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+          ),
+        )
+      : MoviPlaceholderCard(
+          type: placeholderType,
+          width: width,
+          height: height,
+        );
+
+  if (poster == null) return placeholder;
+  final source = poster.toString().trim();
+  if (source.isEmpty) return placeholder;
+  final scheme = poster.scheme.toLowerCase();
+  if (scheme == 'http' || scheme == 'https') {
+    return Image.network(
+      poster.toString(),
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => placeholder,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.low,
+      cacheWidth: (width * 2).toInt(),
+      cacheHeight: (height * 2).toInt(),
+    );
+  }
+
+  final assetPath = scheme == 'asset' ? poster.path : source;
+
+  return Image.asset(
+    assetPath,
+    width: width,
+    height: height,
+    fit: BoxFit.cover,
+    errorBuilder: (_, __, ___) => placeholder,
+    cacheWidth: (width * 2).toInt(),
+    cacheHeight: (height * 2).toInt(),
+  );
+}
+
+/// Card used to display either a movie or a series.
+class MoviMediaCard extends StatefulWidget {
+  const MoviMediaCard({
+    super.key,
+    required this.media,
+    this.width = 150,
+    this.height = 225,
+    this.onTap,
+    this.heroTag,
+    this.highlightBorder = false,
+  });
+
+  final MoviMedia media;
+  final double width;
+  final double height;
+  final ValueChanged<MoviMedia>? onTap;
+  final Object? heroTag;
+  final bool highlightBorder;
+
+  @override
+  State<MoviMediaCard> createState() => _MoviMediaCardState();
+}
+
+class _MoviMediaCardState extends State<MoviMediaCard> {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textStyle =
+        theme.textTheme.titleSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        );
+
+    return GestureDetector(
+      onTap: () => widget.onTap?.call(widget.media),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: widget.width,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _PosterWithOverlay(
+              media: widget.media,
+              width: widget.width,
+              height: widget.height,
+              heroTag: widget.heroTag,
+              highlightBorder: widget.highlightBorder,
+            ),
+            const SizedBox(height: 12),
+            MoviMarqueeText(
+              text: widget.media.title,
+              style: textStyle,
+              maxWidth: widget.width,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PosterWithOverlay extends StatelessWidget {
+  const _PosterWithOverlay({
+    required this.media,
+    required this.width,
+    required this.height,
+    this.heroTag,
+    this.highlightBorder = false,
+  });
+
+  final MoviMedia media;
+  final double width;
+  final double height;
+  final Object? heroTag;
+  final bool highlightBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildPosterImage(
+          media.poster,
+          width,
+          height,
+          placeholderType: media.type == MoviMediaType.movie
+              ? PlaceholderType.movie
+              : PlaceholderType.series,
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(height: height * 0.35),
+        ),
+      ],
+    );
+
+    final widgetContent = highlightBorder
+        ? Container(
+            width: width,
+            height: height,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14), // 16 - 2 pour la bordure
+              child: SizedBox(
+                width: width - 4, // Compenser la bordure (2px de chaque côté)
+                height: height - 4, // Compenser la bordure (2px de chaque côté)
+                child: image,
+              ),
+            ),
+          )
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(width: width, height: height, child: image),
+          );
+
+    if (heroTag == null) return widgetContent;
+    return Hero(tag: heroTag!, child: widgetContent);
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_person_card.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
+import 'package:movi/src/core/widgets/movi_marquee_text.dart';
+import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
+
+Widget _buildPersonImage(
+  Uri? poster,
+  double width,
+  double height, {
+  PlaceholderType? placeholderType,
+}) {
+  final Widget errorPlaceholder = (placeholderType == null)
+      ? Container(
+          width: width,
+          height: height,
+          color: const Color(0xFF222222),
+          child: const Center(
+            child: Icon(Icons.broken_image, size: 32, color: Colors.white54),
+          ),
+        )
+      : MoviPlaceholderCard(
+          type: placeholderType,
+          width: width,
+          height: height,
+        );
+
+  if (poster == null) return errorPlaceholder;
+  final source = poster.toString().trim();
+  if (source.isEmpty) return errorPlaceholder;
+  final scheme = poster.scheme.toLowerCase();
+  if (scheme == 'http' || scheme == 'https') {
+    return Image.network(
+      poster.toString(),
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => errorPlaceholder,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.low,
+      cacheWidth: (width * 2).toInt(),
+      cacheHeight: (height * 2).toInt(),
+    );
+  }
+  final assetPath = scheme == 'asset' ? poster.path : source;
+
+  return Image.asset(
+    assetPath,
+    width: width,
+    height: height,
+    fit: BoxFit.cover,
+    errorBuilder: (_, __, ___) => errorPlaceholder,
+    cacheWidth: (width * 2).toInt(),
+    cacheHeight: (height * 2).toInt(),
+  );
+}
+
+/// Card representing a person (actor, director…). Shares dimensions with media cards.
+class MoviPersonCard extends StatelessWidget {
+  const MoviPersonCard({
+    super.key,
+    required this.person,
+    this.width = 150,
+    this.height = 225,
+    this.onTap,
+    this.heroTag,
+  });
+
+  final MoviPerson person;
+  final double width;
+  final double height;
+  final ValueChanged<MoviPerson>? onTap;
+  final Object? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final nameStyle =
+        theme.textTheme.titleSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ) ??
+        const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        );
+    final roleStyle =
+        theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: const Color(0xFFA6A6A6),
+        ) ??
+        const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: Color(0xFFA6A6A6),
+        );
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onTap?.call(person),
+      child: SizedBox(
+        width: width,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPoster(context),
+            const SizedBox(height: 12),
+            MoviMarqueeText(
+              text: person.name,
+              style: nameStyle,
+              maxWidth: width,
+            ),
+            const SizedBox(height: 4),
+            MoviMarqueeText(
+              text: person.role,
+              style: roleStyle,
+              maxWidth: width,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPoster(BuildContext context) {
+    final image = ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: _buildPersonImage(
+          person.poster,
+          width,
+          height,
+          placeholderType: PlaceholderType.person,
+        ),
+      ),
+    );
+    if (heroTag == null) return image;
+    return Hero(tag: heroTag!, child: image);
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_pill.dart
+========================================================================================================================
+
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
+
+/// Pill-shaped label with optional font size choices and blurred background.
+class MoviPill extends StatelessWidget {
+  const MoviPill(
+    this.label, {
+    super.key,
+    this.large = false,
+    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    this.trailingIcon,
+    this.color,
+  });
+
+  /// Text to display inside the pill.
+  final String label;
+
+  /// If true, uses the larger text size (16px), otherwise 14px.
+  final bool large;
+
+  /// Custom padding for the pill content.
+  final EdgeInsetsGeometry padding;
+
+  /// Optional icon displayed to the right of the text.
+  final Widget? trailingIcon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    final textStyle = (large ? textTheme.labelLarge : textTheme.labelMedium)
+        ?.copyWith(color: Colors.white, fontWeight: FontWeight.w500);
+
+    final background = color ?? const Color(0x80292929);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style:
+                    textStyle ??
+                    const TextStyle(fontSize: 14, color: Colors.white),
+              ),
+              if (trailingIcon != null) ...[
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: Center(
+                    child: IconTheme.merge(
+                      data: const IconThemeData(size: 18, color: Colors.white),
+                      child: trailingIcon!,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_placeholder_card.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+
+enum PlaceholderType { person, movie, series }
+
+/// Placeholder card with accent color background and centered logo.
+class MoviPlaceholderCard extends ConsumerWidget {
+  const MoviPlaceholderCard({
+    super.key,
+    required this.type,
+    this.width,
+    this.height,
+    this.fit = BoxFit.contain,
+    this.alignment = Alignment.center,
+    this.borderRadius,
+  });
+
+  final PlaceholderType type;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final Alignment alignment;
+  final BorderRadius? borderRadius;
+
+  String _getIconAsset() {
+    switch (type) {
+      case PlaceholderType.person:
+        return AppAssets.iconAppLogoSvg;
+      case PlaceholderType.movie:
+        return AppAssets.iconMovie;
+      case PlaceholderType.series:
+        return AppAssets.iconSerie;
+    }
+  }
+
+  bool _isSvg() {
+    return type == PlaceholderType.person;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
+
+    Widget container = Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: accentColor,
+        borderRadius: borderRadius ?? BorderRadius.circular(16),
+      ),
+      child: Align(
+        alignment: alignment,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final effectiveWidth = width ?? constraints.maxWidth;
+            final effectiveHeight = height ?? constraints.maxHeight;
+            final iconSize =
+                (effectiveWidth < effectiveHeight
+                    ? effectiveWidth
+                    : effectiveHeight) *
+                0.4;
+
+            if (_isSvg()) {
+              return SvgPicture.asset(
+                _getIconAsset(),
+                width: iconSize,
+                height: iconSize,
+                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              );
+            }
+
+            return Image.asset(
+              _getIconAsset(),
+              width: iconSize,
+              height: iconSize,
+              color: Colors.white,
+              fit: BoxFit.contain,
+            );
+          },
+        ),
+      ),
+    );
+
+    if (width == null || height == null) {
+      container = SizedBox.expand(child: container);
+    }
+
+    return container;
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_primary_button.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+
+/// Primary action button aligned with the app theme.
+/// - Fills the maximum horizontal space allowed by its parent.
+/// - Uses FilledButton to inherit `filledButtonTheme` from AppTheme.
+/// - Pure widget: navigation logic must be provided via [onPressed].
+class MoviPrimaryButton extends StatelessWidget {
+  const MoviPrimaryButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+    this.assetIcon,
+    this.leading,
+    this.iconSize = 20,
+    this.height = 48,
+    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    this.buttonStyle,
+    this.expand = true,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  final bool loading;
+  final String? assetIcon;
+  final Widget? leading;
+  final double iconSize;
+  final double height;
+  final EdgeInsetsGeometry padding;
+  final ButtonStyle? buttonStyle;
+  final bool expand;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    final effectiveOnPressed = loading ? null : onPressed;
+
+    Widget buildIcon() => Image.asset(
+      assetIcon!,
+      width: iconSize,
+      height: iconSize,
+      color: scheme.onPrimary,
+      fit: BoxFit.contain,
+    );
+
+    Widget content;
+    if (loading) {
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(scheme.onPrimary),
+              backgroundColor: scheme.onPrimary.withValues(alpha: 0.2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimary,
+            ),
+          ),
+        ],
+      );
+    } else {
+      final children = <Widget>[];
+      if (assetIcon != null) {
+        children.add(buildIcon());
+        children.add(const SizedBox(width: 8));
+      } else if (leading != null) {
+        children.add(
+          IconTheme.merge(
+            data: IconThemeData(color: scheme.onPrimary, size: iconSize),
+            child: leading!,
+          ),
+        );
+        children.add(const SizedBox(width: 8));
+      }
+      children.add(
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: scheme.onPrimary,
+            ),
+          ),
+        ),
+      );
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: children,
+      );
+    }
+
+    final button = FilledButton(
+      style: buttonStyle,
+      onPressed: effectiveOnPressed,
+      child: Padding(padding: padding, child: content),
+    );
+
+    final child = Semantics(
+      button: true,
+      enabled: effectiveOnPressed != null,
+      label: label,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: height),
+        child: expand
+            ? SizedBox(width: double.infinity, child: button)
+            : button,
+      ),
+    );
+    return child;
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\movi_see_all_card.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
+
+/// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
+/// Affiche un motif 2x2 stylisé et le libellé "Voir tout".
+class SeeAllCard extends StatelessWidget {
+  const SeeAllCard({
+    super.key,
+    required this.title,
+    required this.categoryKey,
+    this.width = 150,
+    this.posterHeight = 225,
+    this.onTap,
+    this.heroTag,
+  });
+
+  /// Titre lisible (catégorie sans alias serveur)
+  final String title;
+
+  /// Clé complète de catégorie: `<alias>/<categorie>`
+  final String categoryKey;
+  final double width;
+  final double posterHeight;
+  final ValueChanged<CategoryPageArgs>? onTap;
+  final Object? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final args = CategoryPageArgs(title: title, categoryKey: categoryKey);
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => onTap?.call(args),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Affiche un poster stylisé avec 4 blocs (2x2)
+              _buildPoster(context),
+              const SizedBox(height: 12),
+              Semantics(
+                label: 'Voir tout $title',
+                button: true,
+                child: Text(
+                  'Voir tout',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                      theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ) ??
+                      const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPoster(BuildContext context) {
+    final container = Container(
+      height: posterHeight,
+      width: width,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF202020),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _miniTile(
+                      context,
+                      Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _miniTile(
+                      context,
+                      Colors.white.withValues(alpha: 0.2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _miniTile(
+                      context,
+                      Colors.white.withValues(alpha: 0.16),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _miniTile(
+                      context,
+                      Colors.white.withValues(alpha: 0.08),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (heroTag == null) return container;
+    return Hero(tag: heroTag!, child: container);
+  }
+
+  Widget _miniTile(BuildContext context, Color color) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: color,
+      ),
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\overlay_splash.dart
+========================================================================================================================
+
+// Reusable overlay splash widget matching Bootstrap design
+// - Centered app logo
+// - Bottom spinner with safe-area padding
+// - Surface-colored background
+// Use across Bootstrap and Home to ensure consistent UX.
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+
+class OverlaySplash extends ConsumerWidget {
+  const OverlaySplash({super.key, this.message, this.fadeInDuration});
+
+  final String? message;
+
+  /// Durée du fade-in interne (optionnel). Par défaut 300 ms.
+  final Duration? fadeInDuration;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final accentColor = _resolveAccentColor(ref, theme);
+    final bottom = 30.0 + MediaQuery.of(context).padding.bottom;
+
+    final duration = fadeInDuration ?? const Duration(milliseconds: 300);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: duration,
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(opacity: value, child: child),
+      child: Container(
+        color: theme.colorScheme.surface,
+        child: Stack(
+          children: [
+            Center(
+              child: Semantics(
+                label: 'MOVI splash logo',
+                child: SvgPicture.asset(
+                  AppAssets.iconAppLogoSvg,
+                  height: 120,
+                  colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottom,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (message != null && message!.isNotEmpty) ...[
+                    Text(
+                      message!,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Semantics(
+                    label: 'Chargement en cours',
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _resolveAccentColor(WidgetRef ref, ThemeData theme) {
+    try {
+      return ref.watch(asp.currentAccentColorProvider);
+    } catch (_) {
+      return theme.colorScheme.primary;
+    }
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\swipe_back_wrapper.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+/// Widget wrapper qui permet de revenir en arrière avec un swipe de gauche à droite
+class SwipeBackWrapper extends StatefulWidget {
+  const SwipeBackWrapper({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<SwipeBackWrapper> createState() => _SwipeBackWrapperState();
+}
+
+class _SwipeBackWrapperState extends State<SwipeBackWrapper> {
+  bool _swipeActive = false;
+  double _swipeStartX = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragStart: (details) {
+        _swipeActive = true;
+        _swipeStartX = details.globalPosition.dx;
+      },
+      onHorizontalDragUpdate: (details) {
+        if (!_swipeActive) return;
+        final moved = details.globalPosition.dx - _swipeStartX;
+        // Si le swipe dépasse 80 pixels vers la droite, revenir en arrière
+        if (moved > 80) {
+          _swipeActive = false;
+          if (mounted && context.canPop()) {
+            context.pop();
+          }
+        }
+      },
+      onHorizontalDragEnd: (_) {
+        _swipeActive = false;
+      },
+      child: widget.child,
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\syncable_refresh_indicator.dart
+========================================================================================================================
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
+
+/// Widget RefreshIndicator qui déclenche la synchronisation complète
+/// (bibliothèque, profils, sources IPTV, préférences) au lieu de juste
+/// rafraîchir le contenu local de la page.
+///
+/// Usage:
+/// ```dart
+/// SyncableRefreshIndicator(
+///   child: ListView(...),
+/// )
+/// ```
+class SyncableRefreshIndicator extends ConsumerWidget {
+  const SyncableRefreshIndicator({
+    super.key,
+    required this.child,
+    this.onRefresh,
+    this.displacement = 40.0,
+    this.edgeOffset = 0.0,
+    this.color,
+    this.backgroundColor,
+    this.strokeWidth = 2.0,
+  });
+
+  /// Le widget scrollable à envelopper
+  final Widget child;
+
+  /// Callback optionnel appelé après la synchronisation
+  final Future<void> Function()? onRefresh;
+
+  /// Distance depuis le haut où l'indicateur apparaît
+  final double displacement;
+
+  /// Offset depuis le bord
+  final double edgeOffset;
+
+  /// Couleur de l'indicateur
+  final Color? color;
+
+  /// Couleur de fond de l'indicateur
+  final Color? backgroundColor;
+
+  /// Épaisseur du trait de l'indicateur
+  final double strokeWidth;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncController = ref.read(libraryCloudSyncControllerProvider.notifier);
+    final accentColor = Theme.of(context).colorScheme.primary;
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        // Déclencher la synchronisation complète
+        await syncController.syncNow(reason: 'pull-to-refresh');
+
+        // Appeler le callback optionnel
+        if (onRefresh != null) {
+          await onRefresh!();
+        }
+      },
+      displacement: displacement,
+      edgeOffset: edgeOffset,
+      color: color ?? accentColor,
+      backgroundColor: backgroundColor,
+      strokeWidth: strokeWidth,
+      child: child,
+    );
+  }
+}
+
+
+========================================================================================================================
+FILE: C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\widgets\widgets.dart
+========================================================================================================================
+
+export 'movi_bottom_nav_bar.dart';
+export 'movi_favorite_button.dart';
+export 'movi_items_list.dart';
+export 'movi_marquee_text.dart';
+export 'movi_media_card.dart';
+export 'movi_person_card.dart';
+export 'movi_pill.dart';
+export 'movi_placeholder_card.dart';
+export 'movi_primary_button.dart';
+export 'movi_see_all_card.dart';
+export 'overlay_splash.dart';
+export 'launch_error_panel.dart';
+export 'swipe_back_wrapper.dart';
+export 'syncable_refresh_indicator.dart';

@@ -1,0 +1,59 @@
+==============
+À faire
+==============
+
+==============
+En cours
+==============
+
+==============
+Terminé
+==============
+
+Possibilité d'ajouter un nom aux sources. OK
+
+Les boutons tactiles d'Android sont toujours visible, ils doivent être en mode immersive. (À vérifier) OK
+
+Bug : Impossible de supprimer les films et séries en cours sur l'accueil avec un long appui. OK
+
+Bug clic sur un source dans "Autres sources" ne doit pas remonter la source OK
+
+Ajout possibilité de suppression à partir d'une playlist OK
+
+Pas de description sur certains médias comme |FR| Top Gun Maverick 2022 4K MULTI (HDR10) dans les détails ou même dans les playlists de la librairie
+
+Ajout option "Oubli code PIN" OK
+
+Bug : Dans la page choix de source. Utiliser le bouton retour quitte l'application au lieu de revenir en arrière sans modification de choix.
+
+Slide tactile haut bas à droite et gauche de l'écran player pour modification volume et luminosité. OK
+
+Impossible de recadrer l'image dans le player pour avoir une image qui prend l'espace disponible, ou qui prend tout l'écran ou toute la largeur ou toute la hauteur. OK
+
+PiP OK
+
+🎬 **Movi 1.0.1 est disponible !**
+
+Merci pour vos retours : cette mise à jour apporte des améliorations importantes côté sources, playlists, lecture et stabilité.
+
+## ✨ Nouveautés
+
+* **Nommer vos sources** : vous pouvez maintenant ajouter un nom personnalisé à chaque source.
+* **Suppression depuis une playlist** : possibilité de retirer un média directement depuis une playlist.
+* **Option “Oubli code PIN”** : récupération simplifiée si vous avez oublié votre code.
+* **Contrôles tactiles lecture** : slide **haut/bas** à droite et à gauche du player pour ajuster **volume** et **luminosité**.
+* **Mode d’affichage vidéo** : choix entre **recadrer pour remplir l’écran** ou **conserver les proportions**.
+* **PiP (Picture-in-Picture)** : lecture en mini-fenêtre pendant que vous utilisez d’autres apps.
+
+## 🛠️ Correctifs
+
+* **Mode immersif Android** : les boutons système restent maintenant masqués pendant la lecture (immersive).
+* **Accueil** : correction du bug empêchant la suppression d’un film/série “en cours” via un **appui long**.
+* **Autres sources** : un clic sur une source ne la fait plus remonter automatiquement.
+* **Navigation (choix de source)** : le bouton **Retour** ne quitte plus l’app et revient correctement à l’écran précédent.
+* **Descriptions manquantes** : amélioration de l’affichage des descriptions sur certains médias (ex. “Top Gun Maverick 2022 4K MULTI (HDR10)”).
+
+📌 Si vous remarquez encore un média sans description, n’hésitez pas à me le signaler (titre + source), ça aide beaucoup.
+
+Bon tests 🍿
+— Movi

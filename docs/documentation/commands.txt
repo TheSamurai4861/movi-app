@@ -1,0 +1,30 @@
+python scripts/outline_and_export.py --methods-in-classes
+
+
+python scripts/concat_lib_outline.py --select "89,90,91,98,29,28,25,27,148,83,84,85,82,86,447,450,451,449,448,52" --export-content --content-only
+
+
+flutter run -d windows --dart-define-from-file=.env
+
+flutter run --profile --flavor prod -t lib/main.dart --dart-define-from-file=.env
+
+flutter run --flavor dev -t lib/main.dart --dart-define-from-file=.env
+
+tree /F lib > architecture.txt
+
+$root = "lib\src\core\security"
+$out  = "profile_dump.txt"
+
+"=== DUMP START: $root ===`n" | Set-Content -Encoding UTF8 $out
+
+Get-ChildItem -Path $root -Recurse -File |
+Sort-Object FullName |
+ForEach-Object {
+    "`n`n===== FILE: $($_.FullName) =====`n" | Add-Content -Encoding UTF8 $out
+    Get-Content -Path $_.FullName -Raw | Add-Content -Encoding UTF8 $out
+}
+
+"`n`n=== DUMP END ===" | Add-Content -Encoding UTF8 $out
+
+Write-Host "OK: dump created -> $out"
+ 

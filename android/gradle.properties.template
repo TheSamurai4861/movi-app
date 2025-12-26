@@ -1,0 +1,18 @@
+# Template pour les variables de signature
+# Copiez ce fichier vers ~/.gradle/gradle.properties et remplissez les valeurs
+# OU ajoutez ces variables dans android/gradle.properties (moins sécurisé si commité)
+
+# Configuration du keystore pour la signature release
+# Remplacez les valeurs par vos propres informations
+
+MOVI_KEYSTORE=/chemin/absolu/vers/android/app/movi-release.jks
+MOVI_STORE_PASSWORD=votre_mot_de_passe_keystore
+MOVI_ALIAS=movi
+MOVI_KEY_PASSWORD=votre_mot_de_passe_cle
+
+# Exemple avec chemin relatif (depuis la racine du projet):
+# MOVI_KEYSTORE=android/app/movi-release.jks
+
+# Exemple avec chemin absolu:
+# MOVI_KEYSTORE=C:\Users\matte\Documents\DEV\Flutter\movi-app\android\app\movi-release.jks
+

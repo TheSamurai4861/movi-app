@@ -1,0 +1,11 @@
+export 'domain/entities/search_history_item.dart';
+export 'domain/entities/search_page.dart';
+export 'domain/value_objects/search_query.dart';
+export 'domain/repositories/search_history_repository.dart';
+export 'domain/repositories/search_repository.dart';
+export 'domain/usecases/add_search_query_to_history.dart';
+export 'domain/usecases/list_search_history.dart';
+export 'domain/usecases/remove_search_history_item.dart';
+export 'domain/usecases/search_movies.dart';
+export 'domain/usecases/search_people.dart';
+export 'domain/usecases/search_shows.dart';

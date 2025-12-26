@@ -1,0 +1,376 @@
+{
+  "welcomeTitle": "Benvenuto!",
+  "welcomeSubtitle": "Compila le tue preferenze per personalizzare Movi.",
+  "labelUsername": "Nickname",
+  "labelPreferredLanguage": "Lingua preferita",
+  "actionContinue": "Continua",
+  "hintUsername": "Il tuo nickname",
+  "errorFillFields": "Compila correttamente i campi.",
+  "homeWatchNow": "Guarda ora",
+  "welcomeSourceTitle": "Benvenuto!",
+  "welcomeSourceSubtitle": "Aggiungi una sorgente per personalizzare la tua esperienza su Movi.",
+  "welcomeSourceAdd": "Aggiungi una sorgente",
+  "searchTitle": "Cerca",
+  "searchHint": "Scrivi la tua ricerca",
+  "clear": "Cancella",
+  "moviesTitle": "Film",
+  "seriesTitle": "Serie",
+  "noResults": "Nessun risultato",
+  "historyTitle": "Cronologia",
+  "historyEmpty": "Nessuna ricerca recente",
+  "delete": "Elimina",
+  "resultsCount": "({count} risultati)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "errorUnknown": "Errore sconosciuto",
+  "errorConnectionFailed": "Connessione non riuscita: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorConnectionGeneric": "Connessione non riuscita",
+  "validationRequired": "Obbligatorio",
+  "validationInvalidUrl": "URL non valido",
+  "snackbarSourceAddedBackground": "Sorgente IPTV aggiunta. Sincronizzazione in background…",
+  "snackbarSourceAddedSynced": "Sorgente IPTV aggiunta e sincronizzata",
+  "navHome": "Home",
+  "navSearch": "Cerca",
+  "navLibrary": "Libreria",
+  "navSettings": "Impostazioni",
+  "settingsTitle": "Impostazioni",
+  "settingsLanguageLabel": "Lingua dell’app",
+  "settingsGeneralTitle": "Preferenze generali",
+  "settingsDarkModeTitle": "Modalità scura",
+  "settingsDarkModeSubtitle": "Abilita un tema adatto alla notte.",
+  "settingsNotificationsTitle": "Notifiche",
+  "settingsNotificationsSubtitle": "Ricevi avvisi sulle nuove uscite.",
+  "settingsAccountTitle": "Account",
+  "settingsProfileInfoTitle": "Informazioni profilo",
+  "settingsProfileInfoSubtitle": "Nome, avatar, preferenze",
+  "settingsAboutTitle": "Informazioni",
+  "settingsLegalMentionsTitle": "Note legali",
+  "settingsPrivacyPolicyTitle": "Informativa sulla privacy",
+  "actionCancel": "Annulla",
+  "actionConfirm": "Conferma",
+  "actionRetry": "Riprova"
+  ,
+  "homeErrorSwipeToRetry": "Si è verificato un errore. Scorri verso il basso per riprovare.",
+  "homeContinueWatching": "Continua a guardare",
+  "homeNoIptvSources": "Nessuna sorgente IPTV attiva. Aggiungi una sorgente in Impostazioni per vedere le tue categorie.",
+  "homeNoTrends": "Nessun contenuto di tendenza disponibile"
+  ,
+  "actionRefreshMetadata": "Aggiorna metadati",
+  "actionChangeMetadata": "Cambia metadati",
+  "actionAddToList": "Aggiungi a una lista",
+  "metadataRefreshed": "Metadati aggiornati",
+  "errorRefreshingMetadata": "Errore durante l'aggiornamento dei metadati",
+  "actionMarkSeen": "Segna come visto",
+  "actionMarkUnseen": "Segna come non visto",
+  "actionReportProblem": "Segnala un problema",
+  "featureComingSoon": "Funzionalità in arrivo",
+  "subtitlesMenuTitle": "Sottotitoli",
+  "audioMenuTitle": "Audio",
+  "videoFitModeMenuTitle": "Modalità di visualizzazione",
+  "videoFitModeContain": "Proporzioni originali",
+  "videoFitModeCover": "Riempire schermo",
+  "actionDisable": "Disattiva",
+  "defaultTrackLabel": "Traccia {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Prossimo episodio",
+  "actionRestart": "Ricomincia",
+  "errorSeriesDataUnavailable": "Impossibile caricare i dati della serie",
+  "errorNextEpisodeFailed": "Impossibile determinare il prossimo episodio",
+  "actionLoadMore": "Carica di più",
+  "iptvServerUrlLabel": "URL del server",
+  "iptvServerUrlHint": "URL del server Xtream",
+  "iptvPasswordLabel": "Password",
+  "iptvPasswordHint": "Password Xtream",
+  "actionConnect": "Connetti",
+  "settingsRefreshIptvPlaylistsTitle": "Aggiorna playlist IPTV",
+  "statusActive": "Attivo",
+  "statusNoActiveSource": "Nessuna sorgente attiva",
+  "overlayPreparingHome": "Preparazione home…",
+  "bootstrapRefreshing": "Aggiornamento delle liste IPTV…",
+  "bootstrapEnriching": "Preparazione dei metadati…",
+  "errorPrepareHome": "Impossibile preparare la pagina home",
+  "overlayOpeningHome": "Apertura home…",
+  "overlayRefreshingIptvLists": "Aggiornamento liste IPTV…",
+  "overlayPreparingMetadata": "Preparazione metadati…",
+  "errorHomeLoadTimeout": "Timeout caricamento home",
+  "faqLabel": "FAQ",
+  "iptvUsernameLabel": "Nome utente",
+  "iptvUsernameHint": "Nome utente Xtream",
+  "actionBack": "Indietro",
+  "actionSeeAll": "Vedi tutto",
+  "actionExpand": "Espandi",
+  "actionCollapse": "Riduci",
+  "providerSearchPlaceholder": "Cerca su {provider}...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "actionClearHistory": "Cancella cronologia",
+  "castTitle": "Cast",
+  "recommendationsTitle": "Consigli",
+  "libraryHeader": "La tua videoteca",
+  "libraryDataInfo": "I dati verranno mostrati quando data/domain sarà implementato.",
+  "libraryEmpty": "Metti like a film, serie o attori per vederli apparire qui.",
+  "serie": "Serie",
+  "recherche": "Ricerca",
+  "notYetAvailable": "Non ancora disponibile",
+  "createPlaylistTitle": "Crea playlist",
+  "playlistName": "Nome playlist",
+  "addMedia": "Aggiungi media",
+  "renamePlaylist": "Rinomina",
+  "deletePlaylist": "Elimina",
+  "pinPlaylist": "Fissa",
+  "unpinPlaylist": "Rimuovi fissaggio",
+  "playlistPinned": "Playlist fissata",
+  "playlistUnpinned": "Playlist non fissata",
+  "playlistDeleted": "Playlist eliminata",
+  "movieNoPlaylistsAvailable": "Nessuna playlist disponibile",
+  "playlistAddedTo": "Aggiunto a \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Errore: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film non disponibile nella playlist",
+  "errorLoadingPlaylists": "Errore durante il caricamento delle playlist: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Errore durante la riproduzione del film: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "playlistCreatedSuccess": "Playlist \"{name}\" creata",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Errore durante la creazione: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Aggiunto",
+  "pinRecoveryLink": "Récupérer le code PIN",
+  "pinRecoveryTitle": "Recupera codice PIN",
+  "pinRecoveryDescription": "Recupera il codice PIN del tuo profilo protetto.",
+  "pinRecoveryComingSoon": "Questa funzione arriverà presto.",
+  "pinRecoveryCodeLabel": "Codice di recupero",
+  "pinRecoveryCodeHint": "8 cifre",
+  "pinRecoveryVerifyButton": "Verifica",
+  "pinRecoveryCodeInvalid": "Inserisci il codice a 8 cifre",
+  "pinRecoveryCodeExpired": "Il codice di recupero è scaduto",
+  "pinRecoveryTooManyAttempts": "Troppi tentativi. Riprova più tardi.",
+  "pinRecoveryUnknownError": "Si è verificato un errore imprevisto",
+  "pinRecoveryNewPinLabel": "Nuovo PIN",
+  "pinRecoveryNewPinHint": "4-6 cifre",
+  "pinRecoveryConfirmPinLabel": "Conferma PIN",
+  "pinRecoveryConfirmPinHint": "Ripeti il PIN",
+  "pinRecoveryResetButton": "Aggiorna PIN",
+  "pinRecoveryPinInvalid": "Inserisci un PIN di 4-6 cifre",
+  "pinRecoveryPinMismatch": "I PIN non coincidono",
+  "pinRecoveryResetSuccess": "PIN aggiornato",
+  "settingsAccountsSection": "Account",
+  "settingsIptvSection": "Impostazioni IPTV",
+  "settingsSourcesManagement": "Gestione sorgenti",
+  "settingsSyncFrequency": "Frequenza di aggiornamento",
+  "settingsAppSection": "Impostazioni app",
+  "settingsAccentColor": "Colore di accento",
+  "settingsPlaybackSection": "Impostazioni di riproduzione",
+  "settingsPreferredAudioLanguage": "Lingua preferita",
+  "settingsPreferredSubtitleLanguage": "Sottotitoli preferiti",
+  "libraryPlaylistsFilter": "Playlist",
+  "librarySagasFilter": "Saghe",
+  "libraryArtistsFilter": "Artisti",
+  "librarySearchPlaceholder": "Cerca nella mia libreria...",
+  "libraryInProgress": "In corso",
+  "libraryFavoriteMovies": "Film preferiti",
+  "libraryFavoriteSeries": "Serie preferite",
+  "libraryWatchHistory": "Cronologia di visualizzazione",
+  "libraryItemCount": "{count} elemento",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "libraryItemCountPlural": "{count} elementi",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "searchPeopleTitle": "Persone",
+  "searchSagasTitle": "Saghe",
+  "searchByProvidersTitle": "Per provider",
+  "searchByGenresTitle": "Per generi",
+  "personRoleActor": "Attore",
+  "personRoleDirector": "Regista",
+  "personRoleCreator": "Creatore",
+  "tvDistribution": "Cast",
+  "tvSeasonLabel": "Stagione {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "tvNoEpisodesAvailable": "Nessun episodio disponibile",
+  "tvResumeSeasonEpisode": "Riprendi S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": { "type": "int" },
+      "episode": { "type": "int" }
+    }
+  },
+  "sagaViewPage": "Visualizza pagina",
+  "sagaStartNow": "Inizia ora",
+  "sagaContinue": "Continua",
+  "sagaMovieCount": "{count} film",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sagaMoviesList": "Lista film",
+  "personMoviesCount": "{movies} film - {shows} serie",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": { "type": "int" },
+      "shows": { "type": "int" }
+    }
+  },
+  "personPlayRandomly": "Riproduci casualmente",
+  "personMoviesList": "Lista film",
+  "personSeriesList": "Lista serie",
+  "playlistPlayRandomly": "Riproduci casualmente",
+  "playlistAddButton": "Aggiungi",
+  "playlistSortButton": "Ordina",
+  "playlistSortByTitle": "Ordina per",
+  "playlistSortByTitleOption": "Titolo",
+  "playlistSortRecentAdditions": "Aggiunte recenti",
+  "playlistSortOldestFirst": "Più vecchi prima",
+  "playlistSortNewestFirst": "Più recenti prima",
+  "playlistEmptyMessage": "Nessun elemento in questa playlist",
+  "playlistItemCount": "{count} elemento",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistItemCountPlural": "{count} elementi",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistSeasonSingular": "stagione",
+  "playlistSeasonPlural": "stagioni",
+  "playlistRenameTitle": "Rinomina playlist",
+  "playlistNamePlaceholder": "Nome playlist",
+  "playlistRenamedSuccess": "Playlist rinominata in \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "playlistDeleteTitle": "Elimina",
+  "playlistDeleteConfirm": "Sei sicuro di voler eliminare \"{title}\"?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "playlistDeletedSuccess": "Playlist eliminata",
+  "playlistItemRemovedSuccess": "Elemento rimosso",
+  "playlistRemoveItemConfirm": "Rimuovere \"{title}\" dalla playlist?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "categoryLoadFailed": "Errore nel caricamento della categoria.",
+  "categoryEmpty": "Nessun elemento in questa categoria.",
+  "categoryLoadingMore": "Caricamento in corso…"
+  ,
+  "personNoData": "Nessuna persona da mostrare.",
+  "personGenericError": "Si è verificato un errore durante il caricamento di questa persona.",
+  "personBiographyTitle": "Biografia",
+  "resumePlayback": "Riprendi la riproduzione",
+  "settingsCloudSyncSection": "Sincronizzazione cloud",
+  "settingsCloudSyncAuto": "Sincronizzazione automatica",
+  "settingsCloudSyncNow": "Sincronizza ora",
+  "settingsCloudSyncInProgress": "Sincronizzazione…",
+  "settingsCloudSyncNever": "Mai",
+  "settingsCloudSyncError": "Ultimo errore: {error}",
+  "@settingsCloudSyncError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notFoundWithEntity": "{entity} non trovato",
+  "@notFoundWithEntity": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      }
+    }
+  },
+  "notFoundWithEntityAndError": "{entity} non trovato: {error}",
+  "@notFoundWithEntityAndError": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "entityProvider": "Provider",
+  "entityGenre": "Genere",
+  "entityPlaylist": "Playlist",
+  "entitySource": "Sorgente",
+  "entityMovie": "Film",
+  "entitySeries": "Serie",
+  "entityPerson": "Persona",
+  "entitySaga": "Saga",
+  "entityVideo": "Video",
+  "entityRoute": "Percorso",
+  "errorTimeoutLoading": "Timeout durante il caricamento",
+  "parentalContentRestricted": "Contenuto limitato",
+  "parentalContentRestrictedDefault": "Questo contenuto è bloccato dal controllo parentale di questo profilo.",
+  "parentalReasonTooYoung": "Questo contenuto richiede un'età superiore al limite di questo profilo.",
+  "parentalReasonUnknownRating": "La classificazione per età di questo contenuto non è disponibile.",
+  "parentalReasonInvalidTmdbId": "Questo contenuto non può essere valutato per il controllo parentale.",
+  "parentalUnlockButton": "Sblocca"
+}

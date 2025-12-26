@@ -1,0 +1,131 @@
+workflows:
+  ios-dev-ipa:
+    name: iOS Dev IPA (unsigned)
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - api
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+
+      - name: Load .env (optional for dev)
+        script: |
+          set -a
+          if [ -f .env ]; then
+            echo "Loading .env for dev convenience"
+            source .env
+          else
+            echo ".env not found; continuing"
+          fi
+          set +a
+
+      - name: Check API vars (dev)
+        script: |
+          echo "==== DEV vars check ===="
+          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
+          echo "SUPABASE_URL length: ${#SUPABASE_URL}"
+          echo "SUPABASE_ANON_KEY length: ${#SUPABASE_ANON_KEY}"
+
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "ERROR: TMDB_API_KEY is empty for dev build"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "ERROR: SUPABASE_URL is empty for dev build"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "ERROR: SUPABASE_ANON_KEY is empty for dev build"
+            exit 1
+          fi
+          echo "========================"
+
+      - name: Build unsigned IPA (archive, APP_ENV=dev)
+        script: |
+          echo "Building iOS Dev IPA..."
+          flutter build ipa --release --no-codesign \
+            --target=lib/main.dart \
+            --dart-define=APP_ENV=dev \
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
+            --dart-define=SUPABASE_URL=${SUPABASE_URL} \
+            --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
+            --dart-define=FORCE_STARTUP_DETAILS=true
+
+      - name: Package unsigned IPA from .xcarchive
+        script: |
+          set -euxo pipefail
+          ARCHIVE="build/ios/archive/Runner.xcarchive"
+          OUTDIR="build/ios/ipa"
+          rm -rf "$OUTDIR"
+          mkdir -p "$OUTDIR/Payload"
+          cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
+          (cd "$OUTDIR" && zip -r "Runner-unsigned-dev.ipa" "Payload")
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+
+  ios-prod-store:
+    name: iOS Prod Store (unsigned)
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      groups:
+        - api
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+
+      - name: Check API vars (required for prod)
+        script: |
+          echo "==== PROD vars check ===="
+          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
+          echo "SUPABASE_URL length: ${#SUPABASE_URL}"
+          echo "SUPABASE_ANON_KEY length: ${#SUPABASE_ANON_KEY}"
+
+          if [ -z "$TMDB_API_KEY" ]; then
+            echo "ERROR: TMDB_API_KEY is empty for prod build"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "ERROR: SUPABASE_URL is empty for prod build"
+            exit 1
+          fi
+
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "ERROR: SUPABASE_ANON_KEY is empty for prod build"
+            exit 1
+          fi
+          echo "========================="
+
+      - name: Build unsigned IPA (archive, APP_ENV=prod)
+        script: |
+          echo "Building iOS Prod IPA..."
+          flutter build ipa --release --no-codesign \
+            --target=lib/main.dart \
+            --dart-define=APP_ENV=prod \
+            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
+            --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY} \
+            --dart-define=SUPABASE_URL=${SUPABASE_URL} \
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
+
+      - name: Package unsigned IPA from .xcarchive
+        script: |
+          set -euxo pipefail
+          ARCHIVE="build/ios/archive/Runner.xcarchive"
+          OUTDIR="build/ios/ipa"
+          rm -rf "$OUTDIR"
+          mkdir -p "$OUTDIR/Payload"
+          cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
+          (cd "$OUTDIR" && zip -r "Runner-unsigned-prod.ipa" "Payload")
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive

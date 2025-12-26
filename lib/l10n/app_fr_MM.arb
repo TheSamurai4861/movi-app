@@ -1,0 +1,388 @@
+{
+  "@@locale": "fr_MM",
+  "welcomeTitle": "Que nenni ! Bienv'nû !",
+  "welcomeSubtitle": "Remplis tes préférences, c’est point couettos mais utile.",
+  "labelUsername": "Sobriquet",
+  "labelPreferredLanguage": "Langage de la bourgogne",
+  "actionContinue": "Avançons",
+  "hintUsername": "Ton sobriquet",
+  "errorFillFields": "Faut point oublier d’emplir les champs.",
+  "homeWatchNow": "Regarder",
+  "welcomeSourceTitle": "Bienv'nû !",
+  "welcomeSourceSubtitle": "Ajoute une source, que diable, pour personnaliser Movi.",
+  "welcomeSourceAdd": "Ajouter la souce",
+  "searchTitle": "Quérir",
+  "searchHint": "Tape ta quête",
+  "clear": "Ôter",
+  "moviesTitle": "Bobines",
+  "seriesTitle": "Feuilletons",
+  "noResults": "Point de résultat",
+  "historyTitle": "Chronique",
+  "historyEmpty": "Point de recherche récente",
+  "delete": "Pourfendre",
+  "resultsCount": "({count} trouvailles)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "errorUnknown": "Méprise inconnue",
+  "errorConnectionFailed": "Connexion faillie : {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorConnectionGeneric": "Connexion faillie",
+  "validationRequired": "Obligé",
+  "validationInvalidUrl": "L’adresse est point bonne",
+  "snackbarSourceAddedBackground": "Source IPTV ajoutée. Ça s’active en coulisse…",
+  "snackbarSourceAddedSynced": "Source IPTV ajoutée et arrimée",
+  "navHome": "Gîte",
+  "navSearch": "Quête",
+  "navLibrary": "Réserve",
+  "navSettings": "Ajustes",
+  "settingsTitle": "Ajustes",
+  "settingsLanguageLabel": "Langage de l’appli",
+  "settingsGeneralTitle": "Préférences générales",
+  "settingsDarkModeTitle": "Nuit noire",
+  "settingsDarkModeSubtitle": "Active un thème pour besogner la nuit.",
+  "settingsNotificationsTitle": "Avises",
+  "settingsNotificationsSubtitle": "Soyez prévenus des nouveautés.",
+  "settingsAccountTitle": "Comptoir",
+  "settingsProfileInfoTitle": "Billets du profil",
+  "settingsProfileInfoSubtitle": "Nom, effigie, préférences",
+  "settingsAboutTitle": "À propos",
+  "settingsLegalMentionsTitle": "Mentions légales",
+  "settingsPrivacyPolicyTitle": "Privautés",
+  "actionCancel": "Abandonner",
+  "actionConfirm": "Valider la chose",
+  "actionRetry": "Recommencer",
+  "homeErrorSwipeToRetry": "Un couac est advenu. Tire en bas pour réessayer.",
+  "homeContinueWatching": "En cours",
+  "homeNoIptvSources": "Point de source IPTV. Ajoute-en dans Ajustes pour voir tes catégories.",
+  "homeNoTrends": "Point de tendances"
+  ,
+  "actionRefreshMetadata": "Rafraîchir les bilboquets",
+  "actionChangeMetadata": "Changer les bilboquets",
+  "actionAddToList": "Mettre en la liste",
+  "metadataRefreshed": "Bilboquets rafraîchis",
+  "errorRefreshingMetadata": "Couac lors du rafraîchissement des bilboquets",
+  "actionMarkSeen": "Marquer comme vu",
+  "actionMarkUnseen": "Marquer comme point vu",
+  "actionReportProblem": "Signaler un couac",
+  "featureComingSoon": "Fonction à venir",
+  "subtitlesMenuTitle": "Sous-titres",
+  "audioMenuTitle": "Audio",
+  "videoFitModeMenuTitle": "Mode d'affichage",
+  "videoFitModeContain": "Proportions de base",
+  "videoFitModeCover": "Tout l'espace",
+  "actionDisable": "Désactiver",
+  "defaultTrackLabel": "Piste {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Épisode suivant",
+  "actionRestart": "Recommencer",
+  "errorSeriesDataUnavailable": "Impossible de charger les données de la série",
+  "errorNextEpisodeFailed": "Impossible de déterminer l'épisode suivant",
+  "actionLoadMore": "Charger davantage",
+  "iptvServerUrlLabel": "Adresse du serveur",
+  "iptvServerUrlHint": "Adresse du serveur Xtream",
+  "iptvPasswordLabel": "Mot de passe",
+  "iptvPasswordHint": "Mot de passe Xtream",
+  "actionConnect": "Se relier",
+  "settingsRefreshIptvPlaylistsTitle": "Rafraîchir les listes IPTV",
+  "statusActive": "Actif",
+  "statusNoActiveSource": "Point de source active",
+  "overlayPreparingHome": "Préparation du gîte…",
+  "bootstrapRefreshing": "Rafraîchissement des listes IPTV…",
+  "bootstrapEnriching": "Préparation des billets…",
+  "errorPrepareHome": "Impossible de préparer la page du gîte",
+  "overlayOpeningHome": "Ouverture du gîte…",
+  "overlayRefreshingIptvLists": "Rafraîchissement des listes IPTV…",
+  "overlayPreparingMetadata": "Préparation des billets…",
+  "errorHomeLoadTimeout": "Délai de chargement du gîte dépassé",
+  "faqLabel": "FAQ",
+  "iptvUsernameLabel": "Nom d’utilisateur",
+  "iptvUsernameHint": "Identifiant Xtream",
+  "actionBack": "Retour",
+  "actionSeeAll": "Voir tout",
+  "actionExpand": "Élargir",
+  "actionCollapse": "Rétrécir",
+  "providerSearchPlaceholder": "Rechercher sur {provider}...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "actionClearHistory": "Pourfendre la chronique",
+  "castTitle": "Troupe",
+  "recommendationsTitle": "Conseils",
+  "libraryHeader": "Ta réserve",
+  "libraryDataInfo": "Les données s'afficheront quand la couche data/domain sera arrimée.",
+  "libraryEmpty": "Likez des films, séries ou acteurs pour les voir apparaître ici.",
+  "serie": "Feuilleton",
+  "recherche": "Quête",
+  "notYetAvailable": "Pas encore disponible",
+  "createPlaylistTitle": "Créer une liste",
+  "playlistName": "Nom de la liste",
+  "addMedia": "Ajouter des médias",
+  "renamePlaylist": "Renommer",
+  "deletePlaylist": "Supprimer",
+  "pinPlaylist": "Épingler",
+  "unpinPlaylist": "Désépingler",
+  "playlistPinned": "Liste épinglée",
+  "playlistUnpinned": "Liste désépinglée",
+  "playlistDeleted": "Liste supprimée",
+  "playlistCreatedSuccess": "Liste \"{name}\" créée",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Couac lors de la création : {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Ajouté",
+  "pinRecoveryLink": "Récupérer le code PIN",
+  "pinRecoveryTitle": "Récupérer code PIN",
+  "pinRecoveryDescription": "Récupérez le code PIN de votre profil protégé.",
+  "pinRecoveryComingSoon": "Cette fonctionnalité arrive bientôt.",
+  "pinRecoveryCodeLabel": "Code de récupération",
+  "pinRecoveryCodeHint": "8 chiffres",
+  "pinRecoveryVerifyButton": "Vérifier",
+  "pinRecoveryCodeInvalid": "Saisissez le code à 8 chiffres",
+  "pinRecoveryCodeExpired": "Le code de récupération a expiré",
+  "pinRecoveryTooManyAttempts": "Trop de tentatives. Réessayez plus tard.",
+  "pinRecoveryUnknownError": "Une erreur inattendue est survenue",
+  "pinRecoveryNewPinLabel": "Nouveau PIN",
+  "pinRecoveryNewPinHint": "4-6 chiffres",
+  "pinRecoveryConfirmPinLabel": "Confirmer le PIN",
+  "pinRecoveryConfirmPinHint": "Répéter le PIN",
+  "pinRecoveryResetButton": "Mettre à jour le PIN",
+  "pinRecoveryPinInvalid": "Saisissez un PIN de 4 à 6 chiffres",
+  "pinRecoveryPinMismatch": "Les PIN ne correspondent pas",
+  "pinRecoveryResetSuccess": "PIN mis à jour",
+  "settingsAccountsSection": "Comptoirs",
+  "settingsIptvSection": "Ajustes IPTV",
+  "settingsSourcesManagement": "Réglages des sources",
+  "settingsSyncFrequency": "Fréquence màj",
+  "settingsAppSection": "Ajustes de l'appli",
+  "settingsAccentColor": "Couleur d'accent",
+  "settingsPlaybackSection": "Ajustes de lecture",
+  "settingsPreferredAudioLanguage": "Langage préféré",
+  "settingsPreferredSubtitleLanguage": "Sous-titres préférés",
+  "libraryPlaylistsFilter": "Listes",
+  "librarySagasFilter": "Sagas",
+  "libraryArtistsFilter": "Artistes",
+  "librarySearchPlaceholder": "Quérir dans ma réserve...",
+  "libraryInProgress": "En cours",
+  "libraryFavoriteMovies": "Bobines favorites",
+  "libraryFavoriteSeries": "Feuilletons favoris",
+  "libraryWatchHistory": "Chronique de visionnage",
+  "libraryItemCount": "{count} élément",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "libraryItemCountPlural": "{count} éléments",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchPeopleTitle": "Personnalités",
+  "searchSagasTitle": "Sagas",
+  "searchByProvidersTitle": "Par fournisseurs",
+  "searchByGenresTitle": "Par genre",
+  "personRoleActor": "Acteur",
+  "personRoleDirector": "Réalisateur",
+  "personRoleCreator": "Créateur",
+  "tvDistribution": "Troupe",
+  "tvSeasonLabel": "Saison {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tvNoEpisodesAvailable": "Point d'épisode disponible",
+  "tvResumeSeasonEpisode": "Reprendre S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaViewPage": "Voir la page",
+  "sagaStartNow": "Commencer toutim",
+  "sagaContinue": "Poursuivre",
+  "sagaMovieCount": "{count} bobines",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaMoviesList": "Liste des bobines",
+  "personMoviesCount": "{movies} bobines - {shows} feuilletons",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
+    }
+  },
+  "personPlayRandomly": "Lire aléatoirement",
+  "personMoviesList": "Liste des bobines",
+  "personSeriesList": "Liste des feuilletons",
+  "playlistPlayRandomly": "Lire aléatoirement",
+  "playlistAddButton": "Ajouter",
+  "playlistSortButton": "Trier",
+  "playlistSortByTitle": "Trier par",
+  "playlistSortByTitleOption": "Titre",
+  "playlistSortRecentAdditions": "Ajout récents",
+  "playlistSortOldestFirst": "Anciens d'abord",
+  "playlistSortNewestFirst": "Récents d'abord",
+  "playlistEmptyMessage": "Point d'élément dans cette liste",
+  "playlistItemCount": "{count} élément",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistItemCountPlural": "{count} éléments",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSeasonSingular": "saison",
+  "playlistSeasonPlural": "saisons",
+  "playlistRenameTitle": "Renommer la liste",
+  "playlistNamePlaceholder": "Nom de la liste",
+  "playlistRenamedSuccess": "Liste renommée en \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteTitle": "Supprimer",
+  "playlistDeleteConfirm": "Êtes-vous sûr de vouloir supprimer \"{title}\" ?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeletedSuccess": "Liste supprimée",
+  "playlistItemRemovedSuccess": "Élément supprimé",
+  "playlistRemoveItemConfirm": "Supprimer \"{title}\" de la liste ?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryLoadFailed": "Couac lors du chargement de la catégorie.",
+  "categoryEmpty": "Point d'élément dans cette catégorie.",
+  "categoryLoadingMore": "Chargement en cours…"
+  ,
+  "personNoData": "Point de personnalité à afficher.",
+  "personGenericError": "Un couac est advenu en chargeant cette personnalité.",
+  "personBiographyTitle": "Biographie",
+  "authOtpTitle": "Connexion",
+  "authOtpSubtitle": "Entrez votre courriel et le code à 8 chiffres qu’on vous envoie.",
+  "authOtpEmailLabel": "Courriel",
+  "authOtpEmailHint": "vous@courriel",
+  "authOtpEmailHelp": "On vous enverra un code à 8 chiffres. Vérifiez vos indésirables au besoin.",
+  "authOtpCodeLabel": "Code de vérification",
+  "authOtpCodeHint": "Code à 8 chiffres",
+  "authOtpCodeHelp": "Recopiez le code à 8 chiffres reçu par courriel.",
+  "authOtpPrimarySend": "Envoyer le code",
+  "authOtpPrimarySubmit": "Se connecter",
+  "authOtpResend": "Renvoyer le code",
+  "authOtpResendDisabled": "Renvoyer le code dans {seconds}s",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "authOtpChangeEmail": "Changer de courriel",
+  "resumePlayback": "Reprendre la lècture",
+  "settingsCloudSyncSection": "Synchronisation Cloud",
+  "settingsCloudSyncAuto": "Synchronisation auto",
+  "settingsCloudSyncNow": "Synchroniser maintenant",
+  "settingsCloudSyncInProgress": "Synchronisation…",
+  "settingsCloudSyncNever": "Jamais",
+  "settingsCloudSyncError": "Dernière erreur : {error}",
+  "@settingsCloudSyncError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notFoundWithEntity": "{entity} introuvable",
+  "@notFoundWithEntity": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      }
+    }
+  },
+  "notFoundWithEntityAndError": "{entity} introuvable : {error}",
+  "@notFoundWithEntityAndError": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "entityProvider": "Provider",
+  "entityGenre": "Genre",
+  "entityPlaylist": "Playlist",
+  "entitySource": "Source",
+  "entityMovie": "Film",
+  "entitySeries": "Série",
+  "entityPerson": "Personne",
+  "entitySaga": "Saga",
+  "entityVideo": "Vidéo",
+  "entityRoute": "Route",
+  "errorTimeoutLoading": "Timeout lors du chargement"
+}

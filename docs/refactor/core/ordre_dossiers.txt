@@ -1,0 +1,29 @@
+P0 (impact direct architecture & startup)
+1) lib/src/core/startup/
+2) lib/src/core/router/
+3) lib/src/core/state/
+4) lib/src/core/di/
+5) lib/src/core/preferences/
+6) lib/src/core/storage/
+7) lib/src/core/auth/
+8) lib/src/core/supabase/
+
+P1 (infrastructure transversale)
+9)  lib/src/core/network/
+10) lib/src/core/error/
+11) lib/src/core/logging/
+12) lib/src/core/security/
+13) lib/src/core/config/
+
+P2 (UI foundation)
+14) lib/src/core/theme/
+15) lib/src/core/responsive/
+16) lib/src/core/widgets/
+17) lib/src/core/utils/
+18) lib/src/core/shared/
+
+P3 (suspects “feature-like”)
+19) lib/src/core/profile/
+20) lib/src/core/parental/
+21) lib/src/core/reporting/
+22) lib/src/core/performance/

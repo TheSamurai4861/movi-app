@@ -1,0 +1,376 @@
+{
+  "welcomeTitle": "Welkom!",
+  "welcomeSubtitle": "Vul je voorkeuren in om Movi te personaliseren.",
+  "labelUsername": "Bijnaam",
+  "labelPreferredLanguage": "Voorkeurstaal",
+  "actionContinue": "Doorgaan",
+  "hintUsername": "Je bijnaam",
+  "errorFillFields": "Vul de velden correct in.",
+  "homeWatchNow": "Nu kijken",
+  "welcomeSourceTitle": "Welkom!",
+  "welcomeSourceSubtitle": "Voeg een bron toe om je Movi-ervaring te personaliseren.",
+  "welcomeSourceAdd": "Bron toevoegen",
+  "searchTitle": "Zoeken",
+  "searchHint": "Typ je zoekopdracht",
+  "clear": "Wissen",
+  "moviesTitle": "Films",
+  "seriesTitle": "Series",
+  "noResults": "Geen resultaten",
+  "historyTitle": "Geschiedenis",
+  "historyEmpty": "Geen recente zoekopdrachten",
+  "delete": "Verwijderen",
+  "resultsCount": "({count} resultaten)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "errorUnknown": "Onbekende fout",
+  "errorConnectionFailed": "Verbinding mislukt: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorConnectionGeneric": "Verbinding mislukt",
+  "validationRequired": "Vereist",
+  "validationInvalidUrl": "Ongeldige URL",
+  "snackbarSourceAddedBackground": "IPTV-bron toegevoegd. Synchronisatie op de achtergrond…",
+  "snackbarSourceAddedSynced": "IPTV-bron toegevoegd en gesynchroniseerd",
+  "navHome": "Home",
+  "navSearch": "Zoeken",
+  "navLibrary": "Bibliotheek",
+  "navSettings": "Instellingen",
+  "settingsTitle": "Instellingen",
+  "settingsLanguageLabel": "App-taal",
+  "settingsGeneralTitle": "Algemene voorkeuren",
+  "settingsDarkModeTitle": "Donkere modus",
+  "settingsDarkModeSubtitle": "Schakel een nachtvriendelijk thema in.",
+  "settingsNotificationsTitle": "Meldingen",
+  "settingsNotificationsSubtitle": "Ontvang bericht over nieuwe releases.",
+  "settingsAccountTitle": "Account",
+  "settingsProfileInfoTitle": "Profielinformatie",
+  "settingsProfileInfoSubtitle": "Naam, avatar, voorkeuren",
+  "settingsAboutTitle": "Over",
+  "settingsLegalMentionsTitle": "Juridische vermeldingen",
+  "settingsPrivacyPolicyTitle": "Privacybeleid",
+  "actionCancel": "Annuleren",
+  "actionConfirm": "Bevestigen",
+  "actionRetry": "Opnieuw proberen"
+  ,
+  "homeErrorSwipeToRetry": "Er is een fout opgetreden. Veeg omlaag om opnieuw te proberen.",
+  "homeContinueWatching": "Verder kijken",
+  "homeNoIptvSources": "Geen IPTV-bron actief. Voeg een bron toe in Instellingen om je categorieën te zien.",
+  "homeNoTrends": "Geen trending inhoud beschikbaar"
+  ,
+  "actionRefreshMetadata": "Metadata vernieuwen",
+  "actionChangeMetadata": "Metadata wijzigen",
+  "actionAddToList": "Toevoegen aan een lijst",
+  "metadataRefreshed": "Metadata vernieuwd",
+  "errorRefreshingMetadata": "Fout bij vernieuwen van metadata",
+  "actionMarkSeen": "Markeren als gezien",
+  "actionMarkUnseen": "Markeren als niet gezien",
+  "actionReportProblem": "Een probleem melden",
+  "featureComingSoon": "Functie binnenkort beschikbaar",
+  "subtitlesMenuTitle": "Ondertitels",
+  "audioMenuTitle": "Audio",
+  "videoFitModeMenuTitle": "Weergavemodus",
+  "videoFitModeContain": "Originele verhoudingen",
+  "videoFitModeCover": "Scherm vullen",
+  "actionDisable": "Uitschakelen",
+  "defaultTrackLabel": "Track {id}",
+  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "controlRewind10": "10 s",
+  "controlRewind30": "30 s",
+  "controlForward10": "+ 10 s",
+  "controlForward30": "+ 30 s",
+  "actionNextEpisode": "Volgende aflevering",
+  "actionRestart": "Opnieuw starten",
+  "errorSeriesDataUnavailable": "Kan seriedata niet laden",
+  "errorNextEpisodeFailed": "Kan volgende aflevering niet bepalen",
+  "actionLoadMore": "Meer laden",
+  "iptvServerUrlLabel": "Server-URL",
+  "iptvServerUrlHint": "Xtream server-URL",
+  "iptvPasswordLabel": "Wachtwoord",
+  "iptvPasswordHint": "Xtream wachtwoord",
+  "actionConnect": "Verbinden",
+  "settingsRefreshIptvPlaylistsTitle": "IPTV-afspeellijsten vernieuwen",
+  "statusActive": "Actief",
+  "statusNoActiveSource": "Geen actieve bron",
+  "overlayPreparingHome": "Startpagina voorbereiden…",
+  "bootstrapRefreshing": "IPTV-lijsten vernieuwen…",
+  "bootstrapEnriching": "Metagegevens voorbereiden…",
+  "errorPrepareHome": "Kan de startpagina niet voorbereiden",
+  "overlayOpeningHome": "Startpagina openen…",
+  "overlayRefreshingIptvLists": "IPTV-lijsten vernieuwen…",
+  "overlayPreparingMetadata": "Metadata voorbereiden…",
+  "errorHomeLoadTimeout": "Time-out bij laden startpagina",
+  "faqLabel": "Veelgestelde vragen",
+  "iptvUsernameLabel": "Gebruikersnaam",
+  "iptvUsernameHint": "Xtream gebruikersnaam",
+  "actionBack": "Terug",
+  "actionSeeAll": "Alles bekijken",
+  "actionExpand": "Uitklappen",
+  "actionCollapse": "Inklappen",
+  "providerSearchPlaceholder": "Zoeken op {provider}...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "actionClearHistory": "Geschiedenis wissen",
+  "castTitle": "Cast",
+  "recommendationsTitle": "Aanbevelingen",
+  "libraryHeader": "Jouw videotheek",
+  "libraryDataInfo": "Gegevens worden getoond zodra data/domain is geïmplementeerd.",
+  "libraryEmpty": "Like films, series of acteurs om ze hier te zien verschijnen.",
+  "serie": "Serie",
+  "recherche": "Zoeken",
+  "notYetAvailable": "Nog niet beschikbaar",
+  "createPlaylistTitle": "Afspeellijst maken",
+  "playlistName": "Naam afspeellijst",
+  "addMedia": "Media toevoegen",
+  "renamePlaylist": "Hernoemen",
+  "deletePlaylist": "Verwijderen",
+  "pinPlaylist": "Vastmaken",
+  "unpinPlaylist": "Losmaken",
+  "playlistPinned": "Afspeellijst vastgemaakt",
+  "playlistUnpinned": "Afspeellijst losgemaakt",
+  "playlistDeleted": "Afspeellijst verwijderd",
+  "playlistCreatedSuccess": "Afspeellijst \"{name}\" gemaakt",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Fout bij het maken van de afspeellijst: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Toegevoegd",
+  "pinRecoveryLink": "Récupérer le code PIN",
+  "pinRecoveryTitle": "PIN-code herstellen",
+  "pinRecoveryDescription": "Herstel de PIN-code van je beveiligde profiel.",
+  "pinRecoveryComingSoon": "Deze functie komt binnenkort.",
+  "pinRecoveryCodeLabel": "Herstelcode",
+  "pinRecoveryCodeHint": "8 cijfers",
+  "pinRecoveryVerifyButton": "Controleren",
+  "pinRecoveryCodeInvalid": "Voer de 8-cijferige code in",
+  "pinRecoveryCodeExpired": "De herstelcode is verlopen",
+  "pinRecoveryTooManyAttempts": "Te veel pogingen. Probeer het later opnieuw.",
+  "pinRecoveryUnknownError": "Er is een onverwachte fout opgetreden",
+  "pinRecoveryNewPinLabel": "Nieuwe pincode",
+  "pinRecoveryNewPinHint": "4-6 cijfers",
+  "pinRecoveryConfirmPinLabel": "Bevestig pincode",
+  "pinRecoveryConfirmPinHint": "Herhaal de pincode",
+  "pinRecoveryResetButton": "Pincode bijwerken",
+  "pinRecoveryPinInvalid": "Voer een pincode van 4 tot 6 cijfers in",
+  "pinRecoveryPinMismatch": "De pincodes komen niet overeen",
+  "pinRecoveryResetSuccess": "Pincode bijgewerkt",
+  "settingsAccountsSection": "Accounts",
+  "settingsIptvSection": "IPTV-instellingen",
+  "settingsSourcesManagement": "Bronbeheer",
+  "settingsSyncFrequency": "Updatefrequentie",
+  "settingsAppSection": "App-instellingen",
+  "settingsAccentColor": "Accentkleur",
+  "settingsPlaybackSection": "Afspeelinstellingen",
+  "settingsPreferredAudioLanguage": "Voorkeurstaal",
+  "settingsPreferredSubtitleLanguage": "Voorkeur ondertitels",
+  "libraryPlaylistsFilter": "Afspeellijsten",
+  "librarySagasFilter": "Saga's",
+  "libraryArtistsFilter": "Artiesten",
+  "librarySearchPlaceholder": "Zoeken in mijn bibliotheek...",
+  "libraryInProgress": "Bezig",
+  "libraryFavoriteMovies": "Favoriete films",
+  "libraryFavoriteSeries": "Favoriete series",
+  "libraryWatchHistory": "Kijkgeschiedenis",
+  "libraryItemCount": "{count} item",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "libraryItemCountPlural": "{count} items",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "searchPeopleTitle": "Personen",
+  "searchSagasTitle": "Saga's",
+  "searchByProvidersTitle": "Per provider",
+  "searchByGenresTitle": "Per genre",
+  "personRoleActor": "Acteur",
+  "personRoleDirector": "Regisseur",
+  "personRoleCreator": "Maker",
+  "tvDistribution": "Cast",
+  "tvSeasonLabel": "Seizoen {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "tvNoEpisodesAvailable": "Geen afleveringen beschikbaar",
+  "tvResumeSeasonEpisode": "Hervatten S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": { "type": "int" },
+      "episode": { "type": "int" }
+    }
+  },
+  "sagaViewPage": "Pagina bekijken",
+  "sagaStartNow": "Nu beginnen",
+  "sagaContinue": "Doorgaan",
+  "sagaMovieCount": "{count} films",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "sagaMoviesList": "Filmlijst",
+  "personMoviesCount": "{movies} films - {shows} series",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": { "type": "int" },
+      "shows": { "type": "int" }
+    }
+  },
+  "personPlayRandomly": "Willekeurig afspelen",
+  "personMoviesList": "Filmlijst",
+  "personSeriesList": "Serielijst",
+  "playlistPlayRandomly": "Willekeurig afspelen",
+  "playlistAddButton": "Toevoegen",
+  "playlistSortButton": "Sorteren",
+  "playlistSortByTitle": "Sorteren op",
+  "playlistSortByTitleOption": "Titel",
+  "playlistSortRecentAdditions": "Recent toegevoegd",
+  "playlistSortOldestFirst": "Oudste eerst",
+  "playlistSortNewestFirst": "Nieuwste eerst",
+  "playlistEmptyMessage": "Geen items in deze lijst",
+  "playlistItemCount": "{count} item",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistItemCountPlural": "{count} items",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "playlistSeasonSingular": "seizoen",
+  "playlistSeasonPlural": "seizoenen",
+  "playlistRenameTitle": "Lijst hernoemen",
+  "playlistNamePlaceholder": "Lijstnaam",
+  "playlistRenamedSuccess": "Lijst hernoemd naar \"{name}\"",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "playlistDeleteTitle": "Verwijderen",
+  "playlistDeleteConfirm": "Weet je zeker dat je \"{title}\" wilt verwijderen?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "playlistDeletedSuccess": "Lijst verwijderd",
+  "playlistItemRemovedSuccess": "Item verwijderd",
+  "playlistRemoveItemConfirm": "\"{title}\" uit de lijst verwijderen?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "categoryLoadFailed": "Fout bij het laden van de categorie.",
+  "categoryEmpty": "Geen items in deze categorie.",
+  "categoryLoadingMore": "Meer laden…",
+  "movieNoPlaylistsAvailable": "Geen playlist beschikbaar",
+  "playlistAddedTo": "Toegevoegd aan \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Fout: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film niet beschikbaar in de playlist",
+  "errorLoadingPlaylists": "Fout bij het laden van playlists: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Fout bij het afspelen van de film: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  }
+  ,
+  "personNoData": "Geen persoon om te tonen.",
+  "personGenericError": "Er is een fout opgetreden bij het laden van deze persoon.",
+  "personBiographyTitle": "Biografie",
+  "resumePlayback": "Afspelen hervatten",
+  "settingsCloudSyncSection": "Cloudsync",
+  "settingsCloudSyncAuto": "Automatisch synchroniseren",
+  "settingsCloudSyncNow": "Nu synchroniseren",
+  "settingsCloudSyncInProgress": "Synchroniseren…",
+  "settingsCloudSyncNever": "Nooit",
+  "settingsCloudSyncError": "Laatste fout: {error}",
+  "@settingsCloudSyncError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notFoundWithEntity": "{entity} niet gevonden",
+  "@notFoundWithEntity": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      }
+    }
+  },
+  "notFoundWithEntityAndError": "{entity} niet gevonden: {error}",
+  "@notFoundWithEntityAndError": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "entityProvider": "Provider",
+  "entityGenre": "Genre",
+  "entityPlaylist": "Playlist",
+  "entitySource": "Bron",
+  "entityMovie": "Film",
+  "entitySeries": "Serie",
+  "entityPerson": "Persoon",
+  "entitySaga": "Saga",
+  "entityVideo": "Video",
+  "entityRoute": "Route",
+  "errorTimeoutLoading": "Time-out tijdens laden",
+  "parentalContentRestricted": "Beperkte inhoud",
+  "parentalContentRestrictedDefault": "Deze inhoud is geblokkeerd door de ouderlijke controle van dit profiel.",
+  "parentalReasonTooYoung": "Deze inhoud vereist een hogere leeftijd dan de limiet van dit profiel.",
+  "parentalReasonUnknownRating": "De leeftijdsclassificatie voor deze inhoud is niet beschikbaar.",
+  "parentalReasonInvalidTmdbId": "Deze inhoud kan niet worden beoordeeld voor ouderlijke controle.",
+  "parentalUnlockButton": "Deblokkeren"
+}
