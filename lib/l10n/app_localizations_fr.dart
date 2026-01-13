@@ -1511,6 +1511,36 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
   String get categoryLoadingMore => 'Chargement en cours…';
 
   @override
+  String get movieNoPlaylistsAvailable => 'Nulle liste disponible';
+
+  @override
+  String playlistAddedTo(String title) {
+    return 'Ajouté à \"$title\"';
+  }
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Couac : $message';
+  }
+
+  @override
+  String get movieNotAvailableInPlaylist =>
+      'Bobine point disponible en la liste';
+
+  @override
+  String errorLoadingPlaylists(String message) {
+    return 'Couac en chargeant les listes : $message';
+  }
+
+  @override
+  String errorPlaybackFailed(String message) {
+    return 'Couac lors de la lecture de la bobine : $message';
+  }
+
+  @override
+  String get movieNoMedia => 'Point de média à montrer';
+
+  @override
   String get personNoData => 'Point de personnalité à afficher.';
 
   @override
@@ -1629,4 +1659,26 @@ class AppLocalizationsFrMm extends AppLocalizationsFr {
 
   @override
   String get errorTimeoutLoading => 'Timeout lors du chargement';
+
+  @override
+  String get parentalContentRestricted => 'Contenu défendu';
+
+  @override
+  String get parentalContentRestrictedDefault =>
+      'Ceste chose est barrée par la garde parentale de ce profil.';
+
+  @override
+  String get parentalReasonTooYoung =>
+      'Ceste chose requiert un âge plus haut que la borne de ce profil.';
+
+  @override
+  String get parentalReasonUnknownRating =>
+      'La cotation d\'âge de ceste chose n\'est point disponible.';
+
+  @override
+  String get parentalReasonInvalidTmdbId =>
+      'Ceste chose ne peut être évaluée pour la garde parentale.';
+
+  @override
+  String get parentalUnlockButton => 'Déverrouiller';
 }

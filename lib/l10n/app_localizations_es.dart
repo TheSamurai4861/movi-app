@@ -671,11 +671,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get categoryLoadingMore => 'Cargando más…';
 
   @override
-  String get movieNoPlaylistsAvailable => 'No playlist available';
+  String get movieNoPlaylistsAvailable =>
+      'No hay listas de reproducción disponibles';
 
   @override
   String playlistAddedTo(String title) {
-    return 'Added to \"$title\"';
+    return 'Añadido a \"$title\"';
   }
 
   @override
@@ -685,16 +686,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get movieNotAvailableInPlaylist =>
-      'Movie not available in the playlist';
+      'Película no disponible en la lista de reproducción';
 
   @override
   String errorLoadingPlaylists(String message) {
-    return 'Error loading playlists: $message';
+    return 'Error al cargar las listas de reproducción: $message';
   }
 
   @override
   String errorPlaybackFailed(String message) {
-    return 'Error playing movie: $message';
+    return 'Error al reproducir la película: $message';
   }
 
   @override
@@ -711,47 +712,48 @@ class AppLocalizationsEs extends AppLocalizations {
   String get personBiographyTitle => 'Biografía';
 
   @override
-  String get authOtpTitle => 'Sign in';
+  String get authOtpTitle => 'Iniciar sesión';
 
   @override
   String get authOtpSubtitle =>
-      'Enter your email and the 8-digit code we send you.';
+      'Introduce tu correo y el código de 8 dígitos que te enviamos.';
 
   @override
-  String get authOtpEmailLabel => 'Email';
+  String get authOtpEmailLabel => 'Correo electrónico';
 
   @override
-  String get authOtpEmailHint => 'your@email';
+  String get authOtpEmailHint => 'tu@correo';
 
   @override
   String get authOtpEmailHelp =>
-      'We will send you an 8-digit code. Check spam if needed.';
+      'Te enviaremos un código de 8 dígitos. Revisa el spam si es necesario.';
 
   @override
-  String get authOtpCodeLabel => 'Verification code';
+  String get authOtpCodeLabel => 'Código de verificación';
 
   @override
-  String get authOtpCodeHint => '8-digit code';
+  String get authOtpCodeHint => 'Código de 8 dígitos';
 
   @override
-  String get authOtpCodeHelp => 'Enter the 8-digit code received by email.';
+  String get authOtpCodeHelp =>
+      'Introduce el código de 8 dígitos recibido por correo.';
 
   @override
-  String get authOtpPrimarySend => 'Send code';
+  String get authOtpPrimarySend => 'Enviar código';
 
   @override
-  String get authOtpPrimarySubmit => 'Sign in';
+  String get authOtpPrimarySubmit => 'Iniciar sesión';
 
   @override
-  String get authOtpResend => 'Resend code';
+  String get authOtpResend => 'Reenviar código';
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return 'Resend code in ${seconds}s';
+    return 'Reenviar código en ${seconds}s';
   }
 
   @override
-  String get authOtpChangeEmail => 'Change email';
+  String get authOtpChangeEmail => 'Cambiar correo';
 
   @override
   String get resumePlayback => 'Reanudar la reproducción';

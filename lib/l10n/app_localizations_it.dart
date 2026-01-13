@@ -699,7 +699,7 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get movieNoMedia => 'No media to display';
+  String get movieNoMedia => 'Nessun contenuto da mostrare';
 
   @override
   String get personNoData => 'Nessuna persona da mostrare.';
@@ -712,47 +712,48 @@ class AppLocalizationsIt extends AppLocalizations {
   String get personBiographyTitle => 'Biografia';
 
   @override
-  String get authOtpTitle => 'Sign in';
+  String get authOtpTitle => 'Accedi';
 
   @override
   String get authOtpSubtitle =>
-      'Enter your email and the 8-digit code we send you.';
+      'Inserisci la tua email e il codice a 8 cifre che ti inviamo.';
 
   @override
   String get authOtpEmailLabel => 'Email';
 
   @override
-  String get authOtpEmailHint => 'your@email';
+  String get authOtpEmailHint => 'tu@email';
 
   @override
   String get authOtpEmailHelp =>
-      'We will send you an 8-digit code. Check spam if needed.';
+      'Ti invieremo un codice a 8 cifre. Controlla lo spam se necessario.';
 
   @override
-  String get authOtpCodeLabel => 'Verification code';
+  String get authOtpCodeLabel => 'Codice di verifica';
 
   @override
-  String get authOtpCodeHint => '8-digit code';
+  String get authOtpCodeHint => 'Codice a 8 cifre';
 
   @override
-  String get authOtpCodeHelp => 'Enter the 8-digit code received by email.';
+  String get authOtpCodeHelp =>
+      'Inserisci il codice a 8 cifre ricevuto via email.';
 
   @override
-  String get authOtpPrimarySend => 'Send code';
+  String get authOtpPrimarySend => 'Invia codice';
 
   @override
-  String get authOtpPrimarySubmit => 'Sign in';
+  String get authOtpPrimarySubmit => 'Accedi';
 
   @override
-  String get authOtpResend => 'Resend code';
+  String get authOtpResend => 'Reinvia codice';
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return 'Resend code in ${seconds}s';
+    return 'Reinvia codice tra ${seconds}s';
   }
 
   @override
-  String get authOtpChangeEmail => 'Change email';
+  String get authOtpChangeEmail => 'Cambia email';
 
   @override
   String get resumePlayback => 'Riprendi la riproduzione';

@@ -466,22 +466,22 @@ class AppLocalizationsBu extends AppLocalizations {
   @override
   String get categoryLoadingMore => 'Chargement en cours…';
   @override
-  String get movieNoMedia => 'Point de média à afficher';
+  String get movieNoMedia => 'Point de média à montrer';
   @override
-  String get movieNoPlaylistsAvailable => 'Point de liste disponible';
+  String get movieNoPlaylistsAvailable => 'Nulle liste disponible';
   @override
   String playlistAddedTo(String title) => 'Ajouté à "$title"';
   @override
-  String errorWithMessage(String message) => 'Couac: $message';
+  String errorWithMessage(String message) => 'Couac : $message';
   @override
   String get movieNotAvailableInPlaylist =>
-      'Bobine point disponible dans la liste';
+      'Bobine point disponible en la liste';
   @override
   String errorLoadingPlaylists(String message) =>
-      'Couac lors du chargement des listes: $message';
+      'Couac en chargeant les listes : $message';
   @override
   String errorPlaybackFailed(String message) =>
-      'Couac lors de la lecture de la bobine: $message';
+      'Couac lors de la lecture de la bobine : $message';
   @override
   String get personNoData => 'Point de personnalité à afficher.';
   @override
@@ -600,24 +600,24 @@ class AppLocalizationsBu extends AppLocalizations {
   String get errorTimeoutLoading => 'Délai de chargement dépassé';
 
   @override
-  String get parentalContentRestricted => 'Contenu restreint';
+  String get parentalContentRestricted => 'Contenu défendu';
 
   @override
   String get parentalContentRestrictedDefault =>
-      'Ce contenu est bloqué par le contrôle parental de ce profil.';
+      'Ceste chose est barrée par la garde parentale de ce profil.';
 
   @override
   String get parentalReasonTooYoung =>
-      'Ce contenu nécessite un âge supérieur à la limite de ce profil.';
+      'Ceste chose requiert un âge plus haut que la borne de ce profil.';
 
   @override
   String get parentalReasonUnknownRating =>
-      'Le classement d\'âge de ce contenu n\'est pas disponible.';
+      'La cotation d\'âge de ceste chose n\'est point disponible.';
 
   @override
   String get parentalReasonInvalidTmdbId =>
-      'Ce contenu ne peut pas être évalué pour le contrôle parental.';
+      'Ceste chose ne peut être évaluée pour la garde parentale.';
 
   @override
-  String get parentalUnlockButton => 'Débloquer';
+  String get parentalUnlockButton => 'Déverrouiller';
 }
