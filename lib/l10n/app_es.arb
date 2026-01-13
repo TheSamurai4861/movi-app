@@ -296,11 +296,57 @@
   "categoryEmpty": "No hay elementos en esta categoría.",
   "categoryLoadingMore": "Cargando más…"
   ,
+  "movieNoPlaylistsAvailable": "No hay listas de reproducción disponibles",
+  "playlistAddedTo": "Añadido a \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Error: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Película no disponible en la lista de reproducción",
+  "errorLoadingPlaylists": "Error al cargar las listas de reproducción: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Error al reproducir la película: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
   "movieNoMedia": "No hay contenido para mostrar"
   ,
   "personNoData": "No hay persona para mostrar.",
   "personGenericError": "Se produjo un error al cargar esta persona.",
   "personBiographyTitle": "Biografía",
+  "authOtpTitle": "Iniciar sesión",
+  "authOtpSubtitle": "Introduce tu correo y el código de 8 dígitos que te enviamos.",
+  "authOtpEmailLabel": "Correo electrónico",
+  "authOtpEmailHint": "tu@correo",
+  "authOtpEmailHelp": "Te enviaremos un código de 8 dígitos. Revisa el spam si es necesario.",
+  "authOtpCodeLabel": "Código de verificación",
+  "authOtpCodeHint": "Código de 8 dígitos",
+  "authOtpCodeHelp": "Introduce el código de 8 dígitos recibido por correo.",
+  "authOtpPrimarySend": "Enviar código",
+  "authOtpPrimarySubmit": "Iniciar sesión",
+  "authOtpResend": "Reenviar código",
+  "authOtpResendDisabled": "Reenviar código en {seconds}s",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "Cambiar correo",
   "resumePlayback": "Reanudar la reproducción",
   "settingsCloudSyncSection": "Sincronización en la nube",
   "settingsCloudSyncAuto": "Sincronización automática",

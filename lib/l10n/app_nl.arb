@@ -322,9 +322,30 @@
     }
   }
   ,
+  "movieNoMedia": "Geen media om te tonen",
   "personNoData": "Geen persoon om te tonen.",
   "personGenericError": "Er is een fout opgetreden bij het laden van deze persoon.",
   "personBiographyTitle": "Biografie",
+  "authOtpTitle": "Inloggen",
+  "authOtpSubtitle": "Voer je e-mailadres en de 8-cijferige code in die we je sturen.",
+  "authOtpEmailLabel": "E-mail",
+  "authOtpEmailHint": "jij@email",
+  "authOtpEmailHelp": "We sturen je een 8-cijferige code. Controleer spam indien nodig.",
+  "authOtpCodeLabel": "Verificatiecode",
+  "authOtpCodeHint": "8-cijferige code",
+  "authOtpCodeHelp": "Voer de 8-cijferige code in die je per e-mail hebt ontvangen.",
+  "authOtpPrimarySend": "Code verzenden",
+  "authOtpPrimarySubmit": "Inloggen",
+  "authOtpResend": "Code opnieuw verzenden",
+  "authOtpResendDisabled": "Code opnieuw verzenden in {seconds}s",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "E-mail wijzigen",
   "resumePlayback": "Afspelen hervatten",
   "settingsCloudSyncSection": "Cloudsync",
   "settingsCloudSyncAuto": "Automatisch synchroniseren",

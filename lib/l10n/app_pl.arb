@@ -322,9 +322,30 @@
     }
   }
   ,
+  "movieNoMedia": "Brak treści do wyświetlenia",
   "personNoData": "Brak osoby do wyświetlenia.",
   "personGenericError": "Wystąpił błąd podczas ładowania tej osoby.",
   "personBiographyTitle": "Biografia",
+  "authOtpTitle": "Zaloguj się",
+  "authOtpSubtitle": "Wpisz swój email i 8-cyfrowy kod, który Ci wyślemy.",
+  "authOtpEmailLabel": "Email",
+  "authOtpEmailHint": "twoj@email",
+  "authOtpEmailHelp": "Wyślemy Ci 8-cyfrowy kod. Sprawdź spam, jeśli to konieczne.",
+  "authOtpCodeLabel": "Kod weryfikacyjny",
+  "authOtpCodeHint": "8-cyfrowy kod",
+  "authOtpCodeHelp": "Wpisz 8-cyfrowy kod otrzymany mailem.",
+  "authOtpPrimarySend": "Wyślij kod",
+  "authOtpPrimarySubmit": "Zaloguj się",
+  "authOtpResend": "Wyślij kod ponownie",
+  "authOtpResendDisabled": "Wyślij kod ponownie za {seconds}s",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "Zmień email",
   "resumePlayback": "Wznów odtwarzanie",
   "settingsCloudSyncSection": "Synchronizacja w chmurze",
   "settingsCloudSyncAuto": "Synchronizacja automatyczna",

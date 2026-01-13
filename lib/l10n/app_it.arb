@@ -322,9 +322,30 @@
   "categoryEmpty": "Nessun elemento in questa categoria.",
   "categoryLoadingMore": "Caricamento in corso…"
   ,
+  "movieNoMedia": "Nessun contenuto da mostrare",
   "personNoData": "Nessuna persona da mostrare.",
   "personGenericError": "Si è verificato un errore durante il caricamento di questa persona.",
   "personBiographyTitle": "Biografia",
+  "authOtpTitle": "Accedi",
+  "authOtpSubtitle": "Inserisci la tua email e il codice a 8 cifre che ti inviamo.",
+  "authOtpEmailLabel": "Email",
+  "authOtpEmailHint": "tu@email",
+  "authOtpEmailHelp": "Ti invieremo un codice a 8 cifre. Controlla lo spam se necessario.",
+  "authOtpCodeLabel": "Codice di verifica",
+  "authOtpCodeHint": "Codice a 8 cifre",
+  "authOtpCodeHelp": "Inserisci il codice a 8 cifre ricevuto via email.",
+  "authOtpPrimarySend": "Invia codice",
+  "authOtpPrimarySubmit": "Accedi",
+  "authOtpResend": "Reinvia codice",
+  "authOtpResendDisabled": "Reinvia codice tra {seconds}s",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "Cambia email",
   "resumePlayback": "Riprendi la riproduzione",
   "settingsCloudSyncSection": "Sincronizzazione cloud",
   "settingsCloudSyncAuto": "Sincronizzazione automatica",

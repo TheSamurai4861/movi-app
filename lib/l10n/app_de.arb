@@ -324,9 +324,30 @@
     }
   }
   ,
+  "movieNoMedia": "Keine Medien zum Anzeigen.",
   "personNoData": "Keine Person anzuzeigen.",
   "personGenericError": "Beim Laden dieser Person ist ein Fehler aufgetreten.",
   "personBiographyTitle": "Biografie",
+  "authOtpTitle": "Anmelden",
+  "authOtpSubtitle": "Gib deine E-Mail-Adresse und den 8-stelligen Code ein, den wir dir senden.",
+  "authOtpEmailLabel": "E-Mail",
+  "authOtpEmailHint": "dein@email",
+  "authOtpEmailHelp": "Wir senden dir einen 8-stelligen Code. Prüfe ggf. den Spam-Ordner.",
+  "authOtpCodeLabel": "Bestätigungscode",
+  "authOtpCodeHint": "8-stelliger Code",
+  "authOtpCodeHelp": "Gib den 8-stelligen Code aus der E-Mail ein.",
+  "authOtpPrimarySend": "Code senden",
+  "authOtpPrimarySubmit": "Anmelden",
+  "authOtpResend": "Code erneut senden",
+  "authOtpResendDisabled": "Code erneut senden in {seconds}s",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "E-Mail ändern",
   "resumePlayback": "Wiedergabe fortsetzen",
   "settingsCloudSyncSection": "Cloud-Sync",
   "settingsCloudSyncAuto": "Automatische Synchronisierung",

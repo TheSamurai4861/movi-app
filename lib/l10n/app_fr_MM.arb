@@ -322,6 +322,33 @@
   "categoryEmpty": "Point d'élément dans cette catégorie.",
   "categoryLoadingMore": "Chargement en cours…"
   ,
+  "movieNoPlaylistsAvailable": "Nulle liste disponible",
+  "playlistAddedTo": "Ajouté à \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "errorWithMessage": "Couac : {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Bobine point disponible en la liste",
+  "errorLoadingPlaylists": "Couac en chargeant les listes : {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "errorPlaybackFailed": "Couac lors de la lecture de la bobine : {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "movieNoMedia": "Point de média à montrer",
   "personNoData": "Point de personnalité à afficher.",
   "personGenericError": "Un couac est advenu en chargeant cette personnalité.",
   "personBiographyTitle": "Biographie",
@@ -384,5 +411,11 @@
   "entitySaga": "Saga",
   "entityVideo": "Vidéo",
   "entityRoute": "Route",
-  "errorTimeoutLoading": "Timeout lors du chargement"
+  "errorTimeoutLoading": "Timeout lors du chargement",
+  "parentalContentRestricted": "Contenu défendu",
+  "parentalContentRestrictedDefault": "Ceste chose est barrée par la garde parentale de ce profil.",
+  "parentalReasonTooYoung": "Ceste chose requiert un âge plus haut que la borne de ce profil.",
+  "parentalReasonUnknownRating": "La cotation d'âge de ceste chose n'est point disponible.",
+  "parentalReasonInvalidTmdbId": "Ceste chose ne peut être évaluée pour la garde parentale.",
+  "parentalUnlockButton": "Déverrouiller"
 }
