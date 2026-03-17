@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
@@ -168,7 +169,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(left: 12, right: 8),
                         child: Image.asset(
-                          'assets/icons/search.png',
+                          AppAssets.iconSearch,
                           width: 25,
                           height: 25,
                         ),
@@ -176,7 +177,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
                       suffixIcon: _textCtrl.text.isNotEmpty
                           ? IconButton(
                               icon: Image.asset(
-                                'assets/icons/supprimer.png',
+                                AppAssets.iconDelete,
                                 width: 25,
                                 height: 25,
                               ),

@@ -1,8 +1,13 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - docs/**
+    - build/**
+    - .dart_tool/**
+    - output/**
+
 linter:
   rules:
     - always_use_package_imports
     - avoid_print
-analyzer:
-  exclude:
-    - docs/**

@@ -919,34 +919,38 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.lg,
                                 ),
-                                child: AnimatedSwitcher(
-                                  duration: _fade,
-                                  transitionBuilder: (child, animation) =>
-                                      FadeTransition(
-                                        opacity: animation,
-                                        child: child,
-                                      ),
-                                  layoutBuilder: (current, previous) => Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      ...previous,
-                                      if (current != null) current,
-                                    ],
-                                  ),
-                                  child: Text(
-                                    hasTitle ? meta!.title! : item.title.value,
-                                    key: ValueKey(
-                                      hasTitle
-                                          ? '${tmdbId}_title'
-                                          : '${tmdbId}_titleFallback',
+                                child: _HeroTextScope(
+                                  child: AnimatedSwitcher(
+                                    duration: _fade,
+                                    transitionBuilder: (child, animation) =>
+                                        FadeTransition(
+                                          opacity: animation,
+                                          child: child,
+                                        ),
+                                    layoutBuilder: (current, previous) => Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        ...previous,
+                                        if (current != null) current,
+                                      ],
                                     ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                    child: Text(
+                                      hasTitle
+                                          ? meta!.title!
+                                          : item.title.value,
+                                      key: ValueKey(
+                                        hasTitle
+                                            ? '${tmdbId}_title'
+                                            : '${tmdbId}_titleFallback',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1208,64 +1212,66 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                child: Text(
-                  overview,
-                  maxLines: isExpanded ? null : 3,
-                  overflow: isExpanded
-                      ? TextOverflow.visible
-                      : TextOverflow.ellipsis,
-                  textAlign: TextAlign.left,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              if (needsExpansion)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Center(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        setState(() {
-                          _synopsisExpanded[tmdbId] = !isExpanded;
-                        });
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isExpanded
-                                ? AppLocalizations.of(context)!.actionCollapse
-                                : AppLocalizations.of(context)!.actionExpand,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            isExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            color: Colors.white70,
-                            size: 20,
-                          ),
-                        ],
-                      ),
+          child: _HeroTextScope(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: Text(
+                    overview,
+                    maxLines: isExpanded ? null : 3,
+                    overflow: isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-            ],
+                if (needsExpansion)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Center(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _synopsisExpanded[tmdbId] = !isExpanded;
+                          });
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isExpanded
+                                  ? AppLocalizations.of(context)!.actionCollapse
+                                  : AppLocalizations.of(context)!.actionExpand,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              isExpanded
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
@@ -1317,6 +1323,23 @@ class _BottomOverlay extends StatelessWidget {
           end: Alignment.topCenter,
           colors: [Color(0xFF141414), Color(0x00141414)],
         ),
+      ),
+    );
+  }
+}
+
+class _HeroTextScope extends StatelessWidget {
+  const _HeroTextScope({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      type: MaterialType.transparency,
+      child: DefaultTextStyle.merge(
+        style: const TextStyle(decoration: TextDecoration.none),
+        child: child,
       ),
     );
   }

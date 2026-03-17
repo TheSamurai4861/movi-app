@@ -596,7 +596,7 @@ class _LibrarySearchField extends StatelessWidget {
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 12, right: 8),
               child: Image.asset(
-                'assets/icons/search.png',
+                AppAssets.iconSearch,
                 width: 25,
                 height: 25,
               ),
@@ -604,7 +604,7 @@ class _LibrarySearchField extends StatelessWidget {
             suffixIcon: value.text.isNotEmpty
                 ? IconButton(
                     icon: Image.asset(
-                      'assets/icons/supprimer.png',
+                      AppAssets.iconDelete,
                       width: 25,
                       height: 25,
                     ),

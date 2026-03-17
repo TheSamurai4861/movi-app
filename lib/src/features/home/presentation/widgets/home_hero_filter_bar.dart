@@ -72,28 +72,37 @@ class _BlurPillButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: borderColor,
-                ),
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+      child: Material(
+        type: MaterialType.transparency,
+        child: DefaultTextStyle.merge(
+          style: const TextStyle(decoration: TextDecoration.none),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: background,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: borderColor,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),

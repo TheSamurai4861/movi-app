@@ -11,6 +11,17 @@ workflows:
       - name: Install dependencies
         script: flutter pub get
 
+      - name: Analyze project
+        script: flutter analyze --no-fatal-infos
+
+      - name: Run tests when present
+        script: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory found; skipping tests"
+          fi
+
       - name: Load .env (optional for dev)
         script: |
           set -a
@@ -81,6 +92,17 @@ workflows:
     scripts:
       - name: Install dependencies
         script: flutter pub get
+
+      - name: Analyze project
+        script: flutter analyze --no-fatal-infos
+
+      - name: Run tests when present
+        script: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory found; skipping tests"
+          fi
 
       - name: Check API vars (required for prod)
         script: |

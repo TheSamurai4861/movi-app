@@ -1,10 +1,11 @@
 name: movi
-description: "A new Flutter project."
+description: "Application Flutter de streaming et de gestion de bibliotheque media."
 publish_to: "none"
 version: 1.0.1+4
 
 environment:
   sdk: ^3.9.2
+  flutter: ">=3.38.0"
 
 dependencies:
   equatable: ^2.0.7
@@ -24,8 +25,6 @@ dependencies:
   path: ^1.9.0
   path_provider: ^2.1.2
   sqflite_common_ffi: ^2.3.6
-  path_provider_platform_interface: ^2.1.2
-  pool: ^1.5.2
   flutter_secure_storage: ^9.2.4
   encrypt: ^5.0.3
   clock: ^1.1.2
@@ -35,10 +34,6 @@ dependencies:
   media_kit_libs_video: ^1.0.7
   screen_brightness: ^0.2.2+1
   volume_controller: ^2.0.7
-  pip: ^0.0.3
-  desktop_multi_window: ^0.2.0
-  window_manager: ^0.3.0
-  platform: ^3.1.0
 
 dev_dependencies:
   flutter_test:
@@ -50,12 +45,15 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
-    - assets/icons/
+    - assets/branding/
+    - assets/icons/navigation/
+    - assets/icons/actions/
+    - assets/icons/media/
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: assets/icons/app_icon.png
+  image_path: assets/branding/app_icon.png
   remove_alpha_ios: true
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: assets/icons/app_icon.png
+  adaptive_icon_foreground: assets/branding/app_icon.png

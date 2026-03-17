@@ -33,7 +33,7 @@ class SidebarNavItem extends StatefulWidget {
     this.enableHover = true,
   });
 
-  /// Chemin de l'icône SVG (ex: assets/icons/home.svg)
+  /// Chemin de l'icône SVG (ex: assets/icons/navigation/home.svg)
   final String assetPath;
 
   /// Sélectionné ?
