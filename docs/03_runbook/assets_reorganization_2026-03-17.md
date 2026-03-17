@@ -13,7 +13,7 @@ Il applique la reorganisation recommandee apres l'audit des assets :
 
 Document source :
 
-- [assets_audit_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/assets_audit_2026-03-17.md)
+- [roadmap.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/04_product_followup/roadmap.md)
 
 Date :
 

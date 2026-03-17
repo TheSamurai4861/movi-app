@@ -1,3 +1,7 @@
+// Public barrel for the routing layer.
+//
+// It exposes the global router factory/provider, route ids and paths, and the
+// route arguments used outside the router package itself.
 export 'app_router.dart';
 export 'app_route_names.dart';
 export 'app_route_paths.dart';

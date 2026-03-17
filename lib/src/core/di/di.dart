@@ -1,3 +1,7 @@
+// Public entry-point for the dependency injection layer.
+//
+// This barrel exposes the global GetIt injector and the Riverpod bridge used
+// by the UI and tests to access the registered services.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 

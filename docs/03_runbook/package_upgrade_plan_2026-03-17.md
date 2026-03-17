@@ -13,7 +13,7 @@ Il decoupe les upgrades en vagues courtes et testables afin de :
 
 Documents sources :
 
-- [pubspec_audit_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/pubspec_audit_2026-03-17.md)
+- [modernization_plan.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/modernization_plan.md)
 - [roadmap.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/04_product_followup/roadmap.md)
 
 Contexte observe au 17 mars 2026 :

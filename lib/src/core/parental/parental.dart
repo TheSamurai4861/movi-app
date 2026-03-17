@@ -1,3 +1,7 @@
+// Public barrel for the parental control module.
+//
+// It exposes the key domain concepts and the main presentation providers used
+// to enforce access rules in UI flows.
 export 'domain/entities/age_decision.dart';
 export 'domain/entities/parental_session.dart';
 export 'domain/services/age_policy.dart';

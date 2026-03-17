@@ -1,3 +1,7 @@
+// Public barrel for local persistence services and repositories.
+//
+// This entry-point exposes the repositories backed by SQLite / secure storage,
+// plus the cache policy and storage failures used by higher layers.
 export 'repositories/iptv_local_repository.dart';
 export 'repositories/content_cache_repository.dart';
 export 'repositories/secure_storage_repository.dart';

@@ -1,44 +1,48 @@
-# Core ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Profile
+# Core Profile
 
-Module ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œprofilÃƒÂ¢Ã¢â€šÂ¬Ã‚Â (Netflix-like) : gÃƒÆ’Ã‚Â©rer plusieurs profils par compte Supabase.
+Module de gestion des profils utilisateur type "Netflix-like".
 
 ## Objectif
-- Lister les profils de l'utilisateur connectÃƒÆ’Ã‚Â©
-- CrÃƒÆ’Ã‚Â©er / modifier / supprimer un profil
-- Persister un profil sÃƒÆ’Ã‚Â©lectionnÃƒÆ’Ã‚Â© localement (Secure Storage)
-- Permettre au bootstrap / onboarding de choisir un profil par dÃƒÆ’Ã‚Â©faut
 
-## Structure (Clean Architecture)
+- lister les profils du compte connecte ;
+- creer, modifier et supprimer un profil ;
+- persister localement le profil selectionne ;
+- permettre au bootstrap et a l'onboarding de restaurer un profil par defaut.
+
+## Structure
+
 - `domain/`
-  - `entities/profile.dart` : entitÃƒÆ’Ã‚Â© mÃƒÆ’Ã‚Â©tier (sans JSON)
-  - `repositories/profile_repository.dart` : contrat mÃƒÆ’Ã‚Â©tier
+  - entites et contrats metier
 - `data/`
-  - `dtos/profile_dto.dart` : parsing DB/JSON
-  - `repositories/supabase_profile_repository.dart` : impl Supabase de `ProfileRepository`
-  - (optionnel) `datasources/` + `mappers/` si tu veux sÃƒÆ’Ã‚Â©parer I/O et mapping
+  - dtos, data sources et repository Supabase
 - `application/`
-  - `services/selected_profile_service.dart` : encapsule la persistance locale du profil choisi
-  - `usecases/` : actions unitaires (GetProfiles, CreateProfile, etc.)
+  - use cases et services orientes orchestration
 - `presentation/`
-  - `controllers/` : logique Riverpod (AsyncNotifier/Notifier)
-  - `providers/` : wiring/DI Riverpod
-  - `ui/` : widgets/dialogs/constants UI (palette, chips, pickerÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦)
+  - controllers Riverpod, providers et widgets/dialogs UI
 
-## RÃƒÆ’Ã‚Â¨gles de dÃƒÆ’Ã‚Â©pendances
-- `presentation` dÃƒÆ’Ã‚Â©pend de `application` + `domain`
-- `application` dÃƒÆ’Ã‚Â©pend de `domain`
-- `data` dÃƒÆ’Ã‚Â©pend de `domain` (et de Supabase)
-- `domain` ne dÃƒÆ’Ã‚Â©pend de rien
+## Regles de dependances
 
-## Notes Supabase (table `profiles`)
-Colonnes attendues:
+- `presentation` depend de `application` et `domain`
+- `application` depend de `domain`
+- `data` depend de `domain` et de l'infrastructure externe
+- `domain` reste independant de la presentation
+
+## Notes Supabase
+
+Table attendue : `profiles`
+
+Colonnes minimales :
+
 - `id` (uuid)
 - `account_id` (uuid) = `auth.uid()`
 - `name` (text)
 - `created_at` (timestamp)
-Optionnel:
+
+Colonnes optionnelles :
+
 - `color` (int)
 - `avatar_url` (text)
 
-RLS recommandÃƒÆ’Ã‚Â©e:
-- SELECT/INSERT/UPDATE/DELETE autorisÃƒÆ’Ã‚Â©s uniquement si `account_id = auth.uid()`.
+RLS recommandee :
+
+- `SELECT`, `INSERT`, `UPDATE`, `DELETE` autorises uniquement si `account_id = auth.uid()`

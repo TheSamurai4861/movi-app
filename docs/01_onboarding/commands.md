@@ -231,45 +231,7 @@ flutter gen-l10n
 Usage :
 
 - utile apres modification des fichiers `.arb` ;
-- a valider avec le flux reel du projet si un script interne remplace cette commande dans certains cas.
-
-## Scripts internes
-
-Le dossier [scripts](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/scripts) contient plusieurs scripts Python utilitaires.
-
-### Generer un outline numerote de `lib/`
-
-```bash
-python scripts/outline_and_export.py --methods-in-classes
-```
-
-Usage :
-
-- genere un index numerote et un outline du code Dart ;
-- utile pour les audits, le travail avec IA et la cartographie rapide du depot.
-
-### Generer un outline concatene avec selection
-
-```bash
-python scripts/concat_lib_outline.py --select "89,90,91,98,29,28,25,27,148,83,84,85,82,86,447,450,451,449,448,52" --export-content --content-only
-```
-
-Usage :
-
-- commande tres orientee audit ponctuel ;
-- a adapter selon la selection de fichiers voulue ;
-- utile pour preparer un dump de contexte pour relecture ou IA.
-
-### Script d'extraction present dans le depot
-
-```bash
-python scripts/extract_folder_to_dump.py
-```
-
-Usage :
-
-- le script existe dans le depot ;
-- consulter son aide ou son contenu avant usage, car ses options ne sont pas documentees ici.
+- la commande Flutter standard est la reference tant qu'aucun workflow interne versionne ne la remplace.
 
 ## Commandes PowerShell historiques
 

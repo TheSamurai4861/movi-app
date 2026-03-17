@@ -13,10 +13,9 @@ Elle vise a faire evoluer `Movi` vers un projet Flutter plus professionnel sur l
 - robustesse des assets ;
 - stabilite des tests et de la livraison.
 
-Documents sources de cette roadmap :
+Document source de cette roadmap :
 
 - [modernization_plan.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/modernization_plan.md)
-- [pubspec_audit_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/pubspec_audit_2026-03-17.md)
 
 ---
 
@@ -158,10 +157,6 @@ Priorite :
 
 - moyenne
 
-Livrable associe :
-
-- [riverpod_legacy_audit_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/riverpod_legacy_audit_2026-03-17.md)
-
 ---
 
 ## Phase 2. Assainir la racine du depot
@@ -188,10 +183,6 @@ Priorite :
 
 - forte
 
-Livrable associe :
-
-- [root_non_product_cleanup_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/root_non_product_cleanup_2026-03-17.md)
-
 ### Lot 2.2. Gouvernance des fichiers racine
 
 Actions :
@@ -211,10 +202,6 @@ Resultat attendu :
 Priorite :
 
 - forte
-
-Livrable associe :
-
-- [root_governance_audit_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/root_governance_audit_2026-03-17.md)
 
 ---
 
@@ -262,10 +249,6 @@ Priorite :
 
 - forte
 
-Livrable associe :
-
-- [platform_rationalization_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/platform_rationalization_2026-03-17.md)
-
 ---
 
 ## Phase 4. Normaliser `assets/`
@@ -293,10 +276,6 @@ Resultat attendu :
 Priorite :
 
 - forte
-
-Livrable associe :
-
-- [assets_audit_2026-03-17.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/assets_audit_2026-03-17.md)
 
 ### Lot 4.2. Reorganisation
 

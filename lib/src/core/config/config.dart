@@ -1,3 +1,8 @@
+// Public barrel for application configuration types and services.
+//
+// Import this file when a caller needs configuration models, environment
+// resolution, or secret-store related entry points without depending on the
+// internal folder layout.
 // Barrel file intentionally ordered from low-level models to services/providers.
 export 'models/app_config.dart';
 export 'models/app_metadata.dart';

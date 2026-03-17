@@ -219,7 +219,7 @@ Pour devenir rapidement operationnel sur le projet, l'ordre de lecture recommand
 3. `docs/01_onboarding/commands.md`
 4. `docs/02_architecture/codebase_map.md`
 5. `docs/02_architecture/dependency_rules.md`
-6. `docs/05_ai_context/ai_project_brief.md`
+6. `docs/04_product_followup/platform_scope_decision_2026-03-17.md`
 
 ## Limites de ce document
 

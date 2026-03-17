@@ -1,3 +1,7 @@
+// Public barrel for responsive layout primitives.
+//
+// It groups the screen classification entities, resolver service, and the
+// presentation helpers used by responsive screens and widgets.
 // Domain
 export 'package:movi/src/core/responsive/domain/entities/breakpoints.dart';
 export 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
