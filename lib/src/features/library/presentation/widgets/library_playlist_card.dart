@@ -65,14 +65,14 @@ class LibraryPlaylistCard extends ConsumerWidget {
         );
       case LibraryPlaylistType.favoriteSeries:
         return Image.asset(
-          AppAssets.iconSerie,
+          AppAssets.iconSeries,
           width: 40,
           height: 40,
           color: Colors.white,
         );
       case LibraryPlaylistType.watchHistory:
         return Image.asset(
-          AppAssets.iconAvancer,
+          AppAssets.iconForward,
           width: 40,
           height: 40,
           color: Colors.white,

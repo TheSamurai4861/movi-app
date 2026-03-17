@@ -50,6 +50,7 @@ Mettre a niveau les packages qui ont une version resolvable plus recente sans ou
 - `flutter_riverpod` : `3.0.3` -> `3.3.1`
 - `flutter_svg` : `2.2.2` -> `2.2.4`
 - `get_it` : `9.0.5` -> `9.2.1`
+- `google_fonts` : `6.3.2` -> `6.3.3`
 - `media_kit` : `1.2.2` -> `1.2.6`
 - `media_kit_video` : `2.0.0` -> `2.0.1`
 - `sqflite_common_ffi` : `2.3.6` -> `2.4.0+2`
@@ -65,7 +66,7 @@ Mettre a niveau les packages qui ont une version resolvable plus recente sans ou
 Approche prudente :
 
 ```bash
-flutter pub upgrade dio equatable flutter_riverpod flutter_svg get_it media_kit media_kit_video sqflite_common_ffi
+flutter pub upgrade dio equatable flutter_riverpod flutter_svg get_it google_fonts media_kit media_kit_video sqflite_common_ffi
 ```
 
 ### Validation minimale
@@ -95,13 +96,13 @@ Isoler les packages qui peuvent demander des adaptations de code ou des changeme
 ### Packages inclus
 
 - `go_router` : `16.3.0` -> `17.1.0`
-- `google_fonts` : `6.3.2` -> `8.0.2`
+- `google_fonts` : `6.3.3` -> `8.0.2`
 - `flutter_lints` : `5.0.0` -> `6.0.0`
 
 ### Raisons de prudence
 
 - `go_router` peut impacter la navigation, les redirections et certains comportements de route ;
-- `google_fonts` peut modifier des conventions ou des comportements autour du chargement et des API ;
+- `google_fonts` a un patch compatible court terme, mais sa migration vers `8.x` peut modifier des conventions ou des comportements autour du chargement et des API ;
 - `flutter_lints` peut faire apparaitre un nouveau lot de warnings ou d'infos bloquants pour le workflow.
 
 ### Strategie recommandee

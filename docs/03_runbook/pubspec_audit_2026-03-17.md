@@ -203,6 +203,7 @@ Ces packages peuvent etre candidats a une vague de mise a jour "safe" apres nett
 - `flutter_riverpod`
 - `flutter_svg`
 - `get_it`
+- `google_fonts` pour le patch compatible `6.3.2 -> 6.3.3`
 - `media_kit`
 - `media_kit_video`
 - `sqflite_common_ffi`
@@ -213,7 +214,7 @@ Ces packages ont une nouvelle branche resolvable ou latest plus importante et me
 
 - `flutter_secure_storage`
 - `go_router`
-- `google_fonts`
+- `google_fonts` pour la migration majeure `6.3.3 -> 8.0.2`
 - `screen_brightness`
 - `volume_controller`
 - `window_manager`

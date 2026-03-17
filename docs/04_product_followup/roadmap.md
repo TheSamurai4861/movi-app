@@ -95,6 +95,10 @@ Priorite :
 
 - moyenne
 
+Livrable associe :
+
+- [versioning_strategy.md](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/versioning_strategy.md)
+
 ### Lot 1.3. Segmentation des mises a jour de packages
 
 Actions :
@@ -110,6 +114,7 @@ Sous-lot "upgrade compatible" suggere :
 - `flutter_riverpod`
 - `flutter_svg`
 - `get_it`
+- `google_fonts` pour le patch compatible `6.3.2 -> 6.3.3`
 - `media_kit`
 - `media_kit_video`
 - `sqflite_common_ffi`
@@ -118,7 +123,7 @@ Sous-lot "upgrade majeur a cadrer" :
 
 - `flutter_secure_storage`
 - `go_router`
-- `google_fonts`
+- `google_fonts` pour la migration majeure `6.x -> 8.x`
 - `screen_brightness`
 - `volume_controller`
 - `flutter_lints`

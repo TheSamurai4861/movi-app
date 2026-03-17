@@ -56,19 +56,19 @@ Creation du dossier :
 Deplacements effectues :
 
 - `play_arrow.png`
-- `back_icon.png`
-- `more_icon.png`
+- `back.png`
+- `more.png`
 - `sort.png`
 - `trash.png`
 - `pause.png`
-- `avancer.png`
-- `reculer.png`
+- `forward.png`
+- `rewind.png`
 - `resize.png`
 - `plus.png`
 - `search.png`
 - `star_filled.png`
 - `star_unfilled.png`
-- `supprimer.png`
+- `delete.png`
 
 ### 4. Regroupement des icones media
 
@@ -79,12 +79,12 @@ Creation du dossier :
 Deplacements effectues :
 
 - `audio.png`
-- `audio_desactive.png`
+- `audio_disabled.png`
 - `subtitles.png`
-- `subtitles_desactive.png`
+- `subtitles_disabled.png`
 - `chromecast.png`
 - `movie.png`
-- `serie.png`
+- `series.png`
 - `playlist.png`
 
 ### 5. Suppression du doublon confirme
@@ -95,7 +95,7 @@ Suppression effectuee :
 
 Raison :
 
-- doublon exact de `back_icon.png`
+- doublon exact de l'ancien asset de retour conserve ensuite sous le nom normalise `back.png`
 - aucun usage detecte dans le code
 
 ### 6. Centralisation du code
@@ -109,7 +109,7 @@ Fichiers mis a jour :
 
 Effet :
 
-- les chemins hardcodes restants pour `search.png` et `supprimer.png` ont ete remplaces par `AppAssets`
+- les chemins hardcodes restants pour `search.png` et `delete.png` ont ete remplaces par `AppAssets`
 - un nouvel identifiant `AppAssets.iconDelete` a ete ajoute
 
 ### 7. Mise a jour de la configuration Flutter
@@ -122,6 +122,19 @@ Changements :
 
 - ajout de `assets/branding/` dans les assets Flutter ;
 - mise a jour de `flutter_launcher_icons` vers `assets/branding/app_icon.png`
+
+### 8. Convention de rangement et de nommage
+
+Convention retenue :
+
+- tous les noms de fichiers d'assets sont en anglais, en minuscules et en `snake_case`
+- `branding/` contient uniquement l'identite applicative et les assets de packaging
+- `icons/navigation/` contient les icones de navigation principale
+- `icons/actions/` contient les actions generiques d'interface
+- `icons/media/` contient les icones liees au media et aux types de contenu
+- les suffixes autorises doivent exprimer une vraie variante visuelle ou fonctionnelle, par exemple `_filled`, `_unfilled`, `_disabled`
+- le suffixe `_icon` est evite car tout le dossier contient deja des icones
+- les chemins d'assets doivent passer par `AppAssets` plutot que par des chemins litteraux dans les widgets
 
 ---
 

@@ -7,10 +7,7 @@ class SecureCredentialsVault implements CredentialsVault {
     FlutterSecureStorage? storage,
     AndroidOptions? androidOptions,
     IOSOptions? iosOptions,
-    MacOsOptions? macOsOptions,
-    LinuxOptions? linuxOptions,
     WindowsOptions? windowsOptions,
-    WebOptions? webOptions,
   }) : _storage = storage ?? const FlutterSecureStorage(),
        _androidOptions =
            androidOptions ??
@@ -18,28 +15,12 @@ class SecureCredentialsVault implements CredentialsVault {
        _iosOptions =
            iosOptions ??
            const IOSOptions(accessibility: KeychainAccessibility.passcode),
-       _macOsOptions =
-           macOsOptions ??
-           const MacOsOptions(
-             accessibility: KeychainAccessibility.first_unlock_this_device,
-             useDataProtectionKeyChain: true,
-           ),
-       _linuxOptions = linuxOptions ?? const LinuxOptions(),
-       _windowsOptions = windowsOptions ?? const WindowsOptions(),
-       _webOptions =
-           webOptions ??
-           const WebOptions(
-             dbName: 'movi_credentials',
-             publicKey: 'MOVI_SECURE_STORAGE',
-           );
+       _windowsOptions = windowsOptions ?? const WindowsOptions();
 
   final FlutterSecureStorage _storage;
   final AndroidOptions _androidOptions;
   final IOSOptions _iosOptions;
-  final MacOsOptions _macOsOptions;
-  final LinuxOptions _linuxOptions;
   final WindowsOptions _windowsOptions;
-  final WebOptions _webOptions;
 
   static const _prefix = 'secret_pw_';
 
@@ -50,10 +31,7 @@ class SecureCredentialsVault implements CredentialsVault {
       value: password,
       aOptions: _androidOptions,
       iOptions: _iosOptions,
-      mOptions: _macOsOptions,
-      lOptions: _linuxOptions,
       wOptions: _windowsOptions,
-      webOptions: _webOptions,
     );
   }
 
@@ -63,10 +41,7 @@ class SecureCredentialsVault implements CredentialsVault {
       key: '$_prefix$accountId',
       aOptions: _androidOptions,
       iOptions: _iosOptions,
-      mOptions: _macOsOptions,
-      lOptions: _linuxOptions,
       wOptions: _windowsOptions,
-      webOptions: _webOptions,
     );
   }
 
@@ -76,10 +51,7 @@ class SecureCredentialsVault implements CredentialsVault {
       key: '$_prefix$accountId',
       aOptions: _androidOptions,
       iOptions: _iosOptions,
-      mOptions: _macOsOptions,
-      lOptions: _linuxOptions,
       wOptions: _windowsOptions,
-      webOptions: _webOptions,
     );
   }
 }

@@ -215,6 +215,8 @@ Fichiers attendus :
   Ordre d'analyse et marche a suivre pour professionnaliser le projet dossier par dossier.
 - `pubspec_audit_2026-03-17.md`
   Analyse detaillee du `pubspec.yaml` servant de base a la roadmap de modernisation.
+- `versioning_strategy.md`
+  Regle explicite de versioning du projet, avec source de verite et politique d'incrementation.
 - `package_upgrade_plan_2026-03-17.md`
   Plan d'upgrade des packages par vagues de risque pour eviter les migrations trop larges.
 - `riverpod_legacy_audit_2026-03-17.md`

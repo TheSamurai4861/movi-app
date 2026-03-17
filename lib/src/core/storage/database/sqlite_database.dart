@@ -17,7 +17,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 /// - Version 8 (ajout user_id à watchlist pour favoris par utilisateur)
 /// - Version 7 (indexes cache supplémentaires, PRAGMA renforcés)
 /// - Version 6 (retire colonne password de iptv_accounts)
-/// - Desktop (Windows/Linux) utilise sqflite_common_ffi
+/// - Desktop Windows utilise sqflite_common_ffi
 class LocalDatabase {
   LocalDatabase._();
 
@@ -36,9 +36,9 @@ class LocalDatabase {
       WidgetsFlutterBinding.ensureInitialized();
     } catch (_) {}
 
-    // Initialisation FFI pour desktop.
-    if (Platform.isWindows || Platform.isLinux) {
-      debugPrint('[DEBUG][Startup] LocalDatabase.instance: initializing sqflite_ffi for desktop');
+    // Initialisation FFI pour Windows.
+    if (Platform.isWindows) {
+      debugPrint('[DEBUG][Startup] LocalDatabase.instance: initializing sqflite_ffi for Windows');
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }

@@ -33,7 +33,7 @@ class MoviPlaceholderCard extends ConsumerWidget {
       case PlaceholderType.movie:
         return AppAssets.iconMovie;
       case PlaceholderType.series:
-        return AppAssets.iconSerie;
+        return AppAssets.iconSeries;
     }
   }
 

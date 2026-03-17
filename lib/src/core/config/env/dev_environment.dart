@@ -5,6 +5,16 @@ import 'package:movi/src/core/config/models/feature_flags.dart';
 import 'package:movi/src/core/config/models/network_endpoints.dart';
 import 'package:movi/src/core/config/env/environment.dart';
 
+/// Application release metadata.
+///
+/// Keep these values aligned with `pubspec.yaml`:
+/// - version: `build-name`
+/// - build number: `build-number`
+const String _appVersion = '1.0.1';
+const String _appBuildNumber = '4';
+const String _appBuildNumberDev = '4-dev';
+const String _appBuildNumberStaging = '4-staging';
+
 /// Compile-time configuration for TMDB access.
 ///
 /// Values are provided via `--dart-define` at build/run time.
@@ -64,7 +74,10 @@ EnvironmentFlavor createDevEnvironment() => _buildFlavor(
     enableDownloads: false,
     enableNewSearch: true,
   ),
-  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'dev'),
+  metadata: const AppMetadata(
+    version: _appVersion,
+    buildNumber: _appBuildNumberDev,
+  ),
   restBaseUrl: 'https://api.dev.movi.app',
   imageBaseUrl: 'https://images.dev.movi.app',
   timeouts: _defaultTimeouts,
@@ -80,7 +93,10 @@ EnvironmentFlavor createStagingEnvironment() => _buildFlavor(
     enableDownloads: true,
     enableNewSearch: true,
   ),
-  metadata: const AppMetadata(version: '0.1.0', buildNumber: 'staging'),
+  metadata: const AppMetadata(
+    version: _appVersion,
+    buildNumber: _appBuildNumberStaging,
+  ),
   restBaseUrl: 'https://api.staging.movi.app',
   imageBaseUrl: 'https://images.staging.movi.app',
   timeouts: _defaultTimeouts,
@@ -96,7 +112,10 @@ EnvironmentFlavor createProdEnvironment() => _buildFlavor(
     enableDownloads: true,
     enableNewSearch: true,
   ),
-  metadata: const AppMetadata(version: '1.0.0', buildNumber: 'prod'),
+  metadata: const AppMetadata(
+    version: _appVersion,
+    buildNumber: _appBuildNumber,
+  ),
   restBaseUrl: 'https://api.movi.app',
   imageBaseUrl: 'https://images.movi.app',
   timeouts: const NetworkTimeouts(

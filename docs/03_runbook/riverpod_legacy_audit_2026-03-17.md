@@ -171,38 +171,46 @@ Benefice :
 
 ## Decision pour ce lot
 
-Ce lot est considere realise au niveau analyse et cadrage.
+Le lot est maintenant considere conforme au niveau implementation.
 
-Ce qui est maintenant confirme :
+Ce qui est desormais vrai :
 
-- la dette legacy Riverpod est localisee ;
-- elle est assez petite pour etre traitee dans un lot dedie ;
-- la migration ne doit pas etre melangee avec une refonte du bootstrap ou du routeur ;
-- la sortie la plus sure passe par une migration en deux temps.
+- `AppLaunchOrchestrator` n'utilise plus `StateNotifier`
+- le provider legacy a ete remplace par une primitive Riverpod moderne
+- `flutter_riverpod/legacy.dart` n'est plus importe
+- `state_notifier` n'est plus une dependance directe du projet
+- `AppLaunchStateRegistry` est conserve provisoirement pour `GoRouter.refreshListenable`
 
----
+La strategie de migration en deux temps reste valable :
 
-## Prochaine action recommandee
-
-Creer un lot d'implementation dedie :
-
-`Migration AppLaunchOrchestrator vers une primitive Riverpod moderne`
-
-Scope recommande :
-
-- supprimer l'import `flutter_riverpod/legacy.dart`
-- sortir de `state_notifier`
-- conserver provisoirement `AppLaunchStateRegistry`
-- valider le bootstrap, les retries et les redirections
+1. sortie du legacy Riverpod
+2. rationalisation eventuelle du bridge routeur
 
 ---
 
-## Definition de fini pour la future migration
+## Etat d'implementation
 
-La dette legacy pourra etre consideree comme traitee lorsque :
+Implementation appliquee :
+
+- [`app_launch_orchestrator.dart`](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/lib/src/core/startup/app_launch_orchestrator.dart)
+- [`bootstrap_providers.dart`](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/lib/src/features/welcome/presentation/providers/bootstrap_providers.dart)
+- [`pubspec.yaml`](/mnt/c/Users/matte/Documents/DEV/Flutter/movi-app/pubspec.yaml)
+
+Choix retenu :
+
+- migration vers `Notifier<AppLaunchState>`
+- conservation de `run()` et `reset()`
+- conservation du miroir `AppLaunchStateRegistry`
+- absence volontaire de refonte du routeur dans le meme lot
+
+---
+
+## Definition de fini atteinte
+
+La dette legacy est consideree comme traitee pour ce lot car :
 
 - `state_notifier` n'est plus dans `pubspec.yaml`
 - `flutter_riverpod/legacy.dart` n'est plus importe
-- le bootstrap continue de fonctionner
-- `GoRouter` se reevale toujours correctement
-- `run()` et `reset()` restent disponibles via un provider moderne
+- le bootstrap reste expose via un provider moderne
+- `GoRouter` continue de s'appuyer sur `AppLaunchStateRegistry`
+- `run()` et `reset()` restent disponibles via `ref.read(appLaunchOrchestratorProvider.notifier)`

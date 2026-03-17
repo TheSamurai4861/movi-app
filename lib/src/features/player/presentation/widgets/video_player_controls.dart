@@ -214,14 +214,14 @@ class VideoPlayerControls extends ConsumerWidget {
               children: [
                 // Reculer 30s
                 _ControlButton(
-                  icon: AppAssets.iconReculer,
+                  icon: AppAssets.iconRewind,
                   label: AppLocalizations.of(context)!.controlRewind30,
                   onTap: onSeekBackward30,
                 ),
                 const SizedBox(width: 16),
                 // Reculer 10s
                 _ControlButton(
-                  icon: AppAssets.iconReculer,
+                  icon: AppAssets.iconRewind,
                   label: AppLocalizations.of(context)!.controlRewind10,
                   onTap: onSeekBackward10,
                 ),
@@ -239,14 +239,14 @@ class VideoPlayerControls extends ConsumerWidget {
                 const SizedBox(width: 24),
                 // Avancer 10s
                 _ControlButton(
-                  icon: AppAssets.iconAvancer,
+                  icon: AppAssets.iconForward,
                   label: AppLocalizations.of(context)!.controlForward10,
                   onTap: onSeekForward10,
                 ),
                 const SizedBox(width: 16),
                 // Avancer 30s
                 _ControlButton(
-                  icon: AppAssets.iconAvancer,
+                  icon: AppAssets.iconForward,
                   label: AppLocalizations.of(context)!.controlForward30,
                   onTap: onSeekForward30,
                 ),
@@ -368,7 +368,7 @@ class VideoPlayerControls extends ConsumerWidget {
                                 SizedBox(
                                   width: 28,
                                   height: 28,
-                                  child: Image.asset(AppAssets.iconReculer),
+                                  child: Image.asset(AppAssets.iconRewind),
                                 ),
                               ],
                             ),
@@ -386,12 +386,12 @@ class VideoPlayerControls extends ConsumerWidget {
                           ),
                         const SizedBox(width: 24),
                         // Bouton sous-titres
-                        _IconButton(
-                          onTap: hasSubtitles ? onToggleSubtitles : null,
-                          iconAsset: hasSubtitles
+                          _IconButton(
+                            onTap: hasSubtitles ? onToggleSubtitles : null,
+                            iconAsset: hasSubtitles
                               ? AppAssets.iconSubtitles
-                              : AppAssets.iconSubtitlesDesactive,
-                        ),
+                              : AppAssets.iconSubtitlesDisabled,
+                          ),
                         // Bouton PiP (si supporté)
                         if (isPipSupported) ...[
                           const SizedBox(width: 24),

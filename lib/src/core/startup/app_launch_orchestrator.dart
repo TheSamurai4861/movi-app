@@ -1,19 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
+import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/profile/data/repositories/supabase_profile_repository.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/security/iptv_credentials_cipher.dart';
 import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
-import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
-import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/startup/app_launch_criteria.dart';
+import 'package:movi/src/core/startup/app_startup_provider.dart'
+    as app_startup_provider;
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
@@ -22,7 +29,6 @@ import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_servi
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 import 'package:movi/src/features/welcome/domain/enum.dart';
-import 'package:state_notifier/state_notifier.dart';
 
 typedef AppStartupRunner = Future<void> Function();
 typedef HomePreloadRunner = Future<void> Function({
@@ -186,63 +192,59 @@ class _IptvPreloadResult {
   final bool refreshed;
 }
 
-class AppLaunchOrchestrator extends StateNotifier<AppLaunchState> {
-  AppLaunchOrchestrator({
-    required AppStartupRunner startupRunner,
-    required AuthRepository authRepository,
-    required SupabaseProfileRepository profileRepository,
-    required SupabaseIptvSourcesRepository iptvSourcesRepository,
-    required SelectedProfilePreferences selectedProfilePreferences,
-    required SelectedIptvSourcePreferences selectedIptvSourcePreferences,
-    required IptvLocalRepository iptvLocalRepository,
-    required RefreshXtreamCatalog refreshXtreamCatalog,
-    required RefreshStalkerCatalog refreshStalkerCatalog,
-    required XtreamSyncService xtreamSyncService,
-    required AppStateController appStateController,
-    required AppEventBus appEventBus,
-    required HomePreloadRunner homePreload,
-    required AppLaunchStateRegistry launchRegistry,
-    IptvCredentialsEdgeService? credentialsEdgeService,
-    CredentialsVault? credentialsVault,
-  })  : _startupRunner = startupRunner,
-        _authRepository = authRepository,
-        _profileRepository = profileRepository,
-        _iptvSourcesRepository = iptvSourcesRepository,
-        _selectedProfilePreferences = selectedProfilePreferences,
-        _selectedIptvSourcePreferences = selectedIptvSourcePreferences,
-        _iptvLocalRepository = iptvLocalRepository,
-        _refreshXtreamCatalog = refreshXtreamCatalog,
-        _refreshStalkerCatalog = refreshStalkerCatalog,
-        _xtreamSyncService = xtreamSyncService,
-        _appStateController = appStateController,
-        _appEventBus = appEventBus,
-        _homePreload = homePreload,
-        _launchRegistry = launchRegistry,
-        _credentialsEdgeService = credentialsEdgeService,
-        _credentialsVault = credentialsVault,
-        super(const AppLaunchState()) {
-    _launchRegistry.update(state);
-  }
+class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+  AppLaunchOrchestrator();
 
-  final AppStartupRunner _startupRunner;
-  final AuthRepository _authRepository;
-  final SupabaseProfileRepository _profileRepository;
-  final SupabaseIptvSourcesRepository _iptvSourcesRepository;
-  final SelectedProfilePreferences _selectedProfilePreferences;
-  final SelectedIptvSourcePreferences _selectedIptvSourcePreferences;
-  final IptvLocalRepository _iptvLocalRepository;
-  final RefreshXtreamCatalog _refreshXtreamCatalog;
-  final RefreshStalkerCatalog _refreshStalkerCatalog;
-  final XtreamSyncService _xtreamSyncService;
-  final AppStateController _appStateController;
-  final AppEventBus _appEventBus;
-  final HomePreloadRunner _homePreload;
-  final AppLaunchStateRegistry _launchRegistry;
-  final IptvCredentialsEdgeService? _credentialsEdgeService;
-  final CredentialsVault? _credentialsVault;
+  late final AppStartupRunner _startupRunner;
+  late final AuthRepository _authRepository;
+  late final SupabaseProfileRepository _profileRepository;
+  late final SupabaseIptvSourcesRepository _iptvSourcesRepository;
+  late final SelectedProfilePreferences _selectedProfilePreferences;
+  late final SelectedIptvSourcePreferences _selectedIptvSourcePreferences;
+  late final IptvLocalRepository _iptvLocalRepository;
+  late final RefreshXtreamCatalog _refreshXtreamCatalog;
+  late final RefreshStalkerCatalog _refreshStalkerCatalog;
+  late final XtreamSyncService _xtreamSyncService;
+  late final AppStateController _appStateController;
+  late final AppEventBus _appEventBus;
+  late final HomePreloadRunner _homePreload;
+  late final AppLaunchStateRegistry _launchRegistry;
+  late final IptvCredentialsEdgeService? _credentialsEdgeService;
+  late final CredentialsVault? _credentialsVault;
 
   Future<AppLaunchResult>? _ongoing;
   Future<void>? _backgroundSync;
+
+  @override
+  AppLaunchState build() {
+    final sl = ref.read(slProvider);
+
+    _startupRunner = () => ref.read(app_startup_provider.appStartupProvider.future);
+    _authRepository = ref.read(authRepositoryProvider);
+    _profileRepository = sl<SupabaseProfileRepository>();
+    _iptvSourcesRepository = sl<SupabaseIptvSourcesRepository>();
+    _selectedProfilePreferences = sl<SelectedProfilePreferences>();
+    _selectedIptvSourcePreferences = sl<SelectedIptvSourcePreferences>();
+    _iptvLocalRepository = sl<IptvLocalRepository>();
+    _refreshXtreamCatalog = sl<RefreshXtreamCatalog>();
+    _refreshStalkerCatalog = sl<RefreshStalkerCatalog>();
+    _xtreamSyncService = sl<XtreamSyncService>();
+    _appStateController = ref.read(appStateControllerProvider);
+    _appEventBus = ref.read(appEventBusProvider);
+    _homePreload = ref.read(homeControllerProvider.notifier).load;
+    _launchRegistry = sl<AppLaunchStateRegistry>();
+    _credentialsEdgeService = sl.isRegistered<IptvCredentialsEdgeService>()
+        ? sl<IptvCredentialsEdgeService>()
+        : null;
+    _credentialsVault =
+        sl.isRegistered<CredentialsVault>() ? sl<CredentialsVault>() : null;
+
+    ref.onDispose(_xtreamSyncService.stop);
+
+    const initialState = AppLaunchState();
+    _launchRegistry.update(initialState);
+    return initialState;
+  }
 
   void _updateState(AppLaunchState next) {
     state = next;
@@ -283,12 +285,6 @@ class AppLaunchOrchestrator extends StateNotifier<AppLaunchState> {
     _ongoing = null;
     _backgroundSync = null;
     _updateState(const AppLaunchState());
-  }
-
-  @override
-  void dispose() {
-    _xtreamSyncService.stop();
-    super.dispose();
   }
 
   Future<AppLaunchResult> _runInternal() async {

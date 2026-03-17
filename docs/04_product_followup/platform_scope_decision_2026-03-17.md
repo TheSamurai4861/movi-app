@@ -122,8 +122,7 @@ Decision :
 
 Indices faibles :
 
-- dossier `web/` present
-- quelques precautions `kIsWeb` ou `web-safe` visibles dans le code
+- quelques traces defensives `kIsWeb` ou `web-safe` visibles dans le code
 
 Limites :
 
@@ -145,9 +144,9 @@ Decision :
 | Android | officielle | build, release, signature et code natif explicites |
 | Windows | officielle | cible locale de developpement clairement documentee |
 | iOS | supportee conditionnellement | workflow CI et code natif reels, mais cible secondaire |
-| macOS | non officielle | presence technique sans engagement projet visible |
-| Linux | non officielle | presence technique sans usage documente |
-| Web | non officielle | presence technique sans workflow ni support explicite |
+| macOS | non officielle | aucun workflow ni maintenance projet retenus |
+| Linux | non officielle | aucun workflow ni usage produit retenus |
+| Web | non officielle | aucune maintenance ni support explicite retenus |
 
 ---
 
@@ -162,7 +161,7 @@ Decision :
 ### Moyen terme
 
 - reevaluer `macos/`, `linux/` et `web/` seulement si un besoin produit apparait
-- apres confirmation, simplifier les plugins et les workflows autour du perimetre retenu
+- si besoin, reintroduire ces plateformes via un lot explicite et verifier alors plugins et workflows
 
 ### CI et qualite
 
