@@ -176,20 +176,20 @@ class MovieRepositoryImpl implements MovieRepository {
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {
   final poster = _images.poster(
-    dto.posterPath ?? dto.posterBackground,
-    size: 'w780',
-  );
+  dto.posterPath ?? dto.posterBackground,
+  size: 'w780',
+);
 
-  if (poster == null) {
-    throw StateError('Movie ${dto.id} missing poster');
-  }
+if (poster == null) {
+  throw StateError('Movie ${dto.id} missing poster');
+}
 
-  final posterBackground =
-      _images.poster(dto.posterBackground, size: 'w780') ?? poster;
+final posterBackground =
+    _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-  final backdrop =
-      _images.backdrop(dto.backdropPath, size: 'original') ??
-      posterBackground;
+final backdrop =
+    _images.backdrop(dto.backdropPath, size: 'original') ??
+    posterBackground;
 
   return Movie(
     id: MovieId(dto.id.toString()),

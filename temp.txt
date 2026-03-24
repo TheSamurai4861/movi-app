@@ -1,0 +1,5 @@
+git add lib/src/features/shell/presentation/layouts/app_shell_large_layout.dart
+
+git commit -m "fix(shell): remove desktop content left gutter"
+
+git push

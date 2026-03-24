@@ -34,8 +34,8 @@ class TmdbImageResolver {
     String posterSize = 'w342',
     String backdropSize = 'w780',
   }) {
-    return poster(posterPath, size: posterSize) ??
-        backdrop(backdropPath, size: backdropSize);
+    return backdrop(backdropPath, size: backdropSize) ??
+        poster(posterPath, size: posterSize);
   }
 
   TmdbImagePair resolvePair(
@@ -46,7 +46,7 @@ class TmdbImageResolver {
   }) {
     final Uri? p = poster(posterPath, size: posterSize);
     final Uri? b = backdrop(backdropPath, size: backdropSize);
-    return TmdbImagePair(poster: p, backdrop: b, preferred: p ?? b);
+    return TmdbImagePair(poster: p, backdrop: b, preferred: b ?? p);
   }
 
   /// Construit l’URL d’un logo (transparent, centré).

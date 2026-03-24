@@ -9,7 +9,8 @@ import 'package:movi/src/features/shell/presentation/widgets/regions/shell_conte
 /// Choix validés :
 /// - Structure : Row(sidebar + divider + Expanded(content))
 /// - Fond contenu : Theme.scaffoldBackgroundColor (par défaut)
-/// - Padding global contenu : 32px à droite du divider
+/// - Pas de padding global à gauche du contenu pour éviter un gutter visible
+///   entre la sidebar et le hero Home
 /// - FocusNode : juste passé à la sidebar (pas d'autofocus forcé)
 /// - ContentHost : keepAliveIndices + pageBuilders + selectedIndex, loadingLabel null
 /// - SafeArea sur la zone contenu : oui
@@ -61,15 +62,12 @@ class AppShellLargeLayout extends StatelessWidget {
           ),
           Expanded(
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 32),
-                child: ShellContentHost(
-                  selectedIndex: selectedIndex,
-                  pageBuilders: pageBuilders,
-                  keepAliveIndices: keepAliveIndices,
-                  showEphemeralSwitchLoading: true,
-                  loadingLabel: null,
-                ),
+              child: ShellContentHost(
+                selectedIndex: selectedIndex,
+                pageBuilders: pageBuilders,
+                keepAliveIndices: keepAliveIndices,
+                showEphemeralSwitchLoading: true,
+                loadingLabel: null,
               ),
             ),
           ),

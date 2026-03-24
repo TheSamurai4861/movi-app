@@ -543,20 +543,20 @@ class TvRepositoryImpl implements TvRepository {
   Map<int, TmdbTvSeasonDetailDto> seasonDetails,
 ) {
   final poster = _images.poster(
-    dto.posterPath ?? dto.posterBackground,
-    size: 'w780',
-  );
+  dto.posterPath ?? dto.posterBackground,
+  size: 'w780',
+);
 
-  if (poster == null) {
-    throw StateError('TV show ${dto.id} missing poster');
-  }
+if (poster == null) {
+  throw StateError('TV show ${dto.id} missing poster');
+}
 
-  final posterBackground =
-      _images.poster(dto.posterBackground, size: 'w780') ?? poster;
+final posterBackground =
+    _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-  final backdrop =
-      _images.backdrop(dto.backdropPath, size: 'original') ??
-      posterBackground;
+final backdrop =
+    _images.backdrop(dto.backdropPath, size: 'original') ??
+    posterBackground;
 
   return TvShow(
     id: SeriesId(dto.id.toString()),
@@ -588,20 +588,20 @@ class TvRepositoryImpl implements TvRepository {
 
 TvShow _mapShowLite(TmdbTvDetailDto dto) {
   final poster = _images.poster(
-    dto.posterPath ?? dto.posterBackground,
-    size: 'w780',
-  );
+  dto.posterPath ?? dto.posterBackground,
+  size: 'w780',
+);
 
-  if (poster == null) {
-    throw StateError('TV show ${dto.id} missing poster');
-  }
+if (poster == null) {
+  throw StateError('TV show ${dto.id} missing poster');
+}
 
-  final posterBackground =
-      _images.poster(dto.posterBackground, size: 'w780') ?? poster;
+final posterBackground =
+    _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-  final backdrop =
-      _images.backdrop(dto.backdropPath, size: 'original') ??
-      posterBackground;
+final backdrop =
+    _images.backdrop(dto.backdropPath, size: 'original') ??
+    posterBackground;
 
   return TvShow(
     id: SeriesId(dto.id.toString()),

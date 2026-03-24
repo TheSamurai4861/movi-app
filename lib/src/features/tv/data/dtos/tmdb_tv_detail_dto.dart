@@ -1,5 +1,5 @@
 class TmdbTvDetailDto {
-    TmdbTvDetailDto({
+  TmdbTvDetailDto({
     required this.id,
     required this.name,
     required this.overview,
@@ -25,7 +25,9 @@ class TmdbTvDetailDto {
         json.containsKey('images') ||
         json.containsKey('credits') ||
         json.containsKey('recommendations');
-    final images = json['images'] as Map<String, dynamic>?;
+    final images = json['images'] is Map
+        ? (json['images'] as Map).cast<String, dynamic>()
+        : null;
     final logos = images?['logos'] as List<dynamic>? ?? const [];
     final logoPath = _selectLogo(logos);
     final credits = json['credits'] as Map<String, dynamic>?;
@@ -59,8 +61,10 @@ class TmdbTvDetailDto {
           json['original_name']?.toString() ??
           'Untitled',
       overview: json['overview']?.toString() ?? '',
-            posterPath: json['poster_path']?.toString(),
-      posterBackground: json['poster_background']?.toString(),
+      posterPath: json['poster_path']?.toString(),
+      posterBackground:
+          json['poster_background']?.toString() ??
+          _selectPosterBackground(images),
       backdropPath: json['backdrop_path']?.toString(),
       logoPath: logoPath,
       firstAirDate: json['first_air_date']?.toString(),
@@ -87,7 +91,7 @@ class TmdbTvDetailDto {
   final int id;
   final String name;
   final String overview;
-    final String? posterPath;
+  final String? posterPath;
   final String? posterBackground;
   final String? backdropPath;
   final String? logoPath;
@@ -106,7 +110,7 @@ class TmdbTvDetailDto {
     'id': id,
     'name': name,
     'overview': overview,
-        'poster_path': posterPath,
+    'poster_path': posterPath,
     'poster_background': posterBackground,
     'backdrop_path': backdropPath,
     'images': {
@@ -138,6 +142,49 @@ class TmdbTvDetailDto {
 
   factory TmdbTvDetailDto.fromCache(Map<String, dynamic> json) =>
       TmdbTvDetailDto.fromJson(json);
+}
+
+String? _selectPosterBackground(Map<String, dynamic>? images) {
+  if (images == null) return null;
+  final posters = images['posters'];
+  if (posters is! List) return null;
+
+  String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
+
+  bool okExt(String p) {
+    final lower = p.toLowerCase();
+    return lower.endsWith('.jpg') || lower.endsWith('.png');
+  }
+
+  final list = posters
+      .whereType<Map>()
+      .map((e) => e.cast<String, dynamic>())
+      .toList(growable: false);
+
+  for (final m in list) {
+    final lang = m['iso_639_1']?.toString();
+    final p = pathOf(m);
+    if ((lang == null || lang.isEmpty) && p != null && okExt(p)) {
+      return p;
+    }
+  }
+
+  for (final m in list) {
+    final lang = m['iso_639_1']?.toString().toLowerCase();
+    final p = pathOf(m);
+    if (lang == 'en' && p != null && okExt(p)) {
+      return p;
+    }
+  }
+
+  for (final m in list) {
+    final p = pathOf(m);
+    if (p != null && okExt(p)) {
+      return p;
+    }
+  }
+
+  return null;
 }
 
 String? _selectLogo(List<dynamic> logos) {
