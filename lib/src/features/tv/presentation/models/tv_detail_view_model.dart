@@ -13,6 +13,7 @@ class TvDetailViewModel {
     required this.cast,
     required this.seasons,
     required this.poster,
+    this.posterBackground,
     required this.backdrop,
     required this.language,
   });
@@ -25,6 +26,7 @@ class TvDetailViewModel {
   final List<MoviPerson> cast;
   final List<SeasonViewModel> seasons;
   final Uri? poster;
+  final Uri? posterBackground;
   final Uri? backdrop;
   final String language;
 
@@ -33,11 +35,9 @@ class TvDetailViewModel {
     required String language,
     bool isAvailableInPlaylist = true,
   }) {
-    // Parse locale from language code
     final locale = _parseLocale(language);
     final localizations = lookupAppLocalizations(locale);
 
-    // Map creators first (directors)
     final creators = detail.creators
         .map(
           (p) => MoviPerson(
@@ -49,7 +49,6 @@ class TvDetailViewModel {
         )
         .toList(growable: false);
 
-    // Map cast
     final castMembers = detail.cast
         .map(
           (p) => MoviPerson(
@@ -61,7 +60,6 @@ class TvDetailViewModel {
         )
         .toList(growable: false);
 
-    // Combine creators first, then cast
     final cast = [...creators, ...castMembers];
 
     final seasons = detail.seasons
@@ -89,14 +87,12 @@ class TvDetailViewModel {
         )
         .toList(growable: false);
 
-    // Format rating text (same logic as MovieDetailViewModel)
     final ratingText = detail.voteAverage != null
         ? (detail.voteAverage! >= 10
               ? detail.voteAverage!.toStringAsFixed(0)
               : detail.voteAverage!.toStringAsFixed(1))
         : '—';
 
-    // Format seasons count
     final seasonsCount = detail.seasons.length;
     final seasonsCountText = seasonsCount == 1
         ? '$seasonsCount ${localizations.playlistSeasonSingular}'
@@ -111,6 +107,7 @@ class TvDetailViewModel {
       cast: cast,
       seasons: seasons,
       poster: detail.poster,
+      posterBackground: detail.posterBackground,
       backdrop: detail.backdrop,
       language: language,
     );

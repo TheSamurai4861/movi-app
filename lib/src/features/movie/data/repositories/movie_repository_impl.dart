@@ -50,12 +50,18 @@ class MovieRepositoryImpl implements MovieRepository {
   Future<Movie> getMovie(MovieId id) async {
     final movieId = int.parse(id.value);
     final lang = _appState.preferredLocale;
-    final cached = await _local.getMovieDetailLang(movieId, lang: _languageCode);
+    final cached = await _local.getMovieDetailLang(
+      movieId,
+      lang: _languageCode,
+    );
     if (cached != null) {
       return _mapDetail(cached);
     }
     try {
-      final dto = await _remote.fetchMovieFull(movieId, language: _languageCode);
+      final dto = await _remote.fetchMovieFull(
+        movieId,
+        language: _languageCode,
+      );
       await _local.saveMovieDetailLang(dto: dto, lang: _languageCode);
       if (dto.recommendations.isNotEmpty) {
         await _local.saveRecommendationsLang(
@@ -96,7 +102,10 @@ class MovieRepositoryImpl implements MovieRepository {
   @override
   Future<List<MovieSummary>> getRecommendations(MovieId id) async {
     final movieId = int.parse(id.value);
-    final cached = await _local.getRecommendationsLang(movieId, lang: _languageCode);
+    final cached = await _local.getRecommendationsLang(
+      movieId,
+      lang: _languageCode,
+    );
     if (cached != null && cached.isNotEmpty) {
       return cached.map(_mapSummary).whereType<MovieSummary>().toList();
     }
@@ -129,10 +138,7 @@ class MovieRepositoryImpl implements MovieRepository {
 
   @override
   Future<List<MovieSummary>> searchMovies(String query) async {
-    final results = await _remote.searchMovies(
-      query,
-      language: _languageCode,
-    );
+    final results = await _remote.searchMovies(query, language: _languageCode);
     return results.map(_mapSummary).whereType<MovieSummary>().toList();
   }
 
@@ -169,24 +175,35 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {
-    final posterCandidate = dto.posterBackground ?? dto.posterPath;
-    final poster = _images.poster(posterCandidate, size: 'w780');
-    final backdrop = _images.backdrop(dto.backdropPath, size: 'w1280');
-    if (poster == null) {
-      throw StateError('Movie ${dto.id} missing poster');
-    }
-    return Movie(
-      id: MovieId(dto.id.toString()),
-      tmdbId: dto.id,
-      title: MediaTitle(dto.title),
-      synopsis: Synopsis(dto.overview),
-      duration: Duration(minutes: dto.runtime ?? 0),
-      poster: poster,
-      backdrop: backdrop,
-      releaseDate:
-          _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
-      rating: _mapRating(dto.voteAverage),
-      voteAverage: dto.voteAverage,
+  final poster = _images.poster(
+    dto.posterPath ?? dto.posterBackground,
+    size: 'w780',
+  );
+
+  if (poster == null) {
+    throw StateError('Movie ${dto.id} missing poster');
+  }
+
+  final posterBackground =
+      _images.poster(dto.posterBackground, size: 'w780') ?? poster;
+
+  final backdrop =
+      _images.backdrop(dto.backdropPath, size: 'original') ??
+      posterBackground;
+
+  return Movie(
+    id: MovieId(dto.id.toString()),
+    tmdbId: dto.id,
+    title: MediaTitle(dto.title),
+    synopsis: Synopsis(dto.overview),
+    duration: Duration(minutes: dto.runtime ?? 0),
+    poster: poster,
+    posterBackground: posterBackground,
+    backdrop: backdrop,
+    releaseDate:
+        _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
+    rating: _mapRating(dto.voteAverage),
+    voteAverage: dto.voteAverage,
       genres: dto.genres,
       cast: dto.cast.take(10).map(_mapCast).toList(),
       directors: dto.directors

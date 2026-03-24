@@ -38,6 +38,7 @@ class AppRoutePaths {
   static const about = '/settings/about';
   static const iptvConnect = '/settings/iptv/connect';
   static const iptvSources = '/settings/iptv/sources';
+  static const iptvSourceSelect = '/settings/iptv/sources/select-active';
   static const iptvSourceAdd = '/settings/iptv/sources/add';
   static const iptvSourceEdit = '/settings/iptv/sources/edit';
   static const iptvSourceOrganize = '/settings/iptv/sources/organize';

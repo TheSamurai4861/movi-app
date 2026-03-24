@@ -468,7 +468,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           cast: vm.cast,
           seasons: vm.seasons,
           isLoading: _isTransitioningFromLoading,
-          poster: vm.poster,
+                    poster: vm.poster,
+          posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
         );
       },
@@ -493,7 +494,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required List<MoviPerson> cast,
     required List<SeasonViewModel> seasons,
     required bool isLoading,
-    Uri? poster,
+        Uri? poster,
+    Uri? posterBackground,
     Uri? backdrop,
   }) {
     final cs = Theme.of(context).colorScheme;
@@ -530,7 +532,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                _buildHeroImage(poster, backdrop),
+                                                                _buildHeroImage(
+                                  posterBackground,
+                                  poster,
+                                  backdrop,
+                                ),
                                 Positioned(
                                   top: 0,
                                   left: 0,
@@ -910,26 +916,16 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
-  Widget _buildHeroImage(Uri? poster, Uri? backdrop) {
-    final Uri? uri = poster ?? backdrop;
-    if (uri == null) {
-      return MoviPlaceholderCard(
-        type: PlaceholderType.series,
-        fit: BoxFit.cover,
-        alignment: const Alignment(0.0, -0.5),
-        borderRadius: BorderRadius.zero,
-      );
-    }
-    final mq = MediaQuery.of(context);
-    final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
-    final int cacheWidth = rawPx.clamp(480, 1920);
-    return Image.network(
-      uri.toString(),
-      fit: BoxFit.cover,
-      gaplessPlayback: true,
-      cacheWidth: cacheWidth,
-      filterQuality: FilterQuality.medium,
-      alignment: const Alignment(0.0, -0.5),
+    Widget _buildHeroImage(
+    Uri? posterBackground,
+    Uri? poster,
+    Uri? backdrop,
+  ) {
+    return MoviHeroBackground(
+      posterBackground: posterBackground?.toString(),
+      poster: poster?.toString(),
+      backdrop: backdrop?.toString(),
+      placeholderType: PlaceholderType.series,
     );
   }
 

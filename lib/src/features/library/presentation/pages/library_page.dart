@@ -53,14 +53,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       vsync: this,
     );
 
-    _opacity = CurvedAnimation(
-      parent: _anim,
-      curve: Curves.easeOut,
-    );
+    _opacity = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
 
-    _slideY = Tween<double>(begin: -12.0, end: 0.0).animate(
-      CurvedAnimation(parent: _anim, curve: Curves.easeOut),
-    );
+    _slideY = Tween<double>(
+      begin: -12.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
   }
 
   @override
@@ -145,7 +143,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.playlistCreateError(e.toString()))),
+                  SnackBar(
+                    content: Text(l10n.playlistCreateError(e.toString())),
+                  ),
                 );
               }
             },
@@ -184,15 +184,17 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      !playlist.isPinned ? l10n.playlistPinned : l10n.playlistUnpinned,
+                      !playlist.isPinned
+                          ? l10n.playlistPinned
+                          : l10n.playlistUnpinned,
                     ),
                   ),
                 );
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
               }
             },
             child: Row(
@@ -204,9 +206,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                   color: playlist.isPinned ? Colors.white70 : Colors.white,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  playlist.isPinned ? l10n.unpinPlaylist : l10n.pinPlaylist,
-                ),
+                Text(playlist.isPinned ? l10n.unpinPlaylist : l10n.pinPlaylist),
               ],
             ),
           ),
@@ -284,9 +284,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 );
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
               }
             },
             child: Text(l10n.actionConfirm),
@@ -308,7 +308,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(l10n.deletePlaylist),
-        content: Text('Êtes-vous sûr de vouloir supprimer "${playlist.title}" ?'),
+        content: Text(
+          'Êtes-vous sûr de vouloir supprimer "${playlist.title}" ?',
+        ),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -331,9 +333,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 );
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur: $e')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
               }
             },
             child: Text(l10n.deletePlaylist),
@@ -345,7 +347,10 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   void _navigateToPlaylist(LibraryPlaylistItem playlist) {
     if (playlist.type == LibraryPlaylistType.actor) {
-      final personId = playlist.id.replaceFirst(LibraryConstants.actorPrefix, '');
+      final personId = playlist.id.replaceFirst(
+        LibraryConstants.actorPrefix,
+        '',
+      );
       context.push(
         AppRouteNames.person,
         extra: PersonSummary(id: PersonId(personId), name: playlist.title),
@@ -373,189 +378,214 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
     return Material(
       color: Colors.transparent,
-      child: SizedBox.expand(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
 
-            // Header
-            Padding(
-              padding: const EdgeInsets.only(left: 20, right: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.navLibrary,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ) ??
-                          const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.navLibrary,
+                        style:
+                            theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ) ??
+                            const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
                     ),
-                  ),
-                IconButton(
-                  icon: Image.asset(
-                    AppAssets.iconSearch,
-                    width: 28,
-                    height: 28,
-                    color: _isSearchVisible ? theme.colorScheme.primary : null,
-                  ),
-                  onPressed: _toggleSearch,
-                  tooltip: l10n.searchTitle,
+                    IconButton(
+                      icon: Image.asset(
+                        AppAssets.iconSearch,
+                        width: 28,
+                        height: 28,
+                        color: _isSearchVisible
+                            ? theme.colorScheme.primary
+                            : null,
+                      ),
+                      onPressed: _toggleSearch,
+                      tooltip: l10n.searchTitle,
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: Image.asset(
+                        AppAssets.iconPlus,
+                        width: 24,
+                        height: 24,
+                      ),
+                      onPressed: _showCreatePlaylistDialog,
+                      tooltip: l10n.createPlaylistTitle,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                IconButton(
-                  icon: Image.asset(
-                    AppAssets.iconPlus,
-                    width: 24,
-                    height: 24,
-                  ),
-                  onPressed: _showCreatePlaylistDialog,
-                  tooltip: l10n.createPlaylistTitle,
-                ),
-                ],
               ),
-            ),
 
-            // Search field (animated)
-            AnimatedBuilder(
-              animation: _anim,
-              builder: (context, _) {
-                if (!_isSearchVisible && _anim.value == 0) {
-                  return const SizedBox.shrink();
-                }
+              // Search field
+              AnimatedBuilder(
+                animation: _anim,
+                builder: (context, _) {
+                  if (!_isSearchVisible && _anim.value == 0) {
+                    return const SizedBox.shrink();
+                  }
 
-                return Opacity(
-                  opacity: _opacity.value,
-                  child: Transform.translate(
-                    offset: Offset(0, _slideY.value),
+                  return Opacity(
+                    opacity: _opacity.value,
+                    child: Transform.translate(
+                      offset: Offset(0, _slideY.value),
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: 8,
+                          left: 20,
+                          right: 20,
+                        ),
+                        child: _LibrarySearchField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          hintText: l10n.librarySearchPlaceholder,
+                          clearTooltip: l10n.clear,
+                          onChanged: (text) {
+                            ref
+                                .read(librarySearchQueryProvider.notifier)
+                                .setQuery(text);
+                          },
+                          onClear: () {
+                            _searchController.clear();
+                            ref
+                                .read(librarySearchQueryProvider.notifier)
+                                .setQuery('');
+                            _searchFocusNode.requestFocus();
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              // Filter pills
+              AnimatedBuilder(
+                animation: _anim,
+                builder: (context, _) {
+                  return Transform.translate(
+                    offset: Offset(
+                      0,
+                      _isSearchVisible ? (_slideY.value / 2) : 0,
+                    ),
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 8, left: 20, right: 20),
-                      child: _LibrarySearchField(
-                        controller: _searchController,
-                        focusNode: _searchFocusNode,
-                        hintText: l10n.librarySearchPlaceholder,
-                        clearTooltip: l10n.clear,
-                        onChanged: (text) {
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: LibraryFilterPills(
+                        activeFilter: filter,
+                        onFilterChanged: (newFilter) {
                           ref
-                              .read(librarySearchQueryProvider.notifier)
-                              .setQuery(text);
-                        },
-                        onClear: () {
-                          _searchController.clear();
-                          ref.read(librarySearchQueryProvider.notifier).setQuery('');
-                          _searchFocusNode.requestFocus();
+                              .read(libraryFilterProvider.notifier)
+                              .setFilter(newFilter);
                         },
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            // Filter pills (optionnellement animés avec le search)
-            AnimatedBuilder(
-              animation: _anim,
-              builder: (context, _) {
-                return Transform.translate(
-                  offset: Offset(0, _isSearchVisible ? (_slideY.value / 2) : 0),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: LibraryFilterPills(
-                      activeFilter: filter,
-                      onFilterChanged: (newFilter) {
-                        ref.read(libraryFilterProvider.notifier).setFilter(newFilter);
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            // List
-            Expanded(
-              child: SyncableRefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(libraryPlaylistsProvider);
+                  );
                 },
-                child: playlistsAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, _) => Center(
-                    child: Text(
-                      'Erreur: $error',
-                      style: TextStyle(color: theme.colorScheme.error),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  data: (playlists) {
-                    if (playlists.isEmpty) {
-                      if (searchQuery.isNotEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Text(
-                              'Aucun résultat pour "$searchQuery"',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        );
-                      }
+              ),
 
-                      return ListView(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: [
-                          SizedBox(
-                            height: MediaQuery.of(context).size.height * 0.35,
-                            child: Center(
+              const SizedBox(height: 20),
+
+              // List
+              Expanded(
+                child: SyncableRefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(libraryPlaylistsProvider);
+                  },
+                  child: playlistsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, _) => Center(
+                      child: Text(
+                        'Erreur: $error',
+                        style: TextStyle(color: theme.colorScheme.error),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    data: (playlists) {
+                      if (playlists.isEmpty) {
+                        if (searchQuery.isNotEmpty) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
                               child: Text(
-                                l10n.libraryEmpty,
-                                style: theme.textTheme.bodyLarge?.copyWith(
+                                'Aucun résultat pour "$searchQuery"',
+                                style: theme.textTheme.titleMedium?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    }
+                          );
+                        }
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: playlists.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final playlist = playlists[index];
-                        return LibraryPlaylistCard(
-                          title: playlist.title,
-                          itemCount: playlist.itemCount,
-                          type: playlist.type,
-                          isPinned: playlist.isPinned,
-                          photo: playlist.photo,
-                          showItemCount: !playlist.id.startsWith(
-                            LibraryConstants.sagaPrefix,
-                          ),
-                          onTap: () => _navigateToPlaylist(playlist),
-                          onLongPress: playlist.type == LibraryPlaylistType.userPlaylist &&
-                                  playlist.playlistId != null
-                              ? () => _showPlaylistMenu(context, ref, playlist)
-                              : null,
+                        return ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.35,
+                              child: Center(
+                                child: Text(
+                                  l10n.libraryEmpty,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
                         );
-                      },
-                    );
-                  },
+                      }
+
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: playlists.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final playlist = playlists[index];
+                          return LibraryPlaylistCard(
+                            title: playlist.title,
+                            itemCount: playlist.itemCount,
+                            type: playlist.type,
+                            isPinned: playlist.isPinned,
+                            photo: playlist.photo,
+                            showItemCount: !playlist.id.startsWith(
+                              LibraryConstants.sagaPrefix,
+                            ),
+                            onTap: () => _navigateToPlaylist(playlist),
+                            onLongPress:
+                                playlist.type ==
+                                        LibraryPlaylistType.userPlaylist &&
+                                    playlist.playlistId != null
+                                ? () =>
+                                      _showPlaylistMenu(context, ref, playlist)
+                                : null,
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -595,11 +625,7 @@ class _LibrarySearchField extends StatelessWidget {
             hintText: hintText,
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 12, right: 8),
-              child: Image.asset(
-                AppAssets.iconSearch,
-                width: 25,
-                height: 25,
-              ),
+              child: Image.asset(AppAssets.iconSearch, width: 25, height: 25),
             ),
             suffixIcon: value.text.isNotEmpty
                 ? IconButton(

@@ -6,6 +6,7 @@ class MovieDetailHeroSection extends StatelessWidget {
   const MovieDetailHeroSection({
     super.key,
     this.poster,
+    this.posterBackground,
     this.backdrop,
     required this.onBack,
     required this.onMore,
@@ -14,6 +15,7 @@ class MovieDetailHeroSection extends StatelessWidget {
   });
 
   final Uri? poster;
+  final Uri? posterBackground;
   final Uri? backdrop;
   final VoidCallback onBack;
   final VoidCallback onMore;
@@ -28,7 +30,11 @@ class MovieDetailHeroSection extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MovieHeroImage(poster: poster, backdrop: backdrop),
+          MovieHeroImage(
+            poster: poster,
+            posterBackground: posterBackground,
+            backdrop: backdrop,
+          ),
           Positioned(
             top: 0,
             left: 0,

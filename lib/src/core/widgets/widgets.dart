@@ -12,3 +12,4 @@ export 'overlay_splash.dart';
 export 'launch_error_panel.dart';
 export 'swipe_back_wrapper.dart';
 export 'syncable_refresh_indicator.dart';
+export 'movi_hero_background.dart';

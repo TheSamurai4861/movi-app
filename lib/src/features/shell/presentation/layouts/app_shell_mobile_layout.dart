@@ -53,35 +53,38 @@ class AppShellMobileLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     // Même policy que desktop
     final keepAliveIndices = ShellRetentionPolicy.keepAliveIndices();
-
+    final surfaceColor = Theme.of(context).colorScheme.surface;
     final bottomOffset = moviNavBarBottomOffset(context);
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: SafeArea(
-            child: ShellContentHost(
-              selectedIndex: selectedIndex,
-              pageBuilders: pageBuilders,
-              keepAliveIndices: keepAliveIndices,
-              showEphemeralSwitchLoading: true,
-              loadingLabel: null,
+    return ColoredBox(
+      color: surfaceColor,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: SafeArea(
+              child: ShellContentHost(
+                selectedIndex: selectedIndex,
+                pageBuilders: pageBuilders,
+                keepAliveIndices: keepAliveIndices,
+                showEphemeralSwitchLoading: true,
+                loadingLabel: null,
+              ),
             ),
           ),
-        ),
 
-        // Bottom nav flottante
-        Positioned(
-          left: 16,
-          right: 16,
-          bottom: bottomOffset,
-          child: MoviBottomNavBar(
-            selectedIndex: selectedIndex,
-            onItemSelected: onNavTap,
-            destinations: destinations,
+          // Bottom nav flottante
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: bottomOffset,
+            child: MoviBottomNavBar(
+              selectedIndex: selectedIndex,
+              onItemSelected: onNavTap,
+              destinations: destinations,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

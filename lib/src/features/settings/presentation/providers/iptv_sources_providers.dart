@@ -5,6 +5,8 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 
+export 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
+
 final iptvAccountsProvider = FutureProvider<List<XtreamAccount>>((ref) async {
   final local = ref.watch(slProvider)<IptvLocalRepository>();
   return local.getAccounts();
@@ -14,58 +16,6 @@ final iptvAccountsProvider = FutureProvider<List<XtreamAccount>>((ref) async {
 final stalkerAccountsProvider = FutureProvider<List<StalkerAccount>>((ref) async {
   final local = ref.watch(slProvider)<IptvLocalRepository>();
   return local.getStalkerAccounts();
-});
-
-/// Wrapper pour combiner Xtream et Stalker
-class AnyIptvAccount {
-  AnyIptvAccount.xtream(this.xtream) : stalker = null;
-  AnyIptvAccount.stalker(this.stalker) : xtream = null;
-
-  final XtreamAccount? xtream;
-  final StalkerAccount? stalker;
-
-  String get id => xtream?.id ?? stalker!.id;
-  String get alias => xtream?.alias ?? stalker!.alias;
-  bool get isStalker => stalker != null;
-  
-  String getHost() => xtream?.endpoint.host ?? stalker!.endpoint.host;
-  String getUsername() => xtream?.username ?? stalker!.macAddress;
-  DateTime? getExpiration() {
-    if (xtream != null) {
-      return xtream!.expirationDate;
-    }
-    return stalker?.expirationDate;
-  }
-  bool isActive() {
-    if (isStalker) {
-      final s = stalker!;
-      if (s.status == StalkerAccountStatus.error) return false;
-      if (s.status == StalkerAccountStatus.expired) return false;
-      final exp = s.expirationDate;
-      if (exp == null) return s.status == StalkerAccountStatus.active;
-      return exp.isAfter(DateTime.now());
-    } else {
-      final x = xtream!;
-      if (x.status == XtreamAccountStatus.error) return false;
-      if (x.status == XtreamAccountStatus.expired) return false;
-      final exp = x.expirationDate;
-      if (exp == null) return x.status == XtreamAccountStatus.active;
-      return exp.isAfter(DateTime.now());
-    }
-  }
-}
-
-/// Provider combiné pour tous les comptes IPTV
-final allIptvAccountsProvider = FutureProvider<List<AnyIptvAccount>>((ref) async {
-  final local = ref.watch(slProvider)<IptvLocalRepository>();
-  
-  final xtreamAccounts = await local.getAccounts();
-  final stalkerAccounts = await local.getStalkerAccounts();
-  
-  return [
-    ...xtreamAccounts.map((a) => AnyIptvAccount.xtream(a)),
-    ...stalkerAccounts.map((a) => AnyIptvAccount.stalker(a)),
-  ];
 });
 
 class IptvSourceStats {

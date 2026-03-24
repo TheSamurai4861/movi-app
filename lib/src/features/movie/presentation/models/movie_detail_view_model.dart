@@ -16,6 +16,7 @@ class MovieDetailViewModel {
     required this.cast,
     required this.recommendations,
     required this.poster,
+    this.posterBackground,
     required this.backdrop,
     required this.language,
     this.sagaLink,
@@ -29,6 +30,7 @@ class MovieDetailViewModel {
   final List<MoviPerson> cast;
   final List<MoviMedia> recommendations;
   final Uri? poster;
+  final Uri? posterBackground;
   final Uri? backdrop;
   final String language;
   final SagaSummary? sagaLink;
@@ -39,13 +41,13 @@ class MovieDetailViewModel {
     required Iterable<MovieSummary> recommendations,
     required String language,
   }) {
-    // Parse locale from language code
     final locale = _parseLocale(language);
     final localizations = lookupAppLocalizations(locale);
 
     final dur = detail.duration;
     final h = dur.inHours;
     final mn = dur.inMinutes % 60;
+
     final cast = credits
         .map(
           (p) => MoviPerson(
@@ -56,6 +58,7 @@ class MovieDetailViewModel {
           ),
         )
         .toList(growable: false);
+
     final recos = recommendations
         .map(
           (r) => MoviMedia(
@@ -67,6 +70,7 @@ class MovieDetailViewModel {
           ),
         )
         .toList(growable: false);
+
     return MovieDetailViewModel(
       title: detail.title.display,
       yearText: detail.releaseDate.year.toString(),
@@ -80,6 +84,7 @@ class MovieDetailViewModel {
       cast: cast,
       recommendations: recos,
       poster: detail.poster,
+      posterBackground: detail.posterBackground,
       backdrop: detail.backdrop,
       language: language,
       sagaLink: detail.sagaLink,

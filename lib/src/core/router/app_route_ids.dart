@@ -30,6 +30,7 @@ class AppRouteIds {
   static const about = 'about';
   static const iptvConnect = 'iptv_connect';
   static const iptvSources = 'iptv_sources';
+  static const iptvSourceSelect = 'iptv_source_select';
   static const iptvSourceAdd = 'iptv_source_add';
   static const iptvSourceEdit = 'iptv_source_edit';
   static const iptvSourceOrganize = 'iptv_source_organize';

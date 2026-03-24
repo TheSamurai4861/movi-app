@@ -37,6 +37,7 @@ import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_add_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_edit_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_organize_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/iptv_source_select_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_sources_page.dart';
 import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
@@ -280,6 +281,12 @@ GoRoute(
       name: AppRouteIds.iptvSources,
       pageBuilder: (context, state) =>
           const MaterialPage(child: IptvSourcesPage()),
+    ),
+    GoRoute(
+      path: AppRoutePaths.iptvSourceSelect,
+      name: AppRouteIds.iptvSourceSelect,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: IptvSourceSelectPage()),
     ),
     GoRoute(
       path: AppRoutePaths.iptvSourceAdd,

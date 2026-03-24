@@ -302,7 +302,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                   height: 48,
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: () => context.push(AppRouteNames.welcomeSourceSelect),
+                    onPressed: () => context.push(AppRouteNames.iptvSourceSelect),
                     icon: const Icon(Icons.swap_horiz),
                     label: const Text('Changer de source active'),
                     style: ElevatedButton.styleFrom(

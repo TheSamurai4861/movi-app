@@ -230,7 +230,7 @@ Future<MovieDetailViewModel> _loadXtreamMovieDetail(
     throw StateError('Movie $movieId missing poster');
   }
 
-  return MovieDetailViewModel(
+    return MovieDetailViewModel(
     title: xtreamItem.title,
     yearText: xtreamItem.releaseYear?.toString() ?? '—',
     durationText: '—',
@@ -243,6 +243,7 @@ Future<MovieDetailViewModel> _loadXtreamMovieDetail(
     cast: const [],
     recommendations: const [],
     poster: poster,
+    posterBackground: null,
     backdrop: null,
     language: language,
   );

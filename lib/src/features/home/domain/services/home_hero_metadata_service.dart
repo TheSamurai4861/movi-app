@@ -42,11 +42,11 @@ class HomeHeroMetadataService {
     required TmdbMovieRemoteDataSource moviesRemote,
     required TmdbTvRemoteDataSource tvRemote,
     required AppStateController appState,
-  })  : _cache = cache,
-        _images = images,
-        _moviesRemote = moviesRemote,
-        _tvRemote = tvRemote,
-        _appState = appState;
+  }) : _cache = cache,
+       _images = images,
+       _moviesRemote = moviesRemote,
+       _tvRemote = tvRemote,
+       _appState = appState;
 
   final TmdbCacheDataSource _cache;
   final TmdbImageResolver _images;
@@ -99,10 +99,7 @@ class HomeHeroMetadataService {
           data = json;
           isTvData = false;
         } catch (_) {
-          final dto = await _tvRemote.fetchShowFull(
-            id,
-            language: language,
-          );
+          final dto = await _tvRemote.fetchShowFull(id, language: language);
           final json = dto.toCache();
           await _cache.putTvDetail(id, json, language: language);
           data = json;
@@ -133,7 +130,7 @@ class HomeHeroMetadataService {
     final Uri? posterBgUri = _images.poster(posterBgPath, size: 'w780');
     final Uri? backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
-      size: 'w780',
+      size: 'original',
     );
     final Uri? logoUri = _images.logo(logoPath);
 
@@ -161,8 +158,8 @@ class HomeHeroMetadataService {
     // Année depuis release_date (film) ou first_air_date (série)
     final String? date =
         (data['release_date']?.toString().trim().isNotEmpty ?? false)
-            ? data['release_date']?.toString()
-            : data['first_air_date']?.toString();
+        ? data['release_date']?.toString()
+        : data['first_air_date']?.toString();
     final int? year = _parseYear(date) ?? movie.releaseYear;
 
     return HomeHeroMetadata(

@@ -1,9 +1,10 @@
 class TmdbTvDetailDto {
-  TmdbTvDetailDto({
+    TmdbTvDetailDto({
     required this.id,
     required this.name,
     required this.overview,
     required this.posterPath,
+    this.posterBackground,
     required this.backdropPath,
     required this.logoPath,
     required this.firstAirDate,
@@ -58,7 +59,8 @@ class TmdbTvDetailDto {
           json['original_name']?.toString() ??
           'Untitled',
       overview: json['overview']?.toString() ?? '',
-      posterPath: json['poster_path']?.toString(),
+            posterPath: json['poster_path']?.toString(),
+      posterBackground: json['poster_background']?.toString(),
       backdropPath: json['backdrop_path']?.toString(),
       logoPath: logoPath,
       firstAirDate: json['first_air_date']?.toString(),
@@ -85,7 +87,8 @@ class TmdbTvDetailDto {
   final int id;
   final String name;
   final String overview;
-  final String? posterPath;
+    final String? posterPath;
+  final String? posterBackground;
   final String? backdropPath;
   final String? logoPath;
   final String? firstAirDate;
@@ -103,7 +106,8 @@ class TmdbTvDetailDto {
     'id': id,
     'name': name,
     'overview': overview,
-    'poster_path': posterPath,
+        'poster_path': posterPath,
+    'poster_background': posterBackground,
     'backdrop_path': backdropPath,
     'images': {
       'logos': logoPath != null

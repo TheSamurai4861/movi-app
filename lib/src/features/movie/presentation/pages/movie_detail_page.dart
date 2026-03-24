@@ -215,7 +215,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           cast: vm.cast,
           recommendations: vm.recommendations,
           isLoading: _isTransitioningFromLoading,
-          poster: vm.poster,
+                   poster: vm.poster,
+          posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
           sagaLink: vm.sagaLink,
           movieId: movieId,
@@ -246,6 +247,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required List<MoviMedia> recommendations,
     required bool isLoading,
     Uri? poster,
+    Uri? posterBackground,
     Uri? backdrop,
     SagaSummary? sagaLink,
     required String movieId,
@@ -278,8 +280,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          MovieDetailHeroSection(
+                                                    MovieDetailHeroSection(
                             poster: poster,
+                            posterBackground: posterBackground,
                             backdrop: backdrop,
                             onBack: () => context.pop(),
                             onMore: _showMoreMenu,

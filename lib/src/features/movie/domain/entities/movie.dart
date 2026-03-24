@@ -24,6 +24,7 @@ class Movie extends Equatable {
     required this.directors,
     this.tags = const [],
     this.sagaLink,
+    this.posterBackground,
   });
 
   final MovieId id;
@@ -41,6 +42,7 @@ class Movie extends Equatable {
   final List<PersonSummary> directors;
   final List<String> tags;
   final SagaSummary? sagaLink;
+  final Uri? posterBackground;
 
   @override
   List<Object?> get props => [
@@ -59,5 +61,6 @@ class Movie extends Equatable {
     directors,
     tags,
     sagaLink,
+    posterBackground,
   ];
 }

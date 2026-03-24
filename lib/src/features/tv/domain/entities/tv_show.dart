@@ -13,6 +13,7 @@ class TvShow extends Equatable {
     required this.title,
     required this.synopsis,
     required this.poster,
+    this.posterBackground,
     this.backdrop,
     this.firstAirDate,
     this.lastAirDate,
@@ -30,6 +31,7 @@ class TvShow extends Equatable {
   final MediaTitle title;
   final Synopsis synopsis;
   final Uri poster;
+  final Uri? posterBackground;
   final Uri? backdrop;
   final DateTime? firstAirDate;
   final DateTime? lastAirDate;
@@ -48,6 +50,7 @@ class TvShow extends Equatable {
     title,
     synopsis,
     poster,
+    posterBackground,
     backdrop,
     firstAirDate,
     lastAirDate,

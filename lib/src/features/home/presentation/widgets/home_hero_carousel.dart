@@ -99,7 +99,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   Timer? _timer;
   Timer? _prefetchTimer;
   DateTime? _lastPrefetchAt;
-  bool _backdropNotified = false;
   
   // Flags pour éviter l'accumulation de callbacks
   bool _pendingStateUpdate = false;
@@ -134,7 +133,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           : (persistedIndex > maxIndex ? maxIndex : persistedIndex);
       _metaFutures.clear();
       _retriedIds.clear();
-      _backdropNotified = false;
       _lastNotifiedLoadingState = false;
       _pendingStateUpdate = false;
       _prefetchTimer?.cancel();
@@ -219,7 +217,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     
     // Mise à jour de l'état
     _index = (_index + 1) % len;
-    _backdropNotified = false;
     _retriedIds.clear();
     _lastNotifiedLoadingState = false; // Reset pour le nouvel item
     
@@ -810,68 +807,40 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                     // 2) Poster playlist
                     // 3) Backdrop TMDB
                     // 4) Backdrop playlist
-                    final String? bgSrc =
-                        _coerceHttpUrl(meta?.posterBg) ??
-                        _coerceHttpUrl(meta?.poster) ??
-                        _coerceHttpUrl(item.poster?.toString()) ??
-                        _coerceHttpUrl(meta?.backdrop);
+                    final posterBackground = _coerceHttpUrl(meta?.posterBg);
+final poster = _coerceHttpUrl(meta?.poster) ?? _coerceHttpUrl(item.poster?.toString());
+final backdrop = _coerceHttpUrl(meta?.backdrop);
 
-                    Widget buildBackground() {
-                      Widget image;
-                      if (bgSrc != null) {
-                        image = Image.network(
-                          bgSrc,
-                          key: ValueKey(bgSrc),
-                          fit: BoxFit.cover,
-                          alignment: const Alignment(0.0, -0.5),
-                          width: double.infinity,
-                          height: double.infinity,
-                          gaplessPlayback: true,
-                          filterQuality: FilterQuality.low,
-                          errorBuilder: (_, __, ___) {
-                            if (!_backdropNotified) {
-                              _backdropNotified = true;
-                            }
-                            return MoviPlaceholderCard(
-                              type: item.type == ContentType.series
-                                  ? PlaceholderType.series
-                                  : PlaceholderType.movie,
-                              fit: BoxFit.cover,
-                              borderRadius: BorderRadius.zero,
-                            );
-                          },
-                          frameBuilder: (context, child, frame, wasSync) {
-                            if (frame != null && !_backdropNotified) {
-                              _backdropNotified = true;
-                            }
-                            return child;
-                          },
-                        );
-                      } else {
-                        image = const ColoredBox(color: Color(0xFF222222));
-                      }
-                      return AnimatedSwitcher(
-                        duration: _fade,
-                        switchInCurve: Curves.easeInOut,
-                        switchOutCurve: Curves.easeInOut,
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                        layoutBuilder: (currentChild, previousChildren) {
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ...previousChildren,
-                              if (currentChild != null) currentChild,
-                            ],
-                          );
-                        },
-                        child: image,
-                      );
-                    }
+Widget buildBackground() {
+  final image = MoviHeroBackground(
+    key: ValueKey('${posterBackground ?? ''}|${poster ?? ''}|${backdrop ?? ''}'),
+    posterBackground: posterBackground,
+    poster: poster,
+    backdrop: backdrop,
+    placeholderType: item.type == ContentType.series
+        ? PlaceholderType.series
+        : PlaceholderType.movie,
+  );
+
+  return AnimatedSwitcher(
+    duration: _fade,
+    switchInCurve: Curves.easeInOut,
+    switchOutCurve: Curves.easeInOut,
+    transitionBuilder: (child, animation) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+    layoutBuilder: (currentChild, previousChildren) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          ...previousChildren,
+          if (currentChild != null) currentChild,
+        ],
+      );
+    },
+    child: image,
+  );
+}
 
                     return Stack(
                       fit: StackFit.expand,

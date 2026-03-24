@@ -44,6 +44,7 @@ class AppRouteNames {
   static const settings = AppRoutePaths.settings;
   static const iptvConnect = AppRoutePaths.iptvConnect;
   static const iptvSources = AppRoutePaths.iptvSources;
+  static const iptvSourceSelect = AppRoutePaths.iptvSourceSelect;
   static const iptvSourceAdd = AppRoutePaths.iptvSourceAdd;
   static const iptvSourceEdit = AppRoutePaths.iptvSourceEdit;
   static const iptvSourceOrganize = AppRoutePaths.iptvSourceOrganize;

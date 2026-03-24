@@ -45,31 +45,36 @@ class AppShellLargeLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SidebarNav(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: onNavTap,
-          destinations: destinations,
-          logo: sidebarLogo,
-          focusNode: sidebarFocusNode,
-          autofocus: false,
-        ),
-        Expanded(
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 32),
-              child: ShellContentHost(
-                selectedIndex: selectedIndex,
-                pageBuilders: pageBuilders,
-                keepAliveIndices: keepAliveIndices,
-                showEphemeralSwitchLoading: true,
-                loadingLabel: null,
+    final surfaceColor = Theme.of(context).colorScheme.surface;
+
+    return ColoredBox(
+      color: surfaceColor,
+      child: Row(
+        children: [
+          SidebarNav(
+            selectedIndex: selectedIndex,
+            onDestinationSelected: onNavTap,
+            destinations: destinations,
+            logo: sidebarLogo,
+            focusNode: sidebarFocusNode,
+            autofocus: false,
+          ),
+          Expanded(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 32),
+                child: ShellContentHost(
+                  selectedIndex: selectedIndex,
+                  pageBuilders: pageBuilders,
+                  keepAliveIndices: keepAliveIndices,
+                  showEphemeralSwitchLoading: true,
+                  loadingLabel: null,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

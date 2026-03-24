@@ -388,10 +388,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       color: _isCurrentSyncInterval(currentInterval, interval)
                           ? accentColor
                           : Colors.white,
-                      fontWeight: _isCurrentSyncInterval(
-                        currentInterval,
-                        interval,
-                      )
+                      fontWeight:
+                          _isCurrentSyncInterval(currentInterval, interval)
                           ? FontWeight.w600
                           : FontWeight.w500,
                     ),
@@ -500,7 +498,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (active.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.homeNoIptvSources)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.homeNoIptvSources),
+          ),
         );
         return;
       }
@@ -543,14 +543,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Expanded(
                 child: Text(
                   'Playlists IPTV rafraîchies ($ok/${active.length})${ko > 0 ? ' | erreurs: $ko' : ''}',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
           ),
           backgroundColor: const Color(0xFF1C1C1E),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
           duration: const Duration(seconds: 3),
         ),
@@ -566,14 +571,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Expanded(
                   child: Text(
                     errors.first,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
             ),
             backgroundColor: accent.withValues(alpha: 0.25),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 3),
           ),
@@ -678,7 +688,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: const Color(0xFF8E8E93),
                   icon: Icons.error_outline,
                   onTap: () => _guard(
-                    () => ref.read(profilesControllerProvider.notifier).refresh(),
+                    () =>
+                        ref.read(profilesControllerProvider.notifier).refresh(),
                   ),
                 ),
                 const SizedBox(width: 24),
@@ -746,7 +757,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+              border: isSelected
+                  ? Border.all(color: Colors.white, width: 3)
+                  : null,
               boxShadow: isSelected
                   ? [
                       BoxShadow(
@@ -832,7 +845,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
         // Capture context before async gap
         final navigatorContext = context;
-        
+
         try {
           final locator = ref.read(slProvider);
 
@@ -902,197 +915,229 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final currentAccentColor = ref.watch(asp.currentAccentColorProvider);
 
     final cloudSync = ref.watch(libraryCloudSyncControllerProvider);
-    final cloudSyncController =
-        ref.read(libraryCloudSyncControllerProvider.notifier);
+    final cloudSyncController = ref.read(
+      libraryCloudSyncControllerProvider.notifier,
+    );
 
     return Material(
       color: Colors.transparent,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-        children: [
-          Text(
-            l10n.settingsTitle,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ) ??
-                const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-          ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth > 800
+              ? 800.0
+              : constraints.maxWidth;
 
-          const SizedBox(height: 32),
+          return Align(
+            alignment: Alignment.topCenter,
+            child: SizedBox(
+              width: width,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                children: [
+                  Text(
+                    l10n.settingsTitle,
+                    style:
+                        Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                  ),
 
-          // --- Comptes
-          Text(
-            l10n.settingsAccountsSection,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ) ??
-                const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-          ),
-          const SizedBox(height: 16),
-          _buildProfilesSection(),
+                  const SizedBox(height: 32),
 
-          const SizedBox(height: 32),
+                  // --- Comptes
+                  Text(
+                    l10n.settingsAccountsSection,
+                    style:
+                        Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildProfilesSection(),
 
-          // --- IPTV
-          Text(
-            l10n.settingsIptvSection,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ) ??
-                const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-          ),
-          const SizedBox(height: 8),
-          _buildSettingItem(
-            title: l10n.settingsSourcesManagement,
-            onTap: () => _guard(() => context.push(AppRoutePaths.iptvSources)),
-          ),
-          _buildSettingItem(
-            title: l10n.settingsSyncFrequency,
-            value: _formatSyncInterval(currentSyncInterval),
-            showChevronDown: true,
-            onTap: () => _guard(
-              () => _showSyncIntervalSelector(context, currentSyncInterval),
-            ),
-          ),
-          _buildSettingItem(
-            title: l10n.settingsRefreshIptvPlaylistsTitle,
-            trailing: _refreshingIptv
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: currentAccentColor,
+                  const SizedBox(height: 32),
+
+                  // --- IPTV
+                  Text(
+                    l10n.settingsIptvSection,
+                    style:
+                        Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSettingItem(
+                    title: l10n.settingsSourcesManagement,
+                    onTap: () =>
+                        _guard(() => context.push(AppRoutePaths.iptvSources)),
+                  ),
+                  _buildSettingItem(
+                    title: l10n.settingsSyncFrequency,
+                    value: _formatSyncInterval(currentSyncInterval),
+                    showChevronDown: true,
+                    onTap: () => _guard(
+                      () => _showSyncIntervalSelector(
+                        context,
+                        currentSyncInterval,
+                      ),
                     ),
-                  )
-                : null,
-            onTap: _refreshingIptv ? null : () => _guard(_refreshIptv),
-          ),
+                  ),
+                  _buildSettingItem(
+                    title: l10n.settingsRefreshIptvPlaylistsTitle,
+                    trailing: _refreshingIptv
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: currentAccentColor,
+                            ),
+                          )
+                        : null,
+                    onTap: _refreshingIptv ? null : () => _guard(_refreshIptv),
+                  ),
 
-          const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-          // --- Cloud sync (Library)
-          Text(
-            l10n.settingsCloudSyncSection,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ) ??
-                const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-          ),
-          const SizedBox(height: 8),
-          _buildSettingItem(
-            title: l10n.settingsCloudSyncAuto,
-            trailing: Switch.adaptive(
-              value: cloudSync.autoSyncEnabled,
-              activeThumbColor: currentAccentColor,
-              onChanged: (value) =>
-                  _guard(() => cloudSyncController.setAutoSyncEnabled(value)),
-            ),
-          ),
-          _buildSettingItem(
-            title: l10n.settingsCloudSyncNow,
-            value: cloudSync.isSyncing
-                ? l10n.settingsCloudSyncInProgress
-                : _formatCloudSyncLast(context, cloudSync.lastSuccessAtUtc),
-            trailing: cloudSync.isSyncing
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: currentAccentColor,
+                  // --- Cloud sync (Library)
+                  Text(
+                    l10n.settingsCloudSyncSection,
+                    style:
+                        Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSettingItem(
+                    title: l10n.settingsCloudSyncAuto,
+                    trailing: Switch.adaptive(
+                      value: cloudSync.autoSyncEnabled,
+                      activeThumbColor: currentAccentColor,
+                      onChanged: (value) => _guard(
+                        () => cloudSyncController.setAutoSyncEnabled(value),
+                      ),
                     ),
-                  )
-                : null,
-            onTap: cloudSync.isSyncing
-                ? null
-                : () => _guard(() => cloudSyncController.syncNow()),
-          ),
-          if (cloudSync.lastError != null &&
-              cloudSync.lastError!.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              l10n.settingsCloudSyncError(cloudSync.lastError!),
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
+                  ),
+                  _buildSettingItem(
+                    title: l10n.settingsCloudSyncNow,
+                    value: cloudSync.isSyncing
+                        ? l10n.settingsCloudSyncInProgress
+                        : _formatCloudSyncLast(
+                            context,
+                            cloudSync.lastSuccessAtUtc,
+                          ),
+                    trailing: cloudSync.isSyncing
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: currentAccentColor,
+                            ),
+                          )
+                        : null,
+                    onTap: cloudSync.isSyncing
+                        ? null
+                        : () => _guard(() => cloudSyncController.syncNow()),
+                  ),
+                  if (cloudSync.lastError != null &&
+                      cloudSync.lastError!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.settingsCloudSyncError(cloudSync.lastError!),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
 
-          const SizedBox(height: 32),
+                  const SizedBox(height: 32),
 
-          // --- App settings
-          Text(
-            l10n.settingsAppSection,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ) ??
-                const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-          ),
-          const SizedBox(height: 8),
+                  // --- App settings
+                  Text(
+                    l10n.settingsAppSection,
+                    style:
+                        Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
 
-          // ✅ FIX: pas de l10n.navAbout / pas de AppRouteNames.about
-          _buildSettingItem(
-            title: 'À propos',
-            onTap: () => context.push(AppRoutePaths.about),
-          ),
+                  // ✅ FIX: pas de l10n.navAbout / pas de AppRouteNames.about
+                  _buildSettingItem(
+                    title: 'À propos',
+                    onTap: () => context.push(AppRoutePaths.about),
+                  ),
 
-          _buildSettingItem(
-            title: l10n.settingsLanguageLabel,
-            value: currentLangLabel,
-            showChevronDown: true,
-            onTap: () => _guard(
-              () => _showLanguageSelector(context, currentLangCode),
-            ),
-          ),
-          _buildSettingItem(
-            title: l10n.settingsAccentColor,
-            value: _getAccentColorName(currentAccentColor),
-            showChevronDown: true,
-            trailing: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: currentAccentColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 1,
-                ),
+                  _buildSettingItem(
+                    title: l10n.settingsLanguageLabel,
+                    value: currentLangLabel,
+                    showChevronDown: true,
+                    onTap: () => _guard(
+                      () => _showLanguageSelector(context, currentLangCode),
+                    ),
+                  ),
+                  _buildSettingItem(
+                    title: l10n.settingsAccentColor,
+                    value: _getAccentColorName(currentAccentColor),
+                    showChevronDown: true,
+                    trailing: Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: currentAccentColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    onTap: () => _guard(
+                      () =>
+                          _showAccentColorSelector(context, currentAccentColor),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+                  _buildSignOutButton(context),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
-            onTap: () => _guard(
-              () => _showAccentColorSelector(context, currentAccentColor),
-            ),
-          ),
-
-          const SizedBox(height: 32),
-          _buildSignOutButton(context),
-          const SizedBox(height: 32),
-        ],
+          );
+        },
       ),
     );
   }
