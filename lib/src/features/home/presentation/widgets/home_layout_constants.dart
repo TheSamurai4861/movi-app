@@ -22,12 +22,23 @@ class HomeLayoutConstants {
 
   // Limites et seuils
   static const int heroLimit = 20; // nombre max de films dans le hero
-  static const int continueWatchingLimit = 10; // nombre max d'items "en cours"
-  static const int iptvSectionLimit = HomeConstants.iptvSectionPreviewLimit; // nombre max d'items par section IPTV
+  static const int continueWatchingMobileLimit = 10;
+  static const int continueWatchingTabletLimit = 12;
+  static const int continueWatchingDesktopLimit = 14;
+  static const int continueWatchingLimit = continueWatchingMobileLimit; // legacy mobile default
+  static const int continueWatchingMaxLimit = continueWatchingDesktopLimit;
+  static const int iptvSectionMobileLimit = HomeConstants.iptvSectionPreviewLimit;
+  static const int iptvSectionTabletLimit = 12;
+  static const int iptvSectionDesktopLimit = 14;
+  static const int iptvSectionLimit = iptvSectionMobileLimit; // legacy mobile default
+  static const int iptvSectionMaxLimit = iptvSectionDesktopLimit;
 
   // Héro d'accueil
   static const double heroTotalHeight = 500.0;
   static const double heroOverlayHeight = 150.0;
+  static const double heroDesktopVisualBleed = 128.0;
+  static const double heroDesktopFirstSectionInset = 124.0;
+  static const double heroDesktopFirstSectionShieldHeight = 156.0;
   static const Duration heroRotationDuration = Duration(seconds: 9);
   static const Duration heroFadeDuration = Duration(milliseconds: 800);
   static const double heroSynopsisHeight = 80.0;

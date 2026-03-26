@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/utils/utils.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -65,6 +64,23 @@ class SagaDetailPage extends ConsumerWidget {
     }
   }
 
+  ScreenType _screenTypeFor(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return ScreenTypeResolver.instance.resolve(
+      mq.size.width,
+      mq.size.height == 0 ? 1 : mq.size.height,
+    );
+  }
+
+  bool _useDesktopDetailLayout(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _sectionHorizontalPadding(BuildContext context) {
+    return _useDesktopDetailLayout(context) ? 36 : 20;
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sagaDetailAsync = ref.watch(sagaDetailProvider(sagaId));
@@ -122,8 +138,12 @@ class SagaDetailPage extends ConsumerWidget {
                 return yearA.compareTo(yearB);
               });
 
-              const heroHeight = 400.0;
-              const overlayHeight = 200.0;
+              final cs = Theme.of(context).colorScheme;
+              final isWideLayout = _useDesktopDetailLayout(context);
+              final horizontalPadding = _sectionHorizontalPadding(context);
+              final heroHeight = isWideLayout ? 520.0 : 400.0;
+              final overlayHeight = isWideLayout ? 240.0 : 200.0;
+              final synopsisText = viewModel.saga.synopsis?.value ?? '';
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,25 +154,257 @@ class SagaDetailPage extends ConsumerWidget {
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          _buildHeroImage(context, viewModel.poster),
+                          _buildHeroImage(
+                            context,
+                            poster: viewModel.poster,
+                            backdrop: viewModel.backdrop,
+                          ),
                           Positioned(
                             top: 0,
                             left: 0,
                             right: 0,
                             child: Container(
-                              height: 100,
-                              decoration: const BoxDecoration(
+                              height: isWideLayout ? 120 : 100,
+                              decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Color(0xFF141414),
-                                    Color(0x00000000),
+                                    cs.surface,
+                                    cs.surface.withValues(alpha: 0),
                                   ],
                                 ),
                               ),
                             ),
                           ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              height: overlayHeight,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    cs.surface.withValues(alpha: 0),
+                                    cs.surface,
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (isWideLayout)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                ignoring: true,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.centerLeft,
+                                      end: Alignment.centerRight,
+                                      colors: [
+                                        cs.surface,
+                                        cs.surface.withValues(alpha: 0.72),
+                                        cs.surface.withValues(alpha: 0),
+                                      ],
+                                      stops: const [0.0, 0.42, 0.82],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (isWideLayout)
+                            Positioned.fill(
+                              child: Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                  start: 50,
+                                  end: 50,
+                                  top: 48,
+                                  bottom: 32,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 560,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          viewModel.saga.title.display,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                                  .textTheme
+                                                  .displaySmall
+                                                  ?.copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                    height: 1.05,
+                                                  ) ??
+                                              const TextStyle(
+                                                fontSize: 42,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                                height: 1.05,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            MoviPill(
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.sagaMovieCount(
+                                                viewModel.movieCount,
+                                              ),
+                                              large: true,
+                                            ),
+                                            MoviPill(
+                                              _formatDuration(
+                                                viewModel.totalDuration,
+                                              ),
+                                              large: true,
+                                            ),
+                                          ],
+                                        ),
+                                        if (synopsisText.trim().isNotEmpty) ...[
+                                          const SizedBox(height: 16),
+                                          SizedBox(
+                                            height: 72,
+                                            child: Text(
+                                              synopsisText,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge
+                                                      ?.copyWith(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ) ??
+                                                  const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            SizedBox(
+                                              width: 320,
+                                              child: inProgressMovieAsync.when(
+                                                data: (inProgressMovieId) {
+                                                  return MoviPrimaryButton(
+                                                    label:
+                                                        inProgressMovieId !=
+                                                            null
+                                                        ? AppLocalizations.of(
+                                                            context,
+                                                          )!.sagaContinue
+                                                        : AppLocalizations.of(
+                                                            context,
+                                                          )!.sagaStartNow,
+                                                    assetIcon:
+                                                        AppAssets.iconPlay,
+                                                    onPressed: () => _startSaga(
+                                                      context,
+                                                      ref,
+                                                      viewModel,
+                                                    ),
+                                                  );
+                                                },
+                                                loading: () =>
+                                                    MoviPrimaryButton(
+                                                      label:
+                                                          AppLocalizations.of(
+                                                            context,
+                                                          )!.sagaStartNow,
+                                                      assetIcon:
+                                                          AppAssets.iconPlay,
+                                                      onPressed: () {},
+                                                    ),
+                                                error: (_, __) =>
+                                                    MoviPrimaryButton(
+                                                      label:
+                                                          AppLocalizations.of(
+                                                            context,
+                                                          )!.sagaStartNow,
+                                                      assetIcon:
+                                                          AppAssets.iconPlay,
+                                                      onPressed: () =>
+                                                          _startSaga(
+                                                            context,
+                                                            ref,
+                                                            viewModel,
+                                                          ),
+                                                    ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            SizedBox(
+                                              width: 40,
+                                              height: 40,
+                                              child: isFavoriteAsync.when(
+                                                data: (isFavorite) =>
+                                                    MoviFavoriteButton(
+                                                      isFavorite: isFavorite,
+                                                      onPressed: () async {
+                                                        await ref
+                                                            .read(
+                                                              sagaToggleFavoriteProvider
+                                                                  .notifier,
+                                                            )
+                                                            .toggle(
+                                                              sagaId,
+                                                              SagaSummary(
+                                                                id: viewModel
+                                                                    .saga
+                                                                    .id,
+                                                                tmdbId: viewModel
+                                                                    .saga
+                                                                    .tmdbId,
+                                                                title: viewModel
+                                                                    .saga
+                                                                    .title,
+                                                                cover: viewModel
+                                                                    .poster,
+                                                              ),
+                                                            );
+                                                      },
+                                                    ),
+                                                loading: () =>
+                                                    MoviFavoriteButton(
+                                                      isFavorite: true,
+                                                      onPressed: () {},
+                                                    ),
+                                                error: (_, __) =>
+                                                    MoviFavoriteButton(
+                                                      isFavorite: true,
+                                                      onPressed: () {},
+                                                    ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           Positioned(
                             top: 8,
                             left: 20,
@@ -164,172 +416,154 @@ class SagaDetailPage extends ConsumerWidget {
                                 GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => context.pop(),
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isWideLayout ? 12 : 0,
+                                      vertical: 8,
+                                    ),
+                                    child: SizedBox(
                                       width: 35,
                                       height: 35,
                                       child: Image.asset(AppAssets.iconBack),
                                     ),
-                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: overlayHeight,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0x00000000),
-                                    Color(0xFF141414),
-                                  ],
-                                ),
-                              ),
+                        ],
+                      ),
+                    ),
+                    if (!isWideLayout)
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: 20,
+                          end: 20,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 16),
+                            Text(
+                              viewModel.saga.title.display,
+                              style:
+                                      Theme.of(context)
+                                          .textTheme
+                                          .headlineMedium
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                          ) ??
+                                  const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: 20,
-                        end: 20,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
-                          // Titre de la saga
-                          Text(
-                            viewModel.saga.title.display,
-                            style:
-                                Theme.of(
-                                  context,
-                                ).textTheme.headlineMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ) ??
-                                const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          // Nombre de films et durée totale
-                          Text(
-                            '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Colors.white70,
-                                ) ??
-                                const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white70,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          // Boutons d'action
-                          Row(
-                            children: [
-                              // Bouton "Commencer maintenant" ou "Poursuivre"
-                              Expanded(
-                                child: inProgressMovieAsync.when(
-                                  data: (inProgressMovieId) {
-                                    if (inProgressMovieId != null) {
-                                      // Afficher "Poursuivre"
-                                      return MoviPrimaryButton(
-                                        label: AppLocalizations.of(
-                                          context,
-                                        )!.sagaContinue,
-                                        assetIcon: AppAssets.iconPlay,
-                                        onPressed: () =>
-                                            _startSaga(context, ref, viewModel),
-                                      );
-                                    } else {
-                                      // Afficher "Commencer maintenant"
-                                      return MoviPrimaryButton(
-                                        label: AppLocalizations.of(
-                                          context,
-                                        )!.sagaStartNow,
-                                        assetIcon: AppAssets.iconPlay,
-                                        onPressed: () =>
-                                            _startSaga(context, ref, viewModel),
-                                      );
-                                    }
-                                  },
-                                  loading: () => MoviPrimaryButton(
-                                    label: AppLocalizations.of(
-                                      context,
-                                    )!.sagaStartNow,
-                                    assetIcon: AppAssets.iconPlay,
-                                    onPressed: () {},
+                            const SizedBox(height: 8),
+                            Text(
+                              '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
+                              style:
+                                      Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            color: Colors.white70,
+                                          ) ??
+                                  const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white70,
                                   ),
-                                  error: (_, __) => MoviPrimaryButton(
-                                    label: AppLocalizations.of(
-                                      context,
-                                    )!.sagaStartNow,
-                                    assetIcon: AppAssets.iconPlay,
-                                    onPressed: () =>
-                                        _startSaga(context, ref, viewModel),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              // Bouton favoris
-                              SizedBox(
-                                width: 40,
-                                height: 40,
-                                child: isFavoriteAsync.when(
-                                  data: (isFavorite) => MoviFavoriteButton(
-                                    isFavorite: isFavorite,
-                                    onPressed: () async {
-                                      await ref
-                                          .read(
-                                            sagaToggleFavoriteProvider.notifier,
-                                          )
-                                          .toggle(
-                                            sagaId,
-                                            SagaSummary(
-                                              id: viewModel.saga.id,
-                                              tmdbId: viewModel.saga.tmdbId,
-                                              title: viewModel.saga.title,
-                                              cover: viewModel.poster,
-                                            ),
-                                          );
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: inProgressMovieAsync.when(
+                                    data: (inProgressMovieId) {
+                                      return MoviPrimaryButton(
+                                        label: inProgressMovieId != null
+                                            ? AppLocalizations.of(
+                                                context,
+                                              )!.sagaContinue
+                                            : AppLocalizations.of(
+                                                context,
+                                              )!.sagaStartNow,
+                                        assetIcon: AppAssets.iconPlay,
+                                        onPressed: () => _startSaga(
+                                          context,
+                                          ref,
+                                          viewModel,
+                                        ),
+                                      );
                                     },
-                                  ),
-                                  loading: () => MoviFavoriteButton(
-                                    isFavorite: true,
-                                    onPressed: () {},
-                                  ),
-                                  error: (_, __) => MoviFavoriteButton(
-                                    isFavorite: true,
-                                    onPressed: () {},
+                                    loading: () => MoviPrimaryButton(
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.sagaStartNow,
+                                      assetIcon: AppAssets.iconPlay,
+                                      onPressed: () {},
+                                    ),
+                                    error: (_, __) => MoviPrimaryButton(
+                                      label: AppLocalizations.of(
+                                        context,
+                                      )!.sagaStartNow,
+                                      assetIcon: AppAssets.iconPlay,
+                                      onPressed: () => _startSaga(
+                                        context,
+                                        ref,
+                                        viewModel,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 16),
+                                SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: isFavoriteAsync.when(
+                                    data: (isFavorite) => MoviFavoriteButton(
+                                      isFavorite: isFavorite,
+                                      onPressed: () async {
+                                        await ref
+                                            .read(
+                                              sagaToggleFavoriteProvider
+                                                  .notifier,
+                                            )
+                                            .toggle(
+                                              sagaId,
+                                              SagaSummary(
+                                                id: viewModel.saga.id,
+                                                tmdbId: viewModel.saga.tmdbId,
+                                                title: viewModel.saga.title,
+                                                cover: viewModel.poster,
+                                              ),
+                                            );
+                                      },
+                                    ),
+                                    loading: () => MoviFavoriteButton(
+                                      isFavorite: true,
+                                      onPressed: () {},
+                                    ),
+                                    error: (_, __) => MoviFavoriteButton(
+                                      isFavorite: true,
+                                      onPressed: () {},
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 32),
                     // Liste des films
                     Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: 20,
-                        end: 20,
+                      padding: EdgeInsetsDirectional.only(
+                        start: horizontalPadding,
+                        end: horizontalPadding,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,6 +592,7 @@ class SagaDetailPage extends ConsumerWidget {
                                     height: 258,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
+                                      padding: EdgeInsets.zero,
                                       itemCount: movies.length,
                                       separatorBuilder: (_, __) =>
                                           const SizedBox(width: 16),
@@ -385,6 +620,7 @@ class SagaDetailPage extends ConsumerWidget {
                                   height: 258,
                                   child: ListView.separated(
                                     scrollDirection: Axis.horizontal,
+                                    padding: EdgeInsets.zero,
                                     itemCount: movies.length,
                                     separatorBuilder: (_, __) =>
                                         const SizedBox(width: 16),
@@ -418,31 +654,17 @@ class SagaDetailPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroImage(BuildContext context, Uri? poster) {
-    if (poster == null) {
-      return MoviPlaceholderCard(
-        type: PlaceholderType.movie,
-        fit: BoxFit.cover,
-        alignment: const Alignment(0.0, -0.5),
-        borderRadius: BorderRadius.zero,
-      );
-    }
-    final mq = MediaQuery.of(context);
-    final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
-    final int cacheWidth = rawPx.clamp(480, 1920);
-    return Image.network(
-      poster.toString(),
-      fit: BoxFit.cover,
-      gaplessPlayback: true,
-      cacheWidth: cacheWidth,
-      filterQuality: FilterQuality.medium,
-      alignment: const Alignment(0.0, -0.5),
-      errorBuilder: (_, __, ___) => MoviPlaceholderCard(
-        type: PlaceholderType.movie,
-        fit: BoxFit.cover,
-        alignment: const Alignment(0.0, -0.5),
-        borderRadius: BorderRadius.zero,
-      ),
+  Widget _buildHeroImage(
+    BuildContext context, {
+    required Uri? poster,
+    required Uri? backdrop,
+  }) {
+    return MoviHeroBackground(
+      posterBackground: poster?.toString(),
+      poster: poster?.toString(),
+      backdrop: backdrop?.toString(),
+      placeholderType: PlaceholderType.movie,
+      imageStrategy: MoviHeroImageStrategy.backdropFirst,
     );
   }
 }

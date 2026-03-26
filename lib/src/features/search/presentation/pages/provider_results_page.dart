@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -58,6 +60,20 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   // Augmenté pour les profils restreints (sera calculé dynamiquement)
   static const int _maxPrefetchPagesDefault = 5;
   static const int _maxPrefetchPagesRestricted = 20;
+
+  int _previewLimit(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenType = ScreenTypeResolver.instance.resolve(
+      size.width,
+      size.height,
+    );
+    return switch (screenType) {
+      ScreenType.mobile => 10,
+      ScreenType.tablet => 12,
+      ScreenType.desktop => 16,
+      ScreenType.tv => 18,
+    };
+  }
 
   @override
   void initState() {
@@ -491,8 +507,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
 
     final providerName = widget.args!.providerName;
     final colorScheme = Theme.of(context).colorScheme;
-    final moviesToShow = _movies.take(10).toList();
-    final showsToShow = _shows.take(10).toList();
+    final previewLimit = _previewLimit(context);
+    final moviesToShow = _movies.take(previewLimit).toList();
+    final showsToShow = _shows.take(previewLimit).toList();
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -543,7 +560,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                   if (_movies.isNotEmpty) ...[
                     MoviItemsList(
                       title: AppLocalizations.of(context)!.moviesTitle,
-                      subtitle: _movies.length > 10
+                      subtitle: _movies.length > previewLimit
                           ? AppLocalizations.of(
                               context,
                             )!.resultsCount(_movies.length)
@@ -555,7 +572,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                         start: 20,
                         end: 20,
                       ),
-                      action: _movies.length > 10
+                      action: _movies.length > previewLimit
                           ? TextButton(
                               onPressed: () {
                                 // Naviguer vers la page "Voir tout" pour les films
@@ -615,7 +632,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                   if (_shows.isNotEmpty) ...[
                     MoviItemsList(
                       title: AppLocalizations.of(context)!.seriesTitle,
-                      subtitle: _shows.length > 10
+                      subtitle: _shows.length > previewLimit
                           ? AppLocalizations.of(
                               context,
                             )!.resultsCount(_shows.length)
@@ -627,7 +644,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                         start: 20,
                         end: 20,
                       ),
-                      action: _shows.length > 10
+                      action: _shows.length > previewLimit
                           ? TextButton(
                               onPressed: () {
                                 // Naviguer vers la page "Voir tout" pour les séries

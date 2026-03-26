@@ -187,9 +187,7 @@ if (poster == null) {
 final posterBackground =
     _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-final backdrop =
-    _images.backdrop(dto.backdropPath, size: 'original') ??
-    posterBackground;
+final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
 
   return Movie(
     id: MovieId(dto.id.toString()),

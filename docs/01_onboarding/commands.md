@@ -40,10 +40,22 @@ Analyser le projet :
 flutter analyze
 ```
 
+Depuis WSL avec Flutter installe cote Windows :
+
+```bash
+scripts/flutter_win.sh --output output/flutter-analyze.txt analyze
+```
+
 Executer les tests :
 
 ```bash
 flutter test
+```
+
+Depuis WSL avec Flutter installe cote Windows :
+
+```bash
+scripts/flutter_win.sh --output output/flutter-test.txt test
 ```
 
 ## Lancement de l'application
@@ -69,6 +81,12 @@ Usage :
 
 - commande locale la plus pratique visible dans le projet ;
 - recommandee pour un run reproductible avec configuration locale.
+
+Equivalent via wrapper WSL -> Windows :
+
+```bash
+scripts/flutter_win.sh --output output/flutter-run.txt run -d windows --dart-define-from-file=.env
+```
 
 ### Lancement Android flavor `dev`
 
@@ -100,10 +118,18 @@ Usage :
 flutter analyze
 ```
 
+```bash
+scripts/flutter_win.sh --output output/flutter-analyze.txt analyze
+```
+
 ### Tests
 
 ```bash
 flutter test
+```
+
+```bash
+scripts/flutter_win.sh --output output/flutter-test.txt test
 ```
 
 ### Nettoyage puis reinstallation des dependances

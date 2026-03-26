@@ -99,7 +99,6 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedTab = ref.watch(selectedTabProvider);
     final selectedIndex = ref.watch(selectedIndexProvider);
 
     final keepAliveIndices = ref.watch(keepAliveIndicesProvider);
@@ -113,9 +112,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
     // Pas de texte brut : pas de loadingLabel ici.
     return ShellShortcuts(
-      selectedTab: selectedTab,
       onSelectTab: (tab) => shellSelectTab(ref, tab),
-      navScopeFocusNode: _sidebarFocusNode,
       child: isLarge
           ? (isTv
               ? AppShellTvLayout(

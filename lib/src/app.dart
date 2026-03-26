@@ -6,6 +6,8 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as app_state;
 import 'package:movi/src/core/theme/theme.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_cloud_sync_bootstrapper.dart';
+import 'package:movi/src/core/widgets/movi_remote_navigation.dart';
+import 'package:movi/src/core/widgets/movi_scroll_behavior.dart';
 import 'package:movi/l10n/app_localizations.dart';
 
 /// Shared localization delegates used by the main [MaterialApp].
@@ -50,6 +52,7 @@ class MyApp extends ConsumerWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Movi',
+      scrollBehavior: const MoviScrollBehavior(),
       theme: AppTheme.light(accentColor: accentColor),
       darkTheme: AppTheme.dark(accentColor: accentColor),
       themeMode: ThemeMode.dark,
@@ -58,8 +61,10 @@ class MyApp extends ConsumerWidget {
       localizationsDelegates: _appLocalizationsDelegates,
       routerConfig: router,
       builder: (context, child) {
-        return LibraryCloudSyncBootstrapper(
-          child: child ?? const SizedBox.shrink(),
+        return MoviRemoteNavigation(
+          child: LibraryCloudSyncBootstrapper(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

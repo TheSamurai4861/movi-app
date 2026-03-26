@@ -79,6 +79,8 @@ class MoviMediaCard extends StatefulWidget {
 }
 
 class _MoviMediaCardState extends State<MoviMediaCard> {
+  bool _focused = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -93,29 +95,50 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
           color: Colors.white,
         );
 
-    return GestureDetector(
-      onTap: () => widget.onTap?.call(widget.media),
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: widget.width,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _PosterWithOverlay(
-              media: widget.media,
-              width: widget.width,
-              height: widget.height,
-              heroTag: widget.heroTag,
-              highlightBorder: widget.highlightBorder,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onTap == null ? null : () => widget.onTap?.call(widget.media),
+        onFocusChange: (focused) {
+          if (_focused == focused) return;
+          setState(() => _focused = focused);
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _focused
+                  ? theme.colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
             ),
-            const SizedBox(height: 12),
-            MoviMarqueeText(
-              text: widget.media.title,
-              style: textStyle,
-              maxWidth: widget.width,
+          ),
+          child: SizedBox(
+            width: widget.width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _PosterWithOverlay(
+                  media: widget.media,
+                  width: widget.width,
+                  height: widget.height,
+                  heroTag: widget.heroTag,
+                  highlightBorder: widget.highlightBorder,
+                ),
+                const SizedBox(height: 12),
+                MoviMarqueeText(
+                  text: widget.media.title,
+                  style: textStyle,
+                  maxWidth: widget.width,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

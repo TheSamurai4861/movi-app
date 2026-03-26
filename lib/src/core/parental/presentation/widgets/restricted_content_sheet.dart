@@ -7,6 +7,7 @@ import 'package:movi/src/core/parental/presentation/providers/parental_access_pr
 import 'package:movi/src/core/parental/presentation/utils/parental_reason_localizer.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/widgets/modal_content_width.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
 class RestrictedContentSheet extends ConsumerStatefulWidget {
@@ -122,80 +123,86 @@ class _RestrictedContentSheetState extends ConsumerState<RestrictedContentSheet>
 
     return Padding(
       padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: bottom + 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ModalContentWidth(
+          maxWidth: 520,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  displayTitle,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      displayTitle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+                    icon: const Icon(Icons.close, color: Colors.white70),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                displayReason,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _pinController,
+                enabled: !_busy,
+                keyboardType: TextInputType.number,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'PIN',
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  filled: true,
+                  fillColor: const Color(0xFF2C2C2E),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white),
+                onSubmitted: (_) => _unlock(),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _busy ? null : _openPinRecovery,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: accentColor,
+                  ),
+                  child: Text(
+                    l10n.pinRecoveryLink,
+                    style: const TextStyle(decoration: TextDecoration.underline),
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: _busy ? null : () => Navigator.of(context).pop(false),
-                icon: const Icon(Icons.close, color: Colors.white70),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+              ],
+              const SizedBox(height: 16),
+              MoviPrimaryButton(
+                label: l10n.parentalUnlockButton,
+                onPressed: _busy ? null : _unlock,
+                loading: _busy,
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            displayReason,
-            style: const TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _pinController,
-            enabled: !_busy,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: 'PIN',
-              labelStyle: const TextStyle(color: Colors.white70),
-              filled: true,
-              fillColor: const Color(0xFF2C2C2E),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            style: const TextStyle(color: Colors.white),
-            onSubmitted: (_) => _unlock(),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: _busy ? null : _openPinRecovery,
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: accentColor,
-              ),
-              child: Text(
-                l10n.pinRecoveryLink,
-                style: const TextStyle(decoration: TextDecoration.underline),
-              ),
-            ),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-          ],
-          const SizedBox(height: 16),
-          MoviPrimaryButton(
-            label: l10n.parentalUnlockButton,
-            onPressed: _busy ? null : _unlock,
-            loading: _busy,
-          ),
-        ],
+        ),
       ),
     );
   }

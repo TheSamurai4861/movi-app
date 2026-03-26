@@ -11,6 +11,7 @@ import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 
@@ -143,24 +144,25 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              _Header(onBack: () => context.pop()),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
+        child: SettingsContentWidth(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _Header(onBack: () => context.pop()),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
                             Form(
                               key: _formKey,
                               child: Column(
@@ -283,14 +285,15 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                 ],
                               ),
                             ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

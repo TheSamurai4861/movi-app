@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 class AboutPage extends ConsumerWidget {
   const AboutPage({super.key});
@@ -19,15 +20,16 @@ class AboutPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
-          children: [
-            _HeaderBar(
-              title: 'À propos',
-              accent: accent,
-              onBack: () => context.pop(),
-            ),
-            const SizedBox(height: 32),
+        child: SettingsContentWidth(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
+            children: [
+              _HeaderBar(
+                title: 'À propos',
+                accent: accent,
+                onBack: () => context.pop(),
+              ),
+              const SizedBox(height: 32),
 
             // Section Application
             const Text(
@@ -123,8 +125,9 @@ class AboutPage extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );

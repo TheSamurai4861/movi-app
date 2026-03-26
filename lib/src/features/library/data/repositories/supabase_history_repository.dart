@@ -1,10 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:movi/src/core/supabase/supabase_error_mapper.dart';
 import 'package:movi/src/features/library/domain/repositories/history_repository.dart';
+import 'package:movi/src/features/library/library_constants.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
-import 'package:movi/src/features/library/library_constants.dart';
-import 'package:movi/src/core/supabase/supabase_error_mapper.dart';
 
 /// Remote implementation of [HistoryRepository] backed by Supabase.
 ///
@@ -39,7 +39,7 @@ class SupabaseHistoryRepository implements HistoryRepository {
             (data) => List<Map<String, dynamic>>.from(data as List),
           );
 
-      final threshold = LibraryConstants.completedProgressThreshold;
+      final threshold = LibraryConstants.watchHistoryCompletedThreshold;
       final filtered = rows.where((row) {
         final progress = (row['progress'] as num?)?.toDouble() ?? 0.0;
         return progress >= threshold;
@@ -73,10 +73,11 @@ class SupabaseHistoryRepository implements HistoryRepository {
             (data) => List<Map<String, dynamic>>.from(data as List),
           );
 
-      final threshold = LibraryConstants.completedProgressThreshold;
+      final threshold = LibraryConstants.inProgressMaxThreshold;
       final filtered = rows.where((row) {
         final progress = (row['progress'] as num?)?.toDouble() ?? 0.0;
-        return progress > 0 && progress < threshold;
+        return progress >= LibraryConstants.inProgressMinThreshold &&
+            progress < threshold;
       });
 
       return filtered

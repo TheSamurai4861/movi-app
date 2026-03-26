@@ -5,6 +5,8 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
+enum LibraryPlaylistCardLayout { horizontal, vertical }
+
 enum LibraryPlaylistType {
   inProgress,
   favoriteMovies,
@@ -26,6 +28,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
     this.photo, // Photo de profil pour les artistes ou image hero pour les sagas
     this.showItemCount =
         true, // Par défaut afficher le compteur, sauf pour les sagas
+    this.layout = LibraryPlaylistCardLayout.horizontal,
   });
 
   final String title;
@@ -37,6 +40,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
   final Uri?
   photo; // Photo de profil pour les artistes ou image hero pour les sagas
   final bool showItemCount; // Contrôle l'affichage du compteur d'éléments
+  final LibraryPlaylistCardLayout layout;
 
   /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
   Color _darkenColor(Color color) {
@@ -93,9 +97,170 @@ class LibraryPlaylistCard extends ConsumerWidget {
     }
   }
 
+  String _typeLabel() {
+    switch (type) {
+      case LibraryPlaylistType.inProgress:
+        return 'En cours';
+      case LibraryPlaylistType.favoriteMovies:
+        return 'Films favoris';
+      case LibraryPlaylistType.favoriteSeries:
+        return 'Séries favorites';
+      case LibraryPlaylistType.watchHistory:
+        return 'Historique';
+      case LibraryPlaylistType.userPlaylist:
+        return 'Playlist';
+      case LibraryPlaylistType.actor:
+        return 'Artiste';
+    }
+  }
+
+  String _secondaryText() {
+    final segments = <String>[_typeLabel()];
+    if (showItemCount && type != LibraryPlaylistType.actor) {
+      segments.add('$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}');
+    }
+    if (isPinned) {
+      segments.add('Épinglée');
+    }
+    return segments.join(' • ');
+  }
+
+  Widget _buildArtwork(
+    BuildContext context,
+    Color accentColor, {
+    required double width,
+    required double height,
+    required double borderRadius,
+  }) {
+    final isActor = type == LibraryPlaylistType.actor;
+    final decoration = BoxDecoration(
+      shape: isActor ? BoxShape.circle : BoxShape.rectangle,
+      borderRadius: isActor ? null : BorderRadius.circular(borderRadius),
+      gradient: (isActor || photo != null)
+          ? null
+          : LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [accentColor, _darkenColor(accentColor)],
+            ),
+      color: (isActor || photo != null)
+          ? Theme.of(context).colorScheme.surfaceContainerHighest
+          : null,
+    );
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: decoration,
+      child: photo != null
+          ? ClipRRect(
+              borderRadius: isActor
+                  ? BorderRadius.circular(width / 2)
+                  : BorderRadius.circular(borderRadius),
+              child: Image.network(
+                photo!.toString(),
+                width: width,
+                height: height,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Center(child: _getIcon()),
+              ),
+            )
+          : Center(child: _getIcon()),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
+    if (layout == LibraryPlaylistCardLayout.vertical) {
+      return InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        borderRadius: BorderRadius.circular(20),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final imageSize = (constraints.maxWidth - 8).clamp(0.0, 220.0);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: imageSize,
+                  height: imageSize,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _buildArtwork(
+                          context,
+                          accentColor,
+                          width: imageSize,
+                          height: imageSize,
+                          borderRadius: type == LibraryPlaylistType.actor
+                              ? imageSize / 2
+                              : 20,
+                        ),
+                      ),
+                      if (isPinned)
+                        Positioned(
+                          top: 12,
+                          right: 12,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.push_pin,
+                                size: 16,
+                                color: accentColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style:
+                      Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ) ??
+                      const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _secondaryText(),
+                  textAlign: TextAlign.center,
+                  style:
+                      Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.25,
+                      ) ??
+                      TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.25,
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
+
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
@@ -104,38 +269,14 @@ class LibraryPlaylistCard extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            // Carré avec photo de profil pour les artistes, image hero pour les sagas, ou dégradé avec icône pour les autres
-            Container(
+            _buildArtwork(
+              context,
+              accentColor,
               width: 75,
               height: 75,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: (type == LibraryPlaylistType.actor || photo != null)
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [accentColor, _darkenColor(accentColor)],
-                      ),
-                color: (type == LibraryPlaylistType.actor || photo != null)
-                    ? Theme.of(context).colorScheme.surfaceContainerHighest
-                    : null,
-              ),
-              child: photo != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        photo!.toString(),
-                        width: 75,
-                        height: 75,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(child: _getIcon()),
-                      ),
-                    )
-                  : Center(child: _getIcon()),
+              borderRadius: 16,
             ),
             const SizedBox(width: 16),
-            // Titre et informations
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,36 +297,23 @@ class LibraryPlaylistCard extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // Pour les artistes et les sagas, ne pas afficher le compteur d'éléments
-                  if (type != LibraryPlaylistType.actor && showItemCount) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        if (isPinned) ...[
-                          Icon(Icons.push_pin, size: 20, color: accentColor),
-                          const SizedBox(width: 4),
-                        ],
-                        Text(
-                          '$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ) ??
-                              TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _secondaryText(),
+                    style:
+                        Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ) ??
+                        TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
-                      ],
-                    ),
-                  ],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

@@ -15,15 +15,19 @@ class LibraryPlaylistActionsBar extends StatelessWidget {
     required this.isEmpty,
     this.onPlayRandom,
     this.onSortPressed,
+    this.compact = false,
   });
 
   final bool isEmpty;
   final VoidCallback? onPlayRandom;
   final VoidCallback? onSortPressed;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final buttonSize = compact ? 40.0 : 48.0;
+    final iconSize = compact ? 20.0 : 24.0;
 
     return Row(
       children: [
@@ -33,14 +37,14 @@ class LibraryPlaylistActionsBar extends StatelessWidget {
             label: localizations.playlistPlayRandomly,
             onPressed: isEmpty ? null : onPlayRandom,
             expand: true,
-            height: 48,
+            height: buttonSize,
           ),
         ),
         const SizedBox(width: 16),
-        // Bouton rond de tri (même hauteur que le primaire, 48px)
+        // Bouton rond de tri (même hauteur que le primaire)
         SizedBox(
-          width: 48,
-          height: 48,
+          width: buttonSize,
+          height: buttonSize,
           child: Material(
             color: isEmpty
                 ? const Color(0xFF1A1A1A)
@@ -52,8 +56,8 @@ class LibraryPlaylistActionsBar extends StatelessWidget {
               child: Center(
                 child: Image.asset(
                   AppAssets.iconSort,
-                  width: 24,
-                  height: 24,
+                  width: iconSize,
+                  height: iconSize,
                   color: isEmpty ? Colors.white38 : Colors.white,
                 ),
               ),

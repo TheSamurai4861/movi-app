@@ -89,6 +89,12 @@ final playlistItemBackdropProvider =
   return service.getBackdrop(reference);
 });
 
+final playlistItemHeroBackdropProvider =
+    FutureProvider.family<Uri?, ContentReference>((ref, reference) async {
+  final service = ref.watch(playlistBackdropServiceProvider);
+  return service.getBackdrop(reference, highQuality: true);
+});
+
 /// Model pour représenter une playlist dans la bibliothèque
 class LibraryPlaylistItem {
   const LibraryPlaylistItem({
@@ -169,7 +175,11 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   // Historique de visionnage
   final historyCompleted = await repository.getHistoryCompleted();
   final historyInProgress = await repository.getHistoryInProgress();
-  final totalHistory = historyCompleted.length + historyInProgress.length;
+  final totalHistory =
+      {
+        for (final item in [...historyCompleted, ...historyInProgress])
+          '${item.type.name}:${item.id}',
+      }.length;
   if (totalHistory > 0) {
     system.add(
       LibraryPlaylistItem(

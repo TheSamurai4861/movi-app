@@ -5,6 +5,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_source_edit_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 class IptvSourceEditPage extends ConsumerStatefulWidget {
   const IptvSourceEditPage({super.key, required this.accountId});
@@ -99,22 +100,23 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              _Header(onBack: () => context.pop()),
-              Expanded(
-                child: accountAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(
-                    child: Text(
-                      e.toString(),
-                      style: const TextStyle(color: Colors.white),
+        child: SettingsContentWidth(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _Header(onBack: () => context.pop()),
+                Expanded(
+                  child: accountAsync.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(
+                      child: Text(
+                        e.toString(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
-                  ),
-                  data: (account) {
+                    data: (account) {
                     if (account == null) {
                       return Center(
                         child: Text(
@@ -136,17 +138,17 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                       loading: () {},
                     );
 
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SingleChildScrollView(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              minHeight: constraints.maxHeight,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
+                      return LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
                                 Form(
                                   key: _formKey,
                                   child: Column(
@@ -208,16 +210,17 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                                     ],
                                   ),
                                 ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

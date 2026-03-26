@@ -17,6 +17,7 @@ class MoviItemsList extends StatefulWidget {
     required this.items,
     this.subtitle,
     this.action,
+    this.hideHeader = false,
     this.itemSpacing = 16,
     this.horizontalPadding = const EdgeInsets.symmetric(horizontal: 20),
     this.titlePadding = 20,
@@ -31,6 +32,7 @@ class MoviItemsList extends StatefulWidget {
   final String title;
   final String? subtitle;
   final List<Widget> items;
+  final bool hideHeader;
 
   /// Action optionnelle à droite du header (ex: bouton "Voir tout").
   final Widget? action;
@@ -225,41 +227,43 @@ class _MoviItemsListState extends State<MoviItemsList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: EdgeInsetsDirectional.only(
-            start: widget.titlePadding,
-            end: widget.titlePadding,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.title,
-                  style: textTheme.titleLarge,
-                  overflow: TextOverflow.ellipsis,
+        if (!widget.hideHeader) ...[
+          Padding(
+            padding: EdgeInsetsDirectional.only(
+              start: widget.titlePadding,
+              end: widget.titlePadding,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.title,
+                    style: textTheme.titleLarge,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-              if (widget.subtitle != null)
-                Text(
-                  widget.subtitle!,
-                  style:
-                      textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFFA6A6A6),
-                      ) ??
-                      const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFFA6A6A6),
-                      ),
-                ),
-              if (widget.action != null) const SizedBox(width: 8),
-              if (widget.action != null) widget.action!,
-            ],
+                if (widget.subtitle != null)
+                  Text(
+                    widget.subtitle!,
+                    style:
+                        textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFA6A6A6),
+                        ) ??
+                        const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFFA6A6A6),
+                        ),
+                  ),
+                if (widget.action != null) const SizedBox(width: 8),
+                if (widget.action != null) widget.action!,
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
+        ],
         LayoutBuilder(
           builder: (context, constraints) {
             final width =

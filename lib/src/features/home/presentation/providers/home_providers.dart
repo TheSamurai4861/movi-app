@@ -467,8 +467,8 @@ class HomeController extends Notifier<HomeState> {
     // Fetch more items per playlist when restricted so we can "fill" sections
     // after filtering without showing an almost empty row.
     final int iptvFetchLimit = hasRestrictions
-        ? HomeLayoutConstants.iptvSectionLimit * 12
-        : HomeLayoutConstants.iptvSectionLimit;
+        ? HomeLayoutConstants.iptvSectionMaxLimit * 12
+        : HomeLayoutConstants.iptvSectionMaxLimit;
 
     // Debug: on peut couper le Hero (et ses appels TMDB) via feature flag
     // pour isoler un crash lié au carrousel/enrichissement.
@@ -565,7 +565,7 @@ class HomeController extends Notifier<HomeState> {
           }
           // Limiter le nombre d'items affichés mais ne pas filtrer par âge
           final limited = entry.value
-              .take(HomeLayoutConstants.iptvSectionLimit)
+              .take(HomeLayoutConstants.iptvSectionMaxLimit)
               .toList(growable: false);
           if (limited.isNotEmpty) {
             filtered[entry.key] = limited;

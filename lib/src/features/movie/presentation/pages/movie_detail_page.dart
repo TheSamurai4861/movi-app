@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -21,10 +24,10 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
+import 'package:movi/src/features/library/presentation/widgets/add_to_playlist_action_sheet.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
-import 'package:movi/src/features/movie/presentation/widgets/movie_detail_hero_section.dart';
-import 'package:movi/src/features/movie/presentation/widgets/movie_detail_main_actions.dart';
+import 'package:movi/src/features/movie/presentation/widgets/movie_hero_image.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_synopsis_section.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_cast_section.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_saga_section.dart';
@@ -237,6 +240,23 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
+  ScreenType _screenTypeFor(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return ScreenTypeResolver.instance.resolve(
+      mq.size.width,
+      mq.size.height == 0 ? 1 : mq.size.height,
+    );
+  }
+
+  bool _useDesktopDetailLayout(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _sectionHorizontalPadding(BuildContext context) {
+    return _useDesktopDetailLayout(context) ? 36 : 20;
+  }
+
   Widget _buildWithValues({
     required String mediaTitle,
     required String yearText,
@@ -253,9 +273,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String movieId,
   }) {
     final cs = Theme.of(context).colorScheme;
-    final titleStyle = Theme.of(context).textTheme.headlineSmall;
-    const heroHeight = 400.0;
-    const overlayHeight = 200.0;
+    final isWideLayout = _useDesktopDetailLayout(context);
+    final heroHeight = isWideLayout ? 520.0 : 400.0;
+    final overlayHeight = isWideLayout ? 240.0 : 200.0;
     return SwipeBackWrapper(
       child: Scaffold(
         backgroundColor: cs.surface,
@@ -280,51 +300,107 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                                                    MovieDetailHeroSection(
-                            poster: poster,
-                            posterBackground: posterBackground,
-                            backdrop: backdrop,
-                            onBack: () => context.pop(),
-                            onMore: _showMoreMenu,
+                          SizedBox(
                             height: heroHeight,
-                            overlayHeight: overlayHeight,
-                          ),
-                          Padding(
-                            padding: const EdgeInsetsDirectional.only(
-                              start: 20,
-                              end: 20,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                            width: double.infinity,
+                            child: Stack(
+                              fit: StackFit.expand,
                               children: [
-                                const SizedBox(height: AppSpacing.m),
-                                Text(
-                                  mediaTitle,
-                                  style: titleStyle,
-                                  textAlign: TextAlign.left,
+                                _buildHeroImage(
+                                  poster: poster,
+                                  posterBackground: posterBackground,
+                                  backdrop: backdrop,
                                 ),
-                                const SizedBox(height: AppSpacing.m),
-                                MovieDetailMainActions(
-                                  mediaTitle: mediaTitle,
-                                  yearText: yearText,
-                                  durationText: durationText,
-                                  ratingText: ratingText,
-                                  movieId: movieId,
-                                  onPlay: () => _playMovie(context, mediaTitle),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: isWideLayout ? 120 : 100,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          cs.surface,
+                                          cs.surface.withValues(alpha: 0),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                                const SizedBox(height: AppSpacing.s),
-                                MovieDetailSynopsisSection(text: overviewText),
+                                Positioned(
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: overlayHeight,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          cs.surface.withValues(alpha: 0),
+                                          cs.surface,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (isWideLayout)
+                                  Positioned.fill(
+                                    child: IgnorePointer(
+                                      ignoring: true,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                            colors: [
+                                              cs.surface,
+                                              cs.surface.withValues(
+                                                alpha: 0.72,
+                                              ),
+                                              cs.surface.withValues(
+                                                alpha: 0,
+                                              ),
+                                            ],
+                                            stops: const [0.0, 0.42, 0.82],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                _buildHeroTopBar(isWideLayout: isWideLayout),
+                                if (isWideLayout)
+                                  _buildDesktopHeroOverlay(
+                                    mediaTitle: mediaTitle,
+                                    yearText: yearText,
+                                    durationText: durationText,
+                                    ratingText: ratingText,
+                                    overviewText: overviewText,
+                                    movieId: movieId,
+                                  ),
                               ],
                             ),
                           ),
+                          if (!isWideLayout)
+                            _buildMobileMetaSection(
+                              mediaTitle: mediaTitle,
+                              yearText: yearText,
+                              durationText: durationText,
+                              ratingText: ratingText,
+                              overviewText: overviewText,
+                              movieId: movieId,
+                            ),
                           const SizedBox(height: AppSpacing.xl),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 20,
-                                  end: 20,
+                                padding: EdgeInsetsDirectional.only(
+                                  start: _sectionHorizontalPadding(context),
+                                  end: _sectionHorizontalPadding(context),
                                 ),
                                 child: Text(
                                   AppLocalizations.of(context)!.castTitle,
@@ -332,17 +408,28 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                 ),
                               ),
                               const SizedBox(height: AppSpacing.s),
-                              MovieDetailCastSection(cast: cast),
+                              MovieDetailCastSection(
+                                cast: cast,
+                                horizontalPadding: _sectionHorizontalPadding(
+                                  context,
+                                ),
+                              ),
                               const SizedBox(height: AppSpacing.l),
                               // Section saga (si le film fait partie d'une saga)
                               if (sagaLink != null)
                                 MovieDetailSagaSection(
                                   sagaLink: sagaLink,
                                   currentMovieId: widget.movieId,
+                                  horizontalPadding: _sectionHorizontalPadding(
+                                    context,
+                                  ),
                                 ),
                               // Section recommandations
                               MovieDetailRecommendationsSection(
                                 items: recommendations,
+                                horizontalPadding: _sectionHorizontalPadding(
+                                  context,
+                                ),
                               ),
                               const SizedBox(height: 70),
                             ],
@@ -356,6 +443,289 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeroImage({
+    Uri? poster,
+    Uri? posterBackground,
+    Uri? backdrop,
+  }) {
+    return MovieHeroImage(
+      poster: poster,
+      posterBackground: posterBackground,
+      backdrop: backdrop,
+    );
+  }
+
+  Widget _buildHeroTopBar({required bool isWideLayout}) {
+    final outerPadding = _sectionHorizontalPadding(context);
+    final hitPadding = EdgeInsets.symmetric(
+      horizontal: isWideLayout ? 12 : 0,
+      vertical: 8,
+    );
+
+    return Positioned(
+      top: isWideLayout ? 12 : 8,
+      left: outerPadding,
+      right: outerPadding,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => context.pop(),
+            child: Padding(
+              padding: hitPadding,
+              child: SizedBox(
+                width: 35,
+                height: 35,
+                child: Image.asset(AppAssets.iconBack),
+              ),
+            ),
+          ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _showMoreMenu,
+            child: Padding(
+              padding: hitPadding,
+              child: SizedBox(
+                width: 25,
+                height: 35,
+                child: Image.asset(AppAssets.iconMore),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeroOverlay({
+    required String mediaTitle,
+    required String yearText,
+    required String durationText,
+    required String ratingText,
+    required String overviewText,
+    required String movieId,
+  }) {
+    return Positioned.fill(
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(
+          start: 50,
+          end: 50,
+          top: 48,
+          bottom: 32,
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mediaTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style:
+                          Theme.of(context).textTheme.displaySmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            height: 1.05,
+                          ) ??
+                      const TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.05,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                _buildMetaPills(
+                  yearText: yearText,
+                  durationText: durationText,
+                  ratingText: ratingText,
+                  alignment: WrapAlignment.start,
+                ),
+                if (overviewText.trim().isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 72,
+                    child: Text(
+                      overviewText,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ) ??
+                          const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                          ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                _buildActionButtons(
+                  mediaTitle: mediaTitle,
+                  movieId: movieId,
+                  expandPrimary: false,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMobileMetaSection({
+    required String mediaTitle,
+    required String yearText,
+    required String durationText,
+    required String ratingText,
+    required String overviewText,
+    required String movieId,
+  }) {
+    final titleStyle = Theme.of(context).textTheme.headlineSmall;
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 20, end: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: AppSpacing.m),
+          Text(
+            mediaTitle,
+            style: titleStyle,
+            textAlign: TextAlign.left,
+          ),
+          const SizedBox(height: AppSpacing.m),
+          _buildMetaPills(
+            yearText: yearText,
+            durationText: durationText,
+            ratingText: ratingText,
+            alignment: WrapAlignment.center,
+            pillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          ),
+          const SizedBox(height: AppSpacing.m),
+          _buildActionButtons(
+            mediaTitle: mediaTitle,
+            movieId: movieId,
+            expandPrimary: true,
+          ),
+          const SizedBox(height: AppSpacing.s),
+          MovieDetailSynopsisSection(text: overviewText),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaPills({
+    required String yearText,
+    required String durationText,
+    required String ratingText,
+    required WrapAlignment alignment,
+    Color? pillColor,
+  }) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: alignment,
+      children: [
+        MoviPill(
+          yearText,
+          large: true,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          color: pillColor,
+        ),
+        MoviPill(
+          durationText,
+          large: true,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          color: pillColor,
+        ),
+        MoviPill(
+          ratingText,
+          large: true,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          color: pillColor,
+          trailingIcon: Image.asset(
+            AppAssets.iconStarFilled,
+            width: 18,
+            height: 18,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons({
+    required String mediaTitle,
+    required String movieId,
+    required bool expandPrimary,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final historyAsync = ref.watch(
+      hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
+    );
+    final isFavoriteAsync = ref.watch(mdp.movieIsFavoriteProvider(movieId));
+
+    final primaryButton = MoviPrimaryButton(
+      label: historyAsync.when(
+        data: (entry) => entry != null
+            ? AppLocalizations.of(context)!.resumePlayback
+            : AppLocalizations.of(context)!.homeWatchNow,
+        loading: () => AppLocalizations.of(context)!.homeWatchNow,
+        error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
+      ),
+      assetIcon: AppAssets.iconPlay,
+      buttonStyle: FilledButton.styleFrom(
+        backgroundColor: cs.primary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(32),
+        ),
+      ),
+      onPressed: () => _playMovie(context, mediaTitle),
+    );
+
+    final playButton = expandPrimary
+        ? Expanded(child: primaryButton)
+        : SizedBox(width: 320, child: primaryButton);
+
+    return SizedBox(
+      height: expandPrimary ? 55 : 48,
+      child: Row(
+        mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          playButton,
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: isFavoriteAsync.when(
+              data: (isFavorite) => MoviFavoriteButton(
+                isFavorite: isFavorite,
+                onPressed: () async {
+                  await ref
+                      .read(mdp.movieToggleFavoriteProvider.notifier)
+                      .toggle(movieId);
+                },
+              ),
+              loading: () =>
+                  MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+              error: (_, __) =>
+                  MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -406,122 +776,93 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
 
       if (availablePlaylists.isEmpty) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Aucune playlist disponible. Créez en une'),
-            ),
-          );
-        }
+        messenger?.showSnackBar(
+          const SnackBar(
+            content: Text('Aucune playlist disponible. Créez en une'),
+          ),
+        );
         return;
       }
 
       if (!mounted || !context.mounted) return;
 
+      final l10n = AppLocalizations.of(context)!;
       final container = ProviderScope.containerOf(context, listen: false);
       final playlistRepository = ref.read(slProvider)<PlaylistRepository>();
       final logger = ref.read(slProvider)<AppLogger>();
       final addPlaylistItem = AddPlaylistItem(playlistRepository);
 
-      showCupertinoModalPopup<void>(
+      showAddToPlaylistActionSheet(
         context: context,
-        builder: (ctx) {
-          final actions = <CupertinoActionSheetAction>[];
+        l10n: l10n,
+        playlists: availablePlaylists,
+        onSelect: (playlist) async {
+          final canNotify = mounted && messenger != null;
+          final playlistIdToInvalidate = playlist.playlistId;
 
-          // Ajouter les playlists existantes
-          actions.addAll(availablePlaylists.map((playlist) {
-            return CupertinoActionSheetAction(
-              onPressed: () async {
-                Navigator.of(ctx).pop();
-                final canNotify = mounted && context.mounted;
-                final l10n = AppLocalizations.of(context)!;
-                final messenger = ScaffoldMessenger.maybeOf(context);
-                final playlistIdToInvalidate = playlist.playlistId;
+          try {
+            final year =
+                yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
 
-                try {
-                  // Ajouter à la playlist utilisateur
-                  // Utiliser les données disponibles
-                  final year =
-                      yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
-
-                  await addPlaylistItem.call(
-                    playlistId: PlaylistId(playlist.playlistId!),
-                    item: PlaylistItem(
-                      reference: ContentReference(
-                        id: movieId,
-                        title: MediaTitle(title),
-                        type: ContentType.movie,
-                        poster: poster,
-                        year: year,
-                      ),
-                      addedAt: DateTime.now(),
-                    ),
-                  );
-
-                  // Vérifier que le widget est encore monté avant d'utiliser ref
-                  // Invalider tous les providers nécessaires
-                  // Note: Ces invalidations ne causeront pas de rebuild du dialogue
-                  // car nous utilisons ref.read au lieu de ref.watch
-                  container.invalidate(
-                    playlistItemsProvider(playlistIdToInvalidate!),
-                  );
-                  container.invalidate(
-                    playlistContentReferencesProvider(
-                      playlistIdToInvalidate,
-                    ),
-                  );
-                  container.invalidate(libraryPlaylistsProvider);
-
-                  if (canNotify && messenger != null) {
-                    _showTopNotification(
-                      l10n,
-                      messenger,
-                      l10n.playlistAddedTo(playlist.title),
-                    );
-                  }
-                } catch (e, stackTrace) {
-                  // Logger l'erreur pour le debug (logger déjà capturé)
-                  logger.log(
-                    LogLevel.error,
-                    'Erreur lors de l\'ajout à la playlist: $e',
-                    error: e,
-                    stackTrace: stackTrace,
-                    category: 'movie_detail',
-                  );
-
-                  if (canNotify) {
-                    // Gérer spécifiquement l'erreur de doublon
-                    String errorMessage;
-                    if (e is StateError &&
-                        e.message.contains(
-                          'déjà dans cette playlist',
-                        )) {
-                      errorMessage = 'Ce média est déjà dans cette playlist';
-                    } else {
-                      errorMessage = l10n.errorWithMessage(e.toString());
-                    }
-
-                    messenger?.showSnackBar(
-                      SnackBar(
-                        content: Text(errorMessage),
-                        duration: const Duration(seconds: 5),
-                      ),
-                    );
-                  }
-                }
-              },
-              child: Text(playlist.title),
+            await addPlaylistItem.call(
+              playlistId: PlaylistId(playlist.playlistId!),
+              item: PlaylistItem(
+                reference: ContentReference(
+                  id: movieId,
+                  title: MediaTitle(title),
+                  type: ContentType.movie,
+                  poster: poster,
+                  year: year,
+                ),
+                addedAt: DateTime.now(),
+              ),
             );
-          }));
 
-          return CupertinoActionSheet(
-            title: Text(AppLocalizations.of(context)!.actionAddToList),
-            actions: actions,
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(AppLocalizations.of(context)!.actionCancel),
-            ),
-          );
+            container.invalidate(
+              playlistItemsProvider(playlistIdToInvalidate!),
+            );
+            container.invalidate(
+              playlistContentReferencesProvider(
+                playlistIdToInvalidate,
+              ),
+            );
+            container.invalidate(libraryPlaylistsProvider);
+
+            if (canNotify) {
+              _showTopNotification(
+                l10n,
+                messenger,
+                l10n.playlistAddedTo(playlist.title),
+              );
+            }
+          } catch (e, stackTrace) {
+            logger.log(
+              LogLevel.error,
+              'Erreur lors de l\'ajout à la playlist: $e',
+              error: e,
+              stackTrace: stackTrace,
+              category: 'movie_detail',
+            );
+
+            if (canNotify) {
+              String errorMessage;
+              if (e is StateError &&
+                  e.message.contains(
+                    'déjà dans cette playlist',
+                  )) {
+                errorMessage = 'Ce média est déjà dans cette playlist';
+              } else {
+                errorMessage = l10n.errorWithMessage(e.toString());
+              }
+
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(errorMessage),
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
+          }
         },
       );
     } catch (e) {
@@ -665,13 +1006,14 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     try {
       final usecase = ref.read(mdp.markMovieAsSeenUseCaseProvider);
       final userId = ref.read(currentUserIdProvider);
-      final poster = ref
-          .read(mdp.movieDetailControllerProvider(movieId))
-          .value
-          ?.poster;
+      final vm = ref.read(mdp.movieDetailControllerProvider(movieId)).value;
+      final poster = vm?.poster;
+      final resolvedTitle = (vm?.title.trim().isNotEmpty ?? false)
+          ? vm!.title
+          : title;
       await usecase(
         movieId: movieId,
-        title: title,
+        title: resolvedTitle,
         poster: poster,
         userId: userId,
       );

@@ -6,6 +6,7 @@ import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
 import 'package:movi/src/core/profile/presentation/ui/dialogs/restart_required_dialog.dart';
+import 'package:movi/src/core/widgets/modal_content_width.dart';
 
 /// Modal dialog pour crÃƒÆ’Ã‚Â©er un nouveau profil.
 class CreateProfileDialog extends ConsumerStatefulWidget {
@@ -132,7 +133,6 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.primary;
 
@@ -148,11 +148,9 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
         horizontal: 20,
         vertical: 20,
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: size.width - 40,
-          maxHeight: size.height * 0.9,
-        ),
+      child: ModalContentWidth(
+        maxWidth: 560,
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           child: Column(
@@ -436,7 +434,6 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.primary;
 
@@ -447,10 +444,8 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
         horizontal: 20,
         vertical: 20,
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: size.width - 40,
-        ),
+      child: ModalContentWidth(
+        maxWidth: 420,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           child: Column(

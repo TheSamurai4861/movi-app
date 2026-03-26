@@ -87,7 +87,7 @@ class PerformanceModule {
       tuning.isLowResources ? const Duration(seconds: 30) : const Duration(seconds: 10),
     );
     executor.configureInflightJoinTimeout(
-      tuning.isLowResources ? const Duration(seconds: 45) : const Duration(seconds: 15),
+      tuning.isLowResources ? const Duration(seconds: 45) : const Duration(seconds: 30),
     );
     
     debugPrint('[DEBUG][Startup] PerformanceModule: NetworkExecutor configured (profile=${tuning.profile.name})');

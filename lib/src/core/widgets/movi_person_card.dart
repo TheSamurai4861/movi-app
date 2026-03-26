@@ -55,7 +55,7 @@ Widget _buildPersonImage(
 }
 
 /// Card representing a person (actor, director…). Shares dimensions with media cards.
-class MoviPersonCard extends StatelessWidget {
+class MoviPersonCard extends StatefulWidget {
   const MoviPersonCard({
     super.key,
     required this.person,
@@ -70,6 +70,13 @@ class MoviPersonCard extends StatelessWidget {
   final double height;
   final ValueChanged<MoviPerson>? onTap;
   final Object? heroTag;
+
+  @override
+  State<MoviPersonCard> createState() => _MoviPersonCardState();
+}
+
+class _MoviPersonCardState extends State<MoviPersonCard> {
+  bool _focused = false;
 
   @override
   Widget build(BuildContext context) {
@@ -96,29 +103,50 @@ class MoviPersonCard extends StatelessWidget {
           color: Color(0xFFA6A6A6),
         );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onTap?.call(person),
-      child: SizedBox(
-        width: width,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildPoster(context),
-            const SizedBox(height: 12),
-            MoviMarqueeText(
-              text: person.name,
-              style: nameStyle,
-              maxWidth: width,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: widget.onTap == null ? null : () => widget.onTap?.call(widget.person),
+        onFocusChange: (focused) {
+          if (_focused == focused) return;
+          setState(() => _focused = focused);
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: _focused
+                  ? theme.colorScheme.primary
+                  : Colors.transparent,
+              width: 2,
             ),
-            const SizedBox(height: 4),
-            MoviMarqueeText(
-              text: person.role,
-              style: roleStyle,
-              maxWidth: width,
+          ),
+          child: SizedBox(
+            width: widget.width,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildPoster(context),
+                const SizedBox(height: 12),
+                MoviMarqueeText(
+                  text: widget.person.name,
+                  style: nameStyle,
+                  maxWidth: widget.width,
+                ),
+                const SizedBox(height: 4),
+                MoviMarqueeText(
+                  text: widget.person.role,
+                  style: roleStyle,
+                  maxWidth: widget.width,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -128,17 +156,17 @@ class MoviPersonCard extends StatelessWidget {
     final image = ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: SizedBox(
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height,
         child: _buildPersonImage(
-          person.poster,
-          width,
-          height,
+          widget.person.poster,
+          widget.width,
+          widget.height,
           placeholderType: PlaceholderType.person,
         ),
       ),
     );
-    if (heroTag == null) return image;
-    return Hero(tag: heroTag!, child: image);
+    if (widget.heroTag == null) return image;
+    return Hero(tag: widget.heroTag!, child: image);
   }
 }

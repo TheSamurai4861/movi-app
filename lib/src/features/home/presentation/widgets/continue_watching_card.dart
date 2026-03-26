@@ -92,68 +92,68 @@ class ContinueWatchingCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     const double width = 300;
     const double height = 165;
+    final borderRadius = BorderRadius.circular(16);
 
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
+    return Material(
+      color: Colors.transparent,
+      borderRadius: borderRadius,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: Stack(
-              children: [
-                // Background image (backdrop paysage)
-                Positioned.fill(
-                  child: _buildBackdropImage(context, ref, backdrop),
-                ),
-                // Bottom gradient overlay
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [Color(0xFF000000), Color(0x00000000)],
-                      ),
+        onLongPress: onLongPress,
+        borderRadius: borderRadius,
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            children: [
+              // Background image (backdrop paysage)
+              Positioned.fill(
+                child: _buildBackdropImage(context, ref, backdrop),
+              ),
+              // Bottom gradient overlay
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [Color(0xFF000000), Color(0x00000000)],
                     ),
                   ),
                 ),
-                // Progress line (5px)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: SizedBox(
-                    height: 5,
-                    child: Stack(
-                      children: [
-                        Container(color: const Color(0xFFA6A6A6)),
-                        FractionallySizedBox(
-                          widthFactor: progress.clamp(0.0, 1.0),
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+              ),
+              // Progress line (5px)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SizedBox(
+                  height: 5,
+                  child: Stack(
+                    children: [
+                      Container(color: const Color(0xFFA6A6A6)),
+                      FractionallySizedBox(
+                        widthFactor: progress.clamp(0.0, 1.0),
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-                // Content based on type
-                if (isEpisode)
-                  _buildEpisodeContent(width)
-                else
-                  _buildMovieContent(width),
-              ],
-            ),
+              ),
+              // Content based on type
+              if (isEpisode)
+                _buildEpisodeContent(width)
+              else
+                _buildMovieContent(width),
+            ],
           ),
         ),
       ),

@@ -26,14 +26,36 @@ class IptvSourceSelectionList extends StatelessWidget {
       itemBuilder: (context, index) {
         final account = accounts[index];
         final isSelected = account.id == selectedId;
+        final cs = Theme.of(context).colorScheme;
 
         return ListTile(
-          title: Text(account.alias),
+          title: Text(
+            account.alias,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           subtitle: Text(account.subtitle),
-          trailing: isSelected ? const Icon(Icons.check) : null,
-          leading: account.isStalker
-              ? const Icon(Icons.router, color: Colors.orange)
-              : const Icon(Icons.live_tv, color: Colors.blue),
+          trailing: isSelected
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Active',
+                    style: TextStyle(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                )
+              : null,
           onTap: () => onSelected(account),
         );
       },

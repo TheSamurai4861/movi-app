@@ -6,6 +6,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
 import 'package:movi/src/core/theme/app_theme.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/widgets/movi_remote_navigation.dart';
+import 'package:movi/src/core/widgets/movi_scroll_behavior.dart';
 import 'package:movi/l10n/app_localizations.dart';
 
 /// Shared localization delegates used by the startup MaterialApp.
@@ -88,10 +90,16 @@ class AppStartupGate extends ConsumerWidget {
 Widget _buildStartupMaterialApp(Widget home) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
+    scrollBehavior: const MoviScrollBehavior(),
     themeMode: ThemeMode.dark,
     theme: AppTheme.dark(),
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: _startupLocalizationsDelegates,
+    builder: (context, child) {
+      return MoviRemoteNavigation(
+        child: child ?? const SizedBox.shrink(),
+      );
+    },
     home: home,
   );
 }

@@ -6,6 +6,7 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
@@ -64,24 +65,25 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  WelcomeHeader(
-                    title: AppLocalizations.of(context)!.welcomeTitle,
-                    subtitle: AppLocalizations.of(context)!.welcomeSubtitle,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+        child: SettingsContentWidth(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    WelcomeHeader(
+                      title: AppLocalizations.of(context)!.welcomeTitle,
+                      subtitle: AppLocalizations.of(context)!.welcomeSubtitle,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         LabeledField(
                           label: AppLocalizations.of(
                             context,
@@ -167,10 +169,11 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                             style: const TextStyle(color: Colors.red),
                           ),
                         ],
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

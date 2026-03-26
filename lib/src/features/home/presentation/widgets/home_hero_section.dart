@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_hero_carousel.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 
 /// Section affichant le hero carousel ou un message si vide.
 class HomeHeroSection extends ConsumerWidget {
@@ -20,16 +23,34 @@ class HomeHeroSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(currentLanguageCodeProvider);
+    final screenType = ScreenTypeResolver.instance.resolve(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    );
+    final shouldBleedHero =
+        screenType == ScreenType.desktop || screenType == ScreenType.tv;
+    final visualBleed = shouldBleedHero
+        ? HomeLayoutConstants.heroDesktopVisualBleed
+        : 0.0;
+    final heroLayoutHeight = HomeLayoutConstants.heroTotalHeight;
 
     if (heroItems.isEmpty) {
       return const SliverToBoxAdapter(child: _HeroEmptyBanner());
     }
 
     return SliverToBoxAdapter(
-      child: HomeHeroCarousel(
-        key: ValueKey(lang),
-        items: heroItems.take(10).toList(growable: false),
-        onLoadingChanged: onLoadingChanged,
+      child: SizedBox(
+        height: heroLayoutHeight,
+        child: OverflowBox(
+          alignment: Alignment.topCenter,
+          minHeight: heroLayoutHeight,
+          maxHeight: heroLayoutHeight + visualBleed,
+          child: HomeHeroCarousel(
+            key: ValueKey(lang),
+            items: heroItems.take(10).toList(growable: false),
+            onLoadingChanged: onLoadingChanged,
+          ),
+        ),
       ),
     );
   }

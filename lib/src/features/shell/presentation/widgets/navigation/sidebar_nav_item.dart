@@ -135,7 +135,15 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
     );
 
     core = FocusableActionDetector(
-      onShowFocusHighlight: (v) {
+      actions: <Type, Action<Intent>>{
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            widget.onTap();
+            return null;
+          },
+        ),
+      },
+      onFocusChange: (v) {
         if (_focused == v) return;
         setState(() => _focused = v);
       },

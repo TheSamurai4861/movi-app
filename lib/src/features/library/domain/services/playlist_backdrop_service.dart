@@ -17,7 +17,10 @@ abstract class PlaylistBackdropService {
   /// - L'ID n'est pas un ID TMDB valide
   /// - Aucun backdrop n'est disponible
   /// - Une erreur survient lors du chargement
-  Future<Uri?> getBackdrop(ContentReference reference);
+  Future<Uri?> getBackdrop(
+    ContentReference reference, {
+    bool highQuality = false,
+  });
 }
 
 /// Implémentation du service de chargement de backdrops pour les playlists.
@@ -35,9 +38,14 @@ class PlaylistBackdropServiceImpl implements PlaylistBackdropService {
   final Map<String, Uri?> _cache = {};
 
   @override
-  Future<Uri?> getBackdrop(ContentReference reference) async {
-    // Utiliser l'ID comme clé de cache
-    final cacheKey = reference.id;
+  Future<Uri?> getBackdrop(
+    ContentReference reference, {
+    bool highQuality = false,
+  }) async {
+    // Séparer les variantes SD/HD pour éviter qu'un fetch liste en w780
+    // ne pollue le hero desktop qui doit rester en original.
+    final cacheKey =
+        '${reference.type.name}:${reference.id}:${highQuality ? 'hq' : 'default'}';
 
     // Vérifier le cache
     if (_cache.containsKey(cacheKey)) {
@@ -79,10 +87,12 @@ class PlaylistBackdropServiceImpl implements PlaylistBackdropService {
 
       Uri? backdropUri;
 
+      final backdropSize = highQuality ? 'original' : 'w780';
+
       if (noLangBackdrops.isNotEmpty) {
         final backdropPath = noLangBackdrops.first['file_path']?.toString();
         if (backdropPath != null && backdropPath.isNotEmpty) {
-          backdropUri = _images.backdrop(backdropPath, size: 'w780');
+          backdropUri = _images.backdrop(backdropPath, size: backdropSize);
         }
       }
 
@@ -91,7 +101,7 @@ class PlaylistBackdropServiceImpl implements PlaylistBackdropService {
         final firstBackdrop = backdrops.first as Map<String, dynamic>?;
         final backdropPath = firstBackdrop?['file_path']?.toString();
         if (backdropPath != null && backdropPath.isNotEmpty) {
-          backdropUri = _images.backdrop(backdropPath, size: 'w780');
+          backdropUri = _images.backdrop(backdropPath, size: backdropSize);
         }
       }
 

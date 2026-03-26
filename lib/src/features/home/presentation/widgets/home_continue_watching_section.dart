@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
@@ -12,6 +14,7 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
 import 'package:movi/src/features/home/domain/entities/in_progress_media.dart'
     as domain;
 import 'package:movi/src/features/home/presentation/widgets/continue_watching_card.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_first_section_transition.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/services/iptv_content_resolver.dart';
@@ -22,6 +25,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
   const HomeContinueWatchingSection({
     super.key,
     required this.onMarkAsUnwatched,
+    this.applyHeroTransition = false,
   });
 
   final void Function(
@@ -31,10 +35,21 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     ContentType type,
   )
   onMarkAsUnwatched;
+  final bool applyHeroTransition;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final inProgressAsync = ref.watch(hp.homeInProgressProvider);
+    final screenType = ScreenTypeResolver.instance.resolve(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    );
+    final itemLimit = switch (screenType) {
+      ScreenType.mobile => HomeLayoutConstants.continueWatchingMobileLimit,
+      ScreenType.tablet => HomeLayoutConstants.continueWatchingTabletLimit,
+      ScreenType.desktop || ScreenType.tv =>
+        HomeLayoutConstants.continueWatchingDesktopLimit,
+    };
 
     return inProgressAsync.when(
       data: (List<domain.InProgressMedia> inProgress) {
@@ -42,16 +57,21 @@ class HomeContinueWatchingSection extends ConsumerWidget {
           return const SliverToBoxAdapter(child: SizedBox.shrink());
         }
 
+        final section = MoviItemsList(
+          title: AppLocalizations.of(context)!.homeContinueWatching,
+          itemSpacing: HomeLayoutConstants.itemSpacing,
+          estimatedItemWidth: HomeLayoutConstants.continueWatchingCardWidth,
+          estimatedItemHeight: HomeLayoutConstants.continueWatchingCardHeight,
+          items: inProgress
+              .take(itemLimit)
+              .map((media) => _buildCard(context, ref, media))
+              .toList(),
+        );
+
         return SliverToBoxAdapter(
-          child: MoviItemsList(
-            title: AppLocalizations.of(context)!.homeContinueWatching,
-            itemSpacing: HomeLayoutConstants.itemSpacing,
-            estimatedItemWidth: HomeLayoutConstants.continueWatchingCardWidth,
-            estimatedItemHeight: HomeLayoutConstants.continueWatchingCardHeight,
-            items: inProgress
-                .take(HomeLayoutConstants.continueWatchingLimit)
-                .map((media) => _buildCard(context, ref, media))
-                .toList(),
+          child: HomeFirstSectionTransition(
+            enabled: applyHeroTransition,
+            child: section,
           ),
         );
       },

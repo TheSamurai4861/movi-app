@@ -367,197 +367,263 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     context.push(AppRouteNames.libraryPlaylist, extra: playlist);
   }
 
+  ScreenType _screenType(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _isLargeScreen(BuildContext context) {
+    final screenType = _screenType(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _horizontalPadding(BuildContext context) {
+    return switch (_screenType(context)) {
+      ScreenType.mobile => 20,
+      ScreenType.tablet => 24,
+      ScreenType.desktop => 40,
+      ScreenType.tv => 56,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isLargeScreen = _isLargeScreen(context);
+    final horizontalPadding = _horizontalPadding(context);
 
     final filter = ref.watch(libraryFilterProvider);
     final playlistsAsync = ref.watch(filteredLibraryPlaylistsProvider);
     final searchQuery = ref.watch(librarySearchQueryProvider);
+    final searchField = _LibrarySearchField(
+      controller: _searchController,
+      focusNode: _searchFocusNode,
+      hintText: l10n.librarySearchPlaceholder,
+      clearTooltip: l10n.clear,
+      onChanged: (text) {
+        ref.read(librarySearchQueryProvider.notifier).setQuery(text);
+      },
+      onClear: () {
+        _searchController.clear();
+        ref.read(librarySearchQueryProvider.notifier).setQuery('');
+        _searchFocusNode.requestFocus();
+      },
+    );
 
     return Material(
       color: Colors.transparent,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
 
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        l10n.navLibrary,
-                        style:
-                            theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ) ??
-                            const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Image.asset(
-                        AppAssets.iconSearch,
-                        width: 28,
-                        height: 28,
-                        color: _isSearchVisible
-                            ? theme.colorScheme.primary
-                            : null,
-                      ),
-                      onPressed: _toggleSearch,
-                      tooltip: l10n.searchTitle,
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton(
-                      icon: Image.asset(
-                        AppAssets.iconPlus,
-                        width: 24,
-                        height: 24,
-                      ),
-                      onPressed: _showCreatePlaylistDialog,
-                      tooltip: l10n.createPlaylistTitle,
-                    ),
-                  ],
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.navLibrary,
+                    style:
+                        theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
                 ),
-              ),
+                if (isLargeScreen && (_isSearchVisible || _anim.value > 0)) ...[
+                  const SizedBox(width: 12),
+                  AnimatedBuilder(
+                    animation: _anim,
+                    builder: (context, _) {
+                      final width = 420 * _opacity.value;
+                      if (width <= 1) {
+                        return const SizedBox.shrink();
+                      }
+                      return ClipRect(
+                        child: SizedBox(
+                          width: width,
+                          child: Opacity(
+                            opacity: _opacity.value,
+                            child: Transform.translate(
+                              offset: Offset(18 * (1 - _opacity.value), 0),
+                              child: searchField,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+                IconButton(
+                  icon: Image.asset(
+                    AppAssets.iconSearch,
+                    width: 28,
+                    height: 28,
+                    color: _isSearchVisible ? theme.colorScheme.primary : null,
+                  ),
+                  onPressed: _toggleSearch,
+                  tooltip: l10n.searchTitle,
+                ),
+                const SizedBox(width: 6),
+                IconButton(
+                  icon: Image.asset(
+                    AppAssets.iconPlus,
+                    width: 24,
+                    height: 24,
+                  ),
+                  onPressed: _showCreatePlaylistDialog,
+                  tooltip: l10n.createPlaylistTitle,
+                ),
+              ],
+            ),
+          ),
 
-              // Search field
-              AnimatedBuilder(
-                animation: _anim,
-                builder: (context, _) {
-                  if (!_isSearchVisible && _anim.value == 0) {
-                    return const SizedBox.shrink();
+          if (!isLargeScreen)
+            AnimatedBuilder(
+              animation: _anim,
+              builder: (context, _) {
+                if (!_isSearchVisible && _anim.value == 0) {
+                  return const SizedBox.shrink();
+                }
+
+                return Opacity(
+                  opacity: _opacity.value,
+                  child: Transform.translate(
+                    offset: Offset(0, _slideY.value),
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: 8,
+                        left: horizontalPadding,
+                        right: horizontalPadding,
+                      ),
+                      child: searchField,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+          const SizedBox(height: 12),
+
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: LibraryFilterPills(
+              activeFilter: filter,
+              onFilterChanged: (newFilter) {
+                ref.read(libraryFilterProvider.notifier).setFilter(newFilter);
+              },
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Expanded(
+            child: SyncableRefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(libraryPlaylistsProvider);
+              },
+              child: playlistsAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(
+                  child: Text(
+                    'Erreur: $error',
+                    style: TextStyle(color: theme.colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                data: (playlists) {
+                  if (playlists.isEmpty) {
+                    if (searchQuery.isNotEmpty) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Text(
+                            'Aucun résultat pour "$searchQuery"',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return ListView(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.35,
+                          child: Center(
+                            child: Text(
+                              l10n.libraryEmpty,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
                   }
 
-                  return Opacity(
-                    opacity: _opacity.value,
-                    child: Transform.translate(
-                      offset: Offset(0, _slideY.value),
-                      child: Padding(
-                        padding: const EdgeInsets.only(
-                          top: 8,
-                          left: 20,
-                          right: 20,
-                        ),
-                        child: _LibrarySearchField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                          hintText: l10n.librarySearchPlaceholder,
-                          clearTooltip: l10n.clear,
-                          onChanged: (text) {
-                            ref
-                                .read(librarySearchQueryProvider.notifier)
-                                .setQuery(text);
-                          },
-                          onClear: () {
-                            _searchController.clear();
-                            ref
-                                .read(librarySearchQueryProvider.notifier)
-                                .setQuery('');
-                            _searchFocusNode.requestFocus();
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              // Filter pills
-              AnimatedBuilder(
-                animation: _anim,
-                builder: (context, _) {
-                  return Transform.translate(
-                    offset: Offset(
-                      0,
-                      _isSearchVisible ? (_slideY.value / 2) : 0,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: LibraryFilterPills(
-                        activeFilter: filter,
-                        onFilterChanged: (newFilter) {
-                          ref
-                              .read(libraryFilterProvider.notifier)
-                              .setFilter(newFilter);
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // List
-              Expanded(
-                child: SyncableRefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(libraryPlaylistsProvider);
-                  },
-                  child: playlistsAsync.when(
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (error, _) => Center(
-                      child: Text(
-                        'Erreur: $error',
-                        style: TextStyle(color: theme.colorScheme.error),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    data: (playlists) {
-                      if (playlists.isEmpty) {
-                        if (searchQuery.isNotEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 24),
-                              child: Text(
-                                'Aucun résultat pour "$searchQuery"',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          );
-                        }
-
-                        return ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(
-                              height: MediaQuery.of(context).size.height * 0.35,
-                              child: Center(
-                                child: Text(
-                                  l10n.libraryEmpty,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                          ],
+                  if (!isLargeScreen) {
+                    return ListView.separated(
+                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      itemCount: playlists.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final playlist = playlists[index];
+                        return LibraryPlaylistCard(
+                          title: playlist.title,
+                          itemCount: playlist.itemCount,
+                          type: playlist.type,
+                          isPinned: playlist.isPinned,
+                          photo: playlist.photo,
+                          showItemCount: !playlist.id.startsWith(
+                            LibraryConstants.sagaPrefix,
+                          ),
+                          onTap: () => _navigateToPlaylist(playlist),
+                          onLongPress:
+                              playlist.type == LibraryPlaylistType.userPlaylist &&
+                                  playlist.playlistId != null
+                              ? () => _showPlaylistMenu(context, ref, playlist)
+                              : null,
                         );
-                      }
+                      },
+                    );
+                  }
 
-                      return ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth - (horizontalPadding * 2);
+                      const spacing = 8.0;
+                      const maxCardWidth = 300.0;
+                      final columns = (width / maxCardWidth).floor().clamp(1, 8);
+                      final gridMaxExtent =
+                          (width - (spacing * (columns - 1))) / columns;
+
+                      return GridView.builder(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          0,
+                          horizontalPadding,
+                          100,
+                        ),
+                        gridDelegate:
+                            SliverGridDelegateWithMaxCrossAxisExtent(
+                              maxCrossAxisExtent: gridMaxExtent,
+                              mainAxisExtent: 276,
+                              crossAxisSpacing: spacing,
+                              mainAxisSpacing: 6,
+                            ),
                         itemCount: playlists.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final playlist = playlists[index];
                           return LibraryPlaylistCard(
@@ -566,6 +632,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                             type: playlist.type,
                             isPinned: playlist.isPinned,
                             photo: playlist.photo,
+                            layout: LibraryPlaylistCardLayout.vertical,
                             showItemCount: !playlist.id.startsWith(
                               LibraryConstants.sagaPrefix,
                             ),
@@ -574,19 +641,18 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                 playlist.type ==
                                         LibraryPlaylistType.userPlaylist &&
                                     playlist.playlistId != null
-                                ? () =>
-                                      _showPlaylistMenu(context, ref, playlist)
+                                ? () => _showPlaylistMenu(context, ref, playlist)
                                 : null,
                           );
                         },
                       );
                     },
-                  ),
-                ),
+                  );
+                },
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

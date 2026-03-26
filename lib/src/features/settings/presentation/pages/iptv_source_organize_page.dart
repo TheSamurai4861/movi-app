@@ -6,6 +6,7 @@ import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_source_organize_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 class IptvSourceOrganizePage extends ConsumerStatefulWidget {
   const IptvSourceOrganizePage({super.key, required this.accountId});
@@ -31,78 +32,79 @@ class _IptvSourceOrganizePageState extends ConsumerState<IptvSourceOrganizePage>
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 16),
-                  _Header(onBack: () => context.pop()),
-                  const SizedBox(height: 32),
-                  if (state.isLoading)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (state.error != null)
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          state.error!,
-                          style: const TextStyle(color: Colors.white),
+        child: SettingsContentWidth(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Stack(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    _Header(onBack: () => context.pop()),
+                    const SizedBox(height: 32),
+                    if (state.isLoading)
+                      const Expanded(
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (state.error != null)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            state.error!,
+                            style: const TextStyle(color: Colors.white),
+                          ),
                         ),
-                      ),
-                    )
-                  else
-                    Expanded(
-                      child: ReorderableListView.builder(
-                        padding: const EdgeInsets.only(bottom: 140),
-                        itemCount: items.length,
-                        onReorder: (oldIndex, newIndex) =>
-                            controller.reorder(
-                          oldIndex: oldIndex,
-                          newIndex: newIndex,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = items[index];
-                          final typeLabel = item.type == XtreamPlaylistType.movies
-                              ? 'Films'
-                              : 'Séries';
-                          return _PlaylistRow(
-                            key: ValueKey(item.playlistId),
-                            title: '${item.title} ($typeLabel)',
-                            isVisible: item.isVisible,
-                            accentColor: accent,
-                            onVisibleChanged: (v) =>
-                                controller.toggleVisibility(
-                              playlistId: item.playlistId,
-                              isVisible: v,
-                            ),
-                            dragHandle: ReorderableDragStartListener(
-                              index: index,
-                              child: const Icon(
-                                Icons.drag_handle,
-                                color: Colors.white,
+                      )
+                    else
+                      Expanded(
+                        child: ReorderableListView.builder(
+                          padding: const EdgeInsets.only(bottom: 140),
+                          itemCount: items.length,
+                          onReorder: (oldIndex, newIndex) => controller.reorder(
+                            oldIndex: oldIndex,
+                            newIndex: newIndex,
+                          ),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            final typeLabel = item.type == XtreamPlaylistType.movies
+                                ? 'Films'
+                                : 'Séries';
+                            return _PlaylistRow(
+                              key: ValueKey(item.playlistId),
+                              title: '${item.title} ($typeLabel)',
+                              isVisible: item.isVisible,
+                              accentColor: accent,
+                              onVisibleChanged: (v) =>
+                                  controller.toggleVisibility(
+                                playlistId: item.playlistId,
+                                isVisible: v,
                               ),
-                            ),
-                          );
-                        },
+                              dragHandle: ReorderableDragStartListener(
+                                index: index,
+                                child: const Icon(
+                                  Icons.drag_handle,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                ],
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: _BottomActions(
-                  onShowAll: () => controller.setAllVisibleAll(isVisible: true),
-                  onHideAll: () => controller.setAllVisibleAll(isVisible: false),
-                  showAllLabel: 'Tout afficher',
-                  hideAllLabel: 'Tout masquer',
-                  disabled: state.isLoading,
+                  ],
                 ),
-              ),
-            ],
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: _BottomActions(
+                    onShowAll: () => controller.setAllVisibleAll(isVisible: true),
+                    onHideAll: () => controller.setAllVisibleAll(isVisible: false),
+                    showAllLabel: 'Tout afficher',
+                    hideAllLabel: 'Tout masquer',
+                    disabled: state.isLoading,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

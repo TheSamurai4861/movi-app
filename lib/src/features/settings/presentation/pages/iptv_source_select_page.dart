@@ -15,6 +15,7 @@ import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_cata
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 /// Sélecteur de source active dédié au contexte Réglages.
 ///
@@ -118,46 +119,48 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
       body: Stack(
         children: [
           SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-                _SourceSelectHeader(
-                  title: 'Choisir une source active',
-                  onBack: _isSwitching ? null : () => context.pop(),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: accountsAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (error, _) => Center(
-                      child: Text(
-                        '${l10n.errorUnknown}: $error',
-                        style: const TextStyle(color: Colors.white),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    data: (accounts) {
-                      if (accounts.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Text(
-                              l10n.welcomeSourceSubtitle,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        );
-                      }
-
-                      return IptvSourceSelectionList(
-                        accounts: accounts,
-                        selectedId: selectedId,
-                        onSelected: _activateSource,
-                      );
-                    },
+            child: SettingsContentWidth(
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _SourceSelectHeader(
+                    title: 'Choisir une source active',
+                    onBack: _isSwitching ? null : () => context.pop(),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: accountsAsync.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (error, _) => Center(
+                        child: Text(
+                          '${l10n.errorUnknown}: $error',
+                          style: const TextStyle(color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      data: (accounts) {
+                        if (accounts.isEmpty) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              child: Text(
+                                l10n.welcomeSourceSubtitle,
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        }
+
+                        return IptvSourceSelectionList(
+                          accounts: accounts,
+                          selectedId: selectedId,
+                          onSelected: _activateSource,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (_isSwitching)

@@ -14,10 +14,12 @@ class MovieDetailSagaSection extends ConsumerWidget {
     super.key,
     required this.sagaLink,
     required this.currentMovieId,
+    this.horizontalPadding = 20,
   });
 
   final SagaSummary sagaLink;
   final String? currentMovieId;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,35 +31,51 @@ class MovieDetailSagaSection extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MoviItemsList(
-              title:
-                  '${AppLocalizations.of(context)!.searchSagasTitle} ${sagaLink.title.display}',
-              estimatedItemWidth: 150,
-              estimatedItemHeight: 258,
-              titlePadding: 20,
-              horizontalPadding: const EdgeInsetsDirectional.only(
-                start: 20,
-                end: 0,
+            Padding(
+              padding: EdgeInsetsDirectional.only(
+                start: horizontalPadding,
+                end: horizontalPadding,
               ),
-              action: Padding(
-                padding: const EdgeInsetsDirectional.only(end: 20),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    context.push(
-                      AppRouteNames.sagaDetail,
-                      extra: sagaLink.id.value,
-                    );
-                  },
-                  child: Text(
-                    'Voir la page',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.primary,
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      '${AppLocalizations.of(context)!.searchSagasTitle} ${sagaLink.title.display}',
+                      style: Theme.of(context).textTheme.titleLarge,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      context.push(
+                        AppRouteNames.sagaDetail,
+                        extra: sagaLink.id.value,
+                      );
+                    },
+                    child: Text(
+                      'Voir la page',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            MoviItemsList(
+              title: '',
+              hideHeader: true,
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 258,
+              titlePadding: 0,
+              horizontalPadding: EdgeInsetsDirectional.only(
+                start: horizontalPadding,
+                end: horizontalPadding,
               ),
               items: sagaMovies
                   .map(

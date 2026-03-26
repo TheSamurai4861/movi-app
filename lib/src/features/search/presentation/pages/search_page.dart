@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
-// ignore: unused_import
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
@@ -38,8 +37,56 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   final _focusNode = FocusNode();
 
   bool _syncedFromState = false;
+  bool _historyVisibilityLock = false;
+  Timer? _historyHideTimer;
 
   bool get _hasQuery => _textCtrl.text.trim().length >= 3;
+
+  ScreenType _screenTypeFor(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _useDesktopSearchLayout(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _pageHorizontalPadding(BuildContext context) {
+    return switch (_screenTypeFor(context)) {
+      ScreenType.mobile => 20,
+      ScreenType.tablet => 24,
+      ScreenType.desktop => 32,
+      ScreenType.tv => 40,
+    };
+  }
+
+  double _contentMaxWidth(BuildContext context) {
+    return switch (_screenTypeFor(context)) {
+      ScreenType.mobile => double.infinity,
+      ScreenType.tablet => 960,
+      ScreenType.desktop => 1180,
+      ScreenType.tv => 1320,
+    };
+  }
+
+  double _searchFieldMaxWidth(BuildContext context) {
+    return switch (_screenTypeFor(context)) {
+      ScreenType.mobile => double.infinity,
+      ScreenType.tablet => 560,
+      ScreenType.desktop => 620,
+      ScreenType.tv => 680,
+    };
+  }
+
+  double _historyMaxWidth(BuildContext context) {
+    return switch (_screenTypeFor(context)) {
+      ScreenType.mobile => double.infinity,
+      ScreenType.tablet => 680,
+      ScreenType.desktop => 760,
+      ScreenType.tv => 820,
+    };
+  }
 
   @override
   void initState() {
@@ -63,11 +110,29 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   void _onFocusChangedLocal() {
     if (!mounted) return;
+    _historyHideTimer?.cancel();
+    if (_focusNode.hasFocus) {
+      if (_historyVisibilityLock) {
+        _historyVisibilityLock = false;
+      }
+      setState(() {});
+      return;
+    }
+    if (!_hasQuery) {
+      _historyVisibilityLock = true;
+      _historyHideTimer = Timer(const Duration(milliseconds: 180), () {
+        if (!mounted) return;
+        setState(() {
+          _historyVisibilityLock = false;
+        });
+      });
+    }
     setState(() {});
   }
 
   @override
   void dispose() {
+    _historyHideTimer?.cancel();
     _textCtrl.removeListener(_onTextChangedLocal);
     _focusNode.removeListener(_onFocusChangedLocal);
     _textCtrl.dispose();
@@ -78,6 +143,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final horizontalPadding = _pageHorizontalPadding(context);
+    final useDesktopLayout = _useDesktopSearchLayout(context);
+    final contentMaxWidth = _contentMaxWidth(context);
+    final gridMaxWidth = useDesktopLayout ? double.infinity : contentMaxWidth;
+    final searchFieldMaxWidth = _searchFieldMaxWidth(context);
+    final historyMaxWidth = useDesktopLayout
+        ? double.infinity
+        : _historyMaxWidth(context);
+    final showHistory = !_hasQuery &&
+        (_focusNode.hasFocus || _historyVisibilityLock);
+    final resultsListPadding = EdgeInsets.symmetric(horizontal: horizontalPadding);
 
     final state = ref.watch(searchControllerProvider);
     final ctrl = ref.read(searchControllerProvider.notifier);
@@ -106,78 +182,102 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             // Titre (le ShellContentHost gère le padding global)
             const SizedBox(height: 20),
             Padding(
-              padding: const EdgeInsets.only(left: 20),
-              child: Text(
-                l10n.searchTitle,
-                style: Theme.of(context).textTheme.headlineSmall,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  child: Text(
+                    l10n.searchTitle,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
 
             // Champ de recherche
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _SearchField(
-                controller: _textCtrl,
-                focusNode: _focusNode,
-                hintText: l10n.searchHint,
-                clearTooltip: l10n.clear,
-                onChanged: (value) {
-                // Toujours synchroniser la query du contrôleur
-                ctrl.setQuery(value);
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: searchFieldMaxWidth),
+                  child: _SearchField(
+                    controller: _textCtrl,
+                    focusNode: _focusNode,
+                    hintText: l10n.searchHint,
+                    clearTooltip: l10n.clear,
+                    onChanged: (value) {
+                      ctrl.setQuery(value);
 
-                // Quand on repasse sous 3 caractères -> on re-charge l’historique
-                if (value.trim().length < 3) {
-                  unawaited(
-                    ref.read(searchHistoryControllerProvider.notifier).refresh(),
-                  );
-                }
-              },
-              onClear: () {
-                _textCtrl.clear();
-                ctrl.setQuery('');
-                unawaited(
-                  ref.read(searchHistoryControllerProvider.notifier).refresh(),
-                );
-                // Garder le focus pour enchaîner directement
-                _focusNode.requestFocus();
-              },
-              onSubmitted: (value) {
-                // "Search" clavier -> déclencher explicitement
-                ctrl.setQuery(value);
-                FocusScope.of(context).unfocus();
-              },
+                      if (value.trim().length < 3) {
+                        unawaited(
+                          ref
+                              .read(searchHistoryControllerProvider.notifier)
+                              .refresh(),
+                        );
+                      }
+                    },
+                    onClear: () {
+                      _textCtrl.clear();
+                      ctrl.setQuery('');
+                      unawaited(
+                        ref.read(searchHistoryControllerProvider.notifier).refresh(),
+                      );
+                      _focusNode.requestFocus();
+                    },
+                    onSubmitted: (value) {
+                      ctrl.setQueryImmediate(value);
+                      FocusScope.of(context).unfocus();
+                    },
+                  ),
+                ),
               ),
             ),
 
             const SizedBox(height: 32),
 
             // ======= HISTORIQUE OU RÉSULTATS =======
-            if (!_hasQuery && _focusNode.hasFocus) ...[
-              _SearchHistoryList(
-                onSelect: (q) {
-                  _textCtrl.text = q;
-                  _textCtrl.selection = TextSelection.fromPosition(
-                    TextPosition(offset: _textCtrl.text.length),
-                  );
-
-                  // Déclenche la recherche sans effacer immédiatement l’UI
-                  ctrl.setQuery(q);
-
-                  // Sur TV/desktop: on peut retirer le focus pour voir la liste
-                  FocusScope.of(context).unfocus();
-                },
-              ),
-              const Expanded(child: SizedBox.shrink()),
-            ] else if (!_hasQuery) ...[
+            if (!_hasQuery) ...[
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
-                  children: const [
-                    WatchProvidersGrid(),
-                    SizedBox(height: 32),
-                    GenresGrid(),
-                    SizedBox(height: 100),
+                  children: [
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 340),
+                      curve: Curves.easeInOutCubic,
+                      alignment: Alignment.topCenter,
+                      child: showHistory
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 32),
+                              child: _SearchHistoryList(
+                                horizontalPadding: horizontalPadding,
+                                maxContentWidth: historyMaxWidth,
+                                useWideLayout: useDesktopLayout,
+                                onSelect: (q) {
+                                  _textCtrl.text = q;
+                                  _textCtrl.selection =
+                                      TextSelection.fromPosition(
+                                    TextPosition(offset: _textCtrl.text.length),
+                                  );
+                                  ctrl.setQueryImmediate(q);
+                                  FocusScope.of(context).unfocus();
+                                },
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    WatchProvidersGrid(
+                      horizontalPadding: horizontalPadding,
+                      maxContentWidth: gridMaxWidth,
+                    ),
+                    const SizedBox(height: 32),
+                    GenresGrid(
+                      horizontalPadding: horizontalPadding,
+                      maxContentWidth: gridMaxWidth,
+                    ),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -219,8 +319,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           subtitle: l10n.resultsCount(state.movies.length),
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
-                          titlePadding: 0,
-                          horizontalPadding: EdgeInsets.zero,
+                          titlePadding: horizontalPadding,
+                          horizontalPadding: resultsListPadding,
                           items: state.movies
                               .take(10)
                               .toList()
@@ -253,8 +353,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           subtitle: l10n.resultsCount(state.shows.length),
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
-                          titlePadding: 0,
-                          horizontalPadding: EdgeInsets.zero,
+                          titlePadding: horizontalPadding,
+                          horizontalPadding: resultsListPadding,
                           items: state.shows
                               .take(10)
                               .toList()
@@ -286,8 +386,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           subtitle: l10n.resultsCount(state.people.length),
                           estimatedItemWidth: 150,
                           estimatedItemHeight: 300,
-                          titlePadding: 0,
-                          horizontalPadding: EdgeInsets.zero,
+                          titlePadding: horizontalPadding,
+                          horizontalPadding: resultsListPadding,
                           items: state.people
                               .take(10)
                               .toList()
@@ -327,8 +427,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                   subtitle: l10n.resultsCount(filteredSagas.length),
                                   estimatedItemWidth: 150,
                                   estimatedItemHeight: 300,
-                                  titlePadding: 0,
-                                  horizontalPadding: EdgeInsets.zero,
+                                  titlePadding: horizontalPadding,
+                                  horizontalPadding: resultsListPadding,
                                   items: filteredSagas
                                       .take(10)
                                       .toList()
@@ -578,9 +678,17 @@ class _AnimatedMovieCardState extends State<_AnimatedMovieCard>
 }
 
 class _SearchHistoryList extends ConsumerWidget {
-  const _SearchHistoryList({required this.onSelect});
+  const _SearchHistoryList({
+    required this.onSelect,
+    this.horizontalPadding = 20,
+    this.maxContentWidth = double.infinity,
+    this.useWideLayout = false,
+  });
 
   final void Function(String query) onSelect;
+  final double horizontalPadding;
+  final double maxContentWidth;
+  final bool useWideLayout;
 
   Widget _buildHistorySection(
     BuildContext context,
@@ -592,23 +700,38 @@ class _SearchHistoryList extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(l10n.historyTitle, style: theme.textTheme.titleLarge),
-            if (hasItems)
-              TextButton(
-                onPressed: () {
-                  ref.read(searchHistoryControllerProvider.notifier).clearAll();
-                },
-                child: Text(l10n.actionClearHistory),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxContentWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(l10n.historyTitle, style: theme.textTheme.titleLarge),
+                      if (hasItems)
+                        TextButton(
+                          onPressed: () {
+                            ref
+                                .read(searchHistoryControllerProvider.notifier)
+                                .clearAll();
+                          },
+                          child: Text(l10n.actionClearHistory),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  child,
+                ],
               ),
-          ],
+            ),
+          ),
         ),
-        const SizedBox(height: 16),
-        child,
       ],
     );
   }
@@ -623,64 +746,79 @@ class _SearchHistoryList extends ConsumerWidget {
     return history.when(
       data: (items) {
         final sorted = [...items]..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+        final recent = sorted.take(6).toList(growable: false);
 
         return _buildHistorySection(
           context,
           ref,
-          sorted.isEmpty
+          recent.isEmpty
               ? Text(
                   l10n.historyEmpty,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 )
+              : useWideLayout
+              ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    final spacing = 24.0;
+                    final availableWidth = constraints.maxWidth;
+                    final itemWidth = availableWidth > spacing
+                        ? (availableWidth - spacing) / 2
+                        : availableWidth;
+                    final itemHeight = 62.0;
+                    final aspectRatio = itemWidth > 0
+                        ? itemWidth / itemHeight
+                        : 1.0;
+
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: recent.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: spacing,
+                        mainAxisSpacing: 0,
+                        childAspectRatio: aspectRatio,
+                      ),
+                      itemBuilder: (context, index) {
+                        final h = recent[index];
+                        return _SearchHistoryItem(
+                          query: h.query,
+                          onTap: () => onSelect(h.query),
+                          onRemove: () => ref
+                              .read(searchHistoryControllerProvider.notifier)
+                              .remove(h.query),
+                        );
+                      },
+                    );
+                  },
+                )
               : ListView.separated(
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: sorted.length,
+                  itemCount: recent.length,
                   separatorBuilder: (_, __) => Divider(
                     height: 1,
                     thickness: 1,
-                    color: theme.colorScheme.outlineVariant,
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.45,
+                    ),
                   ),
                   itemBuilder: (context, index) {
-                    final h = sorted[index];
-                    return SizedBox(
-                      height: 55,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => onSelect(h.query),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                child: Text(
-                                  h.query,
-                                  style: theme.textTheme.bodyLarge,
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Image.asset(
-                              AppAssets.iconDelete,
-                              width: 25,
-                              height: 25,
-                            ),
-                            onPressed: () => ref
-                                .read(searchHistoryControllerProvider.notifier)
-                                .remove(h.query),
-                            tooltip: l10n.delete,
-                          ),
-                        ],
-                      ),
+                    final h = recent[index];
+                    return _SearchHistoryItem(
+                      query: h.query,
+                      onTap: () => onSelect(h.query),
+                      onRemove: () => ref
+                          .read(searchHistoryControllerProvider.notifier)
+                          .remove(h.query),
                     );
                   },
                 ),
-          hasItems: sorted.isNotEmpty,
+          hasItems: recent.isNotEmpty,
         );
       },
       loading: () => _buildHistorySection(
@@ -716,6 +854,71 @@ class _SearchHistoryList extends ConsumerWidget {
           ],
         ),
         hasItems: false,
+      ),
+    );
+  }
+}
+
+class _SearchHistoryItem extends StatelessWidget {
+  const _SearchHistoryItem({
+    required this.query,
+    required this.onTap,
+    required this.onRemove,
+  });
+
+  final String query;
+  final VoidCallback onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+          ),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.history_rounded,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    query,
+                    style: theme.textTheme.bodyLarge,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Image.asset(
+                    AppAssets.iconDelete,
+                    width: 25,
+                    height: 25,
+                  ),
+                  onPressed: onRemove,
+                  tooltip: AppLocalizations.of(context)!.delete,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -554,9 +554,7 @@ if (poster == null) {
 final posterBackground =
     _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-final backdrop =
-    _images.backdrop(dto.backdropPath, size: 'original') ??
-    posterBackground;
+final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
 
   return TvShow(
     id: SeriesId(dto.id.toString()),
@@ -599,9 +597,7 @@ if (poster == null) {
 final posterBackground =
     _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-final backdrop =
-    _images.backdrop(dto.backdropPath, size: 'original') ??
-    posterBackground;
+final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
 
   return TvShow(
     id: SeriesId(dto.id.toString()),

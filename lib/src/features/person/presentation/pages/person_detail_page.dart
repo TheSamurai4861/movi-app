@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -167,6 +170,23 @@ class _PersonDetailContent extends StatefulWidget {
 class _PersonDetailContentState extends State<_PersonDetailContent> {
   bool _isTransitioningFromLoading = true;
 
+  ScreenType _screenTypeFor(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    return ScreenTypeResolver.instance.resolve(
+      mq.size.width,
+      mq.size.height == 0 ? 1 : mq.size.height,
+    );
+  }
+
+  bool _useDesktopLayout(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _horizontalPadding(BuildContext context) {
+    return _useDesktopLayout(context) ? 36 : 20;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -188,6 +208,29 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
   Widget build(BuildContext context) {
     const heroHeight = 500.0;
     final cs = Theme.of(context).colorScheme;
+    final isWideLayout = _useDesktopLayout(context);
+    final horizontalPadding = _horizontalPadding(context);
+    final movies = widget.vm.movies
+        .map(
+          (m) => MoviMedia(
+            id: m.id.value,
+            title: m.title.display,
+            poster: m.poster,
+            year: m.releaseYear,
+            type: MoviMediaType.movie,
+          ),
+        )
+        .toList(growable: false);
+    final shows = widget.vm.shows
+        .map(
+          (s) => MoviMedia(
+            id: s.id.value,
+            title: s.title.display,
+            poster: s.poster,
+            type: MoviMediaType.series,
+          ),
+        )
+        .toList(growable: false);
 
     return SwipeBackWrapper(
       child: Scaffold(
@@ -205,47 +248,38 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        PersonDetailHeroSection(
-                          photo: widget.vm.photo,
-                          name: widget.vm.name,
-                          moviesCount: widget.vm.moviesCount,
-                          showsCount: widget.vm.showsCount,
-                          height: heroHeight,
-                        ),
+                        if (isWideLayout)
+                          _buildDesktopHeader(
+                            context,
+                            horizontalPadding: horizontalPadding,
+                            movies: movies,
+                            shows: shows,
+                          )
+                        else
+                          PersonDetailHeroSection(
+                            photo: widget.vm.photo,
+                            name: widget.vm.name,
+                            moviesCount: widget.vm.moviesCount,
+                            showsCount: widget.vm.showsCount,
+                            height: heroHeight,
+                          ),
                         Padding(
-                          padding: const EdgeInsetsDirectional.only(
-                            start: 20,
-                            end: 20,
+                          padding: EdgeInsetsDirectional.only(
+                            start: horizontalPadding,
+                            end: horizontalPadding,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               const SizedBox(height: 16),
-                              PersonDetailActionsRow(
-                                personId: widget.personId,
-                                movies: widget.vm.movies
-                                    .map(
-                                      (m) => MoviMedia(
-                                        id: m.id.value,
-                                        title: m.title.display,
-                                        poster: m.poster,
-                                        year: m.releaseYear,
-                                        type: MoviMediaType.movie,
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                                shows: widget.vm.shows
-                                    .map(
-                                      (s) => MoviMedia(
-                                        id: s.id.value,
-                                        title: s.title.display,
-                                        poster: s.poster,
-                                        type: MoviMediaType.series,
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                              ),
-                              const SizedBox(height: 32),
+                              if (!isWideLayout) ...[
+                                PersonDetailActionsRow(
+                                  personId: widget.personId,
+                                  movies: movies,
+                                  shows: shows,
+                                ),
+                                const SizedBox(height: 32),
+                              ],
                               if (widget.vm.biography != null &&
                                   widget.vm.biography!.isNotEmpty) ...[
                                 PersonBiographySection(
@@ -254,27 +288,8 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                                 const SizedBox(height: 32),
                               ],
                               PersonFilmographySection(
-                                movies: widget.vm.movies
-                                    .map(
-                                      (m) => MoviMedia(
-                                        id: m.id.value,
-                                        title: m.title.display,
-                                        poster: m.poster,
-                                        year: m.releaseYear,
-                                        type: MoviMediaType.movie,
-                                      ),
-                                    )
-                                    .toList(growable: false),
-                                shows: widget.vm.shows
-                                    .map(
-                                      (s) => MoviMedia(
-                                        id: s.id.value,
-                                        title: s.title.display,
-                                        poster: s.poster,
-                                        type: MoviMediaType.series,
-                                      ),
-                                    )
-                                    .toList(growable: false),
+                                movies: movies,
+                                shows: shows,
                               ),
                             ],
                           ),
@@ -287,6 +302,151 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeader(
+    BuildContext context, {
+    required double horizontalPadding,
+    required List<MoviMedia> movies,
+    required List<MoviMedia> shows,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    final photo = widget.vm.photo;
+    final countLabel = AppLocalizations.of(
+      context,
+    )!.personMoviesCount(widget.vm.moviesCount, widget.vm.showsCount);
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsetsDirectional.only(
+        start: horizontalPadding,
+        end: horizontalPadding,
+        top: 20,
+        bottom: 28,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            cs.surfaceContainerHighest.withValues(alpha: 0.9),
+            cs.surface,
+          ],
+        ),
+      ),
+      child: Column(
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => context.pop(),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: Image(image: AssetImage(AppAssets.iconBack)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _buildDesktopPhoto(photo),
+              const SizedBox(width: 32),
+              Expanded(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.vm.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                                Theme.of(context).textTheme.displaySmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.onSurface,
+                                  height: 1.05,
+                                ) ??
+                            TextStyle(
+                              fontSize: 42,
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface,
+                              height: 1.05,
+                            ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          MoviPill(
+                            countLabel,
+                            large: true,
+                            color: cs.surfaceContainer,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: 376,
+                        child: PersonDetailActionsRow(
+                          personId: widget.personId,
+                          movies: movies,
+                          shows: shows,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopPhoto(Uri? photo) {
+    const size = 220.0;
+
+    Widget child;
+    if (photo == null) {
+      child = const MoviPlaceholderCard(
+        type: PlaceholderType.person,
+        fit: BoxFit.cover,
+        alignment: Alignment(0.0, 0.1),
+        borderRadius: BorderRadius.zero,
+      );
+    } else {
+      child = Image.network(
+        photo.toString(),
+        fit: BoxFit.cover,
+        cacheWidth: 880,
+        filterQuality: FilterQuality.high,
+        alignment: const Alignment(0.0, 0.1),
+        errorBuilder: (_, __, ___) => const MoviPlaceholderCard(
+          type: PlaceholderType.person,
+          fit: BoxFit.cover,
+          alignment: Alignment(0.0, 0.1),
+          borderRadius: BorderRadius.zero,
+        ),
+      );
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: child,
       ),
     );
   }

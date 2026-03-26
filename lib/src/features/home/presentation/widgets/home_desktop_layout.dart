@@ -191,9 +191,16 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
     final state = ref.watch(hp.homeControllerProvider);
     final controller = ref.read(hp.homeControllerProvider.notifier);
     final iptvFilter = ref.watch(hp.homeIptvMediaFilterProvider);
+    final inProgressAsync = ref.watch(hp.homeInProgressProvider);
     final disableHero = ref.watch(
       featureFlagsProvider.select((f) => f.home.disableHero),
     );
+    final bool firstSectionNeedsHeroTransition =
+        !disableHero &&
+        inProgressAsync.maybeWhen(
+          data: (inProgress) => inProgress.isEmpty,
+          orElse: () => true,
+        );
 
     // Précache héro pour accélérer les réaffichages
     _postFrame(() {
@@ -246,20 +253,31 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
 
               HomeContinueWatchingSection(
                 onMarkAsUnwatched: showMarkAsUnwatchedDialog,
+                applyHeroTransition: !disableHero && !firstSectionNeedsHeroTransition,
               ),
 
               const HomeContinueWatchingSpacer(),
 
               if (state.isLoading && state.iptvLists.isEmpty)
-                SliverToBoxAdapter(child: const HomeIptvLoadingSections())
+                SliverToBoxAdapter(
+                  child: HomeIptvLoadingSections(
+                    applyHeroTransition: firstSectionNeedsHeroTransition,
+                  ),
+                )
               else if (state.iptvLists.isEmpty)
-                const SliverToBoxAdapter(child: HomeNoIptvSourcesMessage())
+                SliverToBoxAdapter(
+                  child: HomeNoIptvSourcesMessage(
+                    applyHeroTransition: firstSectionNeedsHeroTransition,
+                  ),
+                )
               else ...[
-                for (final entry in iptvEntries) ...[
+                for (var i = 0; i < iptvEntries.length; i++) ...[
                   SliverToBoxAdapter(
                     child: HomeIptvSection(
-                      categoryTitle: entry.key,
-                      items: entry.value,
+                      categoryTitle: iptvEntries[i].key,
+                      items: iptvEntries[i].value,
+                      applyHeroTransition:
+                          firstSectionNeedsHeroTransition && i == 0,
                     ),
                   ),
                   const SliverToBoxAdapter(

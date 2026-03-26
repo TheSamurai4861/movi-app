@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
 import 'package:movi/src/core/widgets/movi_media_card.dart';
 import 'package:movi/src/core/widgets/movi_see_all_card.dart';
+import 'package:movi/src/features/home/presentation/widgets/home_first_section_transition.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_loading_skeleton.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -25,31 +28,47 @@ class HomeIptvSection extends ConsumerWidget {
     super.key,
     required this.categoryTitle,
     required this.items,
+    this.applyHeroTransition = false,
   });
 
   final String categoryTitle;
   final List<ContentReference> items;
+  final bool applyHeroTransition;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final displayTitle = displayCategoryTitle(categoryTitle);
-    return MoviItemsList(
-      title: displayTitle,
-      itemSpacing: HomeLayoutConstants.itemSpacing,
-      estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
-      estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
-      items: [
-        ...items
-            .take(HomeLayoutConstants.iptvSectionLimit)
-            .map((r) => _buildMediaCard(context, ref, r)),
-        SeeAllCard(
-          title: displayTitle,
-          categoryKey: categoryTitle,
-          width: HomeLayoutConstants.mediaCardWidth,
-          posterHeight: HomeLayoutConstants.mediaCardPosterHeight,
-          onTap: (args) => context.push('/category', extra: args),
-        ),
-      ],
+    final screenType = ScreenTypeResolver.instance.resolve(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    );
+    final itemLimit = switch (screenType) {
+      ScreenType.mobile => HomeLayoutConstants.iptvSectionMobileLimit,
+      ScreenType.tablet => HomeLayoutConstants.iptvSectionTabletLimit,
+      ScreenType.desktop || ScreenType.tv =>
+        HomeLayoutConstants.iptvSectionDesktopLimit,
+    };
+
+    return HomeFirstSectionTransition(
+      enabled: applyHeroTransition,
+      child: MoviItemsList(
+        title: displayTitle,
+        itemSpacing: HomeLayoutConstants.itemSpacing,
+        estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
+        estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
+        items: [
+          ...items
+              .take(itemLimit)
+              .map((r) => _buildMediaCard(context, ref, r)),
+          SeeAllCard(
+            title: displayTitle,
+            categoryKey: categoryTitle,
+            width: HomeLayoutConstants.mediaCardWidth,
+            posterHeight: HomeLayoutConstants.mediaCardPosterHeight,
+            onTap: (args) => context.push('/category', extra: args),
+          ),
+        ],
+      ),
     );
   }
 
@@ -87,15 +106,23 @@ class HomeIptvSection extends ConsumerWidget {
 
 /// Widget affichant un message quand aucune source IPTV n'est disponible.
 class HomeNoIptvSourcesMessage extends StatelessWidget {
-  const HomeNoIptvSourcesMessage({super.key});
+  const HomeNoIptvSourcesMessage({
+    super.key,
+    this.applyHeroTransition = false,
+  });
+
+  final bool applyHeroTransition;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Text(
-        AppLocalizations.of(context)!.homeNoIptvSources,
-        style: Theme.of(context).textTheme.bodyMedium,
+    return HomeFirstSectionTransition(
+      enabled: applyHeroTransition,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        child: Text(
+          AppLocalizations.of(context)!.homeNoIptvSources,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
       ),
     );
   }
@@ -103,35 +130,54 @@ class HomeNoIptvSourcesMessage extends StatelessWidget {
 
 /// Widget affichant des skeletons de chargement pour les sections IPTV.
 class HomeIptvLoadingSections extends StatelessWidget {
-  const HomeIptvLoadingSections({super.key});
+  const HomeIptvLoadingSections({
+    super.key,
+    this.applyHeroTransition = false,
+  });
+
+  final bool applyHeroTransition;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        MoviItemsList(
-          title: '',
-          itemSpacing: HomeLayoutConstants.itemSpacing,
-          estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
-          estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
-          items: List.generate(
-            HomeLayoutConstants.iptvSectionLimit,
-            (_) => const HomeLoadingSkeleton(),
+    final screenType = ScreenTypeResolver.instance.resolve(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    );
+    final itemLimit = switch (screenType) {
+      ScreenType.mobile => HomeLayoutConstants.iptvSectionMobileLimit,
+      ScreenType.tablet => HomeLayoutConstants.iptvSectionTabletLimit,
+      ScreenType.desktop || ScreenType.tv =>
+        HomeLayoutConstants.iptvSectionDesktopLimit,
+    };
+
+    return HomeFirstSectionTransition(
+      enabled: applyHeroTransition,
+      child: Column(
+        children: [
+          MoviItemsList(
+            title: '',
+            itemSpacing: HomeLayoutConstants.itemSpacing,
+            estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
+            estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
+            items: List.generate(
+              itemLimit,
+              (_) => const HomeLoadingSkeleton(),
+            ),
           ),
-        ),
-        const SizedBox(height: HomeLayoutConstants.sectionGap),
-        MoviItemsList(
-          title: '',
-          itemSpacing: HomeLayoutConstants.itemSpacing,
-          estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
-          estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
-          items: List.generate(
-            HomeLayoutConstants.iptvSectionLimit,
-            (_) => const HomeLoadingSkeleton(),
+          const SizedBox(height: HomeLayoutConstants.sectionGap),
+          MoviItemsList(
+            title: '',
+            itemSpacing: HomeLayoutConstants.itemSpacing,
+            estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
+            estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
+            items: List.generate(
+              itemLimit,
+              (_) => const HomeLoadingSkeleton(),
+            ),
           ),
-        ),
-        const SizedBox(height: HomeLayoutConstants.sectionGap),
-      ],
+          const SizedBox(height: HomeLayoutConstants.sectionGap),
+        ],
+      ),
     );
   }
 }

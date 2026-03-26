@@ -72,6 +72,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   // Mise en page
   static const double _totalHeight = HomeLayoutConstants.heroTotalHeight;
   static const double _overlayHeight = HomeLayoutConstants.heroOverlayHeight;
+  static const double _desktopVisualBleed =
+      HomeLayoutConstants.heroDesktopVisualBleed;
 
   // Timings
   static const Duration _rotation = HomeLayoutConstants.heroRotationDuration;
@@ -256,7 +258,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final tuning = ref.read(performanceTuningProvider);
 
     // Préparer meta courante (cache→affichage)
-    _metaFutures[id] ??= _loadMetaWithRetry(current);
+    _metaFutures[id] = _loadMetaWithRetry(current);
     // Hydrater l'item courant si nécessaire (prefetch "lite")
     _hydrateMetaIfNeeded(current);
 
@@ -270,9 +272,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final ContentReference? next = _nextItem;
     final int? nextId = _tmdbIdOf(next);
     if (next != null && nextId != null) {
-      _metaFutures[nextId] ??= _loadMetaWithRetry(next);
-      // Hydrater aussi l'item suivant si nécessaire (prefetch "lite")
-      _hydrateMetaIfNeeded(next);
+      // Le slide suivant ne doit pas déclencher d'I/O réseau.
+      // On ne prépare qu'une lecture cache pour garder une transition fluide
+      // et laisser le réseau au slide courant.
+      _metaFutures[nextId] ??= _loadMeta(next);
       if (tuning.homeHeroPrecacheNextImage) {
         _precacheBgFor(next, isNext: true);
       }
@@ -294,6 +297,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     if (item == null) return null;
     return int.tryParse(item.id.trim());
   }
+
+  bool get _useLargeHeroImages =>
+      context.isDesktop || context.isTablet || context.isTv;
+
+  String get _heroPosterSize => _useLargeHeroImages ? 'original' : 'w500';
+
+  String get _heroPosterBackgroundSize =>
+      _useLargeHeroImages ? 'original' : 'w780';
+
+  String get _heroBackdropSize => _useLargeHeroImages ? 'original' : 'w780';
 
   Future<_HeroMeta?> _loadMeta(ContentReference item) async {
     int? id = _tmdbIdOf(item);
@@ -337,12 +350,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final String? posterBgPath = data['poster_background']?.toString();
     final String? logoPath = TmdbImageSelectorService.selectLogoPath(logos);
 
-    // Tailles standardisées pour stabilité/perf
-    final Uri? posterUri = _images.poster(posterPath, size: 'w500');
-    final Uri? posterBgUri = _images.poster(posterBgPath, size: 'w780');
+    // Sur grands écrans, le hero doit consommer une source plus généreuse
+    // pour éviter le flou sur desktop/tablette/TV.
+    final Uri? posterUri = _images.poster(posterPath, size: _heroPosterSize);
+    final Uri? posterBgUri = _images.poster(
+      posterBgPath,
+      size: _heroPosterBackgroundSize,
+    );
     final Uri? backdropUri = _images.backdrop(
       data['backdrop_path']?.toString(),
-      size: 'w780',
+      size: _heroBackdropSize,
     );
     final Uri? logoUri = _images.logo(logoPath);
 
@@ -400,14 +417,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     );
   }
 
-  /// Charge les métadonnées avec retry automatique si le cache est vide.
+  /// Charge les métadonnées depuis le cache et déclenche une hydratation
+  /// asynchrone si nécessaire.
   ///
-  /// Stratégie :
-  /// 1. Tente de charger depuis le cache via `_loadMeta`
-  /// 2. Si null (cache vide), déclenche l'hydratation
-  /// 3. Attend que l'hydratation soit terminée (avec timeout)
-  /// 4. Réessaye de charger depuis le cache
-  /// 5. Si toujours null après timeout, retourne null
+  /// La future ne doit pas rester bloquée à attendre le réseau: le carousel
+  /// affiche immédiatement son état minimal et se ré-enrichit quand l'I/O
+  /// termine.
   Future<_HeroMeta?> _loadMetaWithRetry(ContentReference item) async {
     int? id = _tmdbIdOf(item);
 
@@ -424,35 +439,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final meta = await _loadMeta(item);
     if (meta != null) return meta;
 
-    // Cache vide : déclencher l'hydratation si pas déjà en cours
+    // Cache vide : déclencher l'hydratation si pas déjà en cours.
+    // On ne poll pas ici pour éviter de garder des futures en attente et
+    // d'augmenter la pression réseau pendant la rotation du hero.
     if (!_hydratedIds.contains(id) &&
         !_fullyHydratedIds.contains(id) &&
         !_hydratingIds.contains(id)) {
-      // Déclencher l'hydratation de manière asynchrone (ne pas bloquer)
       unawaited(_hydrateMetaIfNeeded(item));
     }
 
-    // Attendre que l'hydratation soit terminée (avec timeout)
-    const timeout = Duration(seconds: 5);
-    const checkInterval = Duration(milliseconds: 100);
-    final startTime = DateTime.now();
-
-    while (DateTime.now().difference(startTime) < timeout) {
-      // Vérifier si l'hydratation est terminée
-      if (_hydratedIds.contains(id) || _fullyHydratedIds.contains(id)) {
-        // Réessayer de charger depuis le cache
-        final retryMeta = await _loadMeta(item);
-        if (retryMeta != null) return retryMeta;
-        // Si toujours null après hydratation, abandonner
-        break;
-      }
-
-      // Attendre un peu avant de réessayer
-      await Future.delayed(checkInterval);
-    }
-
-    // Dernier essai après timeout ou si l'hydratation est terminée
-    return await _loadMeta(item);
+    return null;
   }
 
   Future<void> _hydrateMetaIfNeeded(ContentReference item) async {
@@ -791,17 +787,22 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final ContentReference? item = _currentItem;
     final int? tmdbId = _tmdbIdOf(item);
     final bool isWideHero = context.isDesktop || context.isTablet;
+    final bool shouldExtendDesktopHero = context.isDesktop || context.isTv;
+    final double visualBleed = shouldExtendDesktopHero ? _desktopVisualBleed : 0;
+    final double heroHeight = _totalHeight + visualBleed;
+    final double bottomOverlayHeight = _overlayHeight + visualBleed;
+    final cs = Theme.of(context).colorScheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          height: _totalHeight,
+          height: heroHeight,
           width: double.infinity,
           child: (widget.items.isEmpty)
-              ? const _HeroEmpty(overlayHeight: _overlayHeight)
+              ? _HeroEmpty(overlayHeight: bottomOverlayHeight)
               : item == null || tmdbId == null
-              ? const _HeroSkeleton(overlayHeight: _overlayHeight)
+              ? _HeroSkeleton(overlayHeight: bottomOverlayHeight)
               : FutureBuilder<_HeroMeta?>(
                   future: _metaFutures[tmdbId],
                   builder: (context, snap) {
@@ -894,17 +895,17 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         buildBackground(),
 
                         // Overlay sombre animé (transition inter-slides)
-                        const Positioned(
+                        Positioned(
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          child: _GlobalOverlay(height: _totalHeight),
+                          child: _GlobalOverlay(height: heroHeight),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          child: _BottomOverlay(height: _overlayHeight),
+                          child: _BottomOverlay(height: bottomOverlayHeight),
                         ),
                         const Positioned(
                           left: 0,
@@ -912,6 +913,46 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                           top: 0,
                           child: _TopOverlay(height: _overlayHeight),
                         ),
+                        if (isWideHero)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              ignoring: true,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                    colors: [
+                                      cs.surface,
+                                      cs.surface.withValues(alpha: 0.72),
+                                      cs.surface.withValues(alpha: 0),
+                                    ],
+                                    stops: const [0.0, 0.42, 0.82],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (isWideHero)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              ignoring: true,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.centerRight,
+                                    end: Alignment.centerLeft,
+                                    colors: [
+                                      cs.surface.withValues(alpha: 0.28),
+                                      cs.surface.withValues(alpha: 0.12),
+                                      cs.surface.withValues(alpha: 0),
+                                    ],
+                                    stops: const [0.0, 0.16, 0.34],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         Positioned(
                           left: 0,
                           right: 0,
@@ -920,6 +961,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         ),
                         if (isWideHero)
                           Positioned.fill(
+                            bottom: visualBleed,
                             child: Padding(
                               padding: const EdgeInsetsDirectional.only(
                                 start: 50,

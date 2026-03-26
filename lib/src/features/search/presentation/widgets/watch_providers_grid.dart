@@ -1,20 +1,52 @@
 // lib/src/features/search/presentation/widgets/watch_providers_grid.dart
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/models/provider_results_args.dart';
 
-/// Widget affichant une grille verticale de providers (2 colonnes).
 class WatchProvidersGrid extends ConsumerWidget {
-  const WatchProvidersGrid({super.key});
+  const WatchProvidersGrid({
+    super.key,
+    this.horizontalPadding = 20,
+    this.maxContentWidth = double.infinity,
+  });
+
+  final double horizontalPadding;
+  final double maxContentWidth;
+
+  ScreenType _screenTypeFor(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  int _columnCount(ScreenType screenType, double width, int itemCount) {
+    final maxColumns = switch (screenType) {
+      ScreenType.mobile => 2,
+      ScreenType.tablet => 3,
+      ScreenType.desktop => 4,
+      ScreenType.tv => 5,
+    };
+    final minTileWidth = switch (screenType) {
+      ScreenType.mobile => 150.0,
+      ScreenType.tablet => 180.0,
+      ScreenType.desktop => 220.0,
+      ScreenType.tv => 220.0,
+    };
+    final computed = ((width + 16) / (minTileWidth + 16)).floor();
+    return math.max(1, math.min(itemCount, computed.clamp(2, maxColumns)));
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenType = _screenTypeFor(context);
     final providersAsync = ref.watch(watchProvidersProvider);
 
     return providersAsync.when(
@@ -27,39 +59,67 @@ class WatchProvidersGrid extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-              child: Text(
-                AppLocalizations.of(context)!.searchByProvidersTitle,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  child: Text(
+                    AppLocalizations.of(context)!.searchByProvidersTitle,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 2.0, // Rectangle plus large que haut
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = _columnCount(
+                        screenType,
+                        constraints.maxWidth,
+                        providers.length,
+                      );
+                      final aspectRatio = switch (screenType) {
+                        ScreenType.mobile => 2.0,
+                        ScreenType.tablet => 2.05,
+                        ScreenType.desktop => 2.15,
+                        ScreenType.tv => 2.2,
+                      };
+
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          childAspectRatio: aspectRatio,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: providers.length,
+                        itemBuilder: (context, index) {
+                          return _WatchProviderCard(provider: providers[index]);
+                        },
+                      );
+                    },
+                  ),
                 ),
-                itemCount: providers.length,
-                itemBuilder: (context, index) {
-                  return _WatchProviderCard(provider: providers[index]);
-                },
               ),
             ),
           ],
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      loading: () => Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => const SizedBox.shrink(),

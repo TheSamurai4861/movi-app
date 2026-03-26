@@ -20,6 +20,7 @@ class MovieHeroImage extends StatelessWidget {
       poster: poster?.toString(),
       backdrop: backdrop?.toString(),
       placeholderType: PlaceholderType.movie,
+      imageStrategy: MoviHeroImageStrategy.backdropFirst,
     );
   }
 }

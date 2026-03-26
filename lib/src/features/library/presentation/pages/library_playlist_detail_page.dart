@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
 
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -43,6 +45,31 @@ class LibraryPlaylistDetailPage extends ConsumerStatefulWidget {
 class _LibraryPlaylistDetailPageState
     extends ConsumerState<LibraryPlaylistDetailPage> {
   LibraryPlaylistSortType? _sortType;
+  final Map<String, Future<_PlaylistMediaDisplayData>> _displayDataCache = {};
+
+  ScreenType _screenType(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _isLargeScreen(BuildContext context) {
+    final screenType = _screenType(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  bool _isHistoryDrivenPlaylist() {
+    return widget.playlist.type == LibraryPlaylistType.watchHistory ||
+        widget.playlist.type == LibraryPlaylistType.inProgress;
+  }
+
+  double _pageHorizontalPadding(BuildContext context) {
+    return switch (_screenType(context)) {
+      ScreenType.mobile => 20,
+      ScreenType.tablet => 24,
+      ScreenType.desktop => 40,
+      ScreenType.tv => 56,
+    };
+  }
 
   /// Provider pour les playlists non-utilisateur (favoris, historique, etc.)
   static final _otherPlaylistItemsProvider =
@@ -83,7 +110,11 @@ class _LibraryPlaylistDetailPageState
           case LibraryPlaylistType.watchHistory:
             final completed = await repository.getHistoryCompleted();
             final inProgress = await repository.getHistoryInProgress();
-            return [...completed, ...inProgress];
+            final seenKeys = <String>{};
+            return [...completed, ...inProgress].where((item) {
+              final key = '${item.type.name}:${item.id}';
+              return seenKeys.add(key);
+            }).toList(growable: false);
           case LibraryPlaylistType.userPlaylist:
           case LibraryPlaylistType.actor:
             return [];
@@ -380,18 +411,11 @@ class _LibraryPlaylistDetailPageState
     }
   }
 
-  String _formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-    if (hours > 0) {
-      return '${hours}h ${minutes.toString().padLeft(2, '0')}m';
-    }
-    return '${minutes}m';
-  }
-
   @override
   Widget build(BuildContext context) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
+    final isLargeScreen = _isLargeScreen(context);
+    final pagePadding = _pageHorizontalPadding(context);
     // Pour les playlists utilisateur, utiliser le provider pour permettre l'invalidation
     final itemsAsync =
         widget.playlist.type == LibraryPlaylistType.userPlaylist &&
@@ -449,6 +473,41 @@ class _LibraryPlaylistDetailPageState
                 playlist: widget.playlist,
                 accentColor: accentColor,
                 itemCount: items.length,
+                backdrop: items.isEmpty
+                    ? null
+                    : ref.watch(
+                        isLargeScreen
+                            ? playlistItemHeroBackdropProvider(items.first)
+                            : playlistItemBackdropProvider(items.first),
+                      ).maybeWhen(
+                        data: (uri) => uri?.toString(),
+                        orElse: () => null,
+                      ),
+                isLargeScreen: isLargeScreen,
+                horizontalPadding: pagePadding,
+                actions: isLargeScreen
+                    ? Builder(
+                        builder: (context) {
+                          final isEmpty = items.isEmpty;
+                          final playlistItems = playlistItemsAsync?.value;
+                          final sortedItems = LibraryPlaylistSorter.sort(
+                            items,
+                            sortType: _sortType,
+                            playlistItems: playlistItems,
+                          );
+                          return LibraryPlaylistActionsBar(
+                            compact: true,
+                            isEmpty: isEmpty,
+                            onPlayRandom: isEmpty
+                                ? null
+                                : () => _playRandomly(context, sortedItems),
+                            onSortPressed: isEmpty
+                                ? null
+                                : () => _showSortMenu(context, ref),
+                          );
+                        },
+                      )
+                    : null,
                 onBack: () => context.pop(),
                 onMore: widget.playlist.type == LibraryPlaylistType.userPlaylist
                     ? () => _showPlaylistMenu(context, ref)
@@ -456,34 +515,36 @@ class _LibraryPlaylistDetailPageState
               ),
             ),
             // Boutons d'action (collés sous le hero)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: itemsAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (items) {
-                  final isEmpty = items.isEmpty;
-                  // Pour les playlists utilisateur, récupérer les items complets pour le tri
-                  final playlistItems = playlistItemsAsync?.value;
-                  final sortedItems = LibraryPlaylistSorter.sort(
-                    items,
-                    sortType: _sortType,
-                    playlistItems: playlistItems,
-                  );
+            if (!isLargeScreen) ...[
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: pagePadding),
+                child: itemsAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (items) {
+                    final isEmpty = items.isEmpty;
+                    final playlistItems = playlistItemsAsync?.value;
+                    final sortedItems = LibraryPlaylistSorter.sort(
+                      items,
+                      sortType: _sortType,
+                      playlistItems: playlistItems,
+                    );
 
-                  return LibraryPlaylistActionsBar(
-                    isEmpty: isEmpty,
-                    onPlayRandom: isEmpty
-                        ? null
-                        : () => _playRandomly(context, sortedItems),
-                    onSortPressed: isEmpty
-                        ? null
-                        : () => _showSortMenu(context, ref),
-                  );
-                },
+                    return LibraryPlaylistActionsBar(
+                      isEmpty: isEmpty,
+                      onPlayRandom: isEmpty
+                          ? null
+                          : () => _playRandomly(context, sortedItems),
+                      onSortPressed: isEmpty
+                          ? null
+                          : () => _showSortMenu(context, ref),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 32),
+            ] else
+              const SizedBox(height: 20),
             // Liste des médias
             Expanded(
               child: itemsAsync.when(
@@ -545,7 +606,7 @@ class _LibraryPlaylistDetailPageState
                   );
 
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: EdgeInsets.symmetric(horizontal: pagePadding),
                     itemCount: sortedItems.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
@@ -594,13 +655,14 @@ class _LibraryPlaylistDetailPageState
   }) {
     // Utiliser le provider pour charger le backdrop
     final backdropAsync = ref.watch(playlistItemBackdropProvider(reference));
-    final mediaInfoAsync = Future.value(_getMediaInfo(ref, reference));
+    final mediaInfoAsync = _getMediaDisplayData(ref, reference);
 
-    return FutureBuilder<({Duration? duration, int? seasonCount})>(
+    return FutureBuilder<_PlaylistMediaDisplayData>(
       future: mediaInfoAsync,
       builder: (context, snapshot) {
-        final duration = snapshot.data?.duration;
-        final seasonCount = snapshot.data?.seasonCount;
+        final displayData = snapshot.data;
+        final displayReference = displayData?.reference ?? reference;
+        final secondaryLabel = displayData?.secondaryLabel;
 
         // Permettre la suppression pour les playlists utilisateur, favoris, en cours et historique
         final canDelete =
@@ -728,7 +790,7 @@ class _LibraryPlaylistDetailPageState
                         children: [
                           Expanded(
                             child: Text(
-                              reference.title.value,
+                              displayReference.title.value,
                               style:
                                   Theme.of(context).textTheme.bodyLarge?.copyWith(
                                         color: Colors.white,
@@ -772,9 +834,9 @@ class _LibraryPlaylistDetailPageState
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             // Pill avec année
-                            if (reference.year != null)
+                            if (displayReference.year != null)
                               MoviPill(
-                                reference.year.toString(),
+                                displayReference.year.toString(),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
@@ -783,10 +845,10 @@ class _LibraryPlaylistDetailPageState
                             // Pill avec type de contenu (Série ou Film) pour les playlists utilisateur
                             if (widget.playlist.type ==
                                 LibraryPlaylistType.userPlaylist) ...[
-                              if (reference.year != null)
+                              if (displayReference.year != null)
                                 const SizedBox(width: 8),
                               MoviPill(
-                                reference.type == ContentType.series
+                                displayReference.type == ContentType.series
                                     ? AppLocalizations.of(context)!.serie
                                     : AppLocalizations.of(context)!.moviesTitle,
                                 padding: const EdgeInsets.symmetric(
@@ -796,52 +858,31 @@ class _LibraryPlaylistDetailPageState
                               ),
                             ],
                             // Espace entre année/type et rating
-                            if ((reference.year != null ||
+                            if ((displayReference.year != null ||
                                     (widget.playlist.type ==
                                         LibraryPlaylistType.userPlaylist)) &&
-                                reference.rating != null)
+                                displayReference.rating != null)
                               const SizedBox(width: 8),
                             // Rating pill
-                            if (reference.rating != null)
+                            if (displayReference.rating != null)
                               MoviPill(
-                                reference.rating!.toStringAsFixed(1),
+                                displayReference.rating!.toStringAsFixed(1),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,
                                 ),
                               ),
-                            // Espace entre rating et durée
-                            if (reference.rating != null &&
-                                snapshot.connectionState ==
-                                    ConnectionState.done &&
-                                snapshot.hasData &&
-                                ((reference.type == ContentType.movie &&
-                                        duration != null) ||
-                                    (reference.type == ContentType.series &&
-                                        seasonCount != null)))
+                            if (displayReference.rating != null &&
+                                secondaryLabel != null)
                               const SizedBox(width: 8),
-                            // Durée pill (si les données sont chargées)
-                            if (snapshot.connectionState ==
-                                    ConnectionState.done &&
-                                snapshot.hasData)
-                              if (reference.type == ContentType.movie &&
-                                  duration != null)
-                                MoviPill(
-                                  _formatDuration(duration),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                )
-                              else if (reference.type == ContentType.series &&
-                                  seasonCount != null)
-                                MoviPill(
-                                  '$seasonCount ${seasonCount == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}',
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
+                            if (secondaryLabel != null)
+                              MoviPill(
+                                secondaryLabel,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
                                 ),
+                              ),
                           ],
                         ),
                       ),
@@ -1423,16 +1464,72 @@ class _LibraryPlaylistDetailPageState
     }
   }
 
-  Future<({Duration? duration, int? seasonCount})> _getMediaInfo(
+  Future<_PlaylistMediaDisplayData> _getMediaDisplayData(
     WidgetRef ref,
     ContentReference reference,
   ) async {
-    if (reference.type == ContentType.movie) {
-      // MovieSummary n'a pas de durée, on retourne null pour l'instant
+    final key = '${widget.playlist.type.name}:${reference.type.name}:${reference.id}';
+    return _displayDataCache.putIfAbsent(
+      key,
+      () => _loadMediaDisplayData(ref, reference),
+    );
+  }
 
-      return (duration: null, seasonCount: null);
-    } else if (reference.type == ContentType.series) {
-      // Pour les séries, récupérer le nombre de saisons
+  Future<_PlaylistMediaDisplayData> _loadMediaDisplayData(
+    WidgetRef ref,
+    ContentReference reference,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+
+    if (_isHistoryDrivenPlaylist()) {
+      try {
+        switch (reference.type) {
+          case ContentType.movie:
+            final movieVm =
+                ref.read(movieDetailControllerProvider(reference.id)).value ??
+                await ref.read(movieDetailControllerProvider(reference.id).future);
+            final resolvedMovieVm = movieVm!;
+            return _PlaylistMediaDisplayData(
+              reference: ContentReference(
+                id: reference.id,
+                title: MediaTitle(resolvedMovieVm.title),
+                type: reference.type,
+                poster: reference.poster ?? resolvedMovieVm.poster,
+                year: _parseYear(resolvedMovieVm.yearText) ?? reference.year,
+                rating:
+                    _parseRating(resolvedMovieVm.ratingText) ?? reference.rating,
+              ),
+              secondaryLabel: _displayLabel(resolvedMovieVm.durationText),
+            );
+          case ContentType.series:
+            final show = await ref.read(
+              tvRepositoryProvider,
+            ).getShowLite(SeriesId(reference.id));
+            final seasonCount = show.seasons.length;
+            return _PlaylistMediaDisplayData(
+              reference: ContentReference(
+                id: reference.id,
+                title: show.title,
+                type: reference.type,
+                poster: reference.poster ?? show.poster,
+                year: show.firstAirDate?.year ?? reference.year,
+                rating: show.voteAverage ?? reference.rating,
+              ),
+              secondaryLabel: seasonCount > 0
+                  ? '$seasonCount ${seasonCount == 1 ? l10n.playlistSeasonSingular : l10n.playlistSeasonPlural}'
+                  : null,
+            );
+          case ContentType.saga:
+          case ContentType.playlist:
+          case ContentType.person:
+            break;
+        }
+      } catch (_) {
+        // Garder les métadonnées locales si l'enrichissement échoue.
+      }
+    }
+
+    if (reference.type == ContentType.series) {
       try {
         final repository = ref.read(libraryRepositoryProvider);
         final series = await repository.getLikedShows();
@@ -1440,12 +1537,47 @@ class _LibraryPlaylistDetailPageState
           (s) => s.id.value == reference.id,
           orElse: () => throw Exception('Show not found'),
         );
-        return (duration: null, seasonCount: show.seasonCount);
+        final seasonCount = show.seasonCount;
+        if (seasonCount != null) {
+          return _PlaylistMediaDisplayData(
+            reference: reference,
+            secondaryLabel:
+                '$seasonCount ${seasonCount == 1 ? l10n.playlistSeasonSingular : l10n.playlistSeasonPlural}',
+          );
+        }
       } catch (_) {
-        // Ignorer les erreurs
+        // Ignorer les erreurs et garder la référence existante.
       }
-      return (duration: null, seasonCount: null);
     }
-    return (duration: null, seasonCount: null);
+
+    return _PlaylistMediaDisplayData(reference: reference);
   }
+
+  int? _parseYear(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == '—') return null;
+    return int.tryParse(trimmed);
+  }
+
+  double? _parseRating(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == '—') return null;
+    return double.tryParse(trimmed.replaceAll(',', '.'));
+  }
+
+  String? _displayLabel(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == '—') return null;
+    return trimmed;
+  }
+}
+
+class _PlaylistMediaDisplayData {
+  const _PlaylistMediaDisplayData({
+    required this.reference,
+    this.secondaryLabel,
+  });
+
+  final ContentReference reference;
+  final String? secondaryLabel;
 }

@@ -7,8 +7,13 @@ import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 
 class MovieDetailRecommendationsSection extends ConsumerWidget {
-  const MovieDetailRecommendationsSection({super.key, required this.items});
+  const MovieDetailRecommendationsSection({
+    super.key,
+    required this.items,
+    this.horizontalPadding = 20,
+  });
   final List<MoviMedia> items;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,8 +22,11 @@ class MovieDetailRecommendationsSection extends ConsumerWidget {
       title: AppLocalizations.of(context)!.recommendationsTitle,
       estimatedItemWidth: 150,
       estimatedItemHeight: 258,
-      titlePadding: 20,
-      horizontalPadding: const EdgeInsetsDirectional.only(start: 20, end: 0),
+      titlePadding: horizontalPadding,
+      horizontalPadding: EdgeInsetsDirectional.only(
+        start: horizontalPadding,
+        end: horizontalPadding,
+      ),
       items: items
           .map(
             (m) => MoviMediaCard(

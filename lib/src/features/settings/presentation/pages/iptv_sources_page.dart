@@ -20,6 +20,7 @@ import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catal
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 class IptvSourcesPage extends ConsumerStatefulWidget {
   const IptvSourcesPage({super.key});
@@ -250,190 +251,202 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       body: SafeArea(
         top: true,
         bottom: true,
-        child: accountsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Text(
-              e.toString(),
-              style: const TextStyle(color: Colors.white),
+        child: SettingsContentWidth(
+          child: accountsAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(
+              child: Text(
+                e.toString(),
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
-          ),
-          data: (accounts) {
-            _ensureDefaultSelection(accounts, activeIds);
+            data: (accounts) {
+              _ensureDefaultSelection(accounts, activeIds);
 
-            final selectedId = _selectedAccountId;
-            final activeAccount = (selectedId == null)
-                ? null
-                : accounts.where((a) => a.id == selectedId).firstOrNull;
+              final selectedId = _selectedAccountId;
+              final activeAccount = (selectedId == null)
+                  ? null
+                  : accounts.where((a) => a.id == selectedId).firstOrNull;
 
-            final query = _searchController.text.trim().toLowerCase();
-            final otherAccounts = accounts
-                .where((a) => a.id != selectedId)
-                .where(
-                  (a) =>
-                      query.isEmpty ||
-                      a.alias.toLowerCase().contains(query) ||
-                      a.getUsername().toLowerCase().contains(query) ||
-                      a.getHost().toLowerCase().contains(query),
-                )
-                .toList(growable: false);
-
-            return ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              children: [
-                _HeaderBar(
-                  title: 'Sources',
-                  accent: accent,
-                  searchActive: _isSearchVisible,
-                  onBack: () => context.pop(),
-                  onSearch: () {
-                    setState(() {
-                      _isSearchVisible = !_isSearchVisible;
-                      if (!_isSearchVisible) {
-                        _searchController.clear();
-                      }
-                    });
-                  },
-                  onAdd: _openAddSource,
-                ),
-                const SizedBox(height: 16),
-                // 🔵 Bouton pour changer de source active
-                SizedBox(
-                  height: 48,
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => context.push(AppRouteNames.iptvSourceSelect),
-                    icon: const Icon(Icons.swap_horiz),
-                    label: const Text('Changer de source active'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: accent.withAlpha(51),
-                      foregroundColor: accent,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                  ),
-                ),
-                if (_isSearchVisible) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (_) => setState(() {}),
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Rechercher une source…',
-                      hintStyle: const TextStyle(color: Colors.white54),
-                      filled: true,
-                      fillColor: const Color(0xFF1C1C1E),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          AppAssets.iconSearch,
-                          width: 20,
-                          height: 20,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 32),
-                const Text(
-                  'Source active',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (activeAccount == null)
-                  Text(
-                    AppLocalizations.of(context)!.statusNoActiveSource,
-                    style: const TextStyle(color: Colors.white70),
+              final query = _searchController.text.trim().toLowerCase();
+              final otherAccounts = accounts
+                  .where((a) => a.id != selectedId)
+                  .where(
+                    (a) =>
+                        query.isEmpty ||
+                        a.alias.toLowerCase().contains(query) ||
+                        a.getUsername().toLowerCase().contains(query) ||
+                        a.getHost().toLowerCase().contains(query),
                   )
-                else
-                  _SourceCard(
-                    account: activeAccount,
-                    accent: accent,
-                    locale: locale,
-                    isActive: _isAccountActive(activeAccount),
-                    expirationText: _formatExpiration(
-                      activeAccount.getExpiration(),
-                      locale,
-                    ),
-                    onDelete: () => _confirmAndDelete(activeAccount, accounts),
-                    onSelect: null,
-                  ),
-                const SizedBox(height: 16),
-                if (activeAccount != null) ...[
-                  MoviPrimaryButton(
-                    label: _refreshing ? 'Rafraîchissement…' : 'Rafraîchir',
-                    onPressed: _refreshing
-                        ? null
-                        : () => _refreshSelected(activeAccount),
-                    loading: _refreshing,
-                  ),
-                  const SizedBox(height: 16),
-                  if (!activeAccount.isStalker)
-                    MoviPrimaryButton(
-                      label: 'Modifier',
-                      onPressed: () async {
-                        final updated = await context.push<bool>(
-                          AppRouteNames.iptvSourceEdit,
-                          extra: activeAccount.id,
-                        );
+                  .toList(growable: false);
 
-                        if (updated == true) {
-                          ref.invalidate(allIptvAccountsProvider);
-                          ref.invalidate(iptvAccountsProvider);
-                          ref.invalidate(iptvSourceStatsProvider(activeAccount.id));
-                        }
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                    child: _HeaderBar(
+                      title: 'Sources',
+                      accent: accent,
+                      searchActive: _isSearchVisible,
+                      onBack: () => context.pop(),
+                      onSearch: () {
+                        setState(() {
+                          _isSearchVisible = !_isSearchVisible;
+                          if (!_isSearchVisible) {
+                            _searchController.clear();
+                          }
+                        });
                       },
+                      onAdd: _openAddSource,
                     ),
-                  const SizedBox(height: 16),
-                  MoviPrimaryButton(
-                    label: 'Organiser les catégories',
-                    onPressed: () => context.push(
-                      AppRouteNames.iptvSourceOrganize,
-                      extra: activeAccount.id,
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                      children: [
+                        SizedBox(
+                          height: 48,
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.push(AppRouteNames.iptvSourceSelect),
+                            icon: const Icon(Icons.swap_horiz),
+                            label: const Text('Changer de source active'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accent.withAlpha(51),
+                              foregroundColor: accent,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                            ),
+                          ),
+                        ),
+                        if (_isSearchVisible) ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (_) => setState(() {}),
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: 'Rechercher une source…',
+                              hintStyle: const TextStyle(color: Colors.white54),
+                              filled: true,
+                              fillColor: const Color(0xFF1C1C1E),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Image.asset(
+                                  AppAssets.iconSearch,
+                                  width: 20,
+                                  height: 20,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+                        const Text(
+                          'Source active',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (activeAccount == null)
+                          Text(
+                            AppLocalizations.of(context)!.statusNoActiveSource,
+                            style: const TextStyle(color: Colors.white70),
+                          )
+                        else
+                          _SourceCard(
+                            account: activeAccount,
+                            accent: accent,
+                            locale: locale,
+                            isActive: _isAccountActive(activeAccount),
+                            expirationText: _formatExpiration(
+                              activeAccount.getExpiration(),
+                              locale,
+                            ),
+                            onDelete: () => _confirmAndDelete(activeAccount, accounts),
+                            onSelect: null,
+                          ),
+                        const SizedBox(height: 16),
+                        if (activeAccount != null) ...[
+                          MoviPrimaryButton(
+                            label: _refreshing ? 'Rafraîchissement…' : 'Rafraîchir',
+                            onPressed: _refreshing
+                                ? null
+                                : () => _refreshSelected(activeAccount),
+                            loading: _refreshing,
+                          ),
+                          const SizedBox(height: 16),
+                          if (!activeAccount.isStalker)
+                            MoviPrimaryButton(
+                              label: 'Modifier',
+                              onPressed: () async {
+                                final updated = await context.push<bool>(
+                                  AppRouteNames.iptvSourceEdit,
+                                  extra: activeAccount.id,
+                                );
+
+                                if (updated == true) {
+                                  ref.invalidate(allIptvAccountsProvider);
+                                  ref.invalidate(iptvAccountsProvider);
+                                  ref.invalidate(iptvSourceStatsProvider(activeAccount.id));
+                                }
+                              },
+                            ),
+                          const SizedBox(height: 16),
+                          MoviPrimaryButton(
+                            label: 'Organiser les catégories',
+                            onPressed: () => context.push(
+                              AppRouteNames.iptvSourceOrganize,
+                              extra: activeAccount.id,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 32),
+                        Container(height: 1, color: const Color(0xFF262626)),
+                        const SizedBox(height: 32),
+                        const Text(
+                          'Autres sources',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        for (final account in otherAccounts) ...[
+                          _SourceCard(
+                            account: account,
+                            accent: accent,
+                            locale: locale,
+                            isActive: _isAccountActive(account),
+                            expirationText: _formatExpiration(
+                              account.getExpiration(),
+                              locale,
+                            ),
+                            onDelete: () => _confirmAndDelete(account, accounts),
+                            onSelect: null,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        if (otherAccounts.isNotEmpty) const SizedBox(height: 16),
+                        MoviPrimaryButton(
+                          label: 'Ajouter une source',
+                          onPressed: _openAddSource,
+                        ),
+                      ],
                     ),
                   ),
                 ],
-                const SizedBox(height: 32),
-                Container(height: 1, color: const Color(0xFF262626)),
-                const SizedBox(height: 32),
-                const Text(
-                  'Autres sources',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                for (final account in otherAccounts) ...[
-                  _SourceCard(
-                    account: account,
-                    accent: accent,
-                    locale: locale,
-                    isActive: _isAccountActive(account),
-                    expirationText: _formatExpiration(account.getExpiration(), locale),
-                    onDelete: () => _confirmAndDelete(account, accounts),
-                    onSelect: null,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (otherAccounts.isNotEmpty) const SizedBox(height: 16),
-                MoviPrimaryButton(
-                  label: 'Ajouter une source',
-                  onPressed: _openAddSource,
-                ),
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -564,25 +577,17 @@ class _SourceCard extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      account.isStalker ? Icons.router : Icons.live_tv,
-                      color: account.isStalker ? Colors.orange : Colors.blue,
-                      size: 20,
+                Expanded(
+                  child: Text(
+                    account.alias,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      account.alias,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(width: 12),
                 GestureDetector(
@@ -592,7 +597,7 @@ class _SourceCard extends ConsumerWidget {
                     AppAssets.iconTrash,
                     width: 28,
                     height: 28,
-                    color: Colors.white,
+                    color: const Color(0xFFFF3B30),
                   ),
                 ),
               ],

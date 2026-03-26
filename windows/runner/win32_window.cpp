@@ -53,6 +53,38 @@ void EnableFullDpiSupportIfAvailable(HWND hwnd) {
   FreeLibrary(user32_module);
 }
 
+void CenterWindowToWorkArea(HWND window) {
+  RECT window_rect;
+  if (!GetWindowRect(window, &window_rect)) {
+    return;
+  }
+
+  const POINT window_center = {
+      (window_rect.left + window_rect.right) / 2,
+      (window_rect.top + window_rect.bottom) / 2,
+  };
+  HMONITOR monitor =
+      MonitorFromPoint(window_center, MONITOR_DEFAULTTONEAREST);
+
+  MONITORINFO monitor_info = {};
+  monitor_info.cbSize = sizeof(MONITORINFO);
+  if (!GetMonitorInfo(monitor, &monitor_info)) {
+    return;
+  }
+
+  const RECT work_area = monitor_info.rcWork;
+  const int window_width = window_rect.right - window_rect.left;
+  const int window_height = window_rect.bottom - window_rect.top;
+
+  const int centered_x =
+      work_area.left + ((work_area.right - work_area.left) - window_width) / 2;
+  const int centered_y =
+      work_area.top + ((work_area.bottom - work_area.top) - window_height) / 2;
+
+  SetWindowPos(window, nullptr, centered_x, centered_y, 0, 0,
+               SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+}
+
 }  // namespace
 
 // Manages the Win32Window's window class registration.
@@ -145,11 +177,15 @@ bool Win32Window::Create(const std::wstring& title,
   }
 
   UpdateTheme(window);
+  CenterWindowToWorkArea(window);
 
   return OnCreate();
 }
 
 bool Win32Window::Show() {
+  if (IsZoomed(window_handle_) || IsIconic(window_handle_)) {
+    ShowWindow(window_handle_, SW_RESTORE);
+  }
   return ShowWindow(window_handle_, SW_SHOWNORMAL);
 }
 

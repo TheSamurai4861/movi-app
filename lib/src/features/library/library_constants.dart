@@ -17,6 +17,10 @@ class LibraryConstants {
   static const String userPlaylistPrefix = 'playlist_';
 
   // Seuils métier
-  /// Seuil de progression pour considérer un média comme "terminé".
-  static const double completedProgressThreshold = 0.9;
+  /// Progression minimale pour considérer un média comme "en cours".
+  static const double inProgressMinThreshold = 0.05;
+  /// Seuil de progression pour inclure un média dans l'historique "vu".
+  static const double watchHistoryCompletedThreshold = 0.9;
+  /// Seuil max exclusif pour considérer un média comme "en cours".
+  static const double inProgressMaxThreshold = 0.95;
 }
