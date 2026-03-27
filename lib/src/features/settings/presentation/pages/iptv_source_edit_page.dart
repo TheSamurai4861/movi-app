@@ -367,7 +367,7 @@ class _FieldBlock extends StatelessWidget {
           label,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),

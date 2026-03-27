@@ -22,6 +22,7 @@ class AppAssets {
   static const String iconBack = 'assets/icons/actions/back.svg';
   static const String iconMore = 'assets/icons/actions/more.svg';
   static const String iconSort = 'assets/icons/actions/sort.svg';
+  static const String iconDrag = 'assets/icons/actions/drag.svg';
   static const String iconTrash = 'assets/icons/actions/trash.svg';
   static const String iconPause = 'assets/icons/actions/pause.svg';
   static const String iconForward = 'assets/icons/actions/forward.svg';

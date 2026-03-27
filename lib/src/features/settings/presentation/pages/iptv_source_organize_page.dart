@@ -64,12 +64,44 @@ class _IptvSourceOrganizePageState
                     else
                       Expanded(
                         child: ReorderableListView.builder(
+                          buildDefaultDragHandles: false,
                           padding: const EdgeInsets.only(bottom: 140),
                           itemCount: items.length,
                           onReorder: (oldIndex, newIndex) => controller.reorder(
                             oldIndex: oldIndex,
                             newIndex: newIndex,
                           ),
+                          proxyDecorator: (child, index, animation) {
+                            final item = items[index];
+                            final typeLabel =
+                                item.type == XtreamPlaylistType.movies
+                                ? 'Films'
+                                : 'SÃ©ries';
+                            return AnimatedBuilder(
+                              animation: animation,
+                              builder: (context, _) {
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: _PlaylistRow(
+                                    key: ValueKey(
+                                      'proxy_${item.playlistId}_$index',
+                                    ),
+                                    title: '${item.title} ($typeLabel)',
+                                    isVisible: item.isVisible,
+                                    accentColor: accent,
+                                    onVisibleChanged: (_) {},
+                                    dragHandle: const MoviAssetIcon(
+                                      AppAssets.iconDrag,
+                                      width: 20,
+                                      height: 20,
+                                      color: Colors.white,
+                                    ),
+                                    showSeparators: false,
+                                  ),
+                                );
+                              },
+                            );
+                          },
                           itemBuilder: (context, index) {
                             final item = items[index];
                             final typeLabel =
@@ -88,11 +120,14 @@ class _IptvSourceOrganizePageState
                                   ),
                               dragHandle: ReorderableDragStartListener(
                                 index: index,
-                                child: const Icon(
-                                  Icons.drag_handle,
+                                child: const MoviAssetIcon(
+                                  AppAssets.iconDrag,
+                                  width: 20,
+                                  height: 20,
                                   color: Colors.white,
                                 ),
                               ),
+                              showSeparators: true,
                             );
                           },
                         ),
@@ -183,6 +218,7 @@ class _PlaylistRow extends StatelessWidget {
     required this.accentColor,
     required this.onVisibleChanged,
     required this.dragHandle,
+    this.showSeparators = true,
   });
 
   final String title;
@@ -190,45 +226,53 @@ class _PlaylistRow extends StatelessWidget {
   final Color accentColor;
   final ValueChanged<bool> onVisibleChanged;
   final Widget dragHandle;
+  final bool showSeparators;
 
   @override
   Widget build(BuildContext context) {
+    final block = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Switch.adaptive(
+                value: isVisible,
+                activeThumbColor: accentColor,
+                onChanged: onVisibleChanged,
+              ),
+              const SizedBox(width: 16),
+              SizedBox(width: 20, height: 20, child: Center(child: dragHandle)),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    if (!showSeparators) {
+      return block;
+    }
+
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Switch.adaptive(
-                  value: isVisible,
-                  activeThumbColor: accentColor,
-                  onChanged: onVisibleChanged,
-                ),
-                const SizedBox(width: 16),
-                dragHandle,
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
         Container(height: 1, color: const Color(0xFF262626)),
-        const SizedBox(height: 16),
+        block,
       ],
     );
   }
