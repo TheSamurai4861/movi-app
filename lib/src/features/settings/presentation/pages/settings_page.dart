@@ -65,7 +65,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ('en', 'English'),
     ('es', 'Español'),
     ('fr', 'Français'),
-    ('fr-MM', 'Burgonde'),
     ('de', 'Deutsch'),
     ('it', 'Italiano'),
     ('nl', 'Nederlands'),
@@ -222,19 +221,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   // -------------------- Helpers --------------------
 
   String _getLanguageLabel(String code) {
-    String normalized = code.toLowerCase();
-
-    // special fr-MM
-    if (normalized.contains('mm')) {
-      return _availableLanguages
-          .firstWhere(
-            (e) => e.$1 == 'fr-MM',
-            orElse: () => ('fr-MM', 'Burgonde'),
-          )
-          .$2;
-    }
-
-    normalized = normalized.split('-').first;
+    final normalized = code.toLowerCase().split('-').first;
 
     final entry = _availableLanguages.firstWhere(
       (e) => e.$1.toLowerCase() == normalized,
@@ -246,8 +233,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isCurrentLanguage(String currentCode, String code) {
     final current = currentCode.toLowerCase();
     final option = code.toLowerCase();
-
-    if (code == 'fr-MM') return current.contains('mm');
     return current.split('-').first == option.split('-').first;
   }
 
