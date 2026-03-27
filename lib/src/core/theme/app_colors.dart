@@ -24,4 +24,7 @@ class AppColors {
   static const Color lightSurfaceVariant = Color(0xFFE7EAF0);
   static const Color lightTextPrimary = Color(0xFF141414);
   static const Color lightTextSecondary = Color(0xFF4F4F4F);
+
+  // Couleur utilitaire pour les icones de note / favori.
+  static const Color ratingAccent = Color.fromARGB(255, 255, 255, 255);
 }

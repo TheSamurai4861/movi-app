@@ -168,18 +168,20 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
                       hintText: AppLocalizations.of(context)!.searchHint,
                       prefixIcon: Padding(
                         padding: const EdgeInsets.only(left: 12, right: 8),
-                        child: Image.asset(
+                        child: const MoviAssetIcon(
                           AppAssets.iconSearch,
                           width: 25,
                           height: 25,
+                          color: Colors.white70,
                         ),
                       ),
                       suffixIcon: _textCtrl.text.isNotEmpty
                           ? IconButton(
-                              icon: Image.asset(
+                              icon: const MoviAssetIcon(
                                 AppAssets.iconDelete,
                                 width: 25,
                                 height: 25,
+                                color: Colors.white,
                               ),
                               onPressed: () {
                                 _textCtrl.clear();

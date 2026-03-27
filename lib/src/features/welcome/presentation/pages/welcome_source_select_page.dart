@@ -10,6 +10,7 @@ import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
 
@@ -17,7 +18,7 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
   const WelcomeSourceSelectPage({super.key});
 
   /// Détermine la route de fallback appropriée selon le contexte de navigation.
-  /// 
+  ///
   /// Si `context.canPop()` est `true`, retourne `null` pour utiliser `pop()`.
   /// Sinon, détermine la route de fallback en fonction du contexte :
   /// - Si on est dans le flow welcome, retourne `/welcome/sources`
@@ -43,7 +44,7 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
   /// Gère l'action de retour (bouton retour ou geste système).
   void _handleBack(BuildContext context) {
     final fallbackRoute = _determineFallbackRoute(context);
-    
+
     if (fallbackRoute == null) {
       // On peut pop, donc revenir à la route précédente
       context.pop();
@@ -71,10 +72,10 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Image(
-              image: AssetImage(AppAssets.iconBack),
-              width: 24,
-              height: 24,
+            icon: const MoviAssetIcon(
+              AppAssets.iconBack,
+              size: 24,
+              color: Colors.white,
             ),
             onPressed: () => _handleBack(context),
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
@@ -91,46 +92,44 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('${l10n.errorUnknown}: $e')),
           data: (accounts) {
-          if (accounts.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(l10n.welcomeSourceSubtitle),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => context.go(AppRouteNames.welcomeSources),
-                    child: const Text('Ajouter une source'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return IptvSourceSelectionList(
-            accounts: accounts,
-            selectedId: selectedId,
-            onSelected: (account) async {
-              final prefs = locator<SelectedIptvSourcePreferences>();
-
-              await prefs.setSelectedSourceId(account.id);
-
-              final appStateController = ref.read(
-                appStateControllerProvider,
+            if (accounts.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(l10n.welcomeSourceSubtitle),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () => context.go(AppRouteNames.welcomeSources),
+                      child: const Text('Ajouter une source'),
+                    ),
+                  ],
+                ),
               );
-              appStateController.setActiveIptvSources({account.id});
-              ref
-                  .read(appEventBusProvider)
-                  .emit(const AppEvent(AppEventType.iptvSynced));
+            }
 
-              await Future.delayed(const Duration(milliseconds: 100));
+            return IptvSourceSelectionList(
+              accounts: accounts,
+              selectedId: selectedId,
+              onSelected: (account) async {
+                final prefs = locator<SelectedIptvSourcePreferences>();
 
-              if (!context.mounted) return;
-              context.go(AppRouteNames.welcomeSourceLoading);
-            },
-          );
-        },
-      ),
+                await prefs.setSelectedSourceId(account.id);
+
+                final appStateController = ref.read(appStateControllerProvider);
+                appStateController.setActiveIptvSources({account.id});
+                ref
+                    .read(appEventBusProvider)
+                    .emit(const AppEvent(AppEventType.iptvSynced));
+
+                await Future.delayed(const Duration(milliseconds: 100));
+
+                if (!context.mounted) return;
+                context.go(AppRouteNames.welcomeSourceLoading);
+              },
+            );
+          },
+        ),
       ),
     );
   }

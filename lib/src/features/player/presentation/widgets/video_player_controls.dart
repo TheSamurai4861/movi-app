@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
 /// Widget de contrôles du player vidéo
 class VideoPlayerControls extends ConsumerWidget {
@@ -337,7 +338,10 @@ class VideoPlayerControls extends ConsumerWidget {
                                   child: SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: Image.asset(AppAssets.iconBack),
+                                    child: const MoviAssetIcon(
+                                      AppAssets.iconBack,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -368,7 +372,10 @@ class VideoPlayerControls extends ConsumerWidget {
                                 SizedBox(
                                   width: 28,
                                   height: 28,
-                                  child: Image.asset(AppAssets.iconRewind),
+                                  child: const MoviAssetIcon(
+                                    AppAssets.iconRewind,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ],
                             ),
@@ -386,12 +393,12 @@ class VideoPlayerControls extends ConsumerWidget {
                           ),
                         const SizedBox(width: 24),
                         // Bouton sous-titres
-                          _IconButton(
-                            onTap: hasSubtitles ? onToggleSubtitles : null,
-                            iconAsset: hasSubtitles
+                        _IconButton(
+                          onTap: hasSubtitles ? onToggleSubtitles : null,
+                          iconAsset: hasSubtitles
                               ? AppAssets.iconSubtitles
                               : AppAssets.iconSubtitlesDisabled,
-                          ),
+                        ),
                         // Bouton PiP (si supporté)
                         if (isPipSupported) ...[
                           const SizedBox(width: 24),
@@ -439,6 +446,9 @@ class _IconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveIconColor =
+        iconColor ?? (onTap == null ? Colors.white54 : Colors.white);
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -448,12 +458,13 @@ class _IconButton extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         child: Center(
           child: iconAsset != null
-              ? SizedBox(
+              ? MoviAssetIcon(
+                  iconAsset!,
                   width: iconSize,
                   height: iconSize,
-                  child: Image.asset(iconAsset!),
+                  color: effectiveIconColor,
                 )
-              : Icon(icon, size: iconSize, color: iconColor ?? Colors.white),
+              : Icon(icon, size: iconSize, color: effectiveIconColor),
         ),
       ),
     );
@@ -494,10 +505,11 @@ class _ControlButton extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: SizedBox(
+              child: MoviAssetIcon(
+                icon,
                 width: iconSize,
                 height: iconSize,
-                child: Image.asset(icon),
+                color: Colors.white,
               ),
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:movi/src/core/parental/domain/entities/pin_recovery_result.dart'
 import 'package:movi/src/core/parental/presentation/providers/pin_recovery_providers.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
 class PinRecoveryPage extends ConsumerWidget {
@@ -43,7 +44,8 @@ class PinRecoveryPage extends ConsumerWidget {
     final isSending = state.status == PinRecoveryUiStatus.sendingCode;
     final isVerifying = state.status == PinRecoveryUiStatus.verifying;
     final isResetting = state.status == PinRecoveryUiStatus.resetting;
-    final isVerified = state.status == PinRecoveryUiStatus.verified ||
+    final isVerified =
+        state.status == PinRecoveryUiStatus.verified ||
         state.status == PinRecoveryUiStatus.resetFailure ||
         state.status == PinRecoveryUiStatus.resetSuccess ||
         state.status == PinRecoveryUiStatus.resetting;
@@ -73,7 +75,9 @@ class PinRecoveryPage extends ConsumerWidget {
                       vertical: AppSpacing.xl,
                     ),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: IntrinsicHeight(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -90,8 +94,8 @@ class PinRecoveryPage extends ConsumerWidget {
                                 label: l10n.authOtpPrimarySend,
                                 onPressed: controller.canRequestCode()
                                     ? () => controller.requestCode(
-                                          profileId: profileId,
-                                        )
+                                        profileId: profileId,
+                                      )
                                     : null,
                                 loading: isSending,
                               ),
@@ -126,8 +130,10 @@ class PinRecoveryPage extends ConsumerWidget {
                                   hintText: l10n.pinRecoveryNewPinHint,
                                 ),
                                 onChanged: controller.setNewPin,
-                                enabled: !isResetting &&
-                                    state.status != PinRecoveryUiStatus.resetSuccess,
+                                enabled:
+                                    !isResetting &&
+                                    state.status !=
+                                        PinRecoveryUiStatus.resetSuccess,
                               ),
                               const SizedBox(height: AppSpacing.md),
                               TextField(
@@ -143,8 +149,10 @@ class PinRecoveryPage extends ConsumerWidget {
                                 ),
                                 onChanged: controller.setConfirmPin,
                                 onSubmitted: (_) => controller.resetPin(),
-                                enabled: !isResetting &&
-                                    state.status != PinRecoveryUiStatus.resetSuccess,
+                                enabled:
+                                    !isResetting &&
+                                    state.status !=
+                                        PinRecoveryUiStatus.resetSuccess,
                               ),
                             ],
                             if (errorText != null) ...[
@@ -169,10 +177,12 @@ class PinRecoveryPage extends ConsumerWidget {
                             if (showCodeStep && !isVerified) ...[
                               const SizedBox(height: AppSpacing.xs),
                               TextButton(
-                                onPressed: state.cooldownRemaining == 0 &&
+                                onPressed:
+                                    state.cooldownRemaining == 0 &&
                                         controller.canRequestCode()
-                                    ? () =>
-                                        controller.resendCode(profileId: profileId)
+                                    ? () => controller.resendCode(
+                                        profileId: profileId,
+                                      )
                                     : null,
                                 child: Text(
                                   state.cooldownRemaining > 0
@@ -191,7 +201,8 @@ class PinRecoveryPage extends ConsumerWidget {
                                     : null,
                                 loading: isResetting,
                               ),
-                            if (state.status == PinRecoveryUiStatus.resetSuccess)
+                            if (state.status ==
+                                PinRecoveryUiStatus.resetSuccess)
                               Padding(
                                 padding: const EdgeInsets.only(
                                   top: AppSpacing.md,
@@ -220,10 +231,7 @@ class PinRecoveryPage extends ConsumerWidget {
 }
 
 class _HeaderBar extends StatelessWidget {
-  const _HeaderBar({
-    required this.title,
-    required this.onBack,
-  });
+  const _HeaderBar({required this.title, required this.onBack});
 
   final String title;
   final VoidCallback onBack;
@@ -243,7 +251,7 @@ class _HeaderBar extends StatelessWidget {
               child: const SizedBox(
                 width: 35,
                 height: 35,
-                child: Image(image: AssetImage(AppAssets.iconBack)),
+                child: MoviAssetIcon(AppAssets.iconBack, color: Colors.white),
               ),
             ),
           ),

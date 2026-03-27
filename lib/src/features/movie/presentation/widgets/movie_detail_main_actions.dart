@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
@@ -60,10 +61,11 @@ class MovieDetailMainActions extends ConsumerWidget {
                 large: true,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 color: const Color(0xFF292929),
-                trailingIcon: Image.asset(
+                trailingIcon: const MoviAssetIcon(
                   AppAssets.iconStarFilled,
                   width: 18,
                   height: 18,
+                  color: AppColors.ratingAccent,
                 ),
               ),
             ],

@@ -9,6 +9,7 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
@@ -216,7 +217,10 @@ class _SourceSelectHeader extends StatelessWidget {
                       child: const SizedBox(
                         width: 35,
                         height: 35,
-                        child: Image(image: AssetImage(AppAssets.iconBack)),
+                        child: MoviAssetIcon(
+                          AppAssets.iconBack,
+                          color: Colors.white,
+                        ),
                       ),
                     );
                   },

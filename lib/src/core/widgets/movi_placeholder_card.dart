@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
 enum PlaceholderType { person, movie, series }
 
@@ -37,10 +37,6 @@ class MoviPlaceholderCard extends ConsumerWidget {
     }
   }
 
-  bool _isSvg() {
-    return type == PlaceholderType.person;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
@@ -64,21 +60,10 @@ class MoviPlaceholderCard extends ConsumerWidget {
                     : effectiveHeight) *
                 0.4;
 
-            if (_isSvg()) {
-              return SvgPicture.asset(
-                _getIconAsset(),
-                width: iconSize,
-                height: iconSize,
-                colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
-              );
-            }
-
-            return Image.asset(
+            return MoviAssetIcon(
               _getIconAsset(),
-              width: iconSize,
-              height: iconSize,
+              size: iconSize,
               color: Colors.white,
-              fit: BoxFit.contain,
             );
           },
         ),

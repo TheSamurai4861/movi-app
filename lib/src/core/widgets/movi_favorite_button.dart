@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
 /// Favorite toggle button using asset images.
 /// - Crossfades (opacity) between unfilled and filled stars in 300ms.
@@ -13,6 +14,8 @@ class MoviFavoriteButton extends StatefulWidget {
   /// Optional custom asset paths. Defaults to AppAssets star icons.
   final String filledAsset;
   final String unfilledAsset;
+  final Color filledColor;
+  final Color unfilledColor;
 
   /// Size of the tappable area (width & height). Defaults to 35.
   final double size;
@@ -23,6 +26,8 @@ class MoviFavoriteButton extends StatefulWidget {
     required this.onPressed,
     this.filledAsset = AppAssets.iconStarFilled,
     this.unfilledAsset = AppAssets.iconStarUnfilled,
+    this.filledColor = Colors.white,
+    this.unfilledColor = Colors.white,
     this.size = 35,
   });
 
@@ -74,22 +79,22 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
                       duration: duration,
                       curve: Curves.easeInOut,
                       opacity: widget.isFavorite ? 0.0 : 1.0,
-                      child: Image.asset(
+                      child: MoviAssetIcon(
                         widget.unfilledAsset,
                         width: 36,
                         height: 36,
-                        fit: BoxFit.contain,
+                        color: widget.unfilledColor,
                       ),
                     ),
                     AnimatedOpacity(
                       duration: duration,
                       curve: Curves.easeInOut,
                       opacity: widget.isFavorite ? 1.0 : 0.0,
-                      child: Image.asset(
+                      child: MoviAssetIcon(
                         widget.filledAsset,
                         width: 36,
                         height: 36,
-                        fit: BoxFit.contain,
+                        color: widget.filledColor,
                       ),
                     ),
                   ],

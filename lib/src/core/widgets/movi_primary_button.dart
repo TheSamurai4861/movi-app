@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
+
 /// Primary action button aligned with the app theme.
 /// - Fills the maximum horizontal space allowed by its parent.
 /// - Uses FilledButton to inherit `filledButtonTheme` from AppTheme.
@@ -49,12 +51,10 @@ class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
 
     final effectiveOnPressed = widget.loading ? null : widget.onPressed;
 
-    Widget buildIcon() => Image.asset(
+    Widget buildIcon() => MoviAssetIcon(
       widget.assetIcon!,
-      width: widget.iconSize,
-      height: widget.iconSize,
+      size: widget.iconSize,
       color: scheme.onPrimary,
-      fit: BoxFit.contain,
     );
 
     Widget content;

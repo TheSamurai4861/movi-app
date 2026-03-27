@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -66,28 +67,28 @@ class LibraryPlaylistCard extends ConsumerWidget {
           size: 40,
         );
       case LibraryPlaylistType.favoriteMovies:
-        return Image.asset(
+        return const MoviAssetIcon(
           AppAssets.iconMovie,
           width: 40,
           height: 40,
           color: Colors.white,
         );
       case LibraryPlaylistType.favoriteSeries:
-        return Image.asset(
+        return const MoviAssetIcon(
           AppAssets.iconSeries,
           width: 40,
           height: 40,
           color: Colors.white,
         );
       case LibraryPlaylistType.watchHistory:
-        return Image.asset(
+        return const MoviAssetIcon(
           AppAssets.iconForward,
           width: 40,
           height: 40,
           color: Colors.white,
         );
       case LibraryPlaylistType.userPlaylist:
-        return Image.asset(
+        return const MoviAssetIcon(
           AppAssets.iconPlaylist,
           width: 40,
           height: 40,

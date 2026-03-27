@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -148,7 +149,10 @@ class _Header extends StatelessWidget {
                     child: const SizedBox(
                       width: 35,
                       height: 35,
-                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                      child: MoviAssetIcon(
+                        AppAssets.iconBack,
+                        color: Colors.white,
+                      ),
                     ),
                   );
                 },

@@ -585,14 +585,20 @@ class _SearchField extends StatelessWidget {
           hintText: hintText,
           prefixIcon: Padding(
             padding: const EdgeInsets.only(left: 12, right: 8),
-            child: Image.asset(AppAssets.iconSearch, width: 25, height: 25),
+            child: const MoviAssetIcon(
+              AppAssets.iconSearch,
+              width: 25,
+              height: 25,
+              color: Colors.white70,
+            ),
           ),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
-                  icon: Image.asset(
+                  icon: const MoviAssetIcon(
                     AppAssets.iconDelete,
                     width: 25,
                     height: 25,
+                    color: Colors.white,
                   ),
                   onPressed: onClear,
                   tooltip: clearTooltip,
@@ -1003,10 +1009,11 @@ class _SearchHistoryItem extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: Image.asset(
+                  icon: const MoviAssetIcon(
                     AppAssets.iconDelete,
                     width: 25,
                     height: 25,
+                    color: Colors.white,
                   ),
                   onPressed: onRemove,
                   tooltip: AppLocalizations.of(context)!.delete,

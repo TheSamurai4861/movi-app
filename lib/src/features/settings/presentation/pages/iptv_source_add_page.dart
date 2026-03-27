@@ -7,6 +7,7 @@ import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart'
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
@@ -364,7 +365,10 @@ class _Header extends StatelessWidget {
                     child: const SizedBox(
                       width: 35,
                       height: 35,
-                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                      child: MoviAssetIcon(
+                        AppAssets.iconBack,
+                        color: Colors.white,
+                      ),
                     ),
                   );
                 },

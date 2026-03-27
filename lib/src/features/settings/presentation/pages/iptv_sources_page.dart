@@ -13,6 +13,7 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
@@ -341,7 +342,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                               ),
                               prefixIcon: Padding(
                                 padding: const EdgeInsets.all(12),
-                                child: Image.asset(
+                                child: const MoviAssetIcon(
                                   AppAssets.iconSearch,
                                   width: 20,
                                   height: 20,
@@ -507,7 +508,10 @@ class _HeaderBar extends StatelessWidget {
                     child: const SizedBox(
                       width: 35,
                       height: 35,
-                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                      child: MoviAssetIcon(
+                        AppAssets.iconBack,
+                        color: Colors.white,
+                      ),
                     ),
                   );
                 },
@@ -540,7 +544,7 @@ class _HeaderBar extends StatelessWidget {
                       backgroundColor: state.focused
                           ? Colors.white.withValues(alpha: 0.14)
                           : Colors.transparent,
-                      child: Image.asset(
+                      child: MoviAssetIcon(
                         AppAssets.iconSearch,
                         width: 30,
                         height: 30,
@@ -561,7 +565,7 @@ class _HeaderBar extends StatelessWidget {
                       backgroundColor: state.focused
                           ? Colors.white.withValues(alpha: 0.14)
                           : Colors.transparent,
-                      child: Image.asset(
+                      child: const MoviAssetIcon(
                         AppAssets.iconPlus,
                         width: 25,
                         height: 25,
@@ -643,11 +647,11 @@ class _SourceCard extends ConsumerWidget {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: onDelete,
-                  child: Image.asset(
+                  child: const MoviAssetIcon(
                     AppAssets.iconTrash,
                     width: 28,
                     height: 28,
-                    color: const Color(0xFFFF3B30),
+                    color: Color(0xFFFF3B30),
                   ),
                 ),
               ],

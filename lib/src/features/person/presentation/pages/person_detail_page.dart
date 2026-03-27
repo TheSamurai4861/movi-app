@@ -351,7 +351,10 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                     child: const SizedBox(
                       width: 35,
                       height: 35,
-                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                      child: MoviAssetIcon(
+                        AppAssets.iconBack,
+                        color: Colors.white,
+                      ),
                     ),
                   );
                 },

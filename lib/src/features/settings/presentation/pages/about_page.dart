@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_bottom_nav_bar.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
@@ -166,7 +167,10 @@ class _HeaderBar extends StatelessWidget {
                     child: const SizedBox(
                       width: 35,
                       height: 35,
-                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                      child: MoviAssetIcon(
+                        AppAssets.iconBack,
+                        color: Colors.white,
+                      ),
                     ),
                   );
                 },

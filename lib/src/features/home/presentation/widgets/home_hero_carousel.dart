@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
@@ -1046,11 +1047,14 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                             if (ratingText != null)
                                               MoviPill(
                                                 ratingText,
-                                                trailingIcon: Image.asset(
-                                                  AppAssets.iconStarFilled,
-                                                  width: 18,
-                                                  height: 18,
-                                                ),
+                                                trailingIcon:
+                                                    const MoviAssetIcon(
+                                                      AppAssets.iconStarFilled,
+                                                      width: 18,
+                                                      height: 18,
+                                                      color: AppColors
+                                                          .ratingAccent,
+                                                    ),
                                                 large: true,
                                               ),
                                           ],
@@ -1294,10 +1298,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                             if (ratingText != null)
                               MoviPill(
                                 ratingText,
-                                trailingIcon: Image.asset(
+                                trailingIcon: const MoviAssetIcon(
                                   AppAssets.iconStarFilled,
                                   width: 18,
                                   height: 18,
+                                  color: AppColors.ratingAccent,
                                 ),
                                 large: true,
                               ),

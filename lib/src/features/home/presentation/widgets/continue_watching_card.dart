@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_pill.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 
@@ -209,10 +211,11 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
               if (widget.rating != null)
                 MoviPill(
                   _formatRating(widget.rating),
-                  trailingIcon: Image.asset(
+                  trailingIcon: const MoviAssetIcon(
                     AppAssets.iconStarFilled,
                     width: 14,
                     height: 14,
+                    color: AppColors.ratingAccent,
                   ),
                 ),
             ],

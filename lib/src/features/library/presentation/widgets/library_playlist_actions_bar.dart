@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
 /// Barre d'actions pour la page de détail de playlist.
 ///
 /// Contient :
 /// - Lire aléatoirement : MoviPrimaryButton qui prend toute la largeur disponible
-/// - Trier : bouton rond en gris (même hauteur que le primaire) avec l'icône sort.png
+/// - Trier : bouton rond en gris (même hauteur que le primaire) avec l'icône de tri
 class LibraryPlaylistActionsBar extends StatelessWidget {
   const LibraryPlaylistActionsBar({
     super.key,
@@ -46,15 +47,13 @@ class LibraryPlaylistActionsBar extends StatelessWidget {
           width: buttonSize,
           height: buttonSize,
           child: Material(
-            color: isEmpty
-                ? const Color(0xFF1A1A1A)
-                : const Color(0xFF2A2A2A),
+            color: isEmpty ? const Color(0xFF1A1A1A) : const Color(0xFF2A2A2A),
             shape: const CircleBorder(),
             child: InkWell(
               onTap: isEmpty ? null : onSortPressed,
               customBorder: const CircleBorder(),
               child: Center(
-                child: Image.asset(
+                child: MoviAssetIcon(
                   AppAssets.iconSort,
                   width: iconSize,
                   height: iconSize,

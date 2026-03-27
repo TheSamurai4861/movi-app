@@ -8,6 +8,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -733,7 +734,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   child: SizedBox(
                     width: 35,
                     height: 35,
-                    child: Image.asset(AppAssets.iconBack),
+                    child: const MoviAssetIcon(
+                      AppAssets.iconBack,
+                      color: Colors.white,
+                    ),
                   ),
                 );
               },
@@ -762,7 +766,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   child: SizedBox(
                     width: 25,
                     height: 35,
-                    child: Image.asset(AppAssets.iconMore),
+                    child: const MoviAssetIcon(
+                      AppAssets.iconMore,
+                      color: Colors.white,
+                    ),
                   ),
                 );
               },
@@ -918,10 +925,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           large: true,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           color: pillColor,
-          trailingIcon: Image.asset(
+          trailingIcon: const MoviAssetIcon(
             AppAssets.iconStarFilled,
             width: 18,
             height: 18,
+            color: AppColors.ratingAccent,
           ),
         ),
       ],
@@ -1270,7 +1278,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: Image.asset(AppAssets.iconSort),
+                  child: const MoviAssetIcon(
+                    AppAssets.iconSort,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

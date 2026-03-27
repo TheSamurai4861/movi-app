@@ -179,3 +179,13 @@ Etat obtenu :
 - doublon supprime ;
 - chemins centralises de facon plus coherente ;
 - configuration Flutter alignee avec la nouvelle arborescence.
+
+---
+
+## Suite de la migration SVG
+
+Un inventaire dedie aux correspondances PNG -> SVG et aux variantes d'etat a ete ajoute ici :
+
+- [svg_icon_inventory_2026-03-27.md](/c:/Users/matte/Documents/DEV/Flutter/movi-app/docs/03_runbook/svg_icon_inventory_2026-03-27.md)
+
+Ce document couvre aussi la phase de nettoyage final des PNG obsoletes sous `assets/icons/`.

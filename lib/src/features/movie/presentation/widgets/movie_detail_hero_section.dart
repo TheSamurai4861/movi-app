@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_hero_image.dart';
 
@@ -121,7 +122,10 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
                         child: const SizedBox(
                           width: 35,
                           height: 35,
-                          child: Image(image: AssetImage(AppAssets.iconBack)),
+                          child: MoviAssetIcon(
+                            AppAssets.iconBack,
+                            color: Colors.white,
+                          ),
                         ),
                       );
                     },
@@ -153,7 +157,10 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
                         child: const SizedBox(
                           width: 25,
                           height: 35,
-                          child: Image(image: AssetImage(AppAssets.iconMore)),
+                          child: MoviAssetIcon(
+                            AppAssets.iconMore,
+                            color: Colors.white,
+                          ),
                         ),
                       );
                     },

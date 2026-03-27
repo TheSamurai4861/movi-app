@@ -1,3 +1,4 @@
+export 'movi_asset_icon.dart';
 export 'movi_bottom_nav_bar.dart';
 export 'movi_favorite_button.dart';
 export 'movi_focusable.dart';

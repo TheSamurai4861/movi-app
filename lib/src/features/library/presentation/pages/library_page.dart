@@ -661,11 +661,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     padding: const EdgeInsets.all(10),
                     shape: const CircleBorder(),
                   ),
-                  icon: Image.asset(
+                  icon: MoviAssetIcon(
                     AppAssets.iconSearch,
                     width: 28,
                     height: 28,
-                    color: _isSearchVisible ? theme.colorScheme.primary : null,
+                    color: _isSearchVisible
+                        ? theme.colorScheme.primary
+                        : Colors.white,
                   ),
                   onPressed: _toggleSearch,
                   tooltip: l10n.searchTitle,
@@ -677,7 +679,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     padding: const EdgeInsets.all(10),
                     shape: const CircleBorder(),
                   ),
-                  icon: Image.asset(AppAssets.iconPlus, width: 24, height: 24),
+                  icon: const MoviAssetIcon(
+                    AppAssets.iconPlus,
+                    width: 24,
+                    height: 24,
+                    color: Colors.white,
+                  ),
                   onPressed: _showCreatePlaylistDialog,
                   tooltip: l10n.createPlaylistTitle,
                 ),
@@ -924,14 +931,20 @@ class _LibrarySearchField extends StatelessWidget {
             hintText: hintText,
             prefixIcon: Padding(
               padding: const EdgeInsets.only(left: 12, right: 8),
-              child: Image.asset(AppAssets.iconSearch, width: 25, height: 25),
+              child: const MoviAssetIcon(
+                AppAssets.iconSearch,
+                width: 25,
+                height: 25,
+                color: Colors.white70,
+              ),
             ),
             suffixIcon: value.text.isNotEmpty
                 ? IconButton(
-                    icon: Image.asset(
+                    icon: const MoviAssetIcon(
                       AppAssets.iconDelete,
                       width: 25,
                       height: 25,
+                      color: Colors.white,
                     ),
                     onPressed: onClear,
                     tooltip: clearTooltip,

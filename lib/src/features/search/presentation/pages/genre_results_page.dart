@@ -356,7 +356,10 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                         child: SizedBox(
                           width: 35,
                           height: 35,
-                          child: Image.asset(AppAssets.iconBack),
+                          child: const MoviAssetIcon(
+                            AppAssets.iconBack,
+                            color: Colors.white,
+                          ),
                         ),
                       );
                     },

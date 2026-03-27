@@ -6,6 +6,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/config/providers/config_provider.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/syncable_refresh_indicator.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
@@ -38,6 +39,9 @@ class HomeDesktopLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final navIconColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final navSelectedColor = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
       body: Row(
         children: [
@@ -47,42 +51,62 @@ class HomeDesktopLayout extends ConsumerWidget {
             labelType: NavigationRailLabelType.all,
             destinations: [
               NavigationRailDestination(
-                icon: Image.asset(AppAssets.navHome, width: 24, height: 24),
-                selectedIcon: Image.asset(
+                icon: MoviAssetIcon(
                   AppAssets.navHome,
                   width: 24,
                   height: 24,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: navIconColor,
+                ),
+                selectedIcon: MoviAssetIcon(
+                  AppAssets.navHome,
+                  width: 24,
+                  height: 24,
+                  color: navSelectedColor,
                 ),
                 label: Text(AppLocalizations.of(context)!.navHome),
               ),
               NavigationRailDestination(
-                icon: Image.asset(AppAssets.navSearch, width: 24, height: 24),
-                selectedIcon: Image.asset(
+                icon: MoviAssetIcon(
                   AppAssets.navSearch,
                   width: 24,
                   height: 24,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: navIconColor,
+                ),
+                selectedIcon: MoviAssetIcon(
+                  AppAssets.navSearch,
+                  width: 24,
+                  height: 24,
+                  color: navSelectedColor,
                 ),
                 label: Text(AppLocalizations.of(context)!.navSearch),
               ),
               NavigationRailDestination(
-                icon: Image.asset(AppAssets.navLibrary, width: 24, height: 24),
-                selectedIcon: Image.asset(
+                icon: MoviAssetIcon(
                   AppAssets.navLibrary,
                   width: 24,
                   height: 24,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: navIconColor,
+                ),
+                selectedIcon: MoviAssetIcon(
+                  AppAssets.navLibrary,
+                  width: 24,
+                  height: 24,
+                  color: navSelectedColor,
                 ),
                 label: Text(AppLocalizations.of(context)!.navLibrary),
               ),
               NavigationRailDestination(
-                icon: Image.asset(AppAssets.navSettings, width: 24, height: 24),
-                selectedIcon: Image.asset(
+                icon: MoviAssetIcon(
                   AppAssets.navSettings,
                   width: 24,
                   height: 24,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: navIconColor,
+                ),
+                selectedIcon: MoviAssetIcon(
+                  AppAssets.navSettings,
+                  width: 24,
+                  height: 24,
+                  color: navSelectedColor,
                 ),
                 label: Text(AppLocalizations.of(context)!.navSettings),
               ),
