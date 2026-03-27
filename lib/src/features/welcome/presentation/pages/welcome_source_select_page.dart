@@ -80,7 +80,7 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
             onPressed: () => _handleBack(context),
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           ),
-          title: const Text('Choisir une source'),
+          title: Text(l10n.activeSourceTitle),
           actions: [
             TextButton(
               onPressed: () => context.go(AppRouteNames.welcomeSources),

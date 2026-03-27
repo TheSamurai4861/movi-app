@@ -267,6 +267,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsRefreshIptvPlaylistsTitle => 'Refresh IPTV playlists';
 
   @override
+  String get activeSourceTitle => 'Active source';
+
+  @override
   String get statusActive => 'Active';
 
   @override

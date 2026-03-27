@@ -273,6 +273,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'IPTV-afspeellijsten vernieuwen';
 
   @override
+  String get activeSourceTitle => 'Actieve bron';
+
+  @override
   String get statusActive => 'Actief';
 
   @override

@@ -127,8 +127,8 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
               child: Column(
                 children: [
                   const SizedBox(height: 16),
-                  _SourceSelectHeader(
-                    title: 'Choisir une source active',
+                  IptvSourceSelectHeader(
+                    title: l10n.activeSourceTitle,
                     onBack: _isSwitching ? null : () => context.pop(),
                   ),
                   const SizedBox(height: 16),
@@ -185,8 +185,12 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
   }
 }
 
-class _SourceSelectHeader extends StatelessWidget {
-  const _SourceSelectHeader({required this.title, required this.onBack});
+class IptvSourceSelectHeader extends StatelessWidget {
+  const IptvSourceSelectHeader({
+    super.key,
+    required this.title,
+    required this.onBack,
+  });
 
   final String title;
   final VoidCallback? onBack;

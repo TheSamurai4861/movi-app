@@ -95,6 +95,7 @@
   "iptvPasswordHint": "Contraseña Xtream",
   "actionConnect": "Conectar",
   "settingsRefreshIptvPlaylistsTitle": "Actualizar listas IPTV",
+  "activeSourceTitle": "Fuente activa",
   "statusActive": "Activo",
   "statusNoActiveSource": "Sin fuente activa",
   "overlayPreparingHome": "Preparando inicio…",

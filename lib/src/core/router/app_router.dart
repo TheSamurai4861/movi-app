@@ -43,7 +43,10 @@ RouterBundle createRouterBundle({
   );
 
   final router = GoRouter(
-    initialLocation: AppRoutePaths.launch,
+    initialLocation: const String.fromEnvironment(
+      'MOVI_INITIAL_ROUTE',
+      defaultValue: AppRoutePaths.launch,
+    ),
     refreshListenable: guard,
     redirect: guard.handle,
     routes: buildAppRoutes(guard),
@@ -68,7 +71,9 @@ RouterBundle createRouterBundle({
 /// ⚠️ Attention : cette méthode ne permet pas de disposer le [LaunchRedirectGuard]
 /// (subscriptions auth + listeners). Préfère [createRouterHandle] (ou
 /// [createRouterBundle]) et dispose explicitement `router` + `guard`.
-@Deprecated('Use createRouterHandle(...) and dispose it, or createRouterBundle(...).')
+@Deprecated(
+  'Use createRouterHandle(...) and dispose it, or createRouterBundle(...).',
+)
 GoRouter createRouter({
   required AppStateController appStateController,
   required AppLogger logger,

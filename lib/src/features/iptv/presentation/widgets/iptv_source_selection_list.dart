@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
 
@@ -51,6 +52,7 @@ class _IptvSourceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return MoviFocusableAction(
       onPressed: onTap,
@@ -81,10 +83,16 @@ class _IptvSourceTile extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(account.subtitle),
+                      Text(
+                        account.sourceUrl,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.72),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -99,7 +107,7 @@ class _IptvSourceTile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      'Active',
+                      l10n.statusActive,
                       style: TextStyle(
                         color: cs.primary,
                         fontWeight: FontWeight.w600,

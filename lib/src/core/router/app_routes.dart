@@ -124,14 +124,14 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
     ),
 
     // --- Home (Shell) ------------------------------------------------------
-GoRoute(
-  path: AppRoutePaths.home,
-  name: AppRouteIds.home,
-  pageBuilder: (context, state) => const CustomTransitionPage(
-    child: AuthGate(child: AppShellPage()),
-    transitionsBuilder: _fadeTransition,
-  ),
-),
+    GoRoute(
+      path: AppRoutePaths.home,
+      name: AppRouteIds.home,
+      pageBuilder: (context, state) => const CustomTransitionPage(
+        child: AuthGate(child: AppShellPage()),
+        transitionsBuilder: _fadeTransition,
+      ),
+    ),
 
     // --- Recherche ---------------------------------------------------------
     GoRoute(
@@ -204,7 +204,9 @@ GoRoute(
         if (args == null) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityGenre)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entityGenre),
+            ),
           );
         }
 
@@ -250,9 +252,7 @@ GoRoute(
       name: AppRouteIds.pinRecovery,
       pageBuilder: (context, state) {
         final profileId = state.extra is String ? state.extra as String : null;
-        return MaterialPage(
-          child: PinRecoveryPage(profileId: profileId),
-        );
+        return MaterialPage(child: PinRecoveryPage(profileId: profileId));
       },
     ),
 
@@ -267,8 +267,7 @@ GoRoute(
     GoRoute(
       path: AppRoutePaths.about,
       name: AppRouteIds.about,
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: AboutPage()),
+      pageBuilder: (context, state) => const MaterialPage(child: AboutPage()),
     ),
     GoRoute(
       path: AppRoutePaths.iptvConnect,
@@ -302,7 +301,9 @@ GoRoute(
         if (accountId == null || accountId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entitySource)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySource),
+            ),
           );
         }
         return MaterialPage(child: IptvSourceEditPage(accountId: accountId));
@@ -316,7 +317,9 @@ GoRoute(
         if (accountId == null || accountId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entitySource)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySource),
+            ),
           );
         }
         return MaterialPage(
@@ -334,13 +337,15 @@ GoRoute(
         final movieId = extra is ContentRouteArgs
             ? extra.id
             : extra is MoviMedia
-                ? extra.id
-                : null;
+            ? extra.id
+            : null;
 
         if (movieId == null || movieId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityMovie)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entityMovie),
+            ),
           );
         }
 
@@ -360,7 +365,9 @@ GoRoute(
         if (movieId == null || movieId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityMovie)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entityMovie),
+            ),
           );
         }
 
@@ -380,13 +387,15 @@ GoRoute(
         final seriesId = extra is ContentRouteArgs
             ? extra.id
             : extra is MoviMedia
-                ? extra.id
-                : null;
+            ? extra.id
+            : null;
 
         if (seriesId == null || seriesId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entitySeries)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySeries),
+            ),
           );
         }
 
@@ -406,7 +415,9 @@ GoRoute(
         if (seriesId == null || seriesId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entitySeries)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySeries),
+            ),
           );
         }
 
@@ -429,7 +440,9 @@ GoRoute(
         if (personSummary == null) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityPerson)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entityPerson),
+            ),
           );
         }
 
@@ -446,7 +459,9 @@ GoRoute(
         if (personId == null || personId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityPerson)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entityPerson),
+            ),
           );
         }
         return MaterialPage(child: PersonDetailPage(personId: personId));
@@ -472,7 +487,9 @@ GoRoute(
         if (sagaId == null || sagaId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entitySaga)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySaga),
+            ),
           );
         }
 
@@ -488,7 +505,9 @@ GoRoute(
         if (sagaId == null || sagaId.trim().isEmpty) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entitySaga)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySaga),
+            ),
           );
         }
 
@@ -539,7 +558,9 @@ GoRoute(
         if (videoSource == null) {
           final l10n = AppLocalizations.of(context)!;
           return MaterialPage(
-            child: NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityVideo)),
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entityVideo),
+            ),
           );
         }
 
@@ -572,9 +593,7 @@ class _LaunchGateState extends ConsumerState<_LaunchGate> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(appLaunchRunnerProvider)('startup'),
-    );
+    Future.microtask(() => ref.read(appLaunchRunnerProvider)('startup'));
   }
 
   @override

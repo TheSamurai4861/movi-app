@@ -170,28 +170,40 @@ Future<void> _registerLocalePreferences() async {
 
   final locale = ui.PlatformDispatcher.instance.locale;
   final deviceCode = '${locale.languageCode}-${locale.countryCode ?? 'US'}';
-  
+
   // Vérifier si la langue de l'appareil est supportée, sinon fallback sur anglais
   final supportedLocales = const [
-    'en', 'en-US', 'en-GB',
-    'es', 'es-ES',
-    'fr', 'fr-FR', 'fr-MM',
-    'de', 'de-DE',
-    'it', 'it-IT',
-    'nl', 'nl-NL',
-    'pl', 'pl-PL',
-    'pt', 'pt-PT', 'pt-BR',
+    'en',
+    'en-US',
+    'en-GB',
+    'es',
+    'es-ES',
+    'fr',
+    'fr-FR',
+    'de',
+    'de-DE',
+    'it',
+    'it-IT',
+    'nl',
+    'nl-NL',
+    'pl',
+    'pl-PL',
+    'pt',
+    'pt-PT',
+    'pt-BR',
   ];
-  
+
   // Normaliser le code de langue de l'appareil
   final normalizedDeviceCode = deviceCode.toLowerCase();
   final deviceLangCode = locale.languageCode.toLowerCase();
-  
+
   // Vérifier si la langue complète est supportée, sinon vérifier juste le code langue
   String? supportedCode;
   if (supportedLocales.any((s) => s.toLowerCase() == normalizedDeviceCode)) {
     supportedCode = deviceCode;
-  } else if (supportedLocales.any((s) => s.toLowerCase().startsWith('$deviceLangCode-'))) {
+  } else if (supportedLocales.any(
+    (s) => s.toLowerCase().startsWith('$deviceLangCode-'),
+  )) {
     // Trouver le premier code supporté pour cette langue
     supportedCode = supportedLocales.firstWhere(
       (s) => s.toLowerCase().startsWith('$deviceLangCode-'),
@@ -202,7 +214,9 @@ Future<void> _registerLocalePreferences() async {
     supportedCode = 'en-US';
   }
 
-  final prefs = await LocalePreferences.create(defaultLanguageCode: supportedCode);
+  final prefs = await LocalePreferences.create(
+    defaultLanguageCode: supportedCode,
+  );
   sl.registerSingleton<LocalePreferences>(prefs);
 }
 
@@ -421,7 +435,8 @@ void _registerSharedServices() {
     );
   }
 
-  if (!sl.isRegistered<AgePolicy>() && sl.isRegistered<ContentRatingRepository>()) {
+  if (!sl.isRegistered<AgePolicy>() &&
+      sl.isRegistered<ContentRatingRepository>()) {
     sl.registerLazySingleton<AgePolicy>(
       () => AgePolicy(sl<ContentRatingRepository>()),
     );
@@ -469,25 +484,23 @@ void _registerSharedServices() {
   }
 
   if (!sl.isRegistered<PinRecoveryRepository>()) {
-    sl.registerLazySingleton<PinRecoveryRepository>(
-      () {
-        if (!sl.isRegistered<SupabaseClient>()) {
-          const config = SupabaseConfig.fromEnvironment;
-          if (!config.isConfigured) {
-            throw StateError(
-              'Supabase is not configured. Cannot register PinRecoveryRepository.',
-            );
-          }
+    sl.registerLazySingleton<PinRecoveryRepository>(() {
+      if (!sl.isRegistered<SupabaseClient>()) {
+        const config = SupabaseConfig.fromEnvironment;
+        if (!config.isConfigured) {
           throw StateError(
-            'SupabaseClient should be registered before PinRecoveryRepository',
+            'Supabase is not configured. Cannot register PinRecoveryRepository.',
           );
         }
-        return PinRecoveryRepositoryImpl(
-          client: sl<SupabaseClient>(),
-          profilePin: sl<ProfilePinEdgeService>(),
+        throw StateError(
+          'SupabaseClient should be registered before PinRecoveryRepository',
         );
-      },
-    );
+      }
+      return PinRecoveryRepositoryImpl(
+        client: sl<SupabaseClient>(),
+        profilePin: sl<ProfilePinEdgeService>(),
+      );
+    });
   }
 
   if (!sl.isRegistered<PlaylistMaturityClassifier>()) {
@@ -540,7 +553,6 @@ void _registerSharedServices() {
       () => sl<PlaylistTmdbEnrichmentService>(),
     );
   }
-
 }
 
 /* -------------------------------------------------------------------------- */
@@ -572,7 +584,7 @@ void _registerFeatureModules() {
   PersonDataModule.register();
   SagaDataModule.register();
   SearchDataModule.register(); // Enregistre SimilarityService
-  
+
   // Enregistrer TmdbIdResolverService après SearchDataModule (qui enregistre SimilarityService)
   if (!sl.isRegistered<TmdbIdResolverService>() &&
       sl.isRegistered<TmdbMovieRemoteDataSource>() &&
@@ -590,7 +602,7 @@ void _registerFeatureModules() {
       ),
     );
   }
-  
+
   PlaylistDataModule.register();
   HomeFeedDataModule.register();
   LibraryDataModule.register();

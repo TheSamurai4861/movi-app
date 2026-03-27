@@ -276,6 +276,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'IPTV-Wiedergabelisten aktualisieren';
 
   @override
+  String get activeSourceTitle => 'Aktive Quelle';
+
+  @override
   String get statusActive => 'Aktiv';
 
   @override

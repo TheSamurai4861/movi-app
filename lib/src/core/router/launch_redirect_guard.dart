@@ -1,8 +1,9 @@
 // lib/src/core/router/launch_redirect_guard.dart
 import 'dart:async';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
@@ -27,11 +28,12 @@ class LaunchRedirectGuard extends ChangeNotifier {
     required AppStateController appStateController,
     required AuthRepository authRepository,
     required AppLaunchStateRegistry launchRegistry,
-  })  : _appStateController = appStateController,
-        _authRepository = authRepository,
-        _launchRegistry = launchRegistry {
-    _removeAppStateListener =
-        _appStateController.addListener(_onAppStateChanged);
+  }) : _appStateController = appStateController,
+       _authRepository = authRepository,
+       _launchRegistry = launchRegistry {
+    _removeAppStateListener = _appStateController.addListener(
+      _onAppStateChanged,
+    );
     _launchRegistry.addListener(_onLaunchStateChanged);
 
     // Initialisation immédiate de l’état d’auth
@@ -45,8 +47,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     // Écoute des changements d’auth (login / logout / refresh)
-    _authSubscription =
-        _authRepository.onAuthStateChange.listen(_onAuthChanged);
+    _authSubscription = _authRepository.onAuthStateChange.listen(
+      _onAuthChanged,
+    );
   }
 
   final AppLogger logger;
@@ -68,6 +71,12 @@ class LaunchRedirectGuard extends ChangeNotifier {
   /// Méthode appelée par [GoRouter.redirect].
   FutureOr<String?> handle(BuildContext _, GoRouterState state) {
     final current = state.matchedLocation;
+    final isDebugPreviewRoute =
+        kDebugMode && current.startsWith(AppRoutePaths.debug);
+
+    if (isDebugPreviewRoute) {
+      return null;
+    }
 
     final onLaunch = current == AppRoutePaths.launch;
     final onAuth = current == AppRoutePaths.authOtp;
@@ -179,7 +188,8 @@ class LaunchRedirectGuard extends ChangeNotifier {
   void _safeNotify() {
     if (_pendingNotify) return;
     final phase = SchedulerBinding.instance.schedulerPhase;
-    final inBuild = phase == SchedulerPhase.persistentCallbacks ||
+    final inBuild =
+        phase == SchedulerPhase.persistentCallbacks ||
         phase == SchedulerPhase.transientCallbacks ||
         phase == SchedulerPhase.midFrameMicrotasks;
     if (inBuild) {

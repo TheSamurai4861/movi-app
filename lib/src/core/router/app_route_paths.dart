@@ -4,6 +4,8 @@
 ///
 /// À utiliser avec `context.go(...)` / `context.push(...)`.
 class AppRoutePaths {
+  static const debug = '/debug';
+
   static const launch = '/launch';
 
   /// Compat : route historique. À garder le temps de migrer.

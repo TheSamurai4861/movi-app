@@ -95,6 +95,7 @@
   "iptvPasswordHint": "Xtream wachtwoord",
   "actionConnect": "Verbinden",
   "settingsRefreshIptvPlaylistsTitle": "IPTV-afspeellijsten vernieuwen",
+  "activeSourceTitle": "Actieve bron",
   "statusActive": "Actief",
   "statusNoActiveSource": "Geen actieve bron",
   "overlayPreparingHome": "Startpagina voorbereiden…",

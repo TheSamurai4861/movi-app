@@ -19,6 +19,9 @@ class AnyIptvAccount {
 
   String getHost() => xtream?.endpoint.host ?? stalker!.endpoint.host;
 
+  String get sourceUrl =>
+      xtream?.endpoint.toRawUrl() ?? stalker!.endpoint.toRawUrl();
+
   String getUsername() => xtream?.username ?? stalker!.macAddress;
 
   String get subtitle {

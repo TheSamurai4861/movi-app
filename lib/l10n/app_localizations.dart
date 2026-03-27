@@ -104,7 +104,6 @@ abstract class AppLocalizations {
     Locale('en'),
     Locale('es'),
     Locale('fr'),
-    Locale('fr', 'MM'),
     Locale('it'),
     Locale('nl'),
     Locale('pl'),
@@ -608,6 +607,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refresh IPTV playlists'**
   String get settingsRefreshIptvPlaylistsTitle;
+
+  /// No description provided for @activeSourceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Active source'**
+  String get activeSourceTitle;
 
   /// No description provided for @statusActive.
   ///
@@ -1662,18 +1667,6 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-  // Lookup logic when language+country codes are specified.
-  switch (locale.languageCode) {
-    case 'fr':
-      {
-        switch (locale.countryCode) {
-          case 'MM':
-            return AppLocalizationsFrMm();
-        }
-        break;
-      }
-  }
-
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'de':
