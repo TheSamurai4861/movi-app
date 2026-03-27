@@ -1,23 +1,23 @@
-// lib/src/features/welcome/presentation/pages/welcome_source_loading_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
-import 'package:movi/src/core/state/app_state_provider.dart' as asp;
-import 'package:movi/src/core/logging/logging.dart';
 
-/// Page de chargement initiale qui attend que les playlists IPTV soient
-/// entièrement chargées avant de rediriger vers l'accueil.
+/// Startup page that waits for IPTV playlists to be fully loaded
+/// before redirecting to home.
 class WelcomeSourceLoadingPage extends ConsumerStatefulWidget {
   const WelcomeSourceLoadingPage({super.key});
 
@@ -48,7 +48,6 @@ class _WelcomeSourceLoadingPageState
     });
 
     try {
-      // 1. Récupérer la source active
       final appStateController = ref.read(asp.appStateControllerProvider);
       final activeSources = appStateController.activeIptvSourceIds;
 
@@ -64,20 +63,17 @@ class _WelcomeSourceLoadingPageState
       final locator = ref.read(slProvider);
       final iptvLocal = locator<IptvLocalRepository>();
 
-      // 2. Détecter le type de source (Xtream ou Stalker)
       final xtreamAccounts = await iptvLocal.getAccounts();
       final stalkerAccounts = await iptvLocal.getStalkerAccounts();
 
       final xtreamIds = xtreamAccounts.map((a) => a.id).toSet();
       final stalkerIds = stalkerAccounts.map((a) => a.id).toSet();
 
-      // 3. Vérifier si les playlists sont déjà chargées
       final hasAnyItems = await iptvLocal.hasAnyPlaylistItems(
         accountIds: activeSources,
       );
 
       if (!hasAnyItems) {
-        // Premier lancement : charger les playlists
         setState(() {
           _statusMessage = 'Téléchargement des playlists...';
         });
@@ -131,7 +127,6 @@ class _WelcomeSourceLoadingPageState
           }
         }
 
-        // Vérifier que les playlists sont bien chargées
         final hasItemsAfterRefresh = await iptvLocal.hasAnyPlaylistItems(
           accountIds: activeSources,
         );
@@ -143,7 +138,6 @@ class _WelcomeSourceLoadingPageState
         }
       }
 
-      // 4. Charger le home complet avec les tendances
       if (!mounted) return;
       setState(() {
         _statusMessage = 'Préparation de l\'accueil...';
@@ -156,7 +150,6 @@ class _WelcomeSourceLoadingPageState
         force: true,
       );
 
-      // 5. Rediriger vers l'accueil
       if (!mounted) return;
       context.go(AppRouteNames.home);
     } catch (e, stackTrace) {
@@ -176,74 +169,133 @@ class _WelcomeSourceLoadingPageState
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          const Center(child: WelcomeSourceLoadingLogo()),
+          WelcomeSourceLoadingContent(
+            isLoading: _isLoading,
+            statusMessage: _statusMessage,
+            error: _error,
+            onRetry: () {
+              setState(() {
+                _error = null;
+              });
+              unawaited(_loadCatalog());
+            },
+            onContinueAnyway: () => context.go(AppRouteNames.home),
+            showHeader: false,
+            mainAxisAlignment: MainAxisAlignment.end,
+            bottomPadding: AppSpacing.lg,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class WelcomeSourceLoadingLogo extends ConsumerWidget {
+  const WelcomeSourceLoadingLogo({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xl,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  WelcomeHeader(
+    return SvgPicture.asset(
+      AppAssets.iconAppLogoSvg,
+      width: 100,
+      height: 100,
+      colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
+    );
+  }
+}
+
+class WelcomeSourceLoadingContent extends ConsumerWidget {
+  const WelcomeSourceLoadingContent({
+    super.key,
+    required this.isLoading,
+    required this.statusMessage,
+    required this.error,
+    this.onRetry,
+    this.onContinueAnyway,
+    this.showHeader = true,
+    this.mainAxisAlignment = MainAxisAlignment.center,
+    this.bottomPadding = AppSpacing.xl,
+  });
+
+  final bool isLoading;
+  final String statusMessage;
+  final String? error;
+  final VoidCallback? onRetry;
+  final VoidCallback? onContinueAnyway;
+  final bool showHeader;
+  final MainAxisAlignment mainAxisAlignment;
+  final double bottomPadding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accentColor = ref.watch(asp.currentAccentColorProvider);
+
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.xl,
+              AppSpacing.lg,
+              bottomPadding,
+            ),
+            child: Column(
+              mainAxisAlignment: mainAxisAlignment,
+              children: [
+                if (showHeader) ...[
+                  const WelcomeHeader(
                     title: 'Chargement',
                     subtitle: 'Préparation de votre bibliothèque',
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  if (_isLoading) ...[
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (_statusMessage.isNotEmpty)
-                      Text(
-                        _statusMessage,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                  ] else if (_error != null) ...[
-                    Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
+                ],
+                if (isLoading) ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (statusMessage.isNotEmpty)
                     Text(
-                      _error!,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                      statusMessage,
+                      style: Theme.of(context).textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _error = null;
-                        });
-                        unawaited(_loadCatalog());
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Réessayer'),
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: accentColor,
-                      ),
+                ] else if (error != null) ...[
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    error!,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    OutlinedButton(
-                      onPressed: () {
-                        // Continuer quand même vers l'accueil
-                        context.go(AppRouteNames.home);
-                      },
-                      child: const Text('Continuer quand même'),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  ElevatedButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Réessayer'),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: accentColor,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  OutlinedButton(
+                    onPressed: onContinueAnyway,
+                    child: const Text('Continuer quand même'),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
@@ -251,4 +303,3 @@ class _WelcomeSourceLoadingPageState
     );
   }
 }
-
