@@ -815,6 +815,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     shape: BoxShape.circle,
                     border: focused
                         ? Border.all(color: Colors.white, width: 3)
+                        : isSelected
+                        ? Border.all(color: Colors.white, width: 2)
                         : null,
                     boxShadow: isSelected || focused
                         ? [

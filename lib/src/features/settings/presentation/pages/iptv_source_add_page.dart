@@ -165,7 +165,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
             child: Column(
               children: [
                 const SizedBox(height: 16),
-                _Header(onBack: () => context.pop()),
+                IptvSourceAddHeader(onBack: () => context.pop()),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -225,7 +225,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                   ),
                                   const SizedBox(height: 20),
                                   */
-                                    _FieldBlock(
+                                    IptvSourceAddFieldBlock(
                                       label: 'Nom de la source',
                                       controller: _nameCtrl,
                                       focusNode: _nameFocusNode,
@@ -236,7 +236,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                           _serverFocusNode.requestFocus(),
                                     ),
                                     const SizedBox(height: 20),
-                                    _FieldBlock(
+                                    IptvSourceAddFieldBlock(
                                       label: 'URL du serveur',
                                       controller: _serverCtrl,
                                       focusNode: _serverFocusNode,
@@ -255,7 +255,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                           : null,
                                     ),
                                     const SizedBox(height: 20),
-                                    _FieldBlock(
+                                    IptvSourceAddFieldBlock(
                                       label: l10n.labelUsername,
                                       controller: _userCtrl,
                                       focusNode: _userFocusNode,
@@ -273,7 +273,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                           : null,
                                     ),
                                     const SizedBox(height: 20),
-                                    _FieldBlock(
+                                    IptvSourceAddFieldBlock(
                                       label: l10n.iptvPasswordLabel,
                                       controller: _passCtrl,
                                       focusNode: _passFocusNode,
@@ -336,8 +336,8 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.onBack});
+class IptvSourceAddHeader extends StatelessWidget {
+  const IptvSourceAddHeader({super.key, required this.onBack});
 
   final VoidCallback onBack;
 
@@ -391,8 +391,9 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _FieldBlock extends StatelessWidget {
-  const _FieldBlock({
+class IptvSourceAddFieldBlock extends StatelessWidget {
+  const IptvSourceAddFieldBlock({
+    super.key,
     required this.label,
     required this.controller,
     required this.enabled,
