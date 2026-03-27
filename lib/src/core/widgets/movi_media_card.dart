@@ -65,6 +65,8 @@ class MoviMediaCard extends StatefulWidget {
     this.onTap,
     this.heroTag,
     this.highlightBorder = false,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   final MoviMedia media;
@@ -73,6 +75,8 @@ class MoviMediaCard extends StatefulWidget {
   final ValueChanged<MoviMedia>? onTap;
   final Object? heroTag;
   final bool highlightBorder;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   @override
   State<MoviMediaCard> createState() => _MoviMediaCardState();
@@ -84,6 +88,7 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final focusBorderColor = theme.colorScheme.primary;
     final textStyle =
         theme.textTheme.titleSmall?.copyWith(
           color: Colors.white,
@@ -98,37 +103,53 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: widget.onTap == null ? null : () => widget.onTap?.call(widget.media),
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        onTap: widget.onTap == null
+            ? null
+            : () => widget.onTap?.call(widget.media),
         onFocusChange: (focused) {
           if (_focused == focused) return;
           setState(() => _focused = focused);
         },
         borderRadius: BorderRadius.circular(18),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: _focused
-                  ? theme.colorScheme.primary
-                  : Colors.transparent,
-              width: 2,
-            ),
-          ),
+        child: AnimatedScale(
+          scale: _focused ? 1.035 : 1,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
           child: SizedBox(
             width: widget.width,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _PosterWithOverlay(
-                  media: widget.media,
-                  width: widget.width,
-                  height: widget.height,
-                  heroTag: widget.heroTag,
-                  highlightBorder: widget.highlightBorder,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: _focused ? focusBorderColor : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: _focused
+                        ? [
+                            BoxShadow(
+                              color: focusBorderColor.withValues(alpha: 0.18),
+                              blurRadius: 18,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: _PosterWithOverlay(
+                    media: widget.media,
+                    width: widget.width,
+                    height: widget.height,
+                    heroTag: widget.heroTag,
+                    highlightBorder: widget.highlightBorder,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 MoviMarqueeText(

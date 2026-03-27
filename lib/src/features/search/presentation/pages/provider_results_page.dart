@@ -52,6 +52,10 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   bool _hasMoreShows = true;
   ProviderSubscription<Profile?>? _profileSub;
   bool _lastRestricted = false;
+  final FocusNode _firstMovieFocusNode = FocusNode(
+    debugLabel: 'ProviderResultsFirstMovie',
+  );
+  bool _didRequestInitialMovieFocus = false;
 
   bool _hasRestrictions(Profile? profile) =>
       profile != null && (profile.isKid || profile.pegiLimit != null);
@@ -79,32 +83,31 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   void initState() {
     super.initState();
     if (widget.args != null) {
-      _profileSub = ref.listenManual<Profile?>(
-        currentProfileProvider,
-        (previous, next) {
-          if (!mounted) return;
-          final restricted = _hasRestrictions(next);
-          final previousRestricted = _hasRestrictions(previous);
-          final changed =
-              previous?.id != next?.id ||
-              previous?.isKid != next?.isKid ||
-              previous?.pegiLimit != next?.pegiLimit;
+      _profileSub = ref.listenManual<Profile?>(currentProfileProvider, (
+        previous,
+        next,
+      ) {
+        if (!mounted) return;
+        final restricted = _hasRestrictions(next);
+        final previousRestricted = _hasRestrictions(previous);
+        final changed =
+            previous?.id != next?.id ||
+            previous?.isKid != next?.isKid ||
+            previous?.pegiLimit != next?.pegiLimit;
 
-          // When switching profiles, ensure lists are aligned with restrictions:
-          // - restricted => filter current lists and future loads
-          // - unrestricted => reload full lists
-          if (changed || restricted != previousRestricted) {
-            _lastRestricted = restricted;
-            if (restricted) {
-              unawaited(_applyParentalFilterToExisting(profile: next!));
-            } else {
-              unawaited(_loadMovies(loadMore: false));
-              unawaited(_loadShows(loadMore: false));
-            }
+        // When switching profiles, ensure lists are aligned with restrictions:
+        // - restricted => filter current lists and future loads
+        // - unrestricted => reload full lists
+        if (changed || restricted != previousRestricted) {
+          _lastRestricted = restricted;
+          if (restricted) {
+            unawaited(_applyParentalFilterToExisting(profile: next!));
+          } else {
+            unawaited(_loadMovies(loadMore: false));
+            unawaited(_loadShows(loadMore: false));
           }
-        },
-        fireImmediately: false,
-      );
+        }
+      }, fireImmediately: false);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -117,7 +120,22 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   @override
   void dispose() {
     _profileSub?.close();
+    _firstMovieFocusNode.dispose();
     super.dispose();
+  }
+
+  void _requestInitialMovieFocusIfNeeded(BuildContext context) {
+    final screenType = ScreenTypeResolver.instance.resolve(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    );
+    if (screenType != ScreenType.tv) return;
+    if (_didRequestInitialMovieFocus || _movies.isEmpty) return;
+    _didRequestInitialMovieFocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _firstMovieFocusNode.context == null) return;
+      _firstMovieFocusNode.requestFocus();
+    });
   }
 
   Future<List<TmdbMovieSummaryDto>> _filterMovieDtos(
@@ -172,9 +190,11 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     final collected = <TmdbMovieSummaryDto>[];
     var pagesTried = 0;
     var consecutiveEmptyPages = 0;
-    
+
     final hasRestrictions = _hasRestrictions(profile);
-    final maxPages = hasRestrictions ? _maxPrefetchPagesRestricted : _maxPrefetchPagesDefault;
+    final maxPages = hasRestrictions
+        ? _maxPrefetchPagesRestricted
+        : _maxPrefetchPagesDefault;
 
     while (_hasMoreMovies && pagesTried < maxPages) {
       final json = await client.getJson(
@@ -208,7 +228,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       }
 
       final filtered = await _filterMovieDtos(resultsRaw, profile);
-      
+
       // Détecter pages vides après filtrage
       if (filtered.isEmpty) {
         consecutiveEmptyPages++;
@@ -219,17 +239,21 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       } else {
         consecutiveEmptyPages = 0; // Reset si on trouve des items
       }
-      
+
       collected.addAll(filtered);
 
       final already = loadMore ? _movies.length : 0;
       if (already + collected.length >= minCount) break;
     }
-    
+
     // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-    final finalCount = loadMore ? _movies.length + collected.length : collected.length;
+    final finalCount = loadMore
+        ? _movies.length + collected.length
+        : collected.length;
     if (finalCount < minCount && finalCount > 0) {
-      debugPrint('[ProviderResultsPage] Only found $finalCount movies out of $minCount requested for provider $providerId');
+      debugPrint(
+        '[ProviderResultsPage] Only found $finalCount movies out of $minCount requested for provider $providerId',
+      );
     }
 
     return collected;
@@ -247,9 +271,11 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     final collected = <TmdbTvSummaryDto>[];
     var pagesTried = 0;
     var consecutiveEmptyPages = 0;
-    
+
     final hasRestrictions = _hasRestrictions(profile);
-    final maxPages = hasRestrictions ? _maxPrefetchPagesRestricted : _maxPrefetchPagesDefault;
+    final maxPages = hasRestrictions
+        ? _maxPrefetchPagesRestricted
+        : _maxPrefetchPagesDefault;
 
     while (_hasMoreShows && pagesTried < maxPages) {
       final json = await client.getJson(
@@ -283,7 +309,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       }
 
       final filtered = await _filterShowDtos(resultsRaw, profile);
-      
+
       // Détecter pages vides après filtrage
       if (filtered.isEmpty) {
         consecutiveEmptyPages++;
@@ -294,23 +320,29 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       } else {
         consecutiveEmptyPages = 0; // Reset si on trouve des items
       }
-      
+
       collected.addAll(filtered);
 
       final already = loadMore ? _shows.length : 0;
       if (already + collected.length >= minCount) break;
     }
-    
+
     // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-    final finalCount = loadMore ? _shows.length + collected.length : collected.length;
+    final finalCount = loadMore
+        ? _shows.length + collected.length
+        : collected.length;
     if (finalCount < minCount && finalCount > 0) {
-      debugPrint('[ProviderResultsPage] Only found $finalCount shows out of $minCount requested for provider $providerId');
+      debugPrint(
+        '[ProviderResultsPage] Only found $finalCount shows out of $minCount requested for provider $providerId',
+      );
     }
 
     return collected;
   }
 
-  Future<void> _applyParentalFilterToExisting({required Profile profile}) async {
+  Future<void> _applyParentalFilterToExisting({
+    required Profile profile,
+  }) async {
     if (!mounted) return;
     if (!_hasRestrictions(profile)) return;
 
@@ -405,9 +437,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       });
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorTimeoutLoading)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.errorTimeoutLoading)));
       }
     } catch (e) {
       if (!mounted) return;
@@ -502,7 +534,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   Widget build(BuildContext context) {
     if (widget.args == null) {
       final l10n = AppLocalizations.of(context)!;
-      return NotFoundPage(message: l10n.notFoundWithEntity(l10n.entityProvider));
+      return NotFoundPage(
+        message: l10n.notFoundWithEntity(l10n.entityProvider),
+      );
     }
 
     final providerName = widget.args!.providerName;
@@ -510,6 +544,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     final previewLimit = _previewLimit(context);
     final moviesToShow = _movies.take(previewLimit).toList();
     final showsToShow = _shows.take(previewLimit).toList();
+    _requestInitialMovieFocusIfNeeded(context);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -523,14 +558,24 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => context.pop(),
-                    child: SizedBox(
-                      width: 35,
-                      height: 35,
-                      child: Image.asset(AppAssets.iconBack),
-                    ),
+                  MoviFocusableAction(
+                    onPressed: () => context.pop(),
+                    semanticLabel: 'Retour',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.all(8),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image.asset(AppAssets.iconBack),
+                        ),
+                      );
+                    },
                   ),
                   Expanded(
                     child: Center(
@@ -617,12 +662,14 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                             );
                             return MoviMediaCard(
                               media: media,
-                              onTap: (mm) =>
-                                  navigateToMovieDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.movie(mm.id),
-                                  ),
+                              focusNode: identical(m, moviesToShow.first)
+                                  ? _firstMovieFocusNode
+                                  : null,
+                              onTap: (mm) => navigateToMovieDetail(
+                                context,
+                                ref,
+                                ContentRouteArgs.movie(mm.id),
+                              ),
                             );
                           })
                           .toList(growable: false),
@@ -680,12 +727,11 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                             );
                             return MoviMediaCard(
                               media: media,
-                              onTap: (mm) =>
-                                  navigateToTvDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.series(mm.id),
-                                  ),
+                              onTap: (mm) => navigateToTvDetail(
+                                context,
+                                ref,
+                                ContentRouteArgs.series(mm.id),
+                              ),
                             );
                           })
                           .toList(growable: false),

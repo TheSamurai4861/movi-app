@@ -1,6 +1,7 @@
 // lib/src/features/shell/presentation/widgets/navigation/sidebar_nav.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/features/shell/presentation/widgets/navigation/sidebar_nav_item.dart';
 
@@ -67,10 +68,7 @@ class SidebarNav extends StatefulWidget {
 /// Modèle simple de destination pour la sidebar.
 /// (Construit depuis shell_destinations.dart)
 class SidebarDestination {
-  const SidebarDestination({
-    required this.assetPath,
-    required this.tooltip,
-  });
+  const SidebarDestination({required this.assetPath, required this.tooltip});
 
   final String assetPath;
   final String tooltip;
@@ -78,11 +76,82 @@ class SidebarDestination {
 
 class _SidebarNavState extends State<SidebarNav> {
   late final FocusNode _internalFocusNode = FocusNode(debugLabel: 'SidebarNav');
+  late List<FocusNode> _itemFocusNodes = _buildItemFocusNodes(
+    widget.destinations.length,
+  );
 
   FocusNode get _focusNode => widget.focusNode ?? _internalFocusNode;
 
+  List<FocusNode> _buildItemFocusNodes(int count) {
+    return List<FocusNode>.generate(
+      count,
+      (index) => FocusNode(debugLabel: 'SidebarNavItem-$index'),
+      growable: false,
+    );
+  }
+
+  void _disposeItemFocusNodes() {
+    for (final node in _itemFocusNodes) {
+      node.dispose();
+    }
+  }
+
+  void _focusSelectedItem() {
+    if (_itemFocusNodes.isEmpty) return;
+    final index = widget.selectedIndex.clamp(0, _itemFocusNodes.length - 1);
+    _itemFocusNodes[index].requestFocus();
+  }
+
+  int _currentFocusedIndex() {
+    final focusedIndex = _itemFocusNodes.indexWhere(
+      (node) => node.hasPrimaryFocus || node.hasFocus,
+    );
+    if (focusedIndex != -1) {
+      return focusedIndex;
+    }
+    return widget.selectedIndex.clamp(0, _itemFocusNodes.length - 1);
+  }
+
+  KeyEventResult _handleSidebarDirection(LogicalKeyboardKey key) {
+    if (_itemFocusNodes.isEmpty) return KeyEventResult.ignored;
+    if (key != LogicalKeyboardKey.arrowDown &&
+        key != LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.ignored;
+    }
+
+    final currentIndex = _currentFocusedIndex();
+    final targetIndex = key == LogicalKeyboardKey.arrowDown
+        ? (currentIndex + 1).clamp(0, _itemFocusNodes.length - 1)
+        : (currentIndex - 1).clamp(0, _itemFocusNodes.length - 1);
+
+    if (targetIndex == currentIndex) {
+      return KeyEventResult.handled;
+    }
+
+    _itemFocusNodes[targetIndex].requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  @override
+  void didUpdateWidget(covariant SidebarNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.destinations.length != widget.destinations.length) {
+      _disposeItemFocusNodes();
+      _itemFocusNodes = _buildItemFocusNodes(widget.destinations.length);
+    }
+    if (oldWidget.selectedIndex != widget.selectedIndex &&
+        _focusNode.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _focusSelectedItem();
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _disposeItemFocusNodes();
     if (widget.focusNode == null) {
       _internalFocusNode.dispose();
     }
@@ -91,7 +160,8 @@ class _SidebarNavState extends State<SidebarNav> {
 
   @override
   Widget build(BuildContext context) {
-    final dividerColor = widget.dividerColor ??
+    final dividerColor =
+        widget.dividerColor ??
         Theme.of(context).dividerTheme.color ??
         Theme.of(context).colorScheme.outlineVariant;
 
@@ -108,6 +178,15 @@ class _SidebarNavState extends State<SidebarNav> {
           child: Focus(
             focusNode: _focusNode,
             autofocus: widget.autofocus,
+            onKeyEvent: (_, event) {
+              if (event is! KeyDownEvent) return KeyEventResult.ignored;
+              return _handleSidebarDirection(event.logicalKey);
+            },
+            onFocusChange: (hasFocus) {
+              if (hasFocus) {
+                _focusSelectedItem();
+              }
+            },
             child: Column(
               children: [
                 if (widget.logo != null) ...[
@@ -122,7 +201,11 @@ class _SidebarNavState extends State<SidebarNav> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (int i = 0; i < widget.destinations.length; i++) ...[
+                        for (
+                          int i = 0;
+                          i < widget.destinations.length;
+                          i++
+                        ) ...[
                           FocusTraversalOrder(
                             order: NumericFocusOrder(i.toDouble()),
                             child: SidebarNavItem(
@@ -130,6 +213,7 @@ class _SidebarNavState extends State<SidebarNav> {
                               tooltip: widget.destinations[i].tooltip,
                               selected: widget.selectedIndex == i,
                               onTap: () => widget.onDestinationSelected(i),
+                              focusNode: _itemFocusNodes[i],
                               enableHover: widget.enableHover,
                             ),
                           ),

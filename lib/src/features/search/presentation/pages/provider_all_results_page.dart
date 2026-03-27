@@ -53,32 +53,31 @@ class _ProviderAllResultsPageState
 
     // Ensure parental filtering applies even if the current profile loads later
     // (ex: profiles fetched async).
-    _profileSub = ref.listenManual<Profile?>(
-      currentProfileProvider,
-      (previous, next) {
-        if (!mounted) return;
-        final prevRestricted =
-            previous != null && (previous.isKid || previous.pegiLimit != null);
-        final nextRestricted =
-            next != null && (next.isKid || next.pegiLimit != null);
-        final changed =
-            previous?.id != next?.id ||
-            previous?.isKid != next?.isKid ||
-            previous?.pegiLimit != next?.pegiLimit;
+    _profileSub = ref.listenManual<Profile?>(currentProfileProvider, (
+      previous,
+      next,
+    ) {
+      if (!mounted) return;
+      final prevRestricted =
+          previous != null && (previous.isKid || previous.pegiLimit != null);
+      final nextRestricted =
+          next != null && (next.isKid || next.pegiLimit != null);
+      final changed =
+          previous?.id != next?.id ||
+          previous?.isKid != next?.isKid ||
+          previous?.pegiLimit != next?.pegiLimit;
 
-        if (changed || prevRestricted != nextRestricted) {
-          // Reload from scratch so the list reflects the new restriction level.
-          setState(() {
-            _currentPage = 1;
-            _hasMore = true;
-            _movies.clear();
-            _shows.clear();
-          });
-          unawaited(_loadMore());
-        }
-      },
-      fireImmediately: false,
-    );
+      if (changed || prevRestricted != nextRestricted) {
+        // Reload from scratch so the list reflects the new restriction level.
+        setState(() {
+          _currentPage = 1;
+          _hasMore = true;
+          _movies.clear();
+          _shows.clear();
+        });
+        unawaited(_loadMore());
+      }
+    }, fireImmediately: false);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -131,10 +130,11 @@ class _ProviderAllResultsPageState
               .getMovies(providerId, region: 'FR', page: _currentPage)
               .timeout(
                 const Duration(seconds: 30),
-                onTimeout: () => throw TimeoutException('Timeout loading movies'),
+                onTimeout: () =>
+                    throw TimeoutException('Timeout loading movies'),
               );
           final nextItems = await _filterMovies(page.items);
-          
+
           // Détecter pages vides
           if (nextItems.isEmpty) {
             consecutiveEmptyPages++;
@@ -145,16 +145,18 @@ class _ProviderAllResultsPageState
           } else {
             consecutiveEmptyPages = 0; // Reset si on trouve des items
           }
-          
+
           collected.addAll(nextItems);
           _hasMore = _currentPage < page.totalPages;
           _currentPage++;
           tries++;
         }
-        
+
         // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
         if (collected.length < targetNewItems && collected.isNotEmpty) {
-          debugPrint('[ProviderAllResultsPage] Only found ${collected.length} movies out of $targetNewItems requested for provider $providerId');
+          debugPrint(
+            '[ProviderAllResultsPage] Only found ${collected.length} movies out of $targetNewItems requested for provider $providerId',
+          );
         }
 
         if (!mounted) return;
@@ -175,10 +177,11 @@ class _ProviderAllResultsPageState
               .getShows(providerId, region: 'FR', page: _currentPage)
               .timeout(
                 const Duration(seconds: 30),
-                onTimeout: () => throw TimeoutException('Timeout loading shows'),
+                onTimeout: () =>
+                    throw TimeoutException('Timeout loading shows'),
               );
           final nextItems = await _filterShows(page.items);
-          
+
           // Détecter pages vides
           if (nextItems.isEmpty) {
             consecutiveEmptyPages++;
@@ -189,16 +192,18 @@ class _ProviderAllResultsPageState
           } else {
             consecutiveEmptyPages = 0; // Reset si on trouve des items
           }
-          
+
           collected.addAll(nextItems);
           _hasMore = _currentPage < page.totalPages;
           _currentPage++;
           tries++;
         }
-        
+
         // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
         if (collected.length < targetNewItems && collected.isNotEmpty) {
-          debugPrint('[ProviderAllResultsPage] Only found ${collected.length} shows out of $targetNewItems requested for provider $providerId');
+          debugPrint(
+            '[ProviderAllResultsPage] Only found ${collected.length} shows out of $targetNewItems requested for provider $providerId',
+          );
         }
 
         if (!mounted) return;
@@ -215,9 +220,9 @@ class _ProviderAllResultsPageState
       });
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorTimeoutLoading)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.errorTimeoutLoading)));
       }
     } catch (e) {
       if (!mounted) return;
@@ -258,7 +263,9 @@ class _ProviderAllResultsPageState
     );
     final allowed = await policy.filterAllowed(refs, profile);
     final allowedIds = allowed.map((r) => r.id).toSet();
-    return items.where((m) => allowedIds.contains(m.id.value)).toList(growable: false);
+    return items
+        .where((m) => allowedIds.contains(m.id.value))
+        .toList(growable: false);
   }
 
   Future<List<TvShowSummary>> _filterShows(List<TvShowSummary> items) async {
@@ -278,7 +285,9 @@ class _ProviderAllResultsPageState
     );
     final allowed = await policy.filterAllowed(refs, profile);
     final allowedIds = allowed.map((r) => r.id).toSet();
-    return items.where((s) => allowedIds.contains(s.id.value)).toList(growable: false);
+    return items
+        .where((s) => allowedIds.contains(s.id.value))
+        .toList(growable: false);
   }
 
   @override
@@ -302,14 +311,24 @@ class _ProviderAllResultsPageState
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => context.pop(),
-                    child: SizedBox(
-                      width: 35,
-                      height: 35,
-                      child: Image.asset(AppAssets.iconBack),
-                    ),
+                  MoviFocusableAction(
+                    onPressed: () => context.pop(),
+                    semanticLabel: 'Retour',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.all(8),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image.asset(AppAssets.iconBack),
+                        ),
+                      );
+                    },
                   ),
                   Expanded(
                     child: Center(
@@ -371,12 +390,11 @@ class _ProviderAllResultsPageState
                           );
                           return MoviMediaCard(
                             media: media,
-                            onTap: (mm) =>
-                                navigateToMovieDetail(
-                                  context,
-                                  ref,
-                                  ContentRouteArgs.movie(mm.id),
-                                ),
+                            onTap: (mm) => navigateToMovieDetail(
+                              context,
+                              ref,
+                              ContentRouteArgs.movie(mm.id),
+                            ),
                           );
                         } else {
                           final s = _shows[index];

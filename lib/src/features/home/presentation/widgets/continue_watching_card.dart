@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_pill.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
 
-class ContinueWatchingCard extends ConsumerWidget {
+class ContinueWatchingCard extends ConsumerStatefulWidget {
   const ContinueWatchingCard._({
     required this.title,
     this.backdrop,
@@ -63,7 +63,7 @@ class ContinueWatchingCard extends ConsumerWidget {
 
   final String title;
   final String? backdrop;
-  final double progress; // 0..1
+  final double progress;
   final int? year;
   final Duration? duration;
   final double? rating;
@@ -72,6 +72,14 @@ class ContinueWatchingCard extends ConsumerWidget {
   final bool isEpisode;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+
+  @override
+  ConsumerState<ContinueWatchingCard> createState() =>
+      _ContinueWatchingCardState();
+}
+
+class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
+  bool _focused = false;
 
   String _formatDuration(Duration? d) {
     if (d == null) return '';
@@ -89,71 +97,93 @@ class ContinueWatchingCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     const double width = 300;
     const double height = 165;
     final borderRadius = BorderRadius.circular(16);
+    final accent = Theme.of(context).colorScheme.primary;
 
     return Material(
       color: Colors.transparent,
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onFocusChange: (focused) {
+          if (_focused == focused) return;
+          setState(() => _focused = focused);
+        },
         borderRadius: borderRadius,
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: Stack(
-            children: [
-              // Background image (backdrop paysage)
-              Positioned.fill(
-                child: _buildBackdropImage(context, ref, backdrop),
+        child: AnimatedScale(
+          scale: _focused ? 1.035 : 1,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            decoration: BoxDecoration(
+              borderRadius: borderRadius,
+              border: Border.all(
+                color: _focused ? accent : Colors.transparent,
+                width: 2,
               ),
-              // Bottom gradient overlay
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  height: 100,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [Color(0xFF000000), Color(0x00000000)],
-                    ),
-                  ),
-                ),
-              ),
-              // Progress line (5px)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: SizedBox(
-                  height: 5,
-                  child: Stack(
-                    children: [
-                      Container(color: const Color(0xFFA6A6A6)),
-                      FractionallySizedBox(
-                        widthFactor: progress.clamp(0.0, 1.0),
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          color: Theme.of(context).colorScheme.primary,
+              boxShadow: _focused
+                  ? [
+                      BoxShadow(
+                        color: accent.withValues(alpha: 0.18),
+                        blurRadius: 18,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: _buildBackdropImage(widget.backdrop)),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      height: 100,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Color(0xFF000000), Color(0x00000000)],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: SizedBox(
+                      height: 5,
+                      child: Stack(
+                        children: [
+                          Container(color: const Color(0xFFA6A6A6)),
+                          FractionallySizedBox(
+                            widthFactor: widget.progress.clamp(0.0, 1.0),
+                            alignment: Alignment.centerLeft,
+                            child: Container(color: accent),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (widget.isEpisode)
+                    _buildEpisodeContent(width)
+                  else
+                    _buildMovieContent(width),
+                ],
               ),
-              // Content based on type
-              if (isEpisode)
-                _buildEpisodeContent(width)
-              else
-                _buildMovieContent(width),
-            ],
+            ),
           ),
         ),
       ),
@@ -161,31 +191,24 @@ class ContinueWatchingCard extends ConsumerWidget {
   }
 
   Widget _buildMovieContent(double width) {
-    // Ordre du haut vers le bas :
-    // - Titre film
-    // - 8px gap
-    // - Pills
-    // - 16px gap
-    // - Bottom (progress bar à 5px)
-
     return Stack(
       children: [
-        // Pills row (16px from bottom = 5px progress + 11px)
         Positioned(
           left: 10,
           bottom: 16,
           child: Row(
             children: [
-              if (year != null) MoviPill(year.toString()),
-              if (year != null && (duration != null || rating != null))
+              if (widget.year != null) MoviPill(widget.year.toString()),
+              if (widget.year != null &&
+                  (widget.duration != null || widget.rating != null))
                 const SizedBox(width: 8),
-              if (duration != null) ...[
-                MoviPill(_formatDuration(duration)),
-                if (rating != null) const SizedBox(width: 8),
+              if (widget.duration != null) ...[
+                MoviPill(_formatDuration(widget.duration)),
+                if (widget.rating != null) const SizedBox(width: 8),
               ],
-              if (rating != null)
+              if (widget.rating != null)
                 MoviPill(
-                  _formatRating(rating),
+                  _formatRating(widget.rating),
                   trailingIcon: Image.asset(
                     AppAssets.iconStarFilled,
                     width: 14,
@@ -195,14 +218,13 @@ class ContinueWatchingCard extends ConsumerWidget {
             ],
           ),
         ),
-        // Title (8px above pills = 16 + 8 + ~24px pill height = 48px from bottom)
         Positioned(
           left: 10,
-          bottom: 48, // 16 (pills bottom) + 8 (gap) + ~24 (pill height)
+          bottom: 48,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: width - 20),
             child: Text(
-              title,
+              widget.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -218,46 +240,32 @@ class ContinueWatchingCard extends ConsumerWidget {
   }
 
   Widget _buildEpisodeContent(double width) {
-    // Ordre du haut vers le bas :
-    // - Titre série
-    // - 8px gap
-    // - Titre épisode
-    // - 8px gap
-    // - Pills
-    // - 16px gap
-    // - Bottom (progress bar à 5px)
-
-    // Calculer les positions depuis le bas
-    // Pills = 16px from bottom
-    // Episode title = 16 + 8 + ~24px pill height = 48px from bottom
-    // Series title = 48 + 8 + ~20px text height = 76px from bottom
-
     return Stack(
       children: [
-        // Pills row (16px from bottom)
         Positioned(
           left: 10,
           bottom: 16,
           child: Row(
             children: [
-              if (seasonEpisode != null && seasonEpisode!.isNotEmpty)
-                MoviPill(seasonEpisode!),
-              if (seasonEpisode != null &&
-                  seasonEpisode!.isNotEmpty &&
-                  duration != null)
+              if (widget.seasonEpisode != null &&
+                  widget.seasonEpisode!.isNotEmpty)
+                MoviPill(widget.seasonEpisode!),
+              if (widget.seasonEpisode != null &&
+                  widget.seasonEpisode!.isNotEmpty &&
+                  widget.duration != null)
                 const SizedBox(width: 8),
-              if (duration != null) MoviPill(_formatDuration(duration)),
+              if (widget.duration != null)
+                MoviPill(_formatDuration(widget.duration)),
             ],
           ),
         ),
-        // Episode title (8px above pills = 48px from bottom)
         Positioned(
           left: 10,
-          bottom: 48, // 16 (pills bottom) + 8 (gap) + ~24 (pill height)
+          bottom: 48,
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: width - 20),
             child: Text(
-              title,
+              widget.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -268,15 +276,14 @@ class ContinueWatchingCard extends ConsumerWidget {
             ),
           ),
         ),
-        // Series title (8px above episode title = 76px from bottom)
-        if (seriesTitle != null)
+        if (widget.seriesTitle != null)
           Positioned(
             left: 10,
-            bottom: 76, // 48 (episode bottom) + 8 (gap) + ~20 (text height)
+            bottom: 76,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: width - 20),
               child: Text(
-                seriesTitle!,
+                widget.seriesTitle!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
@@ -291,11 +298,7 @@ class ContinueWatchingCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildBackdropImage(
-    BuildContext context,
-    WidgetRef ref,
-    String? source,
-  ) {
+  Widget _buildBackdropImage(String? source) {
     if (source != null && source.isNotEmpty && source.startsWith('http')) {
       return Image.network(
         source,

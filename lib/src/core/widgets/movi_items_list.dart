@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 
 /// Liste horizontale avec titre et sous-titre optionnel.
 /// Émet des fenêtres d'index visibles (start, count) pour l’enrichissement paresseux.
@@ -78,7 +79,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
   int? _lastStart;
   int? _lastCount;
   double? _lastViewportWidth;
-  
+
   // Flag pour éviter l'accumulation de callbacks
   bool _pendingNotify = false;
 
@@ -104,7 +105,7 @@ class _MoviItemsListState extends State<MoviItemsList> {
     _debounce?.cancel();
     _debounce = Timer(Duration(milliseconds: widget.debounceMs), _notifyNow);
   }
-  
+
   /// Planifie un callback de notification si aucun n'est déjà en attente
   void _scheduleNotifyIfNeeded() {
     if (_pendingNotify || !mounted) return;
@@ -280,18 +281,29 @@ class _MoviItemsListState extends State<MoviItemsList> {
             // Liste horizontale construite paresseusement pour éviter le chargement massif d'images.
             return SizedBox(
               height: widget.estimatedItemHeight ?? 240,
-              child: ListView.separated(
-                controller: _hCtrl,
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                padding: widget.horizontalPadding,
-                cacheExtent: widget.estimatedItemWidth != null
-                    ? (widget.estimatedItemWidth! * 2)
-                    : null,
-                itemCount: widget.items.length,
-                itemBuilder: (context, i) => widget.items[i],
-                separatorBuilder: (context, _) =>
-                    SizedBox(width: widget.itemSpacing),
+              child: Builder(
+                builder: (listContext) {
+                  return MoviVerticalEnsureVisibleTarget(
+                    targetContext: listContext,
+                    child: ListView.separated(
+                      controller: _hCtrl,
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
+                      padding: widget.horizontalPadding,
+                      cacheExtent: widget.estimatedItemWidth != null
+                          ? (widget.estimatedItemWidth! * 2)
+                          : null,
+                      itemCount: widget.items.length,
+                      itemBuilder: (context, i) => MoviEnsureVisibleOnFocus(
+                        isLeadingEdge: i == 0,
+                        isTrailingEdge: i == widget.items.length - 1,
+                        child: widget.items[i],
+                      ),
+                      separatorBuilder: (context, _) =>
+                          SizedBox(width: widget.itemSpacing),
+                    ),
+                  );
+                },
               ),
             );
           },

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_source_edit_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
@@ -22,6 +23,11 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
   final _serverCtrl = TextEditingController();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _nameFocusNode = FocusNode(debugLabel: 'EditSourceName');
+  final _serverFocusNode = FocusNode(debugLabel: 'EditSourceServer');
+  final _userFocusNode = FocusNode(debugLabel: 'EditSourceUser');
+  final _passFocusNode = FocusNode(debugLabel: 'EditSourcePassword');
+  final _submitFocusNode = FocusNode(debugLabel: 'EditSourceSubmit');
 
   bool _hasSubmitted = false;
   bool _obscurePassword = true;
@@ -44,6 +50,11 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
     _serverCtrl.dispose();
     _userCtrl.dispose();
     _passCtrl.dispose();
+    _nameFocusNode.dispose();
+    _serverFocusNode.dispose();
+    _userFocusNode.dispose();
+    _passFocusNode.dispose();
+    _submitFocusNode.dispose();
     super.dispose();
   }
 
@@ -83,9 +94,9 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
     if (!mounted) return;
 
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Source modifiée')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Source modifiée')));
       context.pop(true);
     }
   }
@@ -95,7 +106,9 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(iptvSourceEditControllerProvider);
     final accountAsync = ref.watch(iptvAccountByIdProvider(widget.accountId));
-    final passwordAsync = ref.watch(iptvAccountPasswordProvider(widget.accountId));
+    final passwordAsync = ref.watch(
+      iptvAccountPasswordProvider(widget.accountId),
+    );
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -109,7 +122,8 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                 _Header(onBack: () => context.pop()),
                 Expanded(
                   child: accountAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Center(
                       child: Text(
                         e.toString(),
@@ -117,26 +131,26 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                       ),
                     ),
                     data: (account) {
-                    if (account == null) {
-                      return Center(
-                        child: Text(
-                          l10n.notFoundWithEntity(l10n.entitySource),
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                      if (account == null) {
+                        return Center(
+                          child: Text(
+                            l10n.notFoundWithEntity(l10n.entitySource),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        );
+                      }
+
+                      _prefillAccountIfNeeded(
+                        alias: account.alias,
+                        serverUrl: account.endpoint.toRawUrl(),
+                        username: account.username,
                       );
-                    }
 
-                    _prefillAccountIfNeeded(
-                      alias: account.alias,
-                      serverUrl: account.endpoint.toRawUrl(),
-                      username: account.username,
-                    );
-
-                    passwordAsync.when(
-                      data: _prefillPasswordIfNeeded,
-                      error: (_, __) => _prefillPasswordIfNeeded(null),
-                      loading: () {},
-                    );
+                      passwordAsync.when(
+                        data: _prefillPasswordIfNeeded,
+                        error: (_, __) => _prefillPasswordIfNeeded(null),
+                        loading: () {},
+                      );
 
                       return LayoutBuilder(
                         builder: (context, constraints) {
@@ -149,67 +163,100 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _FieldBlock(
-                                        label: 'Nom de la source',
-                                        controller: _nameCtrl,
-                                        enabled: !state.isLoading,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      _FieldBlock(
-                                        label: 'URL du serveur',
-                                        controller: _serverCtrl,
-                                        enabled: !state.isLoading,
-                                        keyboardType: TextInputType.url,
-                                        validator: (v) => (v == null || v.trim().isEmpty)
-                                            ? l10n.validationRequired
-                                            : null,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      _FieldBlock(
-                                        label: l10n.labelUsername,
-                                        controller: _userCtrl,
-                                        enabled: !state.isLoading,
-                                        autofillHints: const [AutofillHints.username],
-                                        validator: (v) => (v == null || v.trim().isEmpty)
-                                            ? l10n.validationRequired
-                                            : null,
-                                      ),
-                                      const SizedBox(height: 20),
-                                      _FieldBlock(
-                                        label: l10n.iptvPasswordLabel,
-                                        controller: _passCtrl,
-                                        enabled: !state.isLoading,
-                                        obscureText: _obscurePassword,
-                                        onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword),
-                                        autofillHints: const [AutofillHints.password],
-                                        validator: (v) => (v == null || v.isEmpty)
-                                            ? l10n.validationRequired
-                                            : null,
-                                      ),
-                                      const SizedBox(height: 32),
-                                      SizedBox(
-                                        width: double.infinity,
-                                      child: MoviPrimaryButton(
-                                          label: 'Modifier la source',
-                                          onPressed: state.isLoading ? null : _submit,
-                                          loading: state.isLoading,
+                                  Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _FieldBlock(
+                                          label: 'Nom de la source',
+                                          controller: _nameCtrl,
+                                          focusNode: _nameFocusNode,
+                                          enabled: !state.isLoading,
+                                          textInputAction: TextInputAction.next,
+                                          onSubmitted: () =>
+                                              _serverFocusNode.requestFocus(),
                                         ),
-                                      ),
-                                      if (_hasSubmitted && state.error != null) ...[
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          state.error!,
-                                          style: const TextStyle(color: Colors.red),
+                                        const SizedBox(height: 20),
+                                        _FieldBlock(
+                                          label: 'URL du serveur',
+                                          controller: _serverCtrl,
+                                          focusNode: _serverFocusNode,
+                                          enabled: !state.isLoading,
+                                          keyboardType: TextInputType.url,
+                                          textInputAction: TextInputAction.next,
+                                          onSubmitted: () =>
+                                              _userFocusNode.requestFocus(),
+                                          validator: (v) =>
+                                              (v == null || v.trim().isEmpty)
+                                              ? l10n.validationRequired
+                                              : null,
                                         ),
+                                        const SizedBox(height: 20),
+                                        _FieldBlock(
+                                          label: l10n.labelUsername,
+                                          controller: _userCtrl,
+                                          focusNode: _userFocusNode,
+                                          enabled: !state.isLoading,
+                                          autofillHints: const [
+                                            AutofillHints.username,
+                                          ],
+                                          textInputAction: TextInputAction.next,
+                                          onSubmitted: () =>
+                                              _passFocusNode.requestFocus(),
+                                          validator: (v) =>
+                                              (v == null || v.trim().isEmpty)
+                                              ? l10n.validationRequired
+                                              : null,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        _FieldBlock(
+                                          label: l10n.iptvPasswordLabel,
+                                          controller: _passCtrl,
+                                          focusNode: _passFocusNode,
+                                          enabled: !state.isLoading,
+                                          obscureText: _obscurePassword,
+                                          onToggleObscure: () => setState(
+                                            () => _obscurePassword =
+                                                !_obscurePassword,
+                                          ),
+                                          autofillHints: const [
+                                            AutofillHints.password,
+                                          ],
+                                          textInputAction: TextInputAction.done,
+                                          onSubmitted: () =>
+                                              _submitFocusNode.requestFocus(),
+                                          validator: (v) =>
+                                              (v == null || v.isEmpty)
+                                              ? l10n.validationRequired
+                                              : null,
+                                        ),
+                                        const SizedBox(height: 32),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: MoviPrimaryButton(
+                                            label: 'Modifier la source',
+                                            focusNode: _submitFocusNode,
+                                            onPressed: state.isLoading
+                                                ? null
+                                                : _submit,
+                                            loading: state.isLoading,
+                                          ),
+                                        ),
+                                        if (_hasSubmitted &&
+                                            state.error != null) ...[
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            state.error!,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
                                 ],
                               ),
                             ),
@@ -241,13 +288,26 @@ class _Header extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 35,
-                height: 35,
-                child: Image(image: AssetImage(AppAssets.iconBack)),
+            child: SizedBox(
+              width: 35,
+              height: 35,
+              child: MoviFocusableAction(
+                onPressed: onBack,
+                semanticLabel: 'Retour',
+                builder: (context, state) {
+                  return MoviFocusFrame(
+                    scale: state.focused ? 1.04 : 1,
+                    borderRadius: BorderRadius.circular(999),
+                    backgroundColor: state.focused
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    child: const SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -272,21 +332,27 @@ class _FieldBlock extends StatelessWidget {
     required this.label,
     required this.controller,
     required this.enabled,
+    this.focusNode,
     this.keyboardType,
     this.obscureText = false,
     this.onToggleObscure,
     this.autofillHints,
     this.validator,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   final String label;
   final TextEditingController controller;
   final bool enabled;
+  final FocusNode? focusNode;
   final TextInputType? keyboardType;
   final bool obscureText;
   final VoidCallback? onToggleObscure;
   final Iterable<String>? autofillHints;
   final String? Function(String?)? validator;
+  final TextInputAction? textInputAction;
+  final VoidCallback? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -306,10 +372,13 @@ class _FieldBlock extends StatelessWidget {
           height: 44,
           child: TextFormField(
             controller: controller,
+            focusNode: focusNode,
             enabled: enabled,
             keyboardType: keyboardType,
             obscureText: obscureText,
             autofillHints: autofillHints,
+            textInputAction: textInputAction,
+            onFieldSubmitted: (_) => onSubmitted?.call(),
             style: const TextStyle(color: Colors.white, fontSize: 16),
             textAlignVertical: TextAlignVertical.center,
             decoration: InputDecoration(

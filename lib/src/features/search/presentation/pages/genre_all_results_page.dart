@@ -55,14 +55,18 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
   @override
   void initState() {
     super.initState();
-    
+
     // Vérifier le genre avant de charger
     final profile = ref.read(currentProfileProvider);
-    final profilePegi = parental.PegiRating.tryParse(profile?.pegiLimit)?.value ??
+    final profilePegi =
+        parental.PegiRating.tryParse(profile?.pegiLimit)?.value ??
         (profile?.isKid == true ? 12 : null);
-    
+
     if (profilePegi != null &&
-        !GenreMaturityChecker.isGenreAllowed(widget.args.genreId, profilePegi)) {
+        !GenreMaturityChecker.isGenreAllowed(
+          widget.args.genreId,
+          profilePegi,
+        )) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -76,34 +80,33 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
       });
       return;
     }
-    
-    _scrollController.addListener(_onScroll);
-    _profileSub = ref.listenManual<Profile?>(
-      currentProfileProvider,
-      (previous, next) {
-        if (!mounted) return;
-        final prevRestricted =
-            previous != null && (previous.isKid || previous.pegiLimit != null);
-        final nextRestricted =
-            next != null && (next.isKid || next.pegiLimit != null);
-        final changed =
-            previous?.id != next?.id ||
-            previous?.isKid != next?.isKid ||
-            previous?.pegiLimit != next?.pegiLimit;
 
-        if (changed || prevRestricted != nextRestricted) {
-          // Reload from scratch (pagination + filtering depend on the restriction level).
-          setState(() {
-            _currentPage = 1;
-            _hasMore = true;
-            _movies.clear();
-            _shows.clear();
-          });
-          unawaited(_loadMore());
-        }
-      },
-      fireImmediately: false,
-    );
+    _scrollController.addListener(_onScroll);
+    _profileSub = ref.listenManual<Profile?>(currentProfileProvider, (
+      previous,
+      next,
+    ) {
+      if (!mounted) return;
+      final prevRestricted =
+          previous != null && (previous.isKid || previous.pegiLimit != null);
+      final nextRestricted =
+          next != null && (next.isKid || next.pegiLimit != null);
+      final changed =
+          previous?.id != next?.id ||
+          previous?.isKid != next?.isKid ||
+          previous?.pegiLimit != next?.pegiLimit;
+
+      if (changed || prevRestricted != nextRestricted) {
+        // Reload from scratch (pagination + filtering depend on the restriction level).
+        setState(() {
+          _currentPage = 1;
+          _hasMore = true;
+          _movies.clear();
+          _shows.clear();
+        });
+        unawaited(_loadMore());
+      }
+    }, fireImmediately: false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_loadMore());
@@ -148,7 +151,9 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
           profile != null && (profile.isKid || profile.pegiLimit != null);
       final int maxPrefetchPages = hasRestrictions ? 30 : 10;
       const targetNewItems = 20;
-      final policy = hasRestrictions ? ref.read(parental.agePolicyProvider) : null;
+      final policy = hasRestrictions
+          ? ref.read(parental.agePolicyProvider)
+          : null;
 
       final collectedMovies = <TmdbMovieSummaryDto>[];
       final collectedShows = <TmdbTvSummaryDto>[];
@@ -168,7 +173,8 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
             )
             .timeout(
               const Duration(seconds: 30),
-              onTimeout: () => throw TimeoutException('Timeout loading results'),
+              onTimeout: () =>
+                  throw TimeoutException('Timeout loading results'),
             );
 
         final results = (json['results'] as List<dynamic>? ?? [])
@@ -177,16 +183,17 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
         final totalPages = json['total_pages'] as int? ?? 1;
 
         if (_isMovie) {
-          final nextMovies =
-              results.map(TmdbMovieSummaryDto.fromJson).toList(growable: false);
+          final nextMovies = results
+              .map(TmdbMovieSummaryDto.fromJson)
+              .toList(growable: false);
           final filteredMovies = hasRestrictions
               ? await _filterMovieDtos(
-                policy: policy!,
-                profile: profile,
-                items: nextMovies,
-              )
+                  policy: policy!,
+                  profile: profile,
+                  items: nextMovies,
+                )
               : nextMovies;
-          
+
           // Détecter pages vides
           if (filteredMovies.isEmpty) {
             consecutiveEmptyPages++;
@@ -197,19 +204,20 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
           } else {
             consecutiveEmptyPages = 0; // Reset si on trouve des items
           }
-          
+
           collectedMovies.addAll(filteredMovies);
         } else {
-          final nextShows =
-              results.map(TmdbTvSummaryDto.fromJson).toList(growable: false);
+          final nextShows = results
+              .map(TmdbTvSummaryDto.fromJson)
+              .toList(growable: false);
           final filteredShows = hasRestrictions
               ? await _filterShowDtos(
-                policy: policy!,
-                profile: profile,
-                items: nextShows,
-              )
+                  policy: policy!,
+                  profile: profile,
+                  items: nextShows,
+                )
               : nextShows;
-          
+
           // Détecter pages vides
           if (filteredShows.isEmpty) {
             consecutiveEmptyPages++;
@@ -220,7 +228,7 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
           } else {
             consecutiveEmptyPages = 0; // Reset si on trouve des items
           }
-          
+
           collectedShows.addAll(filteredShows);
         }
 
@@ -232,11 +240,15 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
         if (got >= targetNewItems) break;
         if (!_hasMore) break;
       }
-      
+
       // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-      final finalCount = _isMovie ? collectedMovies.length : collectedShows.length;
+      final finalCount = _isMovie
+          ? collectedMovies.length
+          : collectedShows.length;
       if (finalCount < targetNewItems && finalCount > 0) {
-        debugPrint('[GenreAllResultsPage] Only found $finalCount items out of $targetNewItems requested for genre ${widget.args.genreId}');
+        debugPrint(
+          '[GenreAllResultsPage] Only found $finalCount items out of $targetNewItems requested for genre ${widget.args.genreId}',
+        );
       }
 
       if (!mounted) return;
@@ -256,9 +268,9 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
       });
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.errorTimeoutLoading)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.errorTimeoutLoading)));
       }
     } catch (e) {
       if (!mounted) return;
@@ -287,7 +299,9 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     );
     final allowed = await policy.filterAllowed(refs, profile);
     final allowedIds = allowed.map((r) => r.id).toSet();
-    return items.where((m) => allowedIds.contains(m.id.toString())).toList(growable: false);
+    return items
+        .where((m) => allowedIds.contains(m.id.toString()))
+        .toList(growable: false);
   }
 
   Future<List<TmdbTvSummaryDto>> _filterShowDtos({
@@ -305,7 +319,9 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     );
     final allowed = await policy.filterAllowed(refs, profile);
     final allowedIds = allowed.map((r) => r.id).toSet();
-    return items.where((s) => allowedIds.contains(s.id.toString())).toList(growable: false);
+    return items
+        .where((s) => allowedIds.contains(s.id.toString()))
+        .toList(growable: false);
   }
 
   @override
@@ -326,14 +342,24 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => context.pop(),
-                    child: SizedBox(
-                      width: 35,
-                      height: 35,
-                      child: Image.asset(AppAssets.iconBack),
-                    ),
+                  MoviFocusableAction(
+                    onPressed: () => context.pop(),
+                    semanticLabel: 'Retour',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.all(8),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image.asset(AppAssets.iconBack),
+                        ),
+                      );
+                    },
                   ),
                   Expanded(
                     child: Center(
@@ -411,12 +437,11 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                             );
                             return MoviMediaCard(
                               media: media,
-                              onTap: (x) =>
-                                  navigateToMovieDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.movie(x.id),
-                                  ),
+                              onTap: (x) => navigateToMovieDetail(
+                                context,
+                                ref,
+                                ContentRouteArgs.movie(x.id),
+                              ),
                               width: _cardWidth,
                               height: _posterHeight,
                             );

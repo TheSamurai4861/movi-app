@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -34,10 +35,13 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
+import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
+import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 
 /// SettingsPage (content-only): pas de Scaffold ici.
@@ -55,6 +59,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _wasUnlockedForSettings = false;
   String? _unlockedProfileId;
   ProviderSubscription<SupabaseAuthStatus>? _authStatusSub;
+  final _firstProfileFocusNode = FocusNode(debugLabel: 'SettingsFirstProfile');
 
   static const List<(String code, String label)> _availableLanguages = [
     ('en', 'English'),
@@ -92,6 +97,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    ref
+        .read(shellFocusCoordinatorProvider)
+        .registerPreferredNode(ShellTab.settings, _firstProfileFocusNode);
 
     // Utiliser listenManual dans initState (ref.listen ne peut être utilisé que dans build)
     _authStatusSub = ref.listenManual<SupabaseAuthStatus>(
@@ -110,6 +118,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void dispose() {
     _authStatusSub?.close();
+    ref
+        .read(shellFocusCoordinatorProvider)
+        .unregisterPreferredNode(ShellTab.settings, _firstProfileFocusNode);
+    _firstProfileFocusNode.dispose();
     _lockSessionIfUnlocked();
     super.dispose();
   }
@@ -600,6 +612,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // -------------------- UI parts --------------------
 
+  KeyEventResult _handleSettingsHorizontalBoundary(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      ref.read(shellFocusCoordinatorProvider).focusSidebar();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Widget _buildSettingItem({
     required String title,
     String? value,
@@ -609,39 +633,50 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) => _handleSettingsHorizontalBoundary(event),
+      child: InkWell(
+        onTap: onTap,
+        focusColor: accentColor.withValues(alpha: 0.18),
+        hoverColor: accentColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-            if (value != null) ...[
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: accentColor,
+              if (value != null) ...[
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: accentColor,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
+              if (trailing != null) ...[trailing, const SizedBox(width: 8)],
+              if (showChevronDown)
+                Icon(Icons.keyboard_arrow_down, color: accentColor, size: 20)
+              else if (onTap != null && trailing == null)
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.white70,
+                  size: 20,
+                ),
             ],
-            if (trailing != null) ...[trailing, const SizedBox(width: 8)],
-            if (showChevronDown)
-              Icon(Icons.keyboard_arrow_down, color: accentColor, size: 20)
-            else if (onTap != null && trailing == null)
-              const Icon(Icons.chevron_right, color: Colors.white70, size: 20),
-          ],
+          ),
         ),
       ),
     );
@@ -723,6 +758,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   color: Theme.of(context).colorScheme.primary,
                   icon: Icons.person,
                   isSelected: profile.id == selectedProfileId,
+                  focusNode: profiles.first.id == profile.id
+                      ? _firstProfileFocusNode
+                      : null,
                   onTap: () => unawaited(_onSelectProfile(profile)),
                   onLongPress: () => unawaited(_onManageProfile(profile)),
                 ),
@@ -746,44 +784,63 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required IconData icon,
     VoidCallback? onTap,
     VoidCallback? onLongPress,
+    FocusNode? focusNode,
     bool isSelected = false,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: isSelected
-                  ? Border.all(color: Colors.white, width: 3)
-                  : null,
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) {
+        if (!identical(focusNode, _firstProfileFocusNode)) {
+          return KeyEventResult.ignored;
+        }
+        return _handleSettingsHorizontalBoundary(event);
+      },
+      child: MoviFocusableAction(
+        onPressed: onTap,
+        onLongPress: onLongPress,
+        focusNode: focusNode,
+        semanticLabel: name,
+        builder: (context, state) {
+          final focused = state.focused;
+          return MoviFocusFrame(
+            scale: focused ? 1.04 : 1,
+            borderRadius: BorderRadius.circular(999),
+            child: Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: focused
+                        ? Border.all(color: Colors.white, width: 3)
+                        : null,
+                    boxShadow: isSelected || focused
+                        ? [
+                            BoxShadow(
+                              color: color.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 30),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
-            child: Icon(icon, color: Colors.white, size: 30),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: Colors.white,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -820,87 +877,95 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _buildSignOutButton(BuildContext context) {
     final theme = Theme.of(context);
 
-    return OutlinedButton(
-      onPressed: () => _guard(() async {
-        final confirmed = await showCupertinoDialog<bool>(
-          context: context,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('Déconnexion'),
-            content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-            actions: [
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Annuler'),
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) => _handleSettingsHorizontalBoundary(event),
+      child: OutlinedButton(
+        onPressed: () => _guard(() async {
+          final confirmed = await showCupertinoDialog<bool>(
+            context: context,
+            builder: (ctx) => CupertinoAlertDialog(
+              title: const Text('Déconnexion'),
+              content: const Text(
+                'Êtes-vous sûr de vouloir vous déconnecter ?',
               ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Déconnexion'),
-              ),
-            ],
-          ),
-        );
-
-        if (confirmed != true) return;
-        if (!mounted) return;
-
-        // Capture context before async gap
-        final navigatorContext = context;
-
-        try {
-          final locator = ref.read(slProvider);
-
-          if (locator.isRegistered<LocalDataCleanupService>()) {
-            await locator<LocalDataCleanupService>().clearAllLocalData();
-          }
-
-          // Clear in-memory selections to avoid stale state after logout.
-          ref.read(asp.appStateControllerProvider).setActiveIptvSources({});
-          if (locator.isRegistered<SelectedIptvSourcePreferences>()) {
-            await locator<SelectedIptvSourcePreferences>().clear();
-          }
-          if (locator.isRegistered<SelectedProfilePreferences>()) {
-            await locator<SelectedProfilePreferences>().clear();
-          }
-
-          await ref.read(authControllerProvider.notifier).signOut();
-
-          if (!mounted) return;
-          // ✅ utilise un path existant (pas AppRouteNames.about)
-          navigatorContext.go(AppRoutePaths.authOtp);
-        } catch (e) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(navigatorContext).showSnackBar(
-            SnackBar(
-              content: Text('Erreur lors de la déconnexion: $e'),
-              backgroundColor: Colors.red,
+              actions: [
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Annuler'),
+                ),
+                CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Déconnexion'),
+                ),
+              ],
             ),
           );
-        }
-      }),
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.red),
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        minimumSize: const Size(double.infinity, 48),
-        shape: const StadiumBorder(),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.logout, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              'Déconnexion',
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge?.copyWith(color: Colors.white),
+
+          if (confirmed != true) return;
+          if (!mounted) return;
+
+          // Capture context before async gap
+          final navigatorContext = context;
+
+          try {
+            final locator = ref.read(slProvider);
+
+            if (locator.isRegistered<LocalDataCleanupService>()) {
+              await locator<LocalDataCleanupService>().clearAllLocalData();
+            }
+
+            // Clear in-memory selections to avoid stale state after logout.
+            ref.read(asp.appStateControllerProvider).setActiveIptvSources({});
+            if (locator.isRegistered<SelectedIptvSourcePreferences>()) {
+              await locator<SelectedIptvSourcePreferences>().clear();
+            }
+            if (locator.isRegistered<SelectedProfilePreferences>()) {
+              await locator<SelectedProfilePreferences>().clear();
+            }
+
+            await ref.read(authControllerProvider.notifier).signOut();
+
+            if (!mounted) return;
+            // ✅ utilise un path existant (pas AppRouteNames.about)
+            navigatorContext.go(AppRoutePaths.authOtp);
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(navigatorContext).showSnackBar(
+              SnackBar(
+                content: Text('Erreur lors de la déconnexion: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.red),
+          foregroundColor: Colors.white,
+          backgroundColor: Colors.red.withValues(alpha: 0.18),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          minimumSize: const Size(double.infinity, 48),
+          shape: const StadiumBorder(),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.logout, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Déconnexion',
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

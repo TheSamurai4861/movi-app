@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 
@@ -65,50 +66,60 @@ class _BlurPillButton extends StatelessWidget {
     final Color background = isActive
         ? (activeColor ?? Theme.of(context).colorScheme.primary)
         : const Color(0x80292929);
+    final Color focusBackground = isActive
+        ? (activeColor ?? Theme.of(context).colorScheme.primary)
+        : const Color(0xAA303030);
 
-    final borderColor =
-        isActive ? (activeColor ?? Colors.white) : Colors.white30;
+    final borderColor = isActive
+        ? (activeColor ?? Colors.white)
+        : Colors.white30;
 
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        type: MaterialType.transparency,
-        child: DefaultTextStyle.merge(
-          style: const TextStyle(decoration: TextDecoration.none),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap,
-            child: ClipRRect(
+    return MoviFocusableAction(
+      onPressed: onTap,
+      semanticLabel: label,
+      builder: (context, state) {
+        final effectiveBackground = state.focused || state.hovered
+            ? focusBackground
+            : background;
+        final effectiveBorder = state.focused ? Colors.white : borderColor;
+        return Material(
+          type: MaterialType.transparency,
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(decoration: TextDecoration.none),
+            child: MoviFocusFrame(
+              scale: state.focused ? 1.05 : (state.hovered ? 1.02 : 1),
               borderRadius: BorderRadius.circular(999),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 28,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: background,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: borderColor,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 28,
+                      vertical: 8,
                     ),
-                  ),
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    decoration: BoxDecoration(
+                      color: effectiveBackground,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: effectiveBorder, width: 1.5),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: isActive
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

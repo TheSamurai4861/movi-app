@@ -22,6 +22,8 @@ import 'package:movi/src/features/search/presentation/models/genre_results_args.
 import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/parental/domain/services/genre_maturity_checker.dart';
@@ -46,6 +48,10 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
   final List<TmdbMovieSummaryDto> _movies = [];
   final List<TmdbTvSummaryDto> _shows = [];
   ProviderSubscription<Profile?>? _profileSub;
+  final FocusNode _firstMediaFocusNode = FocusNode(
+    debugLabel: 'GenreResultsFirstMedia',
+  );
+  bool _didRequestInitialMediaFocus = false;
 
   bool get _isMovie => widget.args?.type == MoviMediaType.movie;
 
@@ -109,7 +115,23 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
   @override
   void dispose() {
     _profileSub?.close();
+    _firstMediaFocusNode.dispose();
     super.dispose();
+  }
+
+  void _requestInitialMediaFocusIfNeeded(BuildContext context) {
+    final screenType = ScreenTypeResolver.instance.resolve(
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height,
+    );
+    if (screenType != ScreenType.tv) return;
+    final hasItems = _isMovie ? _movies.isNotEmpty : _shows.isNotEmpty;
+    if (_didRequestInitialMediaFocus || !hasItems) return;
+    _didRequestInitialMediaFocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _firstMediaFocusNode.context == null) return;
+      _firstMediaFocusNode.requestFocus();
+    });
   }
 
   Future<void> _load({required bool loadMore}) async {
@@ -307,6 +329,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
     final itemCount = _isMovie ? _movies.length : _shows.length;
+    _requestInitialMediaFocusIfNeeded(context);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -319,14 +342,24 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => context.pop(),
-                    child: SizedBox(
-                      width: 35,
-                      height: 35,
-                      child: Image.asset(AppAssets.iconBack),
-                    ),
+                  MoviFocusableAction(
+                    onPressed: () => context.pop(),
+                    semanticLabel: 'Retour',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.all(8),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image.asset(AppAssets.iconBack),
+                        ),
+                      );
+                    },
                   ),
                   Expanded(
                     child: Center(
@@ -406,6 +439,9 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                                 );
                                 return MoviMediaCard(
                                   media: media,
+                                  focusNode: identical(mm, _movies.first)
+                                      ? _firstMediaFocusNode
+                                      : null,
                                   onTap: (x) => navigateToMovieDetail(
                                     context,
                                     ref,
@@ -425,6 +461,9 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                                 );
                                 return MoviMediaCard(
                                   media: media,
+                                  focusNode: identical(ss, _shows.first)
+                                      ? _firstMediaFocusNode
+                                      : null,
                                   onTap: (x) => navigateToTvDetail(
                                     context,
                                     ref,

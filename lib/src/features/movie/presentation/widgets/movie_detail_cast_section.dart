@@ -20,6 +20,7 @@ class MovieDetailCastSection extends StatelessWidget {
     return SizedBox(
       height: 286,
       child: ListView.separated(
+        clipBehavior: Clip.none,
         padding: EdgeInsetsDirectional.only(
           start: horizontalPadding,
           end: horizontalPadding,

@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -29,6 +30,9 @@ class CategoryGrid extends ConsumerStatefulWidget {
 
 class _CategoryGridState extends ConsumerState<CategoryGrid> {
   final ScrollController _scrollController = ScrollController();
+  late List<FocusNode> _itemFocusNodes = _buildItemFocusNodes(
+    widget.items.length,
+  );
 
   @override
   void initState() {
@@ -36,10 +40,34 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
     _scrollController.addListener(_onScroll);
   }
 
+  List<FocusNode> _buildItemFocusNodes(int count) {
+    return List<FocusNode>.generate(
+      count,
+      (index) => FocusNode(debugLabel: 'CategoryGridItem-$index'),
+      growable: false,
+    );
+  }
+
+  void _disposeItemFocusNodes() {
+    for (final node in _itemFocusNodes) {
+      node.dispose();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant CategoryGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items.length != widget.items.length) {
+      _disposeItemFocusNodes();
+      _itemFocusNodes = _buildItemFocusNodes(widget.items.length);
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _disposeItemFocusNodes();
     super.dispose();
   }
 
@@ -59,10 +87,51 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
   static const double textMarginTop = 12; // marge entre affiche et texte
   static const double gridGapH = 24; // gap horizontal à 24px
   static const double gridGapV = 16; // gap vertical inchangé
+  static const double focusBleed = 12; // espace pour le scale/glow du focus
+
+  KeyEventResult _handleGridDirection(
+    int index,
+    int crossAxisCount,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final key = event.logicalKey;
+    int? targetIndex;
+
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      if (index % crossAxisCount == 0) {
+        return KeyEventResult.handled;
+      }
+      targetIndex = index - 1;
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      final isLastColumn = (index % crossAxisCount) == crossAxisCount - 1;
+      if (isLastColumn || index + 1 >= widget.items.length) {
+        return KeyEventResult.handled;
+      }
+      targetIndex = index + 1;
+    } else if (key == LogicalKeyboardKey.arrowUp) {
+      if (index - crossAxisCount < 0) {
+        return KeyEventResult.handled;
+      }
+      targetIndex = index - crossAxisCount;
+    } else if (key == LogicalKeyboardKey.arrowDown) {
+      if (index + crossAxisCount >= widget.items.length) {
+        return KeyEventResult.handled;
+      }
+      targetIndex = index + crossAxisCount;
+    }
+
+    if (targetIndex == null) return KeyEventResult.ignored;
+    _itemFocusNodes[targetIndex].requestFocus();
+    return KeyEventResult.handled;
+  }
 
   @override
   Widget build(BuildContext context) {
     final double itemHeight = posterHeight + textMarginTop + textHeight;
+    final double layoutCardWidth = cardWidth + focusBleed;
+    final double layoutItemHeight = itemHeight + focusBleed;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -71,7 +140,7 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
         // Calculer dynamiquement le nombre de colonnes en fonction de la largeur,
         // tout en gardant une largeur de carte raisonnable.
         // Permet 1 colonne sur très petits écrans (< 300px).
-        int crossAxisCount = (availableWidth / (cardWidth + gridGapH))
+        int crossAxisCount = (availableWidth / (layoutCardWidth + gridGapH))
             .floor()
             .clamp(1, 6);
         // Autoriser 1 colonne si l'écran est très étroit (< 300px)
@@ -82,7 +151,8 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
         }
 
         final gridWidth =
-            (cardWidth * crossAxisCount) + gridGapH * (crossAxisCount - 1);
+            (layoutCardWidth * crossAxisCount) +
+            gridGapH * (crossAxisCount - 1);
 
         return Align(
           alignment: Alignment.topCenter,
@@ -90,12 +160,13 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
             width: gridWidth,
             child: GridView.builder(
               controller: _scrollController,
+              clipBehavior: Clip.none,
               padding: EdgeInsets.zero,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
                 mainAxisSpacing: gridGapV,
                 crossAxisSpacing: gridGapH,
-                childAspectRatio: cardWidth / itemHeight,
+                childAspectRatio: layoutCardWidth / layoutItemHeight,
               ),
               itemCount:
                   widget.items.length +
@@ -123,27 +194,35 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
                       ? MoviMediaType.series
                       : MoviMediaType.movie,
                 );
-                return MoviMediaCard(
-                  media: media,
-                  onTap: (m) {
-                    if (m.type == MoviMediaType.movie) {
-                      unawaited(
-                        navigateToMovieDetail(
-                          context,
-                          ref,
-                          ContentRouteArgs.movie(m.id),
-                        ),
-                      );
-                    } else {
-                      unawaited(
-                        navigateToTvDetail(
-                          context,
-                          ref,
-                          ContentRouteArgs.series(m.id),
-                        ),
-                      );
-                    }
-                  },
+                return Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) =>
+                      _handleGridDirection(index, crossAxisCount, event),
+                  child: Center(
+                    child: MoviMediaCard(
+                      media: media,
+                      focusNode: _itemFocusNodes[index],
+                      onTap: (m) {
+                        if (m.type == MoviMediaType.movie) {
+                          unawaited(
+                            navigateToMovieDetail(
+                              context,
+                              ref,
+                              ContentRouteArgs.movie(m.id),
+                            ),
+                          );
+                        } else {
+                          unawaited(
+                            navigateToTvDetail(
+                              context,
+                              ref,
+                              ContentRouteArgs.series(m.id),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
                 );
               },
             ),

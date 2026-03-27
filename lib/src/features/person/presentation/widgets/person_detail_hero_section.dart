@@ -41,10 +41,7 @@ class PersonDetailHeroSection extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFF141414),
-                    Color(0x00000000),
-                  ],
+                  colors: [Color(0xFF141414), Color(0x00000000)],
                 ),
               ),
             ),
@@ -56,17 +53,27 @@ class PersonDetailHeroSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => context.pop(),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: Image.asset(AppAssets.iconBack),
-                      ),
-                    ],
+                SizedBox(
+                  width: 47,
+                  height: 47,
+                  child: MoviFocusableAction(
+                    onPressed: () => context.pop(),
+                    semanticLabel: 'Retour',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.all(6),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image.asset(AppAssets.iconBack),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -81,17 +88,10 @@ class PersonDetailHeroSection extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
-                  colors: [
-                    Color(0xFF141414),
-                    Color(0x00000000),
-                  ],
+                  colors: [Color(0xFF141414), Color(0x00000000)],
                 ),
               ),
-              padding: const EdgeInsets.only(
-                bottom: 24,
-                left: 20,
-                right: 20,
-              ),
+              padding: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -100,19 +100,19 @@ class PersonDetailHeroSection extends StatelessWidget {
                   Text(
                     name,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineSmall
-                        ?.copyWith(color: Colors.white),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineSmall?.copyWith(color: Colors.white),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    AppLocalizations.of(context)!
-                        .personMoviesCount(moviesCount, showsCount),
+                    AppLocalizations.of(
+                      context,
+                    )!.personMoviesCount(moviesCount, showsCount),
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
                   ),
                 ],
               ),

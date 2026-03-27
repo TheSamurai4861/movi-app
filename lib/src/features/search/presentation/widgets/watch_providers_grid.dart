@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/models/provider_results_args.dart';
@@ -17,10 +18,12 @@ class WatchProvidersGrid extends ConsumerWidget {
     super.key,
     this.horizontalPadding = 20,
     this.maxContentWidth = double.infinity,
+    this.firstItemFocusNode,
   });
 
   final double horizontalPadding;
   final double maxContentWidth;
+  final FocusNode? firstItemFocusNode;
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -107,7 +110,10 @@ class WatchProvidersGrid extends ConsumerWidget {
                         ),
                         itemCount: providers.length,
                         itemBuilder: (context, index) {
-                          return _WatchProviderCard(provider: providers[index]);
+                          return _WatchProviderCard(
+                            provider: providers[index],
+                            focusNode: index == 0 ? firstItemFocusNode : null,
+                          );
                         },
                       );
                     },
@@ -119,7 +125,10 @@ class WatchProvidersGrid extends ConsumerWidget {
         );
       },
       loading: () => Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: 16,
+        ),
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => const SizedBox.shrink(),
@@ -129,9 +138,10 @@ class WatchProvidersGrid extends ConsumerWidget {
 
 /// Carte représentant un provider.
 class _WatchProviderCard extends ConsumerWidget {
-  const _WatchProviderCard({required this.provider});
+  const _WatchProviderCard({required this.provider, this.focusNode});
 
   final WatchProvider provider;
+  final FocusNode? focusNode;
 
   Color _getProviderColor(int providerId) {
     // Palette de couleurs par défaut pour les providers connus
@@ -161,8 +171,9 @@ class _WatchProviderCard extends ConsumerWidget {
       providerPopularMediaProvider(provider.providerId),
     );
 
-    return InkWell(
-      onTap: () {
+    return MoviFocusableAction(
+      focusNode: focusNode,
+      onPressed: () {
         context.push(
           AppRouteNames.providerResults,
           extra: ProviderResultsArgs(
@@ -171,71 +182,73 @@ class _WatchProviderCard extends ConsumerWidget {
           ),
         );
       },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
-            colors: [
-              backgroundColor, // Couleur de base en bas gauche
-              _darkenColor(
-                backgroundColor,
-              ), // Couleur plus foncée en haut droite
-            ],
-          ),
+      semanticLabel: provider.providerName,
+      builder: (context, state) {
+        return MoviFocusFrame(
+          scale: state.focused ? 1.03 : 1,
           borderRadius: BorderRadius.circular(16),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Backdrop horizontale du média en arrière-plan
-              popularMediaAsync.when(
-                data: (popularMedia) {
-                  if (popularMedia?.backdropUrl == null) {
-                    return const SizedBox.shrink();
-                  }
-                  return Positioned.fill(
-                    child: Image.network(
-                      popularMedia!.backdropUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomLeft,
+                end: Alignment.topRight,
+                colors: [backgroundColor, _darkenColor(backgroundColor)],
               ),
-              // Overlay avec la couleur du provider à 50% d'opacité
-              Container(
-                decoration: BoxDecoration(
-                  color: backgroundColor.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: state.focused ? Colors.white : Colors.transparent,
+                width: 2,
               ),
-              // Texte du provider en bas à gauche
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    provider.providerName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  popularMediaAsync.when(
+                    data: (popularMedia) {
+                      if (popularMedia?.backdropUrl == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned.fill(
+                        child: Image.network(
+                          popularMedia!.backdropUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
-                ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: backgroundColor.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        provider.providerName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

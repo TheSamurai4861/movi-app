@@ -111,10 +111,12 @@ class _LibraryPlaylistDetailPageState
             final completed = await repository.getHistoryCompleted();
             final inProgress = await repository.getHistoryInProgress();
             final seenKeys = <String>{};
-            return [...completed, ...inProgress].where((item) {
-              final key = '${item.type.name}:${item.id}';
-              return seenKeys.add(key);
-            }).toList(growable: false);
+            return [...completed, ...inProgress]
+                .where((item) {
+                  final key = '${item.type.name}:${item.id}';
+                  return seenKeys.add(key);
+                })
+                .toList(growable: false);
           case LibraryPlaylistType.userPlaylist:
           case LibraryPlaylistType.actor:
             return [];
@@ -227,31 +229,49 @@ class _LibraryPlaylistDetailPageState
   void _showPlaylistMenu(BuildContext context, WidgetRef ref) {
     if (widget.playlist.playlistId == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
+    final actions = <MoviTvActionMenuAction>[
+      MoviTvActionMenuAction(
+        label: l10n.playlistRenameTitle,
+        onPressed: () => _showRenameDialog(context, ref),
+      ),
+      MoviTvActionMenuAction(
+        label: l10n.playlistDeleteTitle,
+        destructive: true,
+        onPressed: () => _showDeleteDialog(context, ref),
+      ),
+    ];
+
+    if (_screenType(context) == ScreenType.tv) {
+      showMoviTvActionMenu(
+        context: context,
+        title: widget.playlist.title,
+        actions: actions,
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) {
         return CupertinoActionSheet(
           title: Text(widget.playlist.title),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _showRenameDialog(context, ref);
-              },
-              child: Text(AppLocalizations.of(context)!.playlistRenameTitle),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                _showDeleteDialog(context, ref);
-              },
-              child: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
-            ),
-          ],
+          actions: actions
+              .map(
+                (action) => CupertinoActionSheetAction(
+                  isDestructiveAction: action.destructive,
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    action.onPressed();
+                  },
+                  child: Text(action.label),
+                ),
+              )
+              .toList(growable: false),
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(AppLocalizations.of(context)!.actionCancel),
+            child: Text(l10n.actionCancel),
           ),
         );
       },
@@ -388,8 +408,9 @@ class _LibraryPlaylistDetailPageState
   ) async {
     final locator = ref.read(slProvider);
     final resolver = locator<IptvContentResolver>();
-    final activeSourceIds =
-        ref.read(asp.appStateControllerProvider).preferredIptvSourceIds;
+    final activeSourceIds = ref
+        .read(asp.appStateControllerProvider)
+        .preferredIptvSourceIds;
     final resolution = await resolver.resolve(
       contentId: reference.id,
       type: reference.type,
@@ -475,14 +496,16 @@ class _LibraryPlaylistDetailPageState
                 itemCount: items.length,
                 backdrop: items.isEmpty
                     ? null
-                    : ref.watch(
-                        isLargeScreen
-                            ? playlistItemHeroBackdropProvider(items.first)
-                            : playlistItemBackdropProvider(items.first),
-                      ).maybeWhen(
-                        data: (uri) => uri?.toString(),
-                        orElse: () => null,
-                      ),
+                    : ref
+                          .watch(
+                            isLargeScreen
+                                ? playlistItemHeroBackdropProvider(items.first)
+                                : playlistItemBackdropProvider(items.first),
+                          )
+                          .maybeWhen(
+                            data: (uri) => uri?.toString(),
+                            orElse: () => null,
+                          ),
                 isLargeScreen: isLargeScreen,
                 horizontalPadding: pagePadding,
                 actions: isLargeScreen
@@ -679,7 +702,8 @@ class _LibraryPlaylistDetailPageState
           onTap: () => unawaited(_openMedia(context, reference)),
           onLongPress: canDelete
               ? () {
-                  if (widget.playlist.type == LibraryPlaylistType.userPlaylist &&
+                  if (widget.playlist.type ==
+                          LibraryPlaylistType.userPlaylist &&
                       playlistItem != null &&
                       playlistId != null) {
                     _showDeleteItemDialog(
@@ -792,10 +816,12 @@ class _LibraryPlaylistDetailPageState
                             child: Text(
                               displayReference.title.value,
                               style:
-                                  Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ) ??
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ) ??
                                   const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -896,13 +922,14 @@ class _LibraryPlaylistDetailPageState
 
         // Envelopper dans Dismissible pour swipe vers la gauche
         if (canDelete) {
-          final dismissibleKey = widget.playlist.type == LibraryPlaylistType.userPlaylist &&
+          final dismissibleKey =
+              widget.playlist.type == LibraryPlaylistType.userPlaylist &&
                   playlistId != null &&
                   playlistItem != null &&
                   playlistItem.position != null
               ? Key('${playlistId}_${reference.id}_${playlistItem.position}')
               : Key('${widget.playlist.type}_${reference.id}');
-          
+
           return Dismissible(
             key: dismissibleKey,
             direction: DismissDirection.endToStart,
@@ -1016,13 +1043,7 @@ class _LibraryPlaylistDetailPageState
   }) {
     // Si c'est une playlist utilisateur avec les paramètres nécessaires, utiliser la méthode existante
     if (playlistItem != null && playlistId != null) {
-      _showItemOptionsMenu(
-        context,
-        ref,
-        reference,
-        playlistItem,
-        playlistId,
-      );
+      _showItemOptionsMenu(context, ref, reference, playlistItem, playlistId);
       return;
     }
 
@@ -1224,54 +1245,52 @@ class _LibraryPlaylistDetailPageState
                         );
                         refForDialog.invalidate(libraryPlaylistsProvider);
 
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.playlistAddedTo(playlist.title),
-                                ),
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                AppLocalizations.of(
+                                  context,
+                                )!.playlistAddedTo(playlist.title),
                               ),
-                            );
-                          }
-                        } catch (e, stackTrace) {
-                          // Logger l'erreur pour le debug
-                          logger.log(
-                            LogLevel.error,
-                            'Erreur lors de l\'ajout à la playlist: $e',
-                            error: e,
-                            stackTrace: stackTrace,
-                            category: 'library_playlist_detail',
+                            ),
                           );
-
-                          if (context.mounted) {
-                            // Gérer spécifiquement l'erreur de doublon
-                            String errorMessage;
-                            if (e is StateError &&
-                                e.message.contains(
-                                  'déjà dans cette playlist',
-                                )) {
-                              errorMessage =
-                                  'Ce média est déjà dans cette playlist';
-                            } else {
-                              errorMessage = AppLocalizations.of(
-                                context,
-                              )!.errorWithMessage(e.toString());
-                            }
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(errorMessage),
-                                duration: const Duration(seconds: 5),
-                              ),
-                            );
-                          }
                         }
-                      },
-                      child: Text(playlist.title),
-                    );
-                  }).toList(),
+                      } catch (e, stackTrace) {
+                        // Logger l'erreur pour le debug
+                        logger.log(
+                          LogLevel.error,
+                          'Erreur lors de l\'ajout à la playlist: $e',
+                          error: e,
+                          stackTrace: stackTrace,
+                          category: 'library_playlist_detail',
+                        );
+
+                        if (context.mounted) {
+                          // Gérer spécifiquement l'erreur de doublon
+                          String errorMessage;
+                          if (e is StateError &&
+                              e.message.contains('déjà dans cette playlist')) {
+                            errorMessage =
+                                'Ce média est déjà dans cette playlist';
+                          } else {
+                            errorMessage = AppLocalizations.of(
+                              context,
+                            )!.errorWithMessage(e.toString());
+                          }
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMessage),
+                              duration: const Duration(seconds: 5),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Text(playlist.title),
+                  );
+                }).toList(),
                 cancelButton: CupertinoActionSheetAction(
                   onPressed: () => Navigator.of(ctx).pop(),
                   child: Text(AppLocalizations.of(context)!.actionCancel),
@@ -1302,7 +1321,8 @@ class _LibraryPlaylistDetailPageState
     switch (widget.playlist.type) {
       case LibraryPlaylistType.favoriteMovies:
       case LibraryPlaylistType.favoriteSeries:
-        title = l10n.playlistDeleteTitle; // Utiliser le titre de suppression existant
+        title = l10n
+            .playlistDeleteTitle; // Utiliser le titre de suppression existant
         break;
       case LibraryPlaylistType.inProgress:
         title = l10n.playlistDeleteTitle;
@@ -1354,20 +1374,12 @@ class _LibraryPlaylistDetailPageState
         case LibraryPlaylistType.favoriteMovies:
         case LibraryPlaylistType.favoriteSeries:
           final watchlist = locator<WatchlistLocalRepository>();
-          await watchlist.remove(
-            reference.id,
-            reference.type,
-            userId: userId,
-          );
+          await watchlist.remove(reference.id, reference.type, userId: userId);
           break;
         case LibraryPlaylistType.inProgress:
           // La playlist "en cours" est basée sur l'historique, donc il faut supprimer de l'historique
           final history = locator<HistoryLocalRepository>();
-          await history.remove(
-            reference.id,
-            reference.type,
-            userId: userId,
-          );
+          await history.remove(reference.id, reference.type, userId: userId);
           // Supprimer aussi de continue_watching si présent (pour la section Home)
           final continueWatching = locator<ContinueWatchingLocalRepository>();
           final continueWatchingEntries = await continueWatching.readAll(
@@ -1388,7 +1400,7 @@ class _LibraryPlaylistDetailPageState
         case LibraryPlaylistType.watchHistory:
           final history = locator<HistoryLocalRepository>();
           final continueWatching = locator<ContinueWatchingLocalRepository>();
-          
+
           // Vérifier si le média est dans "en cours"
           final continueWatchingEntries = await continueWatching.readAll(
             reference.type,
@@ -1397,14 +1409,10 @@ class _LibraryPlaylistDetailPageState
           final isInProgress = continueWatchingEntries.any(
             (entry) => entry.contentId == reference.id,
           );
-          
+
           // Supprimer de l'historique
-          await history.remove(
-            reference.id,
-            reference.type,
-            userId: userId,
-          );
-          
+          await history.remove(reference.id, reference.type, userId: userId);
+
           // Si aussi dans "en cours", supprimer de là aussi
           if (isInProgress) {
             await continueWatching.remove(
@@ -1421,7 +1429,7 @@ class _LibraryPlaylistDetailPageState
       // Invalider les providers pour rafraîchir
       ref.invalidate(_otherPlaylistItemsProvider(widget.playlist));
       ref.invalidate(libraryPlaylistsProvider);
-      
+
       // Invalider les providers spécifiques selon le type de playlist
       switch (widget.playlist.type) {
         case LibraryPlaylistType.favoriteMovies:
@@ -1468,7 +1476,8 @@ class _LibraryPlaylistDetailPageState
     WidgetRef ref,
     ContentReference reference,
   ) async {
-    final key = '${widget.playlist.type.name}:${reference.type.name}:${reference.id}';
+    final key =
+        '${widget.playlist.type.name}:${reference.type.name}:${reference.id}';
     return _displayDataCache.putIfAbsent(
       key,
       () => _loadMediaDisplayData(ref, reference),
@@ -1487,7 +1496,9 @@ class _LibraryPlaylistDetailPageState
           case ContentType.movie:
             final movieVm =
                 ref.read(movieDetailControllerProvider(reference.id)).value ??
-                await ref.read(movieDetailControllerProvider(reference.id).future);
+                await ref.read(
+                  movieDetailControllerProvider(reference.id).future,
+                );
             final resolvedMovieVm = movieVm!;
             return _PlaylistMediaDisplayData(
               reference: ContentReference(
@@ -1497,14 +1508,15 @@ class _LibraryPlaylistDetailPageState
                 poster: reference.poster ?? resolvedMovieVm.poster,
                 year: _parseYear(resolvedMovieVm.yearText) ?? reference.year,
                 rating:
-                    _parseRating(resolvedMovieVm.ratingText) ?? reference.rating,
+                    _parseRating(resolvedMovieVm.ratingText) ??
+                    reference.rating,
               ),
               secondaryLabel: _displayLabel(resolvedMovieVm.durationText),
             );
           case ContentType.series:
-            final show = await ref.read(
-              tvRepositoryProvider,
-            ).getShowLite(SeriesId(reference.id));
+            final show = await ref
+                .read(tvRepositoryProvider)
+                .getShowLite(SeriesId(reference.id));
             final seasonCount = show.seasons.length;
             return _PlaylistMediaDisplayData(
               reference: ContentReference(

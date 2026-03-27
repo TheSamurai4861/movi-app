@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
@@ -18,10 +19,13 @@ class IptvSourceOrganizePage extends ConsumerStatefulWidget {
       _IptvSourceOrganizePageState();
 }
 
-class _IptvSourceOrganizePageState extends ConsumerState<IptvSourceOrganizePage> {
+class _IptvSourceOrganizePageState
+    extends ConsumerState<IptvSourceOrganizePage> {
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(iptvSourceOrganizeControllerProvider(widget.accountId));
+    final state = ref.watch(
+      iptvSourceOrganizeControllerProvider(widget.accountId),
+    );
     final controller = ref.read(
       iptvSourceOrganizeControllerProvider(widget.accountId).notifier,
     );
@@ -67,7 +71,8 @@ class _IptvSourceOrganizePageState extends ConsumerState<IptvSourceOrganizePage>
                           ),
                           itemBuilder: (context, index) {
                             final item = items[index];
-                            final typeLabel = item.type == XtreamPlaylistType.movies
+                            final typeLabel =
+                                item.type == XtreamPlaylistType.movies
                                 ? 'Films'
                                 : 'Séries';
                             return _PlaylistRow(
@@ -77,9 +82,9 @@ class _IptvSourceOrganizePageState extends ConsumerState<IptvSourceOrganizePage>
                               accentColor: accent,
                               onVisibleChanged: (v) =>
                                   controller.toggleVisibility(
-                                playlistId: item.playlistId,
-                                isVisible: v,
-                              ),
+                                    playlistId: item.playlistId,
+                                    isVisible: v,
+                                  ),
                               dragHandle: ReorderableDragStartListener(
                                 index: index,
                                 child: const Icon(
@@ -96,8 +101,10 @@ class _IptvSourceOrganizePageState extends ConsumerState<IptvSourceOrganizePage>
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: _BottomActions(
-                    onShowAll: () => controller.setAllVisibleAll(isVisible: true),
-                    onHideAll: () => controller.setAllVisibleAll(isVisible: false),
+                    onShowAll: () =>
+                        controller.setAllVisibleAll(isVisible: true),
+                    onHideAll: () =>
+                        controller.setAllVisibleAll(isVisible: false),
                     showAllLabel: 'Tout afficher',
                     hideAllLabel: 'Tout masquer',
                     disabled: state.isLoading,
@@ -125,13 +132,26 @@ class _Header extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 35,
-                height: 35,
-                child: Image(image: AssetImage(AppAssets.iconBack)),
+            child: SizedBox(
+              width: 35,
+              height: 35,
+              child: MoviFocusableAction(
+                onPressed: onBack,
+                semanticLabel: 'Retour',
+                builder: (context, state) {
+                  return MoviFocusFrame(
+                    scale: state.focused ? 1.04 : 1,
+                    borderRadius: BorderRadius.circular(999),
+                    backgroundColor: state.focused
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    child: const SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                    ),
+                  );
+                },
               ),
             ),
           ),

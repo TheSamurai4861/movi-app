@@ -46,22 +46,37 @@ class MovieDetailSagaSection extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
+                  MoviFocusableAction(
+                    onPressed: () {
                       context.push(
                         AppRouteNames.sagaDetail,
                         extra: sagaLink.id.value,
                       );
                     },
-                    child: Text(
-                      'Voir la page',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
+                    semanticLabel: 'Voir la page de la saga',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.03 : 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        child: Text(
+                          'Voir la page',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

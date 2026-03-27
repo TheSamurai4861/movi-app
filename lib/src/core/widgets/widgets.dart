@@ -1,5 +1,6 @@
 export 'movi_bottom_nav_bar.dart';
 export 'movi_favorite_button.dart';
+export 'movi_focusable.dart';
 export 'movi_items_list.dart';
 export 'movi_marquee_text.dart';
 export 'movi_media_card.dart';
@@ -8,6 +9,7 @@ export 'movi_pill.dart';
 export 'movi_placeholder_card.dart';
 export 'movi_primary_button.dart';
 export 'movi_see_all_card.dart';
+export 'movi_tv_action_menu.dart';
 export 'overlay_splash.dart';
 export 'launch_error_panel.dart';
 export 'swipe_back_wrapper.dart';

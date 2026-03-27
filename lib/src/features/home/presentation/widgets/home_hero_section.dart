@@ -15,27 +15,45 @@ class HomeHeroSection extends ConsumerWidget {
     super.key,
     required this.heroItems,
     required this.onLoadingChanged,
+    this.primaryActionFocusNode,
   });
 
   final List<ContentReference> heroItems;
   final ValueChanged<bool> onLoadingChanged;
+  final FocusNode? primaryActionFocusNode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(currentLanguageCodeProvider);
+    final mediaSize = MediaQuery.of(context).size;
     final screenType = ScreenTypeResolver.instance.resolve(
-      MediaQuery.of(context).size.width,
-      MediaQuery.of(context).size.height,
+      mediaSize.width,
+      mediaSize.height,
     );
+    final isMobileHero = screenType == ScreenType.mobile;
     final shouldBleedHero =
         screenType == ScreenType.desktop || screenType == ScreenType.tv;
     final visualBleed = shouldBleedHero
         ? HomeLayoutConstants.heroDesktopVisualBleed
         : 0.0;
-    final heroLayoutHeight = HomeLayoutConstants.heroTotalHeight;
+    final heroLayoutHeight = isMobileHero
+        ? mediaSize.height * 0.75
+        : HomeLayoutConstants.heroTotalHeight;
 
     if (heroItems.isEmpty) {
       return const SliverToBoxAdapter(child: _HeroEmptyBanner());
+    }
+
+    if (isMobileHero) {
+      return SliverToBoxAdapter(
+        child: HomeHeroCarousel(
+          key: ValueKey(lang),
+          items: heroItems.take(10).toList(growable: false),
+          onLoadingChanged: onLoadingChanged,
+          primaryActionFocusNode: primaryActionFocusNode,
+          layoutHeight: heroLayoutHeight,
+        ),
+      );
     }
 
     return SliverToBoxAdapter(
@@ -49,6 +67,8 @@ class HomeHeroSection extends ConsumerWidget {
             key: ValueKey(lang),
             items: heroItems.take(10).toList(growable: false),
             onLoadingChanged: onLoadingChanged,
+            primaryActionFocusNode: primaryActionFocusNode,
+            layoutHeight: heroLayoutHeight,
           ),
         ),
       ),

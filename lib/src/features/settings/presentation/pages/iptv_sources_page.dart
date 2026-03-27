@@ -13,6 +13,7 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
@@ -120,7 +121,9 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 
     if (ok != true) return;
 
-    final wasActive = ref.read(asp.activeIptvSourcesProvider).contains(account.id);
+    final wasActive = ref
+        .read(asp.activeIptvSourcesProvider)
+        .contains(account.id);
 
     if (account.isStalker) {
       await local.removeStalkerAccount(account.id);
@@ -156,15 +159,15 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     await ref.read(hp.homeControllerProvider.notifier).refresh();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Source supprimée')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Source supprimée')));
     }
   }
 
   Future<void> _refreshSelected(AnyIptvAccount account) async {
     if (_refreshing) return;
-    
+
     if (account.isStalker) {
       setState(() => _refreshing = true);
       try {
@@ -175,9 +178,9 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
           ok: (_) => ok = true,
           err: (f) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(f.message)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(f.message)));
             }
           },
         );
@@ -196,7 +199,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       }
       return;
     }
-    
+
     setState(() => _refreshing = true);
     try {
       final refresh = ref.read(slProvider)<RefreshXtreamCatalog>();
@@ -207,9 +210,9 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
         ok: (_) => ok = true,
         err: (f) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(f.message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(f.message)));
           }
         },
       );
@@ -308,13 +311,16 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                           height: 48,
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () => context.push(AppRouteNames.iptvSourceSelect),
+                            onPressed: () =>
+                                context.push(AppRouteNames.iptvSourceSelect),
                             icon: const Icon(Icons.swap_horiz),
                             label: const Text('Changer de source active'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: accent.withAlpha(51),
                               foregroundColor: accent,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
                             ),
                           ),
                         ),
@@ -370,13 +376,16 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                               activeAccount.getExpiration(),
                               locale,
                             ),
-                            onDelete: () => _confirmAndDelete(activeAccount, accounts),
+                            onDelete: () =>
+                                _confirmAndDelete(activeAccount, accounts),
                             onSelect: null,
                           ),
                         const SizedBox(height: 16),
                         if (activeAccount != null) ...[
                           MoviPrimaryButton(
-                            label: _refreshing ? 'Rafraîchissement…' : 'Rafraîchir',
+                            label: _refreshing
+                                ? 'Rafraîchissement…'
+                                : 'Rafraîchir',
                             onPressed: _refreshing
                                 ? null
                                 : () => _refreshSelected(activeAccount),
@@ -395,7 +404,9 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                                 if (updated == true) {
                                   ref.invalidate(allIptvAccountsProvider);
                                   ref.invalidate(iptvAccountsProvider);
-                                  ref.invalidate(iptvSourceStatsProvider(activeAccount.id));
+                                  ref.invalidate(
+                                    iptvSourceStatsProvider(activeAccount.id),
+                                  );
                                 }
                               },
                             ),
@@ -430,12 +441,14 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                               account.getExpiration(),
                               locale,
                             ),
-                            onDelete: () => _confirmAndDelete(account, accounts),
+                            onDelete: () =>
+                                _confirmAndDelete(account, accounts),
                             onSelect: null,
                           ),
                           const SizedBox(height: 16),
                         ],
-                        if (otherAccounts.isNotEmpty) const SizedBox(height: 16),
+                        if (otherAccounts.isNotEmpty)
+                          const SizedBox(height: 16),
                         MoviPrimaryButton(
                           label: 'Ajouter une source',
                           onPressed: _openAddSource,
@@ -478,13 +491,26 @@ class _HeaderBar extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 35,
-                height: 35,
-                child: Image(image: AssetImage(AppAssets.iconBack)),
+            child: SizedBox(
+              width: 35,
+              height: 35,
+              child: MoviFocusableAction(
+                onPressed: onBack,
+                semanticLabel: 'Retour',
+                builder: (context, state) {
+                  return MoviFocusFrame(
+                    scale: state.focused ? 1.04 : 1,
+                    borderRadius: BorderRadius.circular(999),
+                    backgroundColor: state.focused
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    child: const SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -503,24 +529,46 @@ class _HeaderBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: Image.asset(
-                    AppAssets.iconSearch,
-                    width: 30,
-                    height: 30,
-                    color: searchActive ? accent : Colors.white,
-                  ),
+                MoviFocusableAction(
                   onPressed: onSearch,
+                  semanticLabel: 'Rechercher',
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.04 : 1,
+                      padding: const EdgeInsets.all(8),
+                      borderRadius: BorderRadius.circular(999),
+                      backgroundColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.14)
+                          : Colors.transparent,
+                      child: Image.asset(
+                        AppAssets.iconSearch,
+                        width: 30,
+                        height: 30,
+                        color: searchActive ? accent : Colors.white,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  icon: Image.asset(
-                    AppAssets.iconPlus,
-                    width: 25,
-                    height: 25,
-                    color: Colors.white,
-                  ),
+                MoviFocusableAction(
                   onPressed: onAdd,
+                  semanticLabel: 'Ajouter',
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.04 : 1,
+                      padding: const EdgeInsets.all(8),
+                      borderRadius: BorderRadius.circular(999),
+                      backgroundColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.14)
+                          : Colors.transparent,
+                      child: Image.asset(
+                        AppAssets.iconPlus,
+                        width: 25,
+                        height: 25,
+                        color: Colors.white,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -553,13 +601,15 @@ class _SourceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Stats seulement pour Xtream
-    final statsAsync = account.isStalker 
-        ? null 
+    final statsAsync = account.isStalker
+        ? null
         : ref.watch(iptvSourceStatsProvider(account.id));
 
-    final pillColor = isActive ? const Color(0xFF339936) : const Color(0xFF555555);
+    final pillColor = isActive
+        ? const Color(0xFF339936)
+        : const Color(0xFF555555);
 
     return GestureDetector(
       onTap: onSelect,
@@ -640,12 +690,14 @@ class _SourceCard extends ConsumerWidget {
                   children: [
                     _KeyValueRow(
                       label: 'Films',
-                      value: '${stats.movieCount} (${stats.movieIndexedCount} recensés)',
+                      value:
+                          '${stats.movieCount} (${stats.movieIndexedCount} recensés)',
                     ),
                     const SizedBox(height: 16),
                     _KeyValueRow(
                       label: 'Séries',
-                      value: '${stats.seriesCount} (${stats.seriesIndexedCount} recensés)',
+                      value:
+                          '${stats.seriesCount} (${stats.seriesIndexedCount} recensés)',
                     ),
                   ],
                 ),

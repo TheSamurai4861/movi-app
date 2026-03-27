@@ -9,6 +9,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/search/domain/entities/tmdb_genre.dart';
 import 'package:movi/src/features/search/presentation/models/genre_all_results_args.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
@@ -20,10 +21,12 @@ class GenresGrid extends ConsumerWidget {
     super.key,
     this.horizontalPadding = 20,
     this.maxContentWidth = double.infinity,
+    this.firstItemFocusNode,
   });
 
   final double horizontalPadding;
   final double maxContentWidth;
+  final FocusNode? firstItemFocusNode;
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -138,7 +141,10 @@ class GenresGrid extends ConsumerWidget {
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final genre = items[index];
-                  return InkWell(
+                  return _GenreCard(
+                    genre: genre,
+                    accent: accent,
+                    focusNode: index == 0 ? firstItemFocusNode : null,
                     onTap: () {
                       context.push(
                         AppRouteNames.genreAllResults,
@@ -149,42 +155,7 @@ class GenresGrid extends ConsumerWidget {
                         ),
                       );
                     },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomLeft,
-                          end: Alignment.topRight,
-                          colors: [accent, _darkenColor(accent)],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Container(color: accent.withValues(alpha: 0.5)),
-                            Align(
-                              alignment: Alignment.bottomLeft,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(
-                                  genre.name,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    darkenColor: _darkenColor,
                   );
                 },
               );
@@ -217,22 +188,101 @@ class GenresGrid extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             if (genres.movie.isNotEmpty) ...[
-              _buildSubTitle(context, AppLocalizations.of(context)!.moviesTitle),
+              _buildSubTitle(
+                context,
+                AppLocalizations.of(context)!.moviesTitle,
+              ),
               _buildGrid(context, screenType, accent, genres.movie),
               const SizedBox(height: 16),
             ],
             if (genres.series.isNotEmpty) ...[
-              _buildSubTitle(context, AppLocalizations.of(context)!.seriesTitle),
+              _buildSubTitle(
+                context,
+                AppLocalizations.of(context)!.seriesTitle,
+              ),
               _buildGrid(context, screenType, accent, genres.series),
             ],
           ],
         );
       },
       loading: () => Padding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: 16,
+        ),
         child: const Center(child: CircularProgressIndicator()),
       ),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _GenreCard extends StatelessWidget {
+  const _GenreCard({
+    required this.genre,
+    required this.accent,
+    required this.onTap,
+    required this.darkenColor,
+    this.focusNode,
+  });
+
+  final TmdbGenre genre;
+  final Color accent;
+  final VoidCallback onTap;
+  final Color Function(Color color) darkenColor;
+  final FocusNode? focusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    return MoviFocusableAction(
+      focusNode: focusNode,
+      onPressed: onTap,
+      semanticLabel: genre.name,
+      builder: (context, state) {
+        return MoviFocusFrame(
+          scale: state.focused ? 1.03 : 1,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomLeft,
+                end: Alignment.topRight,
+                colors: [accent, darkenColor(accent)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: state.focused ? Colors.white : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Container(color: accent.withValues(alpha: 0.5)),
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        genre.name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

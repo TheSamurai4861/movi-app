@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_hero_image.dart';
 
-class MovieDetailHeroSection extends StatelessWidget {
+class MovieDetailHeroSection extends StatefulWidget {
   const MovieDetailHeroSection({
     super.key,
     this.poster,
@@ -23,17 +25,57 @@ class MovieDetailHeroSection extends StatelessWidget {
   final double overlayHeight;
 
   @override
+  State<MovieDetailHeroSection> createState() => _MovieDetailHeroSectionState();
+}
+
+class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
+  late final FocusNode _backFocusNode = FocusNode(debugLabel: 'MovieHeroBack');
+  late final FocusNode _moreFocusNode = FocusNode(debugLabel: 'MovieHeroMore')
+    ..canRequestFocus = false;
+
+  @override
+  void dispose() {
+    _backFocusNode.dispose();
+    _moreFocusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.ignored;
+    }
+    _moreFocusNode.canRequestFocus = true;
+    _moreFocusNode.requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleMoreKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _backFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: height,
+      height: widget.height,
       width: double.infinity,
       child: Stack(
         fit: StackFit.expand,
         children: [
           MovieHeroImage(
-            poster: poster,
-            posterBackground: posterBackground,
-            backdrop: backdrop,
+            poster: widget.poster,
+            posterBackground: widget.posterBackground,
+            backdrop: widget.backdrop,
           ),
           Positioned(
             top: 0,
@@ -58,26 +100,63 @@ class MovieDetailHeroSection extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onBack,
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: Image(image: AssetImage(AppAssets.iconBack)),
-                      ),
-                    ],
+                Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) => _handleBackKey(event),
+                  child: MoviFocusableAction(
+                    focusNode: _backFocusNode,
+                    onPressed: widget.onBack,
+                    semanticLabel: 'Retour',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: const SizedBox(
+                          width: 35,
+                          height: 35,
+                          child: Image(image: AssetImage(AppAssets.iconBack)),
+                        ),
+                      );
+                    },
                   ),
                 ),
-                SizedBox(
-                  width: 25,
-                  height: 35,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onMore,
-                    child: const Image(image: AssetImage(AppAssets.iconMore)),
+                Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) => _handleMoreKey(event),
+                  onFocusChange: (hasFocus) {
+                    if (!hasFocus) {
+                      _moreFocusNode.canRequestFocus = false;
+                    }
+                  },
+                  child: MoviFocusableAction(
+                    focusNode: _moreFocusNode,
+                    onPressed: widget.onMore,
+                    semanticLabel: 'Plus d actions',
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        borderRadius: BorderRadius.circular(999),
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.14)
+                            : Colors.transparent,
+                        child: const SizedBox(
+                          width: 25,
+                          height: 35,
+                          child: Image(image: AssetImage(AppAssets.iconMore)),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -88,7 +167,7 @@ class MovieDetailHeroSection extends StatelessWidget {
             left: 0,
             right: 0,
             child: Container(
-              height: overlayHeight,
+              height: widget.overlayHeight,
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,

@@ -26,6 +26,7 @@ class SidebarNavItem extends StatefulWidget {
     required this.selected,
     required this.onTap,
     required this.tooltip,
+    this.focusNode,
     this.accentColor,
     this.selectedBackgroundColor,
     this.unselectedIconColor,
@@ -44,6 +45,7 @@ class SidebarNavItem extends StatefulWidget {
 
   /// Tooltip déjà localisé (via AppLocalizations dans le parent).
   final String tooltip;
+  final FocusNode? focusNode;
 
   /// Optionnel : couleur d’accent forcée. Sinon Theme.colorScheme.primary.
   final Color? accentColor;
@@ -87,15 +89,18 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
     final hoverBg = AppColors.secondaryDarkBackground.withValues(alpha: 0.55);
     final hoverIcon =
         Color.lerp(unselectedIcon, theme.colorScheme.onSurface, 0.35) ??
-            unselectedIcon;
+        unselectedIcon;
 
     // Press = fade du fond
-    final pressedOverlay = AppColors.secondaryDarkBackground.withValues(alpha: 0.80);
+    final pressedOverlay = AppColors.secondaryDarkBackground.withValues(
+      alpha: 0.80,
+    );
 
     final effectiveHovered = widget.enableHover ? _hovered : false;
 
-    final iconColor =
-        widget.selected ? accent : (effectiveHovered ? hoverIcon : unselectedIcon);
+    final iconColor = widget.selected
+        ? accent
+        : (effectiveHovered ? hoverIcon : unselectedIcon);
 
     final baseBg = widget.selected
         ? selectedBg
@@ -103,8 +108,9 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
 
     final bgColor = _pressed ? pressedOverlay : baseBg;
 
-    final border =
-        _focused ? Border.all(color: accent, width: widget.focusOutlineWidth) : null;
+    final border = _focused
+        ? Border.all(color: accent, width: widget.focusOutlineWidth)
+        : null;
 
     Widget core = GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -135,6 +141,7 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
     );
 
     core = FocusableActionDetector(
+      focusNode: widget.focusNode,
       actions: <Type, Action<Intent>>{
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
@@ -147,8 +154,9 @@ class _SidebarNavItemState extends State<SidebarNavItem> {
         if (_focused == v) return;
         setState(() => _focused = v);
       },
-      mouseCursor:
-          widget.enableHover ? SystemMouseCursors.click : MouseCursor.defer,
+      mouseCursor: widget.enableHover
+          ? SystemMouseCursors.click
+          : MouseCursor.defer,
       child: widget.enableHover
           ? MouseRegion(
               onEnter: (_) => setState(() => _hovered = true),

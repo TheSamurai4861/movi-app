@@ -3,6 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -15,6 +16,8 @@ import 'package:movi/src/features/library/presentation/providers/library_provide
 import 'package:movi/src/features/library/presentation/widgets/library_filter_pills.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
+import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
+import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -37,6 +40,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
+  final _firstPlaylistFocusNode = FocusNode(debugLabel: 'LibraryFirstPlaylist');
+  final List<FocusNode> _playlistFocusNodes = [];
 
   late final AnimationController _anim;
   late final Animation<double> _opacity;
@@ -47,6 +52,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   @override
   void initState() {
     super.initState();
+    ref
+        .read(shellFocusCoordinatorProvider)
+        .registerPreferredNode(ShellTab.library, _firstPlaylistFocusNode);
 
     _anim = AnimationController(
       duration: const Duration(milliseconds: 260),
@@ -63,10 +71,92 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   @override
   void dispose() {
+    ref
+        .read(shellFocusCoordinatorProvider)
+        .unregisterPreferredNode(ShellTab.library, _firstPlaylistFocusNode);
+    _disposePlaylistFocusNodes();
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _firstPlaylistFocusNode.dispose();
     _anim.dispose();
     super.dispose();
+  }
+
+  void _syncPlaylistFocusNodes(int count) {
+    if (_playlistFocusNodes.length == count) return;
+
+    if (_playlistFocusNodes.isEmpty && count > 0) {
+      _playlistFocusNodes.add(_firstPlaylistFocusNode);
+    }
+
+    while (_playlistFocusNodes.length < count) {
+      final index = _playlistFocusNodes.length;
+      _playlistFocusNodes.add(
+        index == 0
+            ? _firstPlaylistFocusNode
+            : FocusNode(debugLabel: 'LibraryPlaylist-$index'),
+      );
+    }
+
+    while (_playlistFocusNodes.length > count) {
+      final removed = _playlistFocusNodes.removeLast();
+      if (!identical(removed, _firstPlaylistFocusNode)) {
+        removed.dispose();
+      }
+    }
+  }
+
+  void _disposePlaylistFocusNodes() {
+    for (final node in _playlistFocusNodes) {
+      if (!identical(node, _firstPlaylistFocusNode)) {
+        node.dispose();
+      }
+    }
+    _playlistFocusNodes.clear();
+  }
+
+  KeyEventResult _handlePlaylistListDirection(int index, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    int? targetIndex;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      targetIndex = index + 1 < _playlistFocusNodes.length ? index + 1 : null;
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      targetIndex = index > 0 ? index - 1 : null;
+    }
+
+    if (targetIndex == null) return KeyEventResult.ignored;
+    _playlistFocusNodes[targetIndex].requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handlePlaylistGridDirection(
+    int index,
+    int columns,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    int? targetIndex;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      targetIndex = index % columns == 0 ? null : index - 1;
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      final nextIndex = index + 1;
+      targetIndex =
+          (index % columns == columns - 1 ||
+              nextIndex >= _playlistFocusNodes.length)
+          ? null
+          : nextIndex;
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      targetIndex = index - columns >= 0 ? index - columns : null;
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      final nextIndex = index + columns;
+      targetIndex = nextIndex < _playlistFocusNodes.length ? nextIndex : null;
+    }
+
+    if (targetIndex == null) return KeyEventResult.ignored;
+    _playlistFocusNodes[targetIndex].requestFocus();
+    return KeyEventResult.handled;
   }
 
   void _toggleSearch() {
@@ -93,10 +183,143 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   void _showCreatePlaylistDialog() {
     final l10n = AppLocalizations.of(context)!;
     final nameController = TextEditingController();
+    final nameFocusNode = FocusNode(debugLabel: 'CreatePlaylistName');
+    final cancelFocusNode = FocusNode(debugLabel: 'CreatePlaylistCancel');
+    final submitFocusNode = FocusNode(debugLabel: 'CreatePlaylistSubmit');
+
+    Future<void> submitCreate(BuildContext dialogContext) async {
+      final name = nameController.text.trim();
+      Navigator.of(dialogContext).pop();
+
+      if (name.isEmpty) return;
+
+      try {
+        final userId = ref.read(currentUserIdProvider);
+        final playlistId = PlaylistId(
+          '${LibraryConstants.userPlaylistPrefix}${DateTime.now().millisecondsSinceEpoch}',
+        );
+        final createPlaylist = ref.read(createPlaylistUseCaseProvider);
+
+        await createPlaylist(
+          id: playlistId,
+          title: MediaTitle(name),
+          owner: userId,
+          isPublic: false,
+        );
+
+        ref.invalidate(libraryPlaylistsProvider);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.playlistCreatedSuccess(name))),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.playlistCreateError(e.toString()))),
+        );
+      }
+    }
+
+    if (_screenType(context) == ScreenType.desktop) {
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return FocusTraversalGroup(
+            policy: WidgetOrderTraversalPolicy(),
+            child: AlertDialog(
+              title: Text(l10n.createPlaylistTitle),
+              content: SizedBox(
+                width: 420,
+                child: FocusTraversalOrder(
+                  order: const NumericFocusOrder(1),
+                  child: TextFormField(
+                    controller: nameController,
+                    focusNode: nameFocusNode,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => submitFocusNode.requestFocus(),
+                    decoration: InputDecoration(
+                      hintText: l10n.playlistName,
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                FocusTraversalOrder(
+                  order: const NumericFocusOrder(2),
+                  child: Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) {
+                      if (event is! KeyDownEvent) {
+                        return KeyEventResult.ignored;
+                      }
+
+                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                        nameFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+
+                      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                        submitFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+
+                      return KeyEventResult.ignored;
+                    },
+                    child: OutlinedButton(
+                      focusNode: cancelFocusNode,
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: Text(l10n.actionCancel),
+                    ),
+                  ),
+                ),
+                FocusTraversalOrder(
+                  order: const NumericFocusOrder(3),
+                  child: Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) {
+                      if (event is! KeyDownEvent) {
+                        return KeyEventResult.ignored;
+                      }
+
+                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                        nameFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+
+                      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                        cancelFocusNode.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+
+                      return KeyEventResult.ignored;
+                    },
+                    child: MoviPrimaryButton(
+                      label: l10n.actionConfirm,
+                      focusNode: submitFocusNode,
+                      expand: false,
+                      onPressed: () => submitCreate(dialogContext),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ).whenComplete(() {
+        nameController.dispose();
+        nameFocusNode.dispose();
+        cancelFocusNode.dispose();
+        submitFocusNode.dispose();
+      });
+      return;
+    }
 
     showCupertinoDialog(
       context: context,
-      builder: (context) => CupertinoAlertDialog(
+      builder: (dialogContext) => CupertinoAlertDialog(
         title: Text(l10n.createPlaylistTitle),
         content: Padding(
           padding: const EdgeInsets.only(top: 16),
@@ -109,51 +332,22 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
         ),
         actions: [
           CupertinoDialogAction(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(l10n.actionCancel),
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () async {
-              final name = nameController.text.trim();
-              Navigator.of(context).pop();
-
-              if (name.isEmpty) return;
-
-              try {
-                final userId = ref.read(currentUserIdProvider);
-                final playlistId = PlaylistId(
-                  '${LibraryConstants.userPlaylistPrefix}${DateTime.now().millisecondsSinceEpoch}',
-                );
-                final createPlaylist = ref.read(createPlaylistUseCaseProvider);
-
-                await createPlaylist(
-                  id: playlistId,
-                  title: MediaTitle(name),
-                  owner: userId,
-                  isPublic: false,
-                );
-
-                ref.invalidate(libraryPlaylistsProvider);
-
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.playlistCreatedSuccess(name))),
-                );
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.playlistCreateError(e.toString())),
-                  ),
-                );
-              }
-            },
+            onPressed: () => submitCreate(dialogContext),
             child: Text(l10n.actionConfirm),
           ),
         ],
       ),
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      nameFocusNode.dispose();
+      cancelFocusNode.dispose();
+      submitFocusNode.dispose();
+    });
   }
 
   void _showPlaylistMenu(
@@ -460,6 +654,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                   ),
                 ],
                 IconButton(
+                  style: IconButton.styleFrom(
+                    backgroundColor: _isSearchVisible
+                        ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                        : Colors.white.withValues(alpha: 0.08),
+                    padding: const EdgeInsets.all(10),
+                    shape: const CircleBorder(),
+                  ),
                   icon: Image.asset(
                     AppAssets.iconSearch,
                     width: 28,
@@ -471,11 +672,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 ),
                 const SizedBox(width: 6),
                 IconButton(
-                  icon: Image.asset(
-                    AppAssets.iconPlus,
-                    width: 24,
-                    height: 24,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    padding: const EdgeInsets.all(10),
+                    shape: const CircleBorder(),
                   ),
+                  icon: Image.asset(AppAssets.iconPlus, width: 24, height: 24),
                   onPressed: _showCreatePlaylistDialog,
                   tooltip: l10n.createPlaylistTitle,
                 ),
@@ -537,6 +739,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                   ),
                 ),
                 data: (playlists) {
+                  _syncPlaylistFocusNodes(playlists.length);
+
                   if (playlists.isEmpty) {
                     if (searchQuery.isNotEmpty) {
                       return Center(
@@ -554,7 +758,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     }
 
                     return ListView(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         SizedBox(
@@ -575,26 +781,36 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                   if (!isLargeScreen) {
                     return ListView.separated(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
                       itemCount: playlists.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final playlist = playlists[index];
-                        return LibraryPlaylistCard(
-                          title: playlist.title,
-                          itemCount: playlist.itemCount,
-                          type: playlist.type,
-                          isPinned: playlist.isPinned,
-                          photo: playlist.photo,
-                          showItemCount: !playlist.id.startsWith(
-                            LibraryConstants.sagaPrefix,
+                        return Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) =>
+                              _handlePlaylistListDirection(index, event),
+                          child: LibraryPlaylistCard(
+                            title: playlist.title,
+                            itemCount: playlist.itemCount,
+                            type: playlist.type,
+                            isPinned: playlist.isPinned,
+                            photo: playlist.photo,
+                            showItemCount: !playlist.id.startsWith(
+                              LibraryConstants.sagaPrefix,
+                            ),
+                            focusNode: _playlistFocusNodes[index],
+                            onTap: () => _navigateToPlaylist(playlist),
+                            onLongPress:
+                                playlist.type ==
+                                        LibraryPlaylistType.userPlaylist &&
+                                    playlist.playlistId != null
+                                ? () =>
+                                      _showPlaylistMenu(context, ref, playlist)
+                                : null,
                           ),
-                          onTap: () => _navigateToPlaylist(playlist),
-                          onLongPress:
-                              playlist.type == LibraryPlaylistType.userPlaylist &&
-                                  playlist.playlistId != null
-                              ? () => _showPlaylistMenu(context, ref, playlist)
-                              : null,
                         );
                       },
                     );
@@ -602,10 +818,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      final width = constraints.maxWidth - (horizontalPadding * 2);
+                      final width =
+                          constraints.maxWidth - (horizontalPadding * 2);
                       const spacing = 8.0;
                       const maxCardWidth = 300.0;
-                      final columns = (width / maxCardWidth).floor().clamp(1, 8);
+                      final columns = (width / maxCardWidth).floor().clamp(
+                        1,
+                        8,
+                      );
                       final gridMaxExtent =
                           (width - (spacing * (columns - 1))) / columns;
 
@@ -616,33 +836,46 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                           horizontalPadding,
                           100,
                         ),
-                        gridDelegate:
-                            SliverGridDelegateWithMaxCrossAxisExtent(
-                              maxCrossAxisExtent: gridMaxExtent,
-                              mainAxisExtent: 276,
-                              crossAxisSpacing: spacing,
-                              mainAxisSpacing: 6,
-                            ),
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: gridMaxExtent,
+                          mainAxisExtent: 276,
+                          crossAxisSpacing: spacing,
+                          mainAxisSpacing: 6,
+                        ),
                         itemCount: playlists.length,
                         itemBuilder: (context, index) {
                           final playlist = playlists[index];
-                          return LibraryPlaylistCard(
-                            title: playlist.title,
-                            itemCount: playlist.itemCount,
-                            type: playlist.type,
-                            isPinned: playlist.isPinned,
-                            photo: playlist.photo,
-                            layout: LibraryPlaylistCardLayout.vertical,
-                            showItemCount: !playlist.id.startsWith(
-                              LibraryConstants.sagaPrefix,
+                          return Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) =>
+                                _handlePlaylistGridDirection(
+                                  index,
+                                  columns,
+                                  event,
+                                ),
+                            child: LibraryPlaylistCard(
+                              title: playlist.title,
+                              itemCount: playlist.itemCount,
+                              type: playlist.type,
+                              isPinned: playlist.isPinned,
+                              photo: playlist.photo,
+                              layout: LibraryPlaylistCardLayout.vertical,
+                              showItemCount: !playlist.id.startsWith(
+                                LibraryConstants.sagaPrefix,
+                              ),
+                              focusNode: _playlistFocusNodes[index],
+                              onTap: () => _navigateToPlaylist(playlist),
+                              onLongPress:
+                                  playlist.type ==
+                                          LibraryPlaylistType.userPlaylist &&
+                                      playlist.playlistId != null
+                                  ? () => _showPlaylistMenu(
+                                      context,
+                                      ref,
+                                      playlist,
+                                    )
+                                  : null,
                             ),
-                            onTap: () => _navigateToPlaylist(playlist),
-                            onLongPress:
-                                playlist.type ==
-                                        LibraryPlaylistType.userPlaylist &&
-                                    playlist.playlistId != null
-                                ? () => _showPlaylistMenu(context, ref, playlist)
-                                : null,
                           );
                         },
                       );

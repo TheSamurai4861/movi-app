@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -70,6 +71,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Timer? _seasonsCheckTimer;
   int _retryCount = 0;
   final Map<int, DateTime> _seasonLoadingStartTimes = {};
+  final Map<int, FocusNode> _seasonEpisodeEntryFocusNodes = {};
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'TvHeroBack');
+  final FocusNode _moreFocusNode = FocusNode(debugLabel: 'TvHeroMore')
+    ..canRequestFocus = false;
   static const int _maxRetries = 3;
   static const Duration _loadingTimeout = Duration(seconds: 15);
   static const Duration _seasonLoadingTimeout = Duration(seconds: 10);
@@ -88,8 +93,44 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   void dispose() {
     _autoRefreshTimer?.cancel();
     _seasonsCheckTimer?.cancel();
+    for (final node in _seasonEpisodeEntryFocusNodes.values) {
+      node.dispose();
+    }
+    _backFocusNode.dispose();
+    _moreFocusNode.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  KeyEventResult _handleHeroBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.ignored;
+    }
+    _moreFocusNode.canRequestFocus = true;
+    _moreFocusNode.requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleHeroMoreKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _backFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  FocusNode _episodeEntryFocusNode(int seasonNumber) {
+    return _seasonEpisodeEntryFocusNodes.putIfAbsent(
+      seasonNumber,
+      () => FocusNode(debugLabel: 'TvSeason-$seasonNumber-FirstEpisode'),
+    );
   }
 
   void _startAutoRefreshTimer() {
@@ -329,7 +370,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         type: ContentType.series,
         title: MediaTitle(mediaId),
       );
-      final decisionAsync = ref.watch(parental.contentAgeDecisionProvider(content));
+      final decisionAsync = ref.watch(
+        parental.contentAgeDecisionProvider(content),
+      );
       return decisionAsync.when(
         loading: () => Scaffold(
           backgroundColor: Theme.of(context).colorScheme.surface,
@@ -340,8 +383,12 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           if (decision.isAllowed) return _buildAllowedDetail(context, mediaId);
 
           final l10n = AppLocalizations.of(context)!;
-          final localizedReason = getLocalizedParentalReason(context, decision.reason);
-          final displayMessage = localizedReason ?? l10n.parentalContentRestrictedDefault;
+          final localizedReason = getLocalizedParentalReason(
+            context,
+            decision.reason,
+          );
+          final displayMessage =
+              localizedReason ?? l10n.parentalContentRestrictedDefault;
 
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.surface,
@@ -354,10 +401,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   children: [
                     const Icon(Icons.lock, size: 48),
                     const SizedBox(height: 12),
-                    Text(
-                      displayMessage,
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(displayMessage, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () async {
@@ -368,7 +412,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                           reason: decision.reason,
                         );
                         if (!ok) return;
-                        ref.invalidate(parental.contentAgeDecisionProvider(content));
+                        ref.invalidate(
+                          parental.contentAgeDecisionProvider(content),
+                        );
                         if (mounted) setState(() {});
                       },
                       child: Text('${l10n.parentalUnlockButton} (PIN)'),
@@ -472,7 +518,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           cast: vm.cast,
           seasons: vm.seasons,
           isLoading: _isTransitioningFromLoading,
-                    poster: vm.poster,
+          poster: vm.poster,
           posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
         );
@@ -608,9 +654,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                               cs.surface.withValues(
                                                 alpha: 0.72,
                                               ),
-                                              cs.surface.withValues(
-                                                alpha: 0,
-                                              ),
+                                              cs.surface.withValues(alpha: 0),
                                             ],
                                             stops: const [0.0, 0.42, 0.82],
                                           ),
@@ -671,28 +715,57 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.pop(),
-            child: Padding(
-              padding: hitPadding,
-              child: SizedBox(
-                width: 35,
-                height: 35,
-                child: Image.asset(AppAssets.iconBack),
-              ),
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleHeroBackKey(event),
+            child: MoviFocusableAction(
+              focusNode: _backFocusNode,
+              onPressed: () => context.pop(),
+              semanticLabel: 'Retour',
+              builder: (context, state) {
+                return MoviFocusFrame(
+                  scale: state.focused ? 1.04 : 1,
+                  padding: hitPadding,
+                  borderRadius: BorderRadius.circular(999),
+                  backgroundColor: state.focused
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.transparent,
+                  child: SizedBox(
+                    width: 35,
+                    height: 35,
+                    child: Image.asset(AppAssets.iconBack),
+                  ),
+                );
+              },
             ),
           ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _showMoreMenu,
-            child: Padding(
-              padding: hitPadding,
-              child: SizedBox(
-                width: 25,
-                height: 35,
-                child: Image.asset(AppAssets.iconMore),
-              ),
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleHeroMoreKey(event),
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) {
+                _moreFocusNode.canRequestFocus = false;
+              }
+            },
+            child: MoviFocusableAction(
+              focusNode: _moreFocusNode,
+              onPressed: _showMoreMenu,
+              semanticLabel: 'Plus d actions',
+              builder: (context, state) {
+                return MoviFocusFrame(
+                  scale: state.focused ? 1.04 : 1,
+                  padding: hitPadding,
+                  borderRadius: BorderRadius.circular(999),
+                  backgroundColor: state.focused
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.transparent,
+                  child: SizedBox(
+                    width: 25,
+                    height: 35,
+                    child: Image.asset(AppAssets.iconMore),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -728,11 +801,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style:
-                          Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            height: 1.05,
-                          ) ??
+                      Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        height: 1.05,
+                      ) ??
                       const TextStyle(
                         fontSize: 42,
                         fontWeight: FontWeight.w700,
@@ -756,10 +829,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ) ??
+                          Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ) ??
                           const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -796,11 +869,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 16),
-          Text(
-            mediaTitle,
-            style: titleStyle,
-            textAlign: TextAlign.left,
-          ),
+          Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left),
           const SizedBox(height: 16),
           _buildMetaPills(
             yearText: yearText,
@@ -895,11 +964,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               borderRadius: BorderRadius.circular(32),
             ),
           ),
-          onPressed: () => _playSeries(
-            context,
-            seriesId,
-            mediaTitle,
-          ),
+          onPressed: () => _playSeries(context, seriesId, mediaTitle),
         );
       },
     );
@@ -1048,11 +1113,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
-  Widget _buildHeroImage(
-    Uri? posterBackground,
-    Uri? poster,
-    Uri? backdrop,
-  ) {
+  Widget _buildHeroImage(Uri? posterBackground, Uri? poster, Uri? backdrop) {
     return MoviHeroBackground(
       posterBackground: posterBackground?.toString(),
       poster: poster?.toString(),
@@ -1082,6 +1143,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         SizedBox(
           height: 286,
           child: ListView.separated(
+            clipBehavior: Clip.none,
             padding: EdgeInsetsDirectional.only(
               start: horizontalPadding,
               end: horizontalPadding,
@@ -1137,29 +1199,48 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     start: horizontalPadding,
                     end: horizontalPadding,
                   ),
-                  child: TabBar(
-                    controller: _tabController,
-                    isScrollable: true,
-                    labelColor: Theme.of(context).colorScheme.onSurface,
-                    unselectedLabelColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    indicatorColor: Theme.of(context).colorScheme.primary,
-                    labelStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    unselectedLabelStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    tabs: seasons.map((s) {
-                      return Tab(
-                        text: AppLocalizations.of(
-                          context,
-                        )!.tvSeasonLabel(s.seasonNumber),
+                  child: Focus(
+                    onKeyEvent: (_, event) {
+                      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+                      if (event.logicalKey != LogicalKeyboardKey.arrowDown) {
+                        return KeyEventResult.ignored;
+                      }
+
+                      final index = _tabController.index;
+                      if (index < 0 || index >= seasons.length) {
+                        return KeyEventResult.ignored;
+                      }
+
+                      final targetNode = _episodeEntryFocusNode(
+                        seasons[index].seasonNumber,
                       );
-                    }).toList(),
+                      targetNode.requestFocus();
+                      return KeyEventResult.handled;
+                    },
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      labelColor: Theme.of(context).colorScheme.onSurface,
+                      unselectedLabelColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      labelStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      tabs: seasons.map((s) {
+                        return Tab(
+                          text: AppLocalizations.of(
+                            context,
+                          )!.tvSeasonLabel(s.seasonNumber),
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
                 SizedBox(
@@ -1258,13 +1339,32 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         separatorBuilder: (_, __) => const SizedBox(width: 18),
         itemBuilder: (context, index) {
           final episode = sortedEpisodes[index];
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _openEpisodePlayer(episode, season.seasonNumber),
-            child: SizedBox(
-              width: 320,
-              child: _buildDesktopEpisodeCard(episode),
-            ),
+          return MoviFocusableAction(
+            focusNode: index == 0
+                ? _episodeEntryFocusNode(season.seasonNumber)
+                : null,
+            onPressed: () => _openEpisodePlayer(episode, season.seasonNumber),
+            semanticLabel: episode.title,
+            builder: (context, state) {
+              final accent = Theme.of(context).colorScheme.primary;
+              return MoviFocusFrame(
+                scale: state.focused ? 1.03 : 1,
+                borderRadius: BorderRadius.circular(20),
+                child: SizedBox(
+                  width: 320,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: state.focused ? accent : Colors.transparent,
+                        width: 2,
+                      ),
+                    ),
+                    child: _buildDesktopEpisodeCard(episode),
+                  ),
+                ),
+              );
+            },
           );
         },
       );
@@ -1276,10 +1376,29 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       separatorBuilder: (_, __) => const SizedBox(height: 24),
       itemBuilder: (context, index) {
         final episode = sortedEpisodes[index];
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _openEpisodePlayer(episode, season.seasonNumber),
-          child: _buildEpisodeCard(episode),
+        return MoviFocusableAction(
+          focusNode: index == 0
+              ? _episodeEntryFocusNode(season.seasonNumber)
+              : null,
+          onPressed: () => _openEpisodePlayer(episode, season.seasonNumber),
+          semanticLabel: episode.title,
+          builder: (context, state) {
+            final accent = Theme.of(context).colorScheme.primary;
+            return MoviFocusFrame(
+              scale: state.focused ? 1.015 : 1,
+              borderRadius: BorderRadius.circular(18),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: state.focused ? accent : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+                child: _buildEpisodeCard(episode),
+              ),
+            );
+          },
         );
       },
     );
@@ -1291,8 +1410,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       builder: (context, constraints) {
         // Prendre la moitié de la largeur disponible
         final imageWidth = constraints.maxWidth / 2;
-        final imageHeight = imageWidth * (100 / 178); // Conserver le ratio 178:100
-        
+        final imageHeight =
+            imageWidth * (100 / 178); // Conserver le ratio 178:100
+
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1312,67 +1432,67 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       colorScheme: cs,
                     ),
             ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${episode.episodeNumber}. ${episode.title}',
-                style:
-                    Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
-                    ) ??
-                    TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
-                    ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (episode.airDate != null)
+                  Text(
+                    '${episode.episodeNumber}. ${episode.title}',
+                    style:
+                        Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ) ??
+                        TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (episode.airDate != null)
+                        MoviPill(
+                          _formatDate(episode.airDate!),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          color: cs.surfaceContainerHighest,
+                        ),
+                      if (episode.runtime != null)
+                        MoviPill(
+                          _formatDuration(episode.runtime!),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          color: cs.surfaceContainerHighest,
+                        ),
+                    ],
+                  ),
+                  if (!episode.isAvailableInPlaylist) ...[
+                    const SizedBox(height: 8),
                     MoviPill(
-                      _formatDate(episode.airDate!),
+                      AppLocalizations.of(context)!.notYetAvailable,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
-                      color: cs.surfaceContainerHighest,
+                      color: Colors.red.withValues(alpha: 0.5),
                     ),
-                  if (episode.runtime != null)
-                    MoviPill(
-                      _formatDuration(episode.runtime!),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      color: cs.surfaceContainerHighest,
-                    ),
+                  ],
                 ],
               ),
-              if (!episode.isAvailableInPlaylist) ...[
-                const SizedBox(height: 8),
-                MoviPill(
-                  AppLocalizations.of(context)!.notYetAvailable,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  color: Colors.red.withValues(alpha: 0.5),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
+            ),
+          ],
+        );
       },
     );
   }
@@ -1410,10 +1530,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style:
-                  Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface,
-                  ) ??
+              Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurface,
+              ) ??
               TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1489,7 +1609,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return LayoutBuilder(
       builder: (context, constraints) {
         final effectiveWidth = width.isFinite ? width : constraints.maxWidth;
-        final effectiveHeight = height.isFinite ? height : constraints.maxHeight;
+        final effectiveHeight = height.isFinite
+            ? height
+            : constraints.maxHeight;
         final shortestSide = effectiveWidth < effectiveHeight
             ? effectiveWidth
             : effectiveHeight;
@@ -1681,8 +1803,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
       // Chercher l'item Xtream correspondant
       XtreamPlaylistItem? xtreamItem;
-      final activeSourceIds =
-          ref.read(asp.appStateControllerProvider).preferredIptvSourceIds;
+      final activeSourceIds = ref
+          .read(asp.appStateControllerProvider)
+          .preferredIptvSourceIds;
       final xtreamAccounts = await iptvLocal.getAccounts();
       final stalkerAccounts = await iptvLocal.getStalkerAccounts();
       final accountIds = <String>{
@@ -2002,9 +2125,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         return;
       }
       messenger?.hideCurrentSnackBar();
-      final vmAsync = ref.read(
-        tvDetailProgressiveControllerProvider(seriesId),
-      );
+      final vmAsync = ref.read(tvDetailProgressiveControllerProvider(seriesId));
       final vm = vmAsync.value;
 
       // Utiliser les données du widget si le view model n'est pas disponible
@@ -2055,8 +2176,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           final playlistIdToInvalidate = playlist.playlistId;
 
           try {
-            final year =
-                yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
+            final year = yearTextValue != '—'
+                ? int.tryParse(yearTextValue)
+                : null;
 
             await addPlaylistItem.call(
               playlistId: PlaylistId(playlist.playlistId!),
@@ -2076,9 +2198,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               playlistItemsProvider(playlistIdToInvalidate!),
             );
             container.invalidate(
-              playlistContentReferencesProvider(
-                playlistIdToInvalidate,
-              ),
+              playlistContentReferencesProvider(playlistIdToInvalidate),
             );
             container.invalidate(libraryPlaylistsProvider);
 
@@ -2101,9 +2221,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             if (canNotify) {
               String errorMessage;
               if (e is StateError &&
-                  e.message.contains(
-                    'déjà dans cette playlist',
-                  )) {
+                  e.message.contains('déjà dans cette playlist')) {
                 errorMessage = 'Ce média est déjà dans cette playlist';
               } else {
                 errorMessage = l10n.errorWithMessage(e.toString());
@@ -2157,6 +2275,91 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   void _showMoreMenu() {
+    final isTv = _screenTypeFor(context) == ScreenType.tv;
+    if (isTv) {
+      showDialog<void>(
+        context: context,
+        builder: (_) {
+          return Consumer(
+            builder: (context, ref, _) {
+              final seriesId = widget.seriesId;
+              final isAvailableAsync = ref.watch(
+                _seriesAvailabilityProvider(seriesId),
+              );
+              final isSeenAsync = ref.watch(_seriesSeenProvider(seriesId));
+              final l10n = AppLocalizations.of(context)!;
+
+              final isAvailable = isAvailableAsync.value ?? false;
+              final isSeen = isSeenAsync.value ?? false;
+
+              final actions = <MoviTvActionMenuAction>[
+                MoviTvActionMenuAction(
+                  label: l10n.actionRefreshMetadata,
+                  onPressed: _onRefreshMetadata,
+                ),
+                MoviTvActionMenuAction(
+                  label: l10n.actionAddToList,
+                  onPressed: () => _showAddToListDialog(context, ref, seriesId),
+                ),
+              ];
+
+              if (isAvailable) {
+                actions.add(
+                  MoviTvActionMenuAction(
+                    label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+                    onPressed: () {
+                      if (isSeen) {
+                        _markAsUnseen(seriesId);
+                      } else {
+                        _markAsSeen(seriesId);
+                      }
+                    },
+                  ),
+                );
+              }
+
+              actions.add(
+                MoviTvActionMenuAction(
+                  label: l10n.actionReportProblem,
+                  onPressed: () {
+                    final tmdbId = int.tryParse(seriesId);
+                    if (tmdbId == null || tmdbId <= 0) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Signalement indisponible pour ce contenu.',
+                            ),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    unawaited(
+                      ReportProblemSheet.show(
+                        context,
+                        ref,
+                        contentType: ContentType.series,
+                        tmdbId: tmdbId,
+                        contentTitle: mediaTitle,
+                      ),
+                    );
+                  },
+                ),
+              );
+
+              return MoviTvActionMenuDialog(
+                title: mediaTitle,
+                actions: actions,
+                cancelLabel: l10n.actionCancel,
+              );
+            },
+          );
+        },
+      );
+      return;
+    }
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) {
@@ -2167,64 +2370,49 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               _seriesAvailabilityProvider(seriesId),
             );
             final isSeenAsync = ref.watch(_seriesSeenProvider(seriesId));
+            final l10n = AppLocalizations.of(context)!;
 
             final isAvailable = isAvailableAsync.value ?? false;
             final isSeen = isSeenAsync.value ?? false;
 
-            final actions = <Widget>[
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  _onRefreshMetadata();
-                },
-                child: Text(
-                  AppLocalizations.of(context)!.actionRefreshMetadata,
-                ),
+            final actions = <MoviTvActionMenuAction>[
+              MoviTvActionMenuAction(
+                label: l10n.actionRefreshMetadata,
+                onPressed: _onRefreshMetadata,
               ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  _showAddToListDialog(context, ref, seriesId);
-                },
-                child: Text(AppLocalizations.of(context)!.actionAddToList),
+              MoviTvActionMenuAction(
+                label: l10n.actionAddToList,
+                onPressed: () => _showAddToListDialog(context, ref, seriesId),
               ),
             ];
 
-            // Ajouter l'option vu/non vu seulement si la série est disponible
             if (isAvailable) {
-              if (isSeen) {
-                actions.add(
-                  CupertinoActionSheetAction(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
+              actions.add(
+                MoviTvActionMenuAction(
+                  label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+                  onPressed: () {
+                    if (isSeen) {
                       _markAsUnseen(seriesId);
-                    },
-                    child: Text(AppLocalizations.of(context)!.actionMarkUnseen),
-                  ),
-                );
-              } else {
-                actions.add(
-                  CupertinoActionSheetAction(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
+                    } else {
                       _markAsSeen(seriesId);
-                    },
-                    child: Text(AppLocalizations.of(context)!.actionMarkSeen),
-                  ),
-                );
-              }
+                    }
+                  },
+                ),
+              );
             }
 
             actions.add(
-              CupertinoActionSheetAction(
+              MoviTvActionMenuAction(
+                label: l10n.actionReportProblem,
                 onPressed: () {
-                  Navigator.of(ctx).pop();
                   final tmdbId = int.tryParse(seriesId);
                   if (tmdbId == null || tmdbId <= 0) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Signalement indisponible pour ce contenu.'),
+                          content: Text(
+                            'Signalement indisponible pour ce contenu.',
+                          ),
                         ),
                       );
                     }
@@ -2240,16 +2428,26 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     ),
                   );
                 },
-                child: Text(AppLocalizations.of(context)!.actionReportProblem),
               ),
             );
 
             return CupertinoActionSheet(
               title: Text(mediaTitle),
-              actions: actions,
+              actions: actions
+                  .map(
+                    (action) => CupertinoActionSheetAction(
+                      isDestructiveAction: action.destructive,
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        action.onPressed();
+                      },
+                      child: Text(action.label),
+                    ),
+                  )
+                  .toList(growable: false),
               cancelButton: CupertinoActionSheetAction(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(AppLocalizations.of(context)!.actionCancel),
+                child: Text(l10n.actionCancel),
               ),
             );
           },
@@ -2262,7 +2460,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     try {
       // Utiliser le repository hybride (local + Supabase si disponible)
       final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
-      final vm = ref.read(tvDetailProgressiveControllerProvider(seriesId)).value;
+      final vm = ref
+          .read(tvDetailProgressiveControllerProvider(seriesId))
+          .value;
       final poster = vm?.poster;
       final resolvedTitle = (vm?.title.trim().isNotEmpty ?? false)
           ? vm!.title

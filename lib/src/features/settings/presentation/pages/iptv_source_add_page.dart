@@ -7,6 +7,7 @@ import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart'
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
@@ -29,6 +30,11 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _macCtrl = TextEditingController();
+  final _nameFocusNode = FocusNode(debugLabel: 'AddSourceName');
+  final _serverFocusNode = FocusNode(debugLabel: 'AddSourceServer');
+  final _userFocusNode = FocusNode(debugLabel: 'AddSourceUser');
+  final _passFocusNode = FocusNode(debugLabel: 'AddSourcePassword');
+  final _submitFocusNode = FocusNode(debugLabel: 'AddSourceSubmit');
 
   bool _hasSubmitted = false;
   bool _obscurePassword = true;
@@ -50,6 +56,11 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     _userCtrl.dispose();
     _passCtrl.dispose();
     _macCtrl.dispose();
+    _nameFocusNode.dispose();
+    _serverFocusNode.dispose();
+    _userFocusNode.dispose();
+    _passFocusNode.dispose();
+    _submitFocusNode.dispose();
     super.dispose();
   }
 
@@ -106,7 +117,10 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
           final accounts = await local.getAccounts();
           final username = _userCtrl.text.trim();
           final matches = accounts
-              .where((a) => a.endpoint.host == endpoint.host && a.username == username)
+              .where(
+                (a) =>
+                    a.endpoint.host == endpoint.host && a.username == username,
+              )
               .toList();
           if (matches.isNotEmpty) {
             matches.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -118,9 +132,9 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
         if (accountId != null && accountId.isNotEmpty) {
           final prefs = ref.read(slProvider)<SelectedIptvSourcePreferences>();
           await prefs.setSelectedSourceId(accountId);
-          ref
-              .read(asp.appStateControllerProvider)
-              .setActiveIptvSources({accountId});
+          ref.read(asp.appStateControllerProvider).setActiveIptvSources({
+            accountId,
+          });
           ref.read(appLaunchOrchestratorProvider.notifier).reset();
           if (!mounted) return;
           context.go(AppRouteNames.bootstrap);
@@ -163,12 +177,12 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                            Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  /*
+                              Form(
+                                key: _formKey,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    /*
                                   // Selecteur de type de source (masque)
                                   Text(
                                     'Type de source',
@@ -210,81 +224,101 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                   ),
                                   const SizedBox(height: 20),
                                   */
-                                  _FieldBlock(
-                                    label: 'Nom de la source',
-                                    controller: _nameCtrl,
-                                    enabled: !state.isLoading,
-                                    hintText: 'Mon IPTV',
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _FieldBlock(
-                                    label: 'URL du serveur',
-                                    controller: _serverCtrl,
-                                    enabled: !state.isLoading,
-                                    keyboardType: TextInputType.url,
-                                    hintText:
-                                        _sourceType == IptvSourceType.xtream
-                                        ? 'http://server.com:80/'
-                                        : 'http://server.com:80/portal.php',
-                                    validator: (v) =>
-                                        (v == null || v.trim().isEmpty)
-                                        ? l10n.validationRequired
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _FieldBlock(
-                                    label: l10n.labelUsername,
-                                    controller: _userCtrl,
-                                    enabled: !state.isLoading,
-                                    hintText: 'Nom d\'utilisateur',
-                                    autofillHints: const [
-                                      AutofillHints.username,
-                                    ],
-                                    validator: (v) =>
-                                        (v == null || v.trim().isEmpty)
-                                        ? l10n.validationRequired
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _FieldBlock(
-                                    label: l10n.iptvPasswordLabel,
-                                    controller: _passCtrl,
-                                    enabled: !state.isLoading,
-                                    hintText: 'Mot de passe',
-                                    obscureText: _obscurePassword,
-                                    onToggleObscure: () => setState(
-                                      () => _obscurePassword =
-                                          !_obscurePassword,
+                                    _FieldBlock(
+                                      label: 'Nom de la source',
+                                      controller: _nameCtrl,
+                                      focusNode: _nameFocusNode,
+                                      enabled: !state.isLoading,
+                                      hintText: 'Mon IPTV',
+                                      textInputAction: TextInputAction.next,
+                                      onSubmitted: () =>
+                                          _serverFocusNode.requestFocus(),
                                     ),
-                                    autofillHints: const [
-                                      AutofillHints.password,
-                                    ],
-                                    validator: (v) => (v == null || v.isEmpty)
-                                        ? l10n.validationRequired
-                                        : null,
-                                  ),
+                                    const SizedBox(height: 20),
+                                    _FieldBlock(
+                                      label: 'URL du serveur',
+                                      controller: _serverCtrl,
+                                      focusNode: _serverFocusNode,
+                                      enabled: !state.isLoading,
+                                      keyboardType: TextInputType.url,
+                                      hintText:
+                                          _sourceType == IptvSourceType.xtream
+                                          ? 'http://server.com:80/'
+                                          : 'http://server.com:80/portal.php',
+                                      textInputAction: TextInputAction.next,
+                                      onSubmitted: () =>
+                                          _userFocusNode.requestFocus(),
+                                      validator: (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                          ? l10n.validationRequired
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _FieldBlock(
+                                      label: l10n.labelUsername,
+                                      controller: _userCtrl,
+                                      focusNode: _userFocusNode,
+                                      enabled: !state.isLoading,
+                                      hintText: 'Nom d\'utilisateur',
+                                      autofillHints: const [
+                                        AutofillHints.username,
+                                      ],
+                                      textInputAction: TextInputAction.next,
+                                      onSubmitted: () =>
+                                          _passFocusNode.requestFocus(),
+                                      validator: (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                          ? l10n.validationRequired
+                                          : null,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _FieldBlock(
+                                      label: l10n.iptvPasswordLabel,
+                                      controller: _passCtrl,
+                                      focusNode: _passFocusNode,
+                                      enabled: !state.isLoading,
+                                      hintText: 'Mot de passe',
+                                      obscureText: _obscurePassword,
+                                      onToggleObscure: () => setState(
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
+                                      ),
+                                      autofillHints: const [
+                                        AutofillHints.password,
+                                      ],
+                                      textInputAction: TextInputAction.done,
+                                      onSubmitted: () =>
+                                          _submitFocusNode.requestFocus(),
+                                      validator: (v) => (v == null || v.isEmpty)
+                                          ? l10n.validationRequired
+                                          : null,
+                                    ),
 
-                                  const SizedBox(height: 32),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: MoviPrimaryButton(
-                                      label: 'Ajouter la source',
-                                      onPressed: state.isLoading
-                                          ? null
-                                          : _submit,
-                                      loading: state.isLoading,
+                                    const SizedBox(height: 32),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: MoviPrimaryButton(
+                                        label: 'Ajouter la source',
+                                        focusNode: _submitFocusNode,
+                                        onPressed: state.isLoading
+                                            ? null
+                                            : _submit,
+                                        loading: state.isLoading,
+                                      ),
                                     ),
-                                  ),
-                                  if (_hasSubmitted && state.error != null) ...[
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      state.error!,
-                                      style: const TextStyle(color: Colors.red),
-                                    ),
+                                    if (_hasSubmitted &&
+                                        state.error != null) ...[
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        state.error!,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
                             ],
                           ),
                         ),
@@ -314,13 +348,26 @@ class _Header extends StatelessWidget {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onBack,
-              child: const SizedBox(
-                width: 35,
-                height: 35,
-                child: Image(image: AssetImage(AppAssets.iconBack)),
+            child: SizedBox(
+              width: 35,
+              height: 35,
+              child: MoviFocusableAction(
+                onPressed: onBack,
+                semanticLabel: 'Retour',
+                builder: (context, state) {
+                  return MoviFocusFrame(
+                    scale: state.focused ? 1.04 : 1,
+                    borderRadius: BorderRadius.circular(999),
+                    backgroundColor: state.focused
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    child: const SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -345,23 +392,29 @@ class _FieldBlock extends StatelessWidget {
     required this.label,
     required this.controller,
     required this.enabled,
+    this.focusNode,
     this.keyboardType,
     this.hintText,
     this.obscureText = false,
     this.onToggleObscure,
     this.autofillHints,
     this.validator,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   final String label;
   final TextEditingController controller;
   final bool enabled;
+  final FocusNode? focusNode;
   final TextInputType? keyboardType;
   final String? hintText;
   final bool obscureText;
   final VoidCallback? onToggleObscure;
   final Iterable<String>? autofillHints;
   final String? Function(String?)? validator;
+  final TextInputAction? textInputAction;
+  final VoidCallback? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -381,10 +434,13 @@ class _FieldBlock extends StatelessWidget {
           height: 44,
           child: TextFormField(
             controller: controller,
+            focusNode: focusNode,
             enabled: enabled,
             keyboardType: keyboardType,
             obscureText: obscureText,
             autofillHints: autofillHints,
+            textInputAction: textInputAction,
+            onFieldSubmitted: (_) => onSubmitted?.call(),
             style: const TextStyle(color: Colors.white, fontSize: 16),
             textAlignVertical: TextAlignVertical.center,
             decoration: InputDecoration(
@@ -425,4 +481,3 @@ class _FieldBlock extends StatelessWidget {
     );
   }
 }
-

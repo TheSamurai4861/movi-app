@@ -3,7 +3,7 @@ import 'package:movi/src/features/category_browser/presentation/models/category_
 
 /// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
 /// Affiche un motif 2x2 stylisé et le libellé "Voir tout".
-class SeeAllCard extends StatelessWidget {
+class SeeAllCard extends StatefulWidget {
   const SeeAllCard({
     super.key,
     required this.title,
@@ -25,43 +25,75 @@ class SeeAllCard extends StatelessWidget {
   final Object? heroTag;
 
   @override
+  State<SeeAllCard> createState() => _SeeAllCardState();
+}
+
+class _SeeAllCardState extends State<SeeAllCard> {
+  bool _focused = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final args = CategoryPageArgs(title: title, categoryKey: categoryKey);
+    final args = CategoryPageArgs(
+      title: widget.title,
+      categoryKey: widget.categoryKey,
+    );
     return SizedBox(
-      width: width,
+      width: widget.width,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => onTap?.call(args),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Affiche un poster stylisé avec 4 blocs (2x2)
-              _buildPoster(context),
-              const SizedBox(height: 12),
-              Semantics(
-                label: 'Voir tout $title',
-                button: true,
-                child: Text(
-                  'Voir tout',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      theme.textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ) ??
-                      const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
+          onTap: () => widget.onTap?.call(args),
+          onFocusChange: (focused) {
+            if (_focused == focused) return;
+            setState(() => _focused = focused);
+          },
+          child: AnimatedScale(
+            scale: _focused ? 1.03 : 1,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _focused
+                          ? theme.colorScheme.primary
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: _buildPoster(context),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Semantics(
+                  label: 'Voir tout ${widget.title}',
+                  button: true,
+                  child: Text(
+                    'Voir tout',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -70,8 +102,8 @@ class SeeAllCard extends StatelessWidget {
 
   Widget _buildPoster(BuildContext context) {
     final container = Container(
-      height: posterHeight,
-      width: width,
+      height: widget.posterHeight,
+      width: widget.width,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: const Color(0xFF202020),
@@ -124,8 +156,8 @@ class SeeAllCard extends StatelessWidget {
       ),
     );
 
-    if (heroTag == null) return container;
-    return Hero(tag: heroTag!, child: container);
+    if (widget.heroTag == null) return container;
+    return Hero(tag: widget.heroTag!, child: container);
   }
 
   Widget _miniTile(BuildContext context, Color color) {

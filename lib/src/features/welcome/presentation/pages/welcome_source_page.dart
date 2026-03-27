@@ -49,6 +49,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
   final _serverCtrl = TextEditingController();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _nameFocusNode = FocusNode(debugLabel: 'WelcomeSourceName');
+  final _serverFocusNode = FocusNode(debugLabel: 'WelcomeSourceServer');
+  final _userFocusNode = FocusNode(debugLabel: 'WelcomeSourceUser');
+  final _passFocusNode = FocusNode(debugLabel: 'WelcomeSourcePassword');
+  final _submitFocusNode = FocusNode(debugLabel: 'WelcomeSourceSubmit');
 
   bool _loadingSources = false;
   String? _sourcesError;
@@ -72,6 +77,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
     _serverCtrl.dispose();
     _userCtrl.dispose();
     _passCtrl.dispose();
+    _nameFocusNode.dispose();
+    _serverFocusNode.dispose();
+    _userFocusNode.dispose();
+    _passFocusNode.dispose();
+    _submitFocusNode.dispose();
     super.dispose();
   }
 
@@ -415,7 +425,10 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
 
                   TextField(
                     controller: _nameCtrl,
+                    focusNode: _nameFocusNode,
                     enabled: !isBusy,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _serverFocusNode.requestFocus(),
                     decoration: const InputDecoration(
                       labelText: 'Nom de la source',
                       hintText: 'Mon IPTV',
@@ -426,7 +439,10 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
 
                   TextField(
                     controller: _serverCtrl,
+                    focusNode: _serverFocusNode,
                     enabled: !isBusy,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _userFocusNode.requestFocus(),
                     decoration: const InputDecoration(
                       labelText: 'Server URL',
                       hintText: 'https://example.com:port',
@@ -437,7 +453,10 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
 
                   TextField(
                     controller: _userCtrl,
+                    focusNode: _userFocusNode,
                     enabled: !isBusy,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) => _passFocusNode.requestFocus(),
                     decoration: const InputDecoration(
                       labelText: 'Username',
                       border: OutlineInputBorder(),
@@ -447,8 +466,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
 
                   TextField(
                     controller: _passCtrl,
+                    focusNode: _passFocusNode,
                     enabled: !isBusy,
                     obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submitFocusNode.requestFocus(),
                     decoration: InputDecoration(
                       labelText: 'Password',
                       border: const OutlineInputBorder(),
@@ -456,9 +478,13 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
                         padding: const EdgeInsets.only(right: 12),
                         child: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                         ),
                       ),
                     ),
@@ -477,6 +503,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
                     width: double.infinity,
                     child: MoviPrimaryButton(
                       label: 'Activer',
+                      focusNode: _submitFocusNode,
                       onPressed: isBusy ? null : _activate,
                       loading: connectState.isLoading,
                     ),

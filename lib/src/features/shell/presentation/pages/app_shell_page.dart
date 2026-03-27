@@ -2,6 +2,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Shell
@@ -56,11 +57,19 @@ class AppShellPage extends ConsumerStatefulWidget {
 }
 
 class _AppShellPageState extends ConsumerState<AppShellPage> {
-  late final FocusNode _sidebarFocusNode =
-      FocusNode(debugLabel: 'ShellSidebarScope');
+  late final FocusNode _sidebarFocusNode = FocusNode(
+    debugLabel: 'ShellSidebarScope',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    ref.read(shellFocusCoordinatorProvider).attachSidebar(_sidebarFocusNode);
+  }
 
   @override
   void dispose() {
+    ref.read(shellFocusCoordinatorProvider).detachSidebar(_sidebarFocusNode);
     _sidebarFocusNode.dispose();
     super.dispose();
   }
@@ -97,6 +106,13 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   static Widget _libraryBuilder(BuildContext _) => const LibraryPage();
   static Widget _settingsBuilder(BuildContext _) => const SettingsPage();
 
+  bool _isTextInputFocused() {
+    final focus = FocusManager.instance.primaryFocus;
+    final ctx = focus?.context;
+    if (ctx == null) return false;
+    return ctx.findAncestorStateOfType<EditableTextState>() != null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedIndexProvider);
@@ -105,42 +121,73 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     final sidebarDestinations = buildSidebarDestinations(context);
     final pageBuilders = _buildPageBuilders();
 
-    final isLarge =
-        MediaQuery.sizeOf(context).width >= widget.largeBreakpoint;
+    final isLarge = MediaQuery.sizeOf(context).width >= widget.largeBreakpoint;
     final isTv = isLarge && _isTvMode(context);
+    final selectedTab = shellTabFromIndex(selectedIndex);
+    final focusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    void handleNavTap(int index) {
+      if (index == selectedIndex) {
+        focusCoordinator.focusTabEntry(selectedTab);
+        return;
+      }
+      shellSelectIndex(ref, index);
+    }
 
     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
     // Pas de texte brut : pas de loadingLabel ici.
-    return ShellShortcuts(
-      onSelectTab: (tab) => shellSelectTab(ref, tab),
-      child: isLarge
-          ? (isTv
-              ? AppShellTvLayout(
-                  selectedIndex: selectedIndex,
-                  onNavTap: (i) => shellSelectIndex(ref, i),
-                  destinations: sidebarDestinations,
-                  pageBuilders: pageBuilders,
-                  keepAliveIndices: keepAliveIndices,
-                  sidebarFocusNode: _sidebarFocusNode,
-                  sidebarLogo: widget.sidebarLogo,
-                )
-              : AppShellLargeLayout(
-                  selectedIndex: selectedIndex,
-                  onNavTap: (i) => shellSelectIndex(ref, i),
-                  destinations: sidebarDestinations,
-                  pageBuilders: pageBuilders,
-                  keepAliveIndices: keepAliveIndices,
-                  sidebarFocusNode: _sidebarFocusNode,
-                  sidebarLogo: widget.sidebarLogo,
-                ))
-          : AppShellMobileLayout(
-              selectedIndex: selectedIndex,
-              onNavTap: (i) => shellSelectIndex(ref, i),
-              // Mobile layout peut ignorer destinations/keepAlive si tu as déjà ta nav mobile.
-              // On les passe quand même si tu veux réutiliser les mêmes sources.
-              destinations: sidebarDestinations,
-              pageBuilders: pageBuilders,
-            ),
+    return Focus(
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (_isTextInputFocused()) return KeyEventResult.ignored;
+
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            _sidebarFocusNode.hasFocus) {
+          final focused = focusCoordinator.focusTabEntry(selectedTab);
+          return focused ? KeyEventResult.handled : KeyEventResult.ignored;
+        }
+
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            !_sidebarFocusNode.hasFocus) {
+          final focusedNode = FocusManager.instance.primaryFocus;
+          if (focusedNode == null) return KeyEventResult.ignored;
+          final moved = focusedNode.focusInDirection(TraversalDirection.left);
+          if (moved) return KeyEventResult.handled;
+          focusCoordinator.rememberContentFocus(selectedTab, focusedNode);
+          _sidebarFocusNode.requestFocus();
+          return KeyEventResult.handled;
+        }
+
+        return KeyEventResult.ignored;
+      },
+      child: ShellShortcuts(
+        onSelectTab: (tab) => shellSelectTab(ref, tab),
+        child: isLarge
+            ? (isTv
+                  ? AppShellTvLayout(
+                      selectedIndex: selectedIndex,
+                      onNavTap: handleNavTap,
+                      destinations: sidebarDestinations,
+                      pageBuilders: pageBuilders,
+                      keepAliveIndices: keepAliveIndices,
+                      sidebarFocusNode: _sidebarFocusNode,
+                      sidebarLogo: widget.sidebarLogo,
+                    )
+                  : AppShellLargeLayout(
+                      selectedIndex: selectedIndex,
+                      onNavTap: handleNavTap,
+                      destinations: sidebarDestinations,
+                      pageBuilders: pageBuilders,
+                      keepAliveIndices: keepAliveIndices,
+                      sidebarFocusNode: _sidebarFocusNode,
+                      sidebarLogo: widget.sidebarLogo,
+                    ))
+            : AppShellMobileLayout(
+                selectedIndex: selectedIndex,
+                onNavTap: (i) => shellSelectIndex(ref, i),
+                destinations: sidebarDestinations,
+                pageBuilders: pageBuilders,
+              ),
+      ),
     );
   }
 }

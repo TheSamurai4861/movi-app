@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,9 +36,15 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _textCtrl = TextEditingController();
   final _focusNode = FocusNode();
+  final _firstHistoryItemFocusNode = FocusNode(
+    debugLabel: 'SearchFirstHistoryItem',
+  );
+  final _firstProviderFocusNode = FocusNode(debugLabel: 'SearchFirstProvider');
+  final _firstGenreFocusNode = FocusNode(debugLabel: 'SearchFirstGenre');
 
   bool _syncedFromState = false;
   bool _historyVisibilityLock = false;
+  bool _historySectionHasFocus = false;
   Timer? _historyHideTimer;
 
   bool get _hasQuery => _textCtrl.text.trim().length >= 3;
@@ -137,7 +144,33 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _focusNode.removeListener(_onFocusChangedLocal);
     _textCtrl.dispose();
     _focusNode.dispose();
+    _firstHistoryItemFocusNode.dispose();
+    _firstProviderFocusNode.dispose();
+    _firstGenreFocusNode.dispose();
     super.dispose();
+  }
+
+  bool _tryRequestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  void _focusSearchContentBelow() {
+    if (!_hasQuery) {
+      if (_tryRequestFocus(_firstHistoryItemFocusNode)) {
+        return;
+      }
+      if (_tryRequestFocus(_firstProviderFocusNode)) {
+        return;
+      }
+      if (_tryRequestFocus(_firstGenreFocusNode)) {
+        return;
+      }
+    }
+    FocusScope.of(context).nextFocus();
   }
 
   @override
@@ -151,9 +184,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final historyMaxWidth = useDesktopLayout
         ? double.infinity
         : _historyMaxWidth(context);
-    final showHistory = !_hasQuery &&
-        (_focusNode.hasFocus || _historyVisibilityLock);
-    final resultsListPadding = EdgeInsets.symmetric(horizontal: horizontalPadding);
+    final showHistory =
+        !_hasQuery &&
+        (_focusNode.hasFocus ||
+            _historySectionHasFocus ||
+            _historyVisibilityLock);
+    final resultsListPadding = EdgeInsets.symmetric(
+      horizontal: horizontalPadding,
+    );
 
     final state = ref.watch(searchControllerProvider);
     final ctrl = ref.read(searchControllerProvider.notifier);
@@ -208,6 +246,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     focusNode: _focusNode,
                     hintText: l10n.searchHint,
                     clearTooltip: l10n.clear,
+                    onArrowDown: _focusSearchContentBelow,
                     onChanged: (value) {
                       ctrl.setQuery(value);
 
@@ -223,7 +262,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       _textCtrl.clear();
                       ctrl.setQuery('');
                       unawaited(
-                        ref.read(searchHistoryControllerProvider.notifier).refresh(),
+                        ref
+                            .read(searchHistoryControllerProvider.notifier)
+                            .refresh(),
                       );
                       _focusNode.requestFocus();
                     },
@@ -255,10 +296,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 horizontalPadding: horizontalPadding,
                                 maxContentWidth: historyMaxWidth,
                                 useWideLayout: useDesktopLayout,
+                                firstItemFocusNode: _firstHistoryItemFocusNode,
+                                onFocusChange: (hasFocus) {
+                                  if (_historySectionHasFocus == hasFocus) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _historySectionHasFocus = hasFocus;
+                                  });
+                                },
                                 onSelect: (q) {
                                   _textCtrl.text = q;
-                                  _textCtrl.selection =
-                                      TextSelection.fromPosition(
+                                  _textCtrl
+                                      .selection = TextSelection.fromPosition(
                                     TextPosition(offset: _textCtrl.text.length),
                                   );
                                   ctrl.setQueryImmediate(q);
@@ -271,11 +321,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     WatchProvidersGrid(
                       horizontalPadding: horizontalPadding,
                       maxContentWidth: gridMaxWidth,
+                      firstItemFocusNode: _firstProviderFocusNode,
                     ),
                     const SizedBox(height: 32),
                     GenresGrid(
                       horizontalPadding: horizontalPadding,
                       maxContentWidth: gridMaxWidth,
+                      firstItemFocusNode: _firstGenreFocusNode,
                     ),
                     const SizedBox(height: 100),
                   ],
@@ -340,7 +392,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     ref,
                                     ContentRouteArgs.movie(mm.id),
                                   ),
-                                  delay: Duration(milliseconds: entry.key * 100),
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
                                 ),
                               )
                               .toList(growable: false),
@@ -373,7 +427,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     ref,
                                     ContentRouteArgs.series(mm.id),
                                   ),
-                                  delay: Duration(milliseconds: entry.key * 100),
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
                                 ),
                               )
                               .toList(growable: false),
@@ -405,7 +461,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     AppRouteNames.person,
                                     extra: entry.value,
                                   ),
-                                  delay: Duration(milliseconds: entry.key * 100),
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
                                 ),
                               )
                               .toList(growable: false),
@@ -415,8 +473,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                         const SizedBox(height: 16),
                         Consumer(
                           builder: (context, ref, _) {
-                            final filteredSagasAsync =
-                                ref.watch(filteredSagasProvider(state.sagas));
+                            final filteredSagasAsync = ref.watch(
+                              filteredSagasProvider(state.sagas),
+                            );
                             return filteredSagasAsync.when(
                               data: (filteredSagas) {
                                 if (filteredSagas.isEmpty) {
@@ -424,7 +483,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                 }
                                 return MoviItemsList(
                                   title: l10n.searchSagasTitle,
-                                  subtitle: l10n.resultsCount(filteredSagas.length),
+                                  subtitle: l10n.resultsCount(
+                                    filteredSagas.length,
+                                  ),
                                   estimatedItemWidth: 150,
                                   estimatedItemHeight: 300,
                                   titlePadding: horizontalPadding,
@@ -484,6 +545,7 @@ class _SearchField extends StatelessWidget {
     required this.focusNode,
     required this.hintText,
     required this.clearTooltip,
+    required this.onArrowDown,
     required this.onChanged,
     required this.onClear,
     required this.onSubmitted,
@@ -493,6 +555,7 @@ class _SearchField extends StatelessWidget {
   final FocusNode focusNode;
   final String hintText;
   final String clearTooltip;
+  final VoidCallback onArrowDown;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
   final ValueChanged<String> onSubmitted;
@@ -502,46 +565,56 @@ class _SearchField extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      textInputAction: TextInputAction.search,
-      onSubmitted: onSubmitted,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: hintText,
-        prefixIcon: Padding(
-          padding: const EdgeInsets.only(left: 12, right: 8),
-          child: Image.asset(
-            AppAssets.iconSearch,
-            width: 25,
-            height: 25,
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          onArrowDown();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        textInputAction: TextInputAction.search,
+        onSubmitted: onSubmitted,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: hintText,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            child: Image.asset(AppAssets.iconSearch, width: 25, height: 25),
+          ),
+          suffixIcon: controller.text.isNotEmpty
+              ? IconButton(
+                  icon: Image.asset(
+                    AppAssets.iconDelete,
+                    width: 25,
+                    height: 25,
+                  ),
+                  onPressed: onClear,
+                  tooltip: clearTooltip,
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide(color: colorScheme.outlineVariant),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide(color: colorScheme.primary, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 16,
           ),
         ),
-        suffixIcon: controller.text.isNotEmpty
-            ? IconButton(
-                icon: Image.asset(
-                  AppAssets.iconDelete,
-                  width: 25,
-                  height: 25,
-                ),
-                onPressed: onClear,
-                tooltip: clearTooltip,
-              )
-            : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colorScheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(999),
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
       ),
     );
   }
@@ -576,13 +649,15 @@ class _AnimatedPersonCardState extends State<_AnimatedPersonCard>
       vsync: this,
     );
 
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    _translateAnimation = Tween<double>(begin: 15.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _translateAnimation = Tween<double>(
+      begin: 15.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
@@ -641,13 +716,15 @@ class _AnimatedMovieCardState extends State<_AnimatedMovieCard>
       vsync: this,
     );
 
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    _translateAnimation = Tween<double>(begin: 15.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _translateAnimation = Tween<double>(
+      begin: 15.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
@@ -683,12 +760,16 @@ class _SearchHistoryList extends ConsumerWidget {
     this.horizontalPadding = 20,
     this.maxContentWidth = double.infinity,
     this.useWideLayout = false,
+    this.firstItemFocusNode,
+    this.onFocusChange,
   });
 
   final void Function(String query) onSelect;
   final double horizontalPadding;
   final double maxContentWidth;
   final bool useWideLayout;
+  final FocusNode? firstItemFocusNode;
+  final ValueChanged<bool>? onFocusChange;
 
   Widget _buildHistorySection(
     BuildContext context,
@@ -699,40 +780,50 @@ class _SearchHistoryList extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxContentWidth),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(l10n.historyTitle, style: theme.textTheme.titleLarge),
-                      if (hasItems)
-                        TextButton(
-                          onPressed: () {
-                            ref
-                                .read(searchHistoryControllerProvider.notifier)
-                                .clearAll();
-                          },
-                          child: Text(l10n.actionClearHistory),
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: onFocusChange,
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxContentWidth),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.historyTitle,
+                          style: theme.textTheme.titleLarge,
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  child,
-                ],
+                        if (hasItems)
+                          TextButton(
+                            onPressed: () {
+                              ref
+                                  .read(
+                                    searchHistoryControllerProvider.notifier,
+                                  )
+                                  .clearAll();
+                            },
+                            child: Text(l10n.actionClearHistory),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    child,
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -745,7 +836,8 @@ class _SearchHistoryList extends ConsumerWidget {
 
     return history.when(
       data: (items) {
-        final sorted = [...items]..sort((a, b) => b.savedAt.compareTo(a.savedAt));
+        final sorted = [...items]
+          ..sort((a, b) => b.savedAt.compareTo(a.savedAt));
         final recent = sorted.take(6).toList(growable: false);
 
         return _buildHistorySection(
@@ -786,6 +878,7 @@ class _SearchHistoryList extends ConsumerWidget {
                         final h = recent[index];
                         return _SearchHistoryItem(
                           query: h.query,
+                          focusNode: index == 0 ? firstItemFocusNode : null,
                           onTap: () => onSelect(h.query),
                           onRemove: () => ref
                               .read(searchHistoryControllerProvider.notifier)
@@ -811,6 +904,7 @@ class _SearchHistoryList extends ConsumerWidget {
                     final h = recent[index];
                     return _SearchHistoryItem(
                       query: h.query,
+                      focusNode: index == 0 ? firstItemFocusNode : null,
                       onTap: () => onSelect(h.query),
                       onRemove: () => ref
                           .read(searchHistoryControllerProvider.notifier)
@@ -845,9 +939,8 @@ class _SearchHistoryList extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: () => ref
-                  .read(searchHistoryControllerProvider.notifier)
-                  .refresh(),
+              onPressed: () =>
+                  ref.read(searchHistoryControllerProvider.notifier).refresh(),
               icon: const Icon(Icons.refresh, size: 20),
               label: Text(l10n.actionRetry),
             ),
@@ -864,11 +957,13 @@ class _SearchHistoryItem extends StatelessWidget {
     required this.query,
     required this.onTap,
     required this.onRemove,
+    this.focusNode,
   });
 
   final String query;
   final VoidCallback onTap;
   final VoidCallback onRemove;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -886,6 +981,7 @@ class _SearchHistoryItem extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
+          focusNode: focusNode,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
@@ -948,13 +1044,15 @@ class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
       vsync: this,
     );
 
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
-    _translateAnimation = Tween<double>(begin: 15.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _translateAnimation = Tween<double>(
+      begin: 15.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     Future.delayed(widget.delay, () {
       if (mounted) _controller.forward();
@@ -993,9 +1091,8 @@ class _SagaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final textStyle = theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-        ) ??
+    final textStyle =
+        theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600) ??
         const TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
 
     return GestureDetector(

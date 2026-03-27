@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
@@ -29,6 +30,8 @@ class LibraryPlaylistCard extends ConsumerWidget {
     this.showItemCount =
         true, // Par défaut afficher le compteur, sauf pour les sagas
     this.layout = LibraryPlaylistCardLayout.horizontal,
+    this.focusNode,
+    this.autofocus = false,
   });
 
   final String title;
@@ -41,6 +44,8 @@ class LibraryPlaylistCard extends ConsumerWidget {
   photo; // Photo de profil pour les artistes ou image hero pour les sagas
   final bool showItemCount; // Contrôle l'affichage du compteur d'éléments
   final LibraryPlaylistCardLayout layout;
+  final FocusNode? focusNode;
+  final bool autofocus;
 
   /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
   Color _darkenColor(Color color) {
@@ -131,6 +136,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
     required double width,
     required double height,
     required double borderRadius,
+    bool isFocused = false,
   }) {
     final isActor = type == LibraryPlaylistType.actor;
     final decoration = BoxDecoration(
@@ -146,6 +152,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
       color: (isActor || photo != null)
           ? Theme.of(context).colorScheme.surfaceContainerHighest
           : null,
+      border: isFocused ? Border.all(color: Colors.white, width: 2) : null,
     );
 
     return Container(
@@ -173,153 +180,179 @@ class LibraryPlaylistCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     if (layout == LibraryPlaylistCardLayout.vertical) {
-      return InkWell(
-        onTap: onTap,
+      return MoviFocusableAction(
+        onPressed: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(20),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final imageSize = (constraints.maxWidth - 8).clamp(0.0, 220.0);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: imageSize,
-                  height: imageSize,
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _buildArtwork(
-                          context,
-                          accentColor,
-                          width: imageSize,
-                          height: imageSize,
-                          borderRadius: type == LibraryPlaylistType.actor
-                              ? imageSize / 2
-                              : 20,
-                        ),
-                      ),
-                      if (isPinned)
-                        Positioned(
-                          top: 12,
-                          right: 12,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.45),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Icon(
-                                Icons.push_pin,
-                                size: 16,
-                                color: accentColor,
-                              ),
+        focusNode: focusNode,
+        autofocus: autofocus,
+        semanticLabel: title,
+        builder: (context, state) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final imageSize = (constraints.maxWidth - 8).clamp(0.0, 220.0);
+              return MoviFocusFrame(
+                scale: state.focused ? 1.03 : 1,
+                borderRadius: BorderRadius.circular(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: imageSize,
+                      height: imageSize,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: _buildArtwork(
+                              context,
+                              accentColor,
+                              width: imageSize,
+                              height: imageSize,
+                              borderRadius: type == LibraryPlaylistType.actor
+                                  ? imageSize / 2
+                                  : 20,
+                              isFocused: state.focused,
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style:
-                      Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ) ??
-                      const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                          if (isPinned)
+                            Positioned(
+                              top: 12,
+                              right: 12,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.45),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Icon(
+                                    Icons.push_pin,
+                                    size: 16,
+                                    color: accentColor,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _secondaryText(),
+                      textAlign: TextAlign.center,
+                      style:
+                          Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            height: 1.25,
+                          ) ??
+                          TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            height: 1.25,
+                          ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _secondaryText(),
-                  textAlign: TextAlign.center,
-                  style:
-                      Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.25,
-                      ) ??
-                      TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        height: 1.25,
-                      ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            );
-          },
-        ),
+              );
+            },
+          );
+        },
       );
     }
 
-    return InkWell(
-      onTap: onTap,
+    return MoviFocusableAction(
+      onPressed: onTap,
       onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            _buildArtwork(
-              context,
-              accentColor,
-              width: 75,
-              height: 75,
-              borderRadius: 16,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style:
-                        Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+      focusNode: focusNode,
+      autofocus: autofocus,
+      semanticLabel: title,
+      builder: (context, state) {
+        return MoviFocusFrame(
+          scale: state.focused ? 1.02 : 1,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                _buildArtwork(
+                  context,
+                  accentColor,
+                  width: 75,
+                  height: 75,
+                  borderRadius: 16,
+                  isFocused: state.focused,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style:
+                            Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ) ??
+                            const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _secondaryText(),
+                        style:
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ) ??
+                            TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _secondaryText(),
-                    style:
-                        Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ) ??
-                        TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

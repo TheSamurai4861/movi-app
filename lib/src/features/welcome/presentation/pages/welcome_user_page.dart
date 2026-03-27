@@ -33,6 +33,8 @@ class WelcomeUserPage extends ConsumerStatefulWidget {
 
 class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   final _nameCtrl = TextEditingController();
+  final _nameFocusNode = FocusNode(debugLabel: 'WelcomeUserName');
+  final _submitFocusNode = FocusNode(debugLabel: 'WelcomeUserSubmit');
   bool _hasInvalidatedOnAuth = false;
   ProviderSubscription<SupabaseAuthStatus>? _authStatusSub;
 
@@ -45,26 +47,27 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     });
 
     // Utiliser listenManual au lieu de listen car on est dans initState
-    _authStatusSub = ref.listenManual(
-      supabaseAuthStatusProvider,
-      (previous, next) {
-        if (previous == next || !mounted) return;
+    _authStatusSub = ref.listenManual(supabaseAuthStatusProvider, (
+      previous,
+      next,
+    ) {
+      if (previous == next || !mounted) return;
 
-        if (next == SupabaseAuthStatus.authenticated) {
-          if (!_hasInvalidatedOnAuth) {
-            _hasInvalidatedOnAuth = true;
-            ref.invalidate(profilesControllerProvider);
-          }
+      if (next == SupabaseAuthStatus.authenticated) {
+        if (!_hasInvalidatedOnAuth) {
+          _hasInvalidatedOnAuth = true;
+          ref.invalidate(profilesControllerProvider);
         }
-      },
-      fireImmediately: false,
-    );
+      }
+    }, fireImmediately: false);
   }
 
   @override
   void dispose() {
     _authStatusSub?.close();
     _nameCtrl.dispose();
+    _nameFocusNode.dispose();
+    _submitFocusNode.dispose();
     super.dispose();
   }
 
@@ -303,7 +306,9 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                                   .selectProfile(p.id);
                                             },
                                             child: ProfileAvatarChip(
-                                              color: Theme.of(context).colorScheme.primary,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
                                               label: p.name,
                                               size: 72,
                                               selected:
@@ -353,6 +358,10 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                     label: l10n.labelUsername,
                                     child: TextFormField(
                                       controller: _nameCtrl,
+                                      focusNode: _nameFocusNode,
+                                      textInputAction: TextInputAction.done,
+                                      onFieldSubmitted: (_) =>
+                                          _submitFocusNode.requestFocus(),
                                       decoration: InputDecoration(
                                         hintText: l10n.hintUsername,
                                         border: const OutlineInputBorder(),
@@ -368,6 +377,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                                       width: double.infinity,
                                       child: MoviPrimaryButton(
                                         label: l10n.actionContinue,
+                                        focusNode: _submitFocusNode,
                                         loading: state.isSaving,
                                         onPressed: state.isSaving
                                             ? null

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 
-class MoviRemoteNavigation extends StatefulWidget {
-  const MoviRemoteNavigation({
-    super.key,
-    required this.child,
-  });
+class MoviRemoteNavigation extends ConsumerStatefulWidget {
+  const MoviRemoteNavigation({super.key, required this.child});
 
   final Widget child;
 
   @override
-  State<MoviRemoteNavigation> createState() => _MoviRemoteNavigationState();
+  ConsumerState<MoviRemoteNavigation> createState() =>
+      _MoviRemoteNavigationState();
 }
 
-class _MoviRemoteNavigationState extends State<MoviRemoteNavigation> {
+class _MoviRemoteNavigationState extends ConsumerState<MoviRemoteNavigation> {
   late final FocusNode _focusNode = FocusNode(
     debugLabel: 'MoviRemoteNavigation',
     skipTraversal: true,
@@ -45,12 +45,10 @@ class _MoviRemoteNavigationState extends State<MoviRemoteNavigation> {
 
     final key = event.logicalKey;
 
-    if (key == LogicalKeyboardKey.escape) {
-      if (_isTextInputFocused()) {
-        FocusManager.instance.primaryFocus?.unfocus();
-      } else {
-        unawaited(Navigator.maybePop(context));
-      }
+    if ((key == LogicalKeyboardKey.backspace ||
+            key == LogicalKeyboardKey.goBack) &&
+        !_isTextInputFocused()) {
+      unawaited(_handleBackNavigation());
       return KeyEventResult.handled;
     }
 
@@ -108,5 +106,11 @@ class _MoviRemoteNavigationState extends State<MoviRemoteNavigation> {
     return keyboard.isAltPressed ||
         keyboard.isControlPressed ||
         keyboard.isMetaPressed;
+  }
+
+  Future<void> _handleBackNavigation() async {
+    final didPop = await Navigator.maybePop(context);
+    if (didPop || !mounted) return;
+    ref.read(shellFocusCoordinatorProvider).focusSidebar();
   }
 }

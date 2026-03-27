@@ -50,9 +50,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     _autoRefreshTimer = Timer(_loadingTimeout, () {
       final personId = _resolvePersonId(context);
       if (mounted && personId != null && _retryCount < _maxRetries) {
-        final vmAsync = ref.read(
-          personDetailControllerProvider(personId),
-        );
+        final vmAsync = ref.read(personDetailControllerProvider(personId));
         // Si toujours en chargement après le timeout, relancer
         if (vmAsync.isLoading) {
           _retryCount++;
@@ -101,9 +99,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
               _retryCount++;
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted) {
-                  ref.invalidate(
-                    personDetailControllerProvider(personId),
-                  );
+                  ref.invalidate(personDetailControllerProvider(personId));
                   _startAutoRefreshTimer();
                 }
               });
@@ -142,9 +138,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                 onPressed: () {
                   final personId = _resolvePersonId(context);
                   if (personId == null) return;
-                  ref.invalidate(
-                    personDetailControllerProvider(personId),
-                  );
+                  ref.invalidate(personDetailControllerProvider(personId));
                   _startAutoRefreshTimer();
                 },
               ),
@@ -340,16 +334,27 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
         children: [
           Align(
             alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => context.pop(),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: SizedBox(
-                  width: 35,
-                  height: 35,
-                  child: Image(image: AssetImage(AppAssets.iconBack)),
-                ),
+            child: SizedBox(
+              width: 47,
+              height: 47,
+              child: MoviFocusableAction(
+                onPressed: () => context.pop(),
+                semanticLabel: 'Retour',
+                builder: (context, state) {
+                  return MoviFocusFrame(
+                    scale: state.focused ? 1.04 : 1,
+                    padding: const EdgeInsets.all(6),
+                    borderRadius: BorderRadius.circular(999),
+                    backgroundColor: state.focused
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.transparent,
+                    child: const SizedBox(
+                      width: 35,
+                      height: 35,
+                      child: Image(image: AssetImage(AppAssets.iconBack)),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -371,11 +376,11 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style:
-                                Theme.of(context).textTheme.displaySmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: cs.onSurface,
-                                  height: 1.05,
-                                ) ??
+                            Theme.of(context).textTheme.displaySmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: cs.onSurface,
+                              height: 1.05,
+                            ) ??
                             TextStyle(
                               fontSize: 42,
                               fontWeight: FontWeight.w700,
@@ -443,11 +448,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
     }
 
     return ClipOval(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: child,
-      ),
+      child: SizedBox(width: size, height: size, child: child),
     );
   }
 

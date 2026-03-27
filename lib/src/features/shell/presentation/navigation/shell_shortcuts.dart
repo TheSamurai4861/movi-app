@@ -70,10 +70,7 @@ class ShellShortcuts extends StatelessWidget {
 
     return Shortcuts(
       shortcuts: shortcuts,
-      child: Actions(
-        actions: actions,
-        child: child,
-      ),
+      child: Actions(actions: actions, child: child),
     );
   }
 

@@ -23,6 +23,10 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _aliasCtrl = TextEditingController();
+  final _serverFocusNode = FocusNode(debugLabel: 'ConnectSourceServer');
+  final _userFocusNode = FocusNode(debugLabel: 'ConnectSourceUser');
+  final _passFocusNode = FocusNode(debugLabel: 'ConnectSourcePassword');
+  final _submitFocusNode = FocusNode(debugLabel: 'ConnectSourceSubmit');
 
   @override
   void dispose() {
@@ -30,6 +34,10 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
     _userCtrl.dispose();
     _passCtrl.dispose();
     _aliasCtrl.dispose();
+    _serverFocusNode.dispose();
+    _userFocusNode.dispose();
+    _passFocusNode.dispose();
+    _submitFocusNode.dispose();
     super.dispose();
   }
 
@@ -84,91 +92,104 @@ class _IptvConnectPageState extends ConsumerState<IptvConnectPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                        LabeledField(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.iptvServerUrlLabel,
-                          child: TextFormField(
-                            controller: _serverCtrl,
-                            decoration: InputDecoration(
-                              hintText: AppLocalizations.of(
-                                context,
-                              )!.iptvServerUrlHint,
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return AppLocalizations.of(
+                          LabeledField(
+                            label: AppLocalizations.of(
+                              context,
+                            )!.iptvServerUrlLabel,
+                            child: TextFormField(
+                              controller: _serverCtrl,
+                              focusNode: _serverFocusNode,
+                              decoration: InputDecoration(
+                                hintText: AppLocalizations.of(
                                   context,
-                                )!.validationRequired;
-                              }
-                              return null;
-                            },
-                            keyboardType: TextInputType.url,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        LabeledField(
-                          label: AppLocalizations.of(context)!.labelUsername,
-                          child: TextFormField(
-                            controller: _userCtrl,
-                            decoration: const InputDecoration(
-                              hintText: 'Nom d’utilisateur Xtream',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? AppLocalizations.of(
+                                )!.iptvServerUrlHint,
+                                border: OutlineInputBorder(),
+                              ),
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) =>
+                                  _userFocusNode.requestFocus(),
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) {
+                                  return AppLocalizations.of(
                                     context,
-                                  )!.validationRequired
-                                : null,
-                            autofillHints: const [AutofillHints.username],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        LabeledField(
-                          label: AppLocalizations.of(
-                            context,
-                          )!.iptvPasswordLabel,
-                          child: TextFormField(
-                            controller: _passCtrl,
-                            decoration: InputDecoration(
-                              hintText: AppLocalizations.of(
-                                context,
-                              )!.iptvPasswordHint,
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? AppLocalizations.of(
-                                    context,
-                                  )!.validationRequired
-                                : null,
-                            obscureText: true,
-                            autofillHints: const [AutofillHints.password],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: MoviPrimaryButton(
-                              label: AppLocalizations.of(
-                                context,
-                              )!.actionConnect,
-                              onPressed: state.isLoading ? null : _submit,
-                              loading: state.isLoading,
+                                  )!.validationRequired;
+                                }
+                                return null;
+                              },
+                              keyboardType: TextInputType.url,
                             ),
                           ),
-                        ),
-                        if (state.error != null) ...[
-                          const SizedBox(height: AppSpacing.sm),
-                          Text(
-                            state.error!,
-                            style: const TextStyle(color: Colors.red),
+                          const SizedBox(height: AppSpacing.md),
+                          LabeledField(
+                            label: AppLocalizations.of(context)!.labelUsername,
+                            child: TextFormField(
+                              controller: _userCtrl,
+                              focusNode: _userFocusNode,
+                              decoration: const InputDecoration(
+                                hintText: 'Nom d’utilisateur Xtream',
+                                border: OutlineInputBorder(),
+                              ),
+                              textInputAction: TextInputAction.next,
+                              onFieldSubmitted: (_) =>
+                                  _passFocusNode.requestFocus(),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.validationRequired
+                                  : null,
+                              autofillHints: const [AutofillHints.username],
+                            ),
                           ),
-                        ],
+                          const SizedBox(height: AppSpacing.md),
+                          LabeledField(
+                            label: AppLocalizations.of(
+                              context,
+                            )!.iptvPasswordLabel,
+                            child: TextFormField(
+                              controller: _passCtrl,
+                              focusNode: _passFocusNode,
+                              decoration: InputDecoration(
+                                hintText: AppLocalizations.of(
+                                  context,
+                                )!.iptvPasswordHint,
+                                border: OutlineInputBorder(),
+                              ),
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) =>
+                                  _submitFocusNode.requestFocus(),
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? AppLocalizations.of(
+                                      context,
+                                    )!.validationRequired
+                                  : null,
+                              obscureText: true,
+                              autofillHints: const [AutofillHints.password],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                            ),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: MoviPrimaryButton(
+                                label: AppLocalizations.of(
+                                  context,
+                                )!.actionConnect,
+                                focusNode: _submitFocusNode,
+                                onPressed: state.isLoading ? null : _submit,
+                                loading: state.isLoading,
+                              ),
+                            ),
+                          ),
+                          if (state.error != null) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            Text(
+                              state.error!,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ],
                         ],
                       ),
                     ),

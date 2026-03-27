@@ -17,6 +17,8 @@ import 'package:movi/src/features/home/presentation/widgets/home_iptv_section.da
 import 'package:movi/src/features/home/presentation/widgets/home_loading_overlay.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/features/home/presentation/widgets/mark_as_unwatched_dialog.dart';
+import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
+import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 /// Layout desktop pour la page d'accueil.
@@ -45,11 +47,7 @@ class HomeDesktopLayout extends ConsumerWidget {
             labelType: NavigationRailLabelType.all,
             destinations: [
               NavigationRailDestination(
-                icon: Image.asset(
-                  AppAssets.navHome,
-                  width: 24,
-                  height: 24,
-                ),
+                icon: Image.asset(AppAssets.navHome, width: 24, height: 24),
                 selectedIcon: Image.asset(
                   AppAssets.navHome,
                   width: 24,
@@ -59,11 +57,7 @@ class HomeDesktopLayout extends ConsumerWidget {
                 label: Text(AppLocalizations.of(context)!.navHome),
               ),
               NavigationRailDestination(
-                icon: Image.asset(
-                  AppAssets.navSearch,
-                  width: 24,
-                  height: 24,
-                ),
+                icon: Image.asset(AppAssets.navSearch, width: 24, height: 24),
                 selectedIcon: Image.asset(
                   AppAssets.navSearch,
                   width: 24,
@@ -73,11 +67,7 @@ class HomeDesktopLayout extends ConsumerWidget {
                 label: Text(AppLocalizations.of(context)!.navSearch),
               ),
               NavigationRailDestination(
-                icon: Image.asset(
-                  AppAssets.navLibrary,
-                  width: 24,
-                  height: 24,
-                ),
+                icon: Image.asset(AppAssets.navLibrary, width: 24, height: 24),
                 selectedIcon: Image.asset(
                   AppAssets.navLibrary,
                   width: 24,
@@ -87,11 +77,7 @@ class HomeDesktopLayout extends ConsumerWidget {
                 label: Text(AppLocalizations.of(context)!.navLibrary),
               ),
               NavigationRailDestination(
-                icon: Image.asset(
-                  AppAssets.navSettings,
-                  width: 24,
-                  height: 24,
-                ),
+                icon: Image.asset(AppAssets.navSettings, width: 24, height: 24),
                 selectedIcon: Image.asset(
                   AppAssets.navSettings,
                   width: 24,
@@ -125,6 +111,9 @@ class HomeDesktopContent extends ConsumerStatefulWidget {
 class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   bool _isHeroLoadingMeta = false;
   bool _hasAutoRefreshed = false;
+  final FocusNode _heroPrimaryActionFocusNode = FocusNode(
+    debugLabel: 'HomeHeroPrimaryAction',
+  );
 
   bool _isScheduled = false;
   void _postFrame(VoidCallback fn) {
@@ -148,6 +137,10 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   @override
   void initState() {
     super.initState();
+    ref
+        .read(shellFocusCoordinatorProvider)
+        .registerPreferredNode(ShellTab.home, _heroPrimaryActionFocusNode);
+    _requestInitialHeroFocus();
     // Déclencher automatiquement le refresh après le premier frame si les données sont vides
     // Simule un pull-to-refresh complet (sync + refresh home)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -156,9 +149,10 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
       final disableHero = ref.read(
         featureFlagsProvider.select((f) => f.home.disableHero),
       );
-      
+
       if (!state.isLoading) {
-        final isEmpty = (!disableHero && state.hero.isEmpty) || state.iptvLists.isEmpty;
+        final isEmpty =
+            (!disableHero && state.hero.isEmpty) || state.iptvLists.isEmpty;
         if (isEmpty && !_hasAutoRefreshed) {
           _hasAutoRefreshed = true;
           // Simuler exactement le comportement du pull-to-refresh
@@ -168,13 +162,37 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
     });
   }
 
+  void _requestInitialHeroFocus([int attempts = 0]) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_heroPrimaryActionFocusNode.context != null) {
+        _heroPrimaryActionFocusNode.requestFocus();
+        return;
+      }
+      if (attempts < 10) {
+        _requestInitialHeroFocus(attempts + 1);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    ref
+        .read(shellFocusCoordinatorProvider)
+        .unregisterPreferredNode(ShellTab.home, _heroPrimaryActionFocusNode);
+    _heroPrimaryActionFocusNode.dispose();
+    super.dispose();
+  }
+
   /// Simule un pull-to-refresh complet comme dans SyncableRefreshIndicator
   Future<void> _simulatePullToRefresh(WidgetRef ref) async {
     try {
       // 1. Déclencher la synchronisation complète avec 'manual' pour forcer le refresh IPTV
-      final syncController = ref.read(libraryCloudSyncControllerProvider.notifier);
+      final syncController = ref.read(
+        libraryCloudSyncControllerProvider.notifier,
+      );
       await syncController.syncNow(reason: 'manual');
-      
+
       // 2. Rafraîchir le home (comme dans le callback onRefresh du SyncableRefreshIndicator)
       final controller = ref.read(hp.homeControllerProvider.notifier);
       await Future.wait([
@@ -214,7 +232,8 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
     });
 
     final showLoadingOverlay =
-        (state.isLoading && (disableHero ? state.iptvLists.isEmpty : state.hero.isEmpty)) ||
+        (state.isLoading &&
+            (disableHero ? state.iptvLists.isEmpty : state.hero.isEmpty)) ||
         (!disableHero && _isHeroLoadingMeta);
 
     final iptvEntries = state.iptvLists.entries
@@ -238,6 +257,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
               if (!disableHero) ...[
                 HomeHeroSection(
                   heroItems: state.hero,
+                  primaryActionFocusNode: _heroPrimaryActionFocusNode,
                   onLoadingChanged: (isLoading) {
                     if (mounted && _isHeroLoadingMeta != isLoading) {
                       setState(() {
@@ -253,7 +273,8 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
 
               HomeContinueWatchingSection(
                 onMarkAsUnwatched: showMarkAsUnwatchedDialog,
-                applyHeroTransition: !disableHero && !firstSectionNeedsHeroTransition,
+                applyHeroTransition:
+                    !disableHero && !firstSectionNeedsHeroTransition,
               ),
 
               const HomeContinueWatchingSpacer(),
@@ -305,7 +326,8 @@ bool _matchesIptvFilter(
 
   final type = items.first.type;
   if (filter == hp.HomeIptvMediaFilter.movies) return type == ContentType.movie;
-  if (filter == hp.HomeIptvMediaFilter.series) return type == ContentType.series;
+  if (filter == hp.HomeIptvMediaFilter.series) {
+    return type == ContentType.series;
+  }
   return false;
 }
-

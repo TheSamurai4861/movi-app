@@ -1,6 +1,7 @@
 // lib/src/features/shell/presentation/providers/shell_providers.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_retention_policy.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_controller.dart';
@@ -10,8 +11,9 @@ import 'package:movi/src/features/shell/presentation/providers/shell_controller.
 /// Usage:
 /// - final state = ref.watch(shellControllerProvider);
 /// - final controller = ref.read(shellControllerProvider.notifier);
-final shellControllerProvider =
-    NotifierProvider<ShellController, ShellState>(ShellController.new);
+final shellControllerProvider = NotifierProvider<ShellController, ShellState>(
+  ShellController.new,
+);
 
 /// Provider dérivé : onglet sélectionné.
 ///
@@ -31,6 +33,64 @@ final selectedIndexProvider = Provider<int>((ref) {
 /// Utile pour [ShellContentHost.keepAliveIndices].
 final keepAliveIndicesProvider = Provider<Set<int>>((ref) {
   return ShellRetentionPolicy.keepAliveIndices();
+});
+
+class ShellFocusCoordinator {
+  final Map<ShellTab, FocusNode> _preferredNodes = <ShellTab, FocusNode>{};
+  final Map<ShellTab, FocusNode> _lastContentNodes = <ShellTab, FocusNode>{};
+  FocusNode? _sidebarNode;
+
+  void attachSidebar(FocusNode node) {
+    _sidebarNode = node;
+  }
+
+  void detachSidebar(FocusNode node) {
+    if (identical(_sidebarNode, node)) {
+      _sidebarNode = null;
+    }
+  }
+
+  void registerPreferredNode(ShellTab tab, FocusNode node) {
+    _preferredNodes[tab] = node;
+  }
+
+  void unregisterPreferredNode(ShellTab tab, FocusNode node) {
+    if (identical(_preferredNodes[tab], node)) {
+      _preferredNodes.remove(tab);
+    }
+  }
+
+  void rememberContentFocus(ShellTab tab, FocusNode node) {
+    _lastContentNodes[tab] = node;
+  }
+
+  bool focusSidebar() {
+    final node = _sidebarNode;
+    if (node == null) return false;
+    node.requestFocus();
+    return true;
+  }
+
+  bool focusTabEntry(ShellTab tab) {
+    final rememberedNode = _lastContentNodes[tab];
+    if (_canRequestFocus(rememberedNode)) {
+      rememberedNode!.requestFocus();
+      return true;
+    }
+
+    final node = _preferredNodes[tab];
+    if (!_canRequestFocus(node)) return false;
+    node!.requestFocus();
+    return true;
+  }
+
+  bool _canRequestFocus(FocusNode? node) {
+    return node != null && node.context != null && node.canRequestFocus;
+  }
+}
+
+final shellFocusCoordinatorProvider = Provider<ShellFocusCoordinator>((ref) {
+  return ShellFocusCoordinator();
 });
 
 /// Actions "façade" (optionnelles) : évite de répéter `.notifier` partout.

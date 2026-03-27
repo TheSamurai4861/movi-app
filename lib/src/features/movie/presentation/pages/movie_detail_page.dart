@@ -94,7 +94,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   Widget build(BuildContext context) {
     final movieId = widget.movieId;
     final profile = ref.watch(currentProfileProvider);
-    final hasRestrictions = profile != null && (profile.isKid || profile.pegiLimit != null);
+    final hasRestrictions =
+        profile != null && (profile.isKid || profile.pegiLimit != null);
 
     if (hasRestrictions) {
       final content = ContentReference(
@@ -102,7 +103,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         type: ContentType.movie,
         title: MediaTitle(movieId),
       );
-      final decisionAsync = ref.watch(parental.contentAgeDecisionProvider(content));
+      final decisionAsync = ref.watch(
+        parental.contentAgeDecisionProvider(content),
+      );
 
       return decisionAsync.when(
         loading: () => Scaffold(
@@ -116,8 +119,12 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           }
 
           final l10n = AppLocalizations.of(context)!;
-          final localizedReason = getLocalizedParentalReason(context, decision.reason);
-          final displayMessage = localizedReason ?? l10n.parentalContentRestrictedDefault;
+          final localizedReason = getLocalizedParentalReason(
+            context,
+            decision.reason,
+          );
+          final displayMessage =
+              localizedReason ?? l10n.parentalContentRestrictedDefault;
 
           return Scaffold(
             backgroundColor: Theme.of(context).colorScheme.surface,
@@ -130,10 +137,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                   children: [
                     const Icon(Icons.lock, size: 48),
                     const SizedBox(height: 12),
-                    Text(
-                      displayMessage,
-                      textAlign: TextAlign.center,
-                    ),
+                    Text(displayMessage, textAlign: TextAlign.center),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () async {
@@ -144,7 +148,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                           reason: decision.reason,
                         );
                         if (!ok) return;
-                        ref.invalidate(parental.contentAgeDecisionProvider(content));
+                        ref.invalidate(
+                          parental.contentAgeDecisionProvider(content),
+                        );
                         if (mounted) setState(() {});
                       },
                       child: Text('${l10n.parentalUnlockButton} (PIN)'),
@@ -218,7 +224,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           cast: vm.cast,
           recommendations: vm.recommendations,
           isLoading: _isTransitioningFromLoading,
-                   poster: vm.poster,
+          poster: vm.poster,
           posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
           sagaLink: vm.sagaLink,
@@ -361,9 +367,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                                               cs.surface.withValues(
                                                 alpha: 0.72,
                                               ),
-                                              cs.surface.withValues(
-                                                alpha: 0,
-                                              ),
+                                              cs.surface.withValues(alpha: 0),
                                             ],
                                             stops: const [0.0, 0.42, 0.82],
                                           ),
@@ -447,11 +451,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
-  Widget _buildHeroImage({
-    Uri? poster,
-    Uri? posterBackground,
-    Uri? backdrop,
-  }) {
+  Widget _buildHeroImage({Uri? poster, Uri? posterBackground, Uri? backdrop}) {
     return MovieHeroImage(
       poster: poster,
       posterBackground: posterBackground,
@@ -474,29 +474,43 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => context.pop(),
-            child: Padding(
-              padding: hitPadding,
-              child: SizedBox(
-                width: 35,
-                height: 35,
-                child: Image.asset(AppAssets.iconBack),
-              ),
-            ),
+          MoviFocusableAction(
+            onPressed: () => context.pop(),
+            semanticLabel: 'Retour',
+            builder: (context, state) {
+              return MoviFocusFrame(
+                scale: state.focused ? 1.04 : 1,
+                padding: hitPadding,
+                borderRadius: BorderRadius.circular(999),
+                backgroundColor: state.focused
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                child: SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: Image.asset(AppAssets.iconBack),
+                ),
+              );
+            },
           ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _showMoreMenu,
-            child: Padding(
-              padding: hitPadding,
-              child: SizedBox(
-                width: 25,
-                height: 35,
-                child: Image.asset(AppAssets.iconMore),
-              ),
-            ),
+          MoviFocusableAction(
+            onPressed: _showMoreMenu,
+            semanticLabel: 'Plus d actions',
+            builder: (context, state) {
+              return MoviFocusFrame(
+                scale: state.focused ? 1.04 : 1,
+                padding: hitPadding,
+                borderRadius: BorderRadius.circular(999),
+                backgroundColor: state.focused
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                child: SizedBox(
+                  width: 25,
+                  height: 35,
+                  child: Image.asset(AppAssets.iconMore),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -532,11 +546,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style:
-                          Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            height: 1.05,
-                          ) ??
+                      Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        height: 1.05,
+                      ) ??
                       const TextStyle(
                         fontSize: 42,
                         fontWeight: FontWeight.w700,
@@ -560,10 +574,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style:
-                              Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ) ??
+                          Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ) ??
                           const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -602,11 +616,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: AppSpacing.m),
-          Text(
-            mediaTitle,
-            style: titleStyle,
-            textAlign: TextAlign.left,
-          ),
+          Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left),
           const SizedBox(height: AppSpacing.m),
           _buildMetaPills(
             yearText: yearText,
@@ -689,9 +699,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       assetIcon: AppAssets.iconPlay,
       buttonStyle: FilledButton.styleFrom(
         backgroundColor: cs.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(32),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       ),
       onPressed: () => _playMovie(context, mediaTitle),
     );
@@ -801,8 +809,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           final playlistIdToInvalidate = playlist.playlistId;
 
           try {
-            final year =
-                yearTextValue != '—' ? int.tryParse(yearTextValue) : null;
+            final year = yearTextValue != '—'
+                ? int.tryParse(yearTextValue)
+                : null;
 
             await addPlaylistItem.call(
               playlistId: PlaylistId(playlist.playlistId!),
@@ -822,9 +831,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               playlistItemsProvider(playlistIdToInvalidate!),
             );
             container.invalidate(
-              playlistContentReferencesProvider(
-                playlistIdToInvalidate,
-              ),
+              playlistContentReferencesProvider(playlistIdToInvalidate),
             );
             container.invalidate(libraryPlaylistsProvider);
 
@@ -847,9 +854,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             if (canNotify) {
               String errorMessage;
               if (e is StateError &&
-                  e.message.contains(
-                    'déjà dans cette playlist',
-                  )) {
+                  e.message.contains('déjà dans cette playlist')) {
                 errorMessage = 'Ce média est déjà dans cette playlist';
               } else {
                 errorMessage = l10n.errorWithMessage(e.toString());
@@ -903,6 +908,91 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }
 
   void _showMoreMenu() {
+    final isTv = _screenTypeFor(context) == ScreenType.tv;
+    if (isTv) {
+      showDialog<void>(
+        context: context,
+        builder: (_) {
+          return Consumer(
+            builder: (context, ref, _) {
+              final movieId = widget.movieId;
+              final isAvailableAsync = ref.watch(
+                mdp.movieAvailabilityProvider(movieId),
+              );
+              final isSeenAsync = ref.watch(mdp.movieSeenProvider(movieId));
+              final l10n = AppLocalizations.of(context)!;
+
+              final isAvailable = isAvailableAsync.value ?? false;
+              final isSeen = isSeenAsync.value ?? false;
+
+              final actions = <MoviTvActionMenuAction>[
+                MoviTvActionMenuAction(
+                  label: l10n.actionChangeMetadata,
+                  onPressed: _onChangeMetadata,
+                ),
+                MoviTvActionMenuAction(
+                  label: l10n.actionAddToList,
+                  onPressed: () => _showAddToListDialog(context, ref, movieId),
+                ),
+              ];
+
+              if (isAvailable) {
+                actions.add(
+                  MoviTvActionMenuAction(
+                    label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+                    onPressed: () {
+                      if (isSeen) {
+                        _markAsUnseen(movieId);
+                      } else {
+                        _markAsSeen(movieId, mediaTitle);
+                      }
+                    },
+                  ),
+                );
+              }
+
+              actions.add(
+                MoviTvActionMenuAction(
+                  label: l10n.actionReportProblem,
+                  onPressed: () {
+                    final tmdbId = int.tryParse(movieId);
+                    if (tmdbId == null || tmdbId <= 0) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Signalement indisponible pour ce contenu.',
+                            ),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    unawaited(
+                      ReportProblemSheet.show(
+                        context,
+                        ref,
+                        contentType: ContentType.movie,
+                        tmdbId: tmdbId,
+                        contentTitle: mediaTitle,
+                      ),
+                    );
+                  },
+                ),
+              );
+
+              return MoviTvActionMenuDialog(
+                title: mediaTitle,
+                actions: actions,
+                cancelLabel: l10n.actionCancel,
+              );
+            },
+          );
+        },
+      );
+      return;
+    }
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) {
@@ -913,62 +1003,49 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               mdp.movieAvailabilityProvider(movieId),
             );
             final isSeenAsync = ref.watch(mdp.movieSeenProvider(movieId));
+            final l10n = AppLocalizations.of(context)!;
 
             final isAvailable = isAvailableAsync.value ?? false;
             final isSeen = isSeenAsync.value ?? false;
 
-            final actions = <Widget>[
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  _onChangeMetadata();
-                },
-                child: Text(AppLocalizations.of(context)!.actionChangeMetadata),
+            final actions = <MoviTvActionMenuAction>[
+              MoviTvActionMenuAction(
+                label: l10n.actionChangeMetadata,
+                onPressed: _onChangeMetadata,
               ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  _showAddToListDialog(context, ref, movieId);
-                },
-                child: Text(AppLocalizations.of(context)!.actionAddToList),
+              MoviTvActionMenuAction(
+                label: l10n.actionAddToList,
+                onPressed: () => _showAddToListDialog(context, ref, movieId),
               ),
             ];
 
-            // Ajouter l'option vu/non vu seulement si le film est disponible
             if (isAvailable) {
-              if (isSeen) {
-                actions.add(
-                  CupertinoActionSheetAction(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
+              actions.add(
+                MoviTvActionMenuAction(
+                  label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+                  onPressed: () {
+                    if (isSeen) {
                       _markAsUnseen(movieId);
-                    },
-                    child: Text(AppLocalizations.of(context)!.actionMarkUnseen),
-                  ),
-                );
-              } else {
-                actions.add(
-                  CupertinoActionSheetAction(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
+                    } else {
                       _markAsSeen(movieId, mediaTitle);
-                    },
-                    child: Text(AppLocalizations.of(context)!.actionMarkSeen),
-                  ),
-                );
-              }
+                    }
+                  },
+                ),
+              );
             }
 
             actions.add(
-              CupertinoActionSheetAction(
+              MoviTvActionMenuAction(
+                label: l10n.actionReportProblem,
                 onPressed: () {
-                  Navigator.of(ctx).pop();
                   final tmdbId = int.tryParse(movieId);
                   if (tmdbId == null || tmdbId <= 0) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Signalement indisponible pour ce contenu.'),
+                          content: Text(
+                            'Signalement indisponible pour ce contenu.',
+                          ),
                         ),
                       );
                     }
@@ -984,16 +1061,26 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     ),
                   );
                 },
-                child: Text(AppLocalizations.of(context)!.actionReportProblem),
               ),
             );
 
             return CupertinoActionSheet(
               title: Text(mediaTitle),
-              actions: actions,
+              actions: actions
+                  .map(
+                    (action) => CupertinoActionSheetAction(
+                      isDestructiveAction: action.destructive,
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        action.onPressed();
+                      },
+                      child: Text(action.label),
+                    ),
+                  )
+                  .toList(growable: false),
               cancelButton: CupertinoActionSheetAction(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: Text(AppLocalizations.of(context)!.actionCancel),
+                child: Text(l10n.actionCancel),
               ),
             );
           },
@@ -1089,8 +1176,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final logger = ref.read(slProvider)<AppLogger>();
     try {
       final movieId = widget.movieId;
-      Uri? posterUri =
-          ref.read(mdp.movieDetailControllerProvider(movieId)).value?.poster;
+      Uri? posterUri = ref
+          .read(mdp.movieDetailControllerProvider(movieId))
+          .value
+          ?.poster;
       if (posterUri == null) {
         final vmAsync = ref.read(mdp.movieDetailControllerProvider(movieId));
         vmAsync.whenData((vm) {

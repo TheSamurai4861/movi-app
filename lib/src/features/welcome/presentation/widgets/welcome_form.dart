@@ -42,6 +42,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
   final _focusUrl = FocusNode();
   final _focusUser = FocusNode();
   final _focusPass = FocusNode();
+  final _focusSubmit = FocusNode();
 
   @override
   void initState() {
@@ -69,6 +70,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
     _focusUrl.dispose();
     _focusUser.dispose();
     _focusPass.dispose();
+    _focusSubmit.dispose();
     super.dispose();
   }
 
@@ -185,9 +187,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               readOnly: isLoading,
               autofillHints: const [AutofillHints.password],
               textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) {
-                if (_isFormValid && !isLoading) _onSubmit();
-              },
+              onFieldSubmitted: (_) => _focusSubmit.requestFocus(),
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)!.iptvPasswordHint,
                 suffixIcon: IconButton(
@@ -217,6 +217,7 @@ class _WelcomeFormState extends ConsumerState<WelcomeForm> {
               width: double.infinity,
               child: MoviPrimaryButton(
                 label: AppLocalizations.of(context)!.welcomeSourceAdd,
+                focusNode: _focusSubmit,
                 onPressed: (!isLoading && _isFormValid) ? _onSubmit : null,
                 loading: isLoading,
               ),

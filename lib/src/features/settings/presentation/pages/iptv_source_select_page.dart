@@ -9,6 +9,7 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
@@ -98,7 +99,9 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);
       messenger.showSnackBar(
-        SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))),
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Bad state: ', '')),
+        ),
       );
     } finally {
       if (mounted) {
@@ -130,7 +133,8 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
                   const SizedBox(height: 16),
                   Expanded(
                     child: accountsAsync.when(
-                      loading: () => const Center(child: CircularProgressIndicator()),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
                       error: (error, _) => Center(
                         child: Text(
                           '${l10n.errorUnknown}: $error',
@@ -142,7 +146,9 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
                         if (accounts.isEmpty) {
                           return Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
                               child: Text(
                                 l10n.welcomeSourceSubtitle,
                                 textAlign: TextAlign.center,
@@ -166,10 +172,9 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
           if (_isSwitching)
             Positioned.fill(
               child: ColoredBox(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surface
-                    .withValues(alpha: 0.82),
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.82),
                 child: const Center(child: CircularProgressIndicator()),
               ),
             ),
@@ -180,10 +185,7 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
 }
 
 class _SourceSelectHeader extends StatelessWidget {
-  const _SourceSelectHeader({
-    required this.title,
-    required this.onBack,
-  });
+  const _SourceSelectHeader({required this.title, required this.onBack});
 
   final String title;
   final VoidCallback? onBack;
@@ -198,13 +200,26 @@ class _SourceSelectHeader extends StatelessWidget {
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onBack,
-                child: const SizedBox(
-                  width: 35,
-                  height: 35,
-                  child: Image(image: AssetImage(AppAssets.iconBack)),
+              child: SizedBox(
+                width: 35,
+                height: 35,
+                child: MoviFocusableAction(
+                  onPressed: onBack,
+                  semanticLabel: 'Retour',
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.04 : 1,
+                      borderRadius: BorderRadius.circular(999),
+                      backgroundColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.14)
+                          : Colors.transparent,
+                      child: const SizedBox(
+                        width: 35,
+                        height: 35,
+                        child: Image(image: AssetImage(AppAssets.iconBack)),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 
 enum LibraryFilterType { playlists, sagas, artistes }
 
@@ -21,17 +22,27 @@ class LibraryFilterPills extends ConsumerWidget {
     return Row(
       children: [
         if (activeFilter != null) ...[
-          // Pill avec close pour annuler le filtre
-          GestureDetector(
-            onTap: () => onFilterChanged(null),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: accentColor,
+          MoviFocusableAction(
+            onPressed: () => onFilterChanged(null),
+            semanticLabel: 'Supprimer le filtre',
+            builder: (context, state) {
+              return MoviFocusFrame(
+                scale: state.focused ? 1.04 : 1,
                 borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Icon(Icons.close, size: 16, color: Colors.white),
-            ),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: state.focused ? Colors.white : Colors.transparent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: const Icon(Icons.close, size: 16, color: Colors.white),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -88,27 +99,45 @@ class _FilterPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? accentColor : Colors.transparent,
+    final inactiveBg = Theme.of(
+      context,
+    ).colorScheme.surface.withValues(alpha: 0.72);
+    final focusBg = isActive
+        ? accentColor
+        : Theme.of(context).colorScheme.surfaceContainerHighest;
+
+    return MoviFocusableAction(
+      onPressed: onTap,
+      semanticLabel: label,
+      builder: (context, state) {
+        return MoviFocusFrame(
+          scale: state.focused ? 1.04 : 1,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: isActive ? accentColor : Colors.white30,
-            width: 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: state.focused
+                  ? focusBg
+                  : (isActive ? accentColor : inactiveBg),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: state.focused
+                    ? Colors.white
+                    : (isActive ? accentColor : Colors.white30),
+                width: 1.5,
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              ),
+            ),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.white70,
-            fontSize: 14,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

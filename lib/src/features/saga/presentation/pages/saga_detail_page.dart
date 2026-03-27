@@ -239,7 +239,8 @@ class SagaDetailPage extends ConsumerWidget {
                                           viewModel.saga.title.display,
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
+                                          style:
+                                              Theme.of(context)
                                                   .textTheme
                                                   .displaySmall
                                                   ?.copyWith(
@@ -283,7 +284,8 @@ class SagaDetailPage extends ConsumerWidget {
                                               synopsisText,
                                               maxLines: 3,
                                               overflow: TextOverflow.ellipsis,
-                                              style: Theme.of(context)
+                                              style:
+                                                  Theme.of(context)
                                                       .textTheme
                                                       .bodyLarge
                                                       ?.copyWith(
@@ -373,9 +375,10 @@ class SagaDetailPage extends ConsumerWidget {
                                                                 id: viewModel
                                                                     .saga
                                                                     .id,
-                                                                tmdbId: viewModel
-                                                                    .saga
-                                                                    .tmdbId,
+                                                                tmdbId:
+                                                                    viewModel
+                                                                        .saga
+                                                                        .tmdbId,
                                                                 title: viewModel
                                                                     .saga
                                                                     .title,
@@ -413,20 +416,27 @@ class SagaDetailPage extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => context.pop(),
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: isWideLayout ? 12 : 0,
-                                      vertical: 8,
-                                    ),
-                                    child: SizedBox(
-                                      width: 35,
-                                      height: 35,
-                                      child: Image.asset(AppAssets.iconBack),
-                                    ),
-                                  ),
+                                MoviFocusableAction(
+                                  onPressed: () => context.pop(),
+                                  semanticLabel: 'Retour',
+                                  builder: (context, state) {
+                                    return MoviFocusFrame(
+                                      scale: state.focused ? 1.04 : 1,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: isWideLayout ? 12 : 0,
+                                        vertical: 8,
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      backgroundColor: state.focused
+                                          ? Colors.white.withValues(alpha: 0.14)
+                                          : Colors.transparent,
+                                      child: SizedBox(
+                                        width: 35,
+                                        height: 35,
+                                        child: Image.asset(AppAssets.iconBack),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ],
                             ),
@@ -447,13 +457,12 @@ class SagaDetailPage extends ConsumerWidget {
                             Text(
                               viewModel.saga.title.display,
                               style:
-                                      Theme.of(context)
-                                          .textTheme
-                                          .headlineMedium
-                                          ?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ) ??
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ) ??
                                   const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
@@ -465,12 +474,8 @@ class SagaDetailPage extends ConsumerWidget {
                             Text(
                               '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
                               style:
-                                      Theme.of(context)
-                                          .textTheme
-                                          .bodyLarge
-                                          ?.copyWith(
-                                            color: Colors.white70,
-                                          ) ??
+                                  Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(color: Colors.white70) ??
                                   const TextStyle(
                                     fontSize: 16,
                                     color: Colors.white70,
@@ -492,11 +497,8 @@ class SagaDetailPage extends ConsumerWidget {
                                                 context,
                                               )!.sagaStartNow,
                                         assetIcon: AppAssets.iconPlay,
-                                        onPressed: () => _startSaga(
-                                          context,
-                                          ref,
-                                          viewModel,
-                                        ),
+                                        onPressed: () =>
+                                            _startSaga(context, ref, viewModel),
                                       );
                                     },
                                     loading: () => MoviPrimaryButton(
@@ -511,11 +513,8 @@ class SagaDetailPage extends ConsumerWidget {
                                         context,
                                       )!.sagaStartNow,
                                       assetIcon: AppAssets.iconPlay,
-                                      onPressed: () => _startSaga(
-                                        context,
-                                        ref,
-                                        viewModel,
-                                      ),
+                                      onPressed: () =>
+                                          _startSaga(context, ref, viewModel),
                                     ),
                                   ),
                                 ),
@@ -708,8 +707,11 @@ class _SagaMovieCard extends ConsumerWidget {
           media: media,
           heroTag: 'saga_movie_${media.id}',
           onTap: isAvailable
-              ? (mm) =>
-                  navigateToMovieDetail(context, ref, ContentRouteArgs.movie(mm.id))
+              ? (mm) => navigateToMovieDetail(
+                  context,
+                  ref,
+                  ContentRouteArgs.movie(mm.id),
+                )
               : null,
         ),
       ),

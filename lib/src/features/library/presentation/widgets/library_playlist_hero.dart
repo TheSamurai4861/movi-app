@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/widgets/movi_hero_background.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_pill.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -84,10 +86,7 @@ class LibraryPlaylistHero extends StatelessWidget {
               top: 12,
               left: horizontalPadding,
               right: horizontalPadding,
-              child: _HeroTopBar(
-                onBack: onBack,
-                onMore: onMore,
-              ),
+              child: _HeroTopBar(onBack: onBack, onMore: onMore),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -195,37 +194,7 @@ class LibraryPlaylistHero extends StatelessWidget {
             top: 8,
             left: 20,
             right: 20,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onBack,
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: Image(image: AssetImage(AppAssets.iconBack)),
-                      ),
-                    ],
-                  ),
-                ),
-                if (onMore != null)
-                  SizedBox(
-                    width: 25,
-                    height: 35,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onMore,
-                      child: const Image(image: AssetImage(AppAssets.iconMore)),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 25),
-              ],
-            ),
+            child: _HeroTopBar(onBack: onBack, onMore: onMore),
           ),
           // Logo centré
           Center(child: _getPlaylistIcon()),
@@ -258,7 +227,9 @@ class LibraryPlaylistHero extends StatelessWidget {
             child: Text(
               itemCount == 1
                   ? AppLocalizations.of(context)!.libraryItemCount(itemCount)
-                  : AppLocalizations.of(context)!.libraryItemCountPlural(itemCount),
+                  : AppLocalizations.of(
+                      context,
+                    )!.libraryItemCountPlural(itemCount),
               textAlign: TextAlign.center,
               style:
                   Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -342,37 +313,119 @@ class LibraryPlaylistHero extends StatelessWidget {
   }
 }
 
-class _HeroTopBar extends StatelessWidget {
-  const _HeroTopBar({
-    required this.onBack,
-    required this.onMore,
-  });
+class _HeroTopBar extends StatefulWidget {
+  const _HeroTopBar({required this.onBack, required this.onMore});
 
   final VoidCallback onBack;
   final VoidCallback? onMore;
+
+  @override
+  State<_HeroTopBar> createState() => _HeroTopBarState();
+}
+
+class _HeroTopBarState extends State<_HeroTopBar> {
+  late final FocusNode _backFocusNode = FocusNode(
+    debugLabel: 'PlaylistHeroBack',
+  );
+  late final FocusNode _moreFocusNode = FocusNode(
+    debugLabel: 'PlaylistHeroMore',
+  )..canRequestFocus = false;
+
+  @override
+  void dispose() {
+    _backFocusNode.dispose();
+    _moreFocusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.arrowRight ||
+        widget.onMore == null) {
+      return KeyEventResult.ignored;
+    }
+    _moreFocusNode.canRequestFocus = true;
+    _moreFocusNode.requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleMoreKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _backFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onBack,
-          child: const SizedBox(
-            width: 35,
-            height: 35,
-            child: Image(image: AssetImage(AppAssets.iconBack)),
+        Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleBackKey(event),
+          child: MoviFocusableAction(
+            focusNode: _backFocusNode,
+            onPressed: widget.onBack,
+            semanticLabel: 'Retour',
+            builder: (context, state) {
+              return MoviFocusFrame(
+                scale: state.focused ? 1.04 : 1,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                borderRadius: BorderRadius.circular(999),
+                backgroundColor: state.focused
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.transparent,
+                child: const SizedBox(
+                  width: 35,
+                  height: 35,
+                  child: Image(image: AssetImage(AppAssets.iconBack)),
+                ),
+              );
+            },
           ),
         ),
-        if (onMore != null)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onMore,
-            child: const SizedBox(
-              width: 25,
-              height: 35,
-              child: Image(image: AssetImage(AppAssets.iconMore)),
+        if (widget.onMore != null)
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleMoreKey(event),
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) {
+                _moreFocusNode.canRequestFocus = false;
+              }
+            },
+            child: MoviFocusableAction(
+              focusNode: _moreFocusNode,
+              onPressed: widget.onMore,
+              semanticLabel: 'Plus d actions',
+              builder: (context, state) {
+                return MoviFocusFrame(
+                  scale: state.focused ? 1.04 : 1,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  borderRadius: BorderRadius.circular(999),
+                  backgroundColor: state.focused
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.transparent,
+                  child: const SizedBox(
+                    width: 25,
+                    height: 35,
+                    child: Image(image: AssetImage(AppAssets.iconMore)),
+                  ),
+                );
+              },
             ),
           )
         else

@@ -81,6 +81,7 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final focusBorderColor = theme.colorScheme.primary;
     final nameStyle =
         theme.textTheme.titleSmall?.copyWith(
           color: Colors.white,
@@ -106,32 +107,46 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: widget.onTap == null ? null : () => widget.onTap?.call(widget.person),
+        onTap: widget.onTap == null
+            ? null
+            : () => widget.onTap?.call(widget.person),
         onFocusChange: (focused) {
           if (_focused == focused) return;
           setState(() => _focused = focused);
         },
         borderRadius: BorderRadius.circular(18),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: _focused
-                  ? theme.colorScheme.primary
-                  : Colors.transparent,
-              width: 2,
-            ),
-          ),
+        child: AnimatedScale(
+          scale: _focused ? 1.035 : 1,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
           child: SizedBox(
             width: widget.width,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildPoster(context),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: _focused ? focusBorderColor : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: _focused
+                        ? [
+                            BoxShadow(
+                              color: focusBorderColor.withValues(alpha: 0.18),
+                              blurRadius: 18,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: _buildPoster(context),
+                ),
                 const SizedBox(height: 12),
                 MoviMarqueeText(
                   text: widget.person.name,

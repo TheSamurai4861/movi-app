@@ -45,10 +45,14 @@ class HomeHeroCarousel extends ConsumerStatefulWidget {
     super.key,
     required this.items,
     this.onLoadingChanged,
+    this.primaryActionFocusNode,
+    this.layoutHeight,
   });
 
   final List<ContentReference> items;
   final ValueChanged<bool>? onLoadingChanged;
+  final FocusNode? primaryActionFocusNode;
+  final double? layoutHeight;
 
   @override
   ConsumerState<HomeHeroCarousel> createState() => _HomeHeroCarouselState();
@@ -74,6 +78,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   static const double _overlayHeight = HomeLayoutConstants.heroOverlayHeight;
   static const double _desktopVisualBleed =
       HomeLayoutConstants.heroDesktopVisualBleed;
+  static const double _mobileDetailsHeight = 188;
 
   // Timings
   static const Duration _rotation = HomeLayoutConstants.heroRotationDuration;
@@ -788,8 +793,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final int? tmdbId = _tmdbIdOf(item);
     final bool isWideHero = context.isDesktop || context.isTablet;
     final bool shouldExtendDesktopHero = context.isDesktop || context.isTv;
-    final double visualBleed = shouldExtendDesktopHero ? _desktopVisualBleed : 0;
-    final double heroHeight = _totalHeight + visualBleed;
+    final Alignment heroContentAlignment = context.isDesktop
+        ? const Alignment(-1, 0.24)
+        : Alignment.centerLeft;
+    final double layoutHeight = widget.layoutHeight ?? _totalHeight;
+    final double visualBleed = shouldExtendDesktopHero
+        ? _desktopVisualBleed
+        : 0;
+    final double heroHeight = isWideHero
+        ? layoutHeight + visualBleed
+        : (layoutHeight - _mobileDetailsHeight).clamp(0.0, double.infinity);
     final double bottomOverlayHeight = _overlayHeight + visualBleed;
     final cs = Theme.of(context).colorScheme;
 
@@ -968,7 +981,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                 end: 50,
                               ),
                               child: Align(
-                                alignment: Alignment.centerLeft,
+                                alignment: heroContentAlignment,
                                 child: ConstrainedBox(
                                   constraints: const BoxConstraints(
                                     maxWidth: 560,
@@ -1070,6 +1083,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                 label: AppLocalizations.of(
                                                   context,
                                                 )!.homeWatchNow,
+                                                focusNode: widget
+                                                    .primaryActionFocusNode,
                                                 assetIcon: AppAssets.iconPlay,
                                                 onPressed: () =>
                                                     _openDetails(context),
@@ -1218,188 +1233,204 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                   },
                 ),
         ),
-        if (!isWideHero) ...[
-          // Pills collées au Stack
-          if (item != null && tmdbId != null)
-            FutureBuilder<_HeroMeta?>(
-              future: _metaFutures[tmdbId],
-              builder: (context, snap) {
-                final _HeroMeta? meta = snap.data;
+        if (!isWideHero)
+          SizedBox(
+            height: _mobileDetailsHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // Pills collées au Stack
+                if (item != null && tmdbId != null)
+                  FutureBuilder<_HeroMeta?>(
+                    future: _metaFutures[tmdbId],
+                    builder: (context, snap) {
+                      final _HeroMeta? meta = snap.data;
 
-                final int? year = meta?.year ?? item.year;
-                final String yearText = (year ?? '—').toString();
+                      final int? year = meta?.year ?? item.year;
+                      final String yearText = (year ?? '—').toString();
 
-                final double? rating = meta?.rating;
-                final String? ratingText = (rating == null)
-                    ? null
-                    : (rating >= 10
-                          ? rating.toStringAsFixed(0)
-                          : rating.toStringAsFixed(1));
+                      final double? rating = meta?.rating;
+                      final String? ratingText = (rating == null)
+                          ? null
+                          : (rating >= 10
+                                ? rating.toStringAsFixed(0)
+                                : rating.toStringAsFixed(1));
 
-                final bool isTv =
-                    meta?.isTv ?? (item.type == ContentType.series);
-                final String? durationText = isTv
-                    ? null
-                    : _formatDuration(meta?.runtime);
+                      final bool isTv =
+                          meta?.isTv ?? (item.type == ContentType.series);
+                      final String? durationText = isTv
+                          ? null
+                          : _formatDuration(meta?.runtime);
 
-                final int? seasons = meta?.seasons;
-                final String? seasonsText =
-                    (isTv && seasons != null && seasons > 0)
-                    ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
-                    : null;
+                      final int? seasons = meta?.seasons;
+                      final String? seasonsText =
+                          (isTv && seasons != null && seasons > 0)
+                          ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
+                          : null;
 
-                return AnimatedSwitcher(
-                  duration: _fade,
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
-                  layoutBuilder: (current, previous) => Stack(
-                    alignment: Alignment.center,
-                    children: [...previous, if (current != null) current],
-                  ),
-                  child: Row(
-                    key: ValueKey('${tmdbId}_pills'),
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (durationText != null)
-                        MoviPill(durationText, large: true),
-                      if (durationText != null && year != null)
-                        const SizedBox(width: 8),
-                      if (seasonsText != null)
-                        MoviPill(seasonsText, large: true),
-                      if (seasonsText != null && year != null)
-                        const SizedBox(width: 8),
-                      if (year != null) MoviPill(yearText, large: true),
-                      if (year != null && ratingText != null)
-                        const SizedBox(width: 8),
-                      if (ratingText != null)
-                        MoviPill(
-                          ratingText,
-                          trailingIcon: Image.asset(
-                            AppAssets.iconStarFilled,
-                            width: 18,
-                            height: 18,
-                          ),
-                          large: true,
+                      return AnimatedSwitcher(
+                        duration: _fade,
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.center,
+                          children: [...previous, if (current != null) current],
                         ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          const SizedBox(height: 16),
-          // Synopsis après les pills
-          if (tmdbId != null)
-            FutureBuilder<_HeroMeta?>(
-              future: _metaFutures[tmdbId],
-              builder: (context, snap) {
-                final _HeroMeta? meta = snap.data;
-                final bool hasSynopsis = (meta?.overview?.isNotEmpty ?? false);
-
-                if (!hasSynopsis) {
-                  return SizedBox(
-                    height: _synopsisHeight,
-                    child: const SizedBox.shrink(),
-                  );
-                }
-
-                return AnimatedSwitcher(
-                  duration: _fade,
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
-                  child: _buildSynopsis(
-                    key: ValueKey('${tmdbId}_synopsis'),
-                    overview: meta!.overview!,
-                    tmdbId: tmdbId,
-                  ),
-                );
-              },
-            )
-          else
-            SizedBox(height: _synopsisHeight, child: const SizedBox.shrink()),
-          const SizedBox(height: 16),
-          if (tmdbId != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: MoviPrimaryButton(
-                      label: AppLocalizations.of(context)!.homeWatchNow,
-                      assetIcon: AppAssets.iconPlay,
-                      onPressed: () => _openDetails(context),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final current = _currentItem;
-                      if (current == null) {
-                        return MoviFavoriteButton(
-                          isFavorite: false,
-                          onPressed: () {},
-                        );
-                      }
-                      final id = current.id.trim();
-                      if (id.isEmpty) {
-                        return MoviFavoriteButton(
-                          isFavorite: false,
-                          onPressed: () {},
-                        );
-                      }
-
-                      if (current.type == ContentType.series) {
-                        final isFavoriteAsync = ref.watch(
-                          tvIsFavoriteProvider(id),
-                        );
-                        return isFavoriteAsync.when(
-                          data: (isFavorite) => MoviFavoriteButton(
-                            isFavorite: isFavorite,
-                            onPressed: () async {
-                              await ref
-                                  .read(tvToggleFavoriteProvider.notifier)
-                                  .toggle(id);
-                            },
-                          ),
-                          loading: () => MoviFavoriteButton(
-                            isFavorite: false,
-                            onPressed: () {},
-                          ),
-                          error: (_, __) => MoviFavoriteButton(
-                            isFavorite: false,
-                            onPressed: () {},
-                          ),
-                        );
-                      }
-
-                      final isFavoriteAsync = ref.watch(
-                        movieIsFavoriteProvider(id),
-                      );
-                      return isFavoriteAsync.when(
-                        data: (isFavorite) => MoviFavoriteButton(
-                          isFavorite: isFavorite,
-                          onPressed: () async {
-                            await ref
-                                .read(movieToggleFavoriteProvider.notifier)
-                                .toggle(id);
-                          },
-                        ),
-                        loading: () => MoviFavoriteButton(
-                          isFavorite: false,
-                          onPressed: () {},
-                        ),
-                        error: (_, __) => MoviFavoriteButton(
-                          isFavorite: false,
-                          onPressed: () {},
+                        child: Row(
+                          key: ValueKey('${tmdbId}_pills'),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (durationText != null)
+                              MoviPill(durationText, large: true),
+                            if (durationText != null && year != null)
+                              const SizedBox(width: 8),
+                            if (seasonsText != null)
+                              MoviPill(seasonsText, large: true),
+                            if (seasonsText != null && year != null)
+                              const SizedBox(width: 8),
+                            if (year != null) MoviPill(yearText, large: true),
+                            if (year != null && ratingText != null)
+                              const SizedBox(width: 8),
+                            if (ratingText != null)
+                              MoviPill(
+                                ratingText,
+                                trailingIcon: Image.asset(
+                                  AppAssets.iconStarFilled,
+                                  width: 18,
+                                  height: 18,
+                                ),
+                                large: true,
+                              ),
+                          ],
                         ),
                       );
                     },
                   ),
-                ],
-              ),
+                const SizedBox(height: 16),
+                // Synopsis après les pills
+                if (tmdbId != null)
+                  FutureBuilder<_HeroMeta?>(
+                    future: _metaFutures[tmdbId],
+                    builder: (context, snap) {
+                      final _HeroMeta? meta = snap.data;
+                      final bool hasSynopsis =
+                          meta?.overview?.isNotEmpty ?? false;
+
+                      if (!hasSynopsis) {
+                        return SizedBox(
+                          height: _synopsisHeight,
+                          child: const SizedBox.shrink(),
+                        );
+                      }
+
+                      return AnimatedSwitcher(
+                        duration: _fade,
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        child: _buildSynopsis(
+                          key: ValueKey('${tmdbId}_synopsis'),
+                          overview: meta!.overview!,
+                          tmdbId: tmdbId,
+                        ),
+                      );
+                    },
+                  )
+                else
+                  SizedBox(
+                    height: _synopsisHeight,
+                    child: const SizedBox.shrink(),
+                  ),
+                const SizedBox(height: 16),
+                if (tmdbId != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: MoviPrimaryButton(
+                            label: AppLocalizations.of(context)!.homeWatchNow,
+                            focusNode: widget.primaryActionFocusNode,
+                            assetIcon: AppAssets.iconPlay,
+                            onPressed: () => _openDetails(context),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final current = _currentItem;
+                            if (current == null) {
+                              return MoviFavoriteButton(
+                                isFavorite: false,
+                                onPressed: () {},
+                              );
+                            }
+                            final id = current.id.trim();
+                            if (id.isEmpty) {
+                              return MoviFavoriteButton(
+                                isFavorite: false,
+                                onPressed: () {},
+                              );
+                            }
+
+                            if (current.type == ContentType.series) {
+                              final isFavoriteAsync = ref.watch(
+                                tvIsFavoriteProvider(id),
+                              );
+                              return isFavoriteAsync.when(
+                                data: (isFavorite) => MoviFavoriteButton(
+                                  isFavorite: isFavorite,
+                                  onPressed: () async {
+                                    await ref
+                                        .read(tvToggleFavoriteProvider.notifier)
+                                        .toggle(id);
+                                  },
+                                ),
+                                loading: () => MoviFavoriteButton(
+                                  isFavorite: false,
+                                  onPressed: () {},
+                                ),
+                                error: (_, __) => MoviFavoriteButton(
+                                  isFavorite: false,
+                                  onPressed: () {},
+                                ),
+                              );
+                            }
+
+                            final isFavoriteAsync = ref.watch(
+                              movieIsFavoriteProvider(id),
+                            );
+                            return isFavoriteAsync.when(
+                              data: (isFavorite) => MoviFavoriteButton(
+                                isFavorite: isFavorite,
+                                onPressed: () async {
+                                  await ref
+                                      .read(
+                                        movieToggleFavoriteProvider.notifier,
+                                      )
+                                      .toggle(id);
+                                },
+                              ),
+                              loading: () => MoviFavoriteButton(
+                                isFavorite: false,
+                                onPressed: () {},
+                              ),
+                              error: (_, __) => MoviFavoriteButton(
+                                isFavorite: false,
+                                onPressed: () {},
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 12),
+              ],
             ),
-          const SizedBox(height: 12),
-        ],
+          ),
       ],
     );
   }
