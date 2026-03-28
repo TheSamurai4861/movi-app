@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
@@ -29,6 +31,10 @@ class CategoryGrid extends ConsumerStatefulWidget {
 }
 
 class _CategoryGridState extends ConsumerState<CategoryGrid> {
+  static const double _pageHorizontalPadding = 20;
+  static const double _posterAspectRatio = 225 / 150;
+  static const double _cardChromeHeight = MoviMediaCard.listHeight - 225;
+  static const double _minLargeCardWidth = 112;
   final ScrollController _scrollController = ScrollController();
   late List<FocusNode> _itemFocusNodes = _buildItemFocusNodes(
     widget.items.length,
@@ -82,12 +88,24 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
   }
 
   static const double cardWidth = 150;
-  static const double posterHeight = 226;
-  static const double textHeight = 20; // hauteur approximative du titre
-  static const double textMarginTop = 12; // marge entre affiche et texte
   static const double gridGapH = 24; // gap horizontal à 24px
   static const double gridGapV = 16; // gap vertical inchangé
   static const double focusBleed = 12; // espace pour le scale/glow du focus
+
+  ScreenType _screenTypeFor(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _isLargeScreen(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _slotWidthFor(double availableWidth, int crossAxisCount) {
+    return (availableWidth - (gridGapH * (crossAxisCount - 1))) /
+        crossAxisCount;
+  }
 
   KeyEventResult _handleGridDirection(
     int index,
@@ -129,18 +147,18 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
 
   @override
   Widget build(BuildContext context) {
-    final double itemHeight = posterHeight + textMarginTop + textHeight;
-    final double layoutCardWidth = cardWidth + focusBleed;
-    final double layoutItemHeight = itemHeight + focusBleed;
+    final baseLayoutCardWidth = cardWidth + focusBleed;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
+        final availableWidth =
+            constraints.maxWidth - (_pageHorizontalPadding * 2);
+        final isLargeScreen = _isLargeScreen(context);
 
         // Calculer dynamiquement le nombre de colonnes en fonction de la largeur,
         // tout en gardant une largeur de carte raisonnable.
         // Permet 1 colonne sur très petits écrans (< 300px).
-        int crossAxisCount = (availableWidth / (layoutCardWidth + gridGapH))
+        int crossAxisCount = (availableWidth / (baseLayoutCardWidth + gridGapH))
             .floor()
             .clamp(1, 6);
         // Autoriser 1 colonne si l'écran est très étroit (< 300px)
@@ -150,81 +168,102 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
           crossAxisCount = 2;
         }
 
+        if (isLargeScreen) {
+          crossAxisCount += 2;
+          while (crossAxisCount > 1 &&
+              (_slotWidthFor(availableWidth, crossAxisCount) - focusBleed) <
+                  _minLargeCardWidth) {
+            crossAxisCount--;
+          }
+        }
+
+        final layoutCardWidth = _slotWidthFor(availableWidth, crossAxisCount);
+        final resolvedCardWidth = layoutCardWidth - focusBleed;
+        final resolvedPosterHeight = resolvedCardWidth * _posterAspectRatio;
+        final resolvedCardHeight = resolvedPosterHeight + _cardChromeHeight;
+        final layoutItemHeight = resolvedCardHeight + focusBleed;
         final gridWidth =
             (layoutCardWidth * crossAxisCount) +
             gridGapH * (crossAxisCount - 1);
 
         return Align(
           alignment: Alignment.topCenter,
-          child: SizedBox(
-            width: gridWidth,
-            child: GridView.builder(
-              controller: _scrollController,
-              clipBehavior: Clip.none,
-              padding: EdgeInsets.zero,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: gridGapV,
-                crossAxisSpacing: gridGapH,
-                childAspectRatio: layoutCardWidth / layoutItemHeight,
-              ),
-              itemCount:
-                  widget.items.length +
-                  (widget.isLoadingMore ? 1 : 0) +
-                  (widget.hasMore && !widget.isLoadingMore ? 0 : 0),
-              itemBuilder: (context, index) {
-                // Afficher l'indicateur de chargement en bas si on charge plus
-                if (index == widget.items.length && widget.isLoadingMore) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: _pageHorizontalPadding,
+            ),
+            child: SizedBox(
+              width: gridWidth,
+              child: GridView.builder(
+                controller: _scrollController,
+                clipBehavior: Clip.none,
+                padding: EdgeInsets.zero,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  mainAxisSpacing: gridGapV,
+                  crossAxisSpacing: gridGapH,
+                  childAspectRatio: layoutCardWidth / layoutItemHeight,
+                ),
+                itemCount:
+                    widget.items.length +
+                    (widget.isLoadingMore ? 1 : 0) +
+                    (widget.hasMore && !widget.isLoadingMore ? 0 : 0),
+                itemBuilder: (context, index) {
+                  // Afficher l'indicateur de chargement en bas si on charge plus
+                  if (index == widget.items.length && widget.isLoadingMore) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  final r = widget.items[index];
+                  final media = MoviMedia(
+                    id: r.id,
+                    title: r.title.value,
+                    poster: r.poster,
+                    year: r.year,
+                    rating: r.rating,
+                    type: r.type == ContentType.series
+                        ? MoviMediaType.series
+                        : MoviMediaType.movie,
+                  );
+                  return Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) =>
+                        _handleGridDirection(index, crossAxisCount, event),
+                    child: Center(
+                      child: MoviMediaCard(
+                        media: media,
+                        width: resolvedCardWidth,
+                        height: resolvedPosterHeight,
+                        focusNode: _itemFocusNodes[index],
+                        onTap: (m) {
+                          if (m.type == MoviMediaType.movie) {
+                            unawaited(
+                              navigateToMovieDetail(
+                                context,
+                                ref,
+                                ContentRouteArgs.movie(m.id),
+                              ),
+                            );
+                          } else {
+                            unawaited(
+                              navigateToTvDetail(
+                                context,
+                                ref,
+                                ContentRouteArgs.series(m.id),
+                              ),
+                            );
+                          }
+                        },
+                      ),
                     ),
                   );
-                }
-
-                final r = widget.items[index];
-                final media = MoviMedia(
-                  id: r.id,
-                  title: r.title.value,
-                  poster: r.poster,
-                  year: r.year,
-                  rating: r.rating,
-                  type: r.type == ContentType.series
-                      ? MoviMediaType.series
-                      : MoviMediaType.movie,
-                );
-                return Focus(
-                  canRequestFocus: false,
-                  onKeyEvent: (_, event) =>
-                      _handleGridDirection(index, crossAxisCount, event),
-                  child: Center(
-                    child: MoviMediaCard(
-                      media: media,
-                      focusNode: _itemFocusNodes[index],
-                      onTap: (m) {
-                        if (m.type == MoviMediaType.movie) {
-                          unawaited(
-                            navigateToMovieDetail(
-                              context,
-                              ref,
-                              ContentRouteArgs.movie(m.id),
-                            ),
-                          );
-                        } else {
-                          unawaited(
-                            navigateToTvDetail(
-                              context,
-                              ref,
-                              ContentRouteArgs.series(m.id),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                );
-              },
+                },
+              ),
             ),
           ),
         );

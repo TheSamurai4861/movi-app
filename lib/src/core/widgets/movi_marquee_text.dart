@@ -74,7 +74,7 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
     );
 
     return SizedBox(
-      height: widget.style.fontSize != null ? widget.style.fontSize! * 1.5 : 24,
+      height: _resolveHeight(context),
       width: widget.maxWidth,
       child: AnimatedBuilder(
         animation: _gradientController,
@@ -120,6 +120,14 @@ class _MoviMarqueeTextState extends State<MoviMarqueeText>
         ),
       ),
     );
+  }
+
+  double _resolveHeight(BuildContext context) {
+    final defaultStyle = DefaultTextStyle.of(context).style;
+    final fontSize = widget.style.fontSize ?? defaultStyle.fontSize ?? 16;
+    final lineHeight = widget.style.height ?? defaultStyle.height ?? 1.5;
+    final textScaler = MediaQuery.textScalerOf(context);
+    return textScaler.scale(fontSize) * lineHeight;
   }
 
   void _updateMetrics() {

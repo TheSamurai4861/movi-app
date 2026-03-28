@@ -591,7 +591,7 @@ class SagaDetailPage extends ConsumerWidget {
                               return availabilityAsync.when(
                                 data: (availability) {
                                   return SizedBox(
-                                    height: 258,
+                                    height: MoviMediaCard.listHeight,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
                                       padding: EdgeInsets.zero,
@@ -613,13 +613,13 @@ class SagaDetailPage extends ConsumerWidget {
                                   );
                                 },
                                 loading: () => const SizedBox(
-                                  height: 258,
+                                  height: MoviMediaCard.listHeight,
                                   child: Center(
                                     child: CircularProgressIndicator(),
                                   ),
                                 ),
                                 error: (_, __) => SizedBox(
-                                  height: 258,
+                                  height: MoviMediaCard.listHeight,
                                   child: ListView.separated(
                                     scrollDirection: Axis.horizontal,
                                     padding: EdgeInsets.zero,

@@ -57,6 +57,8 @@ Widget _buildPosterImage(
 
 /// Card used to display either a movie or a series.
 class MoviMediaCard extends StatefulWidget {
+  static const double listHeight = 262;
+
   const MoviMediaCard({
     super.key,
     required this.media,
@@ -93,11 +95,13 @@ class _MoviMediaCardState extends State<MoviMediaCard> {
         theme.textTheme.titleSmall?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
+          height: 1.2,
         ) ??
         const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: Colors.white,
+          height: 1.2,
         );
 
     return Material(

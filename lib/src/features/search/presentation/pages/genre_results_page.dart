@@ -395,7 +395,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
                         ? AppLocalizations.of(context)!.resultsCount(itemCount)
                         : null,
                     estimatedItemWidth: 150,
-                    estimatedItemHeight: 300,
+                    estimatedItemHeight: MoviMediaCard.listHeight,
                     titlePadding: 20,
                     horizontalPadding: const EdgeInsetsDirectional.only(
                       start: 20,

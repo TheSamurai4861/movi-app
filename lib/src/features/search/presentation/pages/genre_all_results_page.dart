@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -41,6 +43,7 @@ class GenreAllResultsPage extends ConsumerStatefulWidget {
 }
 
 class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
+  static const double _pageHorizontalPadding = 20;
   int _currentPage = 1;
   bool _isLoading = false;
   bool _hasMore = true;
@@ -131,11 +134,27 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
 
   static const double _cardWidth = 150;
   static const double _posterHeight = 225;
-  static const double _textHeight =
-      24; // hauteur approximative du titre (MoviMarqueeText: fontSize * 1.5)
-  static const double _textMarginTop = 12; // marge entre affiche et texte
+  static const double _itemHeight = MoviMediaCard.listHeight;
+  static const double _posterAspectRatio = _posterHeight / _cardWidth;
+  static const double _cardChromeHeight = _itemHeight - _posterHeight;
+  static const double _minLargeCardWidth = 112;
   static const double _gridGapH = 24; // gap horizontal
   static const double _gridGapV = 16; // gap vertical
+
+  ScreenType _screenTypeFor(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _isLargeScreen(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  double _slotWidthFor(double availableWidth, int crossAxisCount) {
+    return (availableWidth - (_gridGapH * (crossAxisCount - 1))) /
+        crossAxisCount;
+  }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
@@ -329,8 +348,6 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
     final count = _isMovie ? _movies.length : _shows.length;
-    final double itemHeight = _posterHeight + _textMarginTop + _textHeight;
-
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
@@ -385,7 +402,9 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final availableWidth = constraints.maxWidth;
+                  final availableWidth =
+                      constraints.maxWidth - (_pageHorizontalPadding * 2);
+                  final isLargeScreen = _isLargeScreen(context);
                   int crossAxisCount =
                       (availableWidth / (_cardWidth + _gridGapH)).floor().clamp(
                         1,
@@ -397,77 +416,103 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                     crossAxisCount = 2;
                   }
 
+                  if (isLargeScreen) {
+                    crossAxisCount += 2;
+                    while (crossAxisCount > 1 &&
+                        _slotWidthFor(availableWidth, crossAxisCount) <
+                            _minLargeCardWidth) {
+                      crossAxisCount--;
+                    }
+                  }
+
+                  final resolvedCardWidth = _slotWidthFor(
+                    availableWidth,
+                    crossAxisCount,
+                  );
+                  final resolvedPosterHeight =
+                      resolvedCardWidth * _posterAspectRatio;
+                  final resolvedItemHeight =
+                      resolvedPosterHeight + _cardChromeHeight;
                   final gridWidth =
-                      (_cardWidth * crossAxisCount) +
+                      (resolvedCardWidth * crossAxisCount) +
                       _gridGapH * (crossAxisCount - 1);
 
                   return Align(
                     alignment: Alignment.topCenter,
-                    child: SizedBox(
-                      width: gridWidth,
-                      child: GridView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisSpacing: _gridGapV,
-                          crossAxisSpacing: _gridGapH,
-                          childAspectRatio: _cardWidth / itemHeight,
-                        ),
-                        itemCount: count + (_isLoading ? 1 : 0),
-                        itemBuilder: (context, index) {
-                          if (index == count) {
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: CircularProgressIndicator(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: _pageHorizontalPadding,
+                      ),
+                      child: SizedBox(
+                        width: gridWidth,
+                        child: GridView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                mainAxisSpacing: _gridGapV,
+                                crossAxisSpacing: _gridGapH,
+                                childAspectRatio:
+                                    resolvedCardWidth / resolvedItemHeight,
                               ),
-                            );
-                          }
+                          itemCount: count + (_isLoading ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == count) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
 
-                          if (_isMovie) {
-                            final m = _movies[index];
-                            final media = MoviMedia(
-                              id: m.id.toString(),
-                              title: m.title,
-                              poster: imageResolver.poster(m.posterPath),
-                              year:
-                                  m.releaseDate != null &&
-                                      m.releaseDate!.length >= 4
-                                  ? int.tryParse(m.releaseDate!.substring(0, 4))
-                                  : null,
-                              type: MoviMediaType.movie,
-                            );
-                            return MoviMediaCard(
-                              media: media,
-                              onTap: (x) => navigateToMovieDetail(
-                                context,
-                                ref,
-                                ContentRouteArgs.movie(x.id),
-                              ),
-                              width: _cardWidth,
-                              height: _posterHeight,
-                            );
-                          } else {
-                            final s = _shows[index];
-                            final media = MoviMedia(
-                              id: s.id.toString(),
-                              title: s.name,
-                              poster: imageResolver.poster(s.posterPath),
-                              type: MoviMediaType.series,
-                            );
-                            return MoviMediaCard(
-                              media: media,
-                              onTap: (x) => navigateToTvDetail(
-                                context,
-                                ref,
-                                ContentRouteArgs.series(x.id),
-                              ),
-                              width: _cardWidth,
-                              height: _posterHeight,
-                            );
-                          }
-                        },
+                            if (_isMovie) {
+                              final m = _movies[index];
+                              final media = MoviMedia(
+                                id: m.id.toString(),
+                                title: m.title,
+                                poster: imageResolver.poster(m.posterPath),
+                                year:
+                                    m.releaseDate != null &&
+                                        m.releaseDate!.length >= 4
+                                    ? int.tryParse(
+                                        m.releaseDate!.substring(0, 4),
+                                      )
+                                    : null,
+                                type: MoviMediaType.movie,
+                              );
+                              return MoviMediaCard(
+                                media: media,
+                                onTap: (x) => navigateToMovieDetail(
+                                  context,
+                                  ref,
+                                  ContentRouteArgs.movie(x.id),
+                                ),
+                                width: resolvedCardWidth,
+                                height: resolvedPosterHeight,
+                              );
+                            } else {
+                              final s = _shows[index];
+                              final media = MoviMedia(
+                                id: s.id.toString(),
+                                title: s.name,
+                                poster: imageResolver.poster(s.posterPath),
+                                type: MoviMediaType.series,
+                              );
+                              return MoviMediaCard(
+                                media: media,
+                                onTap: (x) => navigateToTvDetail(
+                                  context,
+                                  ref,
+                                  ContentRouteArgs.series(x.id),
+                                ),
+                                width: resolvedCardWidth,
+                                height: resolvedPosterHeight,
+                              );
+                            }
+                          },
+                        ),
                       ),
                     ),
                   );

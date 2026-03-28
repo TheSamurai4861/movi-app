@@ -307,7 +307,12 @@ class LibraryPlaylistHero extends StatelessWidget {
       case LibraryPlaylistType.watchHistory:
         return const Icon(Icons.history, color: Colors.white, size: 64);
       case LibraryPlaylistType.userPlaylist:
-        return const Icon(Icons.playlist_play, color: Colors.white, size: 64);
+        return const MoviAssetIcon(
+          AppAssets.navLibrary,
+          width: 64,
+          height: 64,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.actor:
         return const Icon(Icons.person, color: Colors.white, size: 64);
     }

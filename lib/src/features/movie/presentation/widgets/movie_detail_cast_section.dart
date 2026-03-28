@@ -18,7 +18,7 @@ class MovieDetailCastSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 286,
+      height: MoviPersonCard.listHeight,
       child: ListView.separated(
         clipBehavior: Clip.none,
         padding: EdgeInsetsDirectional.only(

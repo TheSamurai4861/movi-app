@@ -246,62 +246,115 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                   ),
                 ),
               ),
+              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              buttonPadding: EdgeInsets.zero,
               actions: [
-                FocusTraversalOrder(
-                  order: const NumericFocusOrder(2),
-                  child: Focus(
-                    canRequestFocus: false,
-                    onKeyEvent: (_, event) {
-                      if (event is! KeyDownEvent) {
-                        return KeyEventResult.ignored;
-                      }
+                SizedBox(
+                  width: double.infinity,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: FocusTraversalOrder(
+                          order: const NumericFocusOrder(2),
+                          child: Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) {
+                              if (event is! KeyDownEvent) {
+                                return KeyEventResult.ignored;
+                              }
 
-                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                        nameFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
+                              if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowUp) {
+                                nameFocusNode.requestFocus();
+                                return KeyEventResult.handled;
+                              }
 
-                      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                        submitFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
+                              if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowRight) {
+                                submitFocusNode.requestFocus();
+                                return KeyEventResult.handled;
+                              }
 
-                      return KeyEventResult.ignored;
-                    },
-                    child: OutlinedButton(
-                      focusNode: cancelFocusNode,
-                      onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: Text(l10n.actionCancel),
-                    ),
-                  ),
-                ),
-                FocusTraversalOrder(
-                  order: const NumericFocusOrder(3),
-                  child: Focus(
-                    canRequestFocus: false,
-                    onKeyEvent: (_, event) {
-                      if (event is! KeyDownEvent) {
-                        return KeyEventResult.ignored;
-                      }
+                              return KeyEventResult.ignored;
+                            },
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minHeight: 48),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton(
+                                  focusNode: cancelFocusNode,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Theme.of(
+                                      dialogContext,
+                                    ).colorScheme.onSurface,
+                                    side: BorderSide(
+                                      color: Theme.of(
+                                        dialogContext,
+                                      ).colorScheme.outlineVariant,
+                                    ),
+                                    textStyle: Theme.of(dialogContext)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 15,
+                                    ),
+                                    shape: const StadiumBorder(),
+                                    overlayColor: Colors.transparent,
+                                  ),
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    child: Text(l10n.actionCancel),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: FocusTraversalOrder(
+                          order: const NumericFocusOrder(3),
+                          child: Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) {
+                              if (event is! KeyDownEvent) {
+                                return KeyEventResult.ignored;
+                              }
 
-                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                        nameFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
+                              if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowUp) {
+                                nameFocusNode.requestFocus();
+                                return KeyEventResult.handled;
+                              }
 
-                      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                        cancelFocusNode.requestFocus();
-                        return KeyEventResult.handled;
-                      }
+                              if (event.logicalKey ==
+                                  LogicalKeyboardKey.arrowLeft) {
+                                cancelFocusNode.requestFocus();
+                                return KeyEventResult.handled;
+                              }
 
-                      return KeyEventResult.ignored;
-                    },
-                    child: MoviPrimaryButton(
-                      label: l10n.actionConfirm,
-                      focusNode: submitFocusNode,
-                      expand: false,
-                      onPressed: () => submitCreate(dialogContext),
-                    ),
+                              return KeyEventResult.ignored;
+                            },
+                            child: MoviPrimaryButton(
+                              label: l10n.actionConfirm,
+                              focusNode: submitFocusNode,
+                              onPressed: () => submitCreate(dialogContext),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

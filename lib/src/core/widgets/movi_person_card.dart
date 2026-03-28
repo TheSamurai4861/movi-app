@@ -56,6 +56,8 @@ Widget _buildPersonImage(
 
 /// Card representing a person (actor, director…). Shares dimensions with media cards.
 class MoviPersonCard extends StatefulWidget {
+  static const double listHeight = 286;
+
   const MoviPersonCard({
     super.key,
     required this.person,
@@ -86,22 +88,26 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
         theme.textTheme.titleSmall?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
+          height: 1.2,
         ) ??
         const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
           color: Colors.white,
+          height: 1.2,
         );
     final roleStyle =
         theme.textTheme.bodyMedium?.copyWith(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: const Color(0xFFA6A6A6),
+          height: 1.2,
         ) ??
         const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: Color(0xFFA6A6A6),
+          height: 1.2,
         );
 
     return Material(

@@ -89,7 +89,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
         );
       case LibraryPlaylistType.userPlaylist:
         return const MoviAssetIcon(
-          AppAssets.iconPlaylist,
+          AppAssets.navLibrary,
           width: 40,
           height: 40,
           color: Colors.white,

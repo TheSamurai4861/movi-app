@@ -11,8 +11,10 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 class WelcomeSourceSelectPage extends ConsumerWidget {
   const WelcomeSourceSelectPage({super.key});
@@ -70,65 +72,142 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
         _handleBack(context);
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const MoviAssetIcon(
-              AppAssets.iconBack,
-              size: 24,
-              color: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          child: SettingsContentWidth(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                _WelcomeSourceSelectHeader(
+                  title: l10n.activeSourceTitle,
+                  onBack: () => _handleBack(context),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: asyncAccounts.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Center(
+                      child: Text(
+                        '${l10n.errorUnknown}: $e',
+                        style: const TextStyle(color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    data: (accounts) {
+                      if (accounts.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  l10n.welcomeSourceSubtitle,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                      context.go(AppRouteNames.welcomeSources),
+                                  child: const Text('Ajouter une source'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return IptvSourceSelectionList(
+                        accounts: accounts,
+                        selectedId: selectedId,
+                        onSelected: (account) async {
+                          final prefs =
+                              locator<SelectedIptvSourcePreferences>();
+
+                          await prefs.setSelectedSourceId(account.id);
+
+                          final appStateController = ref.read(
+                            appStateControllerProvider,
+                          );
+                          appStateController.setActiveIptvSources({account.id});
+                          ref
+                              .read(appEventBusProvider)
+                              .emit(const AppEvent(AppEventType.iptvSynced));
+
+                          await Future.delayed(
+                            const Duration(milliseconds: 100),
+                          );
+
+                          if (!context.mounted) return;
+                          context.go(AppRouteNames.welcomeSourceLoading);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            onPressed: () => _handleBack(context),
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           ),
-          title: Text(l10n.activeSourceTitle),
-          actions: [
-            TextButton(
-              onPressed: () => context.go(AppRouteNames.welcomeSources),
-              child: const Text('Ajouter'),
+        ),
+      ),
+    );
+  }
+}
+
+class _WelcomeSourceSelectHeader extends StatelessWidget {
+  const _WelcomeSourceSelectHeader({required this.title, required this.onBack});
+
+  final String title;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: SizedBox(
+        height: 44,
+        child: Stack(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: 35,
+                height: 35,
+                child: MoviFocusableAction(
+                  onPressed: onBack,
+                  semanticLabel: 'Retour',
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.04 : 1,
+                      borderRadius: BorderRadius.circular(999),
+                      backgroundColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.14)
+                          : Colors.transparent,
+                      child: const SizedBox(
+                        width: 35,
+                        height: 35,
+                        child: MoviAssetIcon(
+                          AppAssets.iconBack,
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            Center(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ],
-        ),
-        body: asyncAccounts.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('${l10n.errorUnknown}: $e')),
-          data: (accounts) {
-            if (accounts.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(l10n.welcomeSourceSubtitle),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: () => context.go(AppRouteNames.welcomeSources),
-                      child: const Text('Ajouter une source'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return IptvSourceSelectionList(
-              accounts: accounts,
-              selectedId: selectedId,
-              onSelected: (account) async {
-                final prefs = locator<SelectedIptvSourcePreferences>();
-
-                await prefs.setSelectedSourceId(account.id);
-
-                final appStateController = ref.read(appStateControllerProvider);
-                appStateController.setActiveIptvSources({account.id});
-                ref
-                    .read(appEventBusProvider)
-                    .emit(const AppEvent(AppEventType.iptvSynced));
-
-                await Future.delayed(const Duration(milliseconds: 100));
-
-                if (!context.mounted) return;
-                context.go(AppRouteNames.welcomeSourceLoading);
-              },
-            );
-          },
         ),
       ),
     );

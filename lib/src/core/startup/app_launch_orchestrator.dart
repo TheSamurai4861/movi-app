@@ -31,12 +31,13 @@ import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart
 import 'package:movi/src/features/welcome/domain/enum.dart';
 
 typedef AppStartupRunner = Future<void> Function();
-typedef HomePreloadRunner = Future<void> Function({
-  required bool awaitIptv,
-  String reason,
-  bool force,
-  Duration? cooldown,
-});
+typedef HomePreloadRunner =
+    Future<void> Function({
+      required bool awaitIptv,
+      String reason,
+      bool force,
+      Duration? cooldown,
+    });
 
 enum AppLaunchStatus { idle, running, success, failure }
 
@@ -85,7 +86,9 @@ class AppLaunchState {
     return AppLaunchState(
       status: status ?? this.status,
       phase: phase ?? this.phase,
-      error: identical(error, _sentinel) ? this.error : error as AppLaunchFailure?,
+      error: identical(error, _sentinel)
+          ? this.error
+          : error as AppLaunchFailure?,
       startedAt: identical(startedAt, _sentinel)
           ? this.startedAt
           : startedAt as DateTime?,
@@ -102,7 +105,7 @@ class AppLaunchState {
 
 class AppLaunchStateRegistry extends ChangeNotifier {
   AppLaunchStateRegistry({AppLaunchState? initial})
-      : _state = initial ?? const AppLaunchState();
+    : _state = initial ?? const AppLaunchState();
 
   AppLaunchState _state;
 
@@ -219,7 +222,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   AppLaunchState build() {
     final sl = ref.read(slProvider);
 
-    _startupRunner = () => ref.read(app_startup_provider.appStartupProvider.future);
+    _startupRunner = () =>
+        ref.read(app_startup_provider.appStartupProvider.future);
     _authRepository = ref.read(authRepositoryProvider);
     _profileRepository = sl<SupabaseProfileRepository>();
     _iptvSourcesRepository = sl<SupabaseIptvSourcesRepository>();
@@ -236,8 +240,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _credentialsEdgeService = sl.isRegistered<IptvCredentialsEdgeService>()
         ? sl<IptvCredentialsEdgeService>()
         : null;
-    _credentialsVault =
-        sl.isRegistered<CredentialsVault>() ? sl<CredentialsVault>() : null;
+    _credentialsVault = sl.isRegistered<CredentialsVault>()
+        ? sl<CredentialsVault>()
+        : null;
 
     ref.onDispose(_xtreamSyncService.stop);
 
@@ -256,20 +261,18 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     if (current != null) return current;
 
     final startedAt = DateTime.now();
-    _updateState(state.copyWith(
-      status: AppLaunchStatus.running,
-      phase: AppLaunchPhase.init,
-      error: null,
-      startedAt: startedAt,
-      completedAt: null,
-      destination: null,
-      criteria: AppLaunchCriteria.empty,
-    ));
-    _logPhase(
-      AppLaunchPhase.init,
-      AppLaunchStatus.running,
-      stepName: 'start',
+    _updateState(
+      state.copyWith(
+        status: AppLaunchStatus.running,
+        phase: AppLaunchPhase.init,
+        error: null,
+        startedAt: startedAt,
+        completedAt: null,
+        destination: null,
+        criteria: AppLaunchCriteria.empty,
+      ),
     );
+    _logPhase(AppLaunchPhase.init, AppLaunchStatus.running, stepName: 'start');
 
     final future = _runInternal();
     _ongoing = future;
@@ -287,19 +290,33 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _updateState(const AppLaunchState());
   }
 
+  void setResolvedDestination(BootstrapDestination destination) {
+    _updateState(
+      state.copyWith(
+        status: AppLaunchStatus.success,
+        phase: AppLaunchPhase.done,
+        completedAt: DateTime.now(),
+        error: null,
+        destination: destination,
+      ),
+    );
+  }
+
   Future<AppLaunchResult> _runInternal() async {
     var step = 'init';
     var destination = BootstrapDestination.auth;
     var meta = const AppLaunchMeta();
 
     void updateCriteria() {
-      _updateState(state.copyWith(
-        criteria: AppLaunchCriteria.fromIds(
-          accountId: meta.accountId,
-          selectedProfileId: meta.selectedProfileId,
-          selectedSourceId: meta.selectedSourceId,
+      _updateState(
+        state.copyWith(
+          criteria: AppLaunchCriteria.fromIds(
+            accountId: meta.accountId,
+            selectedProfileId: meta.selectedProfileId,
+            selectedSourceId: meta.selectedSourceId,
+          ),
         ),
-      ));
+      );
     }
 
     Future<void> logStep(String message) async {
@@ -319,29 +336,25 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     AppLaunchResult completeSuccess(BootstrapDestination nextDestination) {
       destination = nextDestination;
-      _updateState(state.copyWith(
-        status: AppLaunchStatus.success,
-        phase: AppLaunchPhase.done,
-        completedAt: DateTime.now(),
-        error: null,
-        destination: destination,
-      ));
+      _updateState(
+        state.copyWith(
+          status: AppLaunchStatus.success,
+          phase: AppLaunchPhase.done,
+          completedAt: DateTime.now(),
+          error: null,
+          destination: destination,
+        ),
+      );
       _logPhase(AppLaunchPhase.done, AppLaunchStatus.success, stepName: 'done');
       return AppLaunchResult(destination: destination, meta: meta);
     }
 
-    AppLaunchResult completeFailure(
-      Object error,
-      StackTrace st,
-    ) {
+    AppLaunchResult completeFailure(Object error, StackTrace st) {
       final failure = Failure.fromException(
         error,
         stackTrace: st,
         code: 'app_launch',
-        context: {
-          'step': step,
-          'userId': meta.accountId,
-        },
+        context: {'step': step, 'userId': meta.accountId},
       );
 
       final launchFailure = AppLaunchFailure(
@@ -358,12 +371,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         ),
       );
 
-      _updateState(state.copyWith(
-        status: AppLaunchStatus.failure,
-        error: launchFailure,
-        completedAt: DateTime.now(),
-        destination: null,
-      ));
+      _updateState(
+        state.copyWith(
+          status: AppLaunchStatus.failure,
+          error: launchFailure,
+          completedAt: DateTime.now(),
+          destination: null,
+        ),
+      );
       _logPhase(
         AppLaunchPhase.done,
         AppLaunchStatus.failure,
@@ -454,10 +469,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       step = 'local_accounts_fetch';
       _setPhase(AppLaunchPhase.localAccounts, stepName: step);
       var localAccounts = await _iptvLocalRepository.getAccounts();
-      var localStalkerAccounts =
-          await _iptvLocalRepository.getStalkerAccounts();
-      var totalLocalCount =
-          localAccounts.length + localStalkerAccounts.length;
+      var localStalkerAccounts = await _iptvLocalRepository
+          .getStalkerAccounts();
+      var totalLocalCount = localAccounts.length + localStalkerAccounts.length;
       meta = meta.copyWith(localAccountsCount: totalLocalCount);
       await logStep(
         'local accounts fetched (xtream=${localAccounts.length} '
@@ -474,8 +488,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
         final refreshed = await _iptvLocalRepository.getAccounts();
         localAccounts = refreshed;
-        localStalkerAccounts =
-            await _iptvLocalRepository.getStalkerAccounts();
+        localStalkerAccounts = await _iptvLocalRepository.getStalkerAccounts();
         totalLocalCount = refreshed.length + localStalkerAccounts.length;
         meta = meta.copyWith(localAccountsCount: totalLocalCount);
         await logStep(
@@ -535,21 +548,23 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       // TOUJOURS attendre le chargement complet du catalogue IPTV
       // pour garantir l'affichage des tendances et playlists au lancement
       await _homePreload(
-        awaitIptv: true, // Toujours attendre le chargement IPTV
-        reason: 'preload',
-        force: true,
-        cooldown: Duration.zero,
-      ).timeout(
-        const Duration(seconds: 45),
-        onTimeout: () {
-          debugPrint('[Preload] Home load timeout after 45s (continuing)');
-        },
-      ).catchError((e, st) {
-        if (kDebugMode) {
-          debugPrint('[Bootstrap] home.load failed (ignored): $e\n$st');
-        }
-        return null;
-      });
+            awaitIptv: true, // Toujours attendre le chargement IPTV
+            reason: 'preload',
+            force: true,
+            cooldown: Duration.zero,
+          )
+          .timeout(
+            const Duration(seconds: 45),
+            onTimeout: () {
+              debugPrint('[Preload] Home load timeout after 45s (continuing)');
+            },
+          )
+          .catchError((e, st) {
+            if (kDebugMode) {
+              debugPrint('[Bootstrap] home.load failed (ignored): $e\n$st');
+            }
+            return null;
+          });
 
       // Attendre un délai supplémentaire pour garantir que toutes les données
       // sont complètement chargées et disponibles dans le state
@@ -622,7 +637,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     var needsRefresh = false;
     for (final id in activeIds) {
-      final playlists = await _iptvLocalRepository.getPlaylists(id, itemLimit: 0);
+      final playlists = await _iptvLocalRepository.getPlaylists(
+        id,
+        itemLimit: 0,
+      );
       if (playlists.isEmpty) {
         needsRefresh = true;
         break;
@@ -639,10 +657,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           action: 'skip',
           detail: 'fresh_snapshot',
         );
-        return const _IptvPreloadResult(
-          catalogReady: true,
-          refreshed: false,
-        );
+        return const _IptvPreloadResult(catalogReady: true, refreshed: false);
       }
     }
 
@@ -707,11 +722,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       return const _IptvPreloadResult(catalogReady: false, refreshed: false);
     }
 
-    _logIptvSyncDecision(
-      reason: reason,
-      action: 'run',
-      detail: 'refresh_done',
-    );
+    _logIptvSyncDecision(reason: reason, action: 'run', detail: 'refresh_done');
     _appEventBus.emit(const AppEvent(AppEventType.iptvSynced));
     return _IptvPreloadResult(catalogReady: true, refreshed: refreshed);
   }
@@ -722,30 +733,30 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       '[Preload] step=$step uid=${meta.accountId ?? 'null'} :: start',
     );
 
-    final result = await _ensureIptvCatalogReady(
-      reason: 'background',
-    ).timeout(
-      const Duration(seconds: 18),
-      onTimeout: () {
-        debugPrint('[Preload] IPTV sync timeout after 18s (background)');
-        return const _IptvPreloadResult(
-          catalogReady: false,
-          refreshed: false,
-        );
-      },
-    ).catchError((e) {
-      unawaited(
-        LoggingService.log(
-          '[Preload][WARN] step=$step uid=${meta.accountId} '
-          'type=${e.runtimeType}',
-        ),
-      );
-      debugPrint('[Bootstrap] iptv sync failed (background): $e');
-      return const _IptvPreloadResult(
-        catalogReady: false,
-        refreshed: false,
-      );
-    });
+    final result = await _ensureIptvCatalogReady(reason: 'background')
+        .timeout(
+          const Duration(seconds: 18),
+          onTimeout: () {
+            debugPrint('[Preload] IPTV sync timeout after 18s (background)');
+            return const _IptvPreloadResult(
+              catalogReady: false,
+              refreshed: false,
+            );
+          },
+        )
+        .catchError((e) {
+          unawaited(
+            LoggingService.log(
+              '[Preload][WARN] step=$step uid=${meta.accountId} '
+              'type=${e.runtimeType}',
+            ),
+          );
+          debugPrint('[Bootstrap] iptv sync failed (background): $e');
+          return const _IptvPreloadResult(
+            catalogReady: false,
+            refreshed: false,
+          );
+        });
 
     _xtreamSyncService.start(
       skipInitialIfFresh: true,
@@ -835,10 +846,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         final pw = payload.password;
         if (pw.trim().isEmpty) continue;
 
-        final localId =
-            (s.localId?.trim().isNotEmpty ?? false)
-                ? s.localId!.trim()
-                : '${endpoint.host}_${payload.username}'.toLowerCase();
+        final localId = (s.localId?.trim().isNotEmpty ?? false)
+            ? s.localId!.trim()
+            : '${endpoint.host}_${payload.username}'.toLowerCase();
 
         final account = XtreamAccount(
           id: localId,

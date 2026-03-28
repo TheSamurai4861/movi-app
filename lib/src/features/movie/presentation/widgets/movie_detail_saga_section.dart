@@ -86,7 +86,7 @@ class MovieDetailSagaSection extends ConsumerWidget {
               title: '',
               hideHeader: true,
               estimatedItemWidth: 150,
-              estimatedItemHeight: 258,
+              estimatedItemHeight: MoviMediaCard.listHeight,
               titlePadding: 0,
               horizontalPadding: EdgeInsetsDirectional.only(
                 start: horizontalPadding,

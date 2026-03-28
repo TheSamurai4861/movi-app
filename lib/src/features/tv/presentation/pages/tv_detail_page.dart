@@ -1149,7 +1149,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         ),
         const SizedBox(height: 12),
         SizedBox(
-          height: 286,
+          height: MoviPersonCard.listHeight,
           child: ListView.separated(
             clipBehavior: Clip.none,
             padding: EdgeInsetsDirectional.only(

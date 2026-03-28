@@ -26,6 +26,7 @@ migrate_working_dir/
 .env
 .env.*
 !.env.example
+run.txt
 
 # Flutter/Dart/Pub related
 **/doc/api/

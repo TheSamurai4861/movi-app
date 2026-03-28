@@ -21,7 +21,7 @@ class MovieDetailRecommendationsSection extends ConsumerWidget {
     return MoviItemsList(
       title: AppLocalizations.of(context)!.recommendationsTitle,
       estimatedItemWidth: 150,
-      estimatedItemHeight: 258,
+      estimatedItemHeight: MoviMediaCard.listHeight,
       titlePadding: horizontalPadding,
       horizontalPadding: EdgeInsetsDirectional.only(
         start: horizontalPadding,

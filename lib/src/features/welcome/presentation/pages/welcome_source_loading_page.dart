@@ -14,6 +14,10 @@ import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
+import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
+import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
+import 'package:movi/src/features/welcome/domain/enum.dart';
+import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 /// Startup page that waits for IPTV playlists to be fully loaded
@@ -31,6 +35,14 @@ class _WelcomeSourceLoadingPageState
   String? _error;
   bool _isLoading = true;
   String _statusMessage = '';
+
+  void _goToHome() {
+    ref.read(shellControllerProvider.notifier).selectTab(ShellTab.home);
+    ref
+        .read(appLaunchOrchestratorProvider.notifier)
+        .setResolvedDestination(BootstrapDestination.home);
+    context.go(AppRouteNames.home);
+  }
 
   @override
   void initState() {
@@ -151,7 +163,7 @@ class _WelcomeSourceLoadingPageState
       );
 
       if (!mounted) return;
-      context.go(AppRouteNames.home);
+      _goToHome();
     } catch (e, stackTrace) {
       unawaited(
         LoggingService.log(
@@ -183,7 +195,7 @@ class _WelcomeSourceLoadingPageState
               });
               unawaited(_loadCatalog());
             },
-            onContinueAnyway: () => context.go(AppRouteNames.home),
+            onContinueAnyway: _goToHome,
             showHeader: false,
             mainAxisAlignment: MainAxisAlignment.end,
             bottomPadding: AppSpacing.lg,
