@@ -13,7 +13,8 @@ import 'package:movi/src/core/widgets/overlay_splash.dart';
 /// - When Supabase is not configured (no defines) → renders [child] directly.
 /// - When auth status is [AuthStatus.authenticated] → renders [child].
 /// - When status is [AuthStatus.unknown] → shows a minimal loading screen.
-/// - When status is [AuthStatus.unauthenticated] → shows the OTP login page.
+/// - When status is [AuthStatus.unauthenticated] → still renders [child] so
+///   local-first flows can continue without cloud login.
 class AuthGate extends ConsumerWidget {
   const AuthGate({super.key, required this.child});
 
@@ -33,10 +34,10 @@ class AuthGate extends ConsumerWidget {
 
     final status = ref.watch(authStatusProvider);
 
-    if (status == AuthStatus.authenticated) {
-      return child;
+    if (status == AuthStatus.unknown) {
+      return const Scaffold(body: OverlaySplash());
     }
 
-    return const Scaffold(body: OverlaySplash());
+    return child;
   }
 }

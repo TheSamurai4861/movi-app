@@ -5,42 +5,47 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:movi/src/core/auth/auth_module.dart';
+import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/config/config.dart';
-import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
-import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/network/config/network_module.dart';
 import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
-import 'package:movi/src/core/profile/data/repositories/supabase_profile_repository.dart';
-import 'package:movi/src/core/performance/performance_module.dart';
-import 'package:movi/src/core/state/state.dart';
-import 'package:movi/src/core/parental/data/datasources/tmdb_content_rating_remote_data_source.dart';
+import 'package:movi/src/core/parental/application/services/parental_session_service.dart';
 import 'package:movi/src/core/parental/data/datasources/pin_recovery_remote_data_source.dart';
+import 'package:movi/src/core/parental/data/datasources/tmdb_content_rating_remote_data_source.dart';
 import 'package:movi/src/core/parental/data/repositories/cached_content_rating_repository.dart';
 import 'package:movi/src/core/parental/data/repositories/pin_recovery_repository_impl.dart';
 import 'package:movi/src/core/parental/data/services/profile_pin_edge_service.dart';
 import 'package:movi/src/core/parental/domain/repositories/content_rating_repository.dart';
 import 'package:movi/src/core/parental/domain/repositories/pin_recovery_repository.dart';
 import 'package:movi/src/core/parental/domain/services/age_policy.dart';
-import 'package:movi/src/core/parental/application/services/parental_session_service.dart';
 import 'package:movi/src/core/parental/domain/services/playlist_maturity_classifier.dart';
+import 'package:movi/src/core/performance/performance_module.dart';
+import 'package:movi/src/core/profile/data/datasources/supabase_profile_datasource.dart';
+import 'package:movi/src/core/profile/data/repositories/fallback_profile_repository.dart';
+import 'package:movi/src/core/profile/data/repositories/local_profile_repository.dart';
+import 'package:movi/src/core/profile/data/repositories/supabase_profile_repository.dart';
+import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/reporting/application/usecases/report_content_problem.dart';
 import 'package:movi/src/core/reporting/data/repositories/supabase_content_reports_repository.dart';
 import 'package:movi/src/core/reporting/domain/repositories/content_reports_repository.dart';
+import 'package:movi/src/core/state/state.dart';
 import 'package:movi/src/core/storage/services/storage_module.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/supabase/supabase_module.dart';
-import 'package:movi/src/core/profile/data/datasources/supabase_profile_datasource.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 
 import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
 import 'package:movi/src/features/home/data/home_feed_data_module.dart';
 import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
+import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
+import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/library/data/library_data_module.dart';
 import 'package:movi/src/features/library/application/services/cloud_sync_preferences.dart';
 import 'package:movi/src/features/movie/data/movie_data_module.dart';
@@ -122,6 +127,7 @@ Future<void> initDependencies({
 
   // AuthModule should rely on sl<SupabaseClient>() (single client rule).
   AuthModule.register(sl);
+  _registerProfileRepositories();
 
   if (registerFeatureModules) {
     _registerFeatureModules();
@@ -373,6 +379,28 @@ void _registerSupabaseRepositories() {
   }
 }
 
+void _registerProfileRepositories() {
+  if (!sl.isRegistered<LocalProfileRepository>() && sl.isRegistered<Database>()) {
+    sl.registerLazySingleton<LocalProfileRepository>(
+      () => LocalProfileRepository(sl<Database>()),
+    );
+  }
+
+  if (!sl.isRegistered<ProfileRepository>() &&
+      sl.isRegistered<LocalProfileRepository>() &&
+      sl.isRegistered<AuthRepository>()) {
+    sl.registerLazySingleton<ProfileRepository>(
+      () => FallbackProfileRepository(
+        local: sl<LocalProfileRepository>(),
+        auth: sl<AuthRepository>(),
+        remote: sl.isRegistered<SupabaseProfileRepository>()
+            ? sl<SupabaseProfileRepository>()
+            : null,
+      ),
+    );
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* Shared infrastructure                                                       */
 /* -------------------------------------------------------------------------- */
@@ -619,13 +647,7 @@ void _assertCriticalRegistrations() {
 
   final missing = <String>[];
 
-  if (!sl.isRegistered<SupabaseClient>()) missing.add('SupabaseClient');
-  if (!sl.isRegistered<SupabaseProfileRepository>()) {
-    missing.add('SupabaseProfileRepository');
-  }
-  if (!sl.isRegistered<SupabaseIptvSourcesRepository>()) {
-    missing.add('SupabaseIptvSourcesRepository');
-  }
+  if (!sl.isRegistered<ProfileRepository>()) missing.add('ProfileRepository');
   if (!sl.isRegistered<SelectedProfilePreferences>()) {
     missing.add('SelectedProfilePreferences');
   }

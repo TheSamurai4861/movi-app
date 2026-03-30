@@ -325,6 +325,11 @@ class _ProviderAllResultsPageState
     final itemsCount = widget.type == MoviMediaType.movie
         ? _movies.length
         : _shows.length;
+    const backButtonFramePadding = 8.0;
+    const backButtonSize = 35.0;
+    final headerStartPadding =
+        _pageHorizontalPadding - backButtonFramePadding;
+    final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -335,7 +340,12 @@ class _ProviderAllResultsPageState
           children: [
             // Header avec bouton retour et titre centré
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsetsDirectional.fromSTEB(
+                headerStartPadding,
+                16,
+                _pageHorizontalPadding,
+                16,
+              ),
               child: Row(
                 children: [
                   MoviFocusableAction(
@@ -344,14 +354,14 @@ class _ProviderAllResultsPageState
                     builder: (context, state) {
                       return MoviFocusFrame(
                         scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(backButtonFramePadding),
                         borderRadius: BorderRadius.circular(999),
                         backgroundColor: state.focused
                             ? Colors.white.withValues(alpha: 0.14)
                             : Colors.transparent,
                         child: SizedBox(
-                          width: 35,
-                          height: 35,
+                          width: backButtonSize,
+                          height: backButtonSize,
                           child: const MoviAssetIcon(
                             AppAssets.iconBack,
                             color: Colors.white,
@@ -374,7 +384,7 @@ class _ProviderAllResultsPageState
                       ),
                     ),
                   ),
-                  SizedBox(width: 35),
+                  SizedBox(width: trailingHeaderSpacerWidth),
                 ],
               ),
             ),

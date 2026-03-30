@@ -295,10 +295,11 @@ class LibraryPlaylistHero extends StatelessWidget {
   Widget _getPlaylistIcon() {
     switch (playlist.type) {
       case LibraryPlaylistType.inProgress:
-        return const Icon(
-          Icons.play_circle_outline,
+        return const MoviAssetIcon(
+          AppAssets.iconPlaylist,
+          width: 64,
+          height: 64,
           color: Colors.white,
-          size: 64,
         );
       case LibraryPlaylistType.favoriteMovies:
         return const Icon(Icons.local_movies, color: Colors.white, size: 64);

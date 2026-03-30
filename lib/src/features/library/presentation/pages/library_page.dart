@@ -42,6 +42,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   final _searchFocusNode = FocusNode();
   final _firstPlaylistFocusNode = FocusNode(debugLabel: 'LibraryFirstPlaylist');
   final List<FocusNode> _playlistFocusNodes = [];
+  late final ShellFocusCoordinator _shellFocusCoordinator;
 
   late final AnimationController _anim;
   late final Animation<double> _opacity;
@@ -52,9 +53,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   @override
   void initState() {
     super.initState();
-    ref
-        .read(shellFocusCoordinatorProvider)
-        .registerPreferredNode(ShellTab.library, _firstPlaylistFocusNode);
+    _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    _shellFocusCoordinator.registerPreferredNode(
+      ShellTab.library,
+      _firstPlaylistFocusNode,
+    );
 
     _anim = AnimationController(
       duration: const Duration(milliseconds: 260),
@@ -71,9 +74,10 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   @override
   void dispose() {
-    ref
-        .read(shellFocusCoordinatorProvider)
-        .unregisterPreferredNode(ShellTab.library, _firstPlaylistFocusNode);
+    _shellFocusCoordinator.unregisterPreferredNode(
+      ShellTab.library,
+      _firstPlaylistFocusNode,
+    );
     _disposePlaylistFocusNodes();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -716,8 +720,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                   ),
                   icon: MoviAssetIcon(
                     AppAssets.iconSearch,
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     color: _isSearchVisible
                         ? theme.colorScheme.primary
                         : Colors.white,

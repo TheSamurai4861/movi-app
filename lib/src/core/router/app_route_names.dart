@@ -11,6 +11,8 @@ import 'package:movi/src/core/router/app_route_paths.dart';
 /// Note: ce fichier reste volontairement non-déprécié pour éviter de créer
 /// une vague de warnings; migration progressive recommandée.
 class AppRouteNames {
+  static const debug = AppRoutePaths.debug;
+  static const debugHeroOverlays = AppRoutePaths.debugHeroOverlays;
   static const launch = AppRoutePaths.launch;
 
   /// Compat : route historique. À garder le temps de migrer.

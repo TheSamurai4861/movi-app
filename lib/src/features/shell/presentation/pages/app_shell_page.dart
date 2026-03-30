@@ -60,16 +60,18 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   late final FocusNode _sidebarFocusNode = FocusNode(
     debugLabel: 'ShellSidebarScope',
   );
+  late final ShellFocusCoordinator _shellFocusCoordinator;
 
   @override
   void initState() {
     super.initState();
-    ref.read(shellFocusCoordinatorProvider).attachSidebar(_sidebarFocusNode);
+    _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    _shellFocusCoordinator.attachSidebar(_sidebarFocusNode);
   }
 
   @override
   void dispose() {
-    ref.read(shellFocusCoordinatorProvider).detachSidebar(_sidebarFocusNode);
+    _shellFocusCoordinator.detachSidebar(_sidebarFocusNode);
     _sidebarFocusNode.dispose();
     super.dispose();
   }

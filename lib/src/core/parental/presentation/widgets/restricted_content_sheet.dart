@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -51,6 +53,10 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
 }
 
 class _RestrictedContentSheetState extends ConsumerState<RestrictedContentSheet> {
+  static const double _sheetHorizontalPadding = 20;
+  static const double _sheetVerticalPadding = 20;
+  static const double _sheetMaxWidth = 520;
+
   final _pinController = TextEditingController();
   bool _busy = false;
   String? _error;
@@ -112,98 +118,144 @@ class _RestrictedContentSheetState extends ConsumerState<RestrictedContentSheet>
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = mediaQuery.viewInsets.bottom;
+    final double maxSheetHeight = math.max(
+      0.0,
+      mediaQuery.size.height -
+          mediaQuery.padding.top -
+          _sheetVerticalPadding -
+          bottomInset,
+    );
     final l10n = AppLocalizations.of(context)!;
     final accentColor = Theme.of(context).colorScheme.primary;
-    
+
     // Convert technical reason to localized message
     final localizedReason = getLocalizedParentalReason(context, widget.reason);
-    final displayReason = localizedReason ?? l10n.parentalContentRestrictedDefault;
+    final displayReason =
+        localizedReason ?? l10n.parentalContentRestrictedDefault;
     final displayTitle = widget.title ?? l10n.parentalContentRestricted;
 
-    return Padding(
-      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: bottom + 20),
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ModalContentWidth(
-          maxWidth: 520,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      displayTitle,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          _sheetHorizontalPadding,
+          _sheetVerticalPadding,
+          _sheetHorizontalPadding,
+          bottomInset + _sheetVerticalPadding,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ModalContentWidth(
+              maxWidth: _sheetMaxWidth,
+              maxHeight: maxSheetHeight,
+              child: ScrollConfiguration(
+                behavior: const _RestrictedContentSheetScrollBehavior(),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              displayTitle,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _busy
+                                ? null
+                                : () => Navigator.of(context).pop(false),
+                            icon: const Icon(Icons.close, color: Colors.white70),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: _busy ? null : () => Navigator.of(context).pop(false),
-                    icon: const Icon(Icons.close, color: Colors.white70),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                displayReason,
-                style: const TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _pinController,
-                enabled: !_busy,
-                keyboardType: TextInputType.number,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'PIN',
-                  labelStyle: const TextStyle(color: Colors.white70),
-                  filled: true,
-                  fillColor: const Color(0xFF2C2C2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                      const SizedBox(height: 8),
+                      Text(
+                        displayReason,
+                        style: const TextStyle(color: Colors.white70),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _pinController,
+                        enabled: !_busy,
+                        keyboardType: TextInputType.number,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'PIN',
+                          labelStyle: const TextStyle(color: Colors.white70),
+                          filled: true,
+                          fillColor: const Color(0xFF2C2C2E),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        onSubmitted: (_) => _unlock(),
+                      ),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: _busy ? null : _openPinRecovery,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: accentColor,
+                          ),
+                          child: Text(
+                            l10n.pinRecoveryLink,
+                            style: const TextStyle(
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      MoviPrimaryButton(
+                        label: l10n.parentalUnlockButton,
+                        onPressed: _busy ? null : _unlock,
+                        loading: _busy,
+                      ),
+                    ],
                   ),
                 ),
-                style: const TextStyle(color: Colors.white),
-                onSubmitted: (_) => _unlock(),
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: _busy ? null : _openPinRecovery,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor: accentColor,
-                  ),
-                  child: Text(
-                    l10n.pinRecoveryLink,
-                    style: const TextStyle(decoration: TextDecoration.underline),
-                  ),
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-              ],
-              const SizedBox(height: 16),
-              MoviPrimaryButton(
-                label: l10n.parentalUnlockButton,
-                onPressed: _busy ? null : _unlock,
-                loading: _busy,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class _RestrictedContentSheetScrollBehavior extends MaterialScrollBehavior {
+  const _RestrictedContentSheetScrollBehavior();
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }

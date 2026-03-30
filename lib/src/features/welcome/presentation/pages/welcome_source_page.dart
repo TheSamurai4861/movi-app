@@ -25,16 +25,10 @@ import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.da
 
 /// Écran "Welcome Sources".
 ///
-/// Corrections appliquées:
-/// 1) Chargement des sources Supabase avec la même stratégie que bootstrap:
-///    - userId explicite via AuthRepository.currentSession.userId
-///    - pas de dépendance à `supabase.auth.currentUser` (peut être temporairement null)
-/// 2) Après connect() (si succès), on ne redirige vers bootstrap QUE si la source
-///    est garantie côté Supabase.
-///
-/// Contrat choisi (Variante B - recommandée avec ton code actuel):
-/// - connect() = "local + Supabase (garantie)" via policy requireSupabase
-/// - la page ne fait PAS d'upsert Supabase (sinon double responsabilité + besoin du localId).
+/// L'écran supporte désormais le mode local-first:
+/// - la liste remote est optionnelle
+/// - l'ajout manuel d'une source reste possible sans session cloud
+/// - la persistance Supabase devient best-effort
 class WelcomeSourcePage extends ConsumerStatefulWidget {
   const WelcomeSourcePage({super.key});
 
@@ -60,8 +54,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
   bool _obscurePassword = true;
   List<SupabaseIptvSourceEntity> _sources = const <SupabaseIptvSourceEntity>[];
 
-  SupabaseIptvSourcesRepository get _supaRepo {
+  SupabaseIptvSourcesRepository? get _supaRepo {
     final locator = ref.read(slProvider);
+    if (!locator.isRegistered<SupabaseIptvSourcesRepository>()) {
+      return null;
+    }
     return locator<SupabaseIptvSourcesRepository>();
   }
 
@@ -120,16 +117,17 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
       _sourcesError = null;
     });
 
+    final repo = _supaRepo;
     final accountId = _resolveAccountIdOrNull();
-    if (accountId == null) {
+    if (repo == null || accountId == null) {
       if (!mounted) return;
       setState(() {
         _loadingSources = false;
         _sources = const <SupabaseIptvSourceEntity>[];
-        _sourcesError = 'Not authenticated (no session).';
+        _sourcesError = null;
       });
       unawaited(
-        LoggingService.log('WelcomeSources: cannot load sources (no session)'),
+        LoggingService.log('WelcomeSources: remote sources unavailable -> local mode'),
       );
       return;
     }
@@ -140,7 +138,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
       );
 
       // IMPORTANT: accountId explicite (évite auth.currentUser null).
-      final rows = await _supaRepo.getSources(accountId: accountId);
+      final rows = await repo.getSources(accountId: accountId);
 
       if (!mounted) return;
       setState(() {
@@ -283,15 +281,6 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
   Future<void> _activate() async {
     final l10n = AppLocalizations.of(context)!;
 
-    final accountId = _resolveAccountIdOrNull();
-    if (accountId == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.errorUnknown)));
-      GoRouter.of(context).go(AppRouteNames.authOtp);
-      return;
-    }
-
     final serverUrl = _serverCtrl.text.trim();
     final username = _userCtrl.text.trim();
     final password = _passCtrl.text.trim();
@@ -306,20 +295,16 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
 
     final controller = ref.read(iptvConnectControllerProvider.notifier);
 
-    // IMPORTANT:
-    // - Si on active une source déjà présente sur Supabase (sélection dans la liste),
-    //   le bootstrap ne dépend pas d’un nouvel upsert => localOnly suffit.
-    // - Sinon (ajout manuel), on exige Supabase pour éviter la boucle "0 source -> welcomeSources".
     final policy =
         (_selectedSourceId != null ||
             _matchesSupabaseSource(serverUrl: serverUrl, username: username))
         ? IptvConnectSupabasePolicy.localOnly
-        : IptvConnectSupabasePolicy.requireSupabase;
+        : IptvConnectSupabasePolicy.bestEffortSupabase;
     controller.setSupabasePolicy(policy);
 
     unawaited(
       LoggingService.log(
-        'WelcomeSources: activate attempt uid=$accountId selected=$_selectedSourceId policy=${policy.name}',
+        'WelcomeSources: activate attempt uid=${_resolveAccountIdOrNull() ?? "local"} selected=$_selectedSourceId policy=${policy.name}',
       ),
     );
 

@@ -6,10 +6,10 @@ import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/saga/presentation/providers/saga_detail_providers.dart';
-import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
@@ -138,314 +138,36 @@ class SagaDetailPage extends ConsumerWidget {
                 return yearA.compareTo(yearB);
               });
 
-              final cs = Theme.of(context).colorScheme;
               final isWideLayout = _useDesktopDetailLayout(context);
               final horizontalPadding = _sectionHorizontalPadding(context);
-              final heroHeight = isWideLayout ? 520.0 : 400.0;
-              final overlayHeight = isWideLayout ? 240.0 : 200.0;
               final synopsisText = viewModel.saga.synopsis?.value ?? '';
               return SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(
-                      height: heroHeight,
-                      width: double.infinity,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          _buildHeroImage(
-                            context,
-                            poster: viewModel.poster,
-                            backdrop: viewModel.backdrop,
-                          ),
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: isWideLayout ? 120 : 100,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    cs.surface,
-                                    cs.surface.withValues(alpha: 0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              height: overlayHeight,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    cs.surface.withValues(alpha: 0),
-                                    cs.surface,
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          if (isWideLayout)
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                ignoring: true,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                      colors: [
-                                        cs.surface,
-                                        cs.surface.withValues(alpha: 0.72),
-                                        cs.surface.withValues(alpha: 0),
-                                      ],
-                                      stops: const [0.0, 0.42, 0.82],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          if (isWideLayout)
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsetsDirectional.only(
-                                  start: 50,
-                                  end: 50,
-                                  top: 48,
-                                  bottom: 32,
-                                ),
-                                child: Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 560,
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          viewModel.saga.title.display,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style:
-                                              Theme.of(context)
-                                                  .textTheme
-                                                  .displaySmall
-                                                  ?.copyWith(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w700,
-                                                    height: 1.05,
-                                                  ) ??
-                                              const TextStyle(
-                                                fontSize: 42,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                                height: 1.05,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          children: [
-                                            MoviPill(
-                                              AppLocalizations.of(
-                                                context,
-                                              )!.sagaMovieCount(
-                                                viewModel.movieCount,
-                                              ),
-                                              large: true,
-                                            ),
-                                            MoviPill(
-                                              _formatDuration(
-                                                viewModel.totalDuration,
-                                              ),
-                                              large: true,
-                                            ),
-                                          ],
-                                        ),
-                                        if (synopsisText.trim().isNotEmpty) ...[
-                                          const SizedBox(height: 16),
-                                          SizedBox(
-                                            height: 72,
-                                            child: Text(
-                                              synopsisText,
-                                              maxLines: 3,
-                                              overflow: TextOverflow.ellipsis,
-                                              style:
-                                                  Theme.of(context)
-                                                      .textTheme
-                                                      .bodyLarge
-                                                      ?.copyWith(
-                                                        color: Colors.white,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ) ??
-                                                  const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Colors.white,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            SizedBox(
-                                              width: 320,
-                                              child: inProgressMovieAsync.when(
-                                                data: (inProgressMovieId) {
-                                                  return MoviPrimaryButton(
-                                                    label:
-                                                        inProgressMovieId !=
-                                                            null
-                                                        ? AppLocalizations.of(
-                                                            context,
-                                                          )!.sagaContinue
-                                                        : AppLocalizations.of(
-                                                            context,
-                                                          )!.sagaStartNow,
-                                                    assetIcon:
-                                                        AppAssets.iconPlay,
-                                                    onPressed: () => _startSaga(
-                                                      context,
-                                                      ref,
-                                                      viewModel,
-                                                    ),
-                                                  );
-                                                },
-                                                loading: () =>
-                                                    MoviPrimaryButton(
-                                                      label:
-                                                          AppLocalizations.of(
-                                                            context,
-                                                          )!.sagaStartNow,
-                                                      assetIcon:
-                                                          AppAssets.iconPlay,
-                                                      onPressed: () {},
-                                                    ),
-                                                error: (_, __) =>
-                                                    MoviPrimaryButton(
-                                                      label:
-                                                          AppLocalizations.of(
-                                                            context,
-                                                          )!.sagaStartNow,
-                                                      assetIcon:
-                                                          AppAssets.iconPlay,
-                                                      onPressed: () =>
-                                                          _startSaga(
-                                                            context,
-                                                            ref,
-                                                            viewModel,
-                                                          ),
-                                                    ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            SizedBox(
-                                              width: 40,
-                                              height: 40,
-                                              child: isFavoriteAsync.when(
-                                                data: (isFavorite) =>
-                                                    MoviFavoriteButton(
-                                                      isFavorite: isFavorite,
-                                                      onPressed: () async {
-                                                        await ref
-                                                            .read(
-                                                              sagaToggleFavoriteProvider
-                                                                  .notifier,
-                                                            )
-                                                            .toggle(
-                                                              sagaId,
-                                                              SagaSummary(
-                                                                id: viewModel
-                                                                    .saga
-                                                                    .id,
-                                                                tmdbId:
-                                                                    viewModel
-                                                                        .saga
-                                                                        .tmdbId,
-                                                                title: viewModel
-                                                                    .saga
-                                                                    .title,
-                                                                cover: viewModel
-                                                                    .poster,
-                                                              ),
-                                                            );
-                                                      },
-                                                    ),
-                                                loading: () =>
-                                                    MoviFavoriteButton(
-                                                      isFavorite: true,
-                                                      onPressed: () {},
-                                                    ),
-                                                error: (_, __) =>
-                                                    MoviFavoriteButton(
-                                                      isFavorite: true,
-                                                      onPressed: () {},
-                                                    ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          Positioned(
-                            top: 8,
-                            left: 20,
-                            right: 20,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                MoviFocusableAction(
-                                  onPressed: () => context.pop(),
-                                  semanticLabel: 'Retour',
-                                  builder: (context, state) {
-                                    return MoviFocusFrame(
-                                      scale: state.focused ? 1.04 : 1,
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isWideLayout ? 12 : 0,
-                                        vertical: 8,
-                                      ),
-                                      borderRadius: BorderRadius.circular(999),
-                                      backgroundColor: state.focused
-                                          ? Colors.white.withValues(alpha: 0.14)
-                                          : Colors.transparent,
-                                      child: SizedBox(
-                                        width: 35,
-                                        height: 35,
-                                        child: const MoviAssetIcon(
-                                          AppAssets.iconBack,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                    MoviDetailHeroScene(
+                      isWideLayout: isWideLayout,
+                      background: _buildHeroImage(
+                        context,
+                        poster: viewModel.poster,
+                        backdrop: viewModel.backdrop,
                       ),
+                      children: [
+                        if (isWideLayout)
+                          _buildDesktopHeroOverlay(
+                            context,
+                            ref,
+                            viewModel,
+                            inProgressMovieAsync,
+                            isFavoriteAsync,
+                            synopsisText: synopsisText,
+                          ),
+                        _buildHeroTopBar(
+                          context,
+                          isWideLayout: isWideLayout,
+                          horizontalPadding: horizontalPadding,
+                        ),
+                      ],
                     ),
                     if (!isWideLayout)
                       Padding(
@@ -667,6 +389,155 @@ class SagaDetailPage extends ConsumerWidget {
       backdrop: backdrop?.toString(),
       placeholderType: PlaceholderType.movie,
       imageStrategy: MoviHeroImageStrategy.backdropFirst,
+    );
+  }
+
+  Widget _buildHeroTopBar(
+    BuildContext context, {
+    required bool isWideLayout,
+    required double horizontalPadding,
+  }) {
+    return MoviDetailHeroTopBar(
+      isWideLayout: isWideLayout,
+      horizontalPadding: horizontalPadding,
+      leading: MoviDetailHeroActionButton(
+        iconAsset: AppAssets.iconBack,
+        semanticLabel: 'Retour',
+        onPressed: () => context.pop(),
+        isWideLayout: isWideLayout,
+      ),
+    );
+  }
+
+  Widget _buildDesktopHeroOverlay(
+    BuildContext context,
+    WidgetRef ref,
+    SagaDetailViewModel viewModel,
+    AsyncValue<String?> inProgressMovieAsync,
+    AsyncValue<bool> isFavoriteAsync, {
+    required String synopsisText,
+  }) {
+    return MoviDetailHeroDesktopOverlay(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            viewModel.saga.title.display,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style:
+                Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  height: 1.05,
+                ) ??
+                const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 1.05,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              MoviPill(
+                AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount),
+                large: true,
+              ),
+              MoviPill(
+                _formatDuration(viewModel.totalDuration),
+                large: true,
+              ),
+            ],
+          ),
+          if (synopsisText.trim().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 72,
+              child: Text(
+                synopsisText,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ) ??
+                    const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 320,
+                child: inProgressMovieAsync.when(
+                  data: (inProgressMovieId) {
+                    return MoviPrimaryButton(
+                      label: inProgressMovieId != null
+                          ? AppLocalizations.of(context)!.sagaContinue
+                          : AppLocalizations.of(context)!.sagaStartNow,
+                      assetIcon: AppAssets.iconPlay,
+                      onPressed: () => _startSaga(context, ref, viewModel),
+                    );
+                  },
+                  loading: () => MoviPrimaryButton(
+                    label: AppLocalizations.of(context)!.sagaStartNow,
+                    assetIcon: AppAssets.iconPlay,
+                    onPressed: () {},
+                  ),
+                  error: (_, __) => MoviPrimaryButton(
+                    label: AppLocalizations.of(context)!.sagaStartNow,
+                    assetIcon: AppAssets.iconPlay,
+                    onPressed: () => _startSaga(context, ref, viewModel),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: isFavoriteAsync.when(
+                  data: (isFavorite) => MoviFavoriteButton(
+                    isFavorite: isFavorite,
+                    onPressed: () async {
+                      await ref
+                          .read(sagaToggleFavoriteProvider.notifier)
+                          .toggle(
+                            sagaId,
+                            SagaSummary(
+                              id: viewModel.saga.id,
+                              tmdbId: viewModel.saga.tmdbId,
+                              title: viewModel.saga.title,
+                              cover: viewModel.poster,
+                            ),
+                          );
+                    },
+                  ),
+                  loading: () => MoviFavoriteButton(
+                    isFavorite: true,
+                    onPressed: () {},
+                  ),
+                  error: (_, __) => MoviFavoriteButton(
+                    isFavorite: true,
+                    onPressed: () {},
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

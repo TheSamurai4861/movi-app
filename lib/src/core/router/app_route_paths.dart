@@ -5,6 +5,7 @@
 /// À utiliser avec `context.go(...)` / `context.push(...)`.
 class AppRoutePaths {
   static const debug = '/debug';
+  static const debugHeroOverlays = '$debug/hero-overlays';
 
   static const launch = '/launch';
 

@@ -10,6 +10,7 @@ import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/movi_items_list.dart';
 import 'package:movi/src/core/widgets/movi_media_card.dart';
 import 'package:movi/src/core/widgets/movi_see_all_card.dart';
+import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_first_section_transition.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_loading_skeleton.dart';
@@ -62,10 +63,17 @@ class HomeIptvSection extends ConsumerWidget {
               .map((r) => _buildMediaCard(context, ref, r)),
           SeeAllCard(
             title: displayTitle,
-            categoryKey: categoryTitle,
             width: HomeLayoutConstants.mediaCardWidth,
             posterHeight: HomeLayoutConstants.mediaCardPosterHeight,
-            onTap: (args) => context.push('/category', extra: args),
+            onTap: () {
+              context.push(
+                '/category',
+                extra: CategoryPageArgs(
+                  title: displayTitle,
+                  categoryKey: categoryTitle,
+                ),
+              );
+            },
           ),
         ],
       ),

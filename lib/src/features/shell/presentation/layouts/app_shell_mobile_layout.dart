@@ -14,10 +14,12 @@ const _kNavHeight = 72.0;
 const _kContainerPadding = 5.0;
 const _kAndroidBottomSpacing = 32.0;
 
-const _kSelectedBackground = Color(0xFF262626); // 100% opacity
-const _kBarBackground = Color.fromARGB(199, 102, 102, 102); // ~30% opacity pour laisser le blur visible
+const _kSelectedBackground = Color(0xFF262626);
+const _kBarBackground = Color.fromARGB(131, 46, 46, 46); // fond plus sombre tout en gardant le blur
 
 const _kAnimationDuration = Duration(milliseconds: 300);
+const _kLabelBottomInset = 2.0;
+const _kIconBaseOffsetY = -4.0;
 
 /// Layout Mobile :
 /// - Contenu en plein écran
@@ -254,50 +256,76 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
             borderRadius: BorderRadius.circular(999),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            fit: StackFit.expand,
             children: [
-              AnimatedBuilder(
-                animation: _translateAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, _translateAnimation.value),
-                    child: SvgPicture.asset(
-                      widget.svgAssetPath,
-                      key: ValueKey('${widget.svgAssetPath}-${widget.isSelected}'),
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
-                    ),
-                  );
-                },
+              Center(
+                child: AnimatedBuilder(
+                  animation: _translateAnimation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(
+                        0,
+                        _kIconBaseOffsetY + _translateAnimation.value,
+                      ),
+                      child: SvgPicture.asset(
+                        widget.svgAssetPath,
+                        key: ValueKey('${widget.svgAssetPath}-${widget.isSelected}'),
+                        width: 24,
+                        height: 24,
+                        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                      ),
+                    );
+                  },
+                ),
               ),
-              AnimatedSwitcher(
-                duration: _kAnimationDuration,
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                child: widget.isSelected
-                    ? AnimatedDefaultTextStyle(
-                        key: ValueKey(
-                          'label-${widget.label}-${widget.isSelected}',
-                        ),
-                        duration: _kAnimationDuration,
-                        style: effectiveStyle,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 2),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: _kLabelBottomInset,
+                child: AnimatedSwitcher(
+                  duration: _kAnimationDuration,
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final slide = Tween<Offset>(
+                      begin: const Offset(0, 0.25),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(position: slide, child: child),
+                    );
+                  },
+                  layoutBuilder: (currentChild, previousChildren) {
+                    return Stack(
+                      alignment: Alignment.topCenter,
+                      children: [
+                        ...previousChildren,
+                        if (currentChild != null) currentChild,
+                      ],
+                    );
+                  },
+                  child: widget.isSelected
+                      ? AnimatedDefaultTextStyle(
+                          key: ValueKey(
+                            'label-${widget.label}-${widget.isSelected}',
+                          ),
+                          duration: _kAnimationDuration,
+                          style: effectiveStyle,
                           child: Text(
                             widget.label,
                             textAlign: TextAlign.center,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
+                        )
+                      : SizedBox.shrink(
+                          key: ValueKey(
+                            'empty-${widget.label}-${widget.isSelected}',
+                          ),
                         ),
-                      )
-                    : SizedBox.shrink(
-                        key: ValueKey(
-                          'empty-${widget.label}-${widget.isSelected}',
-                        ),
-                      ),
+                ),
               ),
             ],
           ),

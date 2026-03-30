@@ -138,6 +138,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   final FocusNode _heroPrimaryActionFocusNode = FocusNode(
     debugLabel: 'HomeHeroPrimaryAction',
   );
+  late final ShellFocusCoordinator _shellFocusCoordinator;
 
   bool _isScheduled = false;
   void _postFrame(VoidCallback fn) {
@@ -161,9 +162,11 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   @override
   void initState() {
     super.initState();
-    ref
-        .read(shellFocusCoordinatorProvider)
-        .registerPreferredNode(ShellTab.home, _heroPrimaryActionFocusNode);
+    _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    _shellFocusCoordinator.registerPreferredNode(
+      ShellTab.home,
+      _heroPrimaryActionFocusNode,
+    );
     _requestInitialHeroFocus();
     // Déclencher automatiquement le refresh après le premier frame si les données sont vides
     // Simule un pull-to-refresh complet (sync + refresh home)
@@ -201,9 +204,10 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
 
   @override
   void dispose() {
-    ref
-        .read(shellFocusCoordinatorProvider)
-        .unregisterPreferredNode(ShellTab.home, _heroPrimaryActionFocusNode);
+    _shellFocusCoordinator.unregisterPreferredNode(
+      ShellTab.home,
+      _heroPrimaryActionFocusNode,
+    );
     _heroPrimaryActionFocusNode.dispose();
     super.dispose();
   }

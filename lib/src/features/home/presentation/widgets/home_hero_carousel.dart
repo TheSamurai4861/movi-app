@@ -76,10 +76,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     with WidgetsBindingObserver {
   // Mise en page
   static const double _totalHeight = HomeLayoutConstants.heroTotalHeight;
-  static const double _overlayHeight = HomeLayoutConstants.heroOverlayHeight;
   static const double _desktopVisualBleed =
       HomeLayoutConstants.heroDesktopVisualBleed;
-  static const double _mobileDetailsHeight = 188;
+  // Mobile hero details need a minimum room for pills, synopsis and actions.
+  // The container itself may grow when the synopsis is expanded.
+  static const double _mobileDetailsMinHeight = 224;
 
   // Timings
   static const Duration _rotation = HomeLayoutConstants.heroRotationDuration;
@@ -803,9 +804,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         : 0;
     final double heroHeight = isWideHero
         ? layoutHeight + visualBleed
-        : (layoutHeight - _mobileDetailsHeight).clamp(0.0, double.infinity);
-    final double bottomOverlayHeight = _overlayHeight + visualBleed;
-    final cs = Theme.of(context).colorScheme;
+        : (layoutHeight - _mobileDetailsMinHeight).clamp(0.0, double.infinity);
+    final overlaySpec = MoviHeroOverlaySpec.home(isWideLayout: isWideHero);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -814,9 +814,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           height: heroHeight,
           width: double.infinity,
           child: (widget.items.isEmpty)
-              ? _HeroEmpty(overlayHeight: bottomOverlayHeight)
+              ? _HeroEmpty(
+                  heroHeight: heroHeight,
+                  isWideHero: isWideHero,
+                )
               : item == null || tmdbId == null
-              ? _HeroSkeleton(overlayHeight: bottomOverlayHeight)
+              ? _HeroSkeleton(
+                  heroHeight: heroHeight,
+                  isWideHero: isWideHero,
+                )
               : FutureBuilder<_HeroMeta?>(
                   future: _metaFutures[tmdbId],
                   builder: (context, snap) {
@@ -903,70 +909,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
                         : null;
 
-                    return Stack(
-                      fit: StackFit.expand,
+                    return MoviHeroScene(
+                      background: buildBackground(),
+                      imageHeight: heroHeight,
+                      overlaySpec: overlaySpec,
                       children: [
-                        buildBackground(),
-
-                        // Overlay sombre animé (transition inter-slides)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: _GlobalOverlay(height: heroHeight),
-                        ),
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: _BottomOverlay(height: bottomOverlayHeight),
-                        ),
-                        const Positioned(
-                          left: 0,
-                          right: 0,
-                          top: 0,
-                          child: _TopOverlay(height: _overlayHeight),
-                        ),
-                        if (isWideHero)
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              ignoring: true,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [
-                                      cs.surface,
-                                      cs.surface.withValues(alpha: 0.72),
-                                      cs.surface.withValues(alpha: 0),
-                                    ],
-                                    stops: const [0.0, 0.42, 0.82],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        if (isWideHero)
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              ignoring: true,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.centerRight,
-                                    end: Alignment.centerLeft,
-                                    colors: [
-                                      cs.surface.withValues(alpha: 0.28),
-                                      cs.surface.withValues(alpha: 0.12),
-                                      cs.surface.withValues(alpha: 0),
-                                    ],
-                                    stops: const [0.0, 0.16, 0.34],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         Positioned(
                           left: 0,
                           right: 0,
@@ -1238,11 +1185,21 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                 ),
         ),
         if (!isWideHero)
-          SizedBox(
-            height: _mobileDetailsHeight,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: _mobileDetailsMinHeight,
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                 // Pills collées au Stack
                 if (item != null && tmdbId != null)
                   FutureBuilder<_HeroMeta?>(
@@ -1433,7 +1390,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                     ),
                   ),
                 const SizedBox(height: 12),
-              ],
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
       ],
@@ -1613,25 +1573,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 }
 
-class _BottomOverlay extends StatelessWidget {
-  const _BottomOverlay({required this.height});
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [Color(0xFF141414), Color(0x00141414)],
-        ),
-      ),
-    );
-  }
-}
-
 class _HeroTextScope extends StatelessWidget {
   const _HeroTextScope({required this.child});
 
@@ -1644,38 +1585,6 @@ class _HeroTextScope extends StatelessWidget {
       child: DefaultTextStyle.merge(
         style: const TextStyle(decoration: TextDecoration.none),
         child: child,
-      ),
-    );
-  }
-}
-
-class _GlobalOverlay extends StatelessWidget {
-  const _GlobalOverlay({required this.height});
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: const BoxDecoration(color: Color.fromARGB(26, 20, 20, 20)),
-    );
-  }
-}
-
-class _TopOverlay extends StatelessWidget {
-  const _TopOverlay({required this.height});
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF141414), Color(0x00141414)],
-        ),
       ),
     );
   }
@@ -1710,19 +1619,27 @@ class _HeroMeta {
 }
 
 class _HeroSkeleton extends StatelessWidget {
-  const _HeroSkeleton({required this.overlayHeight});
-  final double overlayHeight;
+  const _HeroSkeleton({
+    required this.heroHeight,
+    required this.isWideHero,
+  });
+  final double heroHeight;
+  final bool isWideHero;
 
   @override
   Widget build(BuildContext context) {
+    final overlaySpec = MoviHeroOverlaySpec.homeBottomOnly(
+      isWideLayout: isWideHero,
+    );
+
     return Column(
       children: [
         Expanded(
-          child: Stack(
-            fit: StackFit.expand,
+          child: MoviHeroScene(
+            background: const ColoredBox(color: Color(0xFF222222)),
+            imageHeight: heroHeight,
+            overlaySpec: overlaySpec,
             children: [
-              const ColoredBox(color: Color(0xFF222222)),
-              _BottomOverlay(height: overlayHeight),
               Positioned(
                 left: 0,
                 right: 0,
@@ -1732,7 +1649,7 @@ class _HeroSkeleton extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: overlayHeight - 100,
+                bottom: overlaySpec.bottomHeightFor(heroHeight) - 100,
                 child: Center(
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width - 40,
@@ -1773,19 +1690,27 @@ class _HeroSkeleton extends StatelessWidget {
 }
 
 class _HeroEmpty extends StatelessWidget {
-  const _HeroEmpty({required this.overlayHeight});
-  final double overlayHeight;
+  const _HeroEmpty({
+    required this.heroHeight,
+    required this.isWideHero,
+  });
+  final double heroHeight;
+  final bool isWideHero;
 
   @override
   Widget build(BuildContext context) {
+    final overlaySpec = MoviHeroOverlaySpec.homeBottomOnly(
+      isWideLayout: isWideHero,
+    );
+
     return Column(
       children: [
         Expanded(
-          child: Stack(
-            fit: StackFit.expand,
+          child: MoviHeroScene(
+            background: const ColoredBox(color: Color(0xFF222222)),
+            imageHeight: heroHeight,
+            overlaySpec: overlaySpec,
             children: [
-              const ColoredBox(color: Color(0xFF222222)),
-              _BottomOverlay(height: overlayHeight),
               Positioned(
                 left: 0,
                 right: 0,
@@ -1795,7 +1720,7 @@ class _HeroEmpty extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: overlayHeight - 100,
+                bottom: overlaySpec.bottomHeightFor(heroHeight) - 100,
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(

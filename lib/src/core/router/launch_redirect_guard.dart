@@ -19,7 +19,7 @@ import 'package:movi/src/features/welcome/domain/enum.dart';
 ///
 /// Objectif:
 /// - Ne pas dupliquer la "state machine" (profil/source) déjà gérée par /bootstrap.
-/// - Se contenter de router Launch -> Auth (si pas connecté) -> Bootstrap.
+/// - Laisser /bootstrap décider du bon parcours, y compris en mode local-first.
 ///
 /// Utilisé par [GoRouter] comme `redirect` et `refreshListenable`.
 class LaunchRedirectGuard extends ChangeNotifier {
@@ -81,6 +81,8 @@ class LaunchRedirectGuard extends ChangeNotifier {
     final onLaunch = current == AppRoutePaths.launch;
     final onAuth = current == AppRoutePaths.authOtp;
     final onBootstrap = current == AppRoutePaths.bootstrap;
+    final authReturnsToPrevious =
+        onAuth && state.uri.queryParameters['return_to'] == 'previous';
     final isStartupRoute = AppRouteCatalog.criticalRoutes.contains(current);
     final launchState = _launchRegistry.state;
 
@@ -88,9 +90,8 @@ class LaunchRedirectGuard extends ChangeNotifier {
       return onLaunch ? null : AppRoutePaths.launch;
     }
 
-    // 1) Pas authentifié -> Auth OTP (sauf si déjà dessus)
-    if (_isAuthenticated != true) {
-      return onAuth ? null : AppRoutePaths.authOtp;
+    if (authReturnsToPrevious) {
+      return null;
     }
 
     if (launchState.status == AppLaunchStatus.running && isStartupRoute) {
@@ -116,12 +117,17 @@ class LaunchRedirectGuard extends ChangeNotifier {
       return null;
     }
 
-    // 2) Auth OK -> forcer passage par bootstrap à la sortie de Launch/Auth
-    if (onLaunch || onAuth) {
+    // Après Launch, on passe toujours par bootstrap.
+    if (onLaunch) {
       return AppRoutePaths.bootstrap;
     }
 
-    // 3) Si on est déjà sur bootstrap (ou ailleurs), laisser faire.
+    // Si l'utilisateur ouvre manuellement l'écran OTP, on le laisse faire.
+    if (onAuth) {
+      return _isAuthenticated == true ? AppRoutePaths.bootstrap : null;
+    }
+
+    // Si on est déjà sur bootstrap (ou ailleurs), laisser faire.
     if (onBootstrap) {
       return null;
     }

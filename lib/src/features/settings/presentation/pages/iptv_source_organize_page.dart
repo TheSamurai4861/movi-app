@@ -63,73 +63,76 @@ class _IptvSourceOrganizePageState
                       )
                     else
                       Expanded(
-                        child: ReorderableListView.builder(
-                          buildDefaultDragHandles: false,
-                          padding: const EdgeInsets.only(bottom: 140),
-                          itemCount: items.length,
-                          onReorder: (oldIndex, newIndex) => controller.reorder(
-                            oldIndex: oldIndex,
-                            newIndex: newIndex,
-                          ),
-                          proxyDecorator: (child, index, animation) {
-                            final item = items[index];
-                            final typeLabel =
-                                item.type == XtreamPlaylistType.movies
-                                ? 'Films'
-                                : 'SÃ©ries';
-                            return AnimatedBuilder(
-                              animation: animation,
-                              builder: (context, _) {
-                                return Material(
-                                  color: Colors.transparent,
-                                  child: _PlaylistRow(
-                                    key: ValueKey(
-                                      'proxy_${item.playlistId}_$index',
+                        child: ScrollConfiguration(
+                          behavior: const _OrganizeSourceScrollBehavior(),
+                          child: ReorderableListView.builder(
+                            buildDefaultDragHandles: false,
+                            padding: const EdgeInsets.only(bottom: 140),
+                            itemCount: items.length,
+                            onReorder: (oldIndex, newIndex) => controller.reorder(
+                              oldIndex: oldIndex,
+                              newIndex: newIndex,
+                            ),
+                            proxyDecorator: (child, index, animation) {
+                              final item = items[index];
+                              final typeLabel =
+                                  item.type == XtreamPlaylistType.movies
+                                  ? 'Films'
+                                  : 'SÃ©ries';
+                              return AnimatedBuilder(
+                                animation: animation,
+                                builder: (context, _) {
+                                  return Material(
+                                    color: Colors.transparent,
+                                    child: _PlaylistRow(
+                                      key: ValueKey(
+                                        'proxy_${item.playlistId}_$index',
+                                      ),
+                                      title: '${item.title} ($typeLabel)',
+                                      isVisible: item.isVisible,
+                                      accentColor: accent,
+                                      onVisibleChanged: (_) {},
+                                      dragHandle: const MoviAssetIcon(
+                                        AppAssets.iconDrag,
+                                        width: 20,
+                                        height: 20,
+                                        color: Colors.white,
+                                      ),
+                                      showSeparators: false,
                                     ),
-                                    title: '${item.title} ($typeLabel)',
-                                    isVisible: item.isVisible,
-                                    accentColor: accent,
-                                    onVisibleChanged: (_) {},
-                                    dragHandle: const MoviAssetIcon(
-                                      AppAssets.iconDrag,
-                                      width: 20,
-                                      height: 20,
-                                      color: Colors.white,
+                                  );
+                                },
+                              );
+                            },
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+                              final typeLabel =
+                                  item.type == XtreamPlaylistType.movies
+                                  ? 'Films'
+                                  : 'Séries';
+                              return _PlaylistRow(
+                                key: ValueKey(item.playlistId),
+                                title: '${item.title} ($typeLabel)',
+                                isVisible: item.isVisible,
+                                accentColor: accent,
+                                onVisibleChanged: (v) =>
+                                    controller.toggleVisibility(
+                                      playlistId: item.playlistId,
+                                      isVisible: v,
                                     ),
-                                    showSeparators: false,
+                                dragHandle: ReorderableDragStartListener(
+                                  index: index,
+                                  child: const MoviAssetIcon(
+                                    AppAssets.iconDrag,
+                                    width: 20,
+                                    height: 20,
+                                    color: Colors.white,
                                   ),
-                                );
-                              },
-                            );
-                          },
-                          itemBuilder: (context, index) {
-                            final item = items[index];
-                            final typeLabel =
-                                item.type == XtreamPlaylistType.movies
-                                ? 'Films'
-                                : 'Séries';
-                            return _PlaylistRow(
-                              key: ValueKey(item.playlistId),
-                              title: '${item.title} ($typeLabel)',
-                              isVisible: item.isVisible,
-                              accentColor: accent,
-                              onVisibleChanged: (v) =>
-                                  controller.toggleVisibility(
-                                    playlistId: item.playlistId,
-                                    isVisible: v,
-                                  ),
-                              dragHandle: ReorderableDragStartListener(
-                                index: index,
-                                child: const MoviAssetIcon(
-                                  AppAssets.iconDrag,
-                                  width: 20,
-                                  height: 20,
-                                  color: Colors.white,
                                 ),
-                              ),
-                              showSeparators: true,
-                            );
-                          },
+                                showSeparators: true,
+                              );
+                            },
+                          ),
                         ),
                       ),
                   ],
@@ -152,6 +155,19 @@ class _IptvSourceOrganizePageState
         ),
       ),
     );
+  }
+}
+
+class _OrganizeSourceScrollBehavior extends MaterialScrollBehavior {
+  const _OrganizeSourceScrollBehavior();
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }
 

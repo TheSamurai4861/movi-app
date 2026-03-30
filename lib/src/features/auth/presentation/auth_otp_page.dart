@@ -14,7 +14,12 @@ import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dar
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 class AuthOtpPage extends ConsumerStatefulWidget {
-  const AuthOtpPage({super.key});
+  const AuthOtpPage({
+    super.key,
+    this.returnOnSuccess = false,
+  });
+
+  final bool returnOnSuccess;
 
   @override
   ConsumerState<AuthOtpPage> createState() => _AuthOtpPageState();
@@ -26,6 +31,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
 
   final _emailFocusNode = FocusNode();
   final _codeFocusNode = FocusNode();
+  bool _handledSuccessfulAuth = false;
 
   @override
   void dispose() {
@@ -40,6 +46,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(authOtpControllerProvider);
+    final authStatus = ref.watch(authStatusProvider);
 
     final emailErrorText = switch (state.emailError) {
       AuthOtpEmailError.invalid => l10n.errorFillFields,
@@ -61,10 +68,19 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
         if (previous != AuthStatus.authenticated &&
             next == AuthStatus.authenticated &&
             mounted) {
-          context.go(AppRouteNames.welcome);
+          _handleSuccessfulAuthentication();
         }
       },
     );
+
+    if (widget.returnOnSuccess &&
+        authStatus == AuthStatus.authenticated &&
+        !_handledSuccessfulAuth) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _handleSuccessfulAuthentication();
+      });
+    }
 
     final isSending = state.status == AuthOtpStatus.sendingCode;
     final isVerifying = state.status == AuthOtpStatus.verifyingCode;
@@ -305,6 +321,24 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     _codeController.clear();
     ref.read(authOtpControllerProvider.notifier).resetToEmailStep();
     FocusScope.of(context).requestFocus(_emailFocusNode);
+  }
+
+  void _handleSuccessfulAuthentication() {
+    if (_handledSuccessfulAuth || !mounted) return;
+    _handledSuccessfulAuth = true;
+
+    final router = GoRouter.of(context);
+    if (widget.returnOnSuccess && router.canPop()) {
+      router.pop(true);
+      return;
+    }
+
+    if (widget.returnOnSuccess) {
+      context.go(AppRoutePaths.bootstrap);
+      return;
+    }
+
+    context.go(AppRouteNames.welcome);
   }
 }
 

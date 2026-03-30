@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/core/widgets/movi_asset_icon.dart';
-import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/core/widgets/movi_detail_hero.dart';
+import 'package:movi/src/core/widgets/movi_hero_gradients.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_hero_image.dart';
 
 class MovieDetailHeroSection extends StatefulWidget {
@@ -67,125 +67,61 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: widget.height,
-      width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          MovieHeroImage(
-            poster: widget.poster,
-            posterBackground: widget.posterBackground,
-            backdrop: widget.backdrop,
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 100,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF141414), Color(0x00000000)],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 8,
-            left: 20,
-            right: 20,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Focus(
-                  canRequestFocus: false,
-                  onKeyEvent: (_, event) => _handleBackKey(event),
-                  child: MoviFocusableAction(
-                    focusNode: _backFocusNode,
-                    onPressed: widget.onBack,
-                    semanticLabel: 'Retour',
-                    builder: (context, state) {
-                      return MoviFocusFrame(
-                        scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        backgroundColor: state.focused
-                            ? Colors.white.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        child: const SizedBox(
-                          width: 35,
-                          height: 35,
-                          child: MoviAssetIcon(
-                            AppAssets.iconBack,
-                            color: Colors.white,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Focus(
-                  canRequestFocus: false,
-                  onKeyEvent: (_, event) => _handleMoreKey(event),
-                  onFocusChange: (hasFocus) {
-                    if (!hasFocus) {
-                      _moreFocusNode.canRequestFocus = false;
-                    }
-                  },
-                  child: MoviFocusableAction(
-                    focusNode: _moreFocusNode,
-                    onPressed: widget.onMore,
-                    semanticLabel: 'Plus d actions',
-                    builder: (context, state) {
-                      return MoviFocusFrame(
-                        scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        borderRadius: BorderRadius.circular(999),
-                        backgroundColor: state.focused
-                            ? Colors.white.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        child: const SizedBox(
-                          width: 25,
-                          height: 35,
-                          child: MoviAssetIcon(
-                            AppAssets.iconMore,
-                            color: Colors.white,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: widget.overlayHeight,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0x00000000), Color(0xFF141414)],
-                ),
-              ),
-            ),
-          ),
-        ],
+    final overlaySpec = MoviHeroOverlaySpec.detailMobile.copyWith(
+      topHeightRatio: 100 / widget.height,
+      bottomHeightRatio: widget.overlayHeight / widget.height,
+    );
+    const buttonPadding = EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 8,
+    );
+
+    return MoviDetailHeroScene(
+      isWideLayout: false,
+      mobileHeight: widget.height,
+      wideHeight: widget.height,
+      background: MovieHeroImage(
+        poster: widget.poster,
+        posterBackground: widget.posterBackground,
+        backdrop: widget.backdrop,
       ),
+      overlaySpec: overlaySpec,
+      children: [
+        MoviDetailHeroTopBar(
+          isWideLayout: false,
+          horizontalPadding: 20,
+          leading: Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleBackKey(event),
+            child: MoviDetailHeroActionButton(
+              focusNode: _backFocusNode,
+              iconAsset: AppAssets.iconBack,
+              semanticLabel: 'Retour',
+              onPressed: widget.onBack,
+              isWideLayout: true,
+              padding: buttonPadding,
+            ),
+          ),
+          trailing: Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleMoreKey(event),
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) {
+                _moreFocusNode.canRequestFocus = false;
+              }
+            },
+            child: MoviDetailHeroActionButton(
+              focusNode: _moreFocusNode,
+              iconAsset: AppAssets.iconMore,
+              semanticLabel: 'Plus d actions',
+              onPressed: widget.onMore,
+              isWideLayout: true,
+              iconWidth: 25,
+              padding: buttonPadding,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

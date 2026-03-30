@@ -24,28 +24,25 @@ class PersonDetailHeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const overlaySpec = MoviHeroOverlaySpec(
+      topHeightRatio: 0.2,
+      bottomHeightRatio: 0.4,
+      globalTintOpacity: 0,
+      topStops: [0.0, 1.0],
+      topOpacities: [1.0, 0.0],
+      bottomStops: [0.0, 0.22, 0.46, 0.68, 0.84, 1.0],
+      bottomOpacities: [0.0, 0.04, 0.12, 0.28, 0.58, 1.0],
+      showGlobalTint: false,
+    );
+
     return SizedBox(
       height: height,
       width: double.infinity,
-      child: Stack(
-        fit: StackFit.expand,
+      child: MoviHeroScene(
+        background: _buildHeroImage(context, photo),
+        imageHeight: height,
+        overlaySpec: overlaySpec,
         children: [
-          _buildHeroImage(context, photo),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 100,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF141414), Color(0x00000000)],
-                ),
-              ),
-            ),
-          ),
           Positioned(
             top: 8,
             left: 20,
@@ -83,42 +80,31 @@ class PersonDetailHeroSection extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [Color(0xFF141414), Color(0x00000000)],
+            left: 20,
+            right: 20,
+            bottom: 24,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineSmall?.copyWith(color: Colors.white),
                 ),
-              ),
-              padding: const EdgeInsets.only(bottom: 24, left: 20, right: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                const SizedBox(height: 8),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.personMoviesCount(moviesCount, showsCount),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.personMoviesCount(moviesCount, showsCount),
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

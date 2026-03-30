@@ -144,7 +144,7 @@ class StorageModule {
     debugPrint('[DEBUG][Startup] StorageModule: Creating in-memory database');
     return await openDatabase(
       inMemoryDatabasePath,
-      version: 17,
+      version: 18,
       onCreate: (db, version) async {
         debugPrint('[DEBUG][Startup] StorageModule: Creating essential tables in memory');
         // Créer uniquement les tables essentielles pour mode dégradé
@@ -267,6 +267,21 @@ class StorageModule {
             episode INTEGER,
             user_id TEXT NOT NULL DEFAULT 'default',
             PRIMARY KEY (content_id, content_type, user_id)
+          );
+        ''');
+
+        await db.execute('''
+          CREATE TABLE local_profiles (
+            id TEXT PRIMARY KEY,
+            account_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            color INTEGER NOT NULL,
+            avatar_url TEXT,
+            created_at INTEGER,
+            updated_at INTEGER NOT NULL,
+            is_kid INTEGER NOT NULL DEFAULT 0,
+            pegi_limit INTEGER,
+            has_pin INTEGER NOT NULL DEFAULT 0
           );
         ''');
         

@@ -1,4 +1,5 @@
 // lib/src/core/router/app_routes.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,7 @@ import 'package:movi/src/core/parental/presentation/pages/pin_recovery_page.dart
 import 'package:movi/src/features/auth/presentation/auth_otp_page.dart';
 import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 import 'package:movi/src/features/category_browser/presentation/pages/category_page.dart';
+import 'package:movi/src/features/home/presentation/pages/home_hero_overlay_debug_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_playlist_detail_page.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dart';
@@ -60,6 +62,22 @@ import 'package:movi/src/features/shell/presentation/pages/app_shell_page.dart';
 /// possibilité d'ajouter des redirections spécifiques par route à l’avenir.
 List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
   return [
+    if (kDebugMode)
+      GoRoute(
+        path: AppRoutePaths.debug,
+        name: AppRouteIds.debug,
+        redirect: (context, state) => AppRoutePaths.debugHeroOverlays,
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: SizedBox.shrink()),
+      ),
+    if (kDebugMode)
+      GoRoute(
+        path: AppRoutePaths.debugHeroOverlays,
+        name: AppRouteIds.debugHeroOverlays,
+        pageBuilder: (context, state) =>
+            const MaterialPage(child: HomeHeroOverlayDebugPage()),
+      ),
+
     // --- Launch / welcome / bootstrap --------------------------------------
     GoRoute(
       path: AppRoutePaths.launch,
@@ -111,7 +129,14 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
     GoRoute(
       path: AppRoutePaths.authOtp,
       name: AppRouteIds.authOtp,
-      pageBuilder: (context, state) => const MaterialPage(child: AuthOtpPage()),
+      pageBuilder: (context, state) {
+        final returnOnSuccess =
+            state.uri.queryParameters['return_to'] == 'previous';
+
+        return MaterialPage(
+          child: AuthOtpPage(returnOnSuccess: returnOnSuccess),
+        );
+      },
     ),
 
     GoRoute(

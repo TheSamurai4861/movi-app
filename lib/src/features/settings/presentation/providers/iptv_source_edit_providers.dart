@@ -53,8 +53,8 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
   late final AppStateController _appState;
   late final IptvLocalRepository _local;
   late final CredentialsVault _vault;
-  late final SupabaseIptvSourcesRepository _supaSources;
-  late final IptvCredentialsEdgeService _edgeCipher;
+  late final SupabaseIptvSourcesRepository? _supaSources;
+  late final IptvCredentialsEdgeService? _edgeCipher;
 
   @override
   IptvSourceEditState build() {
@@ -63,8 +63,12 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
     _refresh = sl<RefreshXtreamCatalog>();
     _local = sl<IptvLocalRepository>();
     _vault = sl<CredentialsVault>();
-    _supaSources = sl<SupabaseIptvSourcesRepository>();
-    _edgeCipher = sl<IptvCredentialsEdgeService>();
+    _supaSources = sl.isRegistered<SupabaseIptvSourcesRepository>()
+        ? sl<SupabaseIptvSourcesRepository>()
+        : null;
+    _edgeCipher = sl.isRegistered<IptvCredentialsEdgeService>()
+        ? sl<IptvCredentialsEdgeService>()
+        : null;
     _appState = ref.watch(asp.appStateControllerProvider);
     return const IptvSourceEditState();
   }
@@ -160,20 +164,27 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
   }) async {
     final userId = ref.read(authUserIdProvider);
     if (userId == null || userId.trim().isEmpty) return;
+    final supaSources = _supaSources;
+    if (supaSources == null) return;
     final resolvedUserId = userId.trim();
 
     try {
       String? encryptedCredentials;
       try {
-        encryptedCredentials = await _edgeCipher.encrypt(
-          username: username,
-          password: password,
-        );
+        final edgeCipher = _edgeCipher;
+        if (edgeCipher != null) {
+          encryptedCredentials = await edgeCipher.encrypt(
+            username: username,
+            password: password,
+          );
+        } else {
+          encryptedCredentials = null;
+        }
       } catch (_) {
         encryptedCredentials = null;
       }
 
-      await _supaSources.upsertSource(
+      await supaSources.upsertSource(
         localId: account.id,
         accountId: resolvedUserId,
         name: account.alias,
@@ -186,10 +197,10 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
       // Si l'identifiant local a changé, supprimer l'ancienne ligne remote (best-effort).
       final oldLocalId = originalLocalId.trim();
       if (oldLocalId.isNotEmpty && oldLocalId != account.id) {
-        final rows = await _supaSources.getSources(accountId: resolvedUserId);
+        final rows = await supaSources.getSources(accountId: resolvedUserId);
         for (final r in rows) {
           if ((r.localId ?? '').trim() == oldLocalId) {
-            await _supaSources.deleteSource(id: r.id, accountId: resolvedUserId);
+            await supaSources.deleteSource(id: r.id, accountId: resolvedUserId);
             break;
           }
         }

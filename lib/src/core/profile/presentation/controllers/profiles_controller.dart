@@ -7,45 +7,26 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/parental/application/services/parental_session_service.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
-import 'package:movi/src/core/profile/presentation/providers/profile_auth_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/profile_di_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
-
-/// Exception explicite: permet de distinguer "pas loggÃƒÂ©" dÃ¢â‚¬â„¢un vrai "0 profil".
-class ProfilesNotAuthenticatedException implements Exception {
-  const ProfilesNotAuthenticatedException();
-
-  @override
-  String toString() => 'ProfilesNotAuthenticatedException: user not logged in';
-}
-
-/// Exception explicite: le client/repo nÃ¢â‚¬â„¢est pas prÃƒÂªt (init/DI/env).
-class ProfilesNotInitializedException implements Exception {
-  const ProfilesNotInitializedException();
-
-  @override
-  String toString() =>
-      'ProfilesNotInitializedException: Supabase client/repository not ready';
-}
 
 /// Controller des profils (liste + CRUD).
 ///
 /// - UI consomme `profilesControllerProvider` (`AsyncValue<List<Profile>>`).
 /// - DÃƒÂ©pend du contrat `ProfileRepository` via DI.
-/// - Utilise `supabaseAuthStatusProvider` uniquement pour distinguer
-///   "pas loggÃƒÂ©" vs "0 profil".
+/// - Fonctionne en mode local-first pour ne pas bloquer l'app sur Supabase.
 class ProfilesController extends AsyncNotifier<List<Profile>> {
+  static const String _localProfileIdPrefix = 'local_profile_';
+  static final RegExp _cloudProfileIdPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-'
+    r'[0-9a-fA-F]{4}-'
+    r'[1-5][0-9a-fA-F]{3}-'
+    r'[89abAB][0-9a-fA-F]{3}-'
+    r'[0-9a-fA-F]{12}$',
+  );
+
   @override
   FutureOr<List<Profile>> build() async {
-    final authStatus = ref.watch(supabaseAuthStatusProvider);
-
-    if (authStatus == SupabaseAuthStatus.uninitialized) {
-      throw const ProfilesNotInitializedException();
-    }
-    if (authStatus == SupabaseAuthStatus.unauthenticated) {
-      throw const ProfilesNotAuthenticatedException();
-    }
-
     final repo = ref.watch(profileRepositoryProvider);
     final profiles = await repo.getProfiles();
 
@@ -56,15 +37,6 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
   Future<void> refresh() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final authStatus = ref.read(supabaseAuthStatusProvider);
-
-      if (authStatus == SupabaseAuthStatus.uninitialized) {
-        throw const ProfilesNotInitializedException();
-      }
-      if (authStatus == SupabaseAuthStatus.unauthenticated) {
-        throw const ProfilesNotAuthenticatedException();
-      }
-
       final repo = ref.read(profileRepositoryProvider);
       final profiles = await repo.getProfiles();
 
@@ -76,24 +48,45 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
   Future<void> _ensureValidSelection(List<Profile> profiles) async {
     if (profiles.isEmpty) return;
 
-    final selectedId = ref.read(selectedProfileControllerProvider);
+    final selectedId = ref.read(selectedProfileControllerProvider)?.trim();
+    final cloudProfiles = profiles
+        .where((profile) => _isCloudBackedProfileId(profile.id))
+        .toList(growable: false);
     final hasValidSelection =
         selectedId != null && profiles.any((p) => p.id == selectedId);
 
-    if (!hasValidSelection) {
+    if (_isLocalOnlyProfileId(selectedId) && cloudProfiles.isNotEmpty) {
       await ref
           .read(selectedProfileControllerProvider.notifier)
-          .selectProfile(profiles.first.id);
+          .selectProfile(cloudProfiles.first.id);
+      return;
     }
+
+    if (hasValidSelection) return;
+
+    final fallbackSelection =
+        cloudProfiles.isNotEmpty ? cloudProfiles.first.id : profiles.first.id;
+    await ref
+        .read(selectedProfileControllerProvider.notifier)
+        .selectProfile(fallbackSelection);
+  }
+
+  bool _isLocalOnlyProfileId(String? profileId) {
+    final trimmed = profileId?.trim();
+    if (trimmed == null || trimmed.isEmpty) return false;
+    return trimmed.startsWith(_localProfileIdPrefix);
+  }
+
+  bool _isCloudBackedProfileId(String? profileId) {
+    final trimmed = profileId?.trim();
+    if (trimmed == null || trimmed.isEmpty) return false;
+    return _cloudProfileIdPattern.hasMatch(trimmed);
   }
 
   Future<Profile?> createProfile({
     required String name,
     required int color,
   }) async {
-    final authStatus = ref.read(supabaseAuthStatusProvider);
-    if (authStatus != SupabaseAuthStatus.authenticated) return null;
-
     final repo = ref.read(profileRepositoryProvider);
 
     try {
@@ -124,9 +117,6 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
     bool? isKid,
     Object? pegiLimit = ProfileRepository.noChange,
   }) async {
-    final authStatus = ref.read(supabaseAuthStatusProvider);
-    if (authStatus != SupabaseAuthStatus.authenticated) return false;
-
     final repo = ref.read(profileRepositoryProvider);
 
     try {
@@ -170,9 +160,6 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
   }
 
   Future<bool> deleteProfile(String profileId) async {
-    final authStatus = ref.read(supabaseAuthStatusProvider);
-    if (authStatus != SupabaseAuthStatus.authenticated) return false;
-
     final repo = ref.read(profileRepositoryProvider);
 
     try {

@@ -86,6 +86,13 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
 
   static const Duration _autoSyncDebounce = Duration(milliseconds: 600);
   static const Duration _minIntervalBetweenAutoSync = Duration(seconds: 30);
+  static final RegExp _uuidPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-'
+    r'[0-9a-fA-F]{4}-'
+    r'[1-5][0-9a-fA-F]{3}-'
+    r'[89abAB][0-9a-fA-F]{3}-'
+    r'[0-9a-fA-F]{12}$',
+  );
 
   DateTime? _lastAutoSyncAttemptUtc;
 
@@ -127,18 +134,32 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
     state = state.copyWith(autoSyncEnabled: enabled);
   }
 
+  bool _isSyncableCloudProfileId(String? profileId) {
+    final trimmed = profileId?.trim();
+    if (trimmed == null || trimmed.isEmpty) return false;
+    return _uuidPattern.hasMatch(trimmed);
+  }
+
   void _scheduleAutoSync() {
     if (!state.autoSyncEnabled) return;
 
-    final now = DateTime.now().toUtc();
-    if (_lastAutoSyncAttemptUtc != null &&
-        now.difference(_lastAutoSyncAttemptUtc!) < _minIntervalBetweenAutoSync) {
-      return;
-    }
-    _lastAutoSyncAttemptUtc = now;
-
     _debounce?.cancel();
     _debounce = Timer(_autoSyncDebounce, () {
+      final profileId = ref.read(selectedProfileIdProvider)?.trim();
+      final client = ref.read(supabaseClientProvider);
+      if (!_isSyncableCloudProfileId(profileId) || client == null) {
+        return;
+      }
+      if (state.isSyncing) return;
+
+      final now = DateTime.now().toUtc();
+      if (_lastAutoSyncAttemptUtc != null &&
+          now.difference(_lastAutoSyncAttemptUtc!) <
+              _minIntervalBetweenAutoSync) {
+        return;
+      }
+      _lastAutoSyncAttemptUtc = now;
+
       unawaited(syncNow(reason: 'auto'));
     });
   }
@@ -179,6 +200,14 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
     if (client == null) {
       if (reason == 'manual') {
         state = state.copyWith(lastError: 'Supabase indisponible.');
+      }
+      return;
+    }
+    if (!_isSyncableCloudProfileId(profileId)) {
+      if (reason == 'manual') {
+        state = state.copyWith(
+          lastError: 'Profil local non synchronisable.',
+        );
       }
       return;
     }

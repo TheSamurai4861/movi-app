@@ -193,6 +193,21 @@ final class LocalDatabaseSchema {
       );
     ''');
 
+    await db.execute('''
+      CREATE TABLE local_profiles (
+        id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        color INTEGER NOT NULL,
+        avatar_url TEXT,
+        created_at INTEGER,
+        updated_at INTEGER NOT NULL,
+        is_kid INTEGER NOT NULL DEFAULT 0,
+        pegi_limit INTEGER,
+        has_pin INTEGER NOT NULL DEFAULT 0
+      );
+    ''');
+
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
     );
@@ -228,6 +243,9 @@ final class LocalDatabaseSchema {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_continue_watching_user_type_updated ON continue_watching(user_id, content_type, updated_at);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_local_profiles_account_created ON local_profiles(account_id, created_at);',
     );
   }
 }

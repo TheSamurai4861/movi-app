@@ -329,7 +329,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       maxContentWidth: gridMaxWidth,
                       firstItemFocusNode: _firstGenreFocusNode,
                     ),
-                    const SizedBox(height: 100),
+                    const SizedBox(height: 125),
                   ],
                 ),
               ),

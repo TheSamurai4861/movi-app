@@ -12,6 +12,7 @@ import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
+import 'package:movi/src/features/library/application/services/cloud_selected_profile_id_sanitizer.dart';
 import 'package:movi/src/features/library/application/services/library_cloud_sync_service.dart';
 
 /// Service de synchronisation complète qui gère :
@@ -23,11 +24,16 @@ class ComprehensiveCloudSyncService {
   ComprehensiveCloudSyncService({
     required GetIt sl,
     required LibraryCloudSyncService librarySync,
+    CloudSelectedProfileIdSanitizer? selectedProfileIdSanitizer,
   })  : _sl = sl,
-       _librarySync = librarySync;
+       _librarySync = librarySync,
+       _selectedProfileIdSanitizer =
+           selectedProfileIdSanitizer ??
+           const CloudSelectedProfileIdSanitizer();
 
   final GetIt _sl;
   final LibraryCloudSyncService _librarySync;
+  final CloudSelectedProfileIdSanitizer _selectedProfileIdSanitizer;
 
   static const String _prefsTable = 'user_preferences';
 
@@ -204,7 +210,12 @@ class ComprehensiveCloudSyncService {
       // Selected profile
       if (_sl.isRegistered<SelectedProfilePreferences>()) {
         final selectedProfilePrefs = _sl<SelectedProfilePreferences>();
-        prefs['selected_profile_id'] = selectedProfilePrefs.selectedProfileId;
+        final selectedProfileId = _selectedProfileIdSanitizer.sanitize(
+          selectedProfilePrefs.selectedProfileId,
+        );
+        if (selectedProfileId != null) {
+          prefs['selected_profile_id'] = selectedProfileId;
+        }
       }
 
       // Selected IPTV source
@@ -314,7 +325,9 @@ class ComprehensiveCloudSyncService {
       if (_sl.isRegistered<SelectedProfilePreferences>()) {
         final selectedProfilePrefs = _sl<SelectedProfilePreferences>();
         if (selectedProfilePrefs.selectedProfileId == null) {
-          final selectedProfileId = prefs['selected_profile_id']?.toString();
+          final selectedProfileId = _selectedProfileIdSanitizer.sanitize(
+            prefs['selected_profile_id']?.toString(),
+          );
           if (selectedProfileId != null && selectedProfileId.isNotEmpty) {
             await selectedProfilePrefs.setSelectedProfileId(selectedProfileId);
           }

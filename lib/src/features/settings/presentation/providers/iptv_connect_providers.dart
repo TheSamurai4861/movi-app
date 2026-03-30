@@ -40,8 +40,11 @@ final refreshStalkerCatalogProvider = Provider<RefreshStalkerCatalog>((ref) {
 });
 
 final supabaseIptvSourcesRepositoryProvider =
-    Provider<SupabaseIptvSourcesRepository>((ref) {
+    Provider<SupabaseIptvSourcesRepository?>((ref) {
       final locator = ref.watch(slProvider);
+      if (!locator.isRegistered<SupabaseIptvSourcesRepository>()) {
+        return null;
+      }
       return locator<SupabaseIptvSourcesRepository>();
     });
 
@@ -69,7 +72,7 @@ class IptvConnectState {
     this.isLoading = false,
     this.error,
     this.warning,
-    this.supabasePolicy = IptvConnectSupabasePolicy.requireSupabase,
+    this.supabasePolicy = IptvConnectSupabasePolicy.bestEffortSupabase,
   });
 
   final bool isLoading;
@@ -118,9 +121,9 @@ class IptvConnectController extends Notifier<IptvConnectState> {
   late final RefreshStalkerCatalog _refreshStalker;
   late final IptvLocalRepository _iptvLocal;
   late final AppStateController _appState;
-  late final SupabaseIptvSourcesRepository _supaSources;
+  late final SupabaseIptvSourcesRepository? _supaSources;
   late final SelectedIptvSourcePreferences _selectedIptvPrefs;
-  late final IptvCredentialsEdgeService _edgeCipher;
+  late final IptvCredentialsEdgeService? _edgeCipher;
 
   @override
   IptvConnectState build() {
@@ -132,13 +135,14 @@ class IptvConnectController extends Notifier<IptvConnectState> {
     _appState = ref.watch(appStateControllerProvider);
     _supaSources = ref.watch(supabaseIptvSourcesRepositoryProvider);
     _selectedIptvPrefs = ref.watch(slProvider)<SelectedIptvSourcePreferences>();
-    _edgeCipher = ref.watch(slProvider)<IptvCredentialsEdgeService>();
+    final locator = ref.watch(slProvider);
+    _edgeCipher = locator.isRegistered<IptvCredentialsEdgeService>()
+        ? locator<IptvCredentialsEdgeService>()
+        : null;
 
-    // Par défaut, on choisit requireSupabase si:
-    // - le bootstrap décide "welcomeSources" sur la base de Supabase (remote truth)
-    // - sinon tu risques la boucle si l’écriture Supabase ne se fait pas ailleurs.
+    // Le boot est maintenant local-first.
     return const IptvConnectState(
-      supabasePolicy: IptvConnectSupabasePolicy.requireSupabase,
+      supabasePolicy: IptvConnectSupabasePolicy.bestEffortSupabase,
     );
   }
 
@@ -328,7 +332,17 @@ class IptvConnectController extends Notifier<IptvConnectState> {
       return false;
     }
 
+    if (_supaSources == null) {
+      if (kDebugMode) {
+        debugPrint(
+          '[IptvConnectController] Supabase sources repository unavailable.',
+        );
+      }
+      return false;
+    }
+
     final resolvedUserId = userId.trim();
+    final supaSources = _supaSources;
 
     final String displayName = account.alias.trim().isNotEmpty
         ? account.alias.trim()
@@ -342,17 +356,20 @@ class IptvConnectController extends Notifier<IptvConnectState> {
 
     try {
       String? encryptedCredentials;
+      final edgeCipher = _edgeCipher;
       try {
-        encryptedCredentials = await _edgeCipher
-            .encrypt(
-              username: username,
-              password: password,
-            )
-            .timeout(const Duration(seconds: 5));
-        if (kDebugMode) {
-          debugPrint(
-            '[IptvConnectController] Edge function encrypt succeeded',
-          );
+        if (edgeCipher != null) {
+          encryptedCredentials = await edgeCipher
+              .encrypt(
+                username: username,
+                password: password,
+              )
+              .timeout(const Duration(seconds: 5));
+          if (kDebugMode) {
+            debugPrint(
+              '[IptvConnectController] Edge function encrypt succeeded',
+            );
+          }
         }
       } catch (e) {
         // If the Edge Function isn't deployed yet, we still persist metadata so
@@ -366,7 +383,7 @@ class IptvConnectController extends Notifier<IptvConnectState> {
         encryptedCredentials = null;
       }
 
-      await _supaSources
+      await supaSources
           .upsertSource(
             localId: localId,
             accountId: resolvedUserId,

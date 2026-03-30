@@ -4,6 +4,8 @@
 ///
 /// À utiliser avec `goNamed(...)` / `pushNamed(...)` et `namedLocation(...)`.
 class AppRouteIds {
+  static const debug = 'debug';
+  static const debugHeroOverlays = 'debug_hero_overlays';
   static const launch = 'launch';
   static const welcome = 'welcome';
   static const welcomeUser = 'welcome_user';

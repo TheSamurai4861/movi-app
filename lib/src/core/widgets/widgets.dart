@@ -16,3 +16,7 @@ export 'launch_error_panel.dart';
 export 'swipe_back_wrapper.dart';
 export 'syncable_refresh_indicator.dart';
 export 'movi_hero_background.dart';
+export 'movi_detail_hero.dart';
+export 'movi_hero_gradients.dart';
+export 'movi_hero_overlays.dart';
+export 'movi_hero_scene.dart';

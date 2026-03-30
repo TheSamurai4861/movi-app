@@ -42,6 +42,9 @@ class ProviderResultsPage extends ConsumerStatefulWidget {
 }
 
 class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
+  static const double _previewCardWidth = 150;
+  static const double _previewPosterHeight = 225;
+  static const double _previewRailItemHeight = 300;
   int _currentPageMovies = 1;
   int _currentPageShows = 1;
   final List<TmdbMovieSummaryDto> _movies = [];
@@ -136,6 +139,31 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       if (!mounted || _firstMovieFocusNode.context == null) return;
       _firstMovieFocusNode.requestFocus();
     });
+  }
+
+  void _openAllResults(MoviMediaType type) {
+    final args = widget.args;
+    if (args == null) return;
+    context.push(
+      AppRouteNames.providerAllResults,
+      extra: ProviderAllResultsArgs(
+        providerId: args.providerId,
+        providerName: args.providerName,
+        type: type,
+      ),
+    );
+  }
+
+  Widget _buildSeeAllProviderCard({
+    required String title,
+    required MoviMediaType type,
+  }) {
+    return SeeAllCard(
+      title: title,
+      width: _previewCardWidth,
+      posterHeight: _previewPosterHeight,
+      onTap: () => _openAllResults(type),
+    );
   }
 
   Future<List<TmdbMovieSummaryDto>> _filterMovieDtos(
@@ -544,6 +572,12 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     final previewLimit = _previewLimit(context);
     final moviesToShow = _movies.take(previewLimit).toList();
     final showsToShow = _shows.take(previewLimit).toList();
+    const headerHorizontalPadding = 20.0;
+    const backButtonFramePadding = 8.0;
+    const backButtonSize = 35.0;
+    final headerStartPadding =
+        headerHorizontalPadding - backButtonFramePadding;
+    final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
     _requestInitialMovieFocusIfNeeded(context);
 
     return Scaffold(
@@ -555,7 +589,12 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
           children: [
             // Header avec bouton retour et titre centré
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsetsDirectional.fromSTEB(
+                headerStartPadding,
+                16,
+                headerHorizontalPadding,
+                0,
+              ),
               child: Row(
                 children: [
                   MoviFocusableAction(
@@ -564,14 +603,14 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                     builder: (context, state) {
                       return MoviFocusFrame(
                         scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(backButtonFramePadding),
                         borderRadius: BorderRadius.circular(999),
                         backgroundColor: state.focused
                             ? Colors.white.withValues(alpha: 0.14)
                             : Colors.transparent,
                         child: SizedBox(
-                          width: 35,
-                          height: 35,
+                          width: backButtonSize,
+                          height: backButtonSize,
                           child: const MoviAssetIcon(
                             AppAssets.iconBack,
                             color: Colors.white,
@@ -595,11 +634,11 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                     ),
                   ),
                   // Espaceur pour équilibrer le bouton retour
-                  SizedBox(width: 35),
+                  SizedBox(width: trailingHeaderSpacerWidth),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             // Liste des films et séries
             Expanded(
               child: ListView(
@@ -613,71 +652,51 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                               context,
                             )!.resultsCount(_movies.length)
                           : null,
-                      estimatedItemWidth: 150,
-                      estimatedItemHeight: 300,
+                      estimatedItemWidth: _previewCardWidth,
+                      estimatedItemHeight: _previewRailItemHeight,
                       titlePadding: 20,
                       horizontalPadding: const EdgeInsetsDirectional.only(
                         start: 20,
                         end: 20,
                       ),
-                      action: _movies.length > previewLimit
-                          ? TextButton(
-                              onPressed: () {
-                                // Naviguer vers la page "Voir tout" pour les films
-                                context.push(
-                                  AppRouteNames.providerAllResults,
-                                  extra: ProviderAllResultsArgs(
-                                    providerId: widget.args!.providerId,
-                                    providerName: widget.args!.providerName,
-                                    type: MoviMediaType.movie,
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                AppLocalizations.of(context)!.actionSeeAll,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            )
-                          : null,
-                      items: moviesToShow
-                          .map((m) {
-                            final imageResolver = ref.read(
-                              slProvider,
-                            )<TmdbImageResolver>();
-                            final media = MoviMedia(
-                              id: m.id.toString(),
-                              title: m.title,
-                              poster: imageResolver.poster(m.posterPath),
-                              year:
-                                  m.releaseDate != null &&
-                                      m.releaseDate!.isNotEmpty
-                                  ? (m.releaseDate!.length >= 4
-                                        ? int.tryParse(
-                                            m.releaseDate!.substring(0, 4),
-                                          )
-                                        : null)
-                                  : null,
-                              type: MoviMediaType.movie,
-                            );
-                            return MoviMediaCard(
-                              media: media,
-                              focusNode: identical(m, moviesToShow.first)
-                                  ? _firstMovieFocusNode
-                                  : null,
-                              onTap: (mm) => navigateToMovieDetail(
-                                context,
-                                ref,
-                                ContentRouteArgs.movie(mm.id),
-                              ),
-                            );
-                          })
-                          .toList(growable: false),
+                      items: [
+                        ...moviesToShow.map((m) {
+                          final imageResolver = ref.read(
+                            slProvider,
+                          )<TmdbImageResolver>();
+                          final media = MoviMedia(
+                            id: m.id.toString(),
+                            title: m.title,
+                            poster: imageResolver.poster(m.posterPath),
+                            year:
+                                m.releaseDate != null && m.releaseDate!.isNotEmpty
+                                ? (m.releaseDate!.length >= 4
+                                      ? int.tryParse(
+                                          m.releaseDate!.substring(0, 4),
+                                        )
+                                      : null)
+                                : null,
+                            type: MoviMediaType.movie,
+                          );
+                          return MoviMediaCard(
+                            media: media,
+                            focusNode: identical(m, moviesToShow.first)
+                                ? _firstMovieFocusNode
+                                : null,
+                            onTap: (mm) => navigateToMovieDetail(
+                              context,
+                              ref,
+                              ContentRouteArgs.movie(mm.id),
+                            ),
+                          );
+                        }),
+                        if (_movies.length > previewLimit)
+                          _buildSeeAllProviderCard(
+                            title: AppLocalizations.of(context)!.moviesTitle,
+                            type: MoviMediaType.movie,
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
                   ],
                   if (_shows.isNotEmpty) ...[
                     MoviItemsList(
@@ -687,57 +706,39 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                               context,
                             )!.resultsCount(_shows.length)
                           : null,
-                      estimatedItemWidth: 150,
-                      estimatedItemHeight: 300,
+                      estimatedItemWidth: _previewCardWidth,
+                      estimatedItemHeight: _previewRailItemHeight,
                       titlePadding: 20,
                       horizontalPadding: const EdgeInsetsDirectional.only(
                         start: 20,
                         end: 20,
                       ),
-                      action: _shows.length > previewLimit
-                          ? TextButton(
-                              onPressed: () {
-                                // Naviguer vers la page "Voir tout" pour les séries
-                                context.push(
-                                  AppRouteNames.providerAllResults,
-                                  extra: ProviderAllResultsArgs(
-                                    providerId: widget.args!.providerId,
-                                    providerName: widget.args!.providerName,
-                                    type: MoviMediaType.series,
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                AppLocalizations.of(context)!.actionSeeAll,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            )
-                          : null,
-                      items: showsToShow
-                          .map((s) {
-                            final imageResolver = ref.read(
-                              slProvider,
-                            )<TmdbImageResolver>();
-                            final media = MoviMedia(
-                              id: s.id.toString(),
-                              title: s.name,
-                              poster: imageResolver.poster(s.posterPath),
-                              type: MoviMediaType.series,
-                            );
-                            return MoviMediaCard(
-                              media: media,
-                              onTap: (mm) => navigateToTvDetail(
-                                context,
-                                ref,
-                                ContentRouteArgs.series(mm.id),
-                              ),
-                            );
-                          })
-                          .toList(growable: false),
+                      items: [
+                        ...showsToShow.map((s) {
+                          final imageResolver = ref.read(
+                            slProvider,
+                          )<TmdbImageResolver>();
+                          final media = MoviMedia(
+                            id: s.id.toString(),
+                            title: s.name,
+                            poster: imageResolver.poster(s.posterPath),
+                            type: MoviMediaType.series,
+                          );
+                          return MoviMediaCard(
+                            media: media,
+                            onTap: (mm) => navigateToTvDetail(
+                              context,
+                              ref,
+                              ContentRouteArgs.series(mm.id),
+                            ),
+                          );
+                        }),
+                        if (_shows.length > previewLimit)
+                          _buildSeeAllProviderCard(
+                            title: AppLocalizations.of(context)!.seriesTitle,
+                            type: MoviMediaType.series,
+                          ),
+                      ],
                     ),
                   ],
                   if (_movies.isEmpty &&

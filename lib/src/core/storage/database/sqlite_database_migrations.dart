@@ -188,6 +188,25 @@ final class LocalDatabaseMigrations {
         'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_title ON iptv_playlist_items_v2(account_id, title);',
       );
     }
+    if (oldVersion < 18) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS local_profiles (
+          id TEXT PRIMARY KEY,
+          account_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          color INTEGER NOT NULL,
+          avatar_url TEXT,
+          created_at INTEGER,
+          updated_at INTEGER NOT NULL,
+          is_kid INTEGER NOT NULL DEFAULT 0,
+          pegi_limit INTEGER,
+          has_pin INTEGER NOT NULL DEFAULT 0
+        );
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_local_profiles_account_created ON local_profiles(account_id, created_at);',
+      );
+    }
     if (oldVersion < 9) {
       await db.execute('''
         CREATE TABLE iptv_episodes (

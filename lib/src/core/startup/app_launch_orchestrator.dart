@@ -9,7 +9,6 @@ import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
-import 'package:movi/src/core/profile/data/repositories/supabase_profile_repository.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/security/iptv_credentials_cipher.dart';
 import 'package:movi/src/core/shared/failure.dart';
@@ -20,6 +19,7 @@ import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/startup/app_launch_criteria.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
+import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -200,8 +200,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
   late final AppStartupRunner _startupRunner;
   late final AuthRepository _authRepository;
-  late final SupabaseProfileRepository _profileRepository;
-  late final SupabaseIptvSourcesRepository _iptvSourcesRepository;
+  late final ProfileRepository _profileRepository;
+  late final SupabaseIptvSourcesRepository? _iptvSourcesRepository;
   late final SelectedProfilePreferences _selectedProfilePreferences;
   late final SelectedIptvSourcePreferences _selectedIptvSourcePreferences;
   late final IptvLocalRepository _iptvLocalRepository;
@@ -225,8 +225,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _startupRunner = () =>
         ref.read(app_startup_provider.appStartupProvider.future);
     _authRepository = ref.read(authRepositoryProvider);
-    _profileRepository = sl<SupabaseProfileRepository>();
-    _iptvSourcesRepository = sl<SupabaseIptvSourcesRepository>();
+    _profileRepository = sl<ProfileRepository>();
+    _iptvSourcesRepository = sl.isRegistered<SupabaseIptvSourcesRepository>()
+        ? sl<SupabaseIptvSourcesRepository>()
+        : null;
     _selectedProfilePreferences = sl<SelectedProfilePreferences>();
     _selectedIptvSourcePreferences = sl<SelectedIptvSourcePreferences>();
     _iptvLocalRepository = sl<IptvLocalRepository>();
@@ -402,13 +404,12 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       _setPhase(AppLaunchPhase.auth, stepName: step);
       final session = _authRepository.currentSession;
       if (session == null) {
-        destination = BootstrapDestination.auth;
-        await logStep('no session -> auth');
-        return completeSuccess(destination);
+        await logStep('no session -> local mode');
+      } else {
+        meta = meta.copyWith(accountId: session.userId);
+        updateCriteria();
+        await logStep('session ok');
       }
-      meta = meta.copyWith(accountId: session.userId);
-      updateCriteria();
-      await logStep('session ok');
 
       step = 'profiles_fetch';
       _setPhase(AppLaunchPhase.profiles, stepName: step);
@@ -443,29 +444,6 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         await logStep('selected profile repaired');
       }
 
-      step = 'sources_fetch';
-      _setPhase(AppLaunchPhase.sources, stepName: step);
-      final supaSources = await _iptvSourcesRepository.getSources(
-        accountId: meta.accountId,
-      );
-      meta = meta.copyWith(sourcesCount: supaSources.length);
-      await logStep('sources fetched');
-
-      if (supaSources.isEmpty) {
-        destination = BootstrapDestination.welcomeSources;
-        await logStep(
-          'sources empty -> welcomeSources (REAL EMPTY if fetch succeeded)',
-        );
-        return completeSuccess(destination);
-      }
-
-      unawaited(
-        _migrateLegacySupabaseCredentialsToEdge(
-          accountId: meta.accountId,
-          sources: supaSources,
-        ),
-      );
-
       step = 'local_accounts_fetch';
       _setPhase(AppLaunchPhase.localAccounts, stepName: step);
       var localAccounts = await _iptvLocalRepository.getAccounts();
@@ -478,29 +456,68 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         'stalker=${localStalkerAccounts.length})',
       );
 
+      var supaSources = const <SupabaseIptvSourceEntity>[];
       if (localAccounts.isEmpty && localStalkerAccounts.isEmpty) {
-        step = 'local_accounts_hydrate_from_supabase';
-        final hydrated = await _hydrateLocalAccountsFromSupabase(
-          accountId: meta.accountId,
-          sources: supaSources,
-        );
-        await logStep('local hydrated=$hydrated');
+        final remoteAccountId = meta.accountId?.trim();
+        final remoteSourcesRepository = _iptvSourcesRepository;
 
-        final refreshed = await _iptvLocalRepository.getAccounts();
-        localAccounts = refreshed;
-        localStalkerAccounts = await _iptvLocalRepository.getStalkerAccounts();
-        totalLocalCount = refreshed.length + localStalkerAccounts.length;
-        meta = meta.copyWith(localAccountsCount: totalLocalCount);
-        await logStep(
-          'local accounts refetched (xtream=${refreshed.length} '
-          'stalker=${localStalkerAccounts.length})',
-        );
+        if (remoteSourcesRepository != null &&
+            remoteAccountId != null &&
+            remoteAccountId.isNotEmpty) {
+          step = 'sources_fetch';
+          _setPhase(AppLaunchPhase.sources, stepName: step);
+          try {
+            supaSources = await remoteSourcesRepository.getSources(
+              accountId: remoteAccountId,
+            );
+            meta = meta.copyWith(sourcesCount: supaSources.length);
+            await logStep('sources fetched');
+          } catch (e, st) {
+            if (kDebugMode) {
+              debugPrint(
+                '[Bootstrap] Remote sources fetch failed, continuing local-first: $e\n$st',
+              );
+            }
+            await logStep('sources fetch failed -> local-only fallback');
+          }
 
-        if (refreshed.isEmpty && localStalkerAccounts.isEmpty) {
-          destination = BootstrapDestination.welcomeSources;
-          await logStep('local accounts still empty -> welcomeSources');
-          return completeSuccess(destination);
+          if (supaSources.isNotEmpty) {
+            unawaited(
+              _migrateLegacySupabaseCredentialsToEdge(
+                accountId: meta.accountId,
+                sources: supaSources,
+              ),
+            );
+
+            step = 'local_accounts_hydrate_from_supabase';
+            _setPhase(AppLaunchPhase.localAccounts, stepName: step);
+            final hydrated = await _hydrateLocalAccountsFromSupabase(
+              accountId: meta.accountId,
+              sources: supaSources,
+            );
+            await logStep('local hydrated=$hydrated');
+
+            final refreshed = await _iptvLocalRepository.getAccounts();
+            localAccounts = refreshed;
+            localStalkerAccounts = await _iptvLocalRepository
+                .getStalkerAccounts();
+            totalLocalCount = refreshed.length + localStalkerAccounts.length;
+            meta = meta.copyWith(localAccountsCount: totalLocalCount);
+            await logStep(
+              'local accounts refetched (xtream=${refreshed.length} '
+              'stalker=${localStalkerAccounts.length})',
+            );
+          }
+        } else {
+          meta = meta.copyWith(sourcesCount: 0);
+          await logStep('no remote source repo/session -> local-only fallback');
         }
+      }
+
+      if (localAccounts.isEmpty && localStalkerAccounts.isEmpty) {
+        destination = BootstrapDestination.welcomeSources;
+        await logStep('no local accounts available -> welcomeSources');
+        return completeSuccess(destination);
       }
 
       step = 'iptv_source_selection';
@@ -879,6 +896,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     final uid = accountId?.trim();
     if (uid == null || uid.isEmpty) return;
     if (sources.isEmpty) return;
+    final sourceRepository = _iptvSourcesRepository;
+    if (sourceRepository == null) return;
 
     final edge = _credentialsEdgeService;
     final vault = _credentialsVault;
@@ -904,7 +923,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           password: payload.password,
         );
 
-        await _iptvSourcesRepository.updateSource(
+        await sourceRepository.updateSource(
           id: s.id,
           accountId: uid,
           encryptedCredentials: nextCipher,

@@ -21,7 +21,6 @@ import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.da
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/profile_auth_providers.dart';
-import 'package:movi/src/core/profile/presentation/controllers/profiles_controller.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
 class WelcomeUserPage extends ConsumerStatefulWidget {
@@ -88,47 +87,8 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     final state = ref.watch(userSettingsControllerProvider);
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final l10n = AppLocalizations.of(context)!;
-    final authStatus = ref.watch(supabaseAuthStatusProvider);
     final profilesAsync = ref.watch(profilesControllerProvider);
     final selectedProfileId = ref.watch(selectedProfileControllerProvider);
-
-    // Si l'auth n'est pas encore initialisée, afficher un loader
-    if (authStatus == SupabaseAuthStatus.uninitialized) {
-      return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  WelcomeHeader(
-                    title: l10n.welcomeTitle,
-                    subtitle: l10n.welcomeSubtitle,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  const CircularProgressIndicator(),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Si l'auth est unauthenticated, laisser le guard rediriger
-    if (authStatus == SupabaseAuthStatus.unauthenticated) {
-      return Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: const CircularProgressIndicator(),
-            ),
-          ),
-        ),
-      );
-    }
 
     final errorText = switch (state.errorKey) {
       UserSettingsError.loadFailed ||
@@ -151,96 +111,15 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                     subtitle: l10n.welcomeSubtitle,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  // Si l'auth n'est pas encore authentifiée, afficher un loader
-                  // au lieu d'essayer de charger les profils (qui échouerait)
-                  authStatus != SupabaseAuthStatus.authenticated
-                      ? const Padding(
-                          padding: EdgeInsets.only(top: AppSpacing.lg),
-                          child: CircularProgressIndicator(),
-                        )
-                      : profilesAsync.when(
+                  profilesAsync.when(
                           loading: () => const Padding(
                             padding: EdgeInsets.only(top: AppSpacing.lg),
                             child: CircularProgressIndicator(),
                           ),
                           error: (err, stackTrace) {
-                            // Vérifier le type d'exception ET le message pour être sûr de capturer tous les cas
                             final errString = err.toString();
-                            final isNotAuthenticated =
-                                err is ProfilesNotAuthenticatedException ||
-                                errString.contains(
-                                  'ProfilesNotAuthenticatedException',
-                                ) ||
-                                errString.contains('user not logged in');
-                            final isNotInitialized =
-                                err is ProfilesNotInitializedException ||
-                                errString.contains(
-                                  'ProfilesNotInitializedException',
-                                ) ||
-                                errString.contains('not ready');
-
-                            // Debug: afficher le type d'exception en mode debug
                             if (kDebugMode) {
                               debugPrint('[WelcomeUserPage] Error: $errString');
-                              debugPrint(
-                                '[WelcomeUserPage] Error type: ${err.runtimeType}, isNotAuthenticated: $isNotAuthenticated, isNotInitialized: $isNotInitialized, authStatus: $authStatus',
-                              );
-                            }
-
-                            // Si c'est une exception d'auth (pas authentifié ou pas initialisé),
-                            // toujours afficher un loader et ne jamais afficher l'erreur
-                            // Ces exceptions indiquent un problème de timing, pas une vraie erreur
-                            if (isNotAuthenticated || isNotInitialized) {
-                              // Invalider le provider pour réessayer, mais de manière contrôlée
-                              if (!_hasInvalidatedOnAuth && mounted) {
-                                _hasInvalidatedOnAuth = true;
-                                // Utiliser addPostFrameCallback pour éviter les invalidations pendant le build
-                                WidgetsBinding.instance.addPostFrameCallback((
-                                  _,
-                                ) {
-                                  if (mounted) {
-                                    // Vérifier à nouveau l'état d'auth avant d'invalider
-                                    final currentAuthStatus = ref.read(
-                                      supabaseAuthStatusProvider,
-                                    );
-                                    if (currentAuthStatus ==
-                                        SupabaseAuthStatus.authenticated) {
-                                      // L'auth est prête, invalider pour recharger
-                                      ref.invalidate(
-                                        profilesControllerProvider,
-                                      );
-                                    } else {
-                                      // L'auth n'est pas encore prête, attendre un peu puis réessayer
-                                      Future.delayed(
-                                        const Duration(milliseconds: 500),
-                                        () {
-                                          if (mounted) {
-                                            final newAuthStatus = ref.read(
-                                              supabaseAuthStatusProvider,
-                                            );
-                                            if (newAuthStatus ==
-                                                SupabaseAuthStatus
-                                                    .authenticated) {
-                                              ref.invalidate(
-                                                profilesControllerProvider,
-                                              );
-                                            } else {
-                                              // Réinitialiser le flag pour permettre un nouveau retry
-                                              _hasInvalidatedOnAuth = false;
-                                            }
-                                          }
-                                        },
-                                      );
-                                    }
-                                  }
-                                });
-                              }
-
-                              // Toujours afficher un loader pour les exceptions d'auth
-                              return const Padding(
-                                padding: EdgeInsets.only(top: AppSpacing.lg),
-                                child: CircularProgressIndicator(),
-                              );
                             }
 
                             // Pour les autres erreurs, afficher un message localisé

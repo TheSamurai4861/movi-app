@@ -281,8 +281,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }) {
     final cs = Theme.of(context).colorScheme;
     final isWideLayout = _useDesktopDetailLayout(context);
-    final heroHeight = isWideLayout ? 520.0 : 400.0;
-    final overlayHeight = isWideLayout ? 240.0 : 200.0;
     return SwipeBackWrapper(
       child: Scaffold(
         backgroundColor: cs.surface,
@@ -307,87 +305,25 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            height: heroHeight,
-                            width: double.infinity,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                _buildHeroImage(
-                                  poster: poster,
-                                  posterBackground: posterBackground,
-                                  backdrop: backdrop,
-                                ),
-                                Positioned(
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  child: Container(
-                                    height: isWideLayout ? 120 : 100,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          cs.surface,
-                                          cs.surface.withValues(alpha: 0),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  left: 0,
-                                  right: 0,
-                                  child: Container(
-                                    height: overlayHeight,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          cs.surface.withValues(alpha: 0),
-                                          cs.surface,
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (isWideLayout)
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      ignoring: true,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight,
-                                            colors: [
-                                              cs.surface,
-                                              cs.surface.withValues(
-                                                alpha: 0.72,
-                                              ),
-                                              cs.surface.withValues(alpha: 0),
-                                            ],
-                                            stops: const [0.0, 0.42, 0.82],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                _buildHeroTopBar(isWideLayout: isWideLayout),
-                                if (isWideLayout)
-                                  _buildDesktopHeroOverlay(
-                                    mediaTitle: mediaTitle,
-                                    yearText: yearText,
-                                    durationText: durationText,
-                                    ratingText: ratingText,
-                                    overviewText: overviewText,
-                                    movieId: movieId,
-                                  ),
-                              ],
+                          MoviDetailHeroScene(
+                            isWideLayout: isWideLayout,
+                            background: _buildHeroImage(
+                              poster: poster,
+                              posterBackground: posterBackground,
+                              backdrop: backdrop,
                             ),
+                            children: [
+                              _buildHeroTopBar(isWideLayout: isWideLayout),
+                              if (isWideLayout)
+                                _buildDesktopHeroOverlay(
+                                  mediaTitle: mediaTitle,
+                                  yearText: yearText,
+                                  durationText: durationText,
+                                  ratingText: ratingText,
+                                  overviewText: overviewText,
+                                  movieId: movieId,
+                                ),
+                            ],
                           ),
                           if (!isWideLayout)
                             _buildMobileMetaSection(
@@ -461,65 +397,21 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }
 
   Widget _buildHeroTopBar({required bool isWideLayout}) {
-    final outerPadding = _sectionHorizontalPadding(context);
-    final hitPadding = EdgeInsets.symmetric(
-      horizontal: isWideLayout ? 12 : 0,
-      vertical: 8,
-    );
-
-    return Positioned(
-      top: isWideLayout ? 12 : 8,
-      left: outerPadding,
-      right: outerPadding,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          MoviFocusableAction(
-            onPressed: () => context.pop(),
-            semanticLabel: 'Retour',
-            builder: (context, state) {
-              return MoviFocusFrame(
-                scale: state.focused ? 1.04 : 1,
-                padding: hitPadding,
-                borderRadius: BorderRadius.circular(999),
-                backgroundColor: state.focused
-                    ? Colors.white.withValues(alpha: 0.14)
-                    : Colors.transparent,
-                child: SizedBox(
-                  width: 35,
-                  height: 35,
-                  child: const MoviAssetIcon(
-                    AppAssets.iconBack,
-                    color: Colors.white,
-                  ),
-                ),
-              );
-            },
-          ),
-          MoviFocusableAction(
-            onPressed: _showMoreMenu,
-            semanticLabel: 'Plus d actions',
-            builder: (context, state) {
-              return MoviFocusFrame(
-                scale: state.focused ? 1.04 : 1,
-                padding: hitPadding,
-                borderRadius: BorderRadius.circular(999),
-                backgroundColor: state.focused
-                    ? Colors.white.withValues(alpha: 0.14)
-                    : Colors.transparent,
-                child: SizedBox(
-                  width: 25,
-                  height: 35,
-                  child: const MoviAssetIcon(
-                    AppAssets.iconMore,
-                    color: Colors.white,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+    return MoviDetailHeroTopBar(
+      isWideLayout: isWideLayout,
+      horizontalPadding: _sectionHorizontalPadding(context),
+      leading: MoviDetailHeroActionButton(
+        iconAsset: AppAssets.iconBack,
+        semanticLabel: 'Retour',
+        onPressed: () => context.pop(),
+        isWideLayout: isWideLayout,
+      ),
+      trailing: MoviDetailHeroActionButton(
+        iconAsset: AppAssets.iconMore,
+        semanticLabel: 'Plus d actions',
+        onPressed: _showMoreMenu,
+        isWideLayout: isWideLayout,
+        iconWidth: 25,
       ),
     );
   }
@@ -532,77 +424,63 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String overviewText,
     required String movieId,
   }) {
-    return Positioned.fill(
-      child: Padding(
-        padding: const EdgeInsetsDirectional.only(
-          start: 50,
-          end: 50,
-          top: 48,
-          bottom: 32,
-        ),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mediaTitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1.05,
-                      ) ??
-                      const TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 1.05,
-                      ),
+    return MoviDetailHeroDesktopOverlay(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            mediaTitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style:
+                Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  height: 1.05,
+                ) ??
+                const TextStyle(
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 1.05,
                 ),
-                const SizedBox(height: 16),
-                _buildMetaPills(
-                  yearText: yearText,
-                  durationText: durationText,
-                  ratingText: ratingText,
-                  alignment: WrapAlignment.start,
-                ),
-                if (overviewText.trim().isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 72,
-                    child: Text(
-                      overviewText,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ) ??
-                          const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                _buildActionButtons(
-                  mediaTitle: mediaTitle,
-                  movieId: movieId,
-                  expandPrimary: false,
-                ),
-              ],
-            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          _buildMetaPills(
+            yearText: yearText,
+            durationText: durationText,
+            ratingText: ratingText,
+            alignment: WrapAlignment.start,
+          ),
+          if (overviewText.trim().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 72,
+              child: Text(
+                overviewText,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ) ??
+                    const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          _buildActionButtons(
+            mediaTitle: mediaTitle,
+            movieId: movieId,
+            expandPrimary: false,
+          ),
+        ],
       ),
     );
   }

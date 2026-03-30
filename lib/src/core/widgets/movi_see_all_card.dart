@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 
 /// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
 /// Affiche un motif 2x2 stylisé et le libellé "Voir tout".
@@ -7,21 +6,17 @@ class SeeAllCard extends StatefulWidget {
   const SeeAllCard({
     super.key,
     required this.title,
-    required this.categoryKey,
     this.width = 150,
     this.posterHeight = 225,
     this.onTap,
     this.heroTag,
   });
 
-  /// Titre lisible (catégorie sans alias serveur)
+  /// Titre utilisé pour les libellés d'accessibilité.
   final String title;
-
-  /// Clé complète de catégorie: `<alias>/<categorie>`
-  final String categoryKey;
   final double width;
   final double posterHeight;
-  final ValueChanged<CategoryPageArgs>? onTap;
+  final VoidCallback? onTap;
   final Object? heroTag;
 
   @override
@@ -34,17 +29,13 @@ class _SeeAllCardState extends State<SeeAllCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final args = CategoryPageArgs(
-      title: widget.title,
-      categoryKey: widget.categoryKey,
-    );
     return SizedBox(
       width: widget.width,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => widget.onTap?.call(args),
+          onTap: widget.onTap,
           onFocusChange: (focused) {
             if (_focused == focused) return;
             setState(() => _focused = focused);

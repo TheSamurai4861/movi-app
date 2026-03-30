@@ -12,6 +12,12 @@ import 'package:movi/src/core/widgets/movi_primary_button.dart';
 class PinRecoveryPage extends ConsumerWidget {
   const PinRecoveryPage({super.key, this.profileId});
 
+  static const double _headerHorizontalPadding = 20;
+  static const double _headerVerticalPadding = 16;
+  static const double _contentHorizontalPadding = 20;
+  static const double _contentBottomPadding = 24;
+  static const double _formMaxWidth = 460;
+
   final String? profileId;
 
   String? _statusErrorText(AppLocalizations l10n, PinRecoveryStatus? error) {
@@ -62,160 +68,176 @@ class PinRecoveryPage extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _HeaderBar(
-              title: l10n.pinRecoveryTitle,
-              onBack: () => Navigator.of(context).maybePop(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                _headerHorizontalPadding,
+                _headerVerticalPadding,
+                _headerHorizontalPadding,
+                _headerVerticalPadding,
+              ),
+              child: _HeaderBar(
+                title: l10n.pinRecoveryTitle,
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
             ),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.xl,
+                    padding: const EdgeInsets.fromLTRB(
+                      _contentHorizontalPadding,
+                      0,
+                      _contentHorizontalPadding,
+                      _contentBottomPadding,
                     ),
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         minHeight: constraints.maxHeight,
                       ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              l10n.pinRecoveryDescription,
-                              style: theme.textTheme.bodyMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: AppSpacing.lg),
-                            if (!showCodeStep)
-                              MoviPrimaryButton(
-                                label: l10n.authOtpPrimarySend,
-                                onPressed: controller.canRequestCode()
-                                    ? () => controller.requestCode(
-                                        profileId: profileId,
-                                      )
-                                    : null,
-                                loading: isSending,
-                              ),
-                            if (showCodeStep) ...[
-                              TextField(
-                                keyboardType: TextInputType.number,
-                                textInputAction: TextInputAction.done,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(8),
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: l10n.pinRecoveryCodeLabel,
-                                  hintText: l10n.pinRecoveryCodeHint,
-                                ),
-                                onChanged: controller.setCode,
-                                onSubmitted: (_) => controller.verify(),
-                                enabled: !isVerifying && !isVerified,
-                              ),
-                            ],
-                            if (isVerified) ...[
-                              const SizedBox(height: AppSpacing.lg),
-                              TextField(
-                                keyboardType: TextInputType.number,
-                                textInputAction: TextInputAction.next,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(6),
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: l10n.pinRecoveryNewPinLabel,
-                                  hintText: l10n.pinRecoveryNewPinHint,
-                                ),
-                                onChanged: controller.setNewPin,
-                                enabled:
-                                    !isResetting &&
-                                    state.status !=
-                                        PinRecoveryUiStatus.resetSuccess,
-                              ),
-                              const SizedBox(height: AppSpacing.md),
-                              TextField(
-                                keyboardType: TextInputType.number,
-                                textInputAction: TextInputAction.done,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                  LengthLimitingTextInputFormatter(6),
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: l10n.pinRecoveryConfirmPinLabel,
-                                  hintText: l10n.pinRecoveryConfirmPinHint,
-                                ),
-                                onChanged: controller.setConfirmPin,
-                                onSubmitted: (_) => controller.resetPin(),
-                                enabled:
-                                    !isResetting &&
-                                    state.status !=
-                                        PinRecoveryUiStatus.resetSuccess,
-                              ),
-                            ],
-                            if (errorText != null) ...[
-                              const SizedBox(height: AppSpacing.md),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: _formMaxWidth,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
                               Text(
-                                errorText,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.error,
-                                ),
+                                l10n.pinRecoveryDescription,
+                                style: theme.textTheme.bodyMedium,
                                 textAlign: TextAlign.center,
                               ),
-                            ],
-                            const SizedBox(height: AppSpacing.md),
-                            if (showCodeStep && !isVerified)
-                              MoviPrimaryButton(
-                                label: l10n.pinRecoveryVerifyButton,
-                                onPressed: controller.canVerify()
-                                    ? controller.verify
-                                    : null,
-                                loading: isVerifying,
-                              ),
-                            if (showCodeStep && !isVerified) ...[
-                              const SizedBox(height: AppSpacing.xs),
-                              TextButton(
-                                onPressed:
-                                    state.cooldownRemaining == 0 &&
-                                        controller.canRequestCode()
-                                    ? () => controller.resendCode(
-                                        profileId: profileId,
-                                      )
-                                    : null,
-                                child: Text(
-                                  state.cooldownRemaining > 0
-                                      ? l10n.authOtpResendDisabled(
-                                          state.cooldownRemaining,
+                              const SizedBox(height: AppSpacing.lg),
+                              if (!showCodeStep)
+                                MoviPrimaryButton(
+                                  label: l10n.authOtpPrimarySend,
+                                  onPressed: controller.canRequestCode()
+                                      ? () => controller.requestCode(
+                                          profileId: profileId,
                                         )
-                                      : l10n.authOtpResend,
+                                      : null,
+                                  loading: isSending,
                                 ),
-                              ),
-                            ],
-                            if (isVerified)
-                              MoviPrimaryButton(
-                                label: l10n.pinRecoveryResetButton,
-                                onPressed: controller.canReset()
-                                    ? controller.resetPin
-                                    : null,
-                                loading: isResetting,
-                              ),
-                            if (state.status ==
-                                PinRecoveryUiStatus.resetSuccess)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: AppSpacing.md,
+                              if (showCodeStep) ...[
+                                TextField(
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.done,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(8),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: l10n.pinRecoveryCodeLabel,
+                                    hintText: l10n.pinRecoveryCodeHint,
+                                  ),
+                                  onChanged: controller.setCode,
+                                  onSubmitted: (_) => controller.verify(),
+                                  enabled: !isVerifying && !isVerified,
                                 ),
-                                child: Text(
-                                  l10n.pinRecoveryResetSuccess,
+                              ],
+                              if (isVerified) ...[
+                                const SizedBox(height: AppSpacing.lg),
+                                TextField(
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.next,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(6),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: l10n.pinRecoveryNewPinLabel,
+                                    hintText: l10n.pinRecoveryNewPinHint,
+                                  ),
+                                  onChanged: controller.setNewPin,
+                                  enabled:
+                                      !isResetting &&
+                                      state.status !=
+                                          PinRecoveryUiStatus.resetSuccess,
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                TextField(
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.done,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(6),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: l10n.pinRecoveryConfirmPinLabel,
+                                    hintText: l10n.pinRecoveryConfirmPinHint,
+                                  ),
+                                  onChanged: controller.setConfirmPin,
+                                  onSubmitted: (_) => controller.resetPin(),
+                                  enabled:
+                                      !isResetting &&
+                                      state.status !=
+                                          PinRecoveryUiStatus.resetSuccess,
+                                ),
+                              ],
+                              if (errorText != null) ...[
+                                const SizedBox(height: AppSpacing.md),
+                                Text(
+                                  errorText,
                                   style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.primary,
+                                    color: theme.colorScheme.error,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
-                              ),
-                          ],
+                              ],
+                              const SizedBox(height: AppSpacing.md),
+                              if (showCodeStep && !isVerified)
+                                MoviPrimaryButton(
+                                  label: l10n.pinRecoveryVerifyButton,
+                                  onPressed: controller.canVerify()
+                                      ? controller.verify
+                                      : null,
+                                  loading: isVerifying,
+                                ),
+                              if (showCodeStep && !isVerified) ...[
+                                const SizedBox(height: AppSpacing.xs),
+                                TextButton(
+                                  onPressed:
+                                      state.cooldownRemaining == 0 &&
+                                          controller.canRequestCode()
+                                      ? () => controller.resendCode(
+                                          profileId: profileId,
+                                        )
+                                      : null,
+                                  child: Text(
+                                    state.cooldownRemaining > 0
+                                        ? l10n.authOtpResendDisabled(
+                                            state.cooldownRemaining,
+                                          )
+                                        : l10n.authOtpResend,
+                                  ),
+                                ),
+                              ],
+                              if (isVerified)
+                                MoviPrimaryButton(
+                                  label: l10n.pinRecoveryResetButton,
+                                  onPressed: controller.canReset()
+                                      ? controller.resetPin
+                                      : null,
+                                  loading: isResetting,
+                                ),
+                              if (state.status ==
+                                  PinRecoveryUiStatus.resetSuccess)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: AppSpacing.md,
+                                  ),
+                                  child: Text(
+                                    l10n.pinRecoveryResetSuccess,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

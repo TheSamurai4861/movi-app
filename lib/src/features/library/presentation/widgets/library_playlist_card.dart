@@ -61,10 +61,11 @@ class LibraryPlaylistCard extends ConsumerWidget {
   Widget _getIcon() {
     switch (type) {
       case LibraryPlaylistType.inProgress:
-        return const Icon(
-          Icons.play_circle_outline,
+        return const MoviAssetIcon(
+          AppAssets.iconPlaylist,
+          width: 40,
+          height: 40,
           color: Colors.white,
-          size: 40,
         );
       case LibraryPlaylistType.favoriteMovies:
         return const MoviAssetIcon(
