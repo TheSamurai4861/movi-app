@@ -15,6 +15,7 @@ import 'package:movi/src/features/player/presentation/widgets/video_fit_mode_sel
 import 'package:movi/src/features/player/domain/value_objects/video_fit_mode.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
@@ -25,8 +26,10 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/player/presentation/providers/player_providers.dart';
+import 'package:movi/src/features/player/domain/value_objects/player_tracks.dart';
 import 'package:movi/src/features/player/domain/value_objects/track_info.dart';
 import 'package:movi/src/features/player/presentation/utils/track_label_formatter.dart';
+import 'package:movi/src/features/player/application/services/preferred_tracks_selector.dart';
 import 'package:movi/src/features/player/application/services/next_episode_service.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_brightness.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_volume.dart';
@@ -54,10 +57,13 @@ class VideoPlayerPage extends ConsumerStatefulWidget {
 
 class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  static const PreferredTracksSelector _preferredTracksSelector =
+      PreferredTracksSelector();
   late final ProviderSubscription<VideoPlayerRepository> _playerRepositorySub;
   late final ProviderSubscription<VideoController> _videoControllerSub;
   late final VideoPlayerRepository _playerRepository;
   late final VideoController _videoController;
+  late final PerformanceDiagnosticLogger _diagnostics;
   Timer? _hideControlsTimer;
   late final AnimationController _controlsAnimationController;
   late final Animation<double> _controlsOpacityAnimation;
@@ -75,6 +81,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   final GlobalKey _controlsKey = GlobalKey();
   bool _tracksInitialized = false;
   bool _resumePositionApplied = false;
+  final Set<String> _missingPreferredTrackWarnings = <String>{};
+  String? _lastPreferredTracksFingerprint;
+  bool _isApplyingPreferredTracks = false;
+  bool _pendingPreferredTracksApplication = false;
   VideoSource? _currentVideoSource;
   final List<StreamSubscription> _subscriptions = [];
   VideoFitMode _currentVideoFitMode = VideoFitMode.contain;
@@ -140,6 +150,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _setupListeners();
     _showControlsWithAnimation();
     _startHideControlsTimer();
+    _diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
 
     // Initialiser le VideoSource actuel
     _currentVideoSource = widget.videoSource;
@@ -165,6 +176,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   Future<void> _openGuarded(VideoSource source) async {
+    final stopwatch = Stopwatch()..start();
+    _lastPreferredTracksFingerprint = null;
+    _pendingPreferredTracksApplication = false;
+    _isApplyingPreferredTracks = false;
+    _tracksInitialized = false;
+    _missingPreferredTrackWarnings.clear();
     final profile = ref.read(currentProfileProvider);
     final hasRestrictions =
         profile != null && (profile.isKid || profile.pegiLimit != null);
@@ -184,7 +201,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         type: type!,
         title: MediaTitle(source.title ?? effectiveId),
       );
-      final decision = await ref.read(parental.contentAgeDecisionProvider(content).future);
+      final decision = await ref.read(
+        parental.contentAgeDecisionProvider(content).future,
+      );
       if (!mounted) return;
       if (!decision.isAllowed) {
         if (!context.mounted) return;
@@ -203,7 +222,31 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     }
 
     if (!mounted) return;
-    await _playerRepository.open(source);
+    try {
+      await _playerRepository.open(source);
+      _diagnostics.completed(
+        'player_open_source',
+        elapsed: stopwatch.elapsed,
+        context: <String, Object?>{
+          'contentId': source.contentId,
+          'contentType': source.contentType?.name,
+          'tmdbId': source.tmdbId,
+        },
+      );
+    } catch (error, stackTrace) {
+      _diagnostics.failed(
+        'player_open_source',
+        elapsed: stopwatch.elapsed,
+        error: error,
+        stackTrace: stackTrace,
+        context: <String, Object?>{
+          'contentId': source.contentId,
+          'contentType': source.contentType?.name,
+          'tmdbId': source.tmdbId,
+        },
+      );
+      rethrow;
+    }
   }
 
   void _setupListeners() {
@@ -211,7 +254,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       _playerRepository.playingStream.listen((playing) {
         if (mounted) {
           setState(() => _isPlaying = playing);
-          
         }
       }),
     );
@@ -220,7 +262,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       _playerRepository.positionStream.listen((position) {
         if (mounted) {
           setState(() => _position = position);
-          
         }
       }),
     );
@@ -259,13 +300,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _subscriptions.add(
       prefs.preferredAudioLanguageStream.listen((_) async {
         if (!mounted || !_tracksInitialized) return;
-        await _applyPreferredTracks();
+        _missingPreferredTrackWarnings.remove('audio');
+        await _schedulePreferredTracksApplication(reason: 'audio_preference');
       }),
     );
     _subscriptions.add(
       prefs.preferredSubtitleLanguageStream.listen((_) async {
         if (!mounted || !_tracksInitialized) return;
-        await _applyPreferredTracks();
+        _missingPreferredTrackWarnings.remove('subtitle');
+        await _schedulePreferredTracksApplication(
+          reason: 'subtitle_preference',
+        );
       }),
     );
 
@@ -274,108 +319,195 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       _playerRepository.tracksStream.listen((tracks) async {
         if (!mounted) return;
 
-        setState(() {
-          _hasSubtitles = tracks.subtitleTracks.isNotEmpty;
-          _subtitleTracks = tracks.subtitleTracks
-              .where((t) => TrackLabelFormatter.formatTrackLabel(t).isNotEmpty)
-              .toList(growable: false);
-          _audioTracks = tracks.audioTracks
-              .where((t) => TrackLabelFormatter.formatTrackLabel(t).isNotEmpty)
-              .toList(growable: false);
-
-          if (tracks.audioTracks.isNotEmpty && _currentAudioTrack == null) {
-            _currentAudioTrack = tracks.audioTracks.first;
-          } else if (_currentAudioTrack != null &&
-              tracks.audioTracks.isNotEmpty) {
-            final foundAudio = tracks.audioTracks.firstWhere(
-              (t) => t.id == _currentAudioTrack!.id,
-              orElse: () => tracks.audioTracks.first,
-            );
-            _currentAudioTrack = foundAudio;
-          }
-
-          if (tracks.subtitleTracks.isNotEmpty) {
-            final activeId = tracks.activeSubtitleTrackId;
-            if (activeId != null) {
-              final foundSubtitle = tracks.subtitleTracks.firstWhere(
-                (t) => t.id == activeId,
-                orElse: () => tracks.subtitleTracks.first,
-              );
-              _currentSubtitleTrack = foundSubtitle;
-              _subtitlesEnabled = true;
-            } else {
-              _currentSubtitleTrack = null;
-              _subtitlesEnabled = false;
-            }
-          } else {
-            _currentSubtitleTrack = null;
-            _subtitlesEnabled = false;
-          }
-        });
-
-        if (!_tracksInitialized) {
-          await _applyPreferredTracks();
-          _tracksInitialized = true;
-        }
+        _syncTrackStateFromPlayerTracks(tracks);
+        _missingPreferredTrackWarnings.clear();
+        _tracksInitialized = true;
+        await _schedulePreferredTracksApplication(reason: 'tracks_stream');
       }),
     );
   }
 
+  Future<void> _schedulePreferredTracksApplication({
+    required String reason,
+  }) async {
+    if (!mounted) return;
+    if (_isApplyingPreferredTracks) {
+      _pendingPreferredTracksApplication = true;
+      return;
+    }
+
+    do {
+      _pendingPreferredTracksApplication = false;
+      await _applyPreferredTracks(reason: reason);
+    } while (mounted && _pendingPreferredTracksApplication);
+  }
+
   /// Applique les préférences de langue pour les pistes audio et sous-titres
-  Future<void> _applyPreferredTracks() async {
+  Future<void> _applyPreferredTracks({required String reason}) async {
     if (!mounted) return;
 
+    final stopwatch = Stopwatch()..start();
     try {
       if (_audioTracks.isEmpty && _subtitleTracks.isEmpty) return;
 
       final prefs = ref.read(slProvider)<PlayerPreferences>();
-      final preferredAudio = prefs.preferredAudioLanguage;
-      final preferredSubtitle = prefs.preferredSubtitleLanguage;
-
-      if (preferredAudio != null && preferredAudio.isNotEmpty) {
-        final normalizedPref = TrackLabelFormatter.normalizeLanguageCode(
-          preferredAudio,
+      final plan = _preferredTracksSelector.plan(
+        audioTracks: _audioTracks,
+        subtitleTracks: _subtitleTracks,
+        preferredAudioLanguageCode: prefs.preferredAudioLanguage,
+        preferredSubtitleLanguageCode: prefs.preferredSubtitleLanguage,
+        currentAudioTrackId: _currentAudioTrack?.id,
+        currentSubtitleTrackId: _currentSubtitleTrack?.id,
+        subtitlesEnabled: _subtitlesEnabled,
+        previousFingerprint: _lastPreferredTracksFingerprint,
+      );
+      if (!plan.shouldApply) {
+        _diagnostics.mark(
+          'player_apply_preferred_tracks',
+          event: 'skipped',
+          context: <String, Object?>{
+            'reason': reason,
+            'audioTracks': _audioTracks.length,
+            'subtitleTracks': _subtitleTracks.length,
+          },
         );
-        final match = _audioTracks.firstWhere(
-          (t) =>
-              TrackLabelFormatter.normalizeLanguageCode(t.language) ==
-                  normalizedPref ||
-              TrackLabelFormatter.getLanguageCode(t) == normalizedPref,
-          orElse: () => _audioTracks.first,
-        );
-        await _playerRepository.setAudioTrack(match.id);
-        if (mounted) {
-          setState(() {
-            _currentAudioTrack = match;
-          });
-        }
-      } else if (_audioTracks.isNotEmpty && _currentAudioTrack == null) {
-        if (mounted) {
-          setState(() {
-            _currentAudioTrack = _audioTracks.first;
-          });
-        }
+        return;
       }
 
-      if (preferredSubtitle != null && preferredSubtitle.isNotEmpty) {
-        final normalizedPref = TrackLabelFormatter.normalizeLanguageCode(
-          preferredSubtitle,
-        );
-        final match = _subtitleTracks.firstWhere(
-          (t) =>
-              TrackLabelFormatter.normalizeLanguageCode(t.language) ==
-                  normalizedPref ||
-              TrackLabelFormatter.getLanguageCode(t) == normalizedPref,
-          orElse: () => _subtitleTracks.first,
-        );
-        await _playerRepository.setActiveSubtitleTrack(match.id);
-        if (mounted) {
-          setState(() {
-            _currentSubtitleTrack = match;
-            _subtitlesEnabled = true;
-          });
+      final selection = plan.selection;
+      _isApplyingPreferredTracks = true;
+
+      await _applyPreferredTrackSelection(
+        selection.audio,
+        availableTracks: _audioTracks,
+      );
+      await _applyPreferredTrackSelection(
+        selection.subtitle,
+        availableTracks: _subtitleTracks,
+      );
+      _lastPreferredTracksFingerprint = plan.fingerprint;
+      _diagnostics.completed(
+        'player_apply_preferred_tracks',
+        elapsed: stopwatch.elapsed,
+        context: <String, Object?>{
+          'reason': reason,
+          'audioTracks': _audioTracks.length,
+          'subtitleTracks': _subtitleTracks.length,
+          'audioStatus': selection.audio.status.name,
+          'subtitleStatus': selection.subtitle.status.name,
+        },
+      );
+    } catch (e) {
+      _diagnostics.failed(
+        'player_apply_preferred_tracks',
+        elapsed: stopwatch.elapsed,
+        error: e,
+        context: <String, Object?>{
+          'reason': reason,
+          'audioTracks': _audioTracks.length,
+          'subtitleTracks': _subtitleTracks.length,
+        },
+      );
+      // Ignorer les erreurs si le player a été disposé
+      if (mounted) {
+        // Log l'erreur si nécessaire, mais ne pas la propager
+      }
+    } finally {
+      _isApplyingPreferredTracks = false;
+    }
+  }
+
+  void _syncTrackStateFromPlayerTracks(PlayerTracks tracks) {
+    final filteredSubtitleTracks = tracks.subtitleTracks
+        .where(
+          (track) => TrackLabelFormatter.formatTrackLabel(track).isNotEmpty,
+        )
+        .toList(growable: false);
+    final filteredAudioTracks = tracks.audioTracks
+        .where(
+          (track) => TrackLabelFormatter.formatTrackLabel(track).isNotEmpty,
+        )
+        .toList(growable: false);
+
+    setState(() {
+      _hasSubtitles = filteredSubtitleTracks.isNotEmpty;
+      _subtitleTracks = filteredSubtitleTracks;
+      _audioTracks = filteredAudioTracks;
+
+      _currentAudioTrack = _resolveCurrentTrack(
+        tracks: filteredAudioTracks,
+        activeTrackId: tracks.activeAudioTrackId,
+        fallbackToFirstTrack: true,
+      );
+
+      _currentSubtitleTrack = _resolveCurrentTrack(
+        tracks: filteredSubtitleTracks,
+        activeTrackId: tracks.activeSubtitleTrackId,
+        fallbackToFirstTrack: false,
+      );
+      _subtitlesEnabled = _currentSubtitleTrack != null;
+    });
+  }
+
+  TrackInfo? _resolveCurrentTrack({
+    required List<TrackInfo> tracks,
+    required int? activeTrackId,
+    required bool fallbackToFirstTrack,
+  }) {
+    if (tracks.isEmpty) {
+      return null;
+    }
+    if (activeTrackId == null) {
+      return fallbackToFirstTrack ? tracks.first : null;
+    }
+    return tracks.firstWhere(
+      (track) => track.id == activeTrackId,
+      orElse: () => tracks.first,
+    );
+  }
+
+  Future<void> _applyPreferredTrackSelection(
+    PreferredTrackSelection selection, {
+    required List<TrackInfo> availableTracks,
+  }) async {
+    switch (selection.status) {
+      case PreferredTrackSelectionStatus.noPreference:
+      case PreferredTrackSelectionStatus.noTracksAvailable:
+        return;
+      case PreferredTrackSelectionStatus.matchFound:
+        if (selection.type == TrackType.audio) {
+          if (_currentAudioTrack?.id == selection.requestedTrack!.id) {
+            return;
+          }
+          await _playerRepository.setAudioTrack(selection.requestedTrack!.id);
+          if (mounted) {
+            setState(() {
+              _currentAudioTrack = selection.requestedTrack;
+            });
+          }
+        } else {
+          if (_currentSubtitleTrack?.id == selection.requestedTrack!.id &&
+              _subtitlesEnabled) {
+            return;
+          }
+          await _playerRepository.setActiveSubtitleTrack(
+            selection.requestedTrack!.id,
+          );
+          if (mounted) {
+            setState(() {
+              _currentSubtitleTrack = selection.requestedTrack;
+              _subtitlesEnabled = true;
+            });
+          }
         }
-      } else {
+        return;
+      case PreferredTrackSelectionStatus.noMatchFound:
+        _logMissingPreferredTrack(selection, availableTracks: availableTracks);
+        return;
+      case PreferredTrackSelectionStatus.disableRequested:
+        if (!_subtitlesEnabled && _currentSubtitleTrack == null) {
+          return;
+        }
         await _playerRepository.setActiveSubtitleTrack(null);
         if (mounted) {
           setState(() {
@@ -383,13 +515,33 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
             _subtitlesEnabled = false;
           });
         }
-      }
-    } catch (e) {
-      // Ignorer les erreurs si le player a été disposé
-      if (mounted) {
-        // Log l'erreur si nécessaire, mais ne pas la propager
-      }
+        return;
     }
+  }
+
+  void _logMissingPreferredTrack(
+    PreferredTrackSelection selection, {
+    required List<TrackInfo> availableTracks,
+  }) {
+    if (!selection.hasPreference || availableTracks.isEmpty) {
+      return;
+    }
+    final warningKey = selection.type == TrackType.audio ? 'audio' : 'subtitle';
+    if (_missingPreferredTrackWarnings.contains(warningKey)) {
+      return;
+    }
+    _missingPreferredTrackWarnings.add(warningKey);
+
+    final logger = ref.read(slProvider)<AppLogger>();
+    final availableLabels = availableTracks
+        .map(TrackLabelFormatter.formatTrackLabel)
+        .where((label) => label.isNotEmpty)
+        .join(', ');
+    final trackKind = warningKey;
+    logger.warn(
+      'Preferred $trackKind track could not be applied for language=${selection.preferredLanguageCode}; availableTracks=[$availableLabels]',
+      category: 'player_tracks',
+    );
   }
 
   void _startHideControlsTimer() {
@@ -441,8 +593,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _isBrightnessControl = _gestureStartX! < screenWidth / 2;
 
     // Récupérer les valeurs initiales
-    final systemControlRepo =
-        ref.read(systemControlRepositoryProvider);
+    final systemControlRepo = ref.read(systemControlRepositoryProvider);
     if (_isBrightnessControl) {
       _initialBrightness = await systemControlRepo.getBrightness();
       _lastAppliedBrightness = _initialBrightness;
@@ -480,7 +631,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       targetValue = (_initialBrightness + totalDeltaPercent).clamp(0.0, 1.0);
       // Calculer seulement la différence depuis la dernière valeur appliquée
       final deltaToApply = targetValue - _lastAppliedBrightness;
-      if (deltaToApply.abs() < 0.01) return; // Ignorer les changements trop petits
+      if (deltaToApply.abs() < 0.01)
+        return; // Ignorer les changements trop petits
 
       final systemControlRepo = ref.read(systemControlRepositoryProvider);
       final adjustBrightness = AdjustBrightness(systemControlRepo);
@@ -490,7 +642,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       targetValue = (_initialVolume + totalDeltaPercent).clamp(0.0, 1.0);
       // Calculer seulement la différence depuis la dernière valeur appliquée
       final deltaToApply = targetValue - _lastAppliedVolume;
-      if (deltaToApply.abs() < 0.01) return; // Ignorer les changements trop petits
+      if (deltaToApply.abs() < 0.01)
+        return; // Ignorer les changements trop petits
 
       final systemControlRepo = ref.read(systemControlRepositoryProvider);
       final adjustVolume = AdjustVolume(systemControlRepo);
@@ -611,8 +764,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     final locator = ref.read(slProvider);
     final iptvLocal = locator<IptvLocalRepository>();
     final builder = ref.read(xtreamStreamUrlBuilderProvider);
-    final activeSourceIds =
-        ref.read(asp.appStateControllerProvider).preferredIptvSourceIds;
+    final activeSourceIds = ref
+        .read(asp.appStateControllerProvider)
+        .preferredIptvSourceIds;
 
     final vmAsync = ref.read(
       tvDetailProgressiveControllerProvider(source.contentId!),
@@ -668,6 +822,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         _currentVideoSource = nextVideoSource;
         _resumePositionApplied = false;
         _tracksInitialized = false;
+        _lastPreferredTracksFingerprint = null;
+        _pendingPreferredTracksApplication = false;
+        _isApplyingPreferredTracks = false;
+        _missingPreferredTrackWarnings.clear();
         _position = Duration.zero;
         _duration = Duration.zero;
       });
@@ -807,7 +965,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       // Quand l'app passe en background, entrer automatiquement en PiP si la vidéo est en lecture
       if (_isPlaying && !_isPipActive && _isPipSupported) {
         final pipRepo = ref.read(pictureInPictureRepositoryProvider);
@@ -941,43 +1100,39 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         videoSource?.contentType != null &&
         _duration > Duration.zero) {
       // Sauvegarder l'historique en arrière-plan
-      unawaited(
-        () async {
-          try {
-            // Utiliser le repository hybride (local + Supabase si disponible)
-            final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
-            await historyRepo.upsertPlay(
-              contentId: videoSource!.contentId!,
-              type: videoSource.contentType!,
-              title: videoSource.title ?? '',
-              poster: videoSource.poster,
-              position: _position,
-              duration: _duration,
-              season: videoSource.season,
-              episode: videoSource.episode,
-              userId: ref.read(currentUserIdProvider),
-            );
-
-            // Invalider les providers pour rafraîchir la liste
-            ref.invalidate(homeInProgressProvider);
-            ref.invalidate(libraryPlaylistsProvider);
-          } catch (_) {
-            // Ignorer les erreurs
-          }
-        }(),
-      );
-    }
-
-    // Mettre en pause en arrière-plan
-    unawaited(
-      () async {
+      unawaited(() async {
         try {
-          await _playerRepository.pause();
+          // Utiliser le repository hybride (local + Supabase si disponible)
+          final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
+          await historyRepo.upsertPlay(
+            contentId: videoSource!.contentId!,
+            type: videoSource.contentType!,
+            title: videoSource.title ?? '',
+            poster: videoSource.poster,
+            position: _position,
+            duration: _duration,
+            season: videoSource.season,
+            episode: videoSource.episode,
+            userId: ref.read(currentUserIdProvider),
+          );
+
+          // Invalider les providers pour rafraîchir la liste
+          ref.invalidate(homeInProgressProvider);
+          ref.invalidate(libraryPlaylistsProvider);
         } catch (_) {
           // Ignorer les erreurs
         }
-      }(),
-    );
+      }());
+    }
+
+    // Mettre en pause en arrière-plan
+    unawaited(() async {
+      try {
+        await _playerRepository.pause();
+      } catch (_) {
+        // Ignorer les erreurs
+      }
+    }());
   }
 
   @override
@@ -1119,7 +1274,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                     final screenWidth = constraints.maxWidth;
                     final screenHeight = constraints.maxHeight;
                     final screenAspectRatio = screenWidth / screenHeight;
-                    
+
                     // Calculer un facteur d'échelle qui garantit la couverture
                     // En supposant que la vidéo a un aspect ratio standard (16:9 = 1.78)
                     // Si l'écran est plus large que 16:9, on doit agrandir verticalement
@@ -1128,14 +1283,18 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                     double scale;
                     if (screenAspectRatio > standardVideoAspectRatio) {
                       // Écran plus large : agrandir verticalement
-                      scale = screenHeight / (screenWidth / standardVideoAspectRatio);
+                      scale =
+                          screenHeight /
+                          (screenWidth / standardVideoAspectRatio);
                     } else {
                       // Écran plus étroit : agrandir horizontalement
-                      scale = screenWidth / (screenHeight * standardVideoAspectRatio);
+                      scale =
+                          screenWidth /
+                          (screenHeight * standardVideoAspectRatio);
                     }
                     // Utiliser un facteur minimum de 1.2 et maximum de 3.0
                     final finalScale = scale.clamp(1.2, 3.0);
-                    
+
                     return ClipRect(
                       child: Center(
                         child: Transform.scale(

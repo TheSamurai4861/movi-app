@@ -64,8 +64,9 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
 
     if (hasValidSelection) return;
 
-    final fallbackSelection =
-        cloudProfiles.isNotEmpty ? cloudProfiles.first.id : profiles.first.id;
+    final fallbackSelection = cloudProfiles.isNotEmpty
+        ? cloudProfiles.first.id
+        : profiles.first.id;
     await ref
         .read(selectedProfileControllerProvider.notifier)
         .selectProfile(fallbackSelection);
@@ -136,20 +137,22 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
       }
 
       final next = [
-        for (final p in current) if (p.id == profileId) updated else p,
+        for (final p in current)
+          if (p.id == profileId) updated else p,
       ];
       state = AsyncValue.data(next);
-      
+
       // Si le profil modifié est un enfant et qu'il est actuellement sélectionné,
       // verrouiller sa session pour maintenir les restrictions
       final selectedId = ref.read(selectedProfileControllerProvider);
-      if (selectedId == profileId && (updated.isKid || updated.pegiLimit != null)) {
+      if (selectedId == profileId &&
+          (updated.isKid || updated.pegiLimit != null)) {
         final locator = ref.read(slProvider);
         if (locator.isRegistered<ParentalSessionService>()) {
           await locator<ParentalSessionService>().lock(profileId);
         }
       }
-      
+
       return true;
     } catch (e, st) {
       if (kDebugMode) {
@@ -166,7 +169,9 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
       await repo.deleteProfile(profileId);
 
       final current = state.asData?.value ?? const <Profile>[];
-      final next = current.where((p) => p.id != profileId).toList(growable: false);
+      final next = current
+          .where((p) => p.id != profileId)
+          .toList(growable: false);
       state = AsyncValue.data(next);
 
       final selectedId = ref.read(selectedProfileControllerProvider);
@@ -190,6 +195,8 @@ class ProfilesController extends AsyncNotifier<List<Profile>> {
   }
 
   Future<void> selectProfile(String profileId) async {
-    await ref.read(selectedProfileControllerProvider.notifier).selectProfile(profileId);
+    await ref
+        .read(selectedProfileControllerProvider.notifier)
+        .selectProfile(profileId);
   }
 }

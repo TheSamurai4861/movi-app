@@ -27,8 +27,7 @@ class SplashBootstrapPage extends ConsumerWidget {
         message: l10n.errorPrepareHome,
         retryLabel: l10n.actionRetry,
         onRetry: () {
-          final orchestrator =
-              ref.read(appLaunchOrchestratorProvider.notifier);
+          final orchestrator = ref.read(appLaunchOrchestratorProvider.notifier);
           orchestrator.reset();
           ref.read(appLaunchRunnerProvider)('retry');
         },

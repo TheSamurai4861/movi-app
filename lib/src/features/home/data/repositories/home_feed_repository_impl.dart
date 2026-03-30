@@ -104,7 +104,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       }
 
       final ordered = _interleaveMoviesAndSeries(movies, series);
-      return Ok<List<ContentReference>, Failure>(_takeFirst(ordered, _heroLimit));
+      return Ok<List<ContentReference>, Failure>(
+        _takeFirst(ordered, _heroLimit),
+      );
     } catch (e, st) {
       debugPrint('[HomeFeedRepositoryImpl] getHeroItems error: $e\n$st');
       return Err<List<ContentReference>, Failure>(
@@ -154,12 +156,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
   @override
   Future<Result<Map<String, List<ContentReference>>, Failure>>
-      getIptvCategoryLists({int? itemLimitPerPlaylist}) async {
+  getIptvCategoryLists({int? itemLimitPerPlaylist}) async {
     try {
       _enrichedKeys.clear();
       final lists = await _catalogReader.listCategoryLists(
         activeSourceIds: _appState.preferredIptvSourceIds,
-        itemLimitPerPlaylist: itemLimitPerPlaylist ?? HomeConstants.iptvSectionPreviewLimit,
+        itemLimitPerPlaylist:
+            itemLimitPerPlaylist ?? HomeConstants.iptvSectionPreviewLimit,
       );
       return Ok<Map<String, List<ContentReference>>, Failure>(lists);
     } catch (e, st) {
@@ -223,11 +226,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
             cancelToken: cancelToken,
           );
           cached = dto.toCache();
-          await _tmdbCache.putTvDetail(
-            idNum,
-            cached,
-            language: languageCode,
-          );
+          await _tmdbCache.putTvDetail(idNum, cached, language: languageCode);
         }
 
         final String? posterPath =
@@ -284,7 +283,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
 
         final String? tmdbTitle =
             (cached['title']?.toString() ??
-                cached['original_title']?.toString());
+            cached['original_title']?.toString());
 
         final result = ContentReference(
           id: ref.id,
@@ -397,7 +396,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     }
   }
 
-  List<ContentReference> _mapMovieDtosToHeroCandidates(List<_MovieLiteDto> dtos) {
+  List<ContentReference> _mapMovieDtosToHeroCandidates(
+    List<_MovieLiteDto> dtos,
+  ) {
     final result = <ContentReference>[];
     for (final dto in dtos) {
       final Uri? poster = _images.poster(dto.posterPath);
@@ -455,7 +456,9 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     if (series.isEmpty) return movies;
 
     final out = <ContentReference>[];
-    final maxLen = (movies.length > series.length) ? movies.length : series.length;
+    final maxLen = (movies.length > series.length)
+        ? movies.length
+        : series.length;
     for (var i = 0; i < maxLen; i++) {
       if (i < movies.length) out.add(movies[i]);
       if (i < series.length) out.add(series[i]);
@@ -464,38 +467,52 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   @override
-  Future<Result<List<ContentReference>, Failure>> getTrendingMoviesPage(int page) async {
+  Future<Result<List<ContentReference>, Failure>> getTrendingMoviesPage(
+    int page,
+  ) async {
     try {
       final pageDtos = await _fetchTrendingMoviesPage(page);
       final movies = _mapMovieDtosToHeroCandidates(pageDtos);
       return Ok<List<ContentReference>, Failure>(movies);
     } catch (e, st) {
-      debugPrint('[HomeFeedRepositoryImpl] getTrendingMoviesPage error: $e\n$st');
+      debugPrint(
+        '[HomeFeedRepositoryImpl] getTrendingMoviesPage error: $e\n$st',
+      );
       return Err<List<ContentReference>, Failure>(
         Failure.fromException(
           e,
           stackTrace: st,
           code: 'home_trending_movies_error',
-          context: <String, Object?>{'operation': 'getTrendingMoviesPage', 'page': page},
+          context: <String, Object?>{
+            'operation': 'getTrendingMoviesPage',
+            'page': page,
+          },
         ),
       );
     }
   }
 
   @override
-  Future<Result<List<ContentReference>, Failure>> getTrendingSeriesPage(int page) async {
+  Future<Result<List<ContentReference>, Failure>> getTrendingSeriesPage(
+    int page,
+  ) async {
     try {
       final pageDtos = await _fetchTrendingShowsPage(page);
       final series = _mapTvDtosToHeroCandidates(pageDtos);
       return Ok<List<ContentReference>, Failure>(series);
     } catch (e, st) {
-      debugPrint('[HomeFeedRepositoryImpl] getTrendingSeriesPage error: $e\n$st');
+      debugPrint(
+        '[HomeFeedRepositoryImpl] getTrendingSeriesPage error: $e\n$st',
+      );
       return Err<List<ContentReference>, Failure>(
         Failure.fromException(
           e,
           stackTrace: st,
           code: 'home_trending_series_error',
-          context: <String, Object?>{'operation': 'getTrendingSeriesPage', 'page': page},
+          context: <String, Object?>{
+            'operation': 'getTrendingSeriesPage',
+            'page': page,
+          },
         ),
       );
     }

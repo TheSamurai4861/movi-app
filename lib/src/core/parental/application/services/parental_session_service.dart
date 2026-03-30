@@ -99,4 +99,3 @@ class ParentalSessionService {
     } catch (_) {}
   }
 }
-

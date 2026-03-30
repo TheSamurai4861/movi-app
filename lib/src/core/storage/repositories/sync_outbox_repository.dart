@@ -61,37 +61,34 @@ class SyncOutboxRepository {
       limit: limit,
     );
 
-    return rows.map((row) {
-      Map<String, dynamic>? payload;
-      final raw = row['payload'] as String?;
-      if (raw != null && raw.isNotEmpty) {
-        try {
-          payload = jsonDecode(raw) as Map<String, dynamic>;
-        } catch (_) {
-          payload = null;
-        }
-      }
+    return rows
+        .map((row) {
+          Map<String, dynamic>? payload;
+          final raw = row['payload'] as String?;
+          if (raw != null && raw.isNotEmpty) {
+            try {
+              payload = jsonDecode(raw) as Map<String, dynamic>;
+            } catch (_) {
+              payload = null;
+            }
+          }
 
-      return SyncOutboxItem(
-        id: row['id'] as int,
-        userId: row['user_id'] as String,
-        entity: row['entity'] as String,
-        entityKey: row['entity_key'] as String,
-        operation: row['op'] as String,
-        createdAt: DateTime.fromMillisecondsSinceEpoch(
-          row['created_at'] as int,
-        ),
-        payload: payload,
-      );
-    }).toList(growable: false);
+          return SyncOutboxItem(
+            id: row['id'] as int,
+            userId: row['user_id'] as String,
+            entity: row['entity'] as String,
+            entityKey: row['entity_key'] as String,
+            operation: row['op'] as String,
+            createdAt: DateTime.fromMillisecondsSinceEpoch(
+              row['created_at'] as int,
+            ),
+            payload: payload,
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<void> delete(int id) async {
-    await _db.delete(
-      _table,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await _db.delete(_table, where: 'id = ?', whereArgs: [id]);
   }
 }
-

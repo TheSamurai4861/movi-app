@@ -17,7 +17,10 @@ import 'package:movi/src/core/profile/presentation/providers/profiles_providers.
 class SelectedProfileController extends Notifier<String?> {
   StreamSubscription<String?>? _sub;
 
-  Future<void> _lockPreviousProfileSession(String? previousId, String? nextId) async {
+  Future<void> _lockPreviousProfileSession(
+    String? previousId,
+    String? nextId,
+  ) async {
     final prev = previousId?.trim();
     final next = nextId?.trim();
     if (prev == null || prev.isEmpty) return;
@@ -62,8 +65,7 @@ class SelectedProfileController extends Notifier<String?> {
 
     String? preferredId;
     if (locator.isRegistered<SelectedIptvSourcePreferences>()) {
-      preferredId = locator<SelectedIptvSourcePreferences>()
-          .selectedSourceId
+      preferredId = locator<SelectedIptvSourcePreferences>().selectedSourceId
           ?.trim();
     }
 

@@ -4,8 +4,8 @@ import 'package:movi/src/core/profile/presentation/controllers/selected_profile_
 /// Provider principal (state) : ID du profil sÃƒÆ’Ã‚Â©lectionnÃƒÆ’Ã‚Â©.
 final selectedProfileControllerProvider =
     NotifierProvider<SelectedProfileController, String?>(
-  SelectedProfileController.new,
-);
+      SelectedProfileController.new,
+    );
 
 /// Alias pratique : l'ID sÃƒÆ’Ã‚Â©lectionnÃƒÆ’Ã‚Â©.
 final selectedProfileIdProvider = Provider<String?>((ref) {

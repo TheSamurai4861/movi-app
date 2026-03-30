@@ -1,8 +1,5 @@
 class SyncCursor {
-  const SyncCursor({
-    required this.updatedAt,
-    required this.id,
-  });
+  const SyncCursor({required this.updatedAt, required this.id});
 
   /// Raw `updated_at` value as returned by the backend (UTC preferred).
   ///

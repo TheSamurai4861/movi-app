@@ -20,7 +20,8 @@ class TmdbWatchProvidersRemoteDataSource {
   List<dynamic>? _cachedRegions;
   DateTime? _regionsCachedAt;
   final Map<String, ({List<TmdbWatchProviderDto> providers, DateTime cachedAt})>
-      _providersCache = <String, ({List<TmdbWatchProviderDto> providers, DateTime cachedAt})>{};
+  _providersCache =
+      <String, ({List<TmdbWatchProviderDto> providers, DateTime cachedAt})>{};
 
   /// Récupère la liste des watch providers disponibles pour les films.
   /// Utilise l'endpoint watch/providers/movie avec la région de l'utilisateur.
@@ -30,7 +31,8 @@ class TmdbWatchProvidersRemoteDataSource {
     CancelToken? cancelToken,
   }) async {
     // Récupérer et mémoïser les régions disponibles (TTL 12h)
-    final bool regionsValid = _regionsCachedAt != null &&
+    final bool regionsValid =
+        _regionsCachedAt != null &&
         DateTime.now().difference(_regionsCachedAt!) < _regionsTtl;
     if (!regionsValid) {
       final regionsJson = await _client.getJson(
@@ -56,7 +58,8 @@ class TmdbWatchProvidersRemoteDataSource {
 
     // Cache providers par région (TTL 12h)
     final cacheEntry = _providersCache[validRegion];
-    final bool providersValid = cacheEntry != null &&
+    final bool providersValid =
+        cacheEntry != null &&
         DateTime.now().difference(cacheEntry.cachedAt) < _providersTtl;
     if (providersValid) {
       return cacheEntry.providers;
@@ -83,7 +86,10 @@ class TmdbWatchProvidersRemoteDataSource {
         )
         .toList(growable: false);
 
-    _providersCache[validRegion] = (providers: parsed, cachedAt: DateTime.now());
+    _providersCache[validRegion] = (
+      providers: parsed,
+      cachedAt: DateTime.now(),
+    );
     return parsed;
   }
 

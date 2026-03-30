@@ -9,12 +9,16 @@ import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 abstract class PlaylistRepository {
   /// Returns a full playlist by its identifier.
   Future<Playlist> getPlaylist(PlaylistId id);
+
   /// Returns playlists owned by a given user, ordered by last update when possible.
   Future<List<PlaylistSummary>> getUserPlaylists(String userId);
+
   /// Returns featured playlists, typically the most recently updated.
   Future<List<PlaylistSummary>> getFeaturedPlaylists();
+
   /// Performs a title-based search over playlists.
   Future<List<PlaylistSummary>> searchPlaylists(String query);
+
   /// Creates a new playlist header with the provided metadata.
   Future<void> createPlaylist({
     required PlaylistId id,
@@ -24,18 +28,22 @@ abstract class PlaylistRepository {
     required String owner,
     bool isPublic = false,
   });
+
   /// Renames an existing playlist.
   Future<void> renamePlaylist({
     required PlaylistId id,
     required MediaTitle title,
   });
+
   /// Deletes a playlist and all its items.
   Future<void> deletePlaylist(PlaylistId id);
+
   /// Updates the owner of a playlist.
   Future<void> setOwner({required PlaylistId id, required String owner});
 
   /// Pins/unpins a playlist for quicker access in the Library.
   Future<void> setPinned({required PlaylistId id, required bool isPinned});
+
   /// Adds an item to a playlist.
   ///
   /// Implementations should throw if the playlist header does not exist
@@ -44,11 +52,13 @@ abstract class PlaylistRepository {
     required PlaylistId playlistId,
     required PlaylistItem item,
   });
+
   /// Removes an item from a playlist, typically by its position.
   Future<void> removeItem({
     required PlaylistId playlistId,
     required PlaylistItem item,
   });
+
   /// Reorders an item from one position to another, normalizing as needed.
   Future<void> reorderItem({
     required PlaylistId playlistId,

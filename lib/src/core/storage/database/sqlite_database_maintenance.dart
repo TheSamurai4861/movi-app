@@ -82,7 +82,9 @@ final class LocalDatabaseMaintenance {
     } on DatabaseException catch (error) {
       debugPrint('[DB] Failed to enable WAL, continuing without WAL: $error');
     } catch (error) {
-      debugPrint('[DB] Unexpected error while enabling WAL, continuing: $error');
+      debugPrint(
+        '[DB] Unexpected error while enabling WAL, continuing: $error',
+      );
     }
   }
 
@@ -100,7 +102,9 @@ final class LocalDatabaseMaintenance {
       if (tableExists.isEmpty) return;
 
       final columns = await db.rawQuery('PRAGMA table_info($table);');
-      final hasColumn = columns.any((entry) => entry['name']?.toString() == column);
+      final hasColumn = columns.any(
+        (entry) => entry['name']?.toString() == column,
+      );
       if (hasColumn) return;
 
       await db.execute('ALTER TABLE $table ADD COLUMN $column $ddlType;');

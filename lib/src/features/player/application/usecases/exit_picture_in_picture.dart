@@ -11,4 +11,3 @@ class ExitPictureInPicture {
     await _repository.exit();
   }
 }
-

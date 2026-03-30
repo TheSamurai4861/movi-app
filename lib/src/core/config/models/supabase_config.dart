@@ -38,11 +38,14 @@ class SupabaseConfig {
   final String? expectedProjectRef;
 
   static const String _defineUrl = String.fromEnvironment('SUPABASE_URL');
-  static const String _defineAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const String _defineAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+  );
 
   // On purpose: keep raw string (may be empty). Avoid `.isEmpty` inside const.
-  static const String _defineExpectedProjectRef =
-      String.fromEnvironment('SUPABASE_PROJECT_REF');
+  static const String _defineExpectedProjectRef = String.fromEnvironment(
+    'SUPABASE_PROJECT_REF',
+  );
 
   /// Builds a config instance from compile-time environment defines.
   static const SupabaseConfig fromEnvironment = SupabaseConfig(
@@ -126,8 +129,9 @@ class SupabaseConfig {
     final expected = expectedProjectRefNormalized ?? '<none>';
 
     // Key is not printed; only a stable hash marker.
-    final maskedKey =
-        supabaseAnonKey.trim().isEmpty ? '<empty>' : '***${supabaseAnonKey.hashCode}';
+    final maskedKey = supabaseAnonKey.trim().isEmpty
+        ? '<empty>'
+        : '***${supabaseAnonKey.hashCode}';
     return 'SupabaseConfig(url: $url, projectRef: $ref, expectedRef: $expected, anonKey: $maskedKey)';
   }
 }

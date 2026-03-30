@@ -20,4 +20,3 @@ class DeviceCapabilities extends Equatable {
   @override
   List<Object?> get props => [platform, cpuCores, totalMemoryBytes];
 }
-

@@ -8,5 +8,6 @@ class LoadHomeHero {
 
   final HomeFeedRepository _repo;
 
-  Future<Result<List<ContentReference>, Failure>> call() => _repo.getHeroItems();
+  Future<Result<List<ContentReference>, Failure>> call() =>
+      _repo.getHeroItems();
 }

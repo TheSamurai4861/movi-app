@@ -171,10 +171,7 @@ class MoviHeroGradients {
     );
   }
 
-  static LinearGradient bottomFade(
-    Color color, {
-    MoviHeroOverlaySpec? spec,
-  }) {
+  static LinearGradient bottomFade(Color color, {MoviHeroOverlaySpec? spec}) {
     final effective = spec ?? MoviHeroOverlaySpec.wide;
     return _verticalFade(
       color,
@@ -218,9 +215,7 @@ class MoviHeroGradients {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       stops: stops,
-      colors: [
-        for (final alpha in opacities) color.withValues(alpha: alpha),
-      ],
+      colors: [for (final alpha in opacities) color.withValues(alpha: alpha)],
     );
   }
 }

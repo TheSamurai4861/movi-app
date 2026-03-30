@@ -47,8 +47,8 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     final itemLimit = switch (screenType) {
       ScreenType.mobile => HomeLayoutConstants.continueWatchingMobileLimit,
       ScreenType.tablet => HomeLayoutConstants.continueWatchingTabletLimit,
-      ScreenType.desktop || ScreenType.tv =>
-        HomeLayoutConstants.continueWatchingDesktopLimit,
+      ScreenType.desktop ||
+      ScreenType.tv => HomeLayoutConstants.continueWatchingDesktopLimit,
     };
 
     return inProgressAsync.when(
@@ -122,8 +122,9 @@ class HomeContinueWatchingSection extends ConsumerWidget {
   ) async {
     final locator = ref.read(slProvider);
     final resolver = locator<IptvContentResolver>();
-    final activeSourceIds =
-        ref.read(asp.appStateControllerProvider).preferredIptvSourceIds;
+    final activeSourceIds = ref
+        .read(asp.appStateControllerProvider)
+        .preferredIptvSourceIds;
     final resolution = await resolver.resolve(
       contentId: media.contentId,
       type: media.type,

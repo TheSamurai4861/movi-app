@@ -575,8 +575,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     const headerHorizontalPadding = 20.0;
     const backButtonFramePadding = 8.0;
     const backButtonSize = 35.0;
-    final headerStartPadding =
-        headerHorizontalPadding - backButtonFramePadding;
+    final headerStartPadding = headerHorizontalPadding - backButtonFramePadding;
     final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
     _requestInitialMovieFocusIfNeeded(context);
 
@@ -669,7 +668,8 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                             title: m.title,
                             poster: imageResolver.poster(m.posterPath),
                             year:
-                                m.releaseDate != null && m.releaseDate!.isNotEmpty
+                                m.releaseDate != null &&
+                                    m.releaseDate!.isNotEmpty
                                 ? (m.releaseDate!.length >= 4
                                       ? int.tryParse(
                                           m.releaseDate!.substring(0, 4),

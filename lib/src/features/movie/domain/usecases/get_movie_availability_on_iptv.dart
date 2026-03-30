@@ -3,5 +3,9 @@ import 'package:movi/src/features/movie/domain/services/iptv_availability_servic
 class GetMovieAvailabilityOnIptv {
   const GetMovieAvailabilityOnIptv(this._availability);
   final IptvAvailabilityService _availability;
-  Future<bool> call(String movieId) => _availability.isMovieAvailable(movieId);
+  Future<bool> call(String movieId, {Set<String>? candidateSourceIds}) =>
+      _availability.isMovieAvailable(
+        movieId,
+        candidateSourceIds: candidateSourceIds,
+      );
 }

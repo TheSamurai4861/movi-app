@@ -7,8 +7,8 @@ import 'package:movi/src/core/profile/presentation/controllers/profiles_controll
 /// UI: `ref.watch(profilesControllerProvider)` -> `AsyncValue<List<Profile>>`
 final profilesControllerProvider =
     AsyncNotifierProvider<ProfilesController, List<Profile>>(
-  ProfilesController.new,
-);
+      ProfilesController.new,
+    );
 
 /// Alias pratique si tu veux un provider Ã¢â‚¬Å“profilesAsyncÃ¢â‚¬Â.
 final profilesAsyncProvider = Provider<AsyncValue<List<Profile>>>((ref) {

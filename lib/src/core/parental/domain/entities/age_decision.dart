@@ -76,13 +76,12 @@ class AgeDecision extends Equatable {
 
   @override
   List<Object?> get props => <Object?>[
-        status,
-        reason,
-        minAge,
-        requiredPegi,
-        profilePegi,
-        regionUsed,
-        rawRating,
-      ];
+    status,
+    reason,
+    minAge,
+    requiredPegi,
+    profilePegi,
+    regionUsed,
+    rawRating,
+  ];
 }
-

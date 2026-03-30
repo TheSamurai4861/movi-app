@@ -17,10 +17,7 @@ class ShellRetentionPolicy {
   const ShellRetentionPolicy._();
 
   /// Onglets qui doivent rester montés (conservent l'état widget).
-  static const Set<ShellTab> keepAliveTabs = {
-    ShellTab.home,
-    ShellTab.search,
-  };
+  static const Set<ShellTab> keepAliveTabs = {ShellTab.home, ShellTab.search};
 
   /// Onglets qui doivent être reconstruits à chaque entrée (reset complet).
   static const Set<ShellTab> ephemeralTabs = {
@@ -38,7 +35,6 @@ class ShellRetentionPolicy {
   static bool isEphemeral(ShellTab tab) => ephemeralTabs.contains(tab);
 
   /// Helper: convertit keepAliveTabs en indices (utile pour ShellContentHost).
-  static Set<int> keepAliveIndices() => keepAliveTabs
-      .map((t) => ShellTab.values.indexOf(t))
-      .toSet();
+  static Set<int> keepAliveIndices() =>
+      keepAliveTabs.map((t) => ShellTab.values.indexOf(t)).toSet();
 }

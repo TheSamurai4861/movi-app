@@ -23,7 +23,8 @@ Future<bool> _guardParental(
 }) async {
   // Xtream IDs cannot be evaluated reliably here.
   if (args.isXtream) return true;
-  if (args.type != ContentType.movie && args.type != ContentType.series) return true;
+  if (args.type != ContentType.movie && args.type != ContentType.series)
+    return true;
 
   final profile = ref.read(currentProfileProvider);
   if (profile == null) return true;
@@ -37,7 +38,9 @@ Future<bool> _guardParental(
     title: MediaTitle(args.id),
   );
 
-  final decision = await ref.read(parental.contentAgeDecisionProvider(content).future);
+  final decision = await ref.read(
+    parental.contentAgeDecisionProvider(content).future,
+  );
   if (decision.isAllowed) return true;
 
   if (!context.mounted) return false;

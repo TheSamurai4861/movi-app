@@ -69,10 +69,11 @@ class _IptvSourceOrganizePageState
                             buildDefaultDragHandles: false,
                             padding: const EdgeInsets.only(bottom: 140),
                             itemCount: items.length,
-                            onReorder: (oldIndex, newIndex) => controller.reorder(
-                              oldIndex: oldIndex,
-                              newIndex: newIndex,
-                            ),
+                            onReorder: (oldIndex, newIndex) =>
+                                controller.reorder(
+                                  oldIndex: oldIndex,
+                                  newIndex: newIndex,
+                                ),
                             proxyDecorator: (child, index, animation) {
                               final item = items[index];
                               final typeLabel =

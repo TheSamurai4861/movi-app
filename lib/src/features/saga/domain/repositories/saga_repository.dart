@@ -9,11 +9,13 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 abstract class SagaRepository {
   /// Returns a full `Saga` by its identifier.
   Future<Saga> getSaga(SagaId id);
+
   /// Returns user sagas for a given `userId`.
   ///
   /// Implementations may rely on a generic watchlist until user-scoped
   /// storage is available; this behavior must be documented clearly.
   Future<List<SagaSummary>> getUserSagas(String userId);
+
   /// Performs a search over sagas by query string.
   Future<List<SagaSummary>> searchSagas(String query);
 }

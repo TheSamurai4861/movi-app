@@ -7,20 +7,14 @@ import 'package:movi/src/features/shell/presentation/navigation/shell_destinatio
 /// - Par défaut : Home (pas de persistance au redémarrage)
 /// - Extensible si tu veux ajouter d'autres infos plus tard (ex: isTvMode, etc.)
 class ShellState {
-  const ShellState({
-    required this.selectedTab,
-  });
+  const ShellState({required this.selectedTab});
 
   final ShellTab selectedTab;
 
   int get selectedIndex => shellTabIndex(selectedTab);
 
-  ShellState copyWith({
-    ShellTab? selectedTab,
-  }) {
-    return ShellState(
-      selectedTab: selectedTab ?? this.selectedTab,
-    );
+  ShellState copyWith({ShellTab? selectedTab}) {
+    return ShellState(selectedTab: selectedTab ?? this.selectedTab);
   }
 }
 

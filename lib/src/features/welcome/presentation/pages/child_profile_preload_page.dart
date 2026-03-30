@@ -66,11 +66,7 @@ class _ChildProfilePreloadPageState
             children: [
               const SizedBox(height: 40),
               // Icône ou animation
-              Icon(
-                Icons.child_care,
-                size: 64,
-                color: accentColor,
-              ),
+              Icon(Icons.child_care, size: 64, color: accentColor),
               const SizedBox(height: 32),
               // Titre
               Text(
@@ -130,9 +126,7 @@ class _ChildProfilePreloadPageState
                   ),
               ] else ...[
                 // Indicateur de chargement initial
-                CircularProgressIndicator(
-                  color: accentColor,
-                ),
+                CircularProgressIndicator(color: accentColor),
               ],
               const Spacer(),
               // Bouton "Passer" (optionnel)
@@ -177,10 +171,7 @@ class _ChildProfilePreloadPageState
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium,
-        ),
+        Text(label, style: theme.textTheme.bodyMedium),
         const SizedBox(width: 8),
         Text(
           '$processed / $total',
@@ -215,4 +206,3 @@ class _ChildProfilePreloadPageState
     return 'Environ $minutes min $remainingSeconds sec restantes';
   }
 }
-

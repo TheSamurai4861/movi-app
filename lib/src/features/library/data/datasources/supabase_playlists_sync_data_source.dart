@@ -146,19 +146,16 @@ class SupabasePlaylistsSyncDataSource {
   }) async {
     final row = await _client
         .from(_playlistsTable)
-        .upsert(
-          <String, Object?>{
-            'profile_id': profileId,
-            'local_id': localId,
-            'name': name,
-            'description': description,
-            'cover': cover,
-            'is_pinned': isPinned,
-            'is_public': isPublic,
-            'deleted_at': null,
-          },
-          onConflict: 'profile_id,local_id',
-        )
+        .upsert(<String, Object?>{
+          'profile_id': profileId,
+          'local_id': localId,
+          'name': name,
+          'description': description,
+          'cover': cover,
+          'is_pinned': isPinned,
+          'is_public': isPublic,
+          'deleted_at': null,
+        }, onConflict: 'profile_id,local_id')
         .select('id')
         .single();
 
@@ -170,12 +167,10 @@ class SupabasePlaylistsSyncDataSource {
     required String localId,
     required DateTime deletedAtUtc,
   }) async {
-    await _client.from(_playlistsTable).update(<String, Object?>{
-      'deleted_at': deletedAtUtc.toIso8601String(),
-    }).match(<String, Object>{
-      'profile_id': profileId,
-      'local_id': localId,
-    });
+    await _client
+        .from(_playlistsTable)
+        .update(<String, Object?>{'deleted_at': deletedAtUtc.toIso8601String()})
+        .match(<String, Object>{'profile_id': profileId, 'local_id': localId});
   }
 
   Future<void> replacePlaylistItems({
@@ -186,30 +181,26 @@ class SupabasePlaylistsSyncDataSource {
     final now = DateTime.now().toUtc().toIso8601String();
 
     // Tombstone existing items, then upsert current ones (deleted_at = null).
-    await _client.from(_itemsTable).update(<String, Object?>{
-      'deleted_at': now,
-    }).match(<String, Object>{
-      'playlist_id': playlistId,
-    });
+    await _client
+        .from(_itemsTable)
+        .update(<String, Object?>{'deleted_at': now})
+        .match(<String, Object>{'playlist_id': playlistId});
 
     for (final item in items) {
-      await _client.from(_itemsTable).upsert(
-        <String, Object?>{
-          'profile_id': profileId,
-          'playlist_id': playlistId,
-          'content_id': item.contentId,
-          'content_type': item.contentType,
-          'title': item.title,
-          'poster': item.poster,
-          'year': item.year,
-          'runtime_seconds': item.runtimeSeconds,
-          'notes': item.notes,
-          'position': item.position,
-          'added_at': item.addedAtUtc.toIso8601String(),
-          'deleted_at': null,
-        },
-        onConflict: 'playlist_id,content_type,content_id',
-      );
+      await _client.from(_itemsTable).upsert(<String, Object?>{
+        'profile_id': profileId,
+        'playlist_id': playlistId,
+        'content_id': item.contentId,
+        'content_type': item.contentType,
+        'title': item.title,
+        'poster': item.poster,
+        'year': item.year,
+        'runtime_seconds': item.runtimeSeconds,
+        'notes': item.notes,
+        'position': item.position,
+        'added_at': item.addedAtUtc.toIso8601String(),
+        'deleted_at': null,
+      }, onConflict: 'playlist_id,content_type,content_id');
     }
   }
 

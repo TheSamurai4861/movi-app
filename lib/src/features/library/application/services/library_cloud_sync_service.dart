@@ -43,10 +43,26 @@ class LibraryCloudSyncService {
     required String profileId,
     bool Function()? shouldCancel,
   }) async {
-    await _pushOutbox(client: client, profileId: profileId, shouldCancel: shouldCancel);
-    await _pullFavorites(client: client, profileId: profileId, shouldCancel: shouldCancel);
-    await _pullHistory(client: client, profileId: profileId, shouldCancel: shouldCancel);
-    await _pullPlaylists(client: client, profileId: profileId, shouldCancel: shouldCancel);
+    await _pushOutbox(
+      client: client,
+      profileId: profileId,
+      shouldCancel: shouldCancel,
+    );
+    await _pullFavorites(
+      client: client,
+      profileId: profileId,
+      shouldCancel: shouldCancel,
+    );
+    await _pullHistory(
+      client: client,
+      profileId: profileId,
+      shouldCancel: shouldCancel,
+    );
+    await _pullPlaylists(
+      client: client,
+      profileId: profileId,
+      shouldCancel: shouldCancel,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -237,7 +253,10 @@ class LibraryCloudSyncService {
     bool Function()? shouldCancel,
   }) async {
     final ds = SupabaseFavoritesSyncDataSource(client);
-    var cursor = await _cursorStore.read(table: tableFavorites, profileId: profileId);
+    var cursor = await _cursorStore.read(
+      table: tableFavorites,
+      profileId: profileId,
+    );
 
     while (true) {
       if (shouldCancel?.call() == true) return;
@@ -280,7 +299,11 @@ class LibraryCloudSyncService {
         cursor = SyncCursor(updatedAt: row.updatedAt, id: row.id);
       }
 
-      await _cursorStore.write(table: tableFavorites, profileId: profileId, cursor: cursor);
+      await _cursorStore.write(
+        table: tableFavorites,
+        profileId: profileId,
+        cursor: cursor,
+      );
 
       if (page.length < 200) return;
     }
@@ -292,7 +315,10 @@ class LibraryCloudSyncService {
     bool Function()? shouldCancel,
   }) async {
     final ds = SupabaseHistorySyncDataSource(client);
-    var cursor = await _cursorStore.read(table: tableHistory, profileId: profileId);
+    var cursor = await _cursorStore.read(
+      table: tableHistory,
+      profileId: profileId,
+    );
 
     while (true) {
       if (shouldCancel?.call() == true) return;
@@ -339,7 +365,11 @@ class LibraryCloudSyncService {
         cursor = SyncCursor(updatedAt: row.updatedAt, id: row.id);
       }
 
-      await _cursorStore.write(table: tableHistory, profileId: profileId, cursor: cursor);
+      await _cursorStore.write(
+        table: tableHistory,
+        profileId: profileId,
+        cursor: cursor,
+      );
 
       if (page.length < 200) return;
     }
@@ -351,12 +381,19 @@ class LibraryCloudSyncService {
     bool Function()? shouldCancel,
   }) async {
     final ds = SupabasePlaylistsSyncDataSource(client);
-    var cursor = await _cursorStore.read(table: tablePlaylists, profileId: profileId);
+    var cursor = await _cursorStore.read(
+      table: tablePlaylists,
+      profileId: profileId,
+    );
 
     while (true) {
       if (shouldCancel?.call() == true) return;
 
-      final page = await ds.listNextPage(profileId: profileId, cursor: cursor, limit: 200);
+      final page = await ds.listNextPage(
+        profileId: profileId,
+        cursor: cursor,
+        limit: 200,
+      );
       if (page.isEmpty) return;
 
       for (final row in page) {
@@ -378,24 +415,27 @@ class LibraryCloudSyncService {
           );
 
           final items = await ds.listPlaylistItems(playlistId: row.id);
-          final localItems = items.map((i) {
-            final type = _parseContentType(i.contentType) ?? ContentType.movie;
-            return PlaylistItemRow(
-              position: i.position,
-              reference: ContentReference(
-                id: i.contentId,
-                title: MediaTitle(i.title),
-                type: type,
-                poster: i.poster == null ? null : Uri.tryParse(i.poster!),
-                year: i.year,
-              ),
-              runtime: i.runtimeSeconds == null
-                  ? null
-                  : Duration(seconds: i.runtimeSeconds!),
-              notes: i.notes,
-              addedAt: i.addedAtUtc,
-            );
-          }).toList(growable: false);
+          final localItems = items
+              .map((i) {
+                final type =
+                    _parseContentType(i.contentType) ?? ContentType.movie;
+                return PlaylistItemRow(
+                  position: i.position,
+                  reference: ContentReference(
+                    id: i.contentId,
+                    title: MediaTitle(i.title),
+                    type: type,
+                    poster: i.poster == null ? null : Uri.tryParse(i.poster!),
+                    year: i.year,
+                  ),
+                  runtime: i.runtimeSeconds == null
+                      ? null
+                      : Duration(seconds: i.runtimeSeconds!),
+                  notes: i.notes,
+                  addedAt: i.addedAtUtc,
+                );
+              })
+              .toList(growable: false);
 
           await _playlistsApplier.replaceItems(
             playlistId: row.localId,
@@ -407,7 +447,11 @@ class LibraryCloudSyncService {
         cursor = SyncCursor(updatedAt: row.updatedAt, id: row.id);
       }
 
-      await _cursorStore.write(table: tablePlaylists, profileId: profileId, cursor: cursor);
+      await _cursorStore.write(
+        table: tablePlaylists,
+        profileId: profileId,
+        cursor: cursor,
+      );
 
       if (page.length < 200) return;
     }

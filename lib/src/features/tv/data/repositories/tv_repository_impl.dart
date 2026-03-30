@@ -539,108 +539,108 @@ class TvRepositoryImpl implements TvRepository {
   // --------- Mapping ---------
 
   TvShow _mapShow(
-  TmdbTvDetailDto dto,
-  Map<int, TmdbTvSeasonDetailDto> seasonDetails,
-) {
-  final poster = _images.poster(
-  dto.posterPath ?? dto.posterBackground,
-  size: 'w780',
-);
+    TmdbTvDetailDto dto,
+    Map<int, TmdbTvSeasonDetailDto> seasonDetails,
+  ) {
+    final poster = _images.poster(
+      dto.posterPath ?? dto.posterBackground,
+      size: 'w780',
+    );
 
-if (poster == null) {
-  throw StateError('TV show ${dto.id} missing poster');
-}
+    if (poster == null) {
+      throw StateError('TV show ${dto.id} missing poster');
+    }
 
-final posterBackground =
-    _images.poster(dto.posterBackground, size: 'original') ?? poster;
+    final posterBackground =
+        _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
 
-  return TvShow(
-    id: SeriesId(dto.id.toString()),
-    tmdbId: dto.id,
-    title: MediaTitle(dto.name),
-    synopsis: Synopsis(dto.overview),
-    poster: poster,
-    posterBackground: posterBackground,
-    backdrop: backdrop,
-    firstAirDate: _parseDate(dto.firstAirDate),
-    lastAirDate: _parseDate(dto.lastAirDate),
-    status: _mapStatus(dto.status),
-    rating: _mapRating(dto.voteAverage),
-    voteAverage: dto.voteAverage,
-    genres: dto.genres,
-    cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
-    creators: dto.creators
-        .map(
-          (c) => PersonSummary(
-            id: PersonId(c.id.toString()),
-            tmdbId: c.id,
-            name: c.name,
-          ),
-        )
-        .toList(growable: false),
-    seasons: _mapSeasons(dto.seasons, seasonDetails),
-  );
-}
+    return TvShow(
+      id: SeriesId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.name),
+      synopsis: Synopsis(dto.overview),
+      poster: poster,
+      posterBackground: posterBackground,
+      backdrop: backdrop,
+      firstAirDate: _parseDate(dto.firstAirDate),
+      lastAirDate: _parseDate(dto.lastAirDate),
+      status: _mapStatus(dto.status),
+      rating: _mapRating(dto.voteAverage),
+      voteAverage: dto.voteAverage,
+      genres: dto.genres,
+      cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
+      creators: dto.creators
+          .map(
+            (c) => PersonSummary(
+              id: PersonId(c.id.toString()),
+              tmdbId: c.id,
+              name: c.name,
+            ),
+          )
+          .toList(growable: false),
+      seasons: _mapSeasons(dto.seasons, seasonDetails),
+    );
+  }
 
-TvShow _mapShowLite(TmdbTvDetailDto dto) {
-  final poster = _images.poster(
-  dto.posterPath ?? dto.posterBackground,
-  size: 'w780',
-);
+  TvShow _mapShowLite(TmdbTvDetailDto dto) {
+    final poster = _images.poster(
+      dto.posterPath ?? dto.posterBackground,
+      size: 'w780',
+    );
 
-if (poster == null) {
-  throw StateError('TV show ${dto.id} missing poster');
-}
+    if (poster == null) {
+      throw StateError('TV show ${dto.id} missing poster');
+    }
 
-final posterBackground =
-    _images.poster(dto.posterBackground, size: 'original') ?? poster;
+    final posterBackground =
+        _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
 
-  return TvShow(
-    id: SeriesId(dto.id.toString()),
-    tmdbId: dto.id,
-    title: MediaTitle(dto.name),
-    synopsis: Synopsis(dto.overview),
-    poster: poster,
-    posterBackground: posterBackground,
-    backdrop: backdrop,
-    firstAirDate: _parseDate(dto.firstAirDate),
-    lastAirDate: _parseDate(dto.lastAirDate),
-    status: _mapStatus(dto.status),
-    rating: _mapRating(dto.voteAverage),
-    voteAverage: dto.voteAverage,
-    genres: dto.genres,
-    cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
-    creators: dto.creators
-        .map(
-          (c) => PersonSummary(
-            id: PersonId(c.id.toString()),
-            tmdbId: c.id,
-            name: c.name,
-          ),
-        )
-        .toList(growable: false),
-    seasons: dto.seasons
-        .where((s) => s.seasonNumber >= 0)
-        .map(
-          (season) => Season(
-            id: SeasonId(season.seasonNumber.toString()),
-            seasonNumber: season.seasonNumber,
-            title: MediaTitle(season.name),
-            overview: season.overview.isEmpty
-                ? null
-                : Synopsis(season.overview),
-            poster: _images.poster(season.posterPath),
-            episodes: const [],
-            airDate: _parseDate(season.airDate),
-          ),
-        )
-        .toList(growable: false),
-  );
-}
+    return TvShow(
+      id: SeriesId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.name),
+      synopsis: Synopsis(dto.overview),
+      poster: poster,
+      posterBackground: posterBackground,
+      backdrop: backdrop,
+      firstAirDate: _parseDate(dto.firstAirDate),
+      lastAirDate: _parseDate(dto.lastAirDate),
+      status: _mapStatus(dto.status),
+      rating: _mapRating(dto.voteAverage),
+      voteAverage: dto.voteAverage,
+      genres: dto.genres,
+      cast: dto.cast.take(10).map(_mapCast).toList(growable: false),
+      creators: dto.creators
+          .map(
+            (c) => PersonSummary(
+              id: PersonId(c.id.toString()),
+              tmdbId: c.id,
+              name: c.name,
+            ),
+          )
+          .toList(growable: false),
+      seasons: dto.seasons
+          .where((s) => s.seasonNumber >= 0)
+          .map(
+            (season) => Season(
+              id: SeasonId(season.seasonNumber.toString()),
+              seasonNumber: season.seasonNumber,
+              title: MediaTitle(season.name),
+              overview: season.overview.isEmpty
+                  ? null
+                  : Synopsis(season.overview),
+              poster: _images.poster(season.posterPath),
+              episodes: const [],
+              airDate: _parseDate(season.airDate),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
 
   List<Season> _mapSeasons(
     List<TmdbTvSeasonDto> seasons,

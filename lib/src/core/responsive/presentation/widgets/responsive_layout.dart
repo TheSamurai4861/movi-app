@@ -37,8 +37,12 @@ class ResponsiveLayout extends StatelessWidget {
   ///
   /// Lance une exception si [ResponsiveLayout] n'est pas présent dans l'arbre.
   static ScreenType of(BuildContext context) {
-    final inherited = context.dependOnInheritedWidgetOfExactType<_ResponsiveLayoutData>();
-    assert(inherited != null, 'ResponsiveLayout.of() called with a context that does not contain a ResponsiveLayout');
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<_ResponsiveLayoutData>();
+    assert(
+      inherited != null,
+      'ResponsiveLayout.of() called with a context that does not contain a ResponsiveLayout',
+    );
     return inherited!.screenType;
   }
 
@@ -66,10 +70,7 @@ class ResponsiveLayout extends StatelessWidget {
             break;
         }
 
-        return _ResponsiveLayoutData(
-          screenType: screenType,
-          child: content,
-        );
+        return _ResponsiveLayoutData(screenType: screenType, child: content);
       },
     );
   }
@@ -77,10 +78,7 @@ class ResponsiveLayout extends StatelessWidget {
 
 /// [InheritedWidget] qui expose le [ScreenType] dans l'arbre de widgets.
 class _ResponsiveLayoutData extends InheritedWidget {
-  const _ResponsiveLayoutData({
-    required this.screenType,
-    required super.child,
-  });
+  const _ResponsiveLayoutData({required this.screenType, required super.child});
 
   final ScreenType screenType;
 
@@ -89,4 +87,3 @@ class _ResponsiveLayoutData extends InheritedWidget {
     return screenType != oldWidget.screenType;
   }
 }
-

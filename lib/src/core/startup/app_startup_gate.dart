@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup_provider;
+import 'package:movi/src/core/startup/app_startup_provider.dart'
+    as app_startup_provider;
 import 'package:movi/src/core/theme/app_theme.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/widgets/movi_remote_navigation.dart';
@@ -49,9 +50,7 @@ class AppStartupGate extends ConsumerWidget {
     // --- Loading state -----------------------------------------------------
     if (state.isLoading) {
       debugPrint('[Startup] loading...');
-      return _buildStartupMaterialApp(
-        const _StartupLoadingScreen(),
-      );
+      return _buildStartupMaterialApp(const _StartupLoadingScreen());
     }
 
     // --- Error state -------------------------------------------------------
@@ -96,9 +95,7 @@ Widget _buildStartupMaterialApp(Widget home) {
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: _startupLocalizationsDelegates,
     builder: (context, child) {
-      return MoviRemoteNavigation(
-        child: child ?? const SizedBox.shrink(),
-      );
+      return MoviRemoteNavigation(child: child ?? const SizedBox.shrink());
     },
     home: home,
   );
@@ -114,9 +111,7 @@ class _StartupLoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      body: OverlaySplash(message: l10n.overlayPreparingHome),
-    );
+    return Scaffold(body: OverlaySplash(message: l10n.overlayPreparingHome));
   }
 }
 

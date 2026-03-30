@@ -78,8 +78,10 @@ final ensureTvEnrichmentUseCaseProvider = Provider<EnsureTvEnrichment>(
 /// Provider qui vérifie et déclenche l'enrichissement d'une série si nécessaire.
 /// Retourne `true` si un enrichissement a été déclenché, `false` si déjà complet.
 /// Charge également les épisodes Xtream en arrière-plan.
-final tvDetailEnrichmentProvider =
-    FutureProvider.family<bool, String>((ref, seriesId) async {
+final tvDetailEnrichmentProvider = FutureProvider.family<bool, String>((
+  ref,
+  seriesId,
+) async {
   final logger = ref.watch(slProvider)<AppLogger>();
   logger.debug(
     '📺 [PROVIDER] tvDetailEnrichmentProvider appelé pour seriesId=$seriesId',
@@ -217,7 +219,7 @@ class TvDetailProgressiveController
               tmdbId: tmdbShow.tmdbId,
               title: tmdbShow.title,
               synopsis: tmdbShow.synopsis,
-                         poster: tmdbShow.poster,
+              poster: tmdbShow.poster,
               posterBackground: tmdbShow.posterBackground,
               backdrop: tmdbShow.backdrop,
               firstAirDate: tmdbShow.firstAirDate,
@@ -411,7 +413,7 @@ class TvDetailProgressiveController
             tmdbId: null,
             title: MediaTitle(xtreamItem.title),
             synopsis: Synopsis(xtreamItem.overview ?? ''),
-                        poster: poster,
+            poster: poster,
             posterBackground: null,
             backdrop: null,
             firstAirDate: xtreamItem.releaseYear != null
@@ -560,7 +562,7 @@ class TvDetailProgressiveController
           overviewText: vm.overviewText,
           cast: vm.cast,
           seasons: updatedSeasons,
-                    poster: vm.poster,
+          poster: vm.poster,
           posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
           language: vm.language,
@@ -600,7 +602,7 @@ class TvDetailProgressiveController
           overviewText: vm.overviewText,
           cast: vm.cast,
           seasons: updatedSeasons,
-                    poster: vm.poster,
+          poster: vm.poster,
           posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
           language: vm.language,
@@ -610,9 +612,11 @@ class TvDetailProgressiveController
       final vm = state.value;
       if (vm != null) {
         final updatedSeasons = vm.seasons
-            .map((s) => s.seasonNumber == seasonNumber
-                ? s.copyWith(isLoadingEpisodes: false)
-                : s)
+            .map(
+              (s) => s.seasonNumber == seasonNumber
+                  ? s.copyWith(isLoadingEpisodes: false)
+                  : s,
+            )
             .toList();
         state = AsyncValue.data(
           TvDetailViewModel(
@@ -623,16 +627,15 @@ class TvDetailProgressiveController
             overviewText: vm.overviewText,
             cast: vm.cast,
             seasons: updatedSeasons,
-                      poster: vm.poster,
-          posterBackground: vm.posterBackground,
-          backdrop: vm.backdrop,
+            poster: vm.poster,
+            posterBackground: vm.posterBackground,
+            backdrop: vm.backdrop,
             language: vm.language,
           ),
         );
       }
     }
   }
-
 
   /// Charge les épisodes Xtream pour une série (utilisé même quand on charge depuis TMDB)
   Future<void> _loadXtreamEpisodesForSeries({
@@ -1330,9 +1333,9 @@ class TvDetailProgressiveController
       overviewText: vm.overviewText,
       cast: vm.cast,
       seasons: availableSeasons,
-                poster: vm.poster,
-          posterBackground: vm.posterBackground,
-          backdrop: vm.backdrop,
+      poster: vm.poster,
+      posterBackground: vm.posterBackground,
+      backdrop: vm.backdrop,
       language: vm.language,
     );
 
@@ -1340,24 +1343,35 @@ class TvDetailProgressiveController
   }
 }
 
-final episodesBySeasonProvider = FutureProvider.family<List<Episode>, ({String seriesId, int seasonNumber})>((ref, args) async {
-  final repo = ref.watch(tvRepositoryProvider);
-  final id = SeriesId(args.seriesId);
-  final seasonId = SeasonId(args.seasonNumber.toString());
-  return repo.getEpisodes(id, seasonId);
-});
+final episodesBySeasonProvider =
+    FutureProvider.family<List<Episode>, ({String seriesId, int seasonNumber})>(
+      (ref, args) async {
+        final repo = ref.watch(tvRepositoryProvider);
+        final id = SeriesId(args.seriesId);
+        final seasonId = SeasonId(args.seasonNumber.toString());
+        return repo.getEpisodes(id, seasonId);
+      },
+    );
 
-final watchlistStatusProvider = FutureProvider.family<bool, String>((ref, seriesId) async {
+final watchlistStatusProvider = FutureProvider.family<bool, String>((
+  ref,
+  seriesId,
+) async {
   final repo = ref.watch(tvRepositoryProvider);
   return repo.isInWatchlist(SeriesId(seriesId));
 });
 
-final continueWatchingProvider = FutureProvider<List<TvShowSummary>>((ref) async {
+final continueWatchingProvider = FutureProvider<List<TvShowSummary>>((
+  ref,
+) async {
   final repo = ref.watch(tvRepositoryProvider);
   return repo.getContinueWatching();
 });
 
-final tvAvailabilityProvider = FutureProvider.family<bool, String>((ref, seriesId) async {
+final tvAvailabilityProvider = FutureProvider.family<bool, String>((
+  ref,
+  seriesId,
+) async {
   final locator = ref.read(slProvider);
   final iptvLocal = locator<IptvLocalRepository>();
   if (seriesId.startsWith('xtream:')) return true;
@@ -1366,7 +1380,9 @@ final tvAvailabilityProvider = FutureProvider.family<bool, String>((ref, seriesI
     final detail = await repo.getShowLite(SeriesId(seriesId));
     final tmdbId = detail.tmdbId;
     if (tmdbId == null) return false;
-    final available = await iptvLocal.getAvailableTmdbIds(type: XtreamPlaylistItemType.series);
+    final available = await iptvLocal.getAvailableTmdbIds(
+      type: XtreamPlaylistItemType.series,
+    );
     return available.contains(tmdbId);
   } catch (_) {
     return false;

@@ -112,249 +112,231 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   profilesAsync.when(
-                          loading: () => const Padding(
-                            padding: EdgeInsets.only(top: AppSpacing.lg),
-                            child: CircularProgressIndicator(),
-                          ),
-                          error: (err, stackTrace) {
-                            final errString = err.toString();
-                            if (kDebugMode) {
-                              debugPrint('[WelcomeUserPage] Error: $errString');
-                            }
+                    loading: () => const Padding(
+                      padding: EdgeInsets.only(top: AppSpacing.lg),
+                      child: CircularProgressIndicator(),
+                    ),
+                    error: (err, stackTrace) {
+                      final errString = err.toString();
+                      if (kDebugMode) {
+                        debugPrint('[WelcomeUserPage] Error: $errString');
+                      }
 
-                            // Pour les autres erreurs, afficher un message localisé
-                            return Padding(
+                      // Pour les autres erreurs, afficher un message localisé
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.errorUnknown,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (kDebugMode) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                err.toString(),
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.error.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                    data: (profiles) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Si des profils existent, on affiche un picker (pas de champ texte).
+                          if (profiles.isNotEmpty) ...[
+                            Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.lg,
                               ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
+                              child: Wrap(
+                                spacing: AppSpacing.lg,
+                                runSpacing: AppSpacing.lg,
+                                alignment: WrapAlignment.center,
                                 children: [
-                                  Text(
-                                    l10n.errorUnknown,
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  if (kDebugMode) ...[
-                                    const SizedBox(height: AppSpacing.sm),
-                                    Text(
-                                      err.toString(),
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .error
-                                            .withValues(alpha: 0.7),
-                                        fontSize: 12,
+                                  for (final p in profiles)
+                                    GestureDetector(
+                                      onTap: () async {
+                                        await ref
+                                            .read(
+                                              profilesControllerProvider
+                                                  .notifier,
+                                            )
+                                            .selectProfile(p.id);
+                                      },
+                                      child: ProfileAvatarChip(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        label: p.name,
+                                        size: 72,
+                                        selected: p.id == selectedProfileId,
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
-                                  ],
                                 ],
                               ),
-                            );
-                          },
-                          data: (profiles) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Si des profils existent, on affiche un picker (pas de champ texte).
-                                if (profiles.isNotEmpty) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.lg,
-                                    ),
-                                    child: Wrap(
-                                      spacing: AppSpacing.lg,
-                                      runSpacing: AppSpacing.lg,
-                                      alignment: WrapAlignment.center,
-                                      children: [
-                                        for (final p in profiles)
-                                          GestureDetector(
-                                            onTap: () async {
-                                              await ref
-                                                  .read(
-                                                    profilesControllerProvider
-                                                        .notifier,
-                                                  )
-                                                  .selectProfile(p.id);
-                                            },
-                                            child: ProfileAvatarChip(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                              label: p.name,
-                                              size: 72,
-                                              selected:
-                                                  p.id == selectedProfileId,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.lg,
-                                    ),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: MoviPrimaryButton(
-                                        label: l10n.actionContinue,
-                                        onPressed: () async {
-                                          if (profiles.isNotEmpty &&
-                                              selectedProfileId == null) {
-                                            await ref
-                                                .read(
-                                                  profilesControllerProvider
-                                                      .notifier,
-                                                )
-                                                .selectProfile(
-                                                  profiles.first.id,
-                                                );
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                              ),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: MoviPrimaryButton(
+                                  label: l10n.actionContinue,
+                                  onPressed: () async {
+                                    if (profiles.isNotEmpty &&
+                                        selectedProfileId == null) {
+                                      await ref
+                                          .read(
+                                            profilesControllerProvider.notifier,
+                                          )
+                                          .selectProfile(profiles.first.id);
+                                    }
+                                    if (!context.mounted) return;
+                                    // Reset orchestrator pour relancer le bootstrap.
+                                    ref
+                                        .read(
+                                          appLaunchOrchestratorProvider
+                                              .notifier,
+                                        )
+                                        .reset();
+                                    context.go(AppRouteNames.bootstrap);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            // Aucun profil: on affiche l'input (création du premier profil)
+                            LabeledField(
+                              label: l10n.labelUsername,
+                              child: TextFormField(
+                                controller: _nameCtrl,
+                                focusNode: _nameFocusNode,
+                                textInputAction: TextInputAction.done,
+                                onFieldSubmitted: (_) =>
+                                    _submitFocusNode.requestFocus(),
+                                decoration: InputDecoration(
+                                  hintText: l10n.hintUsername,
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                              ),
+                              child: SizedBox(
+                                width: double.infinity,
+                                child: MoviPrimaryButton(
+                                  label: l10n.actionContinue,
+                                  focusNode: _submitFocusNode,
+                                  loading: state.isSaving,
+                                  onPressed: state.isSaving
+                                      ? null
+                                      : () async {
+                                          final router = GoRouter.of(context);
+                                          final messenger =
+                                              ScaffoldMessenger.of(context);
+
+                                          final fn = FirstName.tryParse(
+                                            _nameCtrl.text,
+                                          );
+
+                                          if (fn == null) {
+                                            messenger.showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  l10n.errorFillFields,
+                                                ),
+                                              ),
+                                            );
+                                            return;
                                           }
-                                          if (!context.mounted) return;
-                                          // Reset orchestrator pour relancer le bootstrap.
-                                          ref
+
+                                          // La langue est déjà définie par l'appareil, pas besoin de la sauvegarder ici
+                                          final currentLangCode = ref.read(
+                                            asp.currentLanguageCodeProvider,
+                                          );
+                                          final lc =
+                                              LanguageCode.tryParse(
+                                                currentLangCode,
+                                              ) ??
+                                              LanguageCode.tryParse('en')!;
+
+                                          final ok = await ref
                                               .read(
-                                                appLaunchOrchestratorProvider
+                                                userSettingsControllerProvider
                                                     .notifier,
                                               )
-                                              .reset();
-                                          context.go(AppRouteNames.bootstrap);
+                                              .save(
+                                                UserSettings(
+                                                  firstName: fn,
+                                                  languageCode: lc,
+                                                ),
+                                              );
+
+                                          if (!mounted) return;
+
+                                          if (ok) {
+                                            await _createFirstProfile(
+                                              profileName: fn.value,
+                                              profileColor:
+                                                  (accentColor.toARGB32() |
+                                                  0xFF000000),
+                                            );
+                                            ref.invalidate(
+                                              profilesControllerProvider,
+                                            );
+                                            // Reset orchestrator pour relancer le bootstrap.
+                                            ref
+                                                .read(
+                                                  appLaunchOrchestratorProvider
+                                                      .notifier,
+                                                )
+                                                .reset();
+                                            router.go(AppRouteNames.bootstrap);
+                                          }
                                         },
-                                      ),
-                                    ),
-                                  ),
-                                ] else ...[
-                                  // Aucun profil: on affiche l'input (création du premier profil)
-                                  LabeledField(
-                                    label: l10n.labelUsername,
-                                    child: TextFormField(
-                                      controller: _nameCtrl,
-                                      focusNode: _nameFocusNode,
-                                      textInputAction: TextInputAction.done,
-                                      onFieldSubmitted: (_) =>
-                                          _submitFocusNode.requestFocus(),
-                                      decoration: InputDecoration(
-                                        hintText: l10n.hintUsername,
-                                        border: const OutlineInputBorder(),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.lg,
-                                    ),
-                                    child: SizedBox(
-                                      width: double.infinity,
-                                      child: MoviPrimaryButton(
-                                        label: l10n.actionContinue,
-                                        focusNode: _submitFocusNode,
-                                        loading: state.isSaving,
-                                        onPressed: state.isSaving
-                                            ? null
-                                            : () async {
-                                                final router = GoRouter.of(
-                                                  context,
-                                                );
-                                                final messenger =
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    );
-
-                                                final fn = FirstName.tryParse(
-                                                  _nameCtrl.text,
-                                                );
-
-                                                if (fn == null) {
-                                                  messenger.showSnackBar(
-                                                    SnackBar(
-                                                      content: Text(
-                                                        l10n.errorFillFields,
-                                                      ),
-                                                    ),
-                                                  );
-                                                  return;
-                                                }
-
-                                                // La langue est déjà définie par l'appareil, pas besoin de la sauvegarder ici
-                                                final currentLangCode = ref.read(
-                                                  asp.currentLanguageCodeProvider,
-                                                );
-                                                final lc =
-                                                    LanguageCode.tryParse(
-                                                      currentLangCode,
-                                                    ) ??
-                                                    LanguageCode.tryParse(
-                                                      'en',
-                                                    )!;
-
-                                                final ok = await ref
-                                                    .read(
-                                                      userSettingsControllerProvider
-                                                          .notifier,
-                                                    )
-                                                    .save(
-                                                      UserSettings(
-                                                        firstName: fn,
-                                                        languageCode: lc,
-                                                      ),
-                                                    );
-
-                                                if (!mounted) return;
-
-                                                if (ok) {
-                                                  await _createFirstProfile(
-                                                    profileName: fn.value,
-                                                    profileColor:
-                                                        (accentColor
-                                                            .toARGB32() |
-                                                        0xFF000000),
-                                                  );
-                                                  ref.invalidate(
-                                                    profilesControllerProvider,
-                                                  );
-                                                  // Reset orchestrator pour relancer le bootstrap.
-                                                  ref
-                                                      .read(
-                                                        appLaunchOrchestratorProvider
-                                                            .notifier,
-                                                      )
-                                                      .reset();
-                                                  router.go(
-                                                    AppRouteNames.bootstrap,
-                                                  );
-                                                }
-                                              },
-                                      ),
-                                    ),
-                                  ),
-                                  if (errorText != null) ...[
-                                    const SizedBox(height: AppSpacing.sm),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.lg,
-                                      ),
-                                      child: Text(
-                                        errorText,
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ],
-                            );
-                          },
-                        ),
+                                ),
+                              ),
+                            ),
+                            if (errorText != null) ...[
+                              const SizedBox(height: AppSpacing.sm),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: Text(
+                                  errorText,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ],
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

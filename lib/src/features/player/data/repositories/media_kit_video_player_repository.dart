@@ -14,8 +14,8 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     Player? player,
     AppLogger? logger,
     String? streamUserAgent,
-  })  : _logger = logger,
-        _streamUserAgent = streamUserAgent {
+  }) : _logger = logger,
+       _streamUserAgent = streamUserAgent {
     _player = player ?? Player();
     _attachDebugStreams();
   }
@@ -242,10 +242,7 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     final ua = (overrideUa.isNotEmpty ? overrideUa : _streamUserAgent)?.trim();
     if (ua == null || ua.isEmpty) return null;
 
-    return <String, String>{
-      'User-Agent': ua,
-      'Accept': '*/*',
-    };
+    return <String, String>{'User-Agent': ua, 'Accept': '*/*'};
   }
 
   Future<String> _resolveStreamUrl(
@@ -375,7 +372,9 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
     final int movieIdx = segments.indexOf('movie');
     final int seriesIdx = segments.indexOf('series');
     final int liveIdx = segments.indexOf('live');
-    final int idx = movieIdx >= 0 ? movieIdx : (seriesIdx >= 0 ? seriesIdx : liveIdx);
+    final int idx = movieIdx >= 0
+        ? movieIdx
+        : (seriesIdx >= 0 ? seriesIdx : liveIdx);
     if (idx >= 0) {
       if (segments.length > idx + 1) segments[idx + 1] = '***';
       if (segments.length > idx + 2) segments[idx + 2] = '***';

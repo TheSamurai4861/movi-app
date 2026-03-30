@@ -1,14 +1,18 @@
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_settings.dart';
+import 'package:movi/src/features/category_browser/domain/value_objects/category_key.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
-import 'package:movi/src/features/category_browser/domain/value_objects/category_key.dart';
 
 class IptvCatalogReader {
-  IptvCatalogReader(this._local);
+  IptvCatalogReader(this._local, this._analysisService, this._logger);
 
   final IptvLocalRepository _local;
+  final IptvPlaylistAnalysisService _analysisService;
+  final AppLogger _logger;
+  final Set<String> _loggedUnsupportedItems = <String>{};
 
   Future<Set<int>> getAvailableTmdbIds({
     XtreamPlaylistItemType? type,
@@ -63,7 +67,7 @@ class IptvCatalogReader {
       categoryName: playlist.title,
       playlistType: playlist.type,
     );
-    return playlistItems.map(_toContentReference).toList(growable: false);
+    return _toContentReferences(playlistItems);
   }
 
   Future<List<ContentReference>> searchCatalog(
@@ -76,21 +80,7 @@ class IptvCatalogReader {
       limit: limit,
       accountIds: activeSourceIds,
     );
-    final out = <ContentReference>[];
-    for (final it in items) {
-      final posterUrl = it.posterUrl;
-      final poster = (posterUrl == null || posterUrl.isEmpty)
-          ? null
-          : _safePosterUri(posterUrl);
-      out.add(
-        _toContentReference(
-          it,
-          posterOverride: poster,
-          titleOverride: it.title.trim(),
-        ),
-      );
-    }
-    return out;
+    return _toContentReferences(items);
   }
 
   Future<Map<String, List<ContentReference>>> listCategoryLists({
@@ -101,17 +91,17 @@ class IptvCatalogReader {
     if (activeSourceIds != null && activeSourceIds.isEmpty) {
       return result;
     }
-    
+
     // 🔧 FIX: Charger TOUS les comptes (Xtream + Stalker)
     final xtreamAccounts = await _local.getAccounts();
     final stalkerAccounts = await _local.getStalkerAccounts();
-    
+
     // Créer une liste unifiée avec (id, alias)
     final allAccounts = <({String id, String alias})>[
       ...xtreamAccounts.map((a) => (id: a.id, alias: a.alias)),
       ...stalkerAccounts.map((a) => (id: a.id, alias: a.alias)),
     ];
-    
+
     for (final acc in allAccounts) {
       if (activeSourceIds != null &&
           activeSourceIds.isNotEmpty &&
@@ -120,9 +110,7 @@ class IptvCatalogReader {
       }
       final playlists = await _local.getPlaylists(acc.id, itemLimit: 0);
       final settings = await _local.getPlaylistSettings(acc.id);
-      final settingsById = {
-        for (final s in settings) s.playlistId: s,
-      };
+      final settingsById = {for (final s in settings) s.playlistId: s};
 
       final ordered = <(XtreamPlaylist, XtreamPlaylistSettings?)>[];
       for (final pl in playlists) {
@@ -137,8 +125,7 @@ class IptvCatalogReader {
       int stableTitleCmp(
         (XtreamPlaylist, XtreamPlaylistSettings?) a,
         (XtreamPlaylist, XtreamPlaylistSettings?) b,
-      ) =>
-          a.$1.title.compareTo(b.$1.title);
+      ) => a.$1.title.compareTo(b.$1.title);
 
       ordered.sort((a, b) {
         final c = globalPosOf(a).compareTo(globalPosOf(b));
@@ -155,7 +142,7 @@ class IptvCatalogReader {
           playlistType: pl.type,
           limit: itemLimitPerPlaylist,
         );
-        final items = playlistItems.map(_toContentReference).toList(growable: false);
+        final items = _toContentReferences(playlistItems);
         if (items.isNotEmpty) {
           result[key] = items;
         }
@@ -181,24 +168,71 @@ class IptvCatalogReader {
     return u;
   }
 
-  ContentReference _toContentReference(
-    XtreamPlaylistItem it, {
-    Uri? posterOverride,
-    String? titleOverride,
-  }) {
-    final refId = (it.tmdbId != null && it.tmdbId! > 0)
-        ? it.tmdbId!.toString()
-        : 'xtream:${it.streamId}';
-    final title = (titleOverride ?? it.title).trim();
+  List<ContentReference> _toContentReferences(
+    Iterable<XtreamPlaylistItem> items,
+  ) {
+    final projected = <ContentReference>[];
+    for (final item in items) {
+      final reference = _toContentReference(item);
+      if (reference != null) {
+        projected.add(reference);
+      }
+    }
+    return List<ContentReference>.unmodifiable(projected);
+  }
+
+  ContentReference? _toContentReference(XtreamPlaylistItem item) {
+    final analysis = _analysisService.analyze(item);
+    if (!analysis.fallback.isSupported) {
+      _logUnsupportedItem(item, analysis);
+      return null;
+    }
+
+    final refId = (item.tmdbId != null && item.tmdbId! > 0)
+        ? item.tmdbId!.toString()
+        : 'xtream:${item.streamId}';
+    final poster =
+        analysis.fallback.posterDecision ==
+            IptvPosterFallbackDecision.keepSourcePoster
+        ? _safePosterUri(item.posterUrl)
+        : null;
+    final year =
+        analysis.fallback.yearDecision == IptvYearFallbackDecision.hideYear
+        ? null
+        : analysis.normalizedYear;
+    final rating =
+        analysis.fallback.ratingDecision ==
+            IptvRatingFallbackDecision.keepSourceRating
+        ? item.rating
+        : null;
+
     return ContentReference(
       id: refId,
-      title: MediaTitle(title),
-      type: it.type == XtreamPlaylistItemType.series
+      title: MediaTitle(analysis.displayTitle),
+      type: item.type == XtreamPlaylistItemType.series
           ? ContentType.series
           : ContentType.movie,
-      poster: posterOverride ?? _safePosterUri(it.posterUrl),
-      year: it.releaseYear,
-      rating: it.rating,
+      poster: poster,
+      year: year,
+      rating: rating,
+    );
+  }
+
+  void _logUnsupportedItem(
+    XtreamPlaylistItem item,
+    IptvPlaylistAnalysis analysis,
+  ) {
+    final key =
+        '${item.accountId}|${item.categoryId}|${item.streamId}|${item.title.trim()}';
+    if (_loggedUnsupportedItems.contains(key)) return;
+    _loggedUnsupportedItems.add(key);
+
+    final diagnostics = analysis.diagnostics.map((d) => d.name).join(', ');
+    _logger.warn(
+      'Skipping unsupported IPTV item '
+      'accountId=${item.accountId} streamId=${item.streamId} '
+      'title="${item.title.trim()}" diagnostics=[$diagnostics]',
+      category: 'iptv_catalog_reader',
     );
   }
 }

@@ -109,7 +109,8 @@ class IptvPlaylistQueryStore {
 
   Future<bool> hasAnyPlaylistItems({Set<String>? accountIds}) async {
     if (accountIds != null && accountIds.isNotEmpty) {
-      final where = 'account_id IN (${List.filled(accountIds.length, '?').join(',')})';
+      final where =
+          'account_id IN (${List.filled(accountIds.length, '?').join(',')})';
       final rows = await _db.query(
         IptvStorageTables.playlistItems,
         columns: const ['account_id'],
@@ -203,7 +204,9 @@ class IptvPlaylistQueryStore {
     }
     if (title.trim().isEmpty) return null;
 
-    final playlistType = _normalizePlaylistType(row['playlist_type']?.toString());
+    final playlistType = _normalizePlaylistType(
+      row['playlist_type']?.toString(),
+    );
     final itemType = _normalizeItemType(
       (row['item_type']?.toString() ?? '').toLowerCase().trim(),
       playlistType,

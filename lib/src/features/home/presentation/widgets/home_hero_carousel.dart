@@ -12,6 +12,7 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/performance/providers/performance_providers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
@@ -87,6 +88,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   static const Duration _fade = HomeLayoutConstants.heroFadeDuration;
   static const double _synopsisHeight = HomeLayoutConstants.heroSynopsisHeight;
   static const Duration _prefetchThrottle = Duration(milliseconds: 350);
+  static const Duration _heroPrecacheTimeout = Duration(seconds: 4);
 
   // DI
   late final TmdbCacheDataSource _cache;
@@ -95,6 +97,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   late final TmdbTvRemoteDataSource _tvRemote;
   late final TmdbIdResolverService _tmdbIdResolver;
   late final LocalePreferences _localePreferences;
+  late final PerformanceDiagnosticLogger _diagnostics;
 
   // États
   final Set<int> _hydratedIds = <int>{};
@@ -113,6 +116,30 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   // Flags pour éviter l'accumulation de callbacks
   bool _pendingStateUpdate = false;
   bool _lastNotifiedLoadingState = false;
+  bool _isBackgroundWorkSuspended = false;
+  bool _visibilitySyncScheduled = false;
+  bool _initialHeroWarmupPending = true;
+  int _heroWorkGeneration = 0;
+  int? _activeLiteHydrationId;
+  int? _activePrecacheId;
+  final Set<int> _precachedBgIds = <int>{};
+  String? _lastLoggedHeroBuildSignature;
+  String? _lastLoggedResolvedMediaSignature;
+
+  void _logHeroDebug(
+    String event, {
+    Map<String, Object?> context = const <String, Object?>{},
+  }) {
+    final message = <String>[
+      '[HomeHeroDebug]',
+      'surface=carousel',
+      'event=$event',
+      'platform=${defaultTargetPlatform.name}',
+      for (final entry in context.entries)
+        if (entry.value != null) '${entry.key}=${entry.value}',
+    ].join(' ');
+    unawaited(LoggingService.log(message, category: 'home_hero_debug'));
+  }
 
   @override
   void initState() {
@@ -123,7 +150,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _tvRemote = ref.read(_tmdbTvRemoteProvider);
     _tmdbIdResolver = ref.read(slProvider)<TmdbIdResolverService>();
     _localePreferences = ref.read(slProvider)<LocalePreferences>();
+    _diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
     WidgetsBinding.instance.addObserver(this);
+    _logHeroDebug(
+      'init_state',
+      context: <String, Object?>{
+        'items': widget.items.length,
+        'useLargeHeroImages': _useLargeHeroImages,
+      },
+    );
     final persistedIndex = ref.read(hp.homeHeroIndexProvider);
     if (persistedIndex > 0 && persistedIndex < widget.items.length) {
       _index = persistedIndex;
@@ -136,12 +171,14 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   void didUpdateWidget(covariant HomeHeroCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(oldWidget.items, widget.items)) {
+      _invalidateHeroWorkGeneration();
       final persistedIndex = ref.read(hp.homeHeroIndexProvider);
       final int maxIndex = (widget.items.length - 1);
       _index = (persistedIndex < 0)
           ? 0
           : (persistedIndex > maxIndex ? maxIndex : persistedIndex);
       _metaFutures.clear();
+      _precachedBgIds.clear();
       _retriedIds.clear();
       _lastNotifiedLoadingState = false;
       _pendingStateUpdate = false;
@@ -161,6 +198,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _prefetchTimer?.cancel();
     _prefetchTimer = null;
     _metaFutures.clear();
+    _precachedBgIds.clear();
     super.dispose();
   }
 
@@ -168,18 +206,150 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _restartTimer();
+      _resumeBackgroundWork(reason: 'app_resumed');
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
-      _timer?.cancel();
+      _suspendBackgroundWork(reason: 'app_inactive');
     }
+  }
+
+  bool get _canRunBackgroundWork =>
+      mounted && !_isBackgroundWorkSuspended && _isHeroVisible();
+
+  int _invalidateHeroWorkGeneration() {
+    _resetBackgroundWorkState();
+    return ++_heroWorkGeneration;
+  }
+
+  bool _isCurrentHeroWorkToken(int workToken) =>
+      mounted && workToken == _heroWorkGeneration;
+
+  bool _isCurrentHeroItemToken(
+    int workToken, {
+    required int tmdbId,
+    required bool isNext,
+  }) {
+    if (!_isCurrentHeroWorkToken(workToken)) {
+      return false;
+    }
+    final expectedId = isNext ? _tmdbIdOf(_nextItem) : _tmdbIdOf(_currentItem);
+    return expectedId == tmdbId;
+  }
+
+  void _retryCurrentHeroPreparationIfNeeded({required int completedTmdbId}) {
+    final int? currentId = _tmdbIdOf(_currentItem);
+    if (currentId == null || currentId == completedTmdbId) {
+      return;
+    }
+    if (!_canRunBackgroundWork) {
+      return;
+    }
+    _prepareCurrentMeta();
+  }
+
+  void _resetBackgroundWorkState() {
+    _activeLiteHydrationId = null;
+    _activePrecacheId = null;
+    _prefetchTimer?.cancel();
+    _prefetchTimer = null;
+    _lastPrefetchAt = null;
+  }
+
+  void _releaseLiteHydrationLock(int tmdbId) {
+    if (_activeLiteHydrationId == tmdbId) {
+      _activeLiteHydrationId = null;
+    }
+    _hydratingIds.remove(tmdbId);
+  }
+
+  void _releasePrecacheLock(int tmdbId) {
+    if (_activePrecacheId == tmdbId) {
+      _activePrecacheId = null;
+    }
+  }
+
+  void _logHeroAbandoned(
+    String operation, {
+    required Stopwatch stopwatch,
+    required Map<String, Object?> context,
+  }) {
+    _diagnostics.mark(
+      operation,
+      event: 'abandoned',
+      context: <String, Object?>{
+        'durationMs': stopwatch.elapsed.inMilliseconds,
+        ...context,
+      },
+    );
+  }
+
+  void _scheduleVisibilitySync() {
+    if (_visibilitySyncScheduled || !mounted) {
+      return;
+    }
+    _visibilitySyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _visibilitySyncScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      final isVisible = _isHeroVisible();
+      if (isVisible) {
+        if (_isBackgroundWorkSuspended) {
+          _resumeBackgroundWork(reason: 'hero_visible');
+        }
+        return;
+      }
+      if (!_isBackgroundWorkSuspended) {
+        _suspendBackgroundWork(reason: 'hero_not_visible');
+      }
+    });
+  }
+
+  void _suspendBackgroundWork({required String reason}) {
+    _invalidateHeroWorkGeneration();
+    if (_isBackgroundWorkSuspended) return;
+    _isBackgroundWorkSuspended = true;
+    _timer?.cancel();
+    _timer = null;
+    _diagnostics.mark(
+      'home_hero_background_work',
+      event: 'suspended',
+      context: <String, Object?>{'reason': reason},
+    );
+  }
+
+  void _resumeBackgroundWork({required String reason}) {
+    if (!_isHeroVisible()) {
+      _diagnostics.mark(
+        'home_hero_background_work',
+        event: 'resume_deferred',
+        context: <String, Object?>{'reason': reason},
+      );
+      _isBackgroundWorkSuspended = true;
+      _scheduleVisibilitySync();
+      return;
+    }
+    if (!_isBackgroundWorkSuspended && _timer != null) return;
+    _isBackgroundWorkSuspended = false;
+    _diagnostics.mark(
+      'home_hero_background_work',
+      event: 'resumed',
+      context: <String, Object?>{'reason': reason},
+    );
+    _prepareCurrentMeta();
+    _restartTimer();
   }
 
   /// Notifie le changement de loading state de manière débounced
   void _notifyLoadingStateIfChanged(bool isLoading) {
     if (_lastNotifiedLoadingState != isLoading) {
       _lastNotifiedLoadingState = isLoading;
+      _logHeroDebug(
+        'loading_changed',
+        context: <String, Object?>{'isLoading': isLoading},
+      );
       // Utiliser addPostFrameCallback pour éviter setState() pendant build
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -207,9 +377,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   void _startTimer() {
     _timer?.cancel();
-    if (widget.items.length <= 1) return;
+    if (widget.items.length <= 1 || !_canRunBackgroundWork) return;
     _timer = Timer.periodic(_rotation, (_) {
-      if (!mounted) return;
+      if (!_canRunBackgroundWork) return;
       _triggerNext();
     });
   }
@@ -220,6 +390,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   void _triggerNext() {
+    if (!_canRunBackgroundWork) {
+      _suspendBackgroundWork(reason: 'hero_not_visible');
+      return;
+    }
     final int len = widget.items.length;
     if (len <= 1) return;
     final oldIndex = _index;
@@ -228,6 +402,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     );
 
     // Mise à jour de l'état
+    _invalidateHeroWorkGeneration();
     _index = (_index + 1) % len;
     _retriedIds.clear();
     _lastNotifiedLoadingState = false; // Reset pour le nouvel item
@@ -241,40 +416,96 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   void _prepareCurrentMeta() {
+    if (!_canRunBackgroundWork) {
+      _diagnostics.mark(
+        'home_hero_prepare',
+        event: 'skipped',
+        context: <String, Object?>{
+          'reason': _isBackgroundWorkSuspended
+              ? 'background_work_suspended'
+              : 'hero_not_visible',
+        },
+      );
+      return;
+    }
     final now = DateTime.now();
+    final workToken = _heroWorkGeneration;
     final last = _lastPrefetchAt;
     if (last != null) {
       final elapsed = now.difference(last);
       if (elapsed < _prefetchThrottle) {
         _prefetchTimer?.cancel();
         _prefetchTimer = Timer(_prefetchThrottle - elapsed, () {
-          if (!mounted) return;
-          _prepareCurrentMetaNow();
+          if (!_isCurrentHeroWorkToken(workToken)) return;
+          _prepareCurrentMetaNow(workToken: workToken);
         });
         return;
       }
     }
-    _prepareCurrentMetaNow();
+    _prepareCurrentMetaNow(workToken: workToken);
   }
 
-  void _prepareCurrentMetaNow() {
-    _lastPrefetchAt = DateTime.now();
+  void _prepareCurrentMetaNow({required int workToken}) {
     final ContentReference? current = _currentItem;
     final int? id = _tmdbIdOf(current);
     if (current == null || id == null) return;
-    final tuning = ref.read(performanceTuningProvider);
+    final bool isInitialHeroWarmup = _initialHeroWarmupPending;
+    _initialHeroWarmupPending = false;
+    final bool heroVisible = _canRunBackgroundWork;
+    _diagnostics.mark(
+      'home_hero_prepare',
+      context: <String, Object?>{
+        'currentId': id,
+        'currentType': current.type.name,
+        'items': widget.items.length,
+        'heroVisible': heroVisible,
+        'initialWarmup': isInitialHeroWarmup,
+      },
+    );
+    _logHeroDebug(
+      'prepare_now',
+      context: <String, Object?>{
+        'currentId': id,
+        'currentType': current.type.name,
+        'heroVisible': heroVisible,
+        'initialWarmup': isInitialHeroWarmup,
+        'workToken': workToken,
+        'nextId': _tmdbIdOf(_nextItem),
+      },
+    );
+    if (!heroVisible) {
+      _diagnostics.mark(
+        'home_hero_prepare',
+        event: 'skipped',
+        context: <String, Object?>{
+          'currentId': id,
+          'reason': _isBackgroundWorkSuspended
+              ? 'background_work_suspended'
+              : 'hero_not_visible',
+        },
+      );
+      return;
+    }
+    _lastPrefetchAt = DateTime.now();
 
     // Préparer meta courante (cache→affichage)
-    _metaFutures[id] = _loadMetaWithRetry(current);
-    // Hydrater l'item courant si nécessaire (prefetch "lite")
-    _hydrateMetaIfNeeded(current);
-
-    // Précharger image courante
-    _precacheBgFor(current, isNext: false);
-
-    final bool allowNextPrefetch = _isHeroVisible();
-    if (!allowNextPrefetch) return;
-
+    _metaFutures[id] = _loadMetaWithRetry(
+      current,
+      workToken: workToken,
+      allowHydration: !isInitialHeroWarmup,
+    );
+    _logHeroDebug(
+      'meta_future_assigned',
+      context: <String, Object?>{
+        'currentId': id,
+        'allowHydration': !isInitialHeroWarmup,
+        'workToken': workToken,
+      },
+    );
+    if (!isInitialHeroWarmup) {
+      _hydrateMetaIfNeeded(current, workToken: workToken);
+      _precacheBgFor(current, isNext: false, workToken: workToken);
+    }
     // Préparer meta suivante pour une transition fluide
     final ContentReference? next = _nextItem;
     final int? nextId = _tmdbIdOf(next);
@@ -283,9 +514,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       // On ne prépare qu'une lecture cache pour garder une transition fluide
       // et laisser le réseau au slide courant.
       _metaFutures[nextId] ??= _loadMeta(next);
-      if (tuning.homeHeroPrecacheNextImage) {
-        _precacheBgFor(next, isNext: true);
-      }
     }
   }
 
@@ -308,12 +536,35 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   bool get _useLargeHeroImages =>
       context.isDesktop || context.isTablet || context.isTv;
 
-  String get _heroPosterSize => _useLargeHeroImages ? 'original' : 'w500';
+  bool get _useConservativeWindowsHeroImages =>
+      defaultTargetPlatform == TargetPlatform.windows &&
+      (context.isDesktop || context.isTv);
 
-  String get _heroPosterBackgroundSize =>
-      _useLargeHeroImages ? 'original' : 'w780';
+  bool get _disableHeroPrecacheOnCurrentPlatform =>
+      defaultTargetPlatform == TargetPlatform.windows;
 
-  String get _heroBackdropSize => _useLargeHeroImages ? 'original' : 'w780';
+  String get _heroPosterSize {
+    if (!_useLargeHeroImages) return 'w500';
+    return _useConservativeWindowsHeroImages ? 'w780' : 'original';
+  }
+
+  String get _heroPosterBackgroundSize {
+    if (!_useLargeHeroImages) return 'w780';
+    return _useConservativeWindowsHeroImages ? 'w1280' : 'original';
+  }
+
+  String get _heroBackdropSize {
+    if (!_useLargeHeroImages) return 'w780';
+    return _useConservativeWindowsHeroImages ? 'w1280' : 'original';
+  }
+
+  String get _heroPrecachePosterSize => _useLargeHeroImages ? 'w780' : 'w500';
+
+  String get _heroPrecachePosterBackgroundSize =>
+      _useLargeHeroImages ? 'w780' : 'w500';
+
+  String get _heroPrecacheBackdropSize =>
+      _useLargeHeroImages ? 'w1280' : 'w780';
 
   Future<_HeroMeta?> _loadMeta(ContentReference item) async {
     int? id = _tmdbIdOf(item);
@@ -368,6 +619,18 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       data['backdrop_path']?.toString(),
       size: _heroBackdropSize,
     );
+    final Uri? precachePosterUri = _images.poster(
+      posterPath,
+      size: _heroPrecachePosterSize,
+    );
+    final Uri? precachePosterBgUri = _images.poster(
+      posterBgPath,
+      size: _heroPrecachePosterBackgroundSize,
+    );
+    final Uri? precacheBackdropUri = _images.backdrop(
+      data['backdrop_path']?.toString(),
+      size: _heroPrecacheBackdropSize,
+    );
     final Uri? logoUri = _images.logo(logoPath);
 
     final String overview = (data['overview']?.toString() ?? '').trim();
@@ -408,12 +671,31 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         ? data['release_date']?.toString()
         : data['first_air_date']?.toString();
     final int? year = _parseYear(date) ?? item.year;
+    _logHeroDebug(
+      'load_meta_resolved',
+      context: <String, Object?>{
+        'tmdbId': id,
+        'itemType': item.type.name,
+        'isTvData': isTvData,
+        'hasPosterBg': posterBgUri != null,
+        'hasPoster': posterUri != null,
+        'hasBackdrop': backdropUri != null,
+        'posterSize': _heroPosterSize,
+        'posterBgSize': _heroPosterBackgroundSize,
+        'backdropSize': _heroBackdropSize,
+        'precachePosterSize': _heroPrecachePosterSize,
+        'precacheBackdropSize': _heroPrecacheBackdropSize,
+      },
+    );
 
     return _HeroMeta(
       isTv: isTvData,
       posterBg: posterBgUri?.toString(),
       poster: posterUri?.toString(),
       backdrop: backdropUri?.toString(),
+      precachePosterBg: precachePosterBgUri?.toString(),
+      precachePoster: precachePosterUri?.toString(),
+      precacheBackdrop: precacheBackdropUri?.toString(),
       logo: logoUri?.toString(),
       title: title ?? item.title.value,
       overview: overview.isEmpty ? null : overview,
@@ -430,7 +712,14 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   /// La future ne doit pas rester bloquée à attendre le réseau: le carousel
   /// affiche immédiatement son état minimal et se ré-enrichit quand l'I/O
   /// termine.
-  Future<_HeroMeta?> _loadMetaWithRetry(ContentReference item) async {
+  Future<_HeroMeta?> _loadMetaWithRetry(
+    ContentReference item, {
+    required int workToken,
+    required bool allowHydration,
+  }) async {
+    if (!_canRunBackgroundWork) {
+      return null;
+    }
     int? id = _tmdbIdOf(item);
 
     // Si pas de tmdbId et que c'est un ID Xtream, essayer de le trouver via recherche
@@ -444,26 +733,48 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
     // Premier essai : charger depuis le cache
     final meta = await _loadMeta(item);
+    if (!_isCurrentHeroWorkToken(workToken)) {
+      return null;
+    }
     if (meta != null) return meta;
 
     // Cache vide : déclencher l'hydratation si pas déjà en cours.
     // On ne poll pas ici pour éviter de garder des futures en attente et
     // d'augmenter la pression réseau pendant la rotation du hero.
-    if (!_hydratedIds.contains(id) &&
+    if (allowHydration &&
+        !_hydratedIds.contains(id) &&
         !_fullyHydratedIds.contains(id) &&
         !_hydratingIds.contains(id)) {
-      unawaited(_hydrateMetaIfNeeded(item));
+      unawaited(_hydrateMetaIfNeeded(item, workToken: workToken));
     }
 
     return null;
   }
 
-  Future<void> _hydrateMetaIfNeeded(ContentReference item) async {
+  Future<void> _hydrateMetaIfNeeded(
+    ContentReference item, {
+    required int workToken,
+  }) async {
+    if (!_canRunBackgroundWork) {
+      return;
+    }
     final int? id = _tmdbIdOf(item);
     if (id == null ||
         _hydratedIds.contains(id) ||
         _fullyHydratedIds.contains(id) ||
         _hydratingIds.contains(id)) {
+      return;
+    }
+    if (_activeLiteHydrationId != null && _activeLiteHydrationId != id) {
+      _diagnostics.mark(
+        'home_hero_hydrate',
+        event: 'skipped',
+        context: <String, Object?>{
+          'tmdbId': id,
+          'reason': 'another_hydration_active',
+          'activeTmdbId': _activeLiteHydrationId,
+        },
+      );
       return;
     }
 
@@ -486,7 +797,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     // Aucune donnée en cache → prefetch "lite" immédiat
     if (data == null) {
       _hydratingIds.add(id);
+      _activeLiteHydrationId = id;
       _logHeroPrefetch(action: 'prefetch_lite', id: id);
+      final stopwatch = Stopwatch()..start();
       try {
         if (!preferTvFirst) {
           try {
@@ -494,12 +807,36 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
               id,
               language: language,
             );
+            if (!_isCurrentHeroWorkToken(workToken)) {
+              _logHeroAbandoned(
+                'home_hero_hydrate',
+                stopwatch: stopwatch,
+                context: <String, Object?>{
+                  'tmdbId': id,
+                  'contentType': item.type.name,
+                  'reason': 'stale_work_token_after_fetch',
+                },
+              );
+              return;
+            }
             await _cache.putMovieDetail(id, dto.toCache(), language: language);
           } catch (_) {
             final dto = await _tvRemote.fetchShowWithImages(
               id,
               language: language,
             );
+            if (!_isCurrentHeroWorkToken(workToken)) {
+              _logHeroAbandoned(
+                'home_hero_hydrate',
+                stopwatch: stopwatch,
+                context: <String, Object?>{
+                  'tmdbId': id,
+                  'contentType': item.type.name,
+                  'reason': 'stale_work_token_after_fetch',
+                },
+              );
+              return;
+            }
             await _cache.putTvDetail(id, dto.toCache(), language: language);
           }
         } else {
@@ -508,27 +845,83 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
               id,
               language: language,
             );
+            if (!_isCurrentHeroWorkToken(workToken)) {
+              _logHeroAbandoned(
+                'home_hero_hydrate',
+                stopwatch: stopwatch,
+                context: <String, Object?>{
+                  'tmdbId': id,
+                  'contentType': item.type.name,
+                  'reason': 'stale_work_token_after_fetch',
+                },
+              );
+              return;
+            }
             await _cache.putTvDetail(id, dto.toCache(), language: language);
           } catch (_) {
             final dto = await _moviesRemote.fetchMovieWithImages(
               id,
               language: language,
             );
+            if (!_isCurrentHeroWorkToken(workToken)) {
+              _logHeroAbandoned(
+                'home_hero_hydrate',
+                stopwatch: stopwatch,
+                context: <String, Object?>{
+                  'tmdbId': id,
+                  'contentType': item.type.name,
+                  'reason': 'stale_work_token_after_fetch',
+                },
+              );
+              return;
+            }
             await _cache.putMovieDetail(id, dto.toCache(), language: language);
           }
         }
         _hydratedIds.add(id);
-        if (!mounted) return;
+        if (!_isCurrentHeroItemToken(workToken, tmdbId: id, isNext: false)) {
+          _logHeroAbandoned(
+            'home_hero_hydrate',
+            stopwatch: stopwatch,
+            context: <String, Object?>{
+              'tmdbId': id,
+              'contentType': item.type.name,
+              'reason': 'current_item_changed_before_commit',
+            },
+          );
+          return;
+        }
         _metaFutures[id] = _loadMeta(item);
         _scheduleStateUpdate();
+        _diagnostics.completed(
+          'home_hero_hydrate',
+          elapsed: stopwatch.elapsed,
+          context: <String, Object?>{
+            'tmdbId': id,
+            'contentType': item.type.name,
+            'reason': 'cache_miss',
+          },
+        );
       } catch (e, st) {
+        _diagnostics.failed(
+          'home_hero_hydrate',
+          elapsed: stopwatch.elapsed,
+          error: e,
+          stackTrace: st,
+          context: <String, Object?>{
+            'tmdbId': id,
+            'contentType': item.type.name,
+            'reason': 'cache_miss',
+          },
+        );
         if (kDebugMode) {
           debugPrint(
             'HomeHeroCarousel: hydration (no cache) failed for $id: $e\n$st',
           );
         }
       } finally {
-        _hydratingIds.remove(id);
+        _releaseLiteHydrationLock(id);
+        _retryCurrentHeroPreparationIfNeeded(completedTmdbId: id);
       }
       return;
     }
@@ -559,28 +952,86 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
     if (_hydratingIds.contains(id)) return;
     _hydratingIds.add(id);
+    _activeLiteHydrationId = id;
     _logHeroPrefetch(action: 'prefetch_lite', id: id);
+    final stopwatch = Stopwatch()..start();
     try {
       if (!isTvData) {
         final dto = await _moviesRemote.fetchMovieWithImages(
           id,
           language: language,
         );
+        if (!_isCurrentHeroWorkToken(workToken)) {
+          _logHeroAbandoned(
+            'home_hero_hydrate',
+            stopwatch: stopwatch,
+            context: <String, Object?>{
+              'tmdbId': id,
+              'contentType': item.type.name,
+              'reason': 'stale_work_token_after_fetch',
+            },
+          );
+          return;
+        }
         await _cache.putMovieDetail(id, dto.toCache(), language: language);
       } else {
         final dto = await _tvRemote.fetchShowWithImages(id, language: language);
+        if (!_isCurrentHeroWorkToken(workToken)) {
+          _logHeroAbandoned(
+            'home_hero_hydrate',
+            stopwatch: stopwatch,
+            context: <String, Object?>{
+              'tmdbId': id,
+              'contentType': item.type.name,
+              'reason': 'stale_work_token_after_fetch',
+            },
+          );
+          return;
+        }
         await _cache.putTvDetail(id, dto.toCache(), language: language);
       }
       _hydratedIds.add(id);
-      if (!mounted) return;
+      if (!_isCurrentHeroItemToken(workToken, tmdbId: id, isNext: false)) {
+        _logHeroAbandoned(
+          'home_hero_hydrate',
+          stopwatch: stopwatch,
+          context: <String, Object?>{
+            'tmdbId': id,
+            'contentType': item.type.name,
+            'reason': 'current_item_changed_before_commit',
+          },
+        );
+        return;
+      }
       _metaFutures[id] = _loadMeta(item);
       _scheduleStateUpdate();
+      _diagnostics.completed(
+        'home_hero_hydrate',
+        elapsed: stopwatch.elapsed,
+        context: <String, Object?>{
+          'tmdbId': id,
+          'contentType': item.type.name,
+          'reason': 'cache_incomplete',
+        },
+      );
     } catch (e, st) {
+      _diagnostics.failed(
+        'home_hero_hydrate',
+        elapsed: stopwatch.elapsed,
+        error: e,
+        stackTrace: st,
+        context: <String, Object?>{
+          'tmdbId': id,
+          'contentType': item.type.name,
+          'reason': 'cache_incomplete',
+        },
+      );
       if (kDebugMode) {
         debugPrint('HomeHeroCarousel: hydration failed for $id: $e\n$st');
       }
     } finally {
-      _hydratingIds.remove(id);
+      _releaseLiteHydrationLock(id);
+      _retryCurrentHeroPreparationIfNeeded(completedTmdbId: id);
     }
   }
 
@@ -791,6 +1242,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   @override
   Widget build(BuildContext context) {
+    _scheduleVisibilitySync();
     final ContentReference? item = _currentItem;
     final int? tmdbId = _tmdbIdOf(item);
     final bool isWideHero = context.isDesktop || context.isTablet;
@@ -806,6 +1258,30 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         ? layoutHeight + visualBleed
         : (layoutHeight - _mobileDetailsMinHeight).clamp(0.0, double.infinity);
     final overlaySpec = MoviHeroOverlaySpec.home(isWideLayout: isWideHero);
+    final buildSignature = [
+      widget.items.length,
+      _index,
+      tmdbId,
+      isWideHero,
+      heroHeight.round(),
+      _canRunBackgroundWork,
+      _isBackgroundWorkSuspended,
+    ].join('|');
+    if (_lastLoggedHeroBuildSignature != buildSignature) {
+      _lastLoggedHeroBuildSignature = buildSignature;
+      _logHeroDebug(
+        'build_state',
+        context: <String, Object?>{
+          'items': widget.items.length,
+          'index': _index,
+          'tmdbId': tmdbId,
+          'isWideHero': isWideHero,
+          'heroHeight': heroHeight.round(),
+          'canRunBackgroundWork': _canRunBackgroundWork,
+          'backgroundWorkSuspended': _isBackgroundWorkSuspended,
+        },
+      );
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -814,15 +1290,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           height: heroHeight,
           width: double.infinity,
           child: (widget.items.isEmpty)
-              ? _HeroEmpty(
-                  heroHeight: heroHeight,
-                  isWideHero: isWideHero,
-                )
+              ? _HeroEmpty(heroHeight: heroHeight, isWideHero: isWideHero)
               : item == null || tmdbId == null
-              ? _HeroSkeleton(
-                  heroHeight: heroHeight,
-                  isWideHero: isWideHero,
-                )
+              ? _HeroSkeleton(heroHeight: heroHeight, isWideHero: isWideHero)
               : FutureBuilder<_HeroMeta?>(
                   future: _metaFutures[tmdbId],
                   builder: (context, snap) {
@@ -849,6 +1319,31 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         _coerceHttpUrl(meta?.poster) ??
                         _coerceHttpUrl(item.poster?.toString());
                     final backdrop = _coerceHttpUrl(meta?.backdrop);
+                    final resolvedMediaSignature = [
+                      tmdbId,
+                      snap.connectionState.name,
+                      isLoadingMeta,
+                      posterBackground,
+                      poster,
+                      backdrop,
+                    ].join('|');
+                    if (_lastLoggedResolvedMediaSignature !=
+                        resolvedMediaSignature) {
+                      _lastLoggedResolvedMediaSignature =
+                          resolvedMediaSignature;
+                      _logHeroDebug(
+                        'future_builder_state',
+                        context: <String, Object?>{
+                          'tmdbId': tmdbId,
+                          'connectionState': snap.connectionState.name,
+                          'isLoadingMeta': isLoadingMeta,
+                          'hasMeta': meta != null,
+                          'posterBackground': posterBackground,
+                          'poster': poster,
+                          'backdrop': backdrop,
+                        },
+                      );
+                    }
 
                     Widget buildBackground() {
                       final image = MoviHeroBackground(
@@ -1200,196 +1695,212 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                // Pills collées au Stack
-                if (item != null && tmdbId != null)
-                  FutureBuilder<_HeroMeta?>(
-                    future: _metaFutures[tmdbId],
-                    builder: (context, snap) {
-                      final _HeroMeta? meta = snap.data;
+                      // Pills collées au Stack
+                      if (item != null && tmdbId != null)
+                        FutureBuilder<_HeroMeta?>(
+                          future: _metaFutures[tmdbId],
+                          builder: (context, snap) {
+                            final _HeroMeta? meta = snap.data;
 
-                      final int? year = meta?.year ?? item.year;
-                      final String yearText = (year ?? '—').toString();
+                            final int? year = meta?.year ?? item.year;
+                            final String yearText = (year ?? '—').toString();
 
-                      final double? rating = meta?.rating;
-                      final String? ratingText = (rating == null)
-                          ? null
-                          : (rating >= 10
-                                ? rating.toStringAsFixed(0)
-                                : rating.toStringAsFixed(1));
+                            final double? rating = meta?.rating;
+                            final String? ratingText = (rating == null)
+                                ? null
+                                : (rating >= 10
+                                      ? rating.toStringAsFixed(0)
+                                      : rating.toStringAsFixed(1));
 
-                      final bool isTv =
-                          meta?.isTv ?? (item.type == ContentType.series);
-                      final String? durationText = isTv
-                          ? null
-                          : _formatDuration(meta?.runtime);
+                            final bool isTv =
+                                meta?.isTv ?? (item.type == ContentType.series);
+                            final String? durationText = isTv
+                                ? null
+                                : _formatDuration(meta?.runtime);
 
-                      final int? seasons = meta?.seasons;
-                      final String? seasonsText =
-                          (isTv && seasons != null && seasons > 0)
-                          ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
-                          : null;
+                            final int? seasons = meta?.seasons;
+                            final String? seasonsText =
+                                (isTv && seasons != null && seasons > 0)
+                                ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
+                                : null;
 
-                      return AnimatedSwitcher(
-                        duration: _fade,
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        layoutBuilder: (current, previous) => Stack(
-                          alignment: Alignment.center,
-                          children: [...previous, if (current != null) current],
-                        ),
-                        child: Row(
-                          key: ValueKey('${tmdbId}_pills'),
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (durationText != null)
-                              MoviPill(durationText, large: true),
-                            if (durationText != null && year != null)
-                              const SizedBox(width: 8),
-                            if (seasonsText != null)
-                              MoviPill(seasonsText, large: true),
-                            if (seasonsText != null && year != null)
-                              const SizedBox(width: 8),
-                            if (year != null) MoviPill(yearText, large: true),
-                            if (year != null && ratingText != null)
-                              const SizedBox(width: 8),
-                            if (ratingText != null)
-                              MoviPill(
-                                ratingText,
-                                trailingIcon: const MoviAssetIcon(
-                                  AppAssets.iconStarFilled,
-                                  width: 18,
-                                  height: 18,
-                                  color: AppColors.ratingAccent,
-                                ),
-                                large: true,
+                            return AnimatedSwitcher(
+                              duration: _fade,
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  ),
+                              layoutBuilder: (current, previous) => Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  ...previous,
+                                  if (current != null) current,
+                                ],
                               ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                const SizedBox(height: 16),
-                // Synopsis après les pills
-                if (tmdbId != null)
-                  FutureBuilder<_HeroMeta?>(
-                    future: _metaFutures[tmdbId],
-                    builder: (context, snap) {
-                      final _HeroMeta? meta = snap.data;
-                      final bool hasSynopsis =
-                          meta?.overview?.isNotEmpty ?? false;
-
-                      if (!hasSynopsis) {
-                        return SizedBox(
-                          height: _synopsisHeight,
-                          child: const SizedBox.shrink(),
-                        );
-                      }
-
-                      return AnimatedSwitcher(
-                        duration: _fade,
-                        transitionBuilder: (child, animation) =>
-                            FadeTransition(opacity: animation, child: child),
-                        child: _buildSynopsis(
-                          key: ValueKey('${tmdbId}_synopsis'),
-                          overview: meta!.overview!,
-                          tmdbId: tmdbId,
-                        ),
-                      );
-                    },
-                  )
-                else
-                  SizedBox(
-                    height: _synopsisHeight,
-                    child: const SizedBox.shrink(),
-                  ),
-                const SizedBox(height: 16),
-                if (tmdbId != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: MoviPrimaryButton(
-                            label: AppLocalizations.of(context)!.homeWatchNow,
-                            focusNode: widget.primaryActionFocusNode,
-                            assetIcon: AppAssets.iconPlay,
-                            onPressed: () => _openDetails(context),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final current = _currentItem;
-                            if (current == null) {
-                              return MoviFavoriteButton(
-                                isFavorite: false,
-                                onPressed: () {},
-                              );
-                            }
-                            final id = current.id.trim();
-                            if (id.isEmpty) {
-                              return MoviFavoriteButton(
-                                isFavorite: false,
-                                onPressed: () {},
-                              );
-                            }
-
-                            if (current.type == ContentType.series) {
-                              final isFavoriteAsync = ref.watch(
-                                tvIsFavoriteProvider(id),
-                              );
-                              return isFavoriteAsync.when(
-                                data: (isFavorite) => MoviFavoriteButton(
-                                  isFavorite: isFavorite,
-                                  onPressed: () async {
-                                    await ref
-                                        .read(tvToggleFavoriteProvider.notifier)
-                                        .toggle(id);
-                                  },
-                                ),
-                                loading: () => MoviFavoriteButton(
-                                  isFavorite: false,
-                                  onPressed: () {},
-                                ),
-                                error: (_, __) => MoviFavoriteButton(
-                                  isFavorite: false,
-                                  onPressed: () {},
-                                ),
-                              );
-                            }
-
-                            final isFavoriteAsync = ref.watch(
-                              movieIsFavoriteProvider(id),
-                            );
-                            return isFavoriteAsync.when(
-                              data: (isFavorite) => MoviFavoriteButton(
-                                isFavorite: isFavorite,
-                                onPressed: () async {
-                                  await ref
-                                      .read(
-                                        movieToggleFavoriteProvider.notifier,
-                                      )
-                                      .toggle(id);
-                                },
-                              ),
-                              loading: () => MoviFavoriteButton(
-                                isFavorite: false,
-                                onPressed: () {},
-                              ),
-                              error: (_, __) => MoviFavoriteButton(
-                                isFavorite: false,
-                                onPressed: () {},
+                              child: Row(
+                                key: ValueKey('${tmdbId}_pills'),
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (durationText != null)
+                                    MoviPill(durationText, large: true),
+                                  if (durationText != null && year != null)
+                                    const SizedBox(width: 8),
+                                  if (seasonsText != null)
+                                    MoviPill(seasonsText, large: true),
+                                  if (seasonsText != null && year != null)
+                                    const SizedBox(width: 8),
+                                  if (year != null)
+                                    MoviPill(yearText, large: true),
+                                  if (year != null && ratingText != null)
+                                    const SizedBox(width: 8),
+                                  if (ratingText != null)
+                                    MoviPill(
+                                      ratingText,
+                                      trailingIcon: const MoviAssetIcon(
+                                        AppAssets.iconStarFilled,
+                                        width: 18,
+                                        height: 18,
+                                        color: AppColors.ratingAccent,
+                                      ),
+                                      large: true,
+                                    ),
+                                ],
                               ),
                             );
                           },
                         ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 12),
+                      const SizedBox(height: 16),
+                      // Synopsis après les pills
+                      if (tmdbId != null)
+                        FutureBuilder<_HeroMeta?>(
+                          future: _metaFutures[tmdbId],
+                          builder: (context, snap) {
+                            final _HeroMeta? meta = snap.data;
+                            final bool hasSynopsis =
+                                meta?.overview?.isNotEmpty ?? false;
+
+                            if (!hasSynopsis) {
+                              return SizedBox(
+                                height: _synopsisHeight,
+                                child: const SizedBox.shrink(),
+                              );
+                            }
+
+                            return AnimatedSwitcher(
+                              duration: _fade,
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                    opacity: animation,
+                                    child: child,
+                                  ),
+                              child: _buildSynopsis(
+                                key: ValueKey('${tmdbId}_synopsis'),
+                                overview: meta!.overview!,
+                                tmdbId: tmdbId,
+                              ),
+                            );
+                          },
+                        )
+                      else
+                        SizedBox(
+                          height: _synopsisHeight,
+                          child: const SizedBox.shrink(),
+                        ),
+                      const SizedBox(height: 16),
+                      if (tmdbId != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: MoviPrimaryButton(
+                                  label: AppLocalizations.of(
+                                    context,
+                                  )!.homeWatchNow,
+                                  focusNode: widget.primaryActionFocusNode,
+                                  assetIcon: AppAssets.iconPlay,
+                                  onPressed: () => _openDetails(context),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Consumer(
+                                builder: (context, ref, _) {
+                                  final current = _currentItem;
+                                  if (current == null) {
+                                    return MoviFavoriteButton(
+                                      isFavorite: false,
+                                      onPressed: () {},
+                                    );
+                                  }
+                                  final id = current.id.trim();
+                                  if (id.isEmpty) {
+                                    return MoviFavoriteButton(
+                                      isFavorite: false,
+                                      onPressed: () {},
+                                    );
+                                  }
+
+                                  if (current.type == ContentType.series) {
+                                    final isFavoriteAsync = ref.watch(
+                                      tvIsFavoriteProvider(id),
+                                    );
+                                    return isFavoriteAsync.when(
+                                      data: (isFavorite) => MoviFavoriteButton(
+                                        isFavorite: isFavorite,
+                                        onPressed: () async {
+                                          await ref
+                                              .read(
+                                                tvToggleFavoriteProvider
+                                                    .notifier,
+                                              )
+                                              .toggle(id);
+                                        },
+                                      ),
+                                      loading: () => MoviFavoriteButton(
+                                        isFavorite: false,
+                                        onPressed: () {},
+                                      ),
+                                      error: (_, __) => MoviFavoriteButton(
+                                        isFavorite: false,
+                                        onPressed: () {},
+                                      ),
+                                    );
+                                  }
+
+                                  final isFavoriteAsync = ref.watch(
+                                    movieIsFavoriteProvider(id),
+                                  );
+                                  return isFavoriteAsync.when(
+                                    data: (isFavorite) => MoviFavoriteButton(
+                                      isFavorite: isFavorite,
+                                      onPressed: () async {
+                                        await ref
+                                            .read(
+                                              movieToggleFavoriteProvider
+                                                  .notifier,
+                                            )
+                                            .toggle(id);
+                                      },
+                                    ),
+                                    loading: () => MoviFavoriteButton(
+                                      isFavorite: false,
+                                      onPressed: () {},
+                                    ),
+                                    error: (_, __) => MoviFavoriteButton(
+                                      isFavorite: false,
+                                      onPressed: () {},
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
@@ -1409,36 +1920,91 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
     if (!mounted || !context.mounted) return;
 
+    _suspendBackgroundWork(reason: 'open_details');
     unawaited(_hydrateMetaFull(current));
 
-    if (current.type == ContentType.series) {
-      await navigateToTvDetail(context, ref, ContentRouteArgs.series(id));
-      return;
-    }
+    try {
+      if (current.type == ContentType.series) {
+        await navigateToTvDetail(context, ref, ContentRouteArgs.series(id));
+        return;
+      }
 
-    await navigateToMovieDetail(context, ref, ContentRouteArgs.movie(id));
+      await navigateToMovieDetail(context, ref, ContentRouteArgs.movie(id));
+    } finally {
+      if (mounted) {
+        _resumeBackgroundWork(reason: 'details_closed');
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Pré-chargement images
   // ---------------------------------------------------------------------------
 
-  void _precacheBgFor(ContentReference item, {required bool isNext}) {
+  void _precacheBgFor(
+    ContentReference item, {
+    required bool isNext,
+    required int workToken,
+  }) {
+    if (!_canRunBackgroundWork) return;
     final int? id = _tmdbIdOf(item);
     if (id == null) return;
+    if (_disableHeroPrecacheOnCurrentPlatform) {
+      _diagnostics.mark(
+        'home_hero_precache_image',
+        event: 'skipped',
+        context: <String, Object?>{
+          'tmdbId': id,
+          'isNext': isNext,
+          'reason': 'platform_disabled',
+          'strategy': 'windows_precache_disabled',
+        },
+      );
+      return;
+    }
+    if (_precachedBgIds.contains(id)) return;
 
     final Future<_HeroMeta?>? future = _metaFutures[id];
     if (future == null) return;
 
     future.then((meta) async {
-      if (!mounted) return;
-
-      final bool ok = isNext
-          ? (_tmdbIdOf(_nextItem) == id)
-          : (_tmdbIdOf(_currentItem) == id);
-      if (!ok) return;
+      if (!_isCurrentHeroItemToken(workToken, tmdbId: id, isNext: isNext)) {
+        return;
+      }
+      if (isNext) {
+        final int? currentId = _tmdbIdOf(_currentItem);
+        if (currentId == null || !_precachedBgIds.contains(currentId)) {
+          _diagnostics.mark(
+            'home_hero_precache_image',
+            event: 'skipped',
+            context: <String, Object?>{
+              'tmdbId': id,
+              'isNext': isNext,
+              'reason': 'current_not_precached',
+              'currentTmdbId': currentId,
+            },
+          );
+          return;
+        }
+      }
+      if (_activePrecacheId != null && _activePrecacheId != id) {
+        _diagnostics.mark(
+          'home_hero_precache_image',
+          event: 'skipped',
+          context: <String, Object?>{
+            'tmdbId': id,
+            'isNext': isNext,
+            'reason': 'another_precache_active',
+            'activeTmdbId': _activePrecacheId,
+          },
+        );
+        return;
+      }
 
       final String? bgSrc =
+          _coerceHttpUrl(meta?.precachePosterBg) ??
+          _coerceHttpUrl(meta?.precachePoster) ??
+          _coerceHttpUrl(meta?.precacheBackdrop) ??
           _coerceHttpUrl(meta?.posterBg) ??
           _coerceHttpUrl(meta?.poster) ??
           _coerceHttpUrl(item.poster?.toString()) ??
@@ -1446,13 +2012,83 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
       if (bgSrc == null) return;
 
+      final stopwatch = Stopwatch()..start();
       try {
-        if (!mounted || !context.mounted) return;
-        await precacheImage(NetworkImage(bgSrc), context);
+        _activePrecacheId = id;
+        if (!mounted || !context.mounted) {
+          _logHeroAbandoned(
+            'home_hero_precache_image',
+            stopwatch: stopwatch,
+            context: <String, Object?>{
+              'tmdbId': id,
+              'isNext': isNext,
+              'reason': 'widget_not_mounted',
+              'strategy': 'bounded_tmdb_size',
+            },
+          );
+          return;
+        }
+        await precacheImage(NetworkImage(bgSrc), context).timeout(
+          _heroPrecacheTimeout,
+          onTimeout: () =>
+              throw TimeoutException('Hero precache timed out for tmdbId=$id'),
+        );
+        if (!_isCurrentHeroItemToken(workToken, tmdbId: id, isNext: isNext)) {
+          _logHeroAbandoned(
+            'home_hero_precache_image',
+            stopwatch: stopwatch,
+            context: <String, Object?>{
+              'tmdbId': id,
+              'isNext': isNext,
+              'reason': 'current_item_changed_after_precache',
+              'strategy': 'bounded_tmdb_size',
+            },
+          );
+          return;
+        }
+        _precachedBgIds.add(id);
+        _diagnostics.completed(
+          'home_hero_precache_image',
+          elapsed: stopwatch.elapsed,
+          context: <String, Object?>{
+            'tmdbId': id,
+            'isNext': isNext,
+            'strategy': 'bounded_tmdb_size',
+          },
+        );
       } catch (e, st) {
+        final isTimeout = e is TimeoutException;
+        _diagnostics.failed(
+          'home_hero_precache_image',
+          elapsed: stopwatch.elapsed,
+          error: e,
+          stackTrace: st,
+          context: <String, Object?>{
+            'tmdbId': id,
+            'isNext': isNext,
+            'strategy': 'bounded_tmdb_size',
+            'reason': isTimeout ? 'timeout' : 'error',
+            if (isTimeout) 'timeoutMs': _heroPrecacheTimeout.inMilliseconds,
+          },
+        );
         if (kDebugMode) {
           debugPrint('HomeHeroCarousel: precache failed for $id: $e\n$st');
         }
+      } finally {
+        _releasePrecacheLock(id);
+        if (!isNext &&
+            _isCurrentHeroItemToken(workToken, tmdbId: id, isNext: false)) {
+          final tuning = ref.read(performanceTuningProvider);
+          final ContentReference? next = _nextItem;
+          final int? nextId = _tmdbIdOf(next);
+          if (tuning.homeHeroPrecacheNextImage &&
+              next != null &&
+              nextId != null &&
+              !_precachedBgIds.contains(nextId)) {
+            _precacheBgFor(next, isNext: true, workToken: workToken);
+          }
+        }
+        _retryCurrentHeroPreparationIfNeeded(completedTmdbId: id);
       }
     });
   }
@@ -1596,6 +2232,9 @@ class _HeroMeta {
     this.posterBg,
     this.poster,
     this.backdrop,
+    this.precachePosterBg,
+    this.precachePoster,
+    this.precacheBackdrop,
     this.logo,
     this.title,
     this.overview,
@@ -1609,6 +2248,9 @@ class _HeroMeta {
   final String? posterBg;
   final String? poster;
   final String? backdrop;
+  final String? precachePosterBg;
+  final String? precachePoster;
+  final String? precacheBackdrop;
   final String? logo;
   final String? title;
   final String? overview;
@@ -1619,10 +2261,7 @@ class _HeroMeta {
 }
 
 class _HeroSkeleton extends StatelessWidget {
-  const _HeroSkeleton({
-    required this.heroHeight,
-    required this.isWideHero,
-  });
+  const _HeroSkeleton({required this.heroHeight, required this.isWideHero});
   final double heroHeight;
   final bool isWideHero;
 
@@ -1690,10 +2329,7 @@ class _HeroSkeleton extends StatelessWidget {
 }
 
 class _HeroEmpty extends StatelessWidget {
-  const _HeroEmpty({
-    required this.heroHeight,
-    required this.isWideHero,
-  });
+  const _HeroEmpty({required this.heroHeight, required this.isWideHero});
   final double heroHeight;
   final bool isWideHero;
 

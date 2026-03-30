@@ -14,4 +14,3 @@ enum ScreenType {
   /// Télévision ou écran très large
   tv,
 }
-

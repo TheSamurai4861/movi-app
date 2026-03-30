@@ -7,11 +7,7 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 
 class WelcomeHeader extends ConsumerWidget {
-  const WelcomeHeader({
-    super.key,
-    this.title,
-    this.subtitle,
-  });
+  const WelcomeHeader({super.key, this.title, this.subtitle});
 
   final String? title;
   final String? subtitle;

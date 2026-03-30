@@ -4,16 +4,17 @@ import 'package:movi/src/core/storage/repositories/iptv/iptv_storage_tables.dart
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_settings.dart';
 
-typedef PlaylistTypeNormalizer =
-    XtreamPlaylistType Function(String? rawValue);
+typedef PlaylistTypeNormalizer = XtreamPlaylistType Function(String? rawValue);
 
 /// Persists the display settings associated with IPTV playlists.
 ///
 /// The store intentionally keeps raw SQLite details away from the public
 /// repository while preserving the current settings semantics.
 class IptvPlaylistSettingsStore {
-  IptvPlaylistSettingsStore(this._db, {required PlaylistTypeNormalizer normalize})
-    : _normalizePlaylistType = normalize;
+  IptvPlaylistSettingsStore(
+    this._db, {
+    required PlaylistTypeNormalizer normalize,
+  }) : _normalizePlaylistType = normalize;
 
   final Database _db;
   final PlaylistTypeNormalizer _normalizePlaylistType;

@@ -94,7 +94,8 @@ class XtreamSyncService {
     if (_initialTickDelay > Duration.zero) {
       _initialTimer = Timer(
         _initialTickDelay,
-        () => unawaited(_runInitialTick(skipInitialIfFresh: skipInitialIfFresh)),
+        () =>
+            unawaited(_runInitialTick(skipInitialIfFresh: skipInitialIfFresh)),
       );
       return;
     }
@@ -111,19 +112,15 @@ class XtreamSyncService {
 
   Future<void> _runInitialTick({required bool skipInitialIfFresh}) async {
     if (_isWithinInitialRefreshCooldown()) {
-      _logger.info(_formatInitialLog(
-        action: 'skip',
-        detail: 'recent_refresh',
-      ));
+      _logger.info(_formatInitialLog(action: 'skip', detail: 'recent_refresh'));
       return;
     }
     if (skipInitialIfFresh) {
       final hasFreshSnapshot = await _hasFreshSnapshotForActiveSources();
       if (hasFreshSnapshot) {
-        _logger.info(_formatInitialLog(
-          action: 'skip',
-          detail: 'fresh_snapshot',
-        ));
+        _logger.info(
+          _formatInitialLog(action: 'skip', detail: 'fresh_snapshot'),
+        );
         return;
       }
     }

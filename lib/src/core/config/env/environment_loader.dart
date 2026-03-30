@@ -6,7 +6,8 @@ import 'package:movi/src/core/config/env/environment.dart';
 
 /// Function signature used to resolve a fallback [AppEnvironment]
 /// when no `--dart-define` is provided.
-typedef EnvironmentFallbackResolver = AppEnvironment Function(PlatformInfo info);
+typedef EnvironmentFallbackResolver =
+    AppEnvironment Function(PlatformInfo info);
 
 /// Central loader responsible for selecting the active [EnvironmentFlavor].
 ///
@@ -19,9 +20,9 @@ class EnvironmentLoader {
     PlatformInfo? platformInfo,
     EnvironmentFallbackResolver? fallbackResolver,
     void Function(String message)? onInfo,
-  })  : platformInfo = platformInfo ?? const PlatformSelector(),
-        _fallbackResolver = fallbackResolver ?? _defaultFallback,
-        _onInfo = onInfo;
+  }) : platformInfo = platformInfo ?? const PlatformSelector(),
+       _fallbackResolver = fallbackResolver ?? _defaultFallback,
+       _onInfo = onInfo;
 
   /// Abstraction over the current platform (web, iOS, Android, desktop…).
   final PlatformInfo platformInfo;

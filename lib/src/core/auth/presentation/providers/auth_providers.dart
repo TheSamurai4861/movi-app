@@ -14,16 +14,14 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 @immutable
 class AuthControllerState {
-  const AuthControllerState({
-    required this.status,
-    this.userId,
-  });
+  const AuthControllerState({required this.status, this.userId});
 
   final AuthStatus status;
   final String? userId;
 
-  static const AuthControllerState unknown =
-      AuthControllerState(status: AuthStatus.unknown);
+  static const AuthControllerState unknown = AuthControllerState(
+    status: AuthStatus.unknown,
+  );
 
   static const _sentinel = Object();
 

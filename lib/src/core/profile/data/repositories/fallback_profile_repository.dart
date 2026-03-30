@@ -178,10 +178,7 @@ class FallbackProfileRepository implements ProfileRepository {
     return null;
   }
 
-  List<Profile> _mergeProfiles(
-    List<Profile> primary,
-    List<Profile> secondary,
-  ) {
+  List<Profile> _mergeProfiles(List<Profile> primary, List<Profile> secondary) {
     final byId = <String, Profile>{};
     for (final profile in secondary) {
       byId[profile.id] = profile;

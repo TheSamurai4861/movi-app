@@ -83,17 +83,13 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
         settings: settings,
       );
 
-      state = state.copyWith(
-        isLoading: false,
-        items: merged.items,
-      );
+      state = state.copyWith(isLoading: false, items: merged.items);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
-  Future<({List<IptvPlaylistOrganizeItem> items})>
-  _ensureSettingsAndMerge({
+  Future<({List<IptvPlaylistOrganizeItem> items})> _ensureSettingsAndMerge({
     required List<XtreamPlaylist> playlists,
     required List<XtreamPlaylistSettings> settings,
   }) async {
@@ -106,7 +102,8 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
     for (final s in settings) {
       if (s.type == XtreamPlaylistType.movies && s.position > maxMovies) {
         maxMovies = s.position;
-      } else if (s.type == XtreamPlaylistType.series && s.position > maxSeries) {
+      } else if (s.type == XtreamPlaylistType.series &&
+          s.position > maxSeries) {
         maxSeries = s.position;
       }
       if (s.globalPosition > maxGlobal) {
@@ -146,17 +143,21 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
     // Si aucune config n'existait auparavant, on initialise un ordre par défaut
     // identique à l'accueil historique: intercalé films/séries au départ.
     if (settings.isEmpty && toUpsert.isNotEmpty) {
-      final movies = toUpsert
-          .where((e) => e.type == XtreamPlaylistType.movies)
-          .toList(growable: false)
-        ..sort((a, b) => a.position.compareTo(b.position));
-      final series = toUpsert
-          .where((e) => e.type == XtreamPlaylistType.series)
-          .toList(growable: false)
-        ..sort((a, b) => a.position.compareTo(b.position));
+      final movies =
+          toUpsert
+              .where((e) => e.type == XtreamPlaylistType.movies)
+              .toList(growable: false)
+            ..sort((a, b) => a.position.compareTo(b.position));
+      final series =
+          toUpsert
+              .where((e) => e.type == XtreamPlaylistType.series)
+              .toList(growable: false)
+            ..sort((a, b) => a.position.compareTo(b.position));
 
       final orderedIds = <String>[];
-      final maxLen = movies.length > series.length ? movies.length : series.length;
+      final maxLen = movies.length > series.length
+          ? movies.length
+          : series.length;
       for (var i = 0; i < maxLen; i++) {
         if (i < movies.length) orderedIds.add(movies[i].playlistId);
         if (i < series.length) orderedIds.add(series[i].playlistId);
@@ -231,9 +232,8 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
 
     final updated = state.items
         .map(
-          (e) => e.playlistId == playlistId
-              ? e.copyWith(isVisible: isVisible)
-              : e,
+          (e) =>
+              e.playlistId == playlistId ? e.copyWith(isVisible: isVisible) : e,
         )
         .toList(growable: false);
     state = state.copyWith(items: updated);
@@ -241,10 +241,7 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
     _emitIptvChanged();
   }
 
-  Future<void> reorder({
-    required int oldIndex,
-    required int newIndex,
-  }) async {
+  Future<void> reorder({required int oldIndex, required int newIndex}) async {
     final list = List<IptvPlaylistOrganizeItem>.from(state.items);
     if (list.isEmpty) return;
 
@@ -305,9 +302,7 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
     _emitIptvChanged();
   }
 
-  Future<void> setAllVisibleAll({
-    required bool isVisible,
-  }) async {
+  Future<void> setAllVisibleAll({required bool isVisible}) async {
     await Future.wait([
       _local.setAllPlaylistsVisibility(
         accountId: _accountId,
@@ -333,7 +328,6 @@ class IptvSourceOrganizeController extends Notifier<IptvSourceOrganizeState> {
   void _emitIptvChanged() {
     ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
   }
-
 }
 
 final iptvSourceOrganizeControllerProvider =

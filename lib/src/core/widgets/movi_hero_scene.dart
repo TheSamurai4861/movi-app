@@ -26,10 +26,7 @@ class MoviHeroScene extends StatelessWidget {
       children: [
         Positioned.fill(child: background),
         Positioned.fill(
-          child: MoviHeroOverlays(
-            imageHeight: imageHeight,
-            spec: overlaySpec,
-          ),
+          child: MoviHeroOverlays(imageHeight: imageHeight, spec: overlaySpec),
         ),
         ...children,
       ],

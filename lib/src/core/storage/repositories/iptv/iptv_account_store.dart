@@ -43,18 +43,22 @@ class IptvAccountStore {
   }
 
   Future<void> saveStalkerAccount(StalkerAccount account) async {
-    await _db.insert(IptvStorageTables.stalkerAccounts, <String, Object?>{
-      'account_id': account.id,
-      'alias': account.alias,
-      'endpoint': account.endpoint.toRawUrl(),
-      'mac_address': account.macAddress,
-      'username': account.username,
-      'token': account.token,
-      'status': account.status.name,
-      'expiration': account.expirationDate?.millisecondsSinceEpoch,
-      'created_at': account.createdAt.millisecondsSinceEpoch,
-      'last_error': account.lastError,
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    await _db.insert(
+      IptvStorageTables.stalkerAccounts,
+      <String, Object?>{
+        'account_id': account.id,
+        'alias': account.alias,
+        'endpoint': account.endpoint.toRawUrl(),
+        'mac_address': account.macAddress,
+        'username': account.username,
+        'token': account.token,
+        'status': account.status.name,
+        'expiration': account.expirationDate?.millisecondsSinceEpoch,
+        'created_at': account.createdAt.millisecondsSinceEpoch,
+        'last_error': account.lastError,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<StalkerAccount>> getStalkerAccounts() async {
@@ -82,7 +86,9 @@ class IptvAccountStore {
     await _deleteAssociatedAccountData(id);
   }
 
-  Future<Set<String>> resolveAccountIds(Set<String>? requestedAccountIds) async {
+  Future<Set<String>> resolveAccountIds(
+    Set<String>? requestedAccountIds,
+  ) async {
     final xtreamAccounts = await getAccounts();
     final stalkerAccounts = await getStalkerAccounts();
     final ids = <String>{

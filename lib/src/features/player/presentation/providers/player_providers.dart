@@ -17,32 +17,33 @@ import 'package:movi/src/features/player/domain/repositories/video_player_reposi
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 
-final videoPlayerRepositoryProvider =
-    Provider.autoDispose<VideoPlayerRepository>((ref) {
-      final locator = ref.watch(slProvider);
-      final logger = locator<AppLogger>();
+final videoPlayerRepositoryProvider = Provider.autoDispose<VideoPlayerRepository>((
+  ref,
+) {
+  final locator = ref.watch(slProvider);
+  final logger = locator<AppLogger>();
 
-      // UA par défaut "compatible IPTV" (override possible via --dart-define MOVI_STREAM_USER_AGENT=...).
-      const defaultStreamUserAgent = 'VLC/3.0.20 LibVLC/3.0.20';
+  // UA par défaut "compatible IPTV" (override possible via --dart-define MOVI_STREAM_USER_AGENT=...).
+  const defaultStreamUserAgent = 'VLC/3.0.20 LibVLC/3.0.20';
 
-      final repo = MediaKitVideoPlayerRepository(
-        logger: logger,
-        streamUserAgent: defaultStreamUserAgent,
-      );
-      // Sur Windows, le backend texture peut encore être en train de peindre
-      // quand Riverpod déclenche la libération (ex: navigation rapide / hot restart).
-      // On décale la libération à la prochaine frame pour éviter des callbacks texture invalides.
-      ref.onDispose(() {
-        // `instanceOrNull` n'existe pas sur toutes les versions de Flutter.
-        // Best-effort: si la binding n'est pas initialisée, on dispose immédiatement.
-        try {
-          WidgetsBinding.instance.addPostFrameCallback((_) => repo.dispose());
-        } catch (_) {
-          repo.dispose();
-        }
-      });
-      return repo;
-    });
+  final repo = MediaKitVideoPlayerRepository(
+    logger: logger,
+    streamUserAgent: defaultStreamUserAgent,
+  );
+  // Sur Windows, le backend texture peut encore être en train de peindre
+  // quand Riverpod déclenche la libération (ex: navigation rapide / hot restart).
+  // On décale la libération à la prochaine frame pour éviter des callbacks texture invalides.
+  ref.onDispose(() {
+    // `instanceOrNull` n'existe pas sur toutes les versions de Flutter.
+    // Best-effort: si la binding n'est pas initialisée, on dispose immédiatement.
+    try {
+      WidgetsBinding.instance.addPostFrameCallback((_) => repo.dispose());
+    } catch (_) {
+      repo.dispose();
+    }
+  });
+  return repo;
+});
 
 final videoControllerProvider = Provider.autoDispose<VideoController>((ref) {
   final repo =
@@ -63,23 +64,24 @@ final xtreamStreamUrlBuilderProvider = Provider<XtreamStreamUrlBuilder>((ref) {
   );
 });
 
-final systemControlRepositoryProvider =
-    Provider<SystemControlRepository>((ref) {
+final systemControlRepositoryProvider = Provider<SystemControlRepository>((
+  ref,
+) {
   return SystemControlRepositoryImpl();
 });
 
 final pictureInPictureRepositoryProvider =
     Provider.autoDispose<PictureInPictureRepository>((ref) {
-  // Détecter la plateforme et retourner la bonne implémentation
-  if (Platform.isAndroid || Platform.isIOS) {
-    final repo = PictureInPictureRepositoryImpl();
-    ref.onDispose(() => repo.dispose());
-    return repo;
-  } else {
-    // No-op implementation pour les autres plateformes (Windows, etc.)
-    return _NoOpPictureInPictureRepository();
-  }
-});
+      // Détecter la plateforme et retourner la bonne implémentation
+      if (Platform.isAndroid || Platform.isIOS) {
+        final repo = PictureInPictureRepositoryImpl();
+        ref.onDispose(() => repo.dispose());
+        return repo;
+      } else {
+        // No-op implementation pour les autres plateformes (Windows, etc.)
+        return _NoOpPictureInPictureRepository();
+      }
+    });
 
 /// No-op implementation pour les plateformes non supportées
 class _NoOpPictureInPictureRepository implements PictureInPictureRepository {

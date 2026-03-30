@@ -78,22 +78,24 @@ final tmdbImageResolverProvider = Provider<TmdbImageResolver>((ref) {
 });
 
 /// Exposes the PlaylistBackdropService to the presentation layer.
-final playlistBackdropServiceProvider = Provider<PlaylistBackdropService>((ref) {
+final playlistBackdropServiceProvider = Provider<PlaylistBackdropService>((
+  ref,
+) {
   return ref.watch(slProvider)<PlaylistBackdropService>();
 });
 
 /// Provider pour charger le backdrop d'un ContentReference.
 final playlistItemBackdropProvider =
     FutureProvider.family<Uri?, ContentReference>((ref, reference) async {
-  final service = ref.watch(playlistBackdropServiceProvider);
-  return service.getBackdrop(reference);
-});
+      final service = ref.watch(playlistBackdropServiceProvider);
+      return service.getBackdrop(reference);
+    });
 
 final playlistItemHeroBackdropProvider =
     FutureProvider.family<Uri?, ContentReference>((ref, reference) async {
-  final service = ref.watch(playlistBackdropServiceProvider);
-  return service.getBackdrop(reference, highQuality: true);
-});
+      final service = ref.watch(playlistBackdropServiceProvider);
+      return service.getBackdrop(reference, highQuality: true);
+    });
 
 /// Model pour représenter une playlist dans la bibliothèque
 class LibraryPlaylistItem {
@@ -175,11 +177,10 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   // Historique de visionnage
   final historyCompleted = await repository.getHistoryCompleted();
   final historyInProgress = await repository.getHistoryInProgress();
-  final totalHistory =
-      {
-        for (final item in [...historyCompleted, ...historyInProgress])
-          '${item.type.name}:${item.id}',
-      }.length;
+  final totalHistory = {
+    for (final item in [...historyCompleted, ...historyInProgress])
+      '${item.type.name}:${item.id}',
+  }.length;
   if (totalHistory > 0) {
     system.add(
       LibraryPlaylistItem(
@@ -346,31 +347,32 @@ final libraryFilterProvider =
     );
 
 /// Provider pour charger les items d'une playlist spécifique (avec positions)
-final playlistItemsProvider = FutureProvider.family<List<PlaylistItem>, String>(
-  (ref, playlistId) async {
-    final playlistRepository = ref.watch(playlistRepositoryProvider);
-    final logger = ref.watch(slProvider)<AppLogger>();
+final playlistItemsProvider = FutureProvider.family<List<PlaylistItem>, String>((
+  ref,
+  playlistId,
+) async {
+  final playlistRepository = ref.watch(playlistRepositoryProvider);
+  final logger = ref.watch(slProvider)<AppLogger>();
 
-    try {
-      final playlistDetail = await playlistRepository.getPlaylist(
-        PlaylistId(playlistId),
-      );
-      return playlistDetail.items;
-    } catch (e, stackTrace) {
-      // Logger l'erreur pour le debug
-      logger.log(
-        LogLevel.error,
-        'Erreur lors du chargement des items de la playlist $playlistId: $e',
-        error: e,
-        stackTrace: stackTrace,
-        category: 'library_providers',
-      );
-      // Retourner une liste vide en cas d'erreur pour ne pas casser l'UI
-      // Les playlists vides sont valides, donc on traite les erreurs comme des listes vides
-      return <PlaylistItem>[];
-    }
-  },
-);
+  try {
+    final playlistDetail = await playlistRepository.getPlaylist(
+      PlaylistId(playlistId),
+    );
+    return playlistDetail.items;
+  } catch (e, stackTrace) {
+    // Logger l'erreur pour le debug
+    logger.log(
+      LogLevel.error,
+      'Erreur lors du chargement des items de la playlist $playlistId: $e',
+      error: e,
+      stackTrace: stackTrace,
+      category: 'library_providers',
+    );
+    // Retourner une liste vide en cas d'erreur pour ne pas casser l'UI
+    // Les playlists vides sont valides, donc on traite les erreurs comme des listes vides
+    return <PlaylistItem>[];
+  }
+});
 
 /// Provider pour charger les ContentReference d'une playlist (pour compatibilité)
 /// Enrichit les ContentReference avec les années depuis TMDB si manquantes
@@ -382,7 +384,7 @@ final playlistContentReferencesProvider =
       final itemsAsync = ref.watch(playlistItemsProvider(playlistId));
 
       final logger = ref.watch(slProvider)<AppLogger>();
-      
+
       return itemsAsync.when(
         loading: () => <ContentReference>[],
         error: (error, stackTrace) {
@@ -408,8 +410,9 @@ final playlistContentReferencesProvider =
           try {
             final enrichedReferences = await Future.wait(
               references.map((reference) async {
-                final service =
-                    ref.read(slProvider)<ContentEnrichmentService>();
+                final service = ref.read(
+                  slProvider,
+                )<ContentEnrichmentService>();
                 return service.enrichYear(reference);
               }),
             );

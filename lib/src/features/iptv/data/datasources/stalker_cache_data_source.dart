@@ -8,7 +8,9 @@ class StalkerCacheDataSource {
 
   final ContentCacheRepository _cache;
 
-  static final CachePolicy snapshotPolicy = CachePolicy(ttl: kStalkerPlaylistTtl);
+  static final CachePolicy snapshotPolicy = CachePolicy(
+    ttl: kStalkerPlaylistTtl,
+  );
 
   static const String _cacheType = 'stalker_snapshot';
 
@@ -52,4 +54,3 @@ class StalkerCacheDataSource {
     );
   }
 }
-

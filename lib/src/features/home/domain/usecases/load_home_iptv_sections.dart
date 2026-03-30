@@ -10,6 +10,5 @@ class LoadHomeIptvSections {
 
   Future<Result<Map<String, List<ContentReference>>, Failure>> call({
     int? itemLimitPerPlaylist,
-  }) =>
-      _repo.getIptvCategoryLists(itemLimitPerPlaylist: itemLimitPerPlaylist);
+  }) => _repo.getIptvCategoryLists(itemLimitPerPlaylist: itemLimitPerPlaylist);
 }

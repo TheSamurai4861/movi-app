@@ -22,7 +22,8 @@ class ScreenTypeResolver {
     final aspectRatio = width / height;
 
     // Détection TV : très large écran avec ratio >= 16/9
-    if (width > Breakpoints.desktopMax && aspectRatio >= Breakpoints.tvAspectRatio) {
+    if (width > Breakpoints.desktopMax &&
+        aspectRatio >= Breakpoints.tvAspectRatio) {
       return ScreenType.tv;
     }
 
@@ -40,4 +41,3 @@ class ScreenTypeResolver {
     return ScreenType.mobile;
   }
 }
-

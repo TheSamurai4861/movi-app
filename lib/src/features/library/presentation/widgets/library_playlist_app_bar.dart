@@ -44,4 +44,3 @@ class LibraryPlaylistAppBar extends StatelessWidget {
     );
   }
 }
-

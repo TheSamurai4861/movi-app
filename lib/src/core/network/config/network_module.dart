@@ -32,7 +32,9 @@ class NetworkModule {
         dio,
         logger: logger,
         defaultMaxConcurrent: 12, // Augmenté de 6 à 12 pour éviter les blocages
-        limiterAcquireTimeout: const Duration(seconds: 10), // Timeout augmenté pour réduire les échecs
+        limiterAcquireTimeout: const Duration(
+          seconds: 10,
+        ), // Timeout augmenté pour réduire les échecs
       ),
       (old) => old.dispose(),
     );

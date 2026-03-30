@@ -22,11 +22,7 @@ final userSettingsRepositoryProvider = Provider<UserSettingsRepository>(
 /// - [error] : message d'erreur lisible pour l'UI (nul si pas d'erreur)
 @immutable
 class UserSettingsState {
-  const UserSettingsState({
-    this.profile,
-    this.isSaving = false,
-    this.errorKey,
-  });
+  const UserSettingsState({this.profile, this.isSaving = false, this.errorKey});
 
   final UserSettings? profile;
   final bool isSaving;
@@ -45,10 +41,7 @@ class UserSettingsState {
   }
 }
 
-enum UserSettingsError {
-  loadFailed,
-  saveFailed,
-}
+enum UserSettingsError { loadFailed, saveFailed }
 
 /// Contrôleur des réglages utilisateur basé sur Riverpod.
 /// Responsabilités claires :
@@ -88,11 +81,7 @@ class UserSettingsController extends Notifier<UserSettingsState> {
     state = state.copyWith(isSaving: true, errorKey: null);
     try {
       await SaveUserProfile(_repo)(profile);
-      state = state.copyWith(
-        profile: profile,
-        isSaving: false,
-        errorKey: null,
-      );
+      state = state.copyWith(profile: profile, isSaving: false, errorKey: null);
       return true;
     } catch (e, st) {
       assert(() {

@@ -90,7 +90,9 @@ class SearchPagedController extends Notifier<SearchResultsState> {
       final profile = ref.read(currentProfileProvider);
       final bool hasRestrictions =
           profile != null && (profile.isKid || profile.pegiLimit != null);
-      final policy = hasRestrictions ? ref.read(parental.agePolicyProvider) : null;
+      final policy = hasRestrictions
+          ? ref.read(parental.agePolicyProvider)
+          : null;
 
       if (state.type == SearchResultsType.movies) {
         final page = await _paginated.movies(state.query, page: 1);
@@ -157,7 +159,9 @@ class SearchPagedController extends Notifier<SearchResultsState> {
       final profile = ref.read(currentProfileProvider);
       final bool hasRestrictions =
           profile != null && (profile.isKid || profile.pegiLimit != null);
-      final policy = hasRestrictions ? ref.read(parental.agePolicyProvider) : null;
+      final policy = hasRestrictions
+          ? ref.read(parental.agePolicyProvider)
+          : null;
 
       if (state.type == SearchResultsType.movies) {
         final page = await _paginated.movies(state.query, page: next);

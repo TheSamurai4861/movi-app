@@ -15,10 +15,8 @@ class SagaDataModule {
   static void register() {
     if (!sl.isRegistered<TmdbSagaRemoteDataSource>()) {
       sl.registerLazySingleton<TmdbSagaRemoteDataSource>(
-        () => TmdbSagaRemoteDataSource(
-          sl<TmdbClient>(),
-          sl<LocalePreferences>(),
-        ),
+        () =>
+            TmdbSagaRemoteDataSource(sl<TmdbClient>(), sl<LocalePreferences>()),
       );
     }
 

@@ -18,8 +18,9 @@ import 'package:movi/src/core/profile/presentation/providers/selected_profile_pr
 ///   final encrypted = await cipher.encryptCredentials(...);
 /// }
 /// ```
-final iptvCredentialsCipherProvider =
-    FutureProvider<IptvCredentialsCipher?>((ref) async {
+final iptvCredentialsCipherProvider = FutureProvider<IptvCredentialsCipher?>((
+  ref,
+) async {
   final profileId = ref.watch(selectedProfileIdProvider);
 
   if (profileId == null || profileId.trim().isEmpty) {
@@ -41,4 +42,3 @@ final iptvCredentialsCipherProvider =
 
   return cipher;
 });
-

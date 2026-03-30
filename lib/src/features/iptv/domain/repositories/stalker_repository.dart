@@ -1,4 +1,4 @@
- import 'package:movi/src/features/iptv/domain/entities/stalker_account.dart';
+import 'package:movi/src/features/iptv/domain/entities/stalker_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_catalog_snapshot.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/stalker_endpoint.dart';
@@ -16,4 +16,3 @@ abstract class StalkerRepository {
 
   Future<List<XtreamPlaylist>> listPlaylists(String accountId);
 }
-

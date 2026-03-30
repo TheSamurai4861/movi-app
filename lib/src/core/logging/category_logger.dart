@@ -1,11 +1,7 @@
 import 'package:movi/src/core/logging/logger.dart';
 
 class CategoryLogger extends AppLogger implements LoggerLifecycle {
-  CategoryLogger(
-    this._inner,
-    this._category, {
-    this.disposeInner = false,
-  });
+  CategoryLogger(this._inner, this._category, {this.disposeInner = false});
 
   final AppLogger _inner;
   final String _category;

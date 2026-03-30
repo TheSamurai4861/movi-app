@@ -72,7 +72,9 @@ class SupabaseFavoritesSyncDataSource {
     // 2) Next timestamps
     final rows = await _client
         .from(_table)
-        .select('id,media_type,media_id,title,poster,year,updated_at,deleted_at')
+        .select(
+          'id,media_type,media_id,title,poster,year,updated_at,deleted_at',
+        )
         .eq('profile_id', profileId)
         .gt('updated_at', updatedAtRaw)
         .order('updated_at', ascending: true)
@@ -90,18 +92,15 @@ class SupabaseFavoritesSyncDataSource {
     String? poster,
     int? year,
   }) async {
-    await _client.from(_table).upsert(
-      <String, Object?>{
-        'profile_id': profileId,
-        'media_type': mediaType,
-        'media_id': mediaId,
-        'title': title,
-        'poster': poster,
-        'year': year,
-        'deleted_at': null,
-      },
-      onConflict: 'profile_id,media_type,media_id',
-    );
+    await _client.from(_table).upsert(<String, Object?>{
+      'profile_id': profileId,
+      'media_type': mediaType,
+      'media_id': mediaId,
+      'title': title,
+      'poster': poster,
+      'year': year,
+      'deleted_at': null,
+    }, onConflict: 'profile_id,media_type,media_id');
   }
 
   Future<void> softDelete({
@@ -110,13 +109,14 @@ class SupabaseFavoritesSyncDataSource {
     required String mediaId,
     required DateTime deletedAtUtc,
   }) async {
-    await _client.from(_table).update(<String, Object?>{
-      'deleted_at': deletedAtUtc.toIso8601String(),
-    }).match(<String, Object>{
-      'profile_id': profileId,
-      'media_type': mediaType,
-      'media_id': mediaId,
-    });
+    await _client
+        .from(_table)
+        .update(<String, Object?>{'deleted_at': deletedAtUtc.toIso8601String()})
+        .match(<String, Object>{
+          'profile_id': profileId,
+          'media_type': mediaType,
+          'media_id': mediaId,
+        });
   }
 
   List<SupabaseFavoriteRow> _parseRows(dynamic rows) {

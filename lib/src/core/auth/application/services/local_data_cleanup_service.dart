@@ -20,8 +20,8 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 /// - La queue de synchronisation
 class LocalDataCleanupService {
   LocalDataCleanupService({required Database db, required GetIt sl})
-      : _db = db,
-        _sl = sl;
+    : _db = db,
+      _sl = sl;
 
   final Database _db;
   final GetIt _sl;

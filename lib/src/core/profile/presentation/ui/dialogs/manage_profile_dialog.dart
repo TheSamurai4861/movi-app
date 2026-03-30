@@ -15,10 +15,7 @@ import 'package:movi/src/core/widgets/modal_content_width.dart';
 /// - Aucun import depuis `features/*`
 /// - Utilise l'entity domain `Profile` (pas de "SupabaseProfile")
 class ManageProfileDialog extends ConsumerStatefulWidget {
-  const ManageProfileDialog({
-    super.key,
-    required this.profile,
-  });
+  const ManageProfileDialog({super.key, required this.profile});
 
   final Profile profile;
 
@@ -34,7 +31,8 @@ class ManageProfileDialog extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<ManageProfileDialog> createState() => _ManageProfileDialogState();
+  ConsumerState<ManageProfileDialog> createState() =>
+      _ManageProfileDialogState();
 }
 
 class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
@@ -76,7 +74,8 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     });
 
     final bool parentalChanged =
-        _isKid != widget.profile.isKid || _pegiLimit != widget.profile.pegiLimit;
+        _isKid != widget.profile.isKid ||
+        _pegiLimit != widget.profile.pegiLimit;
 
     if (parentalChanged && _hasPin) {
       final ok = await _verifyPin();
@@ -134,14 +133,9 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
       builder: (ctx) => Dialog(
         backgroundColor: const Color(0xFF1C1C1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 20,
-        ),
+        insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: size.width - 40,
-          ),
+          constraints: BoxConstraints(maxWidth: size.width - 40),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Column(
@@ -159,10 +153,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                 const SizedBox(height: 16),
                 Text(
                   l10n.playlistDeleteConfirm(widget.profile.name),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -329,8 +320,10 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
 
     try {
       final svc = ref.read(parental.profilePinEdgeServiceProvider);
-      final cleared =
-          await svc.clearPin(profileId: widget.profile.id, pin: trimmed);
+      final cleared = await svc.clearPin(
+        profileId: widget.profile.id,
+        pin: trimmed,
+      );
       if (!cleared) {
         if (!mounted) return;
         setState(() {
@@ -363,10 +356,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 20,
-      ),
+      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: ModalContentWidth(
         maxWidth: 560,
         maxHeight: MediaQuery.of(context).size.height * 0.9,
@@ -382,9 +372,9 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                     child: Text(
                       l10n.settingsProfileInfoTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -448,10 +438,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                         flex: 6,
                         child: const Text(
                           'Active le contrôle parental (PEGI + PIN).',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -491,24 +478,26 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.start,
-                      children: [3, 7, 12, 16, 18].map((v) {
-                        final selected = _pegiLimit == v;
-                        return ChoiceChip(
-                          label: Text('PEGI $v'),
-                          selected: selected,
-                          onSelected: _busy
-                              ? null
-                              : (_) => setState(() {
-                                    _pegiLimit = v;
-                                    _error = null;
-                                  }),
-                          selectedColor: accentColor,
-                          labelStyle: TextStyle(
-                            color: selected ? Colors.white : Colors.white70,
-                          ),
-                          backgroundColor: const Color(0xFF2C2C2E),
-                        );
-                      }).toList(growable: false),
+                      children: [3, 7, 12, 16, 18]
+                          .map((v) {
+                            final selected = _pegiLimit == v;
+                            return ChoiceChip(
+                              label: Text('PEGI $v'),
+                              selected: selected,
+                              onSelected: _busy
+                                  ? null
+                                  : (_) => setState(() {
+                                      _pegiLimit = v;
+                                      _error = null;
+                                    }),
+                              selectedColor: accentColor,
+                              labelStyle: TextStyle(
+                                color: selected ? Colors.white : Colors.white70,
+                              ),
+                              backgroundColor: const Color(0xFF2C2C2E),
+                            );
+                          })
+                          .toList(growable: false),
                     ),
                   ],
                 ),
@@ -695,10 +684,7 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 20,
-      ),
+      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: ModalContentWidth(
         maxWidth: 420,
         child: Padding(
@@ -773,7 +759,8 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
                   Expanded(
                     child: widget.isDeleteAction
                         ? OutlinedButton(
-                            onPressed: () => Navigator.of(context).pop(controller.text),
+                            onPressed: () =>
+                                Navigator.of(context).pop(controller.text),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.red),
                               foregroundColor: Colors.white,
@@ -789,7 +776,8 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
                             ),
                           )
                         : ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(controller.text),
+                            onPressed: () =>
+                                Navigator.of(context).pop(controller.text),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: accentColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -838,10 +826,7 @@ class _RemovePinDialogState extends State<_RemovePinDialog> {
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 20,
-      ),
+      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: ModalContentWidth(
         maxWidth: 420,
         child: Padding(
@@ -899,7 +884,8 @@ class _RemovePinDialogState extends State<_RemovePinDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.of(context).pop(controller.text),
+                      onPressed: () =>
+                          Navigator.of(context).pop(controller.text),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.red),
                         foregroundColor: Colors.white,

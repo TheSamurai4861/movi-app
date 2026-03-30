@@ -18,11 +18,15 @@ class IptvAvailabilityServiceImpl implements IptvAvailabilityService {
   final XtreamLookupService _lookup;
 
   @override
-  Future<bool> isMovieAvailable(String movieId) async {
+  Future<bool> isMovieAvailable(
+    String movieId, {
+    Set<String>? candidateSourceIds,
+  }) async {
     if (movieId.startsWith('xtream:')) {
       final item = await _lookup.findItemByMovieId(
         movieId,
         expectedType: XtreamPlaylistItemType.movie,
+        accountIds: candidateSourceIds,
       );
       return item?.type == XtreamPlaylistItemType.movie;
     }
@@ -31,6 +35,7 @@ class IptvAvailabilityServiceImpl implements IptvAvailabilityService {
     try {
       final ids = await _iptvLocal.getAvailableTmdbIds(
         type: XtreamPlaylistItemType.movie,
+        accountIds: candidateSourceIds,
       );
       return ids.contains(tmdbId);
     } catch (e, st) {

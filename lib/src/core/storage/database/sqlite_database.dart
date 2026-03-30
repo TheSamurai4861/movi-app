@@ -32,11 +32,15 @@ class LocalDatabase {
     }
 
     final sw = Stopwatch()..start();
-    debugPrint('[DEBUG][Startup] LocalDatabase.instance: Initializing database...');
+    debugPrint(
+      '[DEBUG][Startup] LocalDatabase.instance: Initializing database...',
+    );
 
     final path = await LocalDatabasePaths.resolvePath();
 
-    debugPrint('[DEBUG][Startup] LocalDatabase.instance: opening database (version 18)');
+    debugPrint(
+      '[DEBUG][Startup] LocalDatabase.instance: opening database (version 18)',
+    );
     _instance = await openDatabase(
       path,
       version: 18,
@@ -45,22 +49,30 @@ class LocalDatabase {
         await LocalDatabaseMaintenance.onConfigure(db);
       },
       onOpen: (db) async {
-        debugPrint('[DEBUG][Startup] LocalDatabase.instance: onOpen (ensuring columns)');
+        debugPrint(
+          '[DEBUG][Startup] LocalDatabase.instance: onOpen (ensuring columns)',
+        );
         await LocalDatabaseMaintenance.onOpen(db);
       },
       onCreate: (db, version) async {
-        debugPrint('[DEBUG][Startup] LocalDatabase.instance: onCreate (version $version)');
+        debugPrint(
+          '[DEBUG][Startup] LocalDatabase.instance: onCreate (version $version)',
+        );
         await LocalDatabaseSchema.create(db, version);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        debugPrint('[DEBUG][Startup] LocalDatabase.instance: onUpgrade (from $oldVersion to $newVersion)');
+        debugPrint(
+          '[DEBUG][Startup] LocalDatabase.instance: onUpgrade (from $oldVersion to $newVersion)',
+        );
         await LocalDatabaseMigrations.upgrade(db, oldVersion, newVersion);
       },
     );
 
     sw.stop();
-    debugPrint('[DEBUG][Startup] LocalDatabase.instance: COMPLETE (total: ${sw.elapsedMilliseconds}ms)');
-    
+    debugPrint(
+      '[DEBUG][Startup] LocalDatabase.instance: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
+    );
+
     return _instance!;
   }
 

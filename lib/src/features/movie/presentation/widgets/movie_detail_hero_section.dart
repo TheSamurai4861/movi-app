@@ -71,10 +71,7 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
       topHeightRatio: 100 / widget.height,
       bottomHeightRatio: widget.overlayHeight / widget.height,
     );
-    const buttonPadding = EdgeInsets.symmetric(
-      horizontal: 12,
-      vertical: 8,
-    );
+    const buttonPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 8);
 
     return MoviDetailHeroScene(
       isWideLayout: false,

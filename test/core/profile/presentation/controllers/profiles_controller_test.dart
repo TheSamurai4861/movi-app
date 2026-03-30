@@ -47,13 +47,12 @@ void main() {
       );
       addTearDown(harness.dispose);
 
-      final profiles = await harness.container.read(profilesControllerProvider.future);
+      final profiles = await harness.container.read(
+        profilesControllerProvider.future,
+      );
 
       expect(profiles, hasLength(3));
-      expect(
-        prefs.selectedProfileId,
-        '11111111-1111-4111-8111-111111111111',
-      );
+      expect(prefs.selectedProfileId, '11111111-1111-4111-8111-111111111111');
     },
   );
 
@@ -84,46 +83,37 @@ void main() {
 
       await harness.container.read(profilesControllerProvider.future);
 
-      expect(
-        prefs.selectedProfileId,
-        '22222222-2222-4222-8222-222222222222',
-      );
+      expect(prefs.selectedProfileId, '22222222-2222-4222-8222-222222222222');
     },
   );
 
-  test(
-    'keeps the selected cloud profile when it is already valid',
-    () async {
-      final prefs = _MemorySelectedProfilePreferences();
-      await prefs.setSelectedProfileId('22222222-2222-4222-8222-222222222222');
+  test('keeps the selected cloud profile when it is already valid', () async {
+    final prefs = _MemorySelectedProfilePreferences();
+    await prefs.setSelectedProfileId('22222222-2222-4222-8222-222222222222');
 
-      final harness = _ProfilesControllerHarness(
-        prefs: prefs,
-        repo: _FakeProfileRepository([
-          const Profile(
-            id: '11111111-1111-4111-8111-111111111111',
-            accountId: 'cloud-user',
-            name: 'Cloud A',
-            color: 0xFF123456,
-          ),
-          const Profile(
-            id: '22222222-2222-4222-8222-222222222222',
-            accountId: 'cloud-user',
-            name: 'Cloud B',
-            color: 0xFF654321,
-          ),
-        ]),
-      );
-      addTearDown(harness.dispose);
+    final harness = _ProfilesControllerHarness(
+      prefs: prefs,
+      repo: _FakeProfileRepository([
+        const Profile(
+          id: '11111111-1111-4111-8111-111111111111',
+          accountId: 'cloud-user',
+          name: 'Cloud A',
+          color: 0xFF123456,
+        ),
+        const Profile(
+          id: '22222222-2222-4222-8222-222222222222',
+          accountId: 'cloud-user',
+          name: 'Cloud B',
+          color: 0xFF654321,
+        ),
+      ]),
+    );
+    addTearDown(harness.dispose);
 
-      await harness.container.read(profilesControllerProvider.future);
+    await harness.container.read(profilesControllerProvider.future);
 
-      expect(
-        prefs.selectedProfileId,
-        '22222222-2222-4222-8222-222222222222',
-      );
-    },
-  );
+    expect(prefs.selectedProfileId, '22222222-2222-4222-8222-222222222222');
+  });
 }
 
 class _ProfilesControllerHarness {

@@ -29,7 +29,9 @@ final class LocalDatabasePaths {
     } catch (_) {}
 
     final newPath = p.join(newDir.path, fileName);
-    debugPrint('[DEBUG][Startup] LocalDatabase.instance: database path = $newPath');
+    debugPrint(
+      '[DEBUG][Startup] LocalDatabase.instance: database path = $newPath',
+    );
 
     await _migrateDatabaseIfNeeded(newPath);
     return newPath;
@@ -62,7 +64,9 @@ final class LocalDatabasePaths {
     }
 
     try {
-      debugPrint('[DB] Migrating database from Documents to Application Support');
+      debugPrint(
+        '[DB] Migrating database from Documents to Application Support',
+      );
       await oldDbFile.copy(newPath);
       await _migrateCompanionFile(
         sourcePath: '$oldPath-wal',

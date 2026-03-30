@@ -8,4 +8,3 @@ class ReportContentProblem {
 
   Future<void> call(ContentReport report) => _repo.createReport(report);
 }
-

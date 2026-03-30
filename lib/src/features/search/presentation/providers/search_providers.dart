@@ -1,4 +1,5 @@
 // lib/src/features/search/presentation/providers/search_providers.dart
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
@@ -55,10 +56,10 @@ final searchResultsControllerProvider =
 
 /// Provider pour vérifier la disponibilité des films d'une saga dans la playlist
 final sagaAvailabilityProvider =
-    FutureProvider.family<({Saga? detail, Map<int, bool> availability}), SagaSummary>((
-      ref,
-      saga,
-    ) async {
+    FutureProvider.family<
+      ({Saga? detail, Map<int, bool> availability}),
+      SagaSummary
+    >((ref, saga) async {
       final sagaRepo = ref.watch(slProvider)<SagaRepository>();
       final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
 
@@ -93,18 +94,21 @@ final filteredSagasProvider =
       if (sagas.isEmpty) return const [];
 
       final profile = ref.watch(currentProfileProvider);
-      final hasRestrictions = profile != null && (profile.isKid || profile.pegiLimit != null);
-      final policy = hasRestrictions ? ref.read(parental.agePolicyProvider) : null;
-      final classifier = ref.read(slProvider)<parental.PlaylistMaturityClassifier>();
+      final hasRestrictions =
+          profile != null && (profile.isKid || profile.pegiLimit != null);
+      final policy = hasRestrictions
+          ? ref.read(parental.agePolicyProvider)
+          : null;
+      final classifier = ref.read(
+        slProvider,
+      )<parental.PlaylistMaturityClassifier>();
       final profilePegi =
           parental.PegiRating.tryParse(profile?.pegiLimit) ??
           (profile?.isKid == true ? parental.PegiRating.pegi12 : null);
 
       final filtered = <SagaSummary>[];
       for (final saga in sagas) {
-        final res = await ref.watch(
-          sagaAvailabilityProvider(saga).future,
-        );
+        final res = await ref.watch(sagaAvailabilityProvider(saga).future);
 
         if (!res.availability.values.any((available) => available)) continue;
 
@@ -122,7 +126,8 @@ final filteredSagasProvider =
                 .map((e) => e.reference)
                 .where(
                   (r) =>
-                      r.type == ContentType.movie || r.type == ContentType.series,
+                      r.type == ContentType.movie ||
+                      r.type == ContentType.series,
                 )
                 .toList(growable: false);
 
@@ -261,6 +266,15 @@ final providerPopularMediaProvider =
         final imageResolver = ref.watch(slProvider)<TmdbImageResolver>();
         final language = ref.watch(asp.currentLanguageCodeProvider);
         final profile = ref.watch(currentProfileProvider);
+        final cancelToken = CancelToken();
+
+        ref.onDispose(() {
+          if (!cancelToken.isCancelled) {
+            cancelToken.cancel(
+              'providerPopularMediaProvider disposed for providerId=$providerId',
+            );
+          }
+        });
 
         // For kid/restricted profiles, avoid showing "popular content" backdrops
         // in the providers grid: these visuals are not filtered and can display
@@ -279,6 +293,7 @@ final providerPopularMediaProvider =
             'sort_by': 'popularity.desc', // Tri par popularité décroissante
           },
           language: language,
+          cancelToken: cancelToken,
         );
 
         final movieResults = moviesJson['results'] as List<dynamic>? ?? [];
@@ -309,6 +324,7 @@ final providerPopularMediaProvider =
             'sort_by': 'popularity.desc', // Tri par popularité décroissante
           },
           language: language,
+          cancelToken: cancelToken,
         );
 
         final tvResults = tvJson['results'] as List<dynamic>? ?? [];
@@ -344,7 +360,9 @@ final tmdbGenresProvider = FutureProvider<TmdbGenres>((ref) async {
   final client = ref.watch(slProvider)<TmdbClient>();
   final language = ref.watch(asp.currentLanguageCodeProvider);
   final profile = ref.watch(currentProfileProvider);
-  final classifier = ref.watch(slProvider)<parental.PlaylistMaturityClassifier>();
+  final classifier = ref.watch(
+    slProvider,
+  )<parental.PlaylistMaturityClassifier>();
   final profilePegi =
       parental.PegiRating.tryParse(profile?.pegiLimit) ??
       (profile?.isKid == true ? parental.PegiRating.pegi12 : null);
@@ -368,16 +386,20 @@ final tmdbGenresProvider = FutureProvider<TmdbGenres>((ref) async {
     // ID-based filtering using GenreMaturityChecker (locale-independent).
     // Filters genres based on PEGI requirements (Horror, Thriller, Crime, War, Film-Noir).
     // Applies to both movies and series.
-    final filteredById = result.where((g) {
-      return GenreMaturityChecker.isGenreAllowed(g.id, profilePegi.value);
-    }).toList(growable: false);
+    final filteredById = result
+        .where((g) {
+          return GenreMaturityChecker.isGenreAllowed(g.id, profilePegi.value);
+        })
+        .toList(growable: false);
 
     // Hide explicit mature genres for restricted profiles (ex: Horror/Thriller).
     // This complements the ID-based filtering by also checking genre names.
-    final filtered = filteredById.where((g) {
-      final required = classifier.requiredPegiForPlaylistTitle(g.name);
-      return required == null || required <= profilePegi.value;
-    }).toList(growable: false);
+    final filtered = filteredById
+        .where((g) {
+          final required = classifier.requiredPegiForPlaylistTitle(g.name);
+          return required == null || required <= profilePegi.value;
+        })
+        .toList(growable: false);
     return filtered;
   }
 

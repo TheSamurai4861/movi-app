@@ -104,7 +104,9 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
           tmdbId: widget.tmdbId,
           contentTitle: widget.contentTitle,
           reportType: 'bypassed_parental_controls',
-          message: _messageCtrl.text.trim().isEmpty ? null : _messageCtrl.text.trim(),
+          message: _messageCtrl.text.trim().isEmpty
+              ? null
+              : _messageCtrl.text.trim(),
           profilePegiLimit: profile.pegiLimit,
           requiredPegi: decision?.requiredPegi?.value,
           minAge: decision?.minAge,
@@ -132,7 +134,12 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
-      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: bottom + 20),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: bottom + 20,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

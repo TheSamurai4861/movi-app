@@ -15,11 +15,15 @@ abstract class HomeFeedRepository {
 
   /// Trending movies from TMDB (page 1) without IPTV intersection.
   /// Used for kid profiles to filter by age and paginate.
-  Future<Result<List<ContentReference>, Failure>> getTrendingMoviesPage(int page);
+  Future<Result<List<ContentReference>, Failure>> getTrendingMoviesPage(
+    int page,
+  );
 
   /// Trending series from TMDB (page 1) without IPTV intersection.
   /// Used for kid profiles to filter by age and paginate.
-  Future<Result<List<ContentReference>, Failure>> getTrendingSeriesPage(int page);
+  Future<Result<List<ContentReference>, Failure>> getTrendingSeriesPage(
+    int page,
+  );
 
   /// Local-only continue watching for movies.
   Future<List<MovieSummary>> getContinueWatchingMovies();

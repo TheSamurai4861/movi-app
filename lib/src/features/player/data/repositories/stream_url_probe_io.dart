@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
-typedef StreamUrlProbeResult = ({int statusCode, String? location, Object? error});
+typedef StreamUrlProbeResult = ({
+  int statusCode,
+  String? location,
+  Object? error,
+});
 
 Future<StreamUrlProbeResult> probeStreamUrl(
   String url, {
@@ -39,4 +43,3 @@ Future<StreamUrlProbeResult> probeStreamUrl(
     return (statusCode: -1, location: null, error: e);
   }
 }
-

@@ -15,10 +15,13 @@ final currentProfileProvider = Provider<Profile?>((ref) {
   if (selectedId == null || selectedId.isEmpty) return null;
 
   final profilesAsync = ref.watch(profilesControllerProvider);
-  return profilesAsync.maybeWhen(data: (profiles) {
-    for (final p in profiles) {
-      if (p.id == selectedId) return p;
-    }
-    return null;
-  }, orElse: () => null);
+  return profilesAsync.maybeWhen(
+    data: (profiles) {
+      for (final p in profiles) {
+        if (p.id == selectedId) return p;
+      }
+      return null;
+    },
+    orElse: () => null,
+  );
 });

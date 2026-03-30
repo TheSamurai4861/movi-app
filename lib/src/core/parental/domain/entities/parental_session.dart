@@ -1,10 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class ParentalSession extends Equatable {
-  const ParentalSession({
-    required this.profileId,
-    required this.expiresAt,
-  });
+  const ParentalSession({required this.profileId, required this.expiresAt});
 
   final String profileId;
   final DateTime expiresAt;
@@ -12,12 +9,13 @@ class ParentalSession extends Equatable {
   bool get isExpired => DateTime.now().isAfter(expiresAt);
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'profile_id': profileId,
-        'expires_at': expiresAt.toIso8601String(),
-      };
+    'profile_id': profileId,
+    'expires_at': expiresAt.toIso8601String(),
+  };
 
   factory ParentalSession.fromJson(Map<String, dynamic> json) {
-    final profileId = (json['profile_id'] ?? json['profileId'])?.toString().trim() ?? '';
+    final profileId =
+        (json['profile_id'] ?? json['profileId'])?.toString().trim() ?? '';
     final expiresRaw = (json['expires_at'] ?? json['expiresAt'])?.toString();
     final expiresAt = expiresRaw == null ? null : DateTime.tryParse(expiresRaw);
     if (profileId.isEmpty || expiresAt == null) {
@@ -29,4 +27,3 @@ class ParentalSession extends Equatable {
   @override
   List<Object?> get props => <Object?>[profileId, expiresAt];
 }
-

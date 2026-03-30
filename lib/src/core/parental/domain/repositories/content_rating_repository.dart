@@ -19,4 +19,3 @@ abstract class ContentRatingRepository {
     List<String> preferredRegions = const <String>['BE', 'FR', 'US'],
   });
 }
-

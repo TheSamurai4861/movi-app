@@ -380,7 +380,8 @@ void _registerSupabaseRepositories() {
 }
 
 void _registerProfileRepositories() {
-  if (!sl.isRegistered<LocalProfileRepository>() && sl.isRegistered<Database>()) {
+  if (!sl.isRegistered<LocalProfileRepository>() &&
+      sl.isRegistered<Database>()) {
     sl.registerLazySingleton<LocalProfileRepository>(
       () => LocalProfileRepository(sl<Database>()),
     );

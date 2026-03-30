@@ -169,11 +169,9 @@ class TmdbCacheDataSource implements TmdbCacheStore {
     final Uri? cached = _parseBackdrop(data);
     if (cached == null) return null;
 
-    _memo.put(
-      key,
-      <String, dynamic>{'url': cached.toString()},
-      ttl: memoTtl ?? _memoTtl,
-    );
+    _memo.put(key, <String, dynamic>{
+      'url': cached.toString(),
+    }, ttl: memoTtl ?? _memoTtl);
     return cached;
   }
 

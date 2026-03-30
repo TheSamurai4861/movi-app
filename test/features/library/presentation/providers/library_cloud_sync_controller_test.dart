@@ -35,28 +35,25 @@ void main() {
     await sl.reset();
   });
 
-  test(
-    'does not auto-sync while Supabase client is unavailable',
-    () async {
-      final harness = await _LibraryCloudSyncHarness.create();
-      addTearDown(harness.dispose);
+  test('does not auto-sync while Supabase client is unavailable', () async {
+    final harness = await _LibraryCloudSyncHarness.create();
+    addTearDown(harness.dispose);
 
-      harness.container.read(libraryCloudSyncControllerProvider);
-      await harness.selectedProfilePreferences.setSelectedProfileId(
-        harness.profile.id,
-      );
+    harness.container.read(libraryCloudSyncControllerProvider);
+    await harness.selectedProfilePreferences.setSelectedProfileId(
+      harness.profile.id,
+    );
 
-      await harness.pumpAutoSync();
+    await harness.pumpAutoSync();
 
-      expect(harness.syncService.syncAllCalls, 0);
-      expect(harness.syncService.pullUserPreferencesCalls, 0);
+    expect(harness.syncService.syncAllCalls, 0);
+    expect(harness.syncService.pullUserPreferencesCalls, 0);
 
-      final state = harness.container.read(libraryCloudSyncControllerProvider);
-      expect(state.isSyncing, isFalse);
-      expect(state.lastSuccessAtUtc, isNull);
-      expect(state.lastError, isNull);
-    },
-  );
+    final state = harness.container.read(libraryCloudSyncControllerProvider);
+    expect(state.isSyncing, isFalse);
+    expect(state.lastSuccessAtUtc, isNull);
+    expect(state.lastError, isNull);
+  });
 
   test(
     'resumes auto-sync when Supabase client becomes available again',
@@ -65,9 +62,10 @@ void main() {
       addTearDown(harness.dispose);
 
       final events = <AppEvent>[];
-      final sub = harness.container.read(appEventBusProvider).stream.listen(
-        events.add,
-      );
+      final sub = harness.container
+          .read(appEventBusProvider)
+          .stream
+          .listen(events.add);
       addTearDown(sub.cancel);
 
       harness.container.read(libraryCloudSyncControllerProvider);
@@ -86,7 +84,10 @@ void main() {
       expect(harness.syncService.syncAllCalls, 1);
       expect(harness.syncService.pullUserPreferencesCalls, 1);
       expect(harness.syncService.syncedProfileIds, [harness.profile.id]);
-      expect(events.map((event) => event.type), contains(AppEventType.librarySynced));
+      expect(
+        events.map((event) => event.type),
+        contains(AppEventType.librarySynced),
+      );
 
       final state = harness.container.read(libraryCloudSyncControllerProvider);
       expect(state.isSyncing, isFalse);
@@ -95,31 +96,28 @@ void main() {
     },
   );
 
-  test(
-    'does not auto-sync for a local-only selected profile id',
-    () async {
-      final harness = await _LibraryCloudSyncHarness.create(
-        profileId: 'local_profile_123_456',
-      );
-      addTearDown(harness.dispose);
+  test('does not auto-sync for a local-only selected profile id', () async {
+    final harness = await _LibraryCloudSyncHarness.create(
+      profileId: 'local_profile_123_456',
+    );
+    addTearDown(harness.dispose);
 
-      harness.registerSupabaseClient();
-      harness.container.read(libraryCloudSyncControllerProvider);
-      await harness.selectedProfilePreferences.setSelectedProfileId(
-        harness.profile.id,
-      );
+    harness.registerSupabaseClient();
+    harness.container.read(libraryCloudSyncControllerProvider);
+    await harness.selectedProfilePreferences.setSelectedProfileId(
+      harness.profile.id,
+    );
 
-      await harness.pumpAutoSync();
+    await harness.pumpAutoSync();
 
-      expect(harness.syncService.syncAllCalls, 0);
-      expect(harness.syncService.pullUserPreferencesCalls, 0);
+    expect(harness.syncService.syncAllCalls, 0);
+    expect(harness.syncService.pullUserPreferencesCalls, 0);
 
-      final state = harness.container.read(libraryCloudSyncControllerProvider);
-      expect(state.isSyncing, isFalse);
-      expect(state.lastSuccessAtUtc, isNull);
-      expect(state.lastError, isNull);
-    },
-  );
+    final state = harness.container.read(libraryCloudSyncControllerProvider);
+    expect(state.isSyncing, isFalse);
+    expect(state.lastSuccessAtUtc, isNull);
+    expect(state.lastError, isNull);
+  });
 
   test(
     'manual sync reports a friendly error for a local-only selected profile id',
@@ -198,7 +196,9 @@ class _LibraryCloudSyncHarness {
     final syncService = _SpyComprehensiveCloudSyncService(db);
 
     sl.registerSingleton<LocalePreferences>(localePreferences);
-    sl.registerSingleton<SelectedProfilePreferences>(selectedProfilePreferences);
+    sl.registerSingleton<SelectedProfilePreferences>(
+      selectedProfilePreferences,
+    );
     sl.registerSingleton<CloudSyncPreferences>(cloudSyncPreferences);
     sl.registerSingleton<ProfileRepository>(_FakeProfileRepository([profile]));
 

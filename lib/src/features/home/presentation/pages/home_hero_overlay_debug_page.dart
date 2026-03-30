@@ -69,7 +69,9 @@ class HomeHeroOverlayDebugPage extends StatelessWidget {
                               title: 'Mobile / Light Poster',
                               caption:
                                   'Bright artwork with strong highlights. The lower fade should still melt into the surface.',
-                              child: _MobileHeroPreview(tone: _PosterTone.light),
+                              child: _MobileHeroPreview(
+                                tone: _PosterTone.light,
+                              ),
                             ),
                           ),
                           SizedBox(
@@ -319,9 +321,7 @@ class _SkeletonHeroPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final overlaySpec = MoviHeroOverlaySpec.homeBottomOnly(
-      isWideLayout: false,
-    );
+    final overlaySpec = MoviHeroOverlaySpec.homeBottomOnly(isWideLayout: false);
     final theme = Theme.of(context);
 
     return Center(
@@ -483,9 +483,7 @@ class _PreviewShell extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: theme.colorScheme.surfaceContainerHighest,
-          ),
+          border: Border.all(color: theme.colorScheme.surfaceContainerHighest),
         ),
         child: child,
       ),
@@ -494,10 +492,7 @@ class _PreviewShell extends StatelessWidget {
 }
 
 class _RailStubLine extends StatelessWidget {
-  const _RailStubLine({
-    required this.widthFactor,
-    required this.color,
-  });
+  const _RailStubLine({required this.widthFactor, required this.color});
 
   final double widthFactor;
   final Color color;
@@ -529,18 +524,10 @@ class _PosterBackdrop extends StatelessWidget {
     final baseStart = isLight
         ? const Color(0xFFE7D0AE)
         : const Color(0xFF0D1824);
-    final baseEnd = isLight
-        ? const Color(0xFF785D47)
-        : const Color(0xFF091015);
-    final glowA = isLight
-        ? const Color(0xFFFFD8A8)
-        : const Color(0xFF2C6E73);
-    final glowB = isLight
-        ? const Color(0xFF8CC8E5)
-        : const Color(0xFF1E3450);
-    final glowC = isLight
-        ? const Color(0xFF2F2014)
-        : const Color(0xFF070D13);
+    final baseEnd = isLight ? const Color(0xFF785D47) : const Color(0xFF091015);
+    final glowA = isLight ? const Color(0xFFFFD8A8) : const Color(0xFF2C6E73);
+    final glowB = isLight ? const Color(0xFF8CC8E5) : const Color(0xFF1E3450);
+    final glowC = isLight ? const Color(0xFF2F2014) : const Color(0xFF070D13);
 
     return DecoratedBox(
       decoration: BoxDecoration(

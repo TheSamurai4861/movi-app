@@ -56,16 +56,15 @@ class StalkerAccount extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        alias,
-        endpoint,
-        macAddress,
-        username,
-        token,
-        status,
-        createdAt,
-        expirationDate,
-        lastError,
-      ];
+    id,
+    alias,
+    endpoint,
+    macAddress,
+    username,
+    token,
+    status,
+    createdAt,
+    expirationDate,
+    lastError,
+  ];
 }
-

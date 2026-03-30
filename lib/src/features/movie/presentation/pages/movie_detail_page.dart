@@ -15,6 +15,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -33,6 +34,8 @@ import 'package:movi/src/features/movie/presentation/widgets/movie_detail_synops
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_cast_section.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_saga_section.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_recommendations_section.dart';
+import 'package:movi/src/features/movie/presentation/widgets/movie_playback_variant_sheet.dart';
+import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/core/parental/presentation/utils/parental_reason_localizer.dart';
@@ -573,6 +576,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
     );
     final isFavoriteAsync = ref.watch(mdp.movieIsFavoriteProvider(movieId));
+    final availabilityAsync = ref.watch(
+      mdp.movieAvailabilityOnIptvProvider(movieId),
+    );
 
     final primaryButton = MoviPrimaryButton(
       label: historyAsync.when(
@@ -593,6 +599,26 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final playButton = expandPrimary
         ? Expanded(child: primaryButton)
         : SizedBox(width: 320, child: primaryButton);
+    final canOpenVariants = availabilityAsync.maybeWhen(
+      data: (isAvailable) => isAvailable,
+      orElse: () => false,
+    );
+    final manualChoiceButton = canOpenVariants
+        ? SizedBox(
+            height: expandPrimary ? 55 : 48,
+            child: OutlinedButton(
+              onPressed: () => _showMovieVariants(context, mediaTitle),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(32),
+                ),
+              ),
+              child: const Text('Versions'),
+            ),
+          )
+        : null;
 
     return SizedBox(
       height: expandPrimary ? 55 : 48,
@@ -600,6 +626,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
         children: [
           playButton,
+          if (manualChoiceButton != null) ...[
+            const SizedBox(width: 12),
+            manualChoiceButton,
+          ],
           const SizedBox(width: 16),
           SizedBox(
             width: 40,
@@ -621,6 +651,26 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           ),
         ],
       ),
+    );
+  }
+
+  ({String movieId, String title, int? releaseYear, Uri? poster})
+  _buildPlaybackSelectionArgs({
+    required String movieId,
+    required String title,
+  }) {
+    final currentViewModel = ref
+        .read(mdp.movieDetailControllerProvider(movieId))
+        .value;
+    final releaseYear = currentViewModel == null
+        ? null
+        : int.tryParse(currentViewModel.yearText);
+
+    return (
+      movieId: movieId,
+      title: title,
+      releaseYear: releaseYear,
+      poster: currentViewModel?.poster,
     );
   }
 
@@ -1060,23 +1110,55 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   Future<void> _playMovie(BuildContext context, String title) async {
     final logger = ref.read(slProvider)<AppLogger>();
+    final diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
+    final stopwatch = Stopwatch()..start();
     try {
-      final movieId = widget.movieId;
-      Uri? posterUri = ref
-          .read(mdp.movieDetailControllerProvider(movieId))
-          .value
-          ?.poster;
-      if (posterUri == null) {
-        final vmAsync = ref.read(mdp.movieDetailControllerProvider(movieId));
-        vmAsync.whenData((vm) {
-          posterUri = vm.poster;
-        });
+      final decision = await _loadMoviePlaybackSelection(title);
+      if (decision.isUnavailable) {
+        diagnostics.completed(
+          'movie_play_action',
+          elapsed: stopwatch.elapsed,
+          result: 'unavailable',
+          context: <String, Object?>{
+            'movieId': widget.movieId,
+            'reason': decision.reason.name,
+          },
+        );
+        if (!mounted || !context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.movieNotAvailableInPlaylist,
+            ),
+          ),
+        );
+        return;
       }
-      final args = (movieId: movieId, title: title, poster: posterUri);
-      final source = await ref.read(
-        mdp.buildMovieVideoSourceProvider(args).future,
-      );
+
+      var source = decision.selectedVariant?.videoSource;
+      if (decision.requiresManualSelection) {
+        if (!mounted || !context.mounted) return;
+        final selectedVariant = await MoviePlaybackVariantSheet.show(
+          context,
+          movieTitle: title,
+          variants: decision.rankedVariants,
+        );
+        if (selectedVariant == null || !mounted || !context.mounted) {
+          return;
+        }
+        source = selectedVariant.videoSource;
+      }
+
       if (source == null) {
+        diagnostics.completed(
+          'movie_play_action',
+          elapsed: stopwatch.elapsed,
+          result: 'missing_source',
+          context: <String, Object?>{
+            'movieId': widget.movieId,
+            'reason': decision.reason.name,
+          },
+        );
         if (!mounted || !context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1089,8 +1171,25 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
 
       if (!mounted || !context.mounted) return;
+      diagnostics.completed(
+        'movie_play_action',
+        elapsed: stopwatch.elapsed,
+        result: decision.disposition.name,
+        context: <String, Object?>{
+          'movieId': widget.movieId,
+          'reason': decision.reason.name,
+          'variants': decision.rankedVariants.length,
+        },
+      );
       context.push(AppRouteNames.player, extra: source);
     } catch (e, st) {
+      diagnostics.failed(
+        'movie_play_action',
+        elapsed: stopwatch.elapsed,
+        error: e,
+        stackTrace: st,
+        context: <String, Object?>{'movieId': widget.movieId},
+      );
       logger.error(
         AppLocalizations.of(context)!.errorPlaybackFailed(e.toString()),
         e,
@@ -1105,5 +1204,36 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         ),
       );
     }
+  }
+
+  Future<void> _showMovieVariants(BuildContext context, String title) async {
+    final decision = await _loadMoviePlaybackSelection(title);
+    if (!mounted || !context.mounted) return;
+    if (decision.isUnavailable || !decision.hasManualSelectionAvailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune autre version disponible')),
+      );
+      return;
+    }
+
+    final selectedVariant = await MoviePlaybackVariantSheet.show(
+      context,
+      movieTitle: title,
+      variants: decision.rankedVariants,
+    );
+    if (selectedVariant == null || !mounted || !context.mounted) {
+      return;
+    }
+    context.push(AppRouteNames.player, extra: selectedVariant.videoSource);
+  }
+
+  Future<PlaybackSelectionDecision> _loadMoviePlaybackSelection(
+    String title,
+  ) async {
+    final args = _buildPlaybackSelectionArgs(
+      movieId: widget.movieId,
+      title: title,
+    );
+    return ref.read(mdp.moviePlaybackSelectionProvider(args).future);
   }
 }

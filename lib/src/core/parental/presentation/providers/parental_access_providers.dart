@@ -23,32 +23,29 @@ final profilePinEdgeServiceProvider = Provider<ProfilePinEdgeService>((ref) {
 /// If an unlock session is active for the profile, this returns allowed.
 final contentAgeDecisionProvider =
     FutureProvider.family<AgeDecision, ContentReference>((ref, content) async {
-  // Only guard TMDB IDs.
-  if (content.type != ContentType.movie && content.type != ContentType.series) {
-    return AgeDecision.allowed(reason: 'non_media_type');
-  }
+      // Only guard TMDB IDs.
+      if (content.type != ContentType.movie &&
+          content.type != ContentType.series) {
+        return AgeDecision.allowed(reason: 'non_media_type');
+      }
 
-  final Profile? profile = ref.watch(currentProfileProvider);
-  if (profile == null) {
-    return AgeDecision.allowed(reason: 'no_profile');
-  }
+      final Profile? profile = ref.watch(currentProfileProvider);
+      if (profile == null) {
+        return AgeDecision.allowed(reason: 'no_profile');
+      }
 
-  final sessionSvc = ref.read(parentalSessionServiceProvider);
-  if (await sessionSvc.isUnlocked(profile.id)) {
-    return AgeDecision.allowed(reason: 'unlocked_session');
-  }
+      final sessionSvc = ref.read(parentalSessionServiceProvider);
+      if (await sessionSvc.isUnlocked(profile.id)) {
+        return AgeDecision.allowed(reason: 'unlocked_session');
+      }
 
-  final policy = ref.read(agePolicyProvider);
-  return policy.evaluate(content, profile);
-});
+      final policy = ref.read(agePolicyProvider);
+      return policy.evaluate(content, profile);
+    });
 
 ContentReference contentRefFromId({
   required ContentType type,
   required String id,
 }) {
-  return ContentReference(
-    id: id,
-    type: type,
-    title: MediaTitle(id),
-  );
+  return ContentReference(id: id, type: type, title: MediaTitle(id));
 }

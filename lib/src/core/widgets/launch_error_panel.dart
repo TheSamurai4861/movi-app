@@ -49,10 +49,7 @@ class LaunchErrorPanel extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 24),
-            MoviPrimaryButton(
-              label: retryLabel,
-              onPressed: onRetry,
-            ),
+            MoviPrimaryButton(label: retryLabel, onPressed: onRetry),
           ],
         ),
       ),

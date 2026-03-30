@@ -25,10 +25,7 @@ class ProfilePinEdgeService {
     return data['valid'] == true;
   }
 
-  Future<void> setPin({
-    required String profileId,
-    required String pin,
-  }) async {
+  Future<void> setPin({required String profileId, required String pin}) async {
     await _client.functions.invoke(
       functionName,
       body: <String, dynamic>{
@@ -63,7 +60,8 @@ class ProfilePinEdgeService {
       if (decoded is Map<String, dynamic>) return decoded;
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
-    throw FormatException('Unexpected edge function response: ${value.runtimeType}');
+    throw FormatException(
+      'Unexpected edge function response: ${value.runtimeType}',
+    );
   }
 }
-

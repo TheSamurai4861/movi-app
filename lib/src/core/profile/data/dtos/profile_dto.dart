@@ -34,7 +34,8 @@ class ProfileDto {
     // IMPORTANT:
     // - Source of truth: profiles.account_id = auth.uid()
     // - TolÃƒÆ’Ã‚Â©rance lecture legacy; ÃƒÆ’Ã‚Â©criture/filtre restent stricts sur account_id.
-    final rawAccountId = json['account_id'] ??
+    final rawAccountId =
+        json['account_id'] ??
         json['accountId'] ??
         json['user_id'] ??
         json['userId'];
@@ -59,39 +60,39 @@ class ProfileDto {
 
   /// JSON pour UPDATE (et ÃƒÆ’Ã‚Â©ventuellement pour SELECT client-side).
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'account_id': accountId,
-        'name': name,
-        'color': color,
-        'avatar_url': avatarUrl,
-        'is_kid': isKid,
-        'pegi_limit': pegiLimit,
-        'has_pin': hasPin,
-      };
+    'id': id,
+    'account_id': accountId,
+    'name': name,
+    'color': color,
+    'avatar_url': avatarUrl,
+    'is_kid': isKid,
+    'pegi_limit': pegiLimit,
+    'has_pin': hasPin,
+  };
 
   Profile toEntity() => Profile(
-        id: id,
-        accountId: accountId,
-        name: name,
-        color: color,
-        avatarUrl: avatarUrl,
-        createdAt: createdAt,
-        isKid: isKid,
-        pegiLimit: pegiLimit,
-        hasPin: hasPin,
-      );
+    id: id,
+    accountId: accountId,
+    name: name,
+    color: color,
+    avatarUrl: avatarUrl,
+    createdAt: createdAt,
+    isKid: isKid,
+    pegiLimit: pegiLimit,
+    hasPin: hasPin,
+  );
 
   static ProfileDto fromEntity(Profile e) => ProfileDto(
-        id: e.id,
-        accountId: e.accountId,
-        name: e.name,
-        color: e.color,
-        avatarUrl: e.avatarUrl,
-        createdAt: e.createdAt,
-        isKid: e.isKid,
-        pegiLimit: e.pegiLimit,
-        hasPin: e.hasPin,
-      );
+    id: e.id,
+    accountId: e.accountId,
+    name: e.name,
+    color: e.color,
+    avatarUrl: e.avatarUrl,
+    createdAt: e.createdAt,
+    isKid: e.isKid,
+    pegiLimit: e.pegiLimit,
+    hasPin: e.hasPin,
+  );
 }
 
 int? _parseInt(Object? value) {

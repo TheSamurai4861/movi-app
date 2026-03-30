@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/config/providers/config_provider.dart';
+import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -139,8 +141,27 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
     debugLabel: 'HomeHeroPrimaryAction',
   );
   late final ShellFocusCoordinator _shellFocusCoordinator;
+  bool get _allowLegacyHeroOverlayPrecache =>
+      defaultTargetPlatform != TargetPlatform.windows;
+  String? _lastLoggedHeroBuildSignature;
+  String? _lastLoggedHeroOverlayUrl;
 
   bool _isScheduled = false;
+  void _logHomeHeroDebug(
+    String event, {
+    Map<String, Object?> context = const <String, Object?>{},
+  }) {
+    final message = <String>[
+      '[HomeHeroDebug]',
+      'surface=desktop_layout',
+      'event=$event',
+      'platform=${defaultTargetPlatform.name}',
+      for (final entry in context.entries)
+        if (entry.value != null) '${entry.key}=${entry.value}',
+    ].join(' ');
+    unawaited(LoggingService.log(message, category: 'home_hero_debug'));
+  }
+
   void _postFrame(VoidCallback fn) {
     if (_isScheduled) return;
     _isScheduled = true;
@@ -151,10 +172,31 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   }
 
   Future<void> _precacheImageUrl(String url) async {
-    if (url.isEmpty) return;
+    if (!_allowLegacyHeroOverlayPrecache || url.isEmpty) {
+      _logHomeHeroDebug(
+        'legacy_precache_skipped',
+        context: <String, Object?>{
+          'allowLegacyPrecache': _allowLegacyHeroOverlayPrecache,
+          'urlEmpty': url.isEmpty,
+        },
+      );
+      return;
+    }
+    _logHomeHeroDebug(
+      'legacy_precache_start',
+      context: <String, Object?>{'url': url},
+    );
     try {
       await precacheImage(NetworkImage(url), context);
+      _logHomeHeroDebug(
+        'legacy_precache_done',
+        context: <String, Object?>{'url': url},
+      );
     } catch (_) {
+      _logHomeHeroDebug(
+        'legacy_precache_error',
+        context: <String, Object?>{'url': url},
+      );
       // ignore erreurs réseau; l'overlay ne doit pas bloquer
     }
   }
@@ -167,6 +209,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
       ShellTab.home,
       _heroPrimaryActionFocusNode,
     );
+    _logHomeHeroDebug('init_state');
     _requestInitialHeroFocus();
     // Déclencher automatiquement le refresh après le premier frame si les données sont vides
     // Simule un pull-to-refresh complet (sync + refresh home)
@@ -247,12 +290,47 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
           data: (inProgress) => inProgress.isEmpty,
           orElse: () => true,
         );
+    final buildSignature = [
+      state.hero.length,
+      state.iptvLists.length,
+      state.isLoading,
+      disableHero,
+      _isHeroLoadingMeta,
+      firstSectionNeedsHeroTransition,
+    ].join('|');
+    if (_lastLoggedHeroBuildSignature != buildSignature) {
+      _lastLoggedHeroBuildSignature = buildSignature;
+      _logHomeHeroDebug(
+        'build_state',
+        context: <String, Object?>{
+          'heroCount': state.hero.length,
+          'iptvSections': state.iptvLists.length,
+          'isLoading': state.isLoading,
+          'disableHero': disableHero,
+          'heroMetaLoading': _isHeroLoadingMeta,
+          'firstSectionNeedsHeroTransition': firstSectionNeedsHeroTransition,
+        },
+      );
+    }
 
     // Précache héro pour accélérer les réaffichages
     _postFrame(() {
-      if (!disableHero && state.hero.isNotEmpty) {
+      if (_allowLegacyHeroOverlayPrecache &&
+          !disableHero &&
+          state.hero.isNotEmpty) {
         var heroUrl = (state.hero.first.poster?.toString() ?? '');
         if (heroUrl == 'null') heroUrl = '';
+        if (_lastLoggedHeroOverlayUrl != heroUrl) {
+          _lastLoggedHeroOverlayUrl = heroUrl;
+          _logHomeHeroDebug(
+            'legacy_precache_candidate',
+            context: <String, Object?>{
+              'heroUrl': heroUrl,
+              'heroId': state.hero.first.id,
+              'heroType': state.hero.first.type.name,
+            },
+          );
+        }
         if (heroUrl.isNotEmpty) {
           unawaited(_precacheImageUrl(heroUrl));
         }
@@ -288,6 +366,10 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
                   primaryActionFocusNode: _heroPrimaryActionFocusNode,
                   onLoadingChanged: (isLoading) {
                     if (mounted && _isHeroLoadingMeta != isLoading) {
+                      _logHomeHeroDebug(
+                        'hero_loading_changed',
+                        context: <String, Object?>{'isLoading': isLoading},
+                      );
                       setState(() {
                         _isHeroLoadingMeta = isLoading;
                       });

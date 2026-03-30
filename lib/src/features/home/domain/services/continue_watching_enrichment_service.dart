@@ -56,8 +56,14 @@ class ContinueWatchingEnrichmentService {
     double maxProgress = 0.9,
     String userId = 'default',
   }) async {
-    final movies = await _historyRepo.readAll(ContentType.movie, userId: userId);
-    final shows = await _historyRepo.readAll(ContentType.series, userId: userId);
+    final movies = await _historyRepo.readAll(
+      ContentType.movie,
+      userId: userId,
+    );
+    final shows = await _historyRepo.readAll(
+      ContentType.series,
+      userId: userId,
+    );
 
     final allEntries = <HistoryEntry>[...movies, ...shows];
 
@@ -68,7 +74,7 @@ class ContinueWatchingEnrichmentService {
       if (progress < minProgress || progress >= maxProgress) continue;
 
       int? tmdbId = _extractTmdbId(entry.contentId);
-      
+
       // Si pas de tmdbId et que c'est un ID Xtream, essayer de le trouver via recherche
       if (tmdbId == null && entry.contentId.startsWith('xtream:')) {
         tmdbId = await _searchTmdbIdForHistoryEntry(entry);
@@ -199,13 +205,13 @@ class ContinueWatchingEnrichmentService {
         entry.contentId,
         expectedType: expectedType,
       );
-      
+
       if (xtreamItem != null) {
         // Si l'item a déjà un tmdbId, l'utiliser
         if (xtreamItem.tmdbId != null) {
           return xtreamItem.tmdbId;
         }
-        
+
         // Sinon, rechercher par titre
         final language = _localePreferences.languageCode;
         return await _tmdbIdResolver.enhancedSearchTmdbId(
@@ -213,7 +219,7 @@ class ContinueWatchingEnrichmentService {
           language: language,
         );
       }
-      
+
       // Si on ne peut pas obtenir l'item Xtream, essayer quand même une recherche par titre
       // en utilisant le titre de l'entrée d'historique
       final language = _localePreferences.languageCode;
@@ -230,7 +236,7 @@ class ContinueWatchingEnrichmentService {
           language: language,
         );
       }
-      
+
       return null;
     } catch (_) {
       // En cas d'erreur, retourner null pour utiliser le fallback poster
@@ -248,18 +254,10 @@ class ContinueWatchingEnrichmentService {
         isMovie: isMovie,
       );
       if (cached != null) {
-        _logBackdropCache(
-          action: 'hit',
-          tmdbId: tmdbId,
-          isMovie: isMovie,
-        );
+        _logBackdropCache(action: 'hit', tmdbId: tmdbId, isMovie: isMovie);
         return cached;
       }
-      _logBackdropCache(
-        action: 'miss',
-        tmdbId: tmdbId,
-        isMovie: isMovie,
-      );
+      _logBackdropCache(action: 'miss', tmdbId: tmdbId, isMovie: isMovie);
     } catch (_) {}
 
     try {

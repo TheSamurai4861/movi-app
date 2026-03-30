@@ -1,84 +1,226 @@
-import 'package:media_kit/media_kit.dart';
-import 'package:movi/src/core/preferences/player_preferences.dart';
-import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
+import 'package:movi/src/features/player/domain/value_objects/track_info.dart';
+import 'package:movi/src/features/player/presentation/utils/track_label_formatter.dart';
 
-class PreferredTracksSelection {
-  PreferredTracksSelection({
-    this.audio,
-    this.subtitle,
-    this.subtitlesEnabled = false,
+enum PreferredTrackSelectionStatus {
+  noPreference,
+  noTracksAvailable,
+  matchFound,
+  noMatchFound,
+  disableRequested,
+}
+
+class PreferredTrackSelection {
+  const PreferredTrackSelection({
+    required this.type,
+    required this.status,
+    this.preferredLanguageCode,
+    this.requestedTrack,
   });
 
-  final AudioTrack? audio;
-  final SubtitleTrack? subtitle;
-  final bool subtitlesEnabled;
+  final TrackType type;
+  final PreferredTrackSelectionStatus status;
+  final String? preferredLanguageCode;
+  final TrackInfo? requestedTrack;
+
+  bool get hasPreference =>
+      preferredLanguageCode != null && preferredLanguageCode!.isNotEmpty;
+}
+
+class PreferredTracksSelection {
+  const PreferredTracksSelection({required this.audio, required this.subtitle});
+
+  final PreferredTrackSelection audio;
+  final PreferredTrackSelection subtitle;
+}
+
+class PreferredTracksApplicationPlan {
+  const PreferredTracksApplicationPlan({
+    required this.selection,
+    required this.fingerprint,
+    required this.shouldApply,
+  });
+
+  final PreferredTracksSelection selection;
+  final String fingerprint;
+  final bool shouldApply;
 }
 
 class PreferredTracksSelector {
-  PreferredTracksSelector({required PlayerPreferences prefs}) : _prefs = prefs;
+  const PreferredTracksSelector();
 
-  final PlayerPreferences _prefs;
-
-  PreferredTracksSelection select(Tracks tracks) {
-    AudioTrack? selectedAudio;
-    SubtitleTrack? selectedSubtitle;
-    var enableSubtitles = false;
-
-    // Audio selection
-    if (tracks.audio.isNotEmpty) {
-      final preferredAudio = _prefs.preferredAudioLanguage;
-      if (preferredAudio != null && preferredAudio.isNotEmpty) {
-        for (final track in tracks.audio) {
-          final code = _extractLanguageCodeFromTrack(track);
-          if (_matchesLanguageCode(code, preferredAudio)) {
-            selectedAudio = track;
-            break;
-          }
-        }
-      }
-    }
-
-    // Subtitle selection
-    if (tracks.subtitle.isNotEmpty) {
-      final preferredSubtitle = _prefs.preferredSubtitleLanguage;
-      if (preferredSubtitle != null && preferredSubtitle.isNotEmpty) {
-        for (final track in tracks.subtitle) {
-          final code = _extractLanguageCodeFromTrack(track);
-          if (_matchesLanguageCode(code, preferredSubtitle)) {
-            selectedSubtitle = track;
-            enableSubtitles = true;
-            break;
-          }
-        }
-      }
-    }
-
+  PreferredTracksSelection select({
+    required List<TrackInfo> audioTracks,
+    required List<TrackInfo> subtitleTracks,
+    required String? preferredAudioLanguageCode,
+    required String? preferredSubtitleLanguageCode,
+  }) {
     return PreferredTracksSelection(
-      audio: selectedAudio,
-      subtitle: selectedSubtitle,
-      subtitlesEnabled: enableSubtitles,
+      audio: _selectAudioTrack(
+        tracks: audioTracks,
+        preferredLanguageCode: preferredAudioLanguageCode,
+      ),
+      subtitle: _selectSubtitleTrack(
+        tracks: subtitleTracks,
+        preferredLanguageCode: preferredSubtitleLanguageCode,
+      ),
     );
   }
 
-  String? _normalizeLanguageCode(String? code) =>
-      LanguageFormatter.normalizeLanguageCode(code);
-
-  bool _matchesLanguageCode(String? trackLanguage, String? preferredCode) {
-    if (trackLanguage == null || preferredCode == null) return false;
-    final normalizedTrack = _normalizeLanguageCode(trackLanguage);
-    final normalizedPreferred = _normalizeLanguageCode(preferredCode);
-    return normalizedTrack != null &&
-        normalizedPreferred != null &&
-        normalizedTrack == normalizedPreferred;
+  PreferredTracksApplicationPlan plan({
+    required List<TrackInfo> audioTracks,
+    required List<TrackInfo> subtitleTracks,
+    required String? preferredAudioLanguageCode,
+    required String? preferredSubtitleLanguageCode,
+    required int? currentAudioTrackId,
+    required int? currentSubtitleTrackId,
+    required bool subtitlesEnabled,
+    String? previousFingerprint,
+  }) {
+    final selection = select(
+      audioTracks: audioTracks,
+      subtitleTracks: subtitleTracks,
+      preferredAudioLanguageCode: preferredAudioLanguageCode,
+      preferredSubtitleLanguageCode: preferredSubtitleLanguageCode,
+    );
+    final fingerprint = _buildFingerprint(
+      selection: selection,
+      audioTracks: audioTracks,
+      subtitleTracks: subtitleTracks,
+      currentAudioTrackId: currentAudioTrackId,
+      currentSubtitleTrackId: currentSubtitleTrackId,
+      subtitlesEnabled: subtitlesEnabled,
+    );
+    return PreferredTracksApplicationPlan(
+      selection: selection,
+      fingerprint: fingerprint,
+      shouldApply: fingerprint != previousFingerprint,
+    );
   }
 
-  String? _extractLanguageCodeFromTrack(dynamic track) {
-    if (track.language != null && track.language!.isNotEmpty) {
-      return LanguageFormatter.normalizeLanguageCode(track.language);
+  PreferredTrackSelection _selectAudioTrack({
+    required List<TrackInfo> tracks,
+    required String? preferredLanguageCode,
+  }) {
+    final normalizedPreference = TrackLabelFormatter.normalizeLanguageCode(
+      preferredLanguageCode,
+    );
+    if (normalizedPreference == null) {
+      return const PreferredTrackSelection(
+        type: TrackType.audio,
+        status: PreferredTrackSelectionStatus.noPreference,
+      );
     }
-    if (track.title != null && track.title!.isNotEmpty) {
-      return LanguageFormatter.detectLanguageCodeFromTitle(track.title!);
+    if (tracks.isEmpty) {
+      return PreferredTrackSelection(
+        type: TrackType.audio,
+        status: PreferredTrackSelectionStatus.noTracksAvailable,
+        preferredLanguageCode: normalizedPreference,
+      );
+    }
+
+    final requestedTrack = _findMatchingTrack(
+      tracks: tracks,
+      preferredLanguageCode: normalizedPreference,
+    );
+    if (requestedTrack == null) {
+      return PreferredTrackSelection(
+        type: TrackType.audio,
+        status: PreferredTrackSelectionStatus.noMatchFound,
+        preferredLanguageCode: normalizedPreference,
+      );
+    }
+
+    return PreferredTrackSelection(
+      type: TrackType.audio,
+      status: PreferredTrackSelectionStatus.matchFound,
+      preferredLanguageCode: normalizedPreference,
+      requestedTrack: requestedTrack,
+    );
+  }
+
+  PreferredTrackSelection _selectSubtitleTrack({
+    required List<TrackInfo> tracks,
+    required String? preferredLanguageCode,
+  }) {
+    final normalizedPreference = TrackLabelFormatter.normalizeLanguageCode(
+      preferredLanguageCode,
+    );
+    if (normalizedPreference == null) {
+      return const PreferredTrackSelection(
+        type: TrackType.subtitle,
+        status: PreferredTrackSelectionStatus.disableRequested,
+      );
+    }
+    if (tracks.isEmpty) {
+      return PreferredTrackSelection(
+        type: TrackType.subtitle,
+        status: PreferredTrackSelectionStatus.noTracksAvailable,
+        preferredLanguageCode: normalizedPreference,
+      );
+    }
+
+    final requestedTrack = _findMatchingTrack(
+      tracks: tracks,
+      preferredLanguageCode: normalizedPreference,
+    );
+    if (requestedTrack == null) {
+      return PreferredTrackSelection(
+        type: TrackType.subtitle,
+        status: PreferredTrackSelectionStatus.noMatchFound,
+        preferredLanguageCode: normalizedPreference,
+      );
+    }
+
+    return PreferredTrackSelection(
+      type: TrackType.subtitle,
+      status: PreferredTrackSelectionStatus.matchFound,
+      preferredLanguageCode: normalizedPreference,
+      requestedTrack: requestedTrack,
+    );
+  }
+
+  TrackInfo? _findMatchingTrack({
+    required List<TrackInfo> tracks,
+    required String preferredLanguageCode,
+  }) {
+    for (final track in tracks) {
+      final languageCode = TrackLabelFormatter.getLanguageCode(track);
+      if (languageCode == preferredLanguageCode) {
+        return track;
+      }
     }
     return null;
+  }
+
+  String _buildFingerprint({
+    required PreferredTracksSelection selection,
+    required List<TrackInfo> audioTracks,
+    required List<TrackInfo> subtitleTracks,
+    required int? currentAudioTrackId,
+    required int? currentSubtitleTrackId,
+    required bool subtitlesEnabled,
+  }) {
+    return <String>[
+      'audioTracks=${_tracksSignature(audioTracks)}',
+      'subtitleTracks=${_tracksSignature(subtitleTracks)}',
+      'currentAudio=$currentAudioTrackId',
+      'currentSubtitle=$currentSubtitleTrackId',
+      'subtitlesEnabled=$subtitlesEnabled',
+      'audioStatus=${selection.audio.status.name}',
+      'audioPreference=${selection.audio.preferredLanguageCode ?? ''}',
+      'audioRequested=${selection.audio.requestedTrack?.id ?? 'none'}',
+      'subtitleStatus=${selection.subtitle.status.name}',
+      'subtitlePreference=${selection.subtitle.preferredLanguageCode ?? ''}',
+      'subtitleRequested=${selection.subtitle.requestedTrack?.id ?? 'none'}',
+    ].join('|');
+  }
+
+  String _tracksSignature(List<TrackInfo> tracks) {
+    return tracks
+        .map(
+          (track) =>
+              '${track.type.name}:${track.id}:${track.language ?? ''}:${track.title ?? ''}',
+        )
+        .join(',');
   }
 }

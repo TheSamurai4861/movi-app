@@ -28,10 +28,7 @@ abstract class AuthRepository {
   /// Verify the OTP code received by email.
   ///
   /// Returns true if verification succeeded and the user is now authenticated.
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-  });
+  Future<bool> verifyOtp({required String email, required String token});
 
   /// Sign out the current user.
   Future<void> signOut();

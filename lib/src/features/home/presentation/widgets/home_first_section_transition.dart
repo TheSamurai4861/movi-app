@@ -43,10 +43,7 @@ class HomeFirstSectionTransition extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [
-                      cs.surface,
-                      cs.surface.withValues(alpha: 0),
-                    ],
+                    colors: [cs.surface, cs.surface.withValues(alpha: 0)],
                   ),
                 ),
               ),

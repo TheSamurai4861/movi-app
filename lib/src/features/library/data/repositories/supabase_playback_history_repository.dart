@@ -60,31 +60,32 @@ class SupabasePlaybackHistoryRepository implements PlaybackHistoryRepository {
 
     try {
       // Contrainte UNIQUE(profile_id, media_type, media_id) recommandée.
-      await _client.from(_table).upsert(
-        <String, Object?>{
-          'profile_id': profileId,
-          'media_type': type.name,
-          'media_id': contentId,
-          'progress': progress,
-          'watched_at': now.toIso8601String(),
-          // Champs optionnels pour restaurer Continue Watching sur un autre device.
-          'title': title,
-          'poster': poster?.toString(),
-          'last_position_seconds': position?.inSeconds,
-          'duration_seconds': duration?.inSeconds,
-          'season': season,
-          'episode': episode,
-          'deleted_at': null,
-        },
-        onConflict: 'profile_id,media_type,media_id',
-      );
+      await _client.from(_table).upsert(<String, Object?>{
+        'profile_id': profileId,
+        'media_type': type.name,
+        'media_id': contentId,
+        'progress': progress,
+        'watched_at': now.toIso8601String(),
+        // Champs optionnels pour restaurer Continue Watching sur un autre device.
+        'title': title,
+        'poster': poster?.toString(),
+        'last_position_seconds': position?.inSeconds,
+        'duration_seconds': duration?.inSeconds,
+        'season': season,
+        'episode': episode,
+        'deleted_at': null,
+      }, onConflict: 'profile_id,media_type,media_id');
     } catch (error, stackTrace) {
       throw mapSupabaseError(error, stackTrace: stackTrace);
     }
   }
 
   @override
-  Future<void> remove(String contentId, ContentType type, {String? userId}) async {
+  Future<void> remove(
+    String contentId,
+    ContentType type, {
+    String? userId,
+  }) async {
     try {
       await _client.from(_table).delete().match(<String, Object>{
         'profile_id': profileId,

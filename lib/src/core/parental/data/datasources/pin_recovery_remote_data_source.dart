@@ -25,10 +25,7 @@ class PinRecoveryRemoteDataSource {
   Future<PinRecoveryResponseDto> verifyCode(String code) async {
     final response = await _client.functions.invoke(
       functionName,
-      body: <String, dynamic>{
-        'action': 'verify',
-        'code': code,
-      },
+      body: <String, dynamic>{'action': 'verify', 'code': code},
     );
     final data = _asMap(response.data);
     return PinRecoveryResponseDto.fromMap(data);
@@ -58,7 +55,9 @@ class PinRecoveryRemoteDataSource {
       if (decoded is Map<String, dynamic>) return decoded;
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
-    throw FormatException('Unexpected edge function response: ${value.runtimeType}');
+    throw FormatException(
+      'Unexpected edge function response: ${value.runtimeType}',
+    );
   }
 }
 
@@ -75,9 +74,7 @@ class PinRecoveryResponseDto {
 
   factory PinRecoveryResponseDto.fromMap(Map<String, dynamic> map) {
     final status = _resolveStatus(map);
-    final resetToken = map['resetToken'] ??
-        map['reset_token'] ??
-        map['token'];
+    final resetToken = map['resetToken'] ?? map['reset_token'] ?? map['token'];
     return PinRecoveryResponseDto(
       status: status,
       resetToken: resetToken?.toString(),

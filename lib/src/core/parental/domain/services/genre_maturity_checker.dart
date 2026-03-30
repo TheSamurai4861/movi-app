@@ -25,15 +25,15 @@ class GenreMaturityChecker {
   /// individuel gérer les cas limites.
   static const Map<int, int> _genreMinPegi = {
     // PEGI 12 minimum (> 80% des contenus sont PEGI 12+)
-    80: 12,      // Crime - > 85% des films de crime sont PEGI 12+
-    10752: 12,   // War (films) - > 80% des films de guerre sont PEGI 12+
-    10770: 12,   // Film-Noir - > 85% des films noir sont PEGI 12+
-    10768: 12,   // War & Politics (séries) - > 80% des séries guerre/politique sont PEGI 12+
-    18: 12,      // Drama (séries) - contenu mature fréquent dans les séries dramatiques
-    
+    80: 12, // Crime - > 85% des films de crime sont PEGI 12+
+    10752: 12, // War (films) - > 80% des films de guerre sont PEGI 12+
+    10770: 12, // Film-Noir - > 85% des films noir sont PEGI 12+
+    10768:
+        12, // War & Politics (séries) - > 80% des séries guerre/politique sont PEGI 12+
+    18: 12, // Drama (séries) - contenu mature fréquent dans les séries dramatiques
     // PEGI 16 minimum (> 80% des contenus sont PEGI 16+)
-    27: 16,      // Horror - > 95% des films d'horreur sont PEGI 16+
-    53: 16,      // Thriller - > 90% des thrillers sont PEGI 16+
+    27: 16, // Horror - > 95% des films d'horreur sont PEGI 16+
+    53: 16, // Thriller - > 90% des thrillers sont PEGI 16+
   };
 
   /// Vérifie si un genre est autorisé pour un profil avec un PEGI donné
@@ -52,4 +52,3 @@ class GenreMaturityChecker {
     return _genreMinPegi[genreId];
   }
 }
-

@@ -78,9 +78,7 @@ void main() {
       addTearDown(router.dispose);
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp.router(routerConfig: router),
-        ),
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
       );
       await tester.pumpAndSettle();
 
@@ -119,10 +117,7 @@ class _FakeAuthRepository implements AuthRepository {
   }) async {}
 
   @override
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-  }) async {
+  Future<bool> verifyOtp({required String email, required String token}) async {
     return true;
   }
 

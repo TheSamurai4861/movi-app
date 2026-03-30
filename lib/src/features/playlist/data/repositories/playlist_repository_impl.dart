@@ -68,7 +68,7 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
     if (header == null) {
       throw StateError('Playlist ${playlistId.value} not found');
     }
-    
+
     /// Vérifier si le média existe déjà dans la playlist
     final existingItems = header.items;
     final alreadyExists = existingItems.any(
@@ -76,13 +76,13 @@ class PlaylistRepositoryImpl implements PlaylistRepository {
           existingItem.reference.id == item.reference.id &&
           existingItem.reference.type == item.reference.type,
     );
-    
+
     if (alreadyExists) {
       throw StateError(
         'Le média "${item.reference.title.value}" est déjà dans cette playlist',
       );
     }
-    
+
     await _local.addItem(
       playlistId.value,
       PlaylistItemRow(

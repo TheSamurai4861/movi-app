@@ -72,8 +72,8 @@ class HomeIptvMediaFilterController extends Notifier<HomeIptvMediaFilter> {
 
 final homeIptvMediaFilterProvider =
     NotifierProvider<HomeIptvMediaFilterController, HomeIptvMediaFilter>(
-  HomeIptvMediaFilterController.new,
-);
+      HomeIptvMediaFilterController.new,
+    );
 
 /// État immutable du Home.
 class HomeState {
@@ -180,7 +180,8 @@ class HomeController extends Notifier<HomeState> {
     );
 
     if (allowedMovies.length < targetMovies) {
-      var currentPage = 2; // Start from page 2 since page 1 is already in initialHero
+      var currentPage =
+          2; // Start from page 2 since page 1 is already in initialHero
       while (allowedMovies.length < targetMovies && currentPage <= maxPages) {
         final pageResult = await _repo!.getTrendingMoviesPage(currentPage);
         final pageMovies = pageResult.fold(
@@ -215,7 +216,8 @@ class HomeController extends Notifier<HomeState> {
     );
 
     if (allowedSeries.length < targetSeries) {
-      var currentPage = 2; // Start from page 2 since page 1 is already in initialHero
+      var currentPage =
+          2; // Start from page 2 since page 1 is already in initialHero
       while (allowedSeries.length < targetSeries && currentPage <= maxPages) {
         final pageResult = await _repo!.getTrendingSeriesPage(currentPage);
         final pageSeries = pageResult.fold(
@@ -253,7 +255,9 @@ class HomeController extends Notifier<HomeState> {
     if (series.isEmpty) return movies;
 
     final out = <ContentReference>[];
-    final maxLen = (movies.length > series.length) ? movies.length : series.length;
+    final maxLen = (movies.length > series.length)
+        ? movies.length
+        : series.length;
     for (var i = 0; i < maxLen; i++) {
       if (i < movies.length) out.add(movies[i]);
       if (i < series.length) out.add(series[i]);
@@ -328,12 +332,7 @@ class HomeController extends Notifier<HomeState> {
           final reason = event.type == AppEventType.iptvSynced
               ? 'iptvSynced'
               : 'librarySynced';
-          unawaited(
-            load(
-              reason: reason,
-              cooldown: _defaultRefreshCooldown,
-            ),
-          );
+          unawaited(load(reason: reason, cooldown: _defaultRefreshCooldown));
         }
       });
 
@@ -348,8 +347,10 @@ class HomeController extends Notifier<HomeState> {
       // Ensure Home updates (hero + filtering) when switching profiles or when profile becomes available.
       ref.listen(currentProfileProvider, (previous, next) {
         // Reload if profile becomes available (null -> non-null) or if profile properties change
-        final shouldReload = previous == null && next != null ||
-            (previous != null && next != null &&
+        final shouldReload =
+            previous == null && next != null ||
+            (previous != null &&
+                next != null &&
                 (previous.id != next.id ||
                     previous.isKid != next.isKid ||
                     previous.pegiLimit != next.pegiLimit));
@@ -362,12 +363,7 @@ class HomeController extends Notifier<HomeState> {
             );
             return;
           }
-          unawaited(
-            load(
-              reason: 'profileChange',
-              force: true,
-            ),
-          );
+          unawaited(load(reason: 'profileChange', force: true));
         }
       });
     }
@@ -410,11 +406,7 @@ class HomeController extends Notifier<HomeState> {
     if (!force && lastRefreshAt != null) {
       final elapsed = now.difference(lastRefreshAt);
       if (elapsed < effectiveCooldown) {
-        _logRefreshDecision(
-          reason: reason,
-          action: 'skip',
-          detail: 'cooldown',
-        );
+        _logRefreshDecision(reason: reason, action: 'skip', detail: 'cooldown');
         _logHomeLoadCycle(
           action: 'end',
           reason: reason,
@@ -435,11 +427,7 @@ class HomeController extends Notifier<HomeState> {
         force: force,
         cooldown: cooldown,
       );
-      _logRefreshDecision(
-        reason: reason,
-        action: 'queue',
-        detail: 'loading',
-      );
+      _logRefreshDecision(reason: reason, action: 'queue', detail: 'loading');
       _logHomeLoadCycle(
         action: 'end',
         reason: reason,
@@ -485,7 +473,8 @@ class HomeController extends Notifier<HomeState> {
 
     // For restricted profiles, Home content must be filtered; do not defer IPTV.
     // For kid profiles, the hero is built from allowed IPTV movies, so do not defer either.
-    final bool deferIptv = !hasRestrictions && tuning.isLowResources && !awaitIptv;
+    final bool deferIptv =
+        !hasRestrictions && tuning.isLowResources && !awaitIptv;
 
     // Charger hero et IPTV en parallèle (chacun reste "safe").
     final futures = <Future<void>>[];
@@ -508,7 +497,9 @@ class HomeController extends Notifier<HomeState> {
       futures.add(
         Future<void>(() async {
           try {
-            iptvResult = await _loadIptv!.call(itemLimitPerPlaylist: iptvFetchLimit);
+            iptvResult = await _loadIptv!.call(
+              itemLimitPerPlaylist: iptvFetchLimit,
+            );
           } catch (e) {
             error ??= e.toString();
             iptvResult = null;
@@ -539,8 +530,7 @@ class HomeController extends Notifier<HomeState> {
       try {
         // ignore: avoid_dynamic_calls
         (iptvResult as dynamic).fold(
-          ok: (value) =>
-              iptv = (value as Map<String, List<ContentReference>>),
+          ok: (value) => iptv = (value as Map<String, List<ContentReference>>),
           err: (failure) => error ??= (failure as dynamic).message as String?,
         );
       } catch (e) {
@@ -550,8 +540,11 @@ class HomeController extends Notifier<HomeState> {
 
     if (hasRestrictions) {
       final policy = ref.read(parental.agePolicyProvider);
-      final classifier = ref.read(slProvider)<parental.PlaylistMaturityClassifier>();
-      final effectivePegi = parental.PegiRating.tryParse(profile.pegiLimit) ??
+      final classifier = ref.read(
+        slProvider,
+      )<parental.PlaylistMaturityClassifier>();
+      final effectivePegi =
+          parental.PegiRating.tryParse(profile.pegiLimit) ??
           (profile.isKid ? parental.PegiRating.pegi12 : null);
 
       // Filtrer uniquement par titre de playlist (ex: horreur) pour les profils enfants
@@ -624,35 +617,38 @@ class HomeController extends Notifier<HomeState> {
 
     if (deferIptv) {
       unawaited(
-        _loadIptv!.call(itemLimitPerPlaylist: iptvFetchLimit).then((result) {
-          Map<String, List<ContentReference>> iptvValue =
-              const <String, List<ContentReference>>{};
-          String? iptvError;
+        _loadIptv!
+            .call(itemLimitPerPlaylist: iptvFetchLimit)
+            .then((result) {
+              Map<String, List<ContentReference>> iptvValue =
+                  const <String, List<ContentReference>>{};
+              String? iptvError;
 
-          try {
-            // ignore: avoid_dynamic_calls
-            (result as dynamic).fold(
-              ok: (value) =>
-                  iptvValue = (value as Map<String, List<ContentReference>>),
-              err: (failure) =>
-                  iptvError ??= (failure as dynamic).message as String?,
-            );
-          } catch (e) {
-            iptvError ??= e.toString();
-          }
+              try {
+                // ignore: avoid_dynamic_calls
+                (result as dynamic).fold(
+                  ok: (value) => iptvValue =
+                      (value as Map<String, List<ContentReference>>),
+                  err: (failure) =>
+                      iptvError ??= (failure as dynamic).message as String?,
+                );
+              } catch (e) {
+                iptvError ??= e.toString();
+              }
 
-          state = state.copyWith(
-            iptvLists: iptvValue,
-            isLoading: false,
-            error: iptvError ?? state.error,
-          );
+              state = state.copyWith(
+                iptvLists: iptvValue,
+                isLoading: false,
+                error: iptvError ?? state.error,
+              );
 
-          _drainQueuedRefresh();
-        }).catchError((e) {
-          state = state.copyWith(isLoading: false, error: e.toString());
+              _drainQueuedRefresh();
+            })
+            .catchError((e) {
+              state = state.copyWith(isLoading: false, error: e.toString());
 
-          _drainQueuedRefresh();
-        }),
+              _drainQueuedRefresh();
+            }),
       );
     }
 
@@ -727,9 +723,7 @@ class HomeController extends Notifier<HomeState> {
       if (duration != null) 'duration=${duration.inMilliseconds}ms',
       if (detail != null) 'detail=$detail',
     ];
-    unawaited(
-      LoggingService.log('[HomeLoad] ${parts.join(' ')}'),
-    );
+    unawaited(LoggingService.log('[HomeLoad] ${parts.join(' ')}'));
   }
 
   List<MovieSummary> _mapCwMovies(List<domain.InProgressMedia> items) {
@@ -776,8 +770,9 @@ final homeControllerProvider = NotifierProvider<HomeController, HomeState>(
 ///
 /// La logique métier (progression, enrichissement TMDB, tri) vit dans
 /// le use case `LoadContinueWatchingMedia` et son service dédié.
-final homeInProgressProvider =
-    FutureProvider<List<domain.InProgressMedia>>((ref) async {
+final homeInProgressProvider = FutureProvider<List<domain.InProgressMedia>>((
+  ref,
+) async {
   final locator = ref.watch(slProvider);
   final useCase = locator<LoadContinueWatchingMedia>();
   final userId = ref.watch(currentUserIdProvider);
@@ -793,32 +788,37 @@ final homeInProgressProvider =
 });
 
 /// Provider pour obtenir l'état de lecture d'un média spécifique
-final mediaHistoryProvider = FutureProvider.family<
-    HistoryEntry?, ({String contentId, ContentType type})>((ref, params) async {
-  final locator = ref.watch(slProvider);
-  final historyRepo = locator<HistoryLocalRepository>();
-  final userId = ref.watch(currentUserIdProvider);
+final mediaHistoryProvider =
+    FutureProvider.family<
+      HistoryEntry?,
+      ({String contentId, ContentType type})
+    >((ref, params) async {
+      final locator = ref.watch(slProvider);
+      final historyRepo = locator<HistoryLocalRepository>();
+      final userId = ref.watch(currentUserIdProvider);
 
-  final entries = await historyRepo.readAll(params.type, userId: userId);
+      final entries = await historyRepo.readAll(params.type, userId: userId);
 
-  try {
-    final entry = entries.firstWhere((e) => e.contentId == params.contentId);
-    if (entry.duration == null || entry.duration!.inSeconds <= 0) {
+      try {
+        final entry = entries.firstWhere(
+          (e) => e.contentId == params.contentId,
+        );
+        if (entry.duration == null || entry.duration!.inSeconds <= 0) {
+          return null;
+        }
+
+        final pos = entry.lastPosition?.inSeconds ?? 0;
+        final progress = pos / entry.duration!.inSeconds;
+
+        // Un média est considéré en cours seulement si la progression est comprise
+        // entre les seuils configurés dans HomeLayoutConstants.
+        if (progress >= HomeLayoutConstants.minProgressThreshold &&
+            progress < HomeLayoutConstants.maxProgressThreshold) {
+          return entry;
+        }
+      } catch (_) {
+        // Entry not found
+      }
+
       return null;
-    }
-
-    final pos = entry.lastPosition?.inSeconds ?? 0;
-    final progress = pos / entry.duration!.inSeconds;
-
-    // Un média est considéré en cours seulement si la progression est comprise
-    // entre les seuils configurés dans HomeLayoutConstants.
-    if (progress >= HomeLayoutConstants.minProgressThreshold &&
-        progress < HomeLayoutConstants.maxProgressThreshold) {
-      return entry;
-    }
-  } catch (_) {
-    // Entry not found
-  }
-
-  return null;
-});
+    });

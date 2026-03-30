@@ -12,11 +12,13 @@ class AuthSession {
 
   final String userId;
 
-  AuthSession copyWith({String? userId}) => AuthSession(userId: userId ?? this.userId);
+  AuthSession copyWith({String? userId}) =>
+      AuthSession(userId: userId ?? this.userId);
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || (other is AuthSession && other.userId == userId);
+      identical(this, other) ||
+      (other is AuthSession && other.userId == userId);
 
   @override
   int get hashCode => userId.hashCode;
@@ -27,10 +29,7 @@ class AuthSession {
 
 @immutable
 class AuthSnapshot {
-  const AuthSnapshot({
-    required this.status,
-    this.session,
-  });
+  const AuthSnapshot({required this.status, this.session});
 
   final AuthStatus status;
   final AuthSession? session;
@@ -38,10 +37,7 @@ class AuthSnapshot {
   String? get userId => session?.userId;
   bool get isAuthenticated => status == AuthStatus.authenticated;
 
-  AuthSnapshot copyWith({
-    AuthStatus? status,
-    AuthSession? session,
-  }) {
+  AuthSnapshot copyWith({AuthStatus? status, AuthSession? session}) {
     return AuthSnapshot(
       status: status ?? this.status,
       session: session ?? this.session,
@@ -49,13 +45,16 @@ class AuthSnapshot {
   }
 
   static const AuthSnapshot unknown = AuthSnapshot(status: AuthStatus.unknown);
-  static const AuthSnapshot unauthenticated =
-      AuthSnapshot(status: AuthStatus.unauthenticated);
+  static const AuthSnapshot unauthenticated = AuthSnapshot(
+    status: AuthStatus.unauthenticated,
+  );
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other is AuthSnapshot && other.status == status && other.session == session);
+        (other is AuthSnapshot &&
+            other.status == status &&
+            other.session == session);
   }
 
   @override

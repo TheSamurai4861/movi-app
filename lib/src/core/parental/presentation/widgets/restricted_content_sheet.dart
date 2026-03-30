@@ -52,7 +52,8 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
       _RestrictedContentSheetState();
 }
 
-class _RestrictedContentSheetState extends ConsumerState<RestrictedContentSheet> {
+class _RestrictedContentSheetState
+    extends ConsumerState<RestrictedContentSheet> {
   static const double _sheetHorizontalPadding = 20;
   static const double _sheetVerticalPadding = 20;
   static const double _sheetMaxWidth = 520;
@@ -175,7 +176,10 @@ class _RestrictedContentSheetState extends ConsumerState<RestrictedContentSheet>
                             onPressed: _busy
                                 ? null
                                 : () => Navigator.of(context).pop(false),
-                            icon: const Icon(Icons.close, color: Colors.white70),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white70,
+                            ),
                           ),
                         ],
                       ),

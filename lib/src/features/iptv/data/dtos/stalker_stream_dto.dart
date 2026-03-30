@@ -18,7 +18,7 @@ class StalkerStreamDto {
     // Parse stream ID (peut être string ou int, parfois avec format "id:id")
     dynamic streamIdRaw = json['id'] ?? json['stream_id'];
     int streamId = 0;
-    
+
     if (streamIdRaw is int) {
       streamId = streamIdRaw;
     } else if (streamIdRaw is num) {
@@ -57,13 +57,15 @@ class StalkerStreamDto {
     }
 
     // Parse released date
-    final released = json['added']?.toString() ?? 
-                    json['released']?.toString() ?? 
-                    json['release_date']?.toString();
+    final released =
+        json['added']?.toString() ??
+        json['released']?.toString() ??
+        json['release_date']?.toString();
 
     // Parse rating
     double? rating;
-    final ratingRaw = json['rating_imdb'] ?? json['rating'] ?? json['rating_kinopoisk'];
+    final ratingRaw =
+        json['rating_imdb'] ?? json['rating'] ?? json['rating_kinopoisk'];
     if (ratingRaw != null) {
       if (ratingRaw is num) {
         rating = ratingRaw.toDouble();
@@ -73,9 +75,10 @@ class StalkerStreamDto {
     }
 
     // Parse category ID
-    final categoryId = json['category_id']?.toString() ?? 
-                      json['cat_genre_id_1']?.toString() ?? 
-                      '';
+    final categoryId =
+        json['category_id']?.toString() ??
+        json['cat_genre_id_1']?.toString() ??
+        '';
 
     // Parse stream type (vod ou series)
     final streamType = json['is_series'] == 1 || json['is_series'] == true
@@ -84,15 +87,17 @@ class StalkerStreamDto {
 
     return StalkerStreamDto(
       streamId: streamId,
-      name: json['name']?.toString() ?? 
-            json['title']?.toString() ?? 
-            json['o_name']?.toString() ?? 
-            'Untitled',
+      name:
+          json['name']?.toString() ??
+          json['title']?.toString() ??
+          json['o_name']?.toString() ??
+          'Untitled',
       streamType: streamType,
       categoryId: categoryId,
-      streamIcon: json['screenshot_uri']?.toString() ?? 
-                  json['pic']?.toString() ?? 
-                  json['cover']?.toString(),
+      streamIcon:
+          json['screenshot_uri']?.toString() ??
+          json['pic']?.toString() ??
+          json['cover']?.toString(),
       plot: json['description']?.toString() ?? json['plot']?.toString(),
       released: released,
       year: yearParsed,
@@ -116,4 +121,3 @@ class StalkerStreamDto {
   final String? director;
   final String? actors;
 }
-

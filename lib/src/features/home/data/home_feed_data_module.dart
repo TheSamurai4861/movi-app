@@ -85,7 +85,8 @@ class HomeFeedDataModule {
     // Use case LoadContinueWatchingMedia
     if (!sl.isRegistered<LoadContinueWatchingMedia>()) {
       sl.registerLazySingleton<LoadContinueWatchingMedia>(
-        () => LoadContinueWatchingMedia(sl<ContinueWatchingEnrichmentService>()),
+        () =>
+            LoadContinueWatchingMedia(sl<ContinueWatchingEnrichmentService>()),
       );
     }
 

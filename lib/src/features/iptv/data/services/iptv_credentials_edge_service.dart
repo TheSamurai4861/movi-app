@@ -40,10 +40,7 @@ class IptvCredentialsEdgeService {
     try {
       final response = await _client.functions.invoke(
         functionName,
-        body: <String, dynamic>{
-          'op': 'decrypt',
-          'ciphertext': ciphertext,
-        },
+        body: <String, dynamic>{'op': 'decrypt', 'ciphertext': ciphertext},
       );
 
       // Check if the response contains an error
@@ -51,7 +48,7 @@ class IptvCredentialsEdgeService {
       if (data.containsKey('error')) {
         final error = data['error'];
         final details = data['details'];
-        final errorMessage = details != null 
+        final errorMessage = details != null
             ? '$error: $details'
             : error.toString();
         throw FormatException('Edge function error: $errorMessage');
@@ -79,7 +76,8 @@ class IptvCredentialsEdgeService {
       if (decoded is Map<String, dynamic>) return decoded;
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
-    throw FormatException('Unexpected edge function response: ${value.runtimeType}');
+    throw FormatException(
+      'Unexpected edge function response: ${value.runtimeType}',
+    );
   }
 }
-

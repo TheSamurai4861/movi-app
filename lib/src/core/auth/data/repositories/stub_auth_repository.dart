@@ -7,13 +7,10 @@ import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 class StubAuthRepository implements AuthRepository {
   StubAuthRepository();
 
-  final Stream<AuthSnapshot> _stream = Stream<AuthSnapshot>.multi(
-    (controller) {
-      controller.add(AuthSnapshot.unauthenticated);
-      controller.close();
-    },
-    isBroadcast: true,
-  );
+  final Stream<AuthSnapshot> _stream = Stream<AuthSnapshot>.multi((controller) {
+    controller.add(AuthSnapshot.unauthenticated);
+    controller.close();
+  }, isBroadcast: true);
 
   @override
   Stream<AuthSnapshot> get onAuthStateChange => _stream;
@@ -44,10 +41,7 @@ class StubAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-  }) async {
+  Future<bool> verifyOtp({required String email, required String token}) async {
     throw StateError(
       'Auth is not configured. '
       'Configure Supabase to enable OTP verification.',

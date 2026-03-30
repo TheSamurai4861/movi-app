@@ -18,6 +18,7 @@ import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_cata
 import 'package:movi/src/core/performance/domain/performance_tuning.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
+import 'package:movi/src/features/iptv/application/services/iptv_playlist_analysis_service.dart';
 import 'package:movi/src/features/iptv/application/services/playlist_mapper.dart';
 import 'package:movi/src/features/iptv/data/mappers/stalker_playlist_mapper.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
@@ -43,6 +44,12 @@ class IptvDataModule {
       sl.registerLazySingleton<PlaylistMapper>(() => const PlaylistMapper());
     }
 
+    if (!sl.isRegistered<IptvPlaylistAnalysisService>()) {
+      sl.registerLazySingleton<IptvPlaylistAnalysisService>(
+        () => const IptvPlaylistAnalysisService(),
+      );
+    }
+
     if (!sl.isRegistered<IptvRepository>()) {
       sl.registerLazySingleton<IptvRepository>(
         () => IptvRepositoryImpl(
@@ -59,7 +66,11 @@ class IptvDataModule {
 
     if (!sl.isRegistered<IptvCatalogReader>()) {
       sl.registerLazySingleton<IptvCatalogReader>(
-        () => IptvCatalogReader(sl<IptvLocalRepository>()),
+        () => IptvCatalogReader(
+          sl<IptvLocalRepository>(),
+          sl<IptvPlaylistAnalysisService>(),
+          sl<AppLogger>(),
+        ),
       );
     }
 

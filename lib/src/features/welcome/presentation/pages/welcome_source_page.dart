@@ -127,7 +127,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
         _sourcesError = null;
       });
       unawaited(
-        LoggingService.log('WelcomeSources: remote sources unavailable -> local mode'),
+        LoggingService.log(
+          'WelcomeSources: remote sources unavailable -> local mode',
+        ),
       );
       return;
     }

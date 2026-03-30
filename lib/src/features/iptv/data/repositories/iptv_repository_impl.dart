@@ -253,7 +253,9 @@ class IptvRepositoryImpl implements IptvRepository {
     if (playlists.isEmpty) return;
     const chunkSize = 2;
     for (var i = 0; i < playlists.length; i += chunkSize) {
-      final end = (i + chunkSize) < playlists.length ? (i + chunkSize) : playlists.length;
+      final end = (i + chunkSize) < playlists.length
+          ? (i + chunkSize)
+          : playlists.length;
       await _local.savePlaylists(accountId, playlists.sublist(i, end));
       await Future<void>.delayed(Duration.zero);
     }
@@ -335,7 +337,8 @@ class IptvRepositoryImpl implements IptvRepository {
     for (final s in existing) {
       if (s.type == XtreamPlaylistType.movies && s.position > maxMovies) {
         maxMovies = s.position;
-      } else if (s.type == XtreamPlaylistType.series && s.position > maxSeries) {
+      } else if (s.type == XtreamPlaylistType.series &&
+          s.position > maxSeries) {
         maxSeries = s.position;
       }
       if (s.globalPosition > maxGlobal) {
@@ -378,17 +381,21 @@ class IptvRepositoryImpl implements IptvRepository {
     // Si aucune config n'existait auparavant, on initialise un ordre par défaut
     // identique à l'accueil historique: intercalé films/séries au départ.
     if (existing.isEmpty && toUpsert.isNotEmpty) {
-      final movies = toUpsert
-          .where((e) => e.type == XtreamPlaylistType.movies)
-          .toList(growable: false)
-        ..sort((a, b) => a.position.compareTo(b.position));
-      final series = toUpsert
-          .where((e) => e.type == XtreamPlaylistType.series)
-          .toList(growable: false)
-        ..sort((a, b) => a.position.compareTo(b.position));
+      final movies =
+          toUpsert
+              .where((e) => e.type == XtreamPlaylistType.movies)
+              .toList(growable: false)
+            ..sort((a, b) => a.position.compareTo(b.position));
+      final series =
+          toUpsert
+              .where((e) => e.type == XtreamPlaylistType.series)
+              .toList(growable: false)
+            ..sort((a, b) => a.position.compareTo(b.position));
 
       final orderedIds = <String>[];
-      final maxLen = movies.length > series.length ? movies.length : series.length;
+      final maxLen = movies.length > series.length
+          ? movies.length
+          : series.length;
       for (var i = 0; i < maxLen; i++) {
         if (i < movies.length) orderedIds.add(movies[i].playlistId);
         if (i < series.length) orderedIds.add(series[i].playlistId);

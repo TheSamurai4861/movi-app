@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 /// Service pour la communication avec le code natif Android/iOS pour le PiP.
-/// 
+///
 /// Utilise un MethodChannel pour communiquer avec les implémentations natives.
 class NativePipService {
   NativePipService() {
@@ -87,4 +87,3 @@ class NativePipService {
     _isActiveController.close();
   }
 }
-

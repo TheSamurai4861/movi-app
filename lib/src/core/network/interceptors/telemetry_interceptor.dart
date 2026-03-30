@@ -3,7 +3,11 @@ import 'package:dio/dio.dart';
 import 'package:movi/src/core/logging/logger.dart';
 
 class TelemetryInterceptor extends Interceptor {
-  TelemetryInterceptor({required this.logger, this.enabled = true, this.thresholdMs = 400});
+  TelemetryInterceptor({
+    required this.logger,
+    this.enabled = true,
+    this.thresholdMs = 400,
+  });
 
   final AppLogger logger;
   final bool enabled;

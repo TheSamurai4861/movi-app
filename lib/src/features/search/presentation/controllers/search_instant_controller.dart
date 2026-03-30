@@ -181,13 +181,17 @@ class SearchInstantController extends Notifier<SearchState> {
         try {
           final allowedMovies = await policy.filterAllowed(movieRefs, profile);
           final allowedMovieIds = allowedMovies.map((r) => r.id).toSet();
-          movies = movies.where((m) => allowedMovieIds.contains(m.id.value)).toList();
+          movies = movies
+              .where((m) => allowedMovieIds.contains(m.id.value))
+              .toList();
         } catch (_) {}
 
         try {
           final allowedShows = await policy.filterAllowed(showRefs, profile);
           final allowedShowIds = allowedShows.map((r) => r.id).toSet();
-          shows = shows.where((s) => allowedShowIds.contains(s.id.value)).toList();
+          shows = shows
+              .where((s) => allowedShowIds.contains(s.id.value))
+              .toList();
         } catch (_) {}
       }
 

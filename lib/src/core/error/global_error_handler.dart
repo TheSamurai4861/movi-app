@@ -46,7 +46,9 @@ void setupGlobalErrorHandling() {
   _isolateErrorPort ??= RawReceivePort((dynamic pair) {
     try {
       final list = pair as List<dynamic>;
-      final Object error = list.isNotEmpty ? list[0] as Object : 'Unknown isolate error';
+      final Object error = list.isNotEmpty
+          ? list[0] as Object
+          : 'Unknown isolate error';
       final StackTrace stack = (list.length > 1 && list[1] is StackTrace)
           ? list[1] as StackTrace
           : StackTrace.current;

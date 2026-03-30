@@ -21,11 +21,11 @@ class TmdbIdResolverService {
     required TmdbClient tmdbClient,
     required SimilarityService similarity,
     required AppLogger logger,
-  })  : _moviesRemote = moviesRemote,
-        _tvRemote = tvRemote,
-        _tmdbClient = tmdbClient,
-        _similarity = similarity,
-        _logger = logger;
+  }) : _moviesRemote = moviesRemote,
+       _tvRemote = tvRemote,
+       _tmdbClient = tmdbClient,
+       _similarity = similarity,
+       _logger = logger;
 
   final TmdbMovieRemoteDataSource _moviesRemote;
   final TmdbTvRemoteDataSource _tvRemote;
@@ -436,4 +436,3 @@ class _SearchCandidate {
   final int? year;
   final String reason;
 }
-

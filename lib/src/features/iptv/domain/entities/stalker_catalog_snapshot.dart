@@ -32,11 +32,10 @@ class StalkerCatalogSnapshot extends Equatable {
 
   @override
   List<Object?> get props => [
-        accountId,
-        lastSyncAt,
-        movieCount,
-        seriesCount,
-        lastError,
-      ];
+    accountId,
+    lastSyncAt,
+    movieCount,
+    seriesCount,
+    lastError,
+  ];
 }
-

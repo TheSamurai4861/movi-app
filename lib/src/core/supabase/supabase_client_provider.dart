@@ -22,4 +22,3 @@ class SupabaseClientProvider {
     return Supabase.instance.client;
   }
 }
-

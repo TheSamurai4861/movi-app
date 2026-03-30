@@ -34,10 +34,7 @@ class CloudSyncCursorStore {
   }) async {
     await _storage.put(
       key: _key(table, profileId),
-      payload: {
-        'updated_at': cursor.updatedAt,
-        'id': cursor.id,
-      },
+      payload: {'updated_at': cursor.updatedAt, 'id': cursor.id},
     );
   }
 }

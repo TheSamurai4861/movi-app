@@ -35,7 +35,9 @@ void showMarkAsUnwatchedDialog(
             ),
             onTap: () async {
               Navigator.pop(context);
-              final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
+              final historyRepo = ref.read(
+                hybridPlaybackHistoryRepositoryProvider,
+              );
               final userId = ref.read(currentUserIdProvider);
               await historyRepo.remove(contentId, type, userId: userId);
               unawaited(

@@ -14,6 +14,7 @@ import 'package:movi/src/features/search/data/dtos/tmdb_watch_provider_dto.dart'
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 import 'package:movi/src/shared/domain/services/playlist_tmdb_enrichment_service.dart';
+import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
@@ -29,6 +30,7 @@ class SearchRepositoryImpl implements SearchRepository {
     this._catalogReader,
     this._similarity,
     this._enrichmentService,
+    this._tmdbIdResolver,
     this._appState,
   );
 
@@ -39,6 +41,7 @@ class SearchRepositoryImpl implements SearchRepository {
   final IptvCatalogReader _catalogReader;
   final SimilarityService _similarity;
   final ContentEnrichmentService _enrichmentService;
+  final TmdbIdResolverService _tmdbIdResolver;
   final AppStateController _appState;
 
   @override
@@ -54,12 +57,10 @@ class SearchRepositoryImpl implements SearchRepository {
     final items = <MovieSummary>[];
     for (final ref in refs) {
       if (ref.type != ContentType.movie) continue;
-      
+
       // Enrichir avec TMDB si le poster est manquant
-      final enrichedRef = ref.poster == null
-          ? await _enrichmentService.enrichPoster(ref)
-          : ref;
-      
+      final enrichedRef = await _enrichIptvReferenceForSearch(ref);
+
       // Inclure l'item seulement si le poster est disponible après enrichissement
       // MovieSummary nécessite un poster non-null
       if (enrichedRef.poster != null) {
@@ -119,12 +120,10 @@ class SearchRepositoryImpl implements SearchRepository {
     final items = <TvShowSummary>[];
     for (final ref in refs) {
       if (ref.type != ContentType.series) continue;
-      
+
       // Enrichir avec TMDB si le poster est manquant
-      final enrichedRef = ref.poster == null
-          ? await _enrichmentService.enrichPoster(ref)
-          : ref;
-      
+      final enrichedRef = await _enrichIptvReferenceForSearch(ref);
+
       // Inclure l'item seulement si le poster est disponible après enrichissement
       // TvShowSummary nécessite un poster non-null
       if (enrichedRef.poster != null) {
@@ -197,10 +196,12 @@ class SearchRepositoryImpl implements SearchRepository {
     if (cached != null) {
       return cached.map(_mapWatchProvider).toList();
     }
-    
-    final remote = await _watchProvidersRemote.fetchWatchProviders(watchRegion: region);
+
+    final remote = await _watchProvidersRemote.fetchWatchProviders(
+      watchRegion: region,
+    );
     await _local.cacheWatchProviders(region, remote);
-    
+
     return remote.map(_mapWatchProvider).toList();
   }
 
@@ -295,5 +296,55 @@ class SearchRepositoryImpl implements SearchRepository {
       seasonCount: null,
       status: null,
     );
+  }
+
+  Future<ContentReference> _enrichIptvReferenceForSearch(
+    ContentReference reference,
+  ) async {
+    var current = await _resolveMissingTmdbId(reference);
+    if (current.poster == null) {
+      current = await _enrichmentService.enrichPoster(current);
+    }
+    if (current.year == null) {
+      current = await _enrichmentService.enrichYear(current);
+    }
+    return current;
+  }
+
+  Future<ContentReference> _resolveMissingTmdbId(
+    ContentReference reference,
+  ) async {
+    if (int.tryParse(reference.id) != null) {
+      return reference;
+    }
+
+    final title = reference.title.value.trim();
+    if (title.isEmpty) {
+      return reference;
+    }
+
+    int? tmdbId;
+    switch (reference.type) {
+      case ContentType.movie:
+        tmdbId = await _tmdbIdResolver.searchTmdbIdByTitleForMovie(
+          title: title,
+          releaseYear: reference.year,
+        );
+        break;
+      case ContentType.series:
+        tmdbId = await _tmdbIdResolver.searchTmdbIdByTitleForTv(
+          title: title,
+          releaseYear: reference.year,
+        );
+        break;
+      default:
+        return reference;
+    }
+
+    if (tmdbId == null || tmdbId <= 0) {
+      return reference;
+    }
+
+    return reference.copyWith(id: tmdbId.toString());
   }
 }

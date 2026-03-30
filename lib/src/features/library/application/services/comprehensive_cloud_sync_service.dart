@@ -25,7 +25,7 @@ class ComprehensiveCloudSyncService {
     required GetIt sl,
     required LibraryCloudSyncService librarySync,
     CloudSelectedProfileIdSanitizer? selectedProfileIdSanitizer,
-  })  : _sl = sl,
+  }) : _sl = sl,
        _librarySync = librarySync,
        _selectedProfileIdSanitizer =
            selectedProfileIdSanitizer ??
@@ -58,18 +58,12 @@ class ComprehensiveCloudSyncService {
     if (shouldCancel?.call() == true) return;
 
     // 3. Synchroniser les sources IPTV (push local -> Supabase)
-    await _syncIptvSourcesPush(
-      client: client,
-      shouldCancel: shouldCancel,
-    );
+    await _syncIptvSourcesPush(client: client, shouldCancel: shouldCancel);
 
     if (shouldCancel?.call() == true) return;
 
     // 4. Synchroniser les préférences utilisateur
-    await _syncUserPreferences(
-      client: client,
-      shouldCancel: shouldCancel,
-    );
+    await _syncUserPreferences(client: client, shouldCancel: shouldCancel);
   }
 
   /// Synchronise les profils depuis Supabase (pull).
@@ -142,17 +136,21 @@ class ComprehensiveCloudSyncService {
 
           // Upsert dans Supabase
           // Utiliser toRawUrl() pour obtenir l'URL brute au lieu de toString()
-          await sourcesRepo.upsertSource(
-            localId: localId,
-            accountId: uid,
-            name: account.alias.trim().isNotEmpty ? account.alias.trim() : 'Xtream',
-            expiresAt: account.expirationDate,
-            serverUrl: account.endpoint.toRawUrl(),
-            username: account.username,
-            encryptedCredentials: encryptedCredentials,
-            isActive: true,
-            lastSyncAt: DateTime.now().toUtc(),
-          ).timeout(const Duration(seconds: 5));
+          await sourcesRepo
+              .upsertSource(
+                localId: localId,
+                accountId: uid,
+                name: account.alias.trim().isNotEmpty
+                    ? account.alias.trim()
+                    : 'Xtream',
+                expiresAt: account.expirationDate,
+                serverUrl: account.endpoint.toRawUrl(),
+                username: account.username,
+                encryptedCredentials: encryptedCredentials,
+                isActive: true,
+                lastSyncAt: DateTime.now().toUtc(),
+              )
+              .timeout(const Duration(seconds: 5));
         } catch (e, st) {
           assert(() {
             debugPrint(
@@ -190,14 +188,17 @@ class ComprehensiveCloudSyncService {
       if (_sl.isRegistered<AccentColorPreferences>()) {
         final accentPrefs = _sl<AccentColorPreferences>();
         final color = accentPrefs.accentColor;
-        prefs['accent_color'] = color.value.toRadixString(16).padLeft(8, '0'); // ignore: deprecated_member_use
+        prefs['accent_color'] = color.value
+            .toRadixString(16)
+            .padLeft(8, '0'); // ignore: deprecated_member_use
       }
 
       // Player preferences
       if (_sl.isRegistered<PlayerPreferences>()) {
         final playerPrefs = _sl<PlayerPreferences>();
         prefs['preferred_audio_language'] = playerPrefs.preferredAudioLanguage;
-        prefs['preferred_subtitle_language'] = playerPrefs.preferredSubtitleLanguage;
+        prefs['preferred_subtitle_language'] =
+            playerPrefs.preferredSubtitleLanguage;
       }
 
       // Locale preferences
@@ -237,14 +238,14 @@ class ComprehensiveCloudSyncService {
       if (prefs.isEmpty) return;
 
       // Upsert dans Supabase (une seule ligne par utilisateur)
-      await client.from(_prefsTable).upsert(
-        {
-          'account_id': uid,
-          'preferences': prefs,
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'account_id',
-      ).timeout(const Duration(seconds: 5));
+      await client
+          .from(_prefsTable)
+          .upsert({
+            'account_id': uid,
+            'preferences': prefs,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'account_id')
+          .timeout(const Duration(seconds: 5));
     } catch (e, st) {
       assert(() {
         debugPrint(
@@ -338,7 +339,8 @@ class ComprehensiveCloudSyncService {
       if (_sl.isRegistered<SelectedIptvSourcePreferences>()) {
         final selectedIptvPrefs = _sl<SelectedIptvSourcePreferences>();
         if (selectedIptvPrefs.selectedSourceId == null) {
-          final selectedIptvSourceId = prefs['selected_iptv_source_id']?.toString();
+          final selectedIptvSourceId = prefs['selected_iptv_source_id']
+              ?.toString();
           if (selectedIptvSourceId != null && selectedIptvSourceId.isNotEmpty) {
             await selectedIptvPrefs.setSelectedSourceId(selectedIptvSourceId);
           }
@@ -348,9 +350,12 @@ class ComprehensiveCloudSyncService {
       // IPTV sync interval
       if (_sl.isRegistered<IptvSyncPreferences>()) {
         final iptvSyncPrefs = _sl<IptvSyncPreferences>();
-        final intervalMinutes = (prefs['iptv_sync_interval_minutes'] as num?)?.toInt();
+        final intervalMinutes = (prefs['iptv_sync_interval_minutes'] as num?)
+            ?.toInt();
         if (intervalMinutes != null && intervalMinutes > 0) {
-          await iptvSyncPrefs.setSyncInterval(Duration(minutes: intervalMinutes));
+          await iptvSyncPrefs.setSyncInterval(
+            Duration(minutes: intervalMinutes),
+          );
         }
       }
     } catch (e, st) {
@@ -388,4 +393,3 @@ class ComprehensiveCloudSyncService {
     }
   }
 }
-

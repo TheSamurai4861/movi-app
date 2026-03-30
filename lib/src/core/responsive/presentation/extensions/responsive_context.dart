@@ -34,12 +34,7 @@ extension ResponsiveContext on BuildContext {
   ///   desktop: 32.0,
   /// );
   /// ```
-  T? responsive<T>({
-    T? mobile,
-    T? tablet,
-    T? desktop,
-    T? tv,
-  }) {
+  T? responsive<T>({T? mobile, T? tablet, T? desktop, T? tv}) {
     switch (screenType) {
       case ScreenType.mobile:
         return mobile;
@@ -52,4 +47,3 @@ extension ResponsiveContext on BuildContext {
     }
   }
 }
-

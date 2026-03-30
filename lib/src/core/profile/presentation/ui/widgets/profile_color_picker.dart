@@ -31,7 +31,9 @@ class ProfileColorPicker extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+              border: isSelected
+                  ? Border.all(color: Colors.white, width: 3)
+                  : null,
               boxShadow: isSelected
                   ? [
                       BoxShadow(

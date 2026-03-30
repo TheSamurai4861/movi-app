@@ -24,16 +24,18 @@ class SupabaseModule {
   static Future<void> register(GetIt sl) async {
     final sw = Stopwatch()..start();
     debugPrint('[DEBUG][Startup] SupabaseModule.register: START');
-    
+
     final config = SupabaseConfig.fromEnvironment;
-    
+
     // Vérifier si Supabase est configuré avant de valider
     if (!config.isConfigured) {
       debugPrint(
         '[SupabaseModule] Not configured. '
         'Provide --dart-define=SUPABASE_URL=... and --dart-define=SUPABASE_ANON_KEY=... to enable.',
       );
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: SKIPPED (not configured) (${sw.elapsedMilliseconds}ms)');
+      debugPrint(
+        '[DEBUG][Startup] SupabaseModule.register: SKIPPED (not configured) (${sw.elapsedMilliseconds}ms)',
+      );
       sw.stop();
       return;
     }
@@ -41,10 +43,14 @@ class SupabaseModule {
     // Valider la configuration
     try {
       config.ensureValid();
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: config validated (${sw.elapsedMilliseconds}ms)');
+      debugPrint(
+        '[DEBUG][Startup] SupabaseModule.register: config validated (${sw.elapsedMilliseconds}ms)',
+      );
     } catch (e, st) {
       sw.stop();
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: ERROR - config validation failed after ${sw.elapsedMilliseconds}ms: $e');
+      debugPrint(
+        '[DEBUG][Startup] SupabaseModule.register: ERROR - config validation failed after ${sw.elapsedMilliseconds}ms: $e',
+      );
       debugPrint('[DEBUG][Startup] SupabaseModule.register: Stack trace: $st');
       rethrow;
     }
@@ -58,28 +64,40 @@ class SupabaseModule {
 
     // Initialize Supabase once (idempotent guard).
     if (!_initialized) {
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: initializing Supabase');
+      debugPrint(
+        '[DEBUG][Startup] SupabaseModule.register: initializing Supabase',
+      );
       try {
         await Supabase.initialize(
           url: config.supabaseUrl.trim(),
           anonKey: config.supabaseAnonKey.trim(),
         );
         _initialized = true;
-        debugPrint('[DEBUG][Startup] SupabaseModule.register: Supabase.initialize DONE (${sw.elapsedMilliseconds}ms)');
+        debugPrint(
+          '[DEBUG][Startup] SupabaseModule.register: Supabase.initialize DONE (${sw.elapsedMilliseconds}ms)',
+        );
         debugPrint('[Supabase] Initialized.');
       } catch (e, st) {
         sw.stop();
-        debugPrint('[DEBUG][Startup] SupabaseModule.register: ERROR - Supabase.initialize failed after ${sw.elapsedMilliseconds}ms: $e');
-        debugPrint('[DEBUG][Startup] SupabaseModule.register: Stack trace: $st');
+        debugPrint(
+          '[DEBUG][Startup] SupabaseModule.register: ERROR - Supabase.initialize failed after ${sw.elapsedMilliseconds}ms: $e',
+        );
+        debugPrint(
+          '[DEBUG][Startup] SupabaseModule.register: Stack trace: $st',
+        );
         debugPrint('[Supabase] Initialization failed: $e\n$st');
         rethrow;
       }
     } else {
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: Supabase already initialized, skipping (${sw.elapsedMilliseconds}ms)');
+      debugPrint(
+        '[DEBUG][Startup] SupabaseModule.register: Supabase already initialized, skipping (${sw.elapsedMilliseconds}ms)',
+      );
     }
 
     // Register a SINGLE SupabaseClient into GetIt.
-    debugPrint('[DEBUG][Startup] SupabaseModule.register: registering SupabaseClient in GetIt');
+    debugPrint(
+      '[DEBUG][Startup] SupabaseModule.register: registering SupabaseClient in GetIt',
+    );
     final client = Supabase.instance.client;
 
     if (sl.isRegistered<SupabaseClient>()) {
@@ -97,11 +115,15 @@ class SupabaseModule {
           );
         }
       } else {
-        debugPrint('[DEBUG][Startup] SupabaseModule.register: SupabaseClient already registered and identical (${sw.elapsedMilliseconds}ms)');
+        debugPrint(
+          '[DEBUG][Startup] SupabaseModule.register: SupabaseClient already registered and identical (${sw.elapsedMilliseconds}ms)',
+        );
       }
     } else {
       sl.registerSingleton<SupabaseClient>(client);
-      debugPrint('[DEBUG][Startup] SupabaseModule.register: SupabaseClient registered in GetIt (${sw.elapsedMilliseconds}ms)');
+      debugPrint(
+        '[DEBUG][Startup] SupabaseModule.register: SupabaseClient registered in GetIt (${sw.elapsedMilliseconds}ms)',
+      );
     }
 
     // Optional: sanity ping (cheap) to detect wrong project early.
@@ -112,8 +134,10 @@ class SupabaseModule {
         '[SupabaseModule] session=${session == null ? "null" : "present"} userId=${session?.user.id ?? "n/a"}',
       );
     }
-    
+
     sw.stop();
-    debugPrint('[DEBUG][Startup] SupabaseModule.register: COMPLETE (total: ${sw.elapsedMilliseconds}ms)');
+    debugPrint(
+      '[DEBUG][Startup] SupabaseModule.register: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
+    );
   }
 }

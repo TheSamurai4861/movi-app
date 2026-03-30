@@ -84,14 +84,14 @@ class Profile {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        accountId,
-        name,
-        color,
-        avatarUrl,
-        createdAt,
-        isKid,
-        pegiLimit,
-        hasPin,
-      );
+    id,
+    accountId,
+    name,
+    color,
+    avatarUrl,
+    createdAt,
+    isKid,
+    pegiLimit,
+    hasPin,
+  );
 }

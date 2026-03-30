@@ -54,9 +54,7 @@ class XtreamLookupService implements XtreamLookup {
         if (isXtreamId) {
           _logger.debug('Recherche par streamId=$streamId (xtream)');
           if (streamId != null) {
-            final matches = playlist.items.where(
-              (i) => i.streamId == streamId,
-            );
+            final matches = playlist.items.where((i) => i.streamId == streamId);
             final candidates = expectedType == null
                 ? matches
                 : matches.where((i) => i.type == expectedType);

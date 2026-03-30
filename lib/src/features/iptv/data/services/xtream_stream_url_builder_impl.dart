@@ -66,7 +66,7 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
   @override
   Future<String?> buildStreamUrlFromMovieItem(XtreamPlaylistItem item) async {
     if (item.type != XtreamPlaylistItemType.movie) return null;
-    
+
     // Vérifier si c'est un compte Xtream
     final account = await _getAccount(item.accountId);
     if (account != null) {
@@ -82,7 +82,7 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
       _debugLog('Movie stream URL (Xtream): ${_maskStreamUrl(url)}');
       return url;
     }
-    
+
     // Essayer Stalker
     final stalkerAccount = await _iptvLocal.getStalkerAccount(item.accountId);
     if (stalkerAccount != null) {
@@ -92,7 +92,7 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
       }
       return url;
     }
-    
+
     return null;
   }
 
@@ -171,7 +171,8 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
     final baseUrl = '${endpoint.scheme}://${endpoint.host}';
     final port = endpoint.hasPort ? ':${endpoint.port}' : '';
     final basePath = _streamBasePath(endpoint);
-    final calculatedEpisodeId = item.streamId * 10000 + seasonNumber * 100 + episodeNumber;
+    final calculatedEpisodeId =
+        item.streamId * 10000 + seasonNumber * 100 + episodeNumber;
     final url =
         '$baseUrl$port$basePath/series/${Uri.encodeComponent(account.username)}/${Uri.encodeComponent(password)}/$calculatedEpisodeId';
     _debugLog('Episode stream URL (Xtream fallback): ${_maskStreamUrl(url)}');
@@ -417,12 +418,14 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
   Future<String?> _getPassword(XtreamAccount account) async {
     String? password = await _vault.readPassword(account.id);
     if (password != null && password.isNotEmpty) return password;
-    final hostKey = '${account.endpoint.host}_${account.username}'.toLowerCase();
+    final hostKey = '${account.endpoint.host}_${account.username}'
+        .toLowerCase();
     if (hostKey != account.id) {
       password = await _vault.readPassword(hostKey);
       if (password != null && password.isNotEmpty) return password;
     }
-    final rawUrlKey = '${account.endpoint.toRawUrl()}_${account.username}'.toLowerCase();
+    final rawUrlKey = '${account.endpoint.toRawUrl()}_${account.username}'
+        .toLowerCase();
     if (rawUrlKey != account.id && rawUrlKey != hostKey) {
       password = await _vault.readPassword(rawUrlKey);
       if (password != null && password.isNotEmpty) return password;
@@ -434,9 +437,7 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
     StalkerAccount account,
     XtreamPlaylistItem item,
   ) async {
-    final builder = StalkerStreamUrlBuilder(
-      networkExecutor: _networkExecutor,
-    );
+    final builder = StalkerStreamUrlBuilder(networkExecutor: _networkExecutor);
     final token = account.token ?? '';
     if (token.isEmpty) return null;
 
@@ -458,9 +459,7 @@ class XtreamStreamUrlBuilderImpl implements XtreamStreamUrlBuilder {
     int seasonNumber,
     int episodeNumber,
   ) async {
-    final builder = StalkerStreamUrlBuilder(
-      networkExecutor: _networkExecutor,
-    );
+    final builder = StalkerStreamUrlBuilder(networkExecutor: _networkExecutor);
     final token = account.token ?? '';
     if (token.isEmpty) return null;
 

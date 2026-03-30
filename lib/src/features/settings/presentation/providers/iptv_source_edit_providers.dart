@@ -15,21 +15,25 @@ import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catal
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
 
-final iptvAccountByIdProvider =
-    FutureProvider.family<XtreamAccount?, String>((ref, accountId) async {
-      final local = ref.watch(slProvider)<IptvLocalRepository>();
-      final accounts = await local.getAccounts();
-      for (final account in accounts) {
-        if (account.id == accountId) return account;
-      }
-      return null;
-    });
+final iptvAccountByIdProvider = FutureProvider.family<XtreamAccount?, String>((
+  ref,
+  accountId,
+) async {
+  final local = ref.watch(slProvider)<IptvLocalRepository>();
+  final accounts = await local.getAccounts();
+  for (final account in accounts) {
+    if (account.id == accountId) return account;
+  }
+  return null;
+});
 
-final iptvAccountPasswordProvider =
-    FutureProvider.family<String?, String>((ref, accountId) async {
-      final vault = ref.watch(slProvider)<CredentialsVault>();
-      return vault.readPassword(accountId);
-    });
+final iptvAccountPasswordProvider = FutureProvider.family<String?, String>((
+  ref,
+  accountId,
+) async {
+  final vault = ref.watch(slProvider)<CredentialsVault>();
+  return vault.readPassword(accountId);
+});
 
 class IptvSourceEditState {
   const IptvSourceEditState({this.isLoading = false, this.error});

@@ -730,10 +730,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             ),
           ],
           const SizedBox(height: 16),
-          _buildActionButtons(
-            mediaTitle: mediaTitle,
-            expandPrimary: false,
-          ),
+          _buildActionButtons(mediaTitle: mediaTitle, expandPrimary: false),
         ],
       ),
     );

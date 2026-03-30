@@ -19,4 +19,3 @@ abstract class PictureInPictureRepository {
   /// Libère les ressources
   void dispose();
 }
-

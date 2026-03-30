@@ -155,4 +155,3 @@ class SupabaseHistorySyncDataSource {
     return out;
   }
 }
-

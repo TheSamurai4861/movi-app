@@ -13,4 +13,3 @@ class PlaybackProgressThresholds {
   /// Progression maximale (ex: 95%) au-delà de laquelle le contenu est "terminé".
   static const double maxInProgress = 0.95;
 }
-

@@ -9,7 +9,7 @@ abstract class SearchRepository {
   Future<SearchPage<TvShowSummary>> searchShows(String query, {int page = 1});
   Future<SearchPage<PersonSummary>> searchPeople(String query, {int page = 1});
   Future<List<WatchProvider>> getWatchProviders(String region);
-  
+
   Future<SearchPage<MovieSummary>> getMoviesByProvider(
     int providerId, {
     String region = 'FR',

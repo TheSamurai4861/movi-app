@@ -55,4 +55,3 @@ class PictureInPictureRepositoryImpl implements PictureInPictureRepository {
     _nativePipService.dispose();
   }
 }
-

@@ -181,8 +181,12 @@ class _LaunchHarness {
     sl.registerSingleton<Database>(db);
     sl.registerSingleton<AppLogger>(logger);
     sl.registerSingleton<LocalePreferences>(localePreferences);
-    sl.registerSingleton<SelectedProfilePreferences>(selectedProfilePreferences);
-    sl.registerSingleton<SelectedIptvSourcePreferences>(selectedSourcePreferences);
+    sl.registerSingleton<SelectedProfilePreferences>(
+      selectedProfilePreferences,
+    );
+    sl.registerSingleton<SelectedIptvSourcePreferences>(
+      selectedSourcePreferences,
+    );
     sl.registerSingleton<AuthRepository>(authRepository);
     sl.registerSingleton<LocalProfileRepository>(localProfiles);
     sl.registerSingleton<ProfileRepository>(
@@ -274,10 +278,7 @@ class _FakeAuthRepository implements AuthRepository {
   }) async {
     _session = const AuthSession(userId: 'test-user');
     _controller.add(
-      AuthSnapshot(
-        status: AuthStatus.authenticated,
-        session: _session,
-      ),
+      AuthSnapshot(status: AuthStatus.authenticated, session: _session),
     );
   }
 
@@ -288,16 +289,10 @@ class _FakeAuthRepository implements AuthRepository {
   }) async {}
 
   @override
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-  }) async {
+  Future<bool> verifyOtp({required String email, required String token}) async {
     _session = const AuthSession(userId: 'test-user');
     _controller.add(
-      AuthSnapshot(
-        status: AuthStatus.authenticated,
-        session: _session,
-      ),
+      AuthSnapshot(status: AuthStatus.authenticated, session: _session),
     );
     return true;
   }
@@ -333,12 +328,7 @@ class _MemoryLogger implements AppLogger {
 
   @override
   void error(String message, [Object? error, StackTrace? stackTrace]) {
-    log(
-      LogLevel.error,
-      message,
-      error: error,
-      stackTrace: stackTrace,
-    );
+    log(LogLevel.error, message, error: error, stackTrace: stackTrace);
   }
 
   @override
@@ -516,12 +506,7 @@ class _FakeRefreshStalkerCatalog extends RefreshStalkerCatalog {
 }
 
 class _NoopXtreamSyncService extends XtreamSyncService {
-  _NoopXtreamSyncService(
-    super.state,
-    super.refresh,
-    super.cache,
-    super.logger,
-  );
+  _NoopXtreamSyncService(super.state, super.refresh, super.cache, super.logger);
 
   @override
   void start({

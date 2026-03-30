@@ -31,7 +31,9 @@ class AddStalkerSource {
       // Valide la MAC address (format XX:XX:XX:XX:XX:XX)
       if (!_isValidMacAddress(rawMac)) {
         return Err(
-          const AuthFailure('Format de MAC address invalide. Format attendu: XX:XX:XX:XX:XX:XX'),
+          const AuthFailure(
+            'Format de MAC address invalide. Format attendu: XX:XX:XX:XX:XX:XX',
+          ),
         );
       }
 
@@ -70,4 +72,3 @@ class AddStalkerSource {
     return true;
   }
 }
-

@@ -1,7 +1,12 @@
 import 'package:movi/src/features/player/data/repositories/stream_url_probe_stub.dart'
-    if (dart.library.io) 'stream_url_probe_io.dart' as impl;
+    if (dart.library.io) 'stream_url_probe_io.dart'
+    as impl;
 
-typedef StreamUrlProbeResult = ({int statusCode, String? location, Object? error});
+typedef StreamUrlProbeResult = ({
+  int statusCode,
+  String? location,
+  Object? error,
+});
 
 Future<StreamUrlProbeResult> probeStreamUrl(
   String url, {
@@ -16,4 +21,3 @@ Future<StreamUrlProbeResult> probeStreamUrl(
     allowBadCertificates: allowBadCertificates,
   );
 }
-

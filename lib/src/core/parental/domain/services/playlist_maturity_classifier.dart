@@ -1,7 +1,5 @@
 class PlaylistMaturityClassifier {
-  const PlaylistMaturityClassifier({
-    this.horrorMinPegi = 16,
-  });
+  const PlaylistMaturityClassifier({this.horrorMinPegi = 16});
 
   final int horrorMinPegi;
 
@@ -22,4 +20,3 @@ class PlaylistMaturityClassifier {
     return null;
   }
 }
-

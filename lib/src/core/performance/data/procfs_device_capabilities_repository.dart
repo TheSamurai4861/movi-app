@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:movi/src/core/performance/domain/device_capabilities.dart';
 import 'package:movi/src/core/performance/domain/device_capabilities_repository.dart';
 
-class ProcfsDeviceCapabilitiesRepository implements DeviceCapabilitiesRepository {
+class ProcfsDeviceCapabilitiesRepository
+    implements DeviceCapabilitiesRepository {
   const ProcfsDeviceCapabilitiesRepository();
 
   @override
@@ -35,7 +36,8 @@ class ProcfsDeviceCapabilitiesRepository implements DeviceCapabilitiesRepository
 
   Future<int?> _readTotalMemoryBytes(DevicePlatform platform) async {
     // Best-effort: `/proc/meminfo` exists on Android/Linux. Not available on iOS.
-    if (platform != DevicePlatform.android && platform != DevicePlatform.other) {
+    if (platform != DevicePlatform.android &&
+        platform != DevicePlatform.other) {
       return null;
     }
 

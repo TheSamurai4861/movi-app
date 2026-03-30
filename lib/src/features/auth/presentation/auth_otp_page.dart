@@ -14,10 +14,7 @@ import 'package:movi/src/features/welcome/presentation/widgets/labeled_field.dar
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
 class AuthOtpPage extends ConsumerStatefulWidget {
-  const AuthOtpPage({
-    super.key,
-    this.returnOnSuccess = false,
-  });
+  const AuthOtpPage({super.key, this.returnOnSuccess = false});
 
   final bool returnOnSuccess;
 
@@ -62,16 +59,13 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
 
     // Réagir à l'auth globale : dès que l'utilisateur est authentifié,
     // on le redirige vers l'écran Welcome (création / sélection de profil).
-    ref.listen<AuthStatus>(
-      authStatusProvider,
-      (previous, next) {
-        if (previous != AuthStatus.authenticated &&
-            next == AuthStatus.authenticated &&
-            mounted) {
-          _handleSuccessfulAuthentication();
-        }
-      },
-    );
+    ref.listen<AuthStatus>(authStatusProvider, (previous, next) {
+      if (previous != AuthStatus.authenticated &&
+          next == AuthStatus.authenticated &&
+          mounted) {
+        _handleSuccessfulAuthentication();
+      }
+    });
 
     if (widget.returnOnSuccess &&
         authStatus == AuthStatus.authenticated &&
@@ -86,7 +80,9 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     final isVerifying = state.status == AuthOtpStatus.verifyingCode;
     final isBusy = isSending || isVerifying;
     final isCodeStepVisible =
-        state.status == AuthOtpStatus.codeSent || isVerifying || state.cooldownRemaining > 0;
+        state.status == AuthOtpStatus.codeSent ||
+        isVerifying ||
+        state.cooldownRemaining > 0;
 
     return Scaffold(
       body: SafeArea(
@@ -139,12 +135,19 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                             if (emailErrorText == null) ...[
                               const SizedBox(height: 4),
                               Padding(
-                                padding: const EdgeInsets.only(left: 12, right: 12),
+                                padding: const EdgeInsets.only(
+                                  left: 12,
+                                  right: 12,
+                                ),
                                 child: Text(
                                   l10n.authOtpEmailHelp,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                                  ),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
                                   softWrap: true,
                                   maxLines: 3,
                                   overflow: TextOverflow.visible,
@@ -186,7 +189,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
-                      ], 
+                      ],
 
                       if (globalErrorText != null) ...[
                         Padding(
@@ -195,10 +198,10 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                           ),
                           child: Text(
                             globalErrorText,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: Theme.of(context).colorScheme.error),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
                           ),
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -245,7 +248,8 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                               final resendButton = SizedBox(
                                 width: double.infinity,
                                 child: TextButton(
-                                  onPressed: state.cooldownRemaining == 0 && !isBusy
+                                  onPressed:
+                                      state.cooldownRemaining == 0 && !isBusy
                                       ? _onResendCode
                                       : null,
                                   child: Text(
@@ -341,5 +345,3 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     context.go(AppRouteNames.welcome);
   }
 }
-
-

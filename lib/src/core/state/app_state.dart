@@ -17,13 +17,12 @@ class AppState extends Equatable {
     this.preferredSubtitleLanguageCode,
     Duration? iptvSyncInterval,
     Set<String>? activeIptvSources,
-  })  : iptvSyncInterval =
-            iptvSyncInterval ?? const Duration(minutes: 15),
-        activeIptvSources =
-            activeIptvSources == null || activeIptvSources.isEmpty
-                ? const <String>{}
-                // On protège l'état en exposant toujours un Set non modifiable.
-                : Set<String>.unmodifiable(activeIptvSources);
+  }) : iptvSyncInterval = iptvSyncInterval ?? const Duration(minutes: 15),
+       activeIptvSources =
+           activeIptvSources == null || activeIptvSources.isEmpty
+           ? const <String>{}
+           // On protège l'état en exposant toujours un Set non modifiable.
+           : Set<String>.unmodifiable(activeIptvSources);
 
   /// Mode de thème courant de l'application.
   final ThemeMode themeMode;
@@ -82,17 +81,15 @@ class AppState extends Equatable {
 
   @override
   List<Object?> get props => [
-        themeMode,
-        isOnline,
-        preferredLocale.languageCode,
-        preferredLocale.countryCode,
-        // ignore: deprecated_member_use
-        accentColor?.value,
-        preferredAudioLanguageCode,
-        preferredSubtitleLanguageCode,
-        iptvSyncInterval.inSeconds,
-        List<String>.unmodifiable(
-          activeIptvSources.toList()..sort(),
-        ),
-      ];
+    themeMode,
+    isOnline,
+    preferredLocale.languageCode,
+    preferredLocale.countryCode,
+    // ignore: deprecated_member_use
+    accentColor?.value,
+    preferredAudioLanguageCode,
+    preferredSubtitleLanguageCode,
+    iptvSyncInterval.inSeconds,
+    List<String>.unmodifiable(activeIptvSources.toList()..sort()),
+  ];
 }

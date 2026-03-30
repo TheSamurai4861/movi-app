@@ -33,10 +33,12 @@ class WelcomeUiState {
     return WelcomeUiState(
       isTesting: isTesting ?? this.isTesting,
       isObscured: isObscured ?? this.isObscured,
-      errorMessage:
-          clearErrorMessage ? null : (errorMessage ?? this.errorMessage),
-      endpointPreview:
-          clearEndpointPreview ? null : (endpointPreview ?? this.endpointPreview),
+      errorMessage: clearErrorMessage
+          ? null
+          : (errorMessage ?? this.errorMessage),
+      endpointPreview: clearEndpointPreview
+          ? null
+          : (endpointPreview ?? this.endpointPreview),
     );
   }
 }
@@ -95,16 +97,18 @@ class WelcomeController extends Notifier<WelcomeUiState> {
     } on NetworkFailure catch (f) {
       state = state.copyWith(
         isTesting: false,
-        errorMessage:
-            l10n != null ? presentFailureL10n(l10n, f) : 'Unknown error',
+        errorMessage: l10n != null
+            ? presentFailureL10n(l10n, f)
+            : 'Unknown error',
       );
       return false;
     } on DioException catch (e) {
       final f = mapDioToFailure(e);
       state = state.copyWith(
         isTesting: false,
-        errorMessage:
-            l10n != null ? presentFailureL10n(l10n, f) : 'Unknown error',
+        errorMessage: l10n != null
+            ? presentFailureL10n(l10n, f)
+            : 'Unknown error',
       );
       return false;
     } catch (e) {

@@ -84,11 +84,7 @@ class LocalProfileRepository implements ProfileRepository {
 
   @override
   Future<void> deleteProfile(String profileId, {bool? diagnostics}) async {
-    await _db.delete(
-      table,
-      where: 'id = ?',
-      whereArgs: [profileId],
-    );
+    await _db.delete(table, where: 'id = ?', whereArgs: [profileId]);
   }
 
   @override

@@ -44,28 +44,36 @@ class StalkerRemoteDataSource {
   String _generateSerialNumber() {
     final random = Random();
     final bytes = List<int>.generate(6, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+    return bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+        .join();
   }
 
   // Génère un device ID aléatoire
   String _generateDeviceId() {
     final random = Random();
     final bytes = List<int>.generate(8, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+    return bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+        .join();
   }
 
   // Génère un device ID2 aléatoire (pour get_profile)
   String _generateDeviceId2() {
     final random = Random();
     final bytes = List<int>.generate(8, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+    return bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+        .join();
   }
 
   // Génère une signature aléatoire (pour get_profile)
   String _generateSignature() {
     final random = Random();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+    return bytes
+        .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+        .join();
   }
 
   // Construit l'URL Referer
@@ -75,10 +83,7 @@ class StalkerRemoteDataSource {
   }
 
   // Construit l'URL du portal avec les paramètres
-  Uri _buildPortalUrl(
-    StalkerEndpoint endpoint,
-    Map<String, String> params,
-  ) {
+  Uri _buildPortalUrl(StalkerEndpoint endpoint, Map<String, String> params) {
     // Ajoute toujours JsHttpRequest=1-json si pas déjà présent
     if (!params.containsKey('JsHttpRequest')) {
       params['JsHttpRequest'] = '1-json';
@@ -111,10 +116,12 @@ class StalkerRemoteDataSource {
           headers: {
             ..._magBoxHeaders,
             'Referer': _buildRefererUrl(endpoint),
-            if (mac.isNotEmpty) 'Cookie': 'mac=$mac; stb_lang=en; timezone=Europe/Paris',
+            if (mac.isNotEmpty)
+              'Cookie': 'mac=$mac; stb_lang=en; timezone=Europe/Paris',
           },
           // Accepte les codes 200-499 comme le script Python (gère les erreurs dans le mapper)
-          validateStatus: (status) => status != null && status >= 200 && status < 500,
+          validateStatus: (status) =>
+              status != null && status >= 200 && status < 500,
           // Utilise ResponseType.json pour que Dio parse automatiquement le JSON
           responseType: ResponseType.json,
         );
@@ -144,7 +151,7 @@ class StalkerRemoteDataSource {
         }
 
         final data = response.data;
-        
+
         // Si c'est un Map, extraire l'objet "js" si présent (comme le script Python)
         if (data is Map<String, dynamic>) {
           // Stalker retourne souvent les données dans un objet "js"
@@ -233,7 +240,7 @@ class StalkerRemoteDataSource {
     return _executor.run<dynamic, StalkerAuthDto>(
       request: (client, cancelToken) {
         final uri = _buildPortalUrl(endpoint, params);
-        
+
         // LOGS DE DÉBOGAGE
         _debugLog('\n🤝 [STALKER HANDSHAKE DEBUG]');
         _debugLog('   URL: $uri');
@@ -242,7 +249,7 @@ class StalkerRemoteDataSource {
         _debugLog('   Device ID: $did');
         _debugLog('   Initial Token: $initialToken');
         _debugLog('   Scheme: ${uri.scheme}');
-        
+
         final options = Options(
           headers: {
             ..._magBoxHeaders,
@@ -250,11 +257,12 @@ class StalkerRemoteDataSource {
             'Cookie': 'mac=$macAddress; stb_lang=en; timezone=Europe/Paris',
           },
           // Accepte les codes 200-499 comme le script Python (gère les erreurs dans le mapper)
-          validateStatus: (status) => status != null && status >= 200 && status < 500,
+          validateStatus: (status) =>
+              status != null && status >= 200 && status < 500,
           // Utilise ResponseType.plain pour voir la réponse brute (pas de parsing auto)
           responseType: ResponseType.plain,
         );
-        
+
         _debugLog('   Headers:');
         options.headers?.forEach((key, value) {
           _debugLog('     $key: $value');
@@ -273,110 +281,119 @@ class StalkerRemoteDataSource {
           _debugLog('   ⚠️  SSL verification disabled for HTTPS');
         }
 
-        return client.getUri<dynamic>(
-          uri,
-          options: options,
-          cancelToken: cancelToken,
-        ).then((response) {
+        return client.getUri<dynamic>(uri, options: options, cancelToken: cancelToken).then((
+          response,
+        ) {
           // LOG DE LA RÉPONSE BRUTE
           _debugLog('   Status: ${response.statusCode}');
           _debugLog('   Data type: ${response.data.runtimeType}');
           _debugLog('   Raw response body: "${response.data}"');
-          _debugLog('   Response length: ${response.data?.toString().length ?? 0} chars');
-          
+          _debugLog(
+            '   Response length: ${response.data?.toString().length ?? 0} chars',
+          );
+
           // Parse manuellement le JSON depuis la string
-          if (response.data == null || (response.data as String).trim().isEmpty) {
+          if (response.data == null ||
+              (response.data as String).trim().isEmpty) {
             _debugLog('   ⚠️  Response is null or empty');
             return Response<Map<String, dynamic>>(
-              data: <String, dynamic>{},
-              statusCode: response.statusCode,
-              statusMessage: response.statusMessage,
-              headers: response.headers,
-              requestOptions: response.requestOptions,
-              extra: response.extra,
-              isRedirect: response.isRedirect,
-              redirects: response.redirects,
-            ) as Response<dynamic>;
+                  data: <String, dynamic>{},
+                  statusCode: response.statusCode,
+                  statusMessage: response.statusMessage,
+                  headers: response.headers,
+                  requestOptions: response.requestOptions,
+                  extra: response.extra,
+                  isRedirect: response.isRedirect,
+                  redirects: response.redirects,
+                )
+                as Response<dynamic>;
           }
-          
+
           // Parse le JSON manuellement
           try {
             final rawString = response.data as String;
-            
+
             // Si le serveur renvoie "null" (la chaîne), c'est une erreur d'auth
             if (rawString.trim().toLowerCase() == 'null') {
               _debugLog(
                 '   ⚠️  Server returned literal "null" string - MAC not authorized',
               );
               return Response<Map<String, dynamic>>(
-                data: <String, dynamic>{},
-                statusCode: response.statusCode,
-                statusMessage: response.statusMessage,
-                headers: response.headers,
-                requestOptions: response.requestOptions,
-                extra: response.extra,
-                isRedirect: response.isRedirect,
-                redirects: response.redirects,
-              ) as Response<dynamic>;
+                    data: <String, dynamic>{},
+                    statusCode: response.statusCode,
+                    statusMessage: response.statusMessage,
+                    headers: response.headers,
+                    requestOptions: response.requestOptions,
+                    extra: response.extra,
+                    isRedirect: response.isRedirect,
+                    redirects: response.redirects,
+                  )
+                  as Response<dynamic>;
             }
-            
+
             final decoded = jsonDecode(rawString);
-            
+
             // Si c'est null (JSON null, pas la string "null")
             if (decoded == null) {
               _debugLog('   ⚠️  JSON decoded to null');
               return Response<Map<String, dynamic>>(
-                data: <String, dynamic>{},
-                statusCode: response.statusCode,
-                statusMessage: response.statusMessage,
-                headers: response.headers,
-                requestOptions: response.requestOptions,
-                extra: response.extra,
-                isRedirect: response.isRedirect,
-                redirects: response.redirects,
-              ) as Response<dynamic>;
+                    data: <String, dynamic>{},
+                    statusCode: response.statusCode,
+                    statusMessage: response.statusMessage,
+                    headers: response.headers,
+                    requestOptions: response.requestOptions,
+                    extra: response.extra,
+                    isRedirect: response.isRedirect,
+                    redirects: response.redirects,
+                  )
+                  as Response<dynamic>;
             }
-            
+
             // Doit être un Map
             if (decoded is! Map<String, dynamic>) {
               _debugLog('   ❌ JSON is not a Map: ${decoded.runtimeType}');
               return Response<Map<String, dynamic>>(
-                data: <String, dynamic>{},
-                statusCode: response.statusCode,
-                statusMessage: response.statusMessage,
-                headers: response.headers,
-                requestOptions: response.requestOptions,
-                extra: response.extra,
-                isRedirect: response.isRedirect,
-                redirects: response.redirects,
-              ) as Response<dynamic>;
+                    data: <String, dynamic>{},
+                    statusCode: response.statusCode,
+                    statusMessage: response.statusMessage,
+                    headers: response.headers,
+                    requestOptions: response.requestOptions,
+                    extra: response.extra,
+                    isRedirect: response.isRedirect,
+                    redirects: response.redirects,
+                  )
+                  as Response<dynamic>;
             }
-            
+
             // decoded is Map<String, dynamic> est garanti par le check ci-dessus
             final jsonData = decoded;
-            _debugLog('   ✅ JSON parsed successfully: ${jsonData.keys.toList()}');
+            _debugLog(
+              '   ✅ JSON parsed successfully: ${jsonData.keys.toList()}',
+            );
             return Response<Map<String, dynamic>>(
-              data: jsonData,
-              statusCode: response.statusCode,
-              statusMessage: response.statusMessage,
-              headers: response.headers,
-              requestOptions: response.requestOptions,
-              extra: response.extra,
-              isRedirect: response.isRedirect,
-              redirects: response.redirects,
-            ) as Response<dynamic>;
+                  data: jsonData,
+                  statusCode: response.statusCode,
+                  statusMessage: response.statusMessage,
+                  headers: response.headers,
+                  requestOptions: response.requestOptions,
+                  extra: response.extra,
+                  isRedirect: response.isRedirect,
+                  redirects: response.redirects,
+                )
+                as Response<dynamic>;
           } catch (e) {
             _debugLog('   ❌ JSON parse error: $e');
             return Response<Map<String, dynamic>>(
-              data: <String, dynamic>{},
-              statusCode: response.statusCode,
-              statusMessage: response.statusMessage,
-              headers: response.headers,
-              requestOptions: response.requestOptions,
-              extra: response.extra,
-              isRedirect: response.isRedirect,
-              redirects: response.redirects,
-            ) as Response<dynamic>;
+                  data: <String, dynamic>{},
+                  statusCode: response.statusCode,
+                  statusMessage: response.statusMessage,
+                  headers: response.headers,
+                  requestOptions: response.requestOptions,
+                  extra: response.extra,
+                  isRedirect: response.isRedirect,
+                  redirects: response.redirects,
+                )
+                as Response<dynamic>;
           }
         });
       },
@@ -384,18 +401,19 @@ class StalkerRemoteDataSource {
         // Gère les réponses null gracieusement (comme le script Python)
         // Si data est un Map vide {}, c'est qu'on a transformé null
         final rawData = response.data;
-        
+
         _debugLog('   [MAPPER] rawData type: ${rawData.runtimeType}');
         _debugLog('   [MAPPER] rawData: $rawData');
-        
-        if (rawData == null || 
+
+        if (rawData == null ||
             (rawData is Map<String, dynamic> && rawData.isEmpty)) {
           // Réponse null = erreur d'authentification
           _debugLog('   ❌ Null or empty response - auth failed');
           return StalkerAuthDto(
             token: '',
             isAuthorized: false,
-            message: 'Le serveur a retourné "null" - Causes possibles:\n'
+            message:
+                'Le serveur a retourné "null" - Causes possibles:\n'
                 '• MAC address non reconnue (vérifiez: 00:54:10:FE:53:A1)\n'
                 '• Abonnement expiré ou inactif\n'
                 '• MAC déjà utilisée dans une autre session\n'
@@ -414,16 +432,17 @@ class StalkerRemoteDataSource {
         }
 
         // Extraire l'objet "js" si présent (comme le script Python)
-        final data = (rawData is Map<String, dynamic> && rawData.containsKey('js'))
+        final data =
+            (rawData is Map<String, dynamic> && rawData.containsKey('js'))
             ? rawData['js'] as Map<String, dynamic>
             : (rawData is Map<String, dynamic> ? rawData : <String, dynamic>{});
-        
+
         _debugLog('   [MAPPER] Extracted data: $data');
-        
+
         final result = StalkerAuthDto.fromHandshakeJson(data);
         _debugLog('   ✅ Token obtained: ${result.token}');
         _debugLog('   isAuthorized: ${result.isAuthorized}');
-        
+
         return result;
       },
     );
@@ -446,7 +465,8 @@ class StalkerRemoteDataSource {
       'type': 'stb',
       'action': 'get_profile',
       'hd': '1',
-      'ver': 'ImageDescription: 0.2.18-r14-pub-250; ImageDate: Fri Jan 15 15:20:44 EET 2016; PORTAL version: 5.6.0; API Version: JS API version: 328; STB API version: 134; Player Engine version: 0x566',
+      'ver':
+          'ImageDescription: 0.2.18-r14-pub-250; ImageDate: Fri Jan 15 15:20:44 EET 2016; PORTAL version: 5.6.0; API Version: JS API version: 328; STB API version: 134; Player Engine version: 0x566',
       'num_banks': '2',
       'sn': sn,
       'stb_type': 'MAG250',
@@ -472,7 +492,7 @@ class StalkerRemoteDataSource {
     return _executor.run<dynamic, StalkerAuthDto>(
       request: (client, cancelToken) {
         final uri = _buildPortalUrl(endpoint, {...params, 'token': token});
-        
+
         // LOGS DE DÉBOGAGE
         _debugLog('\n👤 [STALKER GET_PROFILE DEBUG]');
         _debugLog(
@@ -484,7 +504,7 @@ class StalkerRemoteDataSource {
         _debugLog('   Device ID: $did');
         _debugLog('   Device ID2: $did2');
         _debugLog('   Signature: $signature');
-        
+
         final options = Options(
           headers: {
             ..._magBoxHeaders,
@@ -492,7 +512,8 @@ class StalkerRemoteDataSource {
             'Cookie': 'mac=$macAddress; stb_lang=en; timezone=Europe/Paris',
           },
           // Accepte les codes 200-499 comme le script Python (gère les erreurs dans le mapper)
-          validateStatus: (status) => status != null && status >= 200 && status < 500,
+          validateStatus: (status) =>
+              status != null && status >= 200 && status < 500,
           // Utilise ResponseType.json pour que Dio parse automatiquement le JSON
           responseType: ResponseType.json,
         );
@@ -510,52 +531,54 @@ class StalkerRemoteDataSource {
           _debugLog('   ⚠️  SSL verification disabled for HTTPS');
         }
 
-        return client.getUri<dynamic>(
-          uri,
-          options: options,
-          cancelToken: cancelToken,
-        ).then((response) {
-          // LOG DE LA RÉPONSE
-          _debugLog('   Status: ${response.statusCode}');
-          _debugLog('   Data type: ${response.data.runtimeType}');
-          final dataStr = response.data.toString();
-          _debugLog(
-            '   Data preview: ${dataStr.substring(0, dataStr.length > 300 ? 300 : dataStr.length)}...',
-          );
-          
-          // Transforme les réponses null en {} pour éviter EmptyResponseFailure
-          // Le serveur peut retourner "null" (JSON null) qui est parsé comme null Dart
-          if (response.data == null) {
-            _debugLog('   ⚠️  Response data is null, transforming to empty map');
-            return Response<Map<String, dynamic>>(
-              data: <String, dynamic>{},
-              statusCode: response.statusCode,
-              statusMessage: response.statusMessage,
-              headers: response.headers,
-              requestOptions: response.requestOptions,
-              extra: response.extra,
-              isRedirect: response.isRedirect,
-              redirects: response.redirects,
-            ) as Response<dynamic>;
-          }
-          return response;
-        });
+        return client
+            .getUri<dynamic>(uri, options: options, cancelToken: cancelToken)
+            .then((response) {
+              // LOG DE LA RÉPONSE
+              _debugLog('   Status: ${response.statusCode}');
+              _debugLog('   Data type: ${response.data.runtimeType}');
+              final dataStr = response.data.toString();
+              _debugLog(
+                '   Data preview: ${dataStr.substring(0, dataStr.length > 300 ? 300 : dataStr.length)}...',
+              );
+
+              // Transforme les réponses null en {} pour éviter EmptyResponseFailure
+              // Le serveur peut retourner "null" (JSON null) qui est parsé comme null Dart
+              if (response.data == null) {
+                _debugLog(
+                  '   ⚠️  Response data is null, transforming to empty map',
+                );
+                return Response<Map<String, dynamic>>(
+                      data: <String, dynamic>{},
+                      statusCode: response.statusCode,
+                      statusMessage: response.statusMessage,
+                      headers: response.headers,
+                      requestOptions: response.requestOptions,
+                      extra: response.extra,
+                      isRedirect: response.isRedirect,
+                      redirects: response.redirects,
+                    )
+                    as Response<dynamic>;
+              }
+              return response;
+            });
       },
       mapper: (response) {
         // Gère les réponses null gracieusement (comme le script Python)
         // Si data est un Map vide {}, c'est qu'on a transformé null
         final rawData = response.data;
-        
+
         _debugLog('   [MAPPER] rawData type: ${rawData.runtimeType}');
-        
-        if (rawData == null || 
+
+        if (rawData == null ||
             (rawData is Map<String, dynamic> && rawData.isEmpty)) {
           // Réponse null = erreur d'authentification
           _debugLog('   ❌ Null or empty response');
           return StalkerAuthDto(
             token: '',
             isAuthorized: false,
-            message: 'Le serveur a retourné null - vérifiez que le token est valide et que l\'abonnement est actif',
+            message:
+                'Le serveur a retourné null - vérifiez que le token est valide et que l\'abonnement est actif',
           );
         }
 
@@ -565,20 +588,22 @@ class StalkerRemoteDataSource {
           return StalkerAuthDto(
             token: '',
             isAuthorized: false,
-            message: 'Erreur HTTP ${response.statusCode} lors de la récupération du profil',
+            message:
+                'Erreur HTTP ${response.statusCode} lors de la récupération du profil',
           );
         }
 
         // Extraire l'objet "js" si présent (comme le script Python)
-        final data = (rawData is Map<String, dynamic> && rawData.containsKey('js'))
+        final data =
+            (rawData is Map<String, dynamic> && rawData.containsKey('js'))
             ? rawData['js'] as Map<String, dynamic>
             : (rawData is Map<String, dynamic> ? rawData : <String, dynamic>{});
-        
+
         _debugLog('   [MAPPER] Extracted data has keys: ${data.keys.toList()}');
-        
+
         final result = StalkerAuthDto.fromProfileJson(data);
         _debugLog('   ✅ Profile received, authorized: ${result.isAuthorized}');
-        
+
         return result;
       },
     );
@@ -590,10 +615,7 @@ class StalkerRemoteDataSource {
     required String token,
     String? macAddress,
   }) {
-    final params = {
-      'type': 'vod',
-      'action': 'get_categories',
-    };
+    final params = {'type': 'vod', 'action': 'get_categories'};
 
     return _executor.run<dynamic, List<StalkerCategoryDto>>(
       request: (client, cancelToken) {
@@ -609,7 +631,8 @@ class StalkerRemoteDataSource {
         final options = Options(
           headers: headers,
           // Accepte les codes 200-499 comme le script Python (gère les erreurs dans le mapper)
-          validateStatus: (status) => status != null && status >= 200 && status < 500,
+          validateStatus: (status) =>
+              status != null && status >= 200 && status < 500,
           // Utilise ResponseType.json pour que Dio parse automatiquement le JSON
           responseType: ResponseType.json,
         );
@@ -635,7 +658,7 @@ class StalkerRemoteDataSource {
       mapper: (response) {
         final data = response.data;
         List<dynamic> list;
-        
+
         if (data is List) {
           list = data;
         } else if (data is Map<String, dynamic>) {
@@ -661,10 +684,7 @@ class StalkerRemoteDataSource {
     required String token,
     String? macAddress,
   }) {
-    final params = {
-      'type': 'series',
-      'action': 'get_categories',
-    };
+    final params = {'type': 'series', 'action': 'get_categories'};
 
     return _executor.run<dynamic, List<StalkerCategoryDto>>(
       request: (client, cancelToken) {
@@ -680,7 +700,8 @@ class StalkerRemoteDataSource {
         final options = Options(
           headers: headers,
           // Accepte les codes 200-499 comme le script Python (gère les erreurs dans le mapper)
-          validateStatus: (status) => status != null && status >= 200 && status < 500,
+          validateStatus: (status) =>
+              status != null && status >= 200 && status < 500,
           // Utilise ResponseType.json pour que Dio parse automatiquement le JSON
           responseType: ResponseType.json,
         );
@@ -706,7 +727,7 @@ class StalkerRemoteDataSource {
       mapper: (response) {
         final data = response.data;
         List<dynamic> list;
-        
+
         if (data is List) {
           list = data;
         } else if (data is Map<String, dynamic>) {
@@ -765,7 +786,8 @@ class StalkerRemoteDataSource {
   }) {
     final params = {
       'type': 'series',
-      'action': 'get_ordered_list', // 🔧 FIX: get_content ne retourne rien, get_ordered_list fonctionne
+      'action':
+          'get_ordered_list', // 🔧 FIX: get_content ne retourne rien, get_ordered_list fonctionne
       'p': page.toString(),
       'per_page': perPage.toString(),
       'sortby': 'added',
@@ -788,11 +810,7 @@ class StalkerRemoteDataSource {
     required String contentId,
     String? macAddress,
   }) {
-    final params = {
-      'type': 'vod',
-      'action': 'create_link',
-      'id': contentId,
-    };
+    final params = {'type': 'vod', 'action': 'create_link', 'id': contentId};
 
     return _makeRequest(endpoint, params, token: token, macAddress: macAddress);
   }
@@ -803,11 +821,7 @@ class StalkerRemoteDataSource {
     required String contentId,
     String? macAddress,
   }) {
-    final params = {
-      'type': 'vod',
-      'action': 'get_url',
-      'id': contentId,
-    };
+    final params = {'type': 'vod', 'action': 'get_url', 'id': contentId};
 
     return _makeRequest(endpoint, params, token: token, macAddress: macAddress);
   }
@@ -873,4 +887,3 @@ class StalkerAccountRequest {
   final String token;
   final String macAddress;
 }
-

@@ -138,8 +138,9 @@ class _ShellContentHostState extends State<ShellContentHost> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final stillEphemeral =
-          !widget.keepAliveIndices.contains(widget.selectedIndex);
+      final stillEphemeral = !widget.keepAliveIndices.contains(
+        widget.selectedIndex,
+      );
       if (!stillEphemeral) return;
       setState(() => _showEphemeralLoading = false);
     });
@@ -180,7 +181,9 @@ class _ShellContentHostState extends State<ShellContentHost> {
       offstage: !isKeepAliveSelected,
       child: IndexedStack(
         index: _indexInKeepAliveOrder(selected),
-        children: _keepAliveOrder.map(_getKeepAlivePage).toList(growable: false),
+        children: _keepAliveOrder
+            .map(_getKeepAlivePage)
+            .toList(growable: false),
       ),
     );
 
@@ -232,8 +235,9 @@ class _ShellSwitchLoadingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final overlayColor =
-        Theme.of(context).colorScheme.surface.withValues(alpha: 0.78);
+    final overlayColor = Theme.of(
+      context,
+    ).colorScheme.surface.withValues(alpha: 0.78);
 
     final overlay = Positioned.fill(
       child: AbsorbPointer(
@@ -250,9 +254,6 @@ class _ShellSwitchLoadingOverlay extends StatelessWidget {
       return overlay;
     }
 
-    return Semantics(
-      label: label,
-      child: overlay,
-    );
+    return Semantics(label: label, child: overlay);
   }
 }

@@ -17,10 +17,7 @@ import 'package:movi/src/core/supabase/supabase_error_mapper.dart';
 ///
 /// La contrainte UNIQUE(profile_id, media_type, media_id) permet les upserts.
 class SupabaseFavoritesRepository implements FavoritesRepository {
-  const SupabaseFavoritesRepository(
-    this._client, {
-    required this.profileId,
-  });
+  const SupabaseFavoritesRepository(this._client, {required this.profileId});
 
   final SupabaseClient _client;
 
@@ -39,10 +36,7 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
     required String name,
     Uri? photo,
   }) async {
-    await _upsertFavorite(
-      mediaType: 'person',
-      mediaId: id.value,
-    );
+    await _upsertFavorite(mediaType: 'person', mediaId: id.value);
   }
 
   @override
@@ -60,10 +54,7 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
     required String title,
     Uri? poster,
   }) async {
-    await _upsertFavorite(
-      mediaType: 'movie',
-      mediaId: id.value,
-    );
+    await _upsertFavorite(mediaType: 'movie', mediaId: id.value);
   }
 
   /// Retire un film des favoris.
@@ -86,10 +77,7 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
     required String title,
     Uri? poster,
   }) async {
-    await _upsertFavorite(
-      mediaType: 'series',
-      mediaId: id.value,
-    );
+    await _upsertFavorite(mediaType: 'series', mediaId: id.value);
   }
 
   /// Retire une série des favoris.
@@ -112,10 +100,7 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
     required String title,
     Uri? cover,
   }) async {
-    await _upsertFavorite(
-      mediaType: 'saga',
-      mediaId: id.value,
-    );
+    await _upsertFavorite(mediaType: 'saga', mediaId: id.value);
   }
 
   /// Retire une saga des favoris.
@@ -134,10 +119,7 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
 
   /// Ajoute un contenu aux favoris via ContentReference.
   Future<void> likeContent(ContentReference ref) async {
-    await _upsertFavorite(
-      mediaType: ref.type.name,
-      mediaId: ref.id,
-    );
+    await _upsertFavorite(mediaType: ref.type.name, mediaId: ref.id);
   }
 
   /// Retire un contenu des favoris.
@@ -159,14 +141,11 @@ class SupabaseFavoritesRepository implements FavoritesRepository {
     required String mediaId,
   }) async {
     try {
-      await _client.from(_table).upsert(
-        <String, Object?>{
-          'profile_id': profileId,
-          'media_type': mediaType,
-          'media_id': mediaId,
-        },
-        onConflict: 'profile_id,media_type,media_id',
-      );
+      await _client.from(_table).upsert(<String, Object?>{
+        'profile_id': profileId,
+        'media_type': mediaType,
+        'media_id': mediaId,
+      }, onConflict: 'profile_id,media_type,media_id');
     } catch (error, stackTrace) {
       throw mapSupabaseError(error, stackTrace: stackTrace);
     }

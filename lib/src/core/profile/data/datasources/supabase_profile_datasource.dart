@@ -13,7 +13,9 @@ class SupabaseProfileDatasource {
   static const String table = 'profiles';
   static const String colAccountId = 'account_id';
 
-  Future<List<Map<String, dynamic>>> selectProfilesByAccountId(String accountId) async {
+  Future<List<Map<String, dynamic>>> selectProfilesByAccountId(
+    String accountId,
+  ) async {
     final rows = await _client.from(table).select().eq(colAccountId, accountId);
 
     return rows
@@ -21,7 +23,9 @@ class SupabaseProfileDatasource {
         .toList(growable: false);
   }
 
-  Future<Map<String, dynamic>> insertProfile(Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> insertProfile(
+    Map<String, dynamic> payload,
+  ) async {
     final row = await _client.from(table).insert(payload).select().single();
     return (row as Map).cast<String, dynamic>();
   }

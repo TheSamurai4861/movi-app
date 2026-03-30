@@ -26,10 +26,7 @@ class SettingsWidthConstraint extends StatelessWidget {
 
         return Align(
           alignment: alignment,
-          child: SizedBox(
-            width: width,
-            child: child,
-          ),
+          child: SizedBox(width: width, child: child),
         );
       },
     );

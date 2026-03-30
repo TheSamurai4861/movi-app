@@ -20,8 +20,11 @@ import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart'
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
+import 'package:movi/src/features/player/domain/entities/playback_selection_preferences.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/movie/domain/usecases/build_movie_video_source.dart';
+import 'package:movi/src/features/movie/domain/usecases/resolve_movie_playback_selection.dart';
 import 'package:movi/src/features/movie/domain/usecases/get_movie_availability_on_iptv.dart';
 import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_seen.dart';
 import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_unseen.dart';
@@ -29,6 +32,7 @@ import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.da
 import 'package:movi/src/features/movie/domain/usecases/ensure_movie_enrichment.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
 
 /// Provider pour MovieRepository avec userId actuel
 final movieRepositoryProvider = Provider<MovieRepository>((ref) {
@@ -81,10 +85,24 @@ final buildMovieVideoSourceUseCaseProvider = Provider<BuildMovieVideoSource>(
   (ref) => ref.watch(slProvider)<BuildMovieVideoSource>(),
 );
 
+final resolveMoviePlaybackSelectionUseCaseProvider =
+    Provider<ResolveMoviePlaybackSelection>(
+      (ref) => ref.watch(slProvider)<ResolveMoviePlaybackSelection>(),
+    );
+
 final getMovieAvailabilityOnIptvUseCaseProvider =
     Provider<GetMovieAvailabilityOnIptv>(
       (ref) => ref.watch(slProvider)<GetMovieAvailabilityOnIptv>(),
     );
+
+final movieAvailabilityOnIptvProvider = FutureProvider.family<bool, String>((
+  ref,
+  movieId,
+) async {
+  final useCase = ref.watch(getMovieAvailabilityOnIptvUseCaseProvider);
+  final appState = ref.read(appStateControllerProvider);
+  return useCase(movieId, candidateSourceIds: appState.activeIptvSourceIds);
+});
 
 final markMovieAsSeenUseCaseProvider = Provider<MarkMovieAsSeen>(
   (ref) => ref.watch(slProvider)<MarkMovieAsSeen>(),
@@ -230,7 +248,7 @@ Future<MovieDetailViewModel> _loadXtreamMovieDetail(
     throw StateError('Movie $movieId missing poster');
   }
 
-    return MovieDetailViewModel(
+  return MovieDetailViewModel(
     title: xtreamItem.title,
     yearText: xtreamItem.releaseYear?.toString() ?? '—',
     durationText: '—',
@@ -248,7 +266,6 @@ Future<MovieDetailViewModel> _loadXtreamMovieDetail(
     language: language,
   );
 }
-
 
 /// Disponibilité du film sur IPTV
 final movieAvailabilityProvider = FutureProvider.family<bool, String>((
@@ -398,6 +415,38 @@ final sagaMoviesProvider = FutureProvider.family<List<MoviMedia>, SagaSummary?>(
 );
 
 /// Providers DI pour les dépendances Movie
+final moviePlaybackSelectionProvider =
+    FutureProvider.family<
+      PlaybackSelectionDecision,
+      ({String movieId, String title, int? releaseYear, Uri? poster})
+    >((ref, args) async {
+      final usecase = ref.watch(resolveMoviePlaybackSelectionUseCaseProvider);
+      final userId = ref.watch(currentUserIdProvider);
+      final appState = ref.read(appStateControllerProvider);
+      final candidateSourceIds = appState.activeIptvSourceIds;
+
+      return await usecase(
+        movieId: args.movieId,
+        title: args.title,
+        releaseYear: args.releaseYear,
+        poster: args.poster,
+        userId: userId,
+        candidateSourceIds: candidateSourceIds,
+        preferences: PlaybackSelectionPreferences(
+          preferredAudioLanguageCode: ref.watch(
+            currentPreferredAudioLanguageProvider,
+          ),
+          preferredSubtitleLanguageCode: ref.watch(
+            currentPreferredSubtitleLanguageProvider,
+          ),
+          preferredQualityRank: ref
+              .watch(currentPreferredPlaybackQualityProvider)
+              ?.minimumQualityRank,
+        ),
+        context: const PlaybackSelectionContext(contentType: ContentType.movie),
+      );
+    });
+
 final tmdbMovieRemoteDataSourceProvider = Provider<TmdbMovieRemoteDataSource>((
   ref,
 ) {

@@ -121,7 +121,11 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
   }
 
   @override
-  Future<void> remove(String contentId, ContentType type, {String userId = 'default'}) async {
+  Future<void> remove(
+    String contentId,
+    ContentType type, {
+    String userId = 'default',
+  }) async {
     final db = _db;
     await db.delete(
       'history',
@@ -131,7 +135,10 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
   }
 
   @override
-  Future<List<HistoryEntry>> readAll(ContentType type, {String userId = 'default'}) async {
+  Future<List<HistoryEntry>> readAll(
+    ContentType type, {
+    String userId = 'default',
+  }) async {
     final db = _db;
     final rows = await db.query(
       'history',

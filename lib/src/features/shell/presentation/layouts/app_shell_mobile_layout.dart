@@ -15,7 +15,12 @@ const _kContainerPadding = 5.0;
 const _kAndroidBottomSpacing = 32.0;
 
 const _kSelectedBackground = Color(0xFF262626);
-const _kBarBackground = Color.fromARGB(131, 46, 46, 46); // fond plus sombre tout en gardant le blur
+const _kBarBackground = Color.fromARGB(
+  131,
+  46,
+  46,
+  46,
+); // fond plus sombre tout en gardant le blur
 
 const _kAnimationDuration = Duration(milliseconds: 300);
 const _kLabelBottomInset = 2.0;
@@ -252,7 +257,9 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
           duration: _kAnimationDuration,
           curve: Curves.easeInOut,
           decoration: BoxDecoration(
-            color: widget.isSelected ? _kSelectedBackground : Colors.transparent,
+            color: widget.isSelected
+                ? _kSelectedBackground
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(999),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -270,10 +277,15 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                       ),
                       child: SvgPicture.asset(
                         widget.svgAssetPath,
-                        key: ValueKey('${widget.svgAssetPath}-${widget.isSelected}'),
+                        key: ValueKey(
+                          '${widget.svgAssetPath}-${widget.isSelected}',
+                        ),
                         width: 24,
                         height: 24,
-                        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                        colorFilter: ColorFilter.mode(
+                          iconColor,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     );
                   },

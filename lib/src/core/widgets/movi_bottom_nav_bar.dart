@@ -13,7 +13,9 @@ const _kNavHeight = 72.0;
 const _kContainerPadding = 5.0;
 const _kAndroidBottomSpacing = 32.0;
 const _kSelectedBackground = Color(0xFF262626);
-const _kBarBackground = Color(0xB3141414); // fond plus sombre tout en gardant le blur
+const _kBarBackground = Color(
+  0xB3141414,
+); // fond plus sombre tout en gardant le blur
 const _kAnimationDuration = Duration(milliseconds: 300);
 const _kLabelBottomInset = 2.0;
 const _kIconBaseOffsetY = -4.0;
@@ -220,10 +222,15 @@ class _MoviBottomNavItemWidgetState extends State<_MoviBottomNavItemWidget>
                       ),
                       child: SvgPicture.asset(
                         widget.item.icon,
-                        key: ValueKey('${widget.item.icon}-${widget.isSelected}'),
+                        key: ValueKey(
+                          '${widget.item.icon}-${widget.isSelected}',
+                        ),
                         width: 24,
                         height: 24,
-                        colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+                        colorFilter: ColorFilter.mode(
+                          iconColor,
+                          BlendMode.srcIn,
+                        ),
                       ),
                     );
                   },

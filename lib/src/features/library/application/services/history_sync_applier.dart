@@ -48,23 +48,19 @@ class HistorySyncApplier {
     );
 
     if (updateCount == 0) {
-      await _db.insert(
-        'history',
-        {
-          'content_id': contentId,
-          'content_type': type.name,
-          'title': title,
-          'poster': poster?.toString(),
-          'last_played_at': lastPlayedAtMs,
-          'play_count': 1,
-          'last_position': lastPositionSeconds,
-          'duration': durationSeconds,
-          'season': season,
-          'episode': episode,
-          'user_id': userId,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      await _db.insert('history', {
+        'content_id': contentId,
+        'content_type': type.name,
+        'title': title,
+        'poster': poster?.toString(),
+        'last_played_at': lastPlayedAtMs,
+        'play_count': 1,
+        'last_position': lastPositionSeconds,
+        'duration': durationSeconds,
+        'season': season,
+        'episode': episode,
+        'user_id': userId,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
   }
 
@@ -80,4 +76,3 @@ class HistorySyncApplier {
     );
   }
 }
-

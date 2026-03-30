@@ -10,4 +10,3 @@ class HomeConstants {
   /// Le widget peut ensuite appliquer son propre `take()` si besoin.
   static const int iptvSectionPreviewLimit = 9;
 }
-

@@ -20,4 +20,3 @@ class StalkerCategoryDto {
   final String? alias;
   final bool? censored;
 }
-

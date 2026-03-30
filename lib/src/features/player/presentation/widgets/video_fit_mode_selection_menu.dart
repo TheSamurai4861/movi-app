@@ -118,4 +118,3 @@ class VideoFitModeSelectionMenu extends StatelessWidget {
     );
   }
 }
-

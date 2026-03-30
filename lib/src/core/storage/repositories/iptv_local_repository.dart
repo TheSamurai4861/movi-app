@@ -201,10 +201,7 @@ class IptvLocalRepository {
     for (final accountId in ids) {
       await _ensureV2PlaylistsForAccount(accountId);
     }
-    return _playlistQueryStore.getAllPlaylistItems(
-      accountIds: ids,
-      type: type,
-    );
+    return _playlistQueryStore.getAllPlaylistItems(accountIds: ids, type: type);
   }
 
   /// Indique si au moins un item de playlist est présent localement.

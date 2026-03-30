@@ -15,7 +15,8 @@ class SelectedProfileService {
 
   Stream<String?> get selectedProfileIdStream => _prefs.selectedProfileIdStream;
 
-  Future<void> setSelectedProfileId(String? id) => _prefs.setSelectedProfileId(id);
+  Future<void> setSelectedProfileId(String? id) =>
+      _prefs.setSelectedProfileId(id);
 
   Future<void> clear() => _prefs.setSelectedProfileId(null);
 }

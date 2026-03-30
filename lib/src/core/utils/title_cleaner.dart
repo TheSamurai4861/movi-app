@@ -12,9 +12,7 @@ class TitleCleaner {
     r'\s*-\s*[A-Z]{2,}$',
     caseSensitive: false,
   );
-  static final RegExp _bracketsPattern = RegExp(
-    r'\([^)]*\)|\[[^\]]*\]',
-  );
+  static final RegExp _bracketsPattern = RegExp(r'\([^)]*\)|\[[^\]]*\]');
   static final RegExp _separatorsPattern = RegExp(r'[|._-]+');
   static final RegExp _resolutionPattern = RegExp(
     r'^\d{3,4}P$',
@@ -51,6 +49,7 @@ class TitleCleaner {
     'HD',
     'FHD',
     'MULTI',
+    'TRUEFRENCH',
     'VOSTFR',
     'VOST',
     'VF',
@@ -127,9 +126,7 @@ class TitleCleaner {
     final cleaned = clean(title);
 
     // Extraire l'année à la fin (1990-2099).
-    final yearMatch = RegExp(
-      r'\s*(19[9]\d|20\d{2})\s*$',
-    ).firstMatch(cleaned);
+    final yearMatch = RegExp(r'\s*(19[9]\d|20\d{2})\s*$').firstMatch(cleaned);
     if (yearMatch != null) {
       final yearStr = yearMatch.group(1);
       final year = int.tryParse(yearStr ?? '');
@@ -156,7 +153,8 @@ class TitleCleaner {
     if (normalized.isEmpty) return true;
 
     if (normalized.startsWith('HDR')) return true;
-    if (normalized == 'DV' || normalized == 'DOLBY' ||
+    if (normalized == 'DV' ||
+        normalized == 'DOLBY' ||
         normalized == 'DOLBYVISION') {
       return true;
     }

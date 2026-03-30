@@ -12,29 +12,32 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 /// - une durée est disponible
 /// - et la progression est comprise entre 5% et 95% (seuils produit globaux)
 final inProgressHistoryEntryProvider =
-    FutureProvider.family<HistoryEntry?, ({String contentId, ContentType type})>(
-      (ref, params) async {
-        final historyRepo = ref.watch(slProvider)<HistoryLocalRepository>();
-        final userId = ref.watch(currentUserIdProvider);
-        final entries = await historyRepo.readAll(params.type, userId: userId);
+    FutureProvider.family<
+      HistoryEntry?,
+      ({String contentId, ContentType type})
+    >((ref, params) async {
+      final historyRepo = ref.watch(slProvider)<HistoryLocalRepository>();
+      final userId = ref.watch(currentUserIdProvider);
+      final entries = await historyRepo.readAll(params.type, userId: userId);
 
-        try {
-          final entry = entries.firstWhere((e) => e.contentId == params.contentId);
+      try {
+        final entry = entries.firstWhere(
+          (e) => e.contentId == params.contentId,
+        );
 
-          final duration = entry.duration;
-          if (duration == null || duration.inSeconds <= 0) return null;
+        final duration = entry.duration;
+        if (duration == null || duration.inSeconds <= 0) return null;
 
-          final positionSeconds = entry.lastPosition?.inSeconds ?? 0;
-          final progress = positionSeconds / duration.inSeconds;
+        final positionSeconds = entry.lastPosition?.inSeconds ?? 0;
+        final progress = positionSeconds / duration.inSeconds;
 
-          if (progress >= PlaybackProgressThresholds.minInProgress &&
-              progress < PlaybackProgressThresholds.maxInProgress) {
-            return entry;
-          }
-
-          return null;
-        } catch (_) {
-          return null;
+        if (progress >= PlaybackProgressThresholds.minInProgress &&
+            progress < PlaybackProgressThresholds.maxInProgress) {
+          return entry;
         }
-      },
-    );
+
+        return null;
+      } catch (_) {
+        return null;
+      }
+    });

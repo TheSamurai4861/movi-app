@@ -6,16 +6,19 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/state/app_state.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
+import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
 
 /// Provider principal qui expose l'état global [AppState].
 ///
 /// Version Riverpod 3 "propre" : [AppStateController] est un `Notifier<AppState>`
 /// instancié par Riverpod via [NotifierProvider].
-final appStateProvider =
-    NotifierProvider<AppStateController, AppState>(AppStateController.new);
+final appStateProvider = NotifierProvider<AppStateController, AppState>(
+  AppStateController.new,
+);
 
 /// Alias pratique pour accéder directement au contrôleur.
 ///
@@ -30,10 +33,7 @@ final appStateControllerProvider = Provider<AppStateController>((ref) {
 /// Helper générique pour récupérer la valeur d'un [AsyncValue]
 /// ou tomber sur une valeur de repli si le stream n'a pas encore émis.
 T _valueOr<T>(AsyncValue<T> asyncValue, T fallback) {
-  return asyncValue.maybeWhen(
-    data: (value) => value,
-    orElse: () => fallback,
-  );
+  return asyncValue.maybeWhen(data: (value) => value, orElse: () => fallback);
 }
 
 /// Convertit un [Locale] en code BCP-47 (ex: 'fr-FR').
@@ -82,9 +82,7 @@ final hasNoActiveIptvSourcesProvider = Provider<bool>((ref) {
 /// Dérivée directement de [AppState.preferredLocale], qui lui-même
 /// est synchronisé avec [LocalePreferences] via [AppStateController].
 final currentLocaleProvider = Provider<Locale>((ref) {
-  return ref.watch(
-    appStateProvider.select((state) => state.preferredLocale),
-  );
+  return ref.watch(appStateProvider.select((state) => state.preferredLocale));
 });
 
 /// Code de langue courant (string brute, ex: 'fr-FR').
@@ -103,9 +101,7 @@ final currentLanguageCodeProvider = Provider<String>((ref) {
 ///
 /// Dérivé directement de [AppState.themeMode].
 final currentThemeModeProvider = Provider<ThemeMode>((ref) {
-  return ref.watch(
-    appStateProvider.select((state) => state.themeMode),
-  );
+  return ref.watch(appStateProvider.select((state) => state.themeMode));
 });
 
 //
@@ -175,6 +171,44 @@ final currentPreferredSubtitleLanguageProvider = Provider<String?>((ref) {
 
   final asyncLang = ref.watch(preferredSubtitleLanguageStreamProvider);
   return _valueOr<String?>(asyncLang, prefs.preferredSubtitleLanguage);
+});
+
+final preferredPlaybackQualityStreamProvider =
+    StreamProvider<PreferredPlaybackQuality?>((ref) {
+      final prefs = ref.watch(playerPreferencesProvider);
+      return prefs.preferredPlaybackQualityStream;
+    });
+
+final currentPreferredPlaybackQualityProvider =
+    Provider<PreferredPlaybackQuality?>((ref) {
+      final prefs = ref.watch(playerPreferencesProvider);
+      final asyncQuality = ref.watch(preferredPlaybackQualityStreamProvider);
+      return _valueOr<PreferredPlaybackQuality?>(
+        asyncQuality,
+        prefs.preferredPlaybackQuality,
+      );
+    });
+
+final selectedIptvSourcePreferencesProvider =
+    Provider<SelectedIptvSourcePreferences?>((ref) {
+      final locator = ref.watch(slProvider);
+      if (!locator.isRegistered<SelectedIptvSourcePreferences>()) {
+        return null;
+      }
+      return locator<SelectedIptvSourcePreferences>();
+    });
+
+final selectedIptvSourceIdStreamProvider = StreamProvider<String?>((ref) {
+  final prefs = ref.watch(selectedIptvSourcePreferencesProvider);
+  return prefs?.selectedSourceIdStream ?? Stream<String?>.value(null);
+});
+
+final currentSelectedIptvSourceIdProvider = Provider<String?>((ref) {
+  final prefs = ref.watch(selectedIptvSourcePreferencesProvider);
+  if (prefs == null) return null;
+
+  final asyncSourceId = ref.watch(selectedIptvSourceIdStreamProvider);
+  return _valueOr<String?>(asyncSourceId, prefs.selectedSourceId);
 });
 
 //

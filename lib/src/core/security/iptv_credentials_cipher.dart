@@ -184,9 +184,5 @@ class IptvCredentialsPayload {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'username': username,
-        'password': password,
-      };
+  Map<String, dynamic> toJson() => {'username': username, 'password': password};
 }
-

@@ -22,4 +22,3 @@ String? getLocalizedParentalReason(BuildContext context, String? reason) {
       return null;
   }
 }
-

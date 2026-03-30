@@ -46,8 +46,8 @@ class HomeIptvSection extends ConsumerWidget {
     final itemLimit = switch (screenType) {
       ScreenType.mobile => HomeLayoutConstants.iptvSectionMobileLimit,
       ScreenType.tablet => HomeLayoutConstants.iptvSectionTabletLimit,
-      ScreenType.desktop || ScreenType.tv =>
-        HomeLayoutConstants.iptvSectionDesktopLimit,
+      ScreenType.desktop ||
+      ScreenType.tv => HomeLayoutConstants.iptvSectionDesktopLimit,
     };
 
     return HomeFirstSectionTransition(
@@ -58,9 +58,7 @@ class HomeIptvSection extends ConsumerWidget {
         estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
         estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
         items: [
-          ...items
-              .take(itemLimit)
-              .map((r) => _buildMediaCard(context, ref, r)),
+          ...items.take(itemLimit).map((r) => _buildMediaCard(context, ref, r)),
           SeeAllCard(
             title: displayTitle,
             width: HomeLayoutConstants.mediaCardWidth,
@@ -114,10 +112,7 @@ class HomeIptvSection extends ConsumerWidget {
 
 /// Widget affichant un message quand aucune source IPTV n'est disponible.
 class HomeNoIptvSourcesMessage extends StatelessWidget {
-  const HomeNoIptvSourcesMessage({
-    super.key,
-    this.applyHeroTransition = false,
-  });
+  const HomeNoIptvSourcesMessage({super.key, this.applyHeroTransition = false});
 
   final bool applyHeroTransition;
 
@@ -138,10 +133,7 @@ class HomeNoIptvSourcesMessage extends StatelessWidget {
 
 /// Widget affichant des skeletons de chargement pour les sections IPTV.
 class HomeIptvLoadingSections extends StatelessWidget {
-  const HomeIptvLoadingSections({
-    super.key,
-    this.applyHeroTransition = false,
-  });
+  const HomeIptvLoadingSections({super.key, this.applyHeroTransition = false});
 
   final bool applyHeroTransition;
 
@@ -154,8 +146,8 @@ class HomeIptvLoadingSections extends StatelessWidget {
     final itemLimit = switch (screenType) {
       ScreenType.mobile => HomeLayoutConstants.iptvSectionMobileLimit,
       ScreenType.tablet => HomeLayoutConstants.iptvSectionTabletLimit,
-      ScreenType.desktop || ScreenType.tv =>
-        HomeLayoutConstants.iptvSectionDesktopLimit,
+      ScreenType.desktop ||
+      ScreenType.tv => HomeLayoutConstants.iptvSectionDesktopLimit,
     };
 
     return HomeFirstSectionTransition(
@@ -167,10 +159,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
             itemSpacing: HomeLayoutConstants.itemSpacing,
             estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
             estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
-            items: List.generate(
-              itemLimit,
-              (_) => const HomeLoadingSkeleton(),
-            ),
+            items: List.generate(itemLimit, (_) => const HomeLoadingSkeleton()),
           ),
           const SizedBox(height: HomeLayoutConstants.sectionGap),
           MoviItemsList(
@@ -178,10 +167,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
             itemSpacing: HomeLayoutConstants.itemSpacing,
             estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
             estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
-            items: List.generate(
-              itemLimit,
-              (_) => const HomeLoadingSkeleton(),
-            ),
+            items: List.generate(itemLimit, (_) => const HomeLoadingSkeleton()),
           ),
           const SizedBox(height: HomeLayoutConstants.sectionGap),
         ],

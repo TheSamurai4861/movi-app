@@ -41,10 +41,7 @@ class MoviHeroOverlays extends StatelessWidget {
                 height: topHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    gradient: MoviHeroGradients.topFade(
-                      surface,
-                      spec: spec,
-                    ),
+                    gradient: MoviHeroGradients.topFade(surface, spec: spec),
                   ),
                 ),
               ),
@@ -58,10 +55,7 @@ class MoviHeroOverlays extends StatelessWidget {
                 height: bottomHeight,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    gradient: MoviHeroGradients.bottomFade(
-                      surface,
-                      spec: spec,
-                    ),
+                    gradient: MoviHeroGradients.bottomFade(surface, spec: spec),
                   ),
                 ),
               ),

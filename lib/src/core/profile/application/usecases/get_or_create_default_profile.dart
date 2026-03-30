@@ -9,10 +9,7 @@ class GetOrCreateDefaultProfileUseCase {
 
   final ProfileRepository _repo;
 
-  Future<Profile> call({
-    String? accountId,
-    bool? diagnostics,
-  }) {
+  Future<Profile> call({String? accountId, bool? diagnostics}) {
     return _repo.getOrCreateDefaultProfile(
       accountId: accountId,
       diagnostics: diagnostics,

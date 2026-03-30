@@ -6,11 +6,7 @@ class SetPlaylistPinned {
 
   final PlaylistRepository _repository;
 
-  Future<void> call({
-    required PlaylistId id,
-    required bool isPinned,
-  }) {
+  Future<void> call({required PlaylistId id, required bool isPinned}) {
     return _repository.setPinned(id: id, isPinned: isPinned);
   }
 }
-

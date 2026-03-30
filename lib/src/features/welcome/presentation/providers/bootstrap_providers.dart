@@ -21,9 +21,7 @@ final appLaunchRunnerProvider = Provider<AppLaunchRunner>((ref) {
   return (String reason) async {
     final ts = DateTime.now().toIso8601String();
     unawaited(
-      LoggingService.log(
-        '[AppLaunch] ts=$ts action=run reason=$reason',
-      ),
+      LoggingService.log('[AppLaunch] ts=$ts action=run reason=$reason'),
     );
     return ref.read(appLaunchOrchestratorProvider.notifier).run();
   };

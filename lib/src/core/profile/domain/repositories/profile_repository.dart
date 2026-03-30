@@ -5,10 +5,7 @@ import 'package:movi/src/core/profile/domain/entities/profile.dart';
 abstract interface class ProfileRepository {
   static const Object noChange = Object();
 
-  Future<List<Profile>> getProfiles({
-    String? accountId,
-    bool? diagnostics,
-  });
+  Future<List<Profile>> getProfiles({String? accountId, bool? diagnostics});
 
   Future<Profile> createProfile({
     required String name,
@@ -28,10 +25,7 @@ abstract interface class ProfileRepository {
     bool? diagnostics,
   });
 
-  Future<void> deleteProfile(
-    String profileId, {
-    bool? diagnostics,
-  });
+  Future<void> deleteProfile(String profileId, {bool? diagnostics});
 
   Future<Profile> getOrCreateDefaultProfile({
     String? accountId,

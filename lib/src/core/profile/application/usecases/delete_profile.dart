@@ -6,13 +6,7 @@ class DeleteProfileUseCase {
 
   final ProfileRepository _repo;
 
-  Future<void> call(
-    String profileId, {
-    bool? diagnostics,
-  }) {
-    return _repo.deleteProfile(
-      profileId,
-      diagnostics: diagnostics,
-    );
+  Future<void> call(String profileId, {bool? diagnostics}) {
+    return _repo.deleteProfile(profileId, diagnostics: diagnostics);
   }
 }

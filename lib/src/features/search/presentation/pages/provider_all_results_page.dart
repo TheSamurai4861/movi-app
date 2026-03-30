@@ -327,8 +327,7 @@ class _ProviderAllResultsPageState
         : _shows.length;
     const backButtonFramePadding = 8.0;
     const backButtonSize = 35.0;
-    final headerStartPadding =
-        _pageHorizontalPadding - backButtonFramePadding;
+    final headerStartPadding = _pageHorizontalPadding - backButtonFramePadding;
     final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
 
     return Scaffold(

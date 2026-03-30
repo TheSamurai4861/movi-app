@@ -6,8 +6,7 @@ import 'package:movi/src/core/storage/repositories/iptv/iptv_storage_tables.dart
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 
-typedef PlaylistTypeNormalizer =
-    XtreamPlaylistType Function(String? rawValue);
+typedef PlaylistTypeNormalizer = XtreamPlaylistType Function(String? rawValue);
 typedef PlaylistItemTypeNormalizer =
     XtreamPlaylistItemType Function(
       String rawValue,
@@ -66,13 +65,17 @@ class IptvPlaylistStore {
       final itemsList = _asList(payload['items']);
 
       await _db.transaction((txn) async {
-        await txn.insert(IptvStorageTables.playlists, <String, Object?>{
-          'account_id': accountId,
-          'playlist_id': playlistId,
-          'title': title,
-          'type': playlistType.name,
-          'updated_at': updatedAt,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          IptvStorageTables.playlists,
+          <String, Object?>{
+            'account_id': accountId,
+            'playlist_id': playlistId,
+            'title': title,
+            'type': playlistType.name,
+            'updated_at': updatedAt,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
 
         await txn.delete(
           IptvStorageTables.playlistItems,
@@ -96,19 +99,23 @@ class IptvPlaylistStore {
             final rawType = (_asString(map['type']) ?? '').toLowerCase().trim();
             final itemType = _normalizeItemType(rawType, playlistType);
 
-            batch.insert(IptvStorageTables.playlistItems, <String, Object?>{
-              'account_id': accountId,
-              'playlist_id': playlistId,
-              'stream_id': streamId,
-              'position': position++,
-              'title': itemTitle,
-              'type': itemType.name,
-              'poster': _asString(map['poster']),
-              'tmdb_id': _asNum(map['tmdbId'])?.toInt(),
-              'container_extension': _asString(map['containerExtension']),
-              'rating': _asNum(map['rating'])?.toDouble(),
-              'release_year': _asNum(map['releaseYear'])?.toInt(),
-            }, conflictAlgorithm: ConflictAlgorithm.replace);
+            batch.insert(
+              IptvStorageTables.playlistItems,
+              <String, Object?>{
+                'account_id': accountId,
+                'playlist_id': playlistId,
+                'stream_id': streamId,
+                'position': position++,
+                'title': itemTitle,
+                'type': itemType.name,
+                'poster': _asString(map['poster']),
+                'tmdb_id': _asNum(map['tmdbId'])?.toInt(),
+                'container_extension': _asString(map['containerExtension']),
+                'rating': _asNum(map['rating'])?.toDouble(),
+                'release_year': _asNum(map['releaseYear'])?.toInt(),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
 
             if (position % chunkSize == 0) {
               await batch.commit(noResult: true);
@@ -138,13 +145,17 @@ class IptvPlaylistStore {
 
     for (final playlist in playlists) {
       await _db.transaction((txn) async {
-        await txn.insert(IptvStorageTables.playlists, <String, Object?>{
-          'account_id': accountId,
-          'playlist_id': playlist.id,
-          'title': playlist.title,
-          'type': playlist.type.name,
-          'updated_at': now,
-        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        await txn.insert(
+          IptvStorageTables.playlists,
+          <String, Object?>{
+            'account_id': accountId,
+            'playlist_id': playlist.id,
+            'title': playlist.title,
+            'type': playlist.type.name,
+            'updated_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
 
         await txn.delete(
           IptvStorageTables.playlistItems,
@@ -158,19 +169,23 @@ class IptvPlaylistStore {
 
           for (var index = 0; index < playlist.items.length; index++) {
             final item = playlist.items[index];
-            batch.insert(IptvStorageTables.playlistItems, <String, Object?>{
-              'account_id': accountId,
-              'playlist_id': playlist.id,
-              'stream_id': item.streamId,
-              'position': index,
-              'title': item.title,
-              'type': item.type.name,
-              'poster': item.posterUrl,
-              'tmdb_id': item.tmdbId,
-              'container_extension': item.containerExtension,
-              'rating': item.rating,
-              'release_year': item.releaseYear,
-            }, conflictAlgorithm: ConflictAlgorithm.replace);
+            batch.insert(
+              IptvStorageTables.playlistItems,
+              <String, Object?>{
+                'account_id': accountId,
+                'playlist_id': playlist.id,
+                'stream_id': item.streamId,
+                'position': index,
+                'title': item.title,
+                'type': item.type.name,
+                'poster': item.posterUrl,
+                'tmdb_id': item.tmdbId,
+                'container_extension': item.containerExtension,
+                'rating': item.rating,
+                'release_year': item.releaseYear,
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
 
             if ((index + 1) % chunkSize == 0) {
               await batch.commit(noResult: true);

@@ -49,9 +49,9 @@ class SagaRepositoryImpl implements SagaRepository {
 
     final cacheChanged = dto.parts.length == parts.length
         ? List.generate(
-          dto.parts.length,
-          (i) => dto.parts[i].runtime != parts[i].runtime,
-        ).any((changed) => changed)
+            dto.parts.length,
+            (i) => dto.parts[i].runtime != parts[i].runtime,
+          ).any((changed) => changed)
         : true;
     if (cacheChanged) {
       await _local.saveSagaDetail(dto.copyWith(parts: parts));

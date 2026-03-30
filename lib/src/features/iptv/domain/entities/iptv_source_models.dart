@@ -21,10 +21,7 @@ class IptvSource {
 /// These credentials must never be stored in clairtexte in a remote database.
 @immutable
 class IptvCredentials {
-  const IptvCredentials({
-    required this.username,
-    required this.password,
-  });
+  const IptvCredentials({required this.username, required this.password});
 
   final String username;
   final String password;
@@ -96,9 +93,9 @@ class RemoteIptvSource {
 
   /// Converts to a map suitable for Supabase upsert.
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'alias': alias,
-        'endpoint': endpoint,
-        'encrypted_credentials': encryptedCredentials,
-      };
+    'id': id,
+    'alias': alias,
+    'endpoint': endpoint,
+    'encrypted_credentials': encryptedCredentials,
+  };
 }

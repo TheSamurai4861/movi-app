@@ -41,8 +41,8 @@ class RestartRequiredDialog extends StatelessWidget {
                     child: Text(
                       'Profil enfant créé',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

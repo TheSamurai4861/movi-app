@@ -6,11 +6,7 @@ import 'package:flutter/material.dart';
 /// - On ÃƒÆ’Ã‚Â©vite une dÃƒÆ’Ã‚Â©pendance `core -> features/welcome`.
 /// - On garde un style cohÃƒÆ’Ã‚Â©rent sur les dialogs du module profile.
 class LabeledField extends StatelessWidget {
-  const LabeledField({
-    super.key,
-    required this.label,
-    required this.child,
-  });
+  const LabeledField({super.key, required this.label, required this.child});
 
   final String label;
   final Widget child;

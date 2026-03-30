@@ -25,12 +25,15 @@ class HomeLayoutConstants {
   static const int continueWatchingMobileLimit = 10;
   static const int continueWatchingTabletLimit = 12;
   static const int continueWatchingDesktopLimit = 14;
-  static const int continueWatchingLimit = continueWatchingMobileLimit; // legacy mobile default
+  static const int continueWatchingLimit =
+      continueWatchingMobileLimit; // legacy mobile default
   static const int continueWatchingMaxLimit = continueWatchingDesktopLimit;
-  static const int iptvSectionMobileLimit = HomeConstants.iptvSectionPreviewLimit;
+  static const int iptvSectionMobileLimit =
+      HomeConstants.iptvSectionPreviewLimit;
   static const int iptvSectionTabletLimit = 12;
   static const int iptvSectionDesktopLimit = 14;
-  static const int iptvSectionLimit = iptvSectionMobileLimit; // legacy mobile default
+  static const int iptvSectionLimit =
+      iptvSectionMobileLimit; // legacy mobile default
   static const int iptvSectionMaxLimit = iptvSectionDesktopLimit;
 
   // Héro d'accueil

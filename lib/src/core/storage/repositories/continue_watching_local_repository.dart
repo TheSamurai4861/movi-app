@@ -31,7 +31,10 @@ class ContinueWatchingEntry {
 abstract class ContinueWatchingLocalRepository {
   Future<void> upsert(ContinueWatchingEntry entry);
   Future<void> remove(String contentId, ContentType type, {String userId});
-  Future<List<ContinueWatchingEntry>> readAll(ContentType type, {String userId});
+  Future<List<ContinueWatchingEntry>> readAll(
+    ContentType type, {
+    String userId,
+  });
 }
 
 class ContinueWatchingLocalRepositoryImpl
@@ -58,7 +61,11 @@ class ContinueWatchingLocalRepositoryImpl
   }
 
   @override
-  Future<void> remove(String contentId, ContentType type, {String userId = 'default'}) async {
+  Future<void> remove(
+    String contentId,
+    ContentType type, {
+    String userId = 'default',
+  }) async {
     final db = _db;
     await db.delete(
       'continue_watching',
@@ -68,7 +75,10 @@ class ContinueWatchingLocalRepositoryImpl
   }
 
   @override
-  Future<List<ContinueWatchingEntry>> readAll(ContentType type, {String userId = 'default'}) async {
+  Future<List<ContinueWatchingEntry>> readAll(
+    ContentType type, {
+    String userId = 'default',
+  }) async {
     final db = _db;
     final rows = await db.query(
       'continue_watching',

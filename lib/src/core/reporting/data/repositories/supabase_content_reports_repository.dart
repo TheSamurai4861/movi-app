@@ -20,4 +20,3 @@ class SupabaseContentReportsRepository implements ContentReportsRepository {
     }
   }
 }
-

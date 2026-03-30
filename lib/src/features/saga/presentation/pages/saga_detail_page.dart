@@ -445,13 +445,12 @@ class SagaDetailPage extends ConsumerWidget {
             runSpacing: 8,
             children: [
               MoviPill(
-                AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount),
+                AppLocalizations.of(
+                  context,
+                )!.sagaMovieCount(viewModel.movieCount),
                 large: true,
               ),
-              MoviPill(
-                _formatDuration(viewModel.totalDuration),
-                large: true,
-              ),
+              MoviPill(_formatDuration(viewModel.totalDuration), large: true),
             ],
           ),
           if (synopsisText.trim().isNotEmpty) ...[
@@ -524,14 +523,10 @@ class SagaDetailPage extends ConsumerWidget {
                           );
                     },
                   ),
-                  loading: () => MoviFavoriteButton(
-                    isFavorite: true,
-                    onPressed: () {},
-                  ),
-                  error: (_, __) => MoviFavoriteButton(
-                    isFavorite: true,
-                    onPressed: () {},
-                  ),
+                  loading: () =>
+                      MoviFavoriteButton(isFavorite: true, onPressed: () {}),
+                  error: (_, __) =>
+                      MoviFavoriteButton(isFavorite: true, onPressed: () {}),
                 ),
               ),
             ],

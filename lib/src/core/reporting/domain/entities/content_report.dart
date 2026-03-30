@@ -67,4 +67,3 @@ class ContentReport extends Equatable {
     decisionReason,
   ];
 }
-

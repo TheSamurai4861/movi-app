@@ -75,19 +75,25 @@ class CategoryController extends Notifier<CategoryState> {
   bool _hasRestrictions(Profile? profile) =>
       profile != null && (profile.isKid || profile.pegiLimit != null);
 
-  Future<List<ContentReference>> _collectAllowed(Profile profile, int count) async {
+  Future<List<ContentReference>> _collectAllowed(
+    Profile profile,
+    int count,
+  ) async {
     if (count <= 0) return const <ContentReference>[];
     if (_allItems.isEmpty || _scanIndex >= _allItems.length) {
       return const <ContentReference>[];
     }
 
     final policy = ref.read(parental.agePolicyProvider);
-    final int batchSize = policy.maxConcurrentFilter <= 0 ? 1 : policy.maxConcurrentFilter;
+    final int batchSize = policy.maxConcurrentFilter <= 0
+        ? 1
+        : policy.maxConcurrentFilter;
 
     final allowed = <ContentReference>[];
     while (_scanIndex < _allItems.length && allowed.length < count) {
-      final end =
-          (_scanIndex + batchSize) > _allItems.length ? _allItems.length : (_scanIndex + batchSize);
+      final end = (_scanIndex + batchSize) > _allItems.length
+          ? _allItems.length
+          : (_scanIndex + batchSize);
       final batch = _allItems.sublist(_scanIndex, end);
 
       final results = await Future.wait<bool>(
@@ -119,11 +125,8 @@ class CategoryController extends Notifier<CategoryState> {
     try {
       final pageSize = state.pageSize;
       if (!_hasRestrictions(profile)) {
-        final PaginatedResult<ContentReference> result = await _repo.getItemsPage(
-          _key,
-          1,
-          pageSize,
-        );
+        final PaginatedResult<ContentReference> result = await _repo
+            .getItemsPage(_key, 1, pageSize);
         if (token != _loadToken) return;
         state = state.copyWith(
           items: result.items,
@@ -169,11 +172,8 @@ class CategoryController extends Notifier<CategoryState> {
     try {
       if (!_hasRestrictions(profile)) {
         final nextPage = state.page + 1;
-        final PaginatedResult<ContentReference> result = await _repo.getItemsPage(
-          _key,
-          nextPage,
-          state.pageSize,
-        );
+        final PaginatedResult<ContentReference> result = await _repo
+            .getItemsPage(_key, nextPage, state.pageSize);
         if (token != _loadToken) return;
         final newItems = <ContentReference>[...state.items, ...result.items];
         state = state.copyWith(

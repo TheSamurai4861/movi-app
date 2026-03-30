@@ -15,7 +15,8 @@ class HistoryFilter {
   static List<ContentReference> completed(List<HistoryEntry> entries) {
     return entries
         .where(
-          (e) => _progress(e) >= LibraryConstants.watchHistoryCompletedThreshold,
+          (e) =>
+              _progress(e) >= LibraryConstants.watchHistoryCompletedThreshold,
         )
         .map(_toContentReference)
         .toList(growable: false);

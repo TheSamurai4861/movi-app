@@ -11,13 +11,7 @@ class GetProfilesUseCase {
 
   final ProfileRepository _repo;
 
-  Future<List<Profile>> call({
-    String? accountId,
-    bool? diagnostics,
-  }) {
-    return _repo.getProfiles(
-      accountId: accountId,
-      diagnostics: diagnostics,
-    );
+  Future<List<Profile>> call({String? accountId, bool? diagnostics}) {
+    return _repo.getProfiles(accountId: accountId, diagnostics: diagnostics);
   }
 }

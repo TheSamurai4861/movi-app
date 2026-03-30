@@ -1,4 +1,8 @@
-typedef StreamUrlProbeResult = ({int statusCode, String? location, Object? error});
+typedef StreamUrlProbeResult = ({
+  int statusCode,
+  String? location,
+  Object? error,
+});
 
 Future<StreamUrlProbeResult> probeStreamUrl(
   String url, {
@@ -8,4 +12,3 @@ Future<StreamUrlProbeResult> probeStreamUrl(
 }) async {
   return (statusCode: -1, location: null, error: 'unsupported_platform');
 }
-

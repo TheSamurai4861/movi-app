@@ -10,7 +10,7 @@ class StalkerAuthDto {
     // La réponse Stalker est souvent dans un objet "js"
     final jsData = json['js'] ?? json;
     final token = jsData['token']?.toString() ?? '';
-    
+
     return StalkerAuthDto(
       token: token,
       isAuthorized: token.isNotEmpty,
@@ -21,21 +21,22 @@ class StalkerAuthDto {
   factory StalkerAuthDto.fromProfileJson(Map<String, dynamic> json) {
     // Le profil peut contenir des infos d'expiration
     final jsData = json['js'] ?? json;
-    
+
     // Le profil ne contient pas de token (il vient du handshake)
     // On vérifie plutôt si le profil contient des données valides
-    final hasValidProfile = jsData.isNotEmpty && 
-                           jsData['id'] != null;
-    
+    final hasValidProfile = jsData.isNotEmpty && jsData['id'] != null;
+
     // Parse expiration si disponible (format peut varier)
     DateTime? expiration;
     final expDate = jsData['expire_billing_date'] ?? jsData['expires_at'];
     if (expDate != null) {
-      if (expDate is String && expDate.isNotEmpty && expDate != '0000-00-00 00:00:00') {
+      if (expDate is String &&
+          expDate.isNotEmpty &&
+          expDate != '0000-00-00 00:00:00') {
         expiration = DateTime.tryParse(expDate);
       }
     }
-    
+
     return StalkerAuthDto(
       token: '', // Le token n'est pas dans le profil
       isAuthorized: hasValidProfile,
@@ -49,4 +50,3 @@ class StalkerAuthDto {
   final DateTime? expiration;
   final String? message;
 }
-

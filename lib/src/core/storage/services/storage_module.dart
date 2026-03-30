@@ -20,45 +20,68 @@ class StorageModule {
   static Future<void> register() async {
     final sw = Stopwatch()..start();
     debugPrint('[DEBUG][Startup] StorageModule.register: START');
-    
+
     try {
       if (!sl.isRegistered<Database>()) {
-        debugPrint('[DEBUG][Startup] StorageModule.register: initializing LocalDatabase');
+        debugPrint(
+          '[DEBUG][Startup] StorageModule.register: initializing LocalDatabase',
+        );
         final db = await LocalDatabase.instance().timeout(
           const Duration(seconds: 10),
           onTimeout: () {
-            debugPrint('[DEBUG][Startup] StorageModule.register: WARNING - LocalDatabase.instance timeout');
-            throw TimeoutException('LocalDatabase.instance timeout', const Duration(seconds: 10));
+            debugPrint(
+              '[DEBUG][Startup] StorageModule.register: WARNING - LocalDatabase.instance timeout',
+            );
+            throw TimeoutException(
+              'LocalDatabase.instance timeout',
+              const Duration(seconds: 10),
+            );
           },
         );
         sl.registerSingleton<Database>(db);
-        debugPrint('[DEBUG][Startup] StorageModule.register: LocalDatabase registered (${sw.elapsedMilliseconds}ms)');
+        debugPrint(
+          '[DEBUG][Startup] StorageModule.register: LocalDatabase registered (${sw.elapsedMilliseconds}ms)',
+        );
       }
-      
+
       // Enregistrer les repositories
       _registerRepositories();
-      
+
       sw.stop();
-      debugPrint('[DEBUG][Startup] StorageModule.register: COMPLETE (total: ${sw.elapsedMilliseconds}ms)');
+      debugPrint(
+        '[DEBUG][Startup] StorageModule.register: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
+      );
     } catch (e, st) {
       sw.stop();
-      debugPrint('[DEBUG][Startup] StorageModule.register: ERROR after ${sw.elapsedMilliseconds}ms: $e');
+      debugPrint(
+        '[DEBUG][Startup] StorageModule.register: ERROR after ${sw.elapsedMilliseconds}ms: $e',
+      );
       debugPrint('[DEBUG][Startup] StorageModule.register: Stack trace: $st');
-      
+
       // Fallback : enregistrer une DB en mémoire pour mode dégradé
-      debugPrint('[DEBUG][Startup] StorageModule.register: Using in-memory fallback');
-      
+      debugPrint(
+        '[DEBUG][Startup] StorageModule.register: Using in-memory fallback',
+      );
+
       try {
         if (!sl.isRegistered<Database>()) {
           final inMemoryDb = await _createInMemoryDatabase();
           sl.registerSingleton<Database>(inMemoryDb);
-          debugPrint('[DEBUG][Startup] StorageModule.register: In-memory database registered');
+          debugPrint(
+            '[DEBUG][Startup] StorageModule.register: In-memory database registered',
+          );
         }
         _registerRepositories();
-        debugPrint('[DEBUG][Startup] StorageModule.register: In-memory fallback registered successfully');
+        debugPrint(
+          '[DEBUG][Startup] StorageModule.register: In-memory fallback registered successfully',
+        );
       } catch (fallbackError, fallbackSt) {
-        debugPrint('[DEBUG][Startup] StorageModule.register: FATAL - Even fallback failed: $fallbackError');
-        debugPrint('[DEBUG][Startup] StorageModule.register: Fallback stack trace: $fallbackSt');
+        debugPrint(
+          '[DEBUG][Startup] StorageModule.register: FATAL - Even fallback failed: $fallbackError',
+        );
+        debugPrint(
+          '[DEBUG][Startup] StorageModule.register: Fallback stack trace: $fallbackSt',
+        );
         // Ne pas faire échouer le startup, mais logger clairement
         // L'app fonctionnera en mode cloud-only
       }
@@ -146,7 +169,9 @@ class StorageModule {
       inMemoryDatabasePath,
       version: 18,
       onCreate: (db, version) async {
-        debugPrint('[DEBUG][Startup] StorageModule: Creating essential tables in memory');
+        debugPrint(
+          '[DEBUG][Startup] StorageModule: Creating essential tables in memory',
+        );
         // Créer uniquement les tables essentielles pour mode dégradé
         await db.execute('''
           CREATE TABLE watchlist (
@@ -159,7 +184,7 @@ class StorageModule {
             PRIMARY KEY (content_id, content_type, user_id)
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE sync_outbox (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -171,7 +196,7 @@ class StorageModule {
             created_at INTEGER NOT NULL
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE content_cache (
             cache_key TEXT PRIMARY KEY,
@@ -180,7 +205,7 @@ class StorageModule {
             updated_at INTEGER NOT NULL
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE iptv_accounts (
             account_id TEXT PRIMARY KEY,
@@ -193,7 +218,7 @@ class StorageModule {
             last_error TEXT
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE stalker_accounts (
             account_id TEXT PRIMARY KEY,
@@ -208,7 +233,7 @@ class StorageModule {
             last_error TEXT
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE iptv_playlists_v2 (
             account_id TEXT NOT NULL,
@@ -219,7 +244,7 @@ class StorageModule {
             PRIMARY KEY (account_id, playlist_id)
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE iptv_playlist_items_v2 (
             account_id TEXT NOT NULL,
@@ -236,7 +261,7 @@ class StorageModule {
             PRIMARY KEY (account_id, playlist_id, stream_id)
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE continue_watching (
             content_id TEXT NOT NULL,
@@ -252,7 +277,7 @@ class StorageModule {
             PRIMARY KEY (content_id, content_type, user_id)
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE history (
             content_id TEXT NOT NULL,
@@ -284,7 +309,7 @@ class StorageModule {
             has_pin INTEGER NOT NULL DEFAULT 0
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE playlists (
             playlist_id TEXT PRIMARY KEY,
@@ -298,7 +323,7 @@ class StorageModule {
             updated_at INTEGER NOT NULL
           );
         ''');
-        
+
         await db.execute('''
           CREATE TABLE playlist_items (
             playlist_id TEXT NOT NULL,
@@ -314,8 +339,10 @@ class StorageModule {
             PRIMARY KEY (playlist_id, position)
           );
         ''');
-        
-        debugPrint('[DEBUG][Startup] StorageModule: In-memory database tables created');
+
+        debugPrint(
+          '[DEBUG][Startup] StorageModule: In-memory database tables created',
+        );
       },
     );
   }

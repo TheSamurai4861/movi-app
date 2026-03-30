@@ -81,7 +81,8 @@ void main() {
 }
 
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({AuthSession? initialSession}) : _session = initialSession;
+  _FakeAuthRepository({AuthSession? initialSession})
+    : _session = initialSession;
 
   final StreamController<AuthSnapshot> _controller =
       StreamController<AuthSnapshot>.broadcast();
@@ -97,10 +98,7 @@ class _FakeAuthRepository implements AuthRepository {
   void setAuthenticated() {
     _session = const AuthSession(userId: 'cloud-user');
     _controller.add(
-      AuthSnapshot(
-        status: AuthStatus.authenticated,
-        session: _session,
-      ),
+      AuthSnapshot(status: AuthStatus.authenticated, session: _session),
     );
   }
 
@@ -124,10 +122,7 @@ class _FakeAuthRepository implements AuthRepository {
   }) async {}
 
   @override
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-  }) async {
+  Future<bool> verifyOtp({required String email, required String token}) async {
     setAuthenticated();
     return true;
   }

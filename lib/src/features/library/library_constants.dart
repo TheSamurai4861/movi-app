@@ -19,8 +19,10 @@ class LibraryConstants {
   // Seuils métier
   /// Progression minimale pour considérer un média comme "en cours".
   static const double inProgressMinThreshold = 0.05;
+
   /// Seuil de progression pour inclure un média dans l'historique "vu".
   static const double watchHistoryCompletedThreshold = 0.9;
+
   /// Seuil max exclusif pour considérer un média comme "en cours".
   static const double inProgressMaxThreshold = 0.95;
 }

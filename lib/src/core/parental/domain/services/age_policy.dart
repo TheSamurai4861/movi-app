@@ -34,7 +34,8 @@ class AgePolicy {
       // For kid profiles, default to blocked (configurable via [blockUnknownForKids])
       // to avoid letting IPTV items bypass restrictions when they lack `tmdb_id`.
       if (profile.isKid && blockUnknownForKids) {
-        final PegiRating? profilePegi = PegiRating.tryParse(profile.pegiLimit) ??
+        final PegiRating? profilePegi =
+            PegiRating.tryParse(profile.pegiLimit) ??
             (profile.isKid ? defaultKidPegi : null);
         return AgeDecision.blocked(
           reason: 'invalid_tmdb_id',
@@ -48,7 +49,8 @@ class AgePolicy {
       return AgeDecision.allowed(reason: 'invalid_tmdb_id_allowed');
     }
 
-    final PegiRating? profilePegi = PegiRating.tryParse(profile.pegiLimit) ??
+    final PegiRating? profilePegi =
+        PegiRating.tryParse(profile.pegiLimit) ??
         (profile.isKid ? defaultKidPegi : null);
 
     // If the profile has no PEGI restriction, allow (but still return info if we can).
@@ -59,7 +61,9 @@ class AgePolicy {
         preferredRegions: preferredRegions,
       );
       final minAge = res.minAge;
-      final required = (minAge == null) ? null : PegiRating.snapFromMinAge(minAge);
+      final required = (minAge == null)
+          ? null
+          : PegiRating.snapFromMinAge(minAge);
       return AgeDecision.allowed(
         reason: 'no_profile_restriction',
         minAge: minAge,
@@ -128,7 +132,9 @@ class AgePolicy {
     final list = items.toList(growable: false);
     if (list.isEmpty) return const <ContentReference>[];
 
-    final int maxConcurrent = maxConcurrentFilter <= 0 ? 1 : maxConcurrentFilter;
+    final int maxConcurrent = maxConcurrentFilter <= 0
+        ? 1
+        : maxConcurrentFilter;
     final semaphore = _Semaphore(maxConcurrent);
 
     final results = await Future.wait<bool>(
@@ -164,12 +170,16 @@ class AgePolicy {
     if (list.isEmpty) return const <ContentReference>[];
     if (limit <= 0) return const <ContentReference>[];
 
-    final int maxConcurrent = maxConcurrentFilter <= 0 ? 1 : maxConcurrentFilter;
+    final int maxConcurrent = maxConcurrentFilter <= 0
+        ? 1
+        : maxConcurrentFilter;
     final allowed = <ContentReference>[];
 
     var index = 0;
     while (index < list.length && allowed.length < limit) {
-      final end = (index + maxConcurrent) > list.length ? list.length : (index + maxConcurrent);
+      final end = (index + maxConcurrent) > list.length
+          ? list.length
+          : (index + maxConcurrent);
       final batch = list.sublist(index, end);
 
       final results = await Future.wait<bool>(

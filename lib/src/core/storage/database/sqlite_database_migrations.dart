@@ -101,7 +101,9 @@ final class LocalDatabaseMigrations {
         FROM iptv_accounts;
       ''');
       await db.execute('DROP TABLE iptv_accounts;');
-      await db.execute('ALTER TABLE iptv_accounts_new RENAME TO iptv_accounts;');
+      await db.execute(
+        'ALTER TABLE iptv_accounts_new RENAME TO iptv_accounts;',
+      );
     }
     if (oldVersion < 7) {
       await db.execute(
@@ -354,13 +356,16 @@ final class LocalDatabaseMigrations {
         }
       }
 
-      int positionOf(Map<String, Object?> row) => (row['position'] as int?) ?? 0;
+      int positionOf(Map<String, Object?> row) =>
+          (row['position'] as int?) ?? 0;
 
       movies.sort((a, b) => positionOf(a).compareTo(positionOf(b)));
       series.sort((a, b) => positionOf(a).compareTo(positionOf(b)));
 
       final ordered = <Map<String, Object?>>[];
-      final maxLen = movies.length > series.length ? movies.length : series.length;
+      final maxLen = movies.length > series.length
+          ? movies.length
+          : series.length;
       for (var index = 0; index < maxLen; index++) {
         if (index < movies.length) ordered.add(movies[index]);
         if (index < series.length) ordered.add(series[index]);

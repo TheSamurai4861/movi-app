@@ -13,7 +13,9 @@ final iptvAccountsProvider = FutureProvider<List<XtreamAccount>>((ref) async {
 });
 
 /// Provider pour les comptes Stalker
-final stalkerAccountsProvider = FutureProvider<List<StalkerAccount>>((ref) async {
+final stalkerAccountsProvider = FutureProvider<List<StalkerAccount>>((
+  ref,
+) async {
   final local = ref.watch(slProvider)<IptvLocalRepository>();
   return local.getStalkerAccounts();
 });
@@ -32,33 +34,34 @@ class IptvSourceStats {
   final int seriesIndexedCount;
 }
 
-final iptvSourceStatsProvider =
-    FutureProvider.family<IptvSourceStats, String>((ref, accountId) async {
-      final local = ref.watch(slProvider)<IptvLocalRepository>();
-      final playlists = await local.getPlaylists(accountId);
+final iptvSourceStatsProvider = FutureProvider.family<IptvSourceStats, String>((
+  ref,
+  accountId,
+) async {
+  final local = ref.watch(slProvider)<IptvLocalRepository>();
+  final playlists = await local.getPlaylists(accountId);
 
-      var movieCount = 0;
-      var movieIndexedCount = 0;
-      var seriesCount = 0;
-      var seriesIndexedCount = 0;
+  var movieCount = 0;
+  var movieIndexedCount = 0;
+  var seriesCount = 0;
+  var seriesIndexedCount = 0;
 
-      for (final pl in playlists) {
-        for (final it in pl.items) {
-          if (it.type == XtreamPlaylistItemType.movie) {
-            movieCount += 1;
-            if ((it.tmdbId ?? 0) > 0) movieIndexedCount += 1;
-          } else if (it.type == XtreamPlaylistItemType.series) {
-            seriesCount += 1;
-            if ((it.tmdbId ?? 0) > 0) seriesIndexedCount += 1;
-          }
-        }
+  for (final pl in playlists) {
+    for (final it in pl.items) {
+      if (it.type == XtreamPlaylistItemType.movie) {
+        movieCount += 1;
+        if ((it.tmdbId ?? 0) > 0) movieIndexedCount += 1;
+      } else if (it.type == XtreamPlaylistItemType.series) {
+        seriesCount += 1;
+        if ((it.tmdbId ?? 0) > 0) seriesIndexedCount += 1;
       }
+    }
+  }
 
-      return IptvSourceStats(
-        movieCount: movieCount,
-        movieIndexedCount: movieIndexedCount,
-        seriesCount: seriesCount,
-        seriesIndexedCount: seriesIndexedCount,
-      );
-    });
-
+  return IptvSourceStats(
+    movieCount: movieCount,
+    movieIndexedCount: movieIndexedCount,
+    seriesCount: seriesCount,
+    seriesIndexedCount: seriesIndexedCount,
+  );
+});

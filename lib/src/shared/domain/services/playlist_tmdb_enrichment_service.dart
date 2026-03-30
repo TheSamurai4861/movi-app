@@ -8,7 +8,7 @@ import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 /// celle-ci est absente, en interrogeant l'API TMDB via [TmdbClient].
 abstract class ContentEnrichmentService {
   Future<ContentReference> enrichYear(ContentReference reference);
-  
+
   /// Enrichit un [ContentReference] en lui ajoutant un poster depuis TMDB si possible.
   ///
   /// - Si `reference.poster` est déjà renseigné, la référence est retournée telle
@@ -20,10 +20,7 @@ abstract class ContentEnrichmentService {
 }
 
 class PlaylistTmdbEnrichmentService implements ContentEnrichmentService {
-  PlaylistTmdbEnrichmentService(
-    this._tmdbClient,
-    this._images,
-  );
+  PlaylistTmdbEnrichmentService(this._tmdbClient, this._images);
 
   final TmdbHttpClient _tmdbClient;
   final TmdbImageResolver _images;

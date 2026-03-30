@@ -21,10 +21,7 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
       return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
     }
     try {
-      await _client.auth.signInWithOtp(
-        email: email,
-        shouldCreateUser: false,
-      );
+      await _client.auth.signInWithOtp(email: email, shouldCreateUser: false);
       return const PinRecoveryResult.success();
     } catch (error) {
       return PinRecoveryResult.failure(_mapError(error));

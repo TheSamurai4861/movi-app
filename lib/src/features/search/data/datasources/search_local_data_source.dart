@@ -12,15 +12,15 @@ class SearchLocalDataSource {
   Future<List<TmdbWatchProviderDto>?> getWatchProviders(String region) async {
     final key = '$_watchProvidersKeyPrefix$region';
     final data = await _cache.get(key);
-    
+
     if (data == null) return null;
-    
+
     final timestampStr = data['timestamp'] as String?;
     if (timestampStr == null) return null;
-    
+
     final timestamp = DateTime.tryParse(timestampStr);
     if (timestamp == null) return null;
-    
+
     if (DateTime.now().difference(timestamp) > _watchProvidersTtl) {
       await _cache.remove(key);
       return null;
@@ -35,10 +35,13 @@ class SearchLocalDataSource {
         .toList();
   }
 
-  Future<void> cacheWatchProviders(String region, List<TmdbWatchProviderDto> providers) async {
+  Future<void> cacheWatchProviders(
+    String region,
+    List<TmdbWatchProviderDto> providers,
+  ) async {
     final key = '$_watchProvidersKeyPrefix$region';
     final jsonList = providers.map((dto) => dto.toJson()).toList();
-    
+
     await _cache.put(
       key: key,
       type: 'watch_providers',

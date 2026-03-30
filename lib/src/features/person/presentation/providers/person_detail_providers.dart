@@ -31,11 +31,12 @@ final favoritesRepositoryProvider = Provider<FavoritesRepository>((ref) {
 });
 
 /// DI unifiée — Person: Remote DS
-final tmdbPersonRemoteDataSourceProvider =
-    Provider<TmdbPersonRemoteDataSource>((ref) {
-  final client = ref.watch(slProvider)<TmdbClient>();
-  return TmdbPersonRemoteDataSource(client);
-});
+final tmdbPersonRemoteDataSourceProvider = Provider<TmdbPersonRemoteDataSource>(
+  (ref) {
+    final client = ref.watch(slProvider)<TmdbClient>();
+    return TmdbPersonRemoteDataSource(client);
+  },
+);
 
 /// DI unifiée — Person: Local DS
 final personLocalDataSourceProvider = Provider<PersonLocalDataSource>((ref) {

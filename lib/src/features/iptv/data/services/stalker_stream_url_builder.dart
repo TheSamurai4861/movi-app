@@ -371,14 +371,8 @@ class StalkerStreamUrlBuilder {
       RegExp(r'([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}'),
       '**:**:**:**:**:**',
     );
-    value = value.replaceAll(
-      RegExp(r'(?<=token=)[^&\\s]+'),
-      '***',
-    );
-    value = value.replaceAll(
-      RegExp(r'(?<=play_token=)[^&\\s]+'),
-      '***',
-    );
+    value = value.replaceAll(RegExp(r'(?<=token=)[^&\\s]+'), '***');
+    value = value.replaceAll(RegExp(r'(?<=play_token=)[^&\\s]+'), '***');
     value = value.replaceAll(
       RegExp(r'(/movie/|/series/)([^/]+)/([^/]+)'),
       r'$1***/***',
@@ -394,7 +388,10 @@ class StalkerStreamUrlBuilder {
     }
     if (value is Map<String, dynamic>) {
       final detail =
-          value['detail'] ?? value['error'] ?? value['message'] ?? value['status'];
+          value['detail'] ??
+          value['error'] ??
+          value['message'] ??
+          value['status'];
       final parsed = _extractDetail(detail);
       if (parsed != null) return parsed;
       final nested = value['data'] ?? value['js'];
@@ -420,10 +417,10 @@ class StalkerStreamUrlBuilder {
     final shouldRefresh = detail == null
         ? true
         : detail.toLowerCase().contains('token') ||
-            detail.toLowerCase().contains('expire') ||
-            detail.toLowerCase().contains('auth') ||
-            detail.toLowerCase().contains('access') ||
-            detail.toLowerCase().contains('mac');
+              detail.toLowerCase().contains('expire') ||
+              detail.toLowerCase().contains('auth') ||
+              detail.toLowerCase().contains('access') ||
+              detail.toLowerCase().contains('mac');
     if (!shouldRefresh) return null;
 
     final remote = _buildRemote();

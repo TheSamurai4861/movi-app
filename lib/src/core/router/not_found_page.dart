@@ -21,11 +21,7 @@ class NotFoundPage extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 44,
-                  color: cs.onSurfaceVariant,
-                ),
+                Icon(Icons.error_outline, size: 44, color: cs.onSurfaceVariant),
                 const SizedBox(height: 12),
                 Text(
                   message,
@@ -35,8 +31,9 @@ class NotFoundPage extends StatelessWidget {
                 if (showBack) ...[
                   const SizedBox(height: 16),
                   FilledButton(
-                    onPressed:
-                        Navigator.of(context).canPop() ? context.pop : null,
+                    onPressed: Navigator.of(context).canPop()
+                        ? context.pop
+                        : null,
                     child: Text(AppLocalizations.of(context)!.actionBack),
                   ),
                 ],

@@ -15,8 +15,8 @@ class SupabaseProfileRepository implements ProfileRepository {
     this._client, {
     required SupabaseProfileDatasource datasource,
     bool? diagnosticsEnabled,
-  })  : _ds = datasource,
-        _diagnosticsEnabled = diagnosticsEnabled ?? kDebugMode;
+  }) : _ds = datasource,
+       _diagnosticsEnabled = diagnosticsEnabled ?? kDebugMode;
 
   final SupabaseClient _client;
   final SupabaseProfileDatasource _ds;
@@ -42,11 +42,16 @@ class SupabaseProfileRepository implements ProfileRepository {
     }
 
     _diag('resolveAccountId FAILED: auth.currentUser is null/empty.');
-    throw StateError('User not authenticated (Supabase auth.currentUser is null).');
+    throw StateError(
+      'User not authenticated (Supabase auth.currentUser is null).',
+    );
   }
 
   @override
-  Future<List<Profile>> getProfiles({String? accountId, bool? diagnostics}) async {
+  Future<List<Profile>> getProfiles({
+    String? accountId,
+    bool? diagnostics,
+  }) async {
     final resolvedAccountId = _resolveAccountId(accountId);
     final diagOn = diagnostics ?? _diagnosticsEnabled;
 
@@ -61,10 +66,13 @@ class SupabaseProfileRepository implements ProfileRepository {
       operation: () async {
         final rows = await _ds.selectProfilesByAccountId(resolvedAccountId);
 
-        final entities = rows
-            .map((row) => ProfileDto.fromJson(row).toEntity())
-            .toList(growable: true)
-          ..sort((a, b) => _compareNullableDateTime(a.createdAt, b.createdAt));
+        final entities =
+            rows
+                .map((row) => ProfileDto.fromJson(row).toEntity())
+                .toList(growable: true)
+              ..sort(
+                (a, b) => _compareNullableDateTime(a.createdAt, b.createdAt),
+              );
 
         log('getProfiles: OK -> ${entities.length} row(s)');
         return entities;
@@ -89,9 +97,11 @@ class SupabaseProfileRepository implements ProfileRepository {
       } catch (error, stackTrace) {
         // Vérifier si c'est une erreur de connexion réseau retryable
         final isRetryable = _isRetryableNetworkError(error);
-        
+
         if (!isRetryable || attempt >= maxRetries) {
-          log?.call('$operationName: ERROR type=${error.runtimeType} message=$error');
+          log?.call(
+            '$operationName: ERROR type=${error.runtimeType} message=$error',
+          );
           throw mapSupabaseError(error, stackTrace: stackTrace);
         }
 
@@ -100,7 +110,7 @@ class SupabaseProfileRepository implements ProfileRepository {
         log?.call(
           '$operationName: retryable network error (attempt ${attempt + 1}/${maxRetries + 1}), retrying after ${backoffDelay.inMilliseconds}ms',
         );
-        
+
         await Future.delayed(backoffDelay);
         attempt++;
       }
@@ -127,7 +137,8 @@ class SupabaseProfileRepository implements ProfileRepository {
           errorString.contains('timeout') ||
           errorString.contains('connection') ||
           errorString.contains('errno = 121') || // Timeout de sémaphore
-          errorString.contains('errno = 10057')) { // Socket non connecté
+          errorString.contains('errno = 10057')) {
+        // Socket non connecté
         return true;
       }
     }
@@ -167,19 +178,25 @@ class SupabaseProfileRepository implements ProfileRepository {
       'name': trimmedName,
     };
 
-    log('createProfile: start accountId=$resolvedAccountId name="$trimmedName"');
+    log(
+      'createProfile: start accountId=$resolvedAccountId name="$trimmedName"',
+    );
 
     try {
       final row = await _ds.insertProfile(fullPayload);
       return ProfileDto.fromJson(row).toEntity();
     } catch (error) {
-      log('createProfile: full insert failed -> retry minimal. type=${error.runtimeType} $error');
+      log(
+        'createProfile: full insert failed -> retry minimal. type=${error.runtimeType} $error',
+      );
 
       try {
         final row = await _ds.insertProfile(minimalPayload);
         return ProfileDto.fromJson(row).toEntity();
       } catch (error2, stackTrace2) {
-        log('createProfile: minimal insert failed. type=${error2.runtimeType} $error2');
+        log(
+          'createProfile: minimal insert failed. type=${error2.runtimeType} $error2',
+        );
         throw mapSupabaseError(error2, stackTrace: stackTrace2);
       }
     }
@@ -217,7 +234,10 @@ class SupabaseProfileRepository implements ProfileRepository {
         return ProfileDto.fromJson(row).toEntity();
       }
 
-      final row = await _ds.updateProfile(profileId: profileId, updates: updates);
+      final row = await _ds.updateProfile(
+        profileId: profileId,
+        updates: updates,
+      );
       return ProfileDto.fromJson(row).toEntity();
     } catch (error, stackTrace) {
       log('updateProfile: ERROR type=${error.runtimeType} message=$error');
@@ -244,16 +264,23 @@ class SupabaseProfileRepository implements ProfileRepository {
   }
 
   @override
-  Future<Profile> getOrCreateDefaultProfile({String? accountId, bool? diagnostics}) async {
+  Future<Profile> getOrCreateDefaultProfile({
+    String? accountId,
+    bool? diagnostics,
+  }) async {
     final resolvedAccountId = _resolveAccountId(accountId);
     final diagOn = diagnostics ?? _diagnosticsEnabled;
 
-    final profiles = await getProfiles(accountId: resolvedAccountId, diagnostics: diagOn);
+    final profiles = await getProfiles(
+      accountId: resolvedAccountId,
+      diagnostics: diagOn,
+    );
     if (profiles.isNotEmpty) return profiles.first;
 
     final user = _client.auth.currentUser;
     final fallbackFromEmail = user?.email?.split('@').first.trim();
-    final defaultName = (fallbackFromEmail != null && fallbackFromEmail.isNotEmpty)
+    final defaultName =
+        (fallbackFromEmail != null && fallbackFromEmail.isNotEmpty)
         ? fallbackFromEmail
         : resolvedAccountId.substring(0, 8);
 
@@ -272,9 +299,3 @@ class SupabaseProfileRepository implements ProfileRepository {
     return a.compareTo(b);
   }
 }
-
-
-
-
-
-

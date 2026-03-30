@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_content.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_desktop_layout.dart';
@@ -15,8 +17,32 @@ import 'package:movi/src/features/home/presentation/widgets/home_desktop_layout.
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
+  void _logHomeHeroDebug(
+    String event, {
+    Map<String, Object?> context = const <String, Object?>{},
+  }) {
+    final message = <String>[
+      '[HomeHeroDebug]',
+      'surface=home_page',
+      'event=$event',
+      for (final entry in context.entries)
+        if (entry.value != null) '${entry.key}=${entry.value}',
+    ].join(' ');
+    unawaited(LoggingService.log(message, category: 'home_hero_debug'));
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    _logHomeHeroDebug(
+      'build',
+      context: <String, Object?>{
+        'hasMediaQuery': mediaQuery != null,
+        'mediaWidth': mediaQuery?.size.width,
+        'mediaHeight': mediaQuery?.size.height,
+        'devicePixelRatio': mediaQuery?.devicePixelRatio,
+      },
+    );
     return ResponsiveLayout(
       // Fallback (si ResponsiveLayout utilise `child` comme défaut)
       child: const HomeContent(key: PageStorageKey('home-tab-content')),

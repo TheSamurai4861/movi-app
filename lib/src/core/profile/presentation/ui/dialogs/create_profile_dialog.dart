@@ -23,7 +23,8 @@ class CreateProfileDialog extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<CreateProfileDialog> createState() => _CreateProfileDialogState();
+  ConsumerState<CreateProfileDialog> createState() =>
+      _CreateProfileDialogState();
 }
 
 class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
@@ -88,15 +89,19 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
         final pinSvc = ref.read(parental.profilePinEdgeServiceProvider);
         await pinSvc.setPin(profileId: created.id, pin: pin);
 
-        final ok = await ref.read(profilesControllerProvider.notifier).updateProfile(
-          profileId: created.id,
-          isKid: true,
-          pegiLimit: _pegiLimit,
-        );
+        final ok = await ref
+            .read(profilesControllerProvider.notifier)
+            .updateProfile(
+              profileId: created.id,
+              isKid: true,
+              pegiLimit: _pegiLimit,
+            );
 
         if (!ok) {
           // Keep invariant: no "kid profile" without proper config.
-          await ref.read(profilesControllerProvider.notifier).deleteProfile(created.id);
+          await ref
+              .read(profilesControllerProvider.notifier)
+              .deleteProfile(created.id);
           if (!mounted) return;
           setState(() {
             _isLoading = false;
@@ -108,7 +113,9 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
         await ref.read(profilesControllerProvider.notifier).refresh();
       } catch (e) {
         // Best-effort rollback: delete the profile if PIN setup fails.
-        await ref.read(profilesControllerProvider.notifier).deleteProfile(created.id);
+        await ref
+            .read(profilesControllerProvider.notifier)
+            .deleteProfile(created.id);
         if (!mounted) return;
         setState(() {
           _isLoading = false;
@@ -136,7 +143,8 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.primary;
 
-    final bool canCreate = !_isLoading &&
+    final bool canCreate =
+        !_isLoading &&
         _nameController.text.trim().isNotEmpty &&
         (!_isKid ||
             (_pin != null && RegExp(r'^\d{4,6}$').hasMatch(_pin!.trim())));
@@ -144,10 +152,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 20,
-      ),
+      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: ModalContentWidth(
         maxWidth: 560,
         maxHeight: MediaQuery.of(context).size.height * 0.9,
@@ -163,14 +168,16 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                     child: Text(
                       l10n.settingsProfileInfoTitle,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white60),
-                    onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+                    onPressed: _isLoading
+                        ? null
+                        : () => Navigator.of(context).pop(false),
                   ),
                 ],
               ),
@@ -230,10 +237,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                         flex: 6,
                         child: const Text(
                           'Oblige un PIN et active le filtre PEGI.',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -276,17 +280,23 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.start,
-                      children: [3, 7, 12, 16, 18].map((v) {
-                        final selected = _pegiLimit == v;
-                        return ChoiceChip(
-                          label: Text('PEGI $v'),
-                          selected: selected,
-                          onSelected: _isLoading ? null : (_) => setState(() => _pegiLimit = v),
-                          selectedColor: accentColor,
-                          backgroundColor: const Color(0xFF2C2C2E),
-                          labelStyle: TextStyle(color: selected ? Colors.white : Colors.white70),
-                        );
-                      }).toList(growable: false),
+                      children: [3, 7, 12, 16, 18]
+                          .map((v) {
+                            final selected = _pegiLimit == v;
+                            return ChoiceChip(
+                              label: Text('PEGI $v'),
+                              selected: selected,
+                              onSelected: _isLoading
+                                  ? null
+                                  : (_) => setState(() => _pegiLimit = v),
+                              selectedColor: accentColor,
+                              backgroundColor: const Color(0xFF2C2C2E),
+                              labelStyle: TextStyle(
+                                color: selected ? Colors.white : Colors.white70,
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
                     ),
                   ],
                 ),
@@ -356,7 +366,9 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isLoading ? null : () => Navigator.of(context).pop(false),
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.of(context).pop(false),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: accentColor),
                         foregroundColor: Colors.white,
@@ -409,12 +421,8 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
   }
 }
 
-
 class _PinPromptDialog extends StatefulWidget {
-  const _PinPromptDialog({
-    required this.title,
-    required this.confirmLabel,
-  });
+  const _PinPromptDialog({required this.title, required this.confirmLabel});
 
   final String title;
   final String confirmLabel;
@@ -440,10 +448,7 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 20,
-      ),
+      insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       child: ModalContentWidth(
         maxWidth: 420,
         child: Padding(
@@ -501,7 +506,8 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(controller.text),
+                      onPressed: () =>
+                          Navigator.of(context).pop(controller.text),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accentColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),

@@ -51,11 +51,9 @@ class PlaylistDetailRow {
 }
 
 class PlaylistLocalRepository {
-  PlaylistLocalRepository({
-    required Database db,
-    SyncOutboxRepository? outbox,
-  }) : _db = db,
-       _outbox = outbox;
+  PlaylistLocalRepository({required Database db, SyncOutboxRepository? outbox})
+    : _db = db,
+      _outbox = outbox;
 
   final Database _db;
   final SyncOutboxRepository? _outbox;
@@ -111,7 +109,11 @@ class PlaylistLocalRepository {
       where: 'playlist_id = ?',
       whereArgs: [playlistId],
     );
-    await _enqueuePlaylistChanged(playlistId, updatedAt: now, ownerOverride: owner);
+    await _enqueuePlaylistChanged(
+      playlistId,
+      updatedAt: now,
+      ownerOverride: owner,
+    );
   }
 
   Future<void> setPinned(String playlistId, bool isPinned) async {
@@ -119,10 +121,7 @@ class PlaylistLocalRepository {
     final now = DateTime.now();
     await db.update(
       'playlists',
-      {
-        'is_pinned': isPinned ? 1 : 0,
-        'updated_at': now.millisecondsSinceEpoch,
-      },
+      {'is_pinned': isPinned ? 1 : 0, 'updated_at': now.millisecondsSinceEpoch},
       where: 'playlist_id = ?',
       whereArgs: [playlistId],
     );
@@ -163,7 +162,7 @@ class PlaylistLocalRepository {
     final db = _db;
     final now = DateTime.now().millisecondsSinceEpoch;
     final updatedAt = DateTime.now();
-    
+
     // Utiliser une transaction pour garantir la cohérence
     await db.transaction((txn) async {
       // Calculer la position : utiliser MAX(position) + 1 si position non fournie
@@ -177,7 +176,7 @@ class PlaylistLocalRepository {
         final maxPos = maxPositionResult.first['max_pos'] as int?;
         position = (maxPos ?? 0) + 1;
       }
-      
+
       // Ajouter l'item
       final values = <String, Object?>{
         'playlist_id': playlistId,
@@ -213,7 +212,7 @@ class PlaylistLocalRepository {
           rethrow;
         }
       }
-      
+
       // Mettre à jour le updated_at de la playlist
       await txn.update(
         'playlists',
@@ -502,7 +501,11 @@ class PlaylistLocalRepository {
           'playlist_items',
           {'position': pos},
           where: 'playlist_id = ? AND content_id = ? AND content_type = ?',
-          whereArgs: [playlistId, rows[i]['content_id'], rows[i]['content_type']],
+          whereArgs: [
+            playlistId,
+            rows[i]['content_id'],
+            rows[i]['content_type'],
+          ],
         );
       }
       await batch.commit(noResult: true);

@@ -25,9 +25,9 @@ class PegiRating extends Equatable {
   static PegiRating? tryParse(int? value) {
     if (value == null) return null;
     return all.cast<PegiRating?>().firstWhere(
-          (p) => p!.value == value,
-          orElse: () => null,
-        );
+      (p) => p!.value == value,
+      orElse: () => null,
+    );
   }
 
   /// Convert a "minimum age" (ex: 13) to the nearest PEGI bucket above.
@@ -54,4 +54,3 @@ class PegiRating extends Equatable {
   @override
   String toString() => 'PEGI $value';
 }
-

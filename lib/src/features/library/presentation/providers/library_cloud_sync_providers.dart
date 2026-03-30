@@ -52,14 +52,17 @@ class LibraryCloudSyncState {
     return LibraryCloudSyncState(
       autoSyncEnabled: autoSyncEnabled ?? this.autoSyncEnabled,
       isSyncing: isSyncing ?? this.isSyncing,
-      lastSuccessAtUtc:
-          clearLastSuccessAt ? null : lastSuccessAtUtc ?? this.lastSuccessAtUtc,
+      lastSuccessAtUtc: clearLastSuccessAt
+          ? null
+          : lastSuccessAtUtc ?? this.lastSuccessAtUtc,
       lastError: clearLastError ? null : lastError ?? this.lastError,
     );
   }
 }
 
-final libraryCloudSyncServiceProvider = Provider<LibraryCloudSyncService>((ref) {
+final libraryCloudSyncServiceProvider = Provider<LibraryCloudSyncService>((
+  ref,
+) {
   final locator = ref.watch(slProvider);
   return LibraryCloudSyncService(
     secureStorage: locator<SecureStorageRepository>(),
@@ -71,12 +74,12 @@ final libraryCloudSyncServiceProvider = Provider<LibraryCloudSyncService>((ref) 
 
 final comprehensiveCloudSyncServiceProvider =
     Provider<ComprehensiveCloudSyncService>((ref) {
-  final locator = ref.watch(slProvider);
-  return ComprehensiveCloudSyncService(
-    sl: locator,
-    librarySync: ref.watch(libraryCloudSyncServiceProvider),
-  );
-});
+      final locator = ref.watch(slProvider);
+      return ComprehensiveCloudSyncService(
+        sl: locator,
+        librarySync: ref.watch(libraryCloudSyncServiceProvider),
+      );
+    });
 
 class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
   Timer? _debounce;
@@ -118,10 +121,7 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
         selectedProfileIdProvider,
         (_, __) => _scheduleAutoSync(),
       );
-      ref.listen(
-        supabaseClientProvider,
-        (_, __) => _scheduleAutoSync(),
-      );
+      ref.listen(supabaseClientProvider, (_, __) => _scheduleAutoSync());
     }
 
     return LibraryCloudSyncState(autoSyncEnabled: prefs.autoSyncEnabled);
@@ -205,9 +205,7 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
     }
     if (!_isSyncableCloudProfileId(profileId)) {
       if (reason == 'manual') {
-        state = state.copyWith(
-          lastError: 'Profil local non synchronisable.',
-        );
+        state = state.copyWith(lastError: 'Profil local non synchronisable.');
       }
       return;
     }
@@ -218,7 +216,9 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
 
     state = state.copyWith(isSyncing: true, clearLastError: true);
 
-    final comprehensiveService = ref.read(comprehensiveCloudSyncServiceProvider);
+    final comprehensiveService = ref.read(
+      comprehensiveCloudSyncServiceProvider,
+    );
     final sl = ref.read(slProvider);
 
     bool shouldCancel() {
@@ -265,17 +265,18 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
       );
 
       ref.invalidate(libraryPlaylistsProvider);
-      ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.librarySynced));
+      ref
+          .read(appEventBusProvider)
+          .emit(const AppEvent(AppEventType.librarySynced));
     } catch (e, st) {
       assert(() {
-        debugPrint('[LibraryCloudSyncController] sync($reason) failed: $e\n$st');
+        debugPrint(
+          '[LibraryCloudSyncController] sync($reason) failed: $e\n$st',
+        );
         return true;
       }());
       if (shouldCancel()) return;
-      state = state.copyWith(
-        isSyncing: false,
-        lastError: _formatErrorForUi(e),
-      );
+      state = state.copyWith(isSyncing: false, lastError: _formatErrorForUi(e));
     } finally {
       if (!shouldCancel()) {
         state = state.copyWith(isSyncing: false);
@@ -320,7 +321,7 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
 
       // Détecter et corriger les URLs invalides stockées avec toString() au lieu de toRawUrl()
       // Si l'URL contient "XtreamEndpoint" ou commence par "Instance of", c'est invalide
-      if (serverUrl.contains('XtreamEndpoint') || 
+      if (serverUrl.contains('XtreamEndpoint') ||
           serverUrl.startsWith('Instance of')) {
         if (kDebugMode) {
           debugPrint(
@@ -345,10 +346,9 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
       final pw = payload.password.trim();
       if (pw.isEmpty) continue;
 
-      final localId =
-          (s.localId?.trim().isNotEmpty ?? false)
-              ? s.localId!.trim()
-              : '${endpoint.host}_${payload.username}'.toLowerCase();
+      final localId = (s.localId?.trim().isNotEmpty ?? false)
+          ? s.localId!.trim()
+          : '${endpoint.host}_${payload.username}'.toLowerCase();
 
       final account = XtreamAccount(
         id: localId,
@@ -398,7 +398,9 @@ class LibraryCloudSyncController extends Notifier<LibraryCloudSyncState> {
           await refresh(id);
         } catch (_) {}
       }
-      ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
+      ref
+          .read(appEventBusProvider)
+          .emit(const AppEvent(AppEventType.iptvSynced));
     }
   }
 }

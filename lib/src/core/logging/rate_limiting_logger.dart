@@ -9,8 +9,8 @@ class RateLimitingLogger extends AppLogger implements LoggerLifecycle {
     Map<String, int>? perCategory,
     this.exposeMetrics = false,
     Duration? metricsInterval,
-  })  : _limits = perCategory ?? const {},
-        _metricsInterval = metricsInterval ?? const Duration(minutes: 1) {
+  }) : _limits = perCategory ?? const {},
+       _metricsInterval = metricsInterval ?? const Duration(minutes: 1) {
     if (exposeMetrics) {
       _timer = Timer.periodic(_metricsInterval, (_) => _emitMetrics());
     }

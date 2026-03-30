@@ -19,6 +19,7 @@ import 'package:movi/src/core/parental/presentation/widgets/restricted_content_s
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
+import 'package:movi/src/core/preferences/player_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
@@ -40,6 +41,8 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
+import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
+import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
@@ -93,6 +96,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     (Color(0xFF4DB6AC), 'Turquoise'),
     (Color(0xFFFFE082), 'Jaune'),
     (Color(0xFF7986CB), 'Indigo'),
+  ];
+
+  static const List<String> _playbackLanguageCodes = [
+    'fr',
+    'en',
+    'es',
+    'de',
+    'it',
+    'nl',
+    'pl',
+    'pt',
   ];
 
   static const double _sectionTitleGap = 16;
@@ -350,7 +364,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16),),
+          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16)),
         ),
       ),
     );
@@ -412,7 +426,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16),),
+          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16)),
         ),
       ),
     );
@@ -483,7 +497,206 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16),),
+          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPreferredAudioLanguageSelector(
+    BuildContext context,
+    String? currentCode,
+  ) async {
+    final prefs = ref.read(slProvider)<PlayerPreferences>();
+    await _showPlaybackLanguageSelector(
+      context: context,
+      title: 'Langue audio préférée',
+      currentCode: currentCode,
+      nullOptionLabel: 'Automatique',
+      onSelected: prefs.setPreferredAudioLanguage,
+    );
+  }
+
+  Future<void> _showPreferredSubtitleLanguageSelector(
+    BuildContext context,
+    String? currentCode,
+  ) async {
+    final prefs = ref.read(slProvider)<PlayerPreferences>();
+    await _showPlaybackLanguageSelector(
+      context: context,
+      title: 'Langue des sous-titres',
+      currentCode: currentCode,
+      nullOptionLabel: 'Désactivés',
+      onSelected: prefs.setPreferredSubtitleLanguage,
+    );
+  }
+
+  Future<void> _showPreferredPlaybackQualitySelector(
+    BuildContext context,
+    PreferredPlaybackQuality? currentQuality,
+  ) async {
+    final prefs = ref.read(slProvider)<PlayerPreferences>();
+    final accentColor = ref.read(asp.currentAccentColorProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Qualité préférée'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              unawaited(() async {
+                await prefs.setPreferredPlaybackQuality(null);
+                _lockSessionIfUnlocked();
+              }());
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Auto',
+                  style: TextStyle(
+                    color: currentQuality == null ? accentColor : null,
+                    fontWeight: currentQuality == null
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                  ),
+                ),
+                if (currentQuality == null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.check, color: accentColor, size: 18),
+                ],
+              ],
+            ),
+          ),
+          for (final quality in PreferredPlaybackQuality.values)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                unawaited(() async {
+                  await prefs.setPreferredPlaybackQuality(quality);
+                  _lockSessionIfUnlocked();
+                }());
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _preferredPlaybackQualityLabel(quality),
+                    style: TextStyle(
+                      color: currentQuality == quality ? accentColor : null,
+                      fontWeight: currentQuality == quality
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                  if (currentQuality == quality) ...[
+                    const SizedBox(width: 8),
+                    Icon(Icons.check, color: accentColor, size: 18),
+                  ],
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(l10n.actionCancel, style: const TextStyle(fontSize: 16)),
+        ),
+      ),
+    );
+  }
+
+  String _preferredPlaybackQualityLabel(PreferredPlaybackQuality quality) {
+    switch (quality) {
+      case PreferredPlaybackQuality.sd:
+        return 'SD';
+      case PreferredPlaybackQuality.hd:
+        return 'HD';
+      case PreferredPlaybackQuality.fullHd:
+        return 'Full HD';
+      case PreferredPlaybackQuality.ultraHd4k:
+        return '4K';
+    }
+  }
+
+  Future<void> _showPlaybackLanguageSelector({
+    required BuildContext context,
+    required String title,
+    required String? currentCode,
+    required String nullOptionLabel,
+    required Future<void> Function(String? code) onSelected,
+  }) async {
+    final accentColor = ref.read(asp.currentAccentColorProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(title),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              unawaited(() async {
+                await onSelected(null);
+                _lockSessionIfUnlocked();
+              }());
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  nullOptionLabel,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: currentCode == null ? accentColor : Colors.white,
+                    fontWeight: currentCode == null
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                  ),
+                ),
+                if (currentCode == null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.check, color: accentColor, size: 20),
+                ],
+              ],
+            ),
+          ),
+          for (final code in _playbackLanguageCodes)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                unawaited(() async {
+                  await onSelected(code);
+                  _lockSessionIfUnlocked();
+                }());
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    LanguageFormatter.formatLanguageCode(code),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: currentCode == code ? accentColor : Colors.white,
+                      fontWeight: currentCode == code
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                    ),
+                  ),
+                  if (currentCode == code) ...[
+                    const SizedBox(width: 8),
+                    Icon(Icons.check, color: accentColor, size: 20),
+                  ],
+                ],
+              ),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(l10n.actionCancel, style: const TextStyle(fontSize: 16)),
         ),
       ),
     );
@@ -677,20 +890,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
               ],
               if (trailing != null) ...[const SizedBox(width: 8), trailing],
-              if (showChevronDown)
-                ...[
-                  const SizedBox(width: 8),
-                  Icon(Icons.keyboard_arrow_down, color: accentColor, size: 20),
-                ]
-              else if (onTap != null && trailing == null)
-                ...[
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: Colors.white70,
-                    size: 20,
-                  ),
-                ],
+              if (showChevronDown) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.keyboard_arrow_down, color: accentColor, size: 20),
+              ] else if (onTap != null && trailing == null) ...[
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+              ],
             ],
           ),
         ),
@@ -822,11 +1032,66 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (!hasCloudSession && client != null)
         _buildSettingItem(
           title: 'Se connecter',
-          onTap: () =>
-              _guard(() => context.push('${AppRoutePaths.authOtp}?return_to=previous')),
+          onTap: () => _guard(
+            () => context.push('${AppRoutePaths.authOtp}?return_to=previous'),
+          ),
         ),
-      SizedBox(height:8),
+      SizedBox(height: 8),
       if (hasCloudSession) _buildSignOutButton(context),
+    ]);
+  }
+
+  Widget _buildPlaybackSettingsSection(BuildContext context) {
+    final preferredAudioLanguage = ref.watch(
+      asp.currentPreferredAudioLanguageProvider,
+    );
+    final preferredSubtitleLanguage = ref.watch(
+      asp.currentPreferredSubtitleLanguageProvider,
+    );
+    final preferredPlaybackQuality = ref.watch(
+      asp.currentPreferredPlaybackQualityProvider,
+    );
+
+    return _buildSettingsGroup([
+      _buildSettingItem(
+        title: 'Langue audio',
+        value: preferredAudioLanguage == null
+            ? 'Automatique'
+            : LanguageFormatter.formatLanguageCode(preferredAudioLanguage),
+        showChevronDown: true,
+        onTap: () => _guard(
+          () => _showPreferredAudioLanguageSelector(
+            context,
+            preferredAudioLanguage,
+          ),
+        ),
+      ),
+      _buildSettingItem(
+        title: 'Sous-titres',
+        value: preferredSubtitleLanguage == null
+            ? 'Désactivés'
+            : LanguageFormatter.formatLanguageCode(preferredSubtitleLanguage),
+        showChevronDown: true,
+        onTap: () => _guard(
+          () => _showPreferredSubtitleLanguageSelector(
+            context,
+            preferredSubtitleLanguage,
+          ),
+        ),
+      ),
+      _buildSettingItem(
+        title: 'Qualité préférée',
+        value: preferredPlaybackQuality == null
+            ? 'Auto'
+            : _preferredPlaybackQualityLabel(preferredPlaybackQuality),
+        showChevronDown: true,
+        onTap: () => _guard(
+          () => _showPreferredPlaybackQualitySelector(
+            context,
+            preferredPlaybackQuality,
+          ),
+        ),
+      ),
     ]);
   }
 
@@ -1138,10 +1403,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               ),
                             )
                           : null,
-                      onTap:
-                          _refreshingIptv ? null : () => _guard(_refreshIptv),
+                      onTap: _refreshingIptv
+                          ? null
+                          : () => _guard(_refreshIptv),
                     ),
                   ]),
+
+                  const SizedBox(height: _sectionGap),
+
+                  Text(
+                    'Lecture',
+                    style:
+                        Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: _sectionTitleGap),
+                  _buildPlaybackSettingsSection(context),
 
                   const SizedBox(height: _sectionGap),
 

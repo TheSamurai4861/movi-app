@@ -81,4 +81,3 @@ class SelectedIptvSourcePreferences {
     return trimmed;
   }
 }
-

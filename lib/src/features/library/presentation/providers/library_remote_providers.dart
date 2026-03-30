@@ -17,7 +17,9 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 String requireProfileId(Ref ref) {
   final id = ref.watch(selectedProfileIdProvider);
   if (id == null || id.trim().isEmpty) {
-    throw StateError('No selected profileId (SelectedProfileController not ready)');
+    throw StateError(
+      'No selected profileId (SelectedProfileController not ready)',
+    );
   }
   return id.trim();
 }
@@ -32,20 +34,17 @@ String requireProfileId(Ref ref) {
 /// pas disponible (mode offline-first).
 final supabasePlaybackHistoryRepositoryProvider =
     Provider<SupabasePlaybackHistoryRepository?>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  final profileId = ref.watch(selectedProfileIdProvider);
+      final client = ref.watch(supabaseClientProvider);
+      final profileId = ref.watch(selectedProfileIdProvider);
 
-  // Tant que Supabase ou le profil ne sont pas prêts, on renvoie null
-  // pour ne pas casser l'app.
-  if (client == null || profileId == null || profileId.trim().isEmpty) {
-    return null;
-  }
+      // Tant que Supabase ou le profil ne sont pas prêts, on renvoie null
+      // pour ne pas casser l'app.
+      if (client == null || profileId == null || profileId.trim().isEmpty) {
+        return null;
+      }
 
-  return SupabasePlaybackHistoryRepository(
-    client,
-    profileId: profileId,
-  );
-});
+      return SupabasePlaybackHistoryRepository(client, profileId: profileId);
+    });
 
 /// Repo remote Library (Supabase) pour le profil courant.
 ///
@@ -56,8 +55,7 @@ final supabasePlaybackHistoryRepositoryProvider =
 ///
 /// Retourne `null` si Supabase n'est pas configuré ou si aucun profil n'est
 /// sélectionné.
-final supabaseLibraryRepositoryProvider =
-    Provider<LibraryRepository?>((ref) {
+final supabaseLibraryRepositoryProvider = Provider<LibraryRepository?>((ref) {
   final client = ref.watch(supabaseClientProvider);
   final profileId = ref.watch(selectedProfileIdProvider);
 
@@ -65,10 +63,7 @@ final supabaseLibraryRepositoryProvider =
     return null;
   }
 
-  return SupabaseLibraryRepository(
-    client,
-    profileId: profileId,
-  );
+  return SupabaseLibraryRepository(client, profileId: profileId);
 });
 
 /// Repo remote Favorites (Supabase) pour le profil courant.
@@ -89,18 +84,15 @@ final supabaseLibraryRepositoryProvider =
 /// sélectionné.
 final supabaseFavoritesRepositoryProvider =
     Provider<SupabaseFavoritesRepository?>((ref) {
-  final client = ref.watch(supabaseClientProvider);
-  final profileId = ref.watch(selectedProfileIdProvider);
+      final client = ref.watch(supabaseClientProvider);
+      final profileId = ref.watch(selectedProfileIdProvider);
 
-  if (client == null || profileId == null || profileId.trim().isEmpty) {
-    return null;
-  }
+      if (client == null || profileId == null || profileId.trim().isEmpty) {
+        return null;
+      }
 
-  return SupabaseFavoritesRepository(
-    client,
-    profileId: profileId,
-  );
-});
+      return SupabaseFavoritesRepository(client, profileId: profileId);
+    });
 
 // ---------------------------------------------------------------------------
 // HYBRID REPOSITORY (LOCAL + SUPABASE)
@@ -122,17 +114,16 @@ final supabaseFavoritesRepositoryProvider =
 /// ```
 final hybridPlaybackHistoryRepositoryProvider =
     Provider<PlaybackHistoryRepository>((ref) {
-  // Repository local (toujours disponible via le service locator)
-  final local = ref.watch(slProvider)<HistoryLocalRepository>();
-  final userId = ref.watch(currentUserIdProvider);
+      // Repository local (toujours disponible via le service locator)
+      final local = ref.watch(slProvider)<HistoryLocalRepository>();
+      final userId = ref.watch(currentUserIdProvider);
 
-  // Repository Supabase (peut être null si pas configuré)
-  final remote = ref.watch(supabasePlaybackHistoryRepositoryProvider);
+      // Repository Supabase (peut être null si pas configuré)
+      final remote = ref.watch(supabasePlaybackHistoryRepositoryProvider);
 
-  return HybridPlaybackHistoryRepository(
-    local: local,
-    defaultUserId: userId,
-    remote: remote,
-  );
-});
-
+      return HybridPlaybackHistoryRepository(
+        local: local,
+        defaultUserId: userId,
+        remote: remote,
+      );
+    });

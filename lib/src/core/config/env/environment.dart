@@ -6,11 +6,7 @@ import 'package:movi/src/core/config/models/feature_flags.dart';
 import 'package:movi/src/core/config/models/network_endpoints.dart';
 
 /// Supported application environments / flavors.
-enum AppEnvironment {
-  dev,
-  staging,
-  prod,
-}
+enum AppEnvironment { dev, staging, prod }
 
 /// Immutable description of a given environment flavor.
 ///

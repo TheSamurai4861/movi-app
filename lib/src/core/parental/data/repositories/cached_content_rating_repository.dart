@@ -24,7 +24,11 @@ class CachedContentRatingRepository implements ContentRatingRepository {
     List<String> preferredRegions = const <String>['BE', 'FR', 'US'],
   }) async {
     if (tmdbId <= 0) {
-      return const ContentRatingResult(minAge: null, regionUsed: null, rawRating: null);
+      return const ContentRatingResult(
+        minAge: null,
+        regionUsed: null,
+        rawRating: null,
+      );
     }
 
     final normalizedRegions = preferredRegions
@@ -56,7 +60,11 @@ class CachedContentRatingRepository implements ContentRatingRepository {
     } else if (type == ContentType.movie) {
       ratingsByRegion = await _remote.fetchMovieReleaseCertifications(tmdbId);
     } else {
-      return const ContentRatingResult(minAge: null, regionUsed: null, rawRating: null);
+      return const ContentRatingResult(
+        minAge: null,
+        regionUsed: null,
+        rawRating: null,
+      );
     }
 
     for (final region in normalizedRegions) {
@@ -70,12 +78,24 @@ class CachedContentRatingRepository implements ContentRatingRepository {
       await _cache.put(
         key: key,
         type: 'tmdb_min_age',
-        payload: <String, dynamic>{'min_age': minAge, 'raw_rating': raw, 'region': region},
+        payload: <String, dynamic>{
+          'min_age': minAge,
+          'raw_rating': raw,
+          'region': region,
+        },
       );
-      return ContentRatingResult(minAge: minAge, regionUsed: region, rawRating: raw);
+      return ContentRatingResult(
+        minAge: minAge,
+        regionUsed: region,
+        rawRating: raw,
+      );
     }
 
-    return const ContentRatingResult(minAge: null, regionUsed: null, rawRating: null);
+    return const ContentRatingResult(
+      minAge: null,
+      regionUsed: null,
+      rawRating: null,
+    );
   }
 }
 

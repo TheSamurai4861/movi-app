@@ -30,9 +30,7 @@ class AddXtreamSource {
       }
 
       if (rawUser.isEmpty || rawPass.isEmpty) {
-        return Err(
-          const AuthFailure('Identifiants Xtream invalides.'),
-        );
+        return Err(const AuthFailure('Identifiants Xtream invalides.'));
       }
 
       final resolvedAlias = rawAlias.isNotEmpty ? rawAlias : endpoint.host;

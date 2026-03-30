@@ -12,4 +12,3 @@ export 'package:movi/src/core/responsive/application/services/screen_type_resolv
 // Presentation
 export 'package:movi/src/core/responsive/presentation/extensions/responsive_context.dart';
 export 'package:movi/src/core/responsive/presentation/widgets/responsive_layout.dart';
-

@@ -61,22 +61,28 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
 
     // 2. Synchroniser avec Supabase en arrière-plan (fire-and-forget)
     if (remote != null) {
-      _syncToRemote(() => remote!.upsertPlay(
-            contentId: contentId,
-            type: type,
-            title: title,
-            poster: poster,
-            playedAt: playedAt,
-            position: position,
-            duration: duration,
-            season: season,
-            episode: episode,
-          ));
+      _syncToRemote(
+        () => remote!.upsertPlay(
+          contentId: contentId,
+          type: type,
+          title: title,
+          poster: poster,
+          playedAt: playedAt,
+          position: position,
+          duration: duration,
+          season: season,
+          episode: episode,
+        ),
+      );
     }
   }
 
   @override
-  Future<void> remove(String contentId, ContentType type, {String? userId}) async {
+  Future<void> remove(
+    String contentId,
+    ContentType type, {
+    String? userId,
+  }) async {
     final resolvedUserId = (userId == null || userId.trim().isEmpty)
         ? defaultUserId
         : userId.trim();
@@ -128,16 +134,11 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
     action().catchError((error, stackTrace) {
       // Log en debug uniquement, pas de crash utilisateur
       assert(() {
-        debugPrint('[HybridPlaybackHistoryRepository] Supabase sync failed: $error');
+        debugPrint(
+          '[HybridPlaybackHistoryRepository] Supabase sync failed: $error',
+        );
         return true;
       }());
     });
   }
 }
-
-
-
-
-
-
-

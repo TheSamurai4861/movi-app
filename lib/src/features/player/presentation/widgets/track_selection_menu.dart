@@ -71,8 +71,9 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                         AppLocalizations.of(context)!.actionDisable,
                         style: TextStyle(
                           color: isDisabled ? Colors.white : Colors.white70,
-                          fontWeight:
-                              isDisabled ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight: isDisabled
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                       ),
                       selected: isDisabled,
@@ -92,8 +93,9 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                   final label = TrackLabelFormatter.formatTrackLabel(track);
                   final trackTitle = label.isNotEmpty
                       ? label
-                      : AppLocalizations.of(context)!
-                          .defaultTrackLabel(track.id.toString());
+                      : AppLocalizations.of(
+                          context,
+                        )!.defaultTrackLabel(track.id.toString());
 
                   return ListTile(
                     leading: Icon(
@@ -113,7 +115,7 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
                     ),
                     subtitle: track.title != null && track.title!.isNotEmpty
                         ? Text(
-                          track.title!,
+                            track.title!,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 12,
@@ -136,8 +138,6 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
       ),
     );
   }
-
-  
 }
 
 /// Menu de sélection des pistes audio
@@ -199,8 +199,9 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                   final label = TrackLabelFormatter.formatTrackLabel(track);
                   final trackTitle = label.isNotEmpty
                       ? label
-                      : AppLocalizations.of(context)!
-                          .defaultTrackLabel(track.id.toString());
+                      : AppLocalizations.of(
+                          context,
+                        )!.defaultTrackLabel(track.id.toString());
 
                   return ListTile(
                     leading: Icon(
@@ -220,7 +221,7 @@ class AudioTrackSelectionMenu extends StatelessWidget {
                     ),
                     subtitle: track.title != null && track.title!.isNotEmpty
                         ? Text(
-                          track.title!,
+                            track.title!,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.6),
                               fontSize: 12,
@@ -243,6 +244,4 @@ class AudioTrackSelectionMenu extends StatelessWidget {
       ),
     );
   }
-
-  
 }

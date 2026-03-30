@@ -52,8 +52,7 @@ class MoviDetailHeroScene extends StatelessWidget {
       child: MoviHeroScene(
         background: background,
         imageHeight: heroHeight,
-        overlaySpec:
-            overlaySpec ?? overlaySpecFor(isWideLayout: isWideLayout),
+        overlaySpec: overlaySpec ?? overlaySpecFor(isWideLayout: isWideLayout),
         children: children,
       ),
     );
@@ -83,10 +82,7 @@ class MoviDetailHeroTopBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          leading,
-          if (trailing != null) trailing!,
-        ],
+        children: [leading, if (trailing != null) trailing!],
       ),
     );
   }
@@ -152,10 +148,7 @@ class MoviDetailHeroActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final hitPadding =
         padding ??
-        EdgeInsets.symmetric(
-          horizontal: isWideLayout ? 12 : 0,
-          vertical: 8,
-        );
+        EdgeInsets.symmetric(horizontal: isWideLayout ? 12 : 0, vertical: 8);
 
     return MoviFocusableAction(
       focusNode: focusNode,
@@ -172,10 +165,7 @@ class MoviDetailHeroActionButton extends StatelessWidget {
           child: SizedBox(
             width: iconWidth,
             height: iconHeight,
-            child: MoviAssetIcon(
-              iconAsset,
-              color: Colors.white,
-            ),
+            child: MoviAssetIcon(iconAsset, color: Colors.white),
           ),
         );
       },

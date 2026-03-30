@@ -44,7 +44,9 @@ class StalkerPlaylistMapper {
 
     for (final stream in streams) {
       // Utilise la catégorie du stream ou "01" (All) par défaut
-      final categoryId = stream.categoryId.isNotEmpty ? stream.categoryId : '01';
+      final categoryId = stream.categoryId.isNotEmpty
+          ? stream.categoryId
+          : '01';
       grouped.putIfAbsent(categoryId, () => []);
       grouped[categoryId]!.add(
         _toPlaylistItem(
@@ -115,4 +117,3 @@ class StalkerPlaylistMapper {
     return null;
   }
 }
-

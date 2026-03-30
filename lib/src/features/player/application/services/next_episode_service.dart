@@ -12,10 +12,8 @@ class NextEpisodeFailure {
 }
 
 class NextEpisodeResult {
-  NextEpisodeResult.success(this.source)
-      : error = null;
-  NextEpisodeResult.failure(this.error)
-      : source = null;
+  NextEpisodeResult.success(this.source) : error = null;
+  NextEpisodeResult.failure(this.error) : source = null;
 
   final VideoSource? source;
   final NextEpisodeFailure? error;
@@ -25,8 +23,8 @@ class NextEpisodeService {
   NextEpisodeService({
     required IptvLocalRepository iptvLocal,
     required XtreamStreamUrlBuilder urlBuilder,
-  })  : _iptvLocal = iptvLocal,
-        _urlBuilder = urlBuilder;
+  }) : _iptvLocal = iptvLocal,
+       _urlBuilder = urlBuilder;
 
   final IptvLocalRepository _iptvLocal;
   final XtreamStreamUrlBuilder _urlBuilder;
@@ -79,7 +77,10 @@ class NextEpisodeService {
 
     if (nextSeasonNumber == null || nextEpisodeNumber == null) {
       return NextEpisodeResult.failure(
-        NextEpisodeFailure('no_next_episode', 'Aucun épisode suivant disponible'),
+        NextEpisodeFailure(
+          'no_next_episode',
+          'Aucun épisode suivant disponible',
+        ),
       );
     }
 
@@ -99,7 +100,10 @@ class NextEpisodeService {
     );
     if (xtreamItem == null) {
       return NextEpisodeResult.failure(
-        NextEpisodeFailure('not_found_in_playlist', 'Épisode non disponible dans la playlist'),
+        NextEpisodeFailure(
+          'not_found_in_playlist',
+          'Épisode non disponible dans la playlist',
+        ),
       );
     }
 
@@ -110,11 +114,15 @@ class NextEpisodeService {
     );
     if (streamUrl == null) {
       return NextEpisodeResult.failure(
-        NextEpisodeFailure('build_url_failed', 'Impossible de construire l\'URL de streaming'),
+        NextEpisodeFailure(
+          'build_url_failed',
+          'Impossible de construire l\'URL de streaming',
+        ),
       );
     }
 
-    final formattedTitle = nextEpisodeTitle != null && nextEpisodeTitle.isNotEmpty
+    final formattedTitle =
+        nextEpisodeTitle != null && nextEpisodeTitle.isNotEmpty
         ? '$seriesTitle - S${nextSeasonNumber.toString().padLeft(2, '0')}E${nextEpisodeNumber.toString().padLeft(2, '0')} - $nextEpisodeTitle'
         : '$seriesTitle - S${nextSeasonNumber.toString().padLeft(2, '0')}E${nextEpisodeNumber.toString().padLeft(2, '0')}';
 
@@ -171,7 +179,8 @@ class NextEpisodeService {
             try {
               final candidates = playlist.items
                   .where(
-                    (item) => item.tmdbId == tmdbId &&
+                    (item) =>
+                        item.tmdbId == tmdbId &&
                         item.type == XtreamPlaylistItemType.series,
                   )
                   .toList();

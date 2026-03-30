@@ -19,4 +19,3 @@ class Breakpoints {
   /// Un écran avec un ratio >= 16/9 et une largeur > desktopMax est considéré comme TV.
   static const double tvAspectRatio = 16 / 9;
 }
-

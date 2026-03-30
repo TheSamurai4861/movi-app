@@ -18,6 +18,13 @@ if not defined FLUTTER_EXE (
 )
 
 if not defined FLUTTER_EXE (
+  for /f "delims=" %%F in ('where flutter.bat 2^>nul') do (
+    set "FLUTTER_EXE=%%F"
+    goto :flutter_found
+  )
+)
+
+if not defined FLUTTER_EXE (
   for /f "delims=" %%F in ('where flutter 2^>nul') do (
     set "FLUTTER_EXE=%%F"
     goto :flutter_found

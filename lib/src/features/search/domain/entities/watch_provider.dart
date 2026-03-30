@@ -14,5 +14,10 @@ class WatchProvider extends Equatable {
   final int? displayPriority;
 
   @override
-  List<Object?> get props => [providerId, providerName, logoPath, displayPriority];
+  List<Object?> get props => [
+    providerId,
+    providerName,
+    logoPath,
+    displayPriority,
+  ];
 }

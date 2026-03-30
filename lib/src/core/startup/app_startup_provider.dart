@@ -17,13 +17,17 @@ import 'package:movi/src/features/iptv/application/services/xtream_sync_service.
 final appStartupProvider = FutureProvider<void>((ref) async {
   final sw = Stopwatch()..start();
   debugPrint('[DEBUG][Startup] appStartupProvider: START');
-  
+
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('[DEBUG][Startup] appStartupProvider: WidgetsFlutterBinding.ensureInitialized DONE (${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: WidgetsFlutterBinding.ensureInitialized DONE (${sw.elapsedMilliseconds}ms)',
+  );
 
   final loader = EnvironmentLoader();
   registerEnvironmentLoader(loader);
-  debugPrint('[DEBUG][Startup] appStartupProvider: EnvironmentLoader registered (${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: EnvironmentLoader registered (${sw.elapsedMilliseconds}ms)',
+  );
 
   final flavor = loader.load();
   final requireTmdbKey = kReleaseMode && flavor.isProduction;
@@ -32,14 +36,18 @@ final appStartupProvider = FutureProvider<void>((ref) async {
     '[Startup] flavor=${flavor.label} (env: ${flavor.environment}) '
     '| requireTmdbKey=$requireTmdbKey',
   );
-  debugPrint('[DEBUG][Startup] appStartupProvider: flavor loaded (${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: flavor loaded (${sw.elapsedMilliseconds}ms)',
+  );
 
   debugPrint('[DEBUG][Startup] appStartupProvider: registerConfig');
   final config = await registerConfig(
     flavor: flavor,
     requireTmdbKey: requireTmdbKey,
   );
-  debugPrint('[DEBUG][Startup] appStartupProvider: registerConfig DONE (${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: registerConfig DONE (${sw.elapsedMilliseconds}ms)',
+  );
 
   // --- DI / modules ----------------------------------------------------------
   debugPrint('[DEBUG][Startup] appStartupProvider: initDependencies');
@@ -47,7 +55,9 @@ final appStartupProvider = FutureProvider<void>((ref) async {
     appConfig: config,
     localeProvider: () => sl<LocalePreferences>().languageCode,
   );
-  debugPrint('[DEBUG][Startup] appStartupProvider: initDependencies DONE (${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: initDependencies DONE (${sw.elapsedMilliseconds}ms)',
+  );
 
   // IMPORTANT:
   // `AppStateController` est un `Notifier<AppState>` Riverpod.
@@ -69,7 +79,9 @@ final appStartupProvider = FutureProvider<void>((ref) async {
       final url = client.rest.url.toString();
       final safeUrl = url.length > 32 ? '${url.substring(0, 32)}...' : url;
       final uid = client.auth.currentUser?.id;
-      debugPrint('[Startup] Supabase ready | url=$safeUrl | uid=${uid ?? "null"}');
+      debugPrint(
+        '[Startup] Supabase ready | url=$safeUrl | uid=${uid ?? "null"}',
+      );
     } else {
       debugPrint('[Startup] Supabase not configured or client not registered');
     }
@@ -87,22 +99,30 @@ final appStartupProvider = FutureProvider<void>((ref) async {
 
   // S'assurer que l'intervalle est appliqué depuis les préférences
   syncService.setInterval(iptvSyncPrefs.syncInterval);
-  debugPrint('[DEBUG][Startup] appStartupProvider: syncService interval set (${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: syncService interval set (${sw.elapsedMilliseconds}ms)',
+  );
 
   // Écouter le stream pour mettre à jour dynamiquement si les préférences changent.
   final sub = iptvSyncPrefs.syncIntervalStream.listen((interval) {
-    debugPrint('[DEBUG][Startup] appStartupProvider: syncInterval changed to ${interval.inMinutes}m');
+    debugPrint(
+      '[DEBUG][Startup] appStartupProvider: syncInterval changed to ${interval.inMinutes}m',
+    );
     syncService.setInterval(interval);
   });
 
   // Assurer un cycle de vie propre : à la destruction du provider de startup,
   // on arrête le service de sync et on annule l'abonnement aux préférences.
   ref.onDispose(() {
-    debugPrint('[DEBUG][Startup] appStartupProvider: onDispose - stopping sync service');
+    debugPrint(
+      '[DEBUG][Startup] appStartupProvider: onDispose - stopping sync service',
+    );
     sub.cancel();
     syncService.stop();
   });
 
   sw.stop();
-  debugPrint('[DEBUG][Startup] appStartupProvider: COMPLETE (total: ${sw.elapsedMilliseconds}ms)');
+  debugPrint(
+    '[DEBUG][Startup] appStartupProvider: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
+  );
 });

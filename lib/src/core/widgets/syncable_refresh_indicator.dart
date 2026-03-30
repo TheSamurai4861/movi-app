@@ -48,7 +48,9 @@ class SyncableRefreshIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final syncController = ref.read(libraryCloudSyncControllerProvider.notifier);
+    final syncController = ref.read(
+      libraryCloudSyncControllerProvider.notifier,
+    );
     final accentColor = Theme.of(context).colorScheme.primary;
 
     return RefreshIndicator(

@@ -114,10 +114,9 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
     final trimmed = digitsOnly.length > _codeLength
         ? digitsOnly.substring(0, _codeLength)
         : digitsOnly;
-    final nextStatus =
-        state.status == PinRecoveryUiStatus.verifyFailed
-            ? PinRecoveryUiStatus.codeSent
-            : state.status;
+    final nextStatus = state.status == PinRecoveryUiStatus.verifyFailed
+        ? PinRecoveryUiStatus.codeSent
+        : state.status;
 
     state = state.copyWith(
       code: trimmed,
@@ -138,10 +137,7 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
     final trimmed = digitsOnly.length > _pinMax
         ? digitsOnly.substring(0, _pinMax)
         : digitsOnly;
-    state = state.copyWith(
-      newPin: trimmed,
-      formError: null,
-    );
+    state = state.copyWith(newPin: trimmed, formError: null);
   }
 
   void setConfirmPin(String raw) {
@@ -149,10 +145,7 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
     final trimmed = digitsOnly.length > _pinMax
         ? digitsOnly.substring(0, _pinMax)
         : digitsOnly;
-    state = state.copyWith(
-      confirmPin: trimmed,
-      formError: null,
-    );
+    state = state.copyWith(confirmPin: trimmed, formError: null);
   }
 
   bool canRequestCode() {
@@ -227,8 +220,8 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
     );
     final useCase = ref.read(verifyPinRecoveryCodeProvider);
     final result = await useCase(state.code);
-    final fallbackProfileId = state.targetProfileId ??
-        (ref.read(currentProfileProvider)?.id)?.trim();
+    final fallbackProfileId =
+        state.targetProfileId ?? (ref.read(currentProfileProvider)?.id)?.trim();
 
     if (result.isSuccess) {
       if ((result.resetToken == null || result.resetToken!.trim().isEmpty) &&
@@ -311,7 +304,8 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
       );
 
       ref.invalidate(profilesControllerProvider);
-      final profileId = state.resetToken ?? ref.read(currentProfileProvider)?.id;
+      final profileId =
+          state.resetToken ?? ref.read(currentProfileProvider)?.id;
       if (profileId != null && profileId.trim().isNotEmpty) {
         try {
           final sessionSvc = ref.read(parentalSessionServiceProvider);

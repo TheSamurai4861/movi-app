@@ -11,7 +11,8 @@ class ResolvePerformanceProfile {
   /// - Android low-resources si RAM détectée <= 4GB ou CPU <= 4.
   PerformanceProfile call(DeviceCapabilities caps) {
     if (caps.platform == DevicePlatform.ios) return PerformanceProfile.normal;
-    if (caps.platform != DevicePlatform.android) return PerformanceProfile.normal;
+    if (caps.platform != DevicePlatform.android)
+      return PerformanceProfile.normal;
 
     final total = caps.totalMemoryBytes;
     if (total != null && total > 0 && total <= 4 * _gb) {

@@ -106,8 +106,3 @@ class IptvSyncPreferences {
     return Duration(minutes: minutes);
   }
 }
-
-
-
-
-

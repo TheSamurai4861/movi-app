@@ -48,8 +48,7 @@ class AppStateController extends Notifier<AppState> {
     if (selected == null || selected.isEmpty) {
       return activeIptvSourceIds;
     }
-    if (activeIptvSourceIds.isEmpty ||
-        activeIptvSourceIds.contains(selected)) {
+    if (activeIptvSourceIds.isEmpty || activeIptvSourceIds.contains(selected)) {
       return {selected};
     }
     return activeIptvSourceIds;
@@ -143,9 +142,7 @@ class AppStateController extends Notifier<AppState> {
     if (_setsEqual(state.activeIptvSources, sanitized)) return;
 
     _setState(
-      state.copyWith(
-        activeIptvSources: Set<String>.unmodifiable(sanitized),
-      ),
+      state.copyWith(activeIptvSources: Set<String>.unmodifiable(sanitized)),
     );
   }
 

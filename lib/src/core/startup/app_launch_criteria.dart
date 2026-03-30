@@ -9,8 +9,7 @@ class AppLaunchCriteria {
   final bool hasSelectedProfile;
   final bool hasSelectedSource;
 
-  bool get isHomeReady =>
-      hasSession && hasSelectedProfile && hasSelectedSource;
+  bool get isHomeReady => hasSession && hasSelectedProfile && hasSelectedSource;
 
   static const AppLaunchCriteria empty = AppLaunchCriteria(
     hasSession: false,

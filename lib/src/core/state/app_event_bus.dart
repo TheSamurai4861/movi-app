@@ -5,10 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// On commence avec `iptvSynced`, mais l'énum peut être étendue plus tard
 /// (ex: userLoggedOut, libraryRefreshed, etc.).
-enum AppEventType {
-  iptvSynced,
-  librarySynced,
-}
+enum AppEventType { iptvSynced, librarySynced }
 
 /// Événement global propagé via [AppEventBus].
 ///

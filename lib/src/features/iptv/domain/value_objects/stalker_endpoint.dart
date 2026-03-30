@@ -46,28 +46,22 @@ class StalkerEndpoint extends Equatable {
     final raw = uri.path;
     final lower = raw.toLowerCase();
     String path;
-    
+
     // Si le chemin contient déjà portal.php, on le garde
     if (lower.contains('portal.php')) {
       path = raw;
     } else if (lower.contains('/stalker_portal/c/')) {
       // Chemin complet stalker_portal/c/portal.php
-      path = raw.endsWith('/')
-          ? '${raw}portal.php'
-          : '$raw/portal.php';
+      path = raw.endsWith('/') ? '${raw}portal.php' : '$raw/portal.php';
     } else if (lower.contains('/c/')) {
       // Chemin /c/portal.php
-      path = raw.endsWith('/')
-          ? '${raw}portal.php'
-          : '$raw/portal.php';
+      path = raw.endsWith('/') ? '${raw}portal.php' : '$raw/portal.php';
     } else if (raw.isEmpty || raw == '/') {
       // URL nue, on ajoute /portal.php
       path = '/portal.php';
     } else {
       // Chemin personnalisé, on ajoute /portal.php
-      path = raw.endsWith('/')
-          ? '${raw}portal.php'
-          : '$raw/portal.php';
+      path = raw.endsWith('/') ? '${raw}portal.php' : '$raw/portal.php';
     }
 
     if (!path.startsWith('/')) {
@@ -86,4 +80,3 @@ class StalkerEndpoint extends Equatable {
   @override
   List<Object?> get props => [uri.toString()];
 }
-

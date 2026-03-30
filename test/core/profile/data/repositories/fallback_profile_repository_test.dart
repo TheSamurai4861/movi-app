@@ -14,25 +14,22 @@ void main() {
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
 
-  test(
-    'returns local profiles when no cloud session is active',
-    () async {
-      final harness = await _FallbackProfileRepositoryHarness.create();
-      addTearDown(harness.dispose);
+  test('returns local profiles when no cloud session is active', () async {
+    final harness = await _FallbackProfileRepositoryHarness.create();
+    addTearDown(harness.dispose);
 
-      final localProfile = await harness.local.createProfile(
-        name: 'Offline',
-        color: 0xFF2160AB,
-      );
+    final localProfile = await harness.local.createProfile(
+      name: 'Offline',
+      color: 0xFF2160AB,
+    );
 
-      final profiles = await harness.repository.getProfiles();
+    final profiles = await harness.repository.getProfiles();
 
-      expect(profiles, hasLength(1));
-      expect(profiles.single.id, localProfile.id);
-      expect(profiles.single.name, localProfile.name);
-      expect(harness.remote.getProfilesCalls, 0);
-    },
-  );
+    expect(profiles, hasLength(1));
+    expect(profiles.single.id, localProfile.id);
+    expect(profiles.single.name, localProfile.name);
+    expect(harness.remote.getProfilesCalls, 0);
+  });
 
   test(
     'loads remote profiles first after authentication even when local profiles exist',
@@ -63,25 +60,21 @@ void main() {
 
       final profiles = await harness.repository.getProfiles();
 
-      expect(
-        profiles.map((profile) => profile.id).toList(growable: false),
-        [
-          '11111111-1111-4111-8111-111111111111',
-          '22222222-2222-4222-8222-222222222222',
-        ],
-      );
+      expect(profiles.map((profile) => profile.id).toList(growable: false), [
+        '11111111-1111-4111-8111-111111111111',
+        '22222222-2222-4222-8222-222222222222',
+      ]);
       expect(harness.remote.getProfilesCalls, 1);
       expect(harness.remote.lastAccountId, 'cloud-user');
       expect(profiles.any((profile) => profile.id == localProfile.id), isFalse);
 
-      final persisted = await harness.local.getProfiles(accountId: 'cloud-user');
-      expect(
-        persisted.map((profile) => profile.id).toList(growable: false),
-        [
-          '11111111-1111-4111-8111-111111111111',
-          '22222222-2222-4222-8222-222222222222',
-        ],
+      final persisted = await harness.local.getProfiles(
+        accountId: 'cloud-user',
       );
+      expect(persisted.map((profile) => profile.id).toList(growable: false), [
+        '11111111-1111-4111-8111-111111111111',
+        '22222222-2222-4222-8222-222222222222',
+      ]);
     },
   );
 
@@ -206,10 +199,7 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> verifyOtp({
-    required String email,
-    required String token,
-  }) {
+  Future<bool> verifyOtp({required String email, required String token}) {
     throw UnimplementedError();
   }
 }

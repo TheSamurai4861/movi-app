@@ -81,7 +81,9 @@ class StalkerRepositoryImpl implements StalkerRepository {
       endpoint: endpoint,
       macAddress: macAddress,
       username: username,
-      token: profileAuth.token.isNotEmpty ? profileAuth.token : handshakeAuth.token,
+      token: profileAuth.token.isNotEmpty
+          ? profileAuth.token
+          : handshakeAuth.token,
       status: status,
       createdAt: DateTime.now(),
       expirationDate: profileAuth.expiration,
@@ -96,7 +98,9 @@ class StalkerRepositoryImpl implements StalkerRepository {
     }
 
     if (!profileAuth.isAuthorized) {
-      throw AuthFailure('Stalker authentication failed: ${profileAuth.message}');
+      throw AuthFailure(
+        'Stalker authentication failed: ${profileAuth.message}',
+      );
     }
 
     return account;
@@ -115,7 +119,10 @@ class StalkerRepositoryImpl implements StalkerRepository {
     await _refreshAccountAuthInfo(account: account);
 
     if (_tuning.isLowResources) {
-      return _refreshCatalogLowResources(accountId: accountId, account: account);
+      return _refreshCatalogLowResources(
+        accountId: accountId,
+        account: account,
+      );
     }
 
     final data = await _fetchRemoteData(accountId: accountId, account: account);
@@ -155,14 +162,19 @@ class StalkerRepositoryImpl implements StalkerRepository {
 
         final updated = account.copyWith(
           status: nextStatus,
-          token: profileAuth.token.isNotEmpty ? profileAuth.token : handshakeAuth.token,
+          token: profileAuth.token.isNotEmpty
+              ? profileAuth.token
+              : handshakeAuth.token,
           expirationDate: profileAuth.expiration,
           lastError: profileAuth.isAuthorized ? null : profileAuth.message,
         );
         await _local.saveStalkerAccount(updated);
       }
     } catch (e) {
-      _logger.debug('Failed to refresh Stalker account auth: $e', category: 'Stalker');
+      _logger.debug(
+        'Failed to refresh Stalker account auth: $e',
+        category: 'Stalker',
+      );
     }
   }
 
@@ -264,7 +276,8 @@ class StalkerRepositoryImpl implements StalkerRepository {
         fallbackCategoryId: fallbackId,
       );
     }
-    final seriesCount = seriesData['total_items'] as int? ?? seriesStreams.length;
+    final seriesCount =
+        seriesData['total_items'] as int? ?? seriesStreams.length;
 
     final seriesPlaylists = _mapper.buildPlaylists(
       accountId: accountId,
@@ -295,12 +308,15 @@ class StalkerRepositoryImpl implements StalkerRepository {
     );
   }
 
-  Future<({
-    List<StalkerCategoryDto> movieCategories,
-    List<StalkerCategoryDto> seriesCategories,
-    List<StalkerStreamDto> movieStreams,
-    List<StalkerStreamDto> seriesStreams,
-  })> _fetchRemoteData({
+  Future<
+    ({
+      List<StalkerCategoryDto> movieCategories,
+      List<StalkerCategoryDto> seriesCategories,
+      List<StalkerStreamDto> movieStreams,
+      List<StalkerStreamDto> seriesStreams,
+    })
+  >
+  _fetchRemoteData({
     required String accountId,
     required StalkerAccount account,
   }) async {
@@ -318,7 +334,9 @@ class StalkerRepositoryImpl implements StalkerRepository {
       token: token,
       macAddress: account.macAddress,
     );
-    _debugLog(() => '📥 [STALKER REPO] VOD categories: ${movieCategories.length}');
+    _debugLog(
+      () => '📥 [STALKER REPO] VOD categories: ${movieCategories.length}',
+    );
 
     _debugLog(() => '📥 [STALKER REPO] Fetching Series categories...');
     final seriesCategories = await _remote.getSeriesCategories(
@@ -326,7 +344,9 @@ class StalkerRepositoryImpl implements StalkerRepository {
       token: token,
       macAddress: account.macAddress,
     );
-    _debugLog(() => '📥 [STALKER REPO] Series categories: ${seriesCategories.length}');
+    _debugLog(
+      () => '📥 [STALKER REPO] Series categories: ${seriesCategories.length}',
+    );
 
     const perPage = 100;
     final movieMaxPages = _categoryMaxPages(movieCategories.length);
@@ -346,7 +366,9 @@ class StalkerRepositoryImpl implements StalkerRepository {
         macAddress: account.macAddress,
       ),
     );
-    _debugLog(() => '📥 [STALKER REPO] Total VOD streams: ${movieStreams.length}');
+    _debugLog(
+      () => '📥 [STALKER REPO] Total VOD streams: ${movieStreams.length}',
+    );
 
     final seriesMaxPages = _categoryMaxPages(seriesCategories.length);
     final seriesStreams = await _loadStreams(
@@ -365,7 +387,9 @@ class StalkerRepositoryImpl implements StalkerRepository {
         macAddress: account.macAddress,
       ),
     );
-    _debugLog(() => '📥 [STALKER REPO] Total Series streams: ${seriesStreams.length}');
+    _debugLog(
+      () => '📥 [STALKER REPO] Total Series streams: ${seriesStreams.length}',
+    );
 
     _debugLog(
       () =>
@@ -385,28 +409,32 @@ class StalkerRepositoryImpl implements StalkerRepository {
     String? fallbackCategoryId,
   }) {
     _debugLog(() => '🔍 [PARSE] response keys: ${response.keys}');
-    
+
     // Essayer d'extraire les données de la réponse Stalker
     // Format possible 1: {js: {data: [...]}}
     // Format possible 2: {data: [...]}
     // Format possible 3: {detail: ...}
-    
+
     dynamic data;
     if (response.containsKey('js')) {
       _debugLog(() => '🔍 [PARSE] Found js key');
       final js = response['js'];
       if (js is Map<String, dynamic>) {
         data = js['data'];
-        _debugLog(() => '🔍 [PARSE] Extracted data from js: ${data.runtimeType}');
+        _debugLog(
+          () => '🔍 [PARSE] Extracted data from js: ${data.runtimeType}',
+        );
       }
     } else if (response.containsKey('data')) {
       data = response['data'];
-      _debugLog(() => '🔍 [PARSE] Found data key directly: ${data.runtimeType}');
+      _debugLog(
+        () => '🔍 [PARSE] Found data key directly: ${data.runtimeType}',
+      );
     } else if (response.containsKey('detail')) {
       _debugLog(() => '🔍 [PARSE] Found detail key: ${response['detail']}');
       return [];
     }
-    
+
     if (data is List) {
       _debugLog(() => '🔍 [PARSE] Data is List with ${data.length} items');
       return data
@@ -422,7 +450,7 @@ class StalkerRepositoryImpl implements StalkerRepository {
           })
           .toList(growable: false);
     }
-    
+
     _debugLog(() => '🔍 [PARSE] No valid data found, returning empty list');
     return [];
   }
@@ -455,7 +483,7 @@ class StalkerRepositoryImpl implements StalkerRepository {
     required int maxPages,
     String? fallbackCategoryId,
     required Future<Map<String, dynamic>> Function(String? categoryId, int page)
-        fetchPage,
+    fetchPage,
   }) async {
     _debugLog(() => '📥 [STALKER REPO] Starting $label pagination...');
     final streams = <StalkerStreamDto>[];
@@ -465,7 +493,8 @@ class StalkerRepositoryImpl implements StalkerRepository {
       () => '📥 [STALKER REPO] $label page 1 response keys: ${probeData.keys}',
     );
     final probeStreams = _parseStreamsFromResponse(probeData, type);
-    final canUseNoCategory = probeStreams.isNotEmpty &&
+    final canUseNoCategory =
+        probeStreams.isNotEmpty &&
         probeStreams.any((s) => s.categoryId.isNotEmpty);
 
     if (canUseNoCategory || categories.isEmpty) {
@@ -487,12 +516,7 @@ class StalkerRepositoryImpl implements StalkerRepository {
         );
         streams.addAll(pageStreams);
         page++;
-        hasMore = _hasMorePages(
-          data,
-          pageStreams.length,
-          perPage,
-          page,
-        );
+        hasMore = _hasMorePages(data, pageStreams.length, perPage, page);
       }
       if (streams.isNotEmpty) return streams;
     }
@@ -502,7 +526,8 @@ class StalkerRepositoryImpl implements StalkerRepository {
       var hasMore = true;
       while (hasMore && page <= maxPages) {
         _debugLog(
-          () => '📥 [STALKER REPO] Fetching $label $fallbackCategoryId page $page...',
+          () =>
+              '📥 [STALKER REPO] Fetching $label $fallbackCategoryId page $page...',
         );
         final data = await fetchPage(fallbackCategoryId, page);
         final pageStreams = _parseStreamsFromResponse(
@@ -516,12 +541,7 @@ class StalkerRepositoryImpl implements StalkerRepository {
         );
         streams.addAll(pageStreams);
         page++;
-        hasMore = _hasMorePages(
-          data,
-          pageStreams.length,
-          perPage,
-          page,
-        );
+        hasMore = _hasMorePages(data, pageStreams.length, perPage, page);
       }
       return streams;
     }
@@ -532,7 +552,8 @@ class StalkerRepositoryImpl implements StalkerRepository {
       var hasMore = true;
       while (hasMore && page <= maxPages) {
         _debugLog(
-          () => '📥 [STALKER REPO] Fetching $label ${category.id} page $page...',
+          () =>
+              '📥 [STALKER REPO] Fetching $label ${category.id} page $page...',
         );
         final data = await fetchPage(category.id, page);
         final pageStreams = _parseStreamsFromResponse(
@@ -546,12 +567,7 @@ class StalkerRepositoryImpl implements StalkerRepository {
         );
         streams.addAll(pageStreams);
         page++;
-        hasMore = _hasMorePages(
-          data,
-          pageStreams.length,
-          perPage,
-          page,
-        );
+        hasMore = _hasMorePages(data, pageStreams.length, perPage, page);
       }
     }
 
@@ -566,14 +582,16 @@ class StalkerRepositoryImpl implements StalkerRepository {
   ) {
     final totalItems = response['total_items'] as int? ?? 0;
     final maxPageItems = response['max_page_items'] as int? ?? perPage;
-    final hasMore = streamCount >= maxPageItems &&
+    final hasMore =
+        streamCount >= maxPageItems &&
         ((nextPage - 1) * maxPageItems) < totalItems;
     _debugLog(
       () =>
           '📥 [STALKER REPO] totalItems=$totalItems, maxPageItems=$maxPageItems, streams.length=$streamCount',
     );
     _debugLog(
-      () => '📥 [STALKER REPO] hasMore=$hasMore (continue? ${hasMore ? "YES" : "NO"})',
+      () =>
+          '📥 [STALKER REPO] hasMore=$hasMore (continue? ${hasMore ? "YES" : "NO"})',
     );
     return hasMore;
   }
@@ -591,7 +609,8 @@ class StalkerRepositoryImpl implements StalkerRepository {
       List<StalkerCategoryDto> seriesCategories,
       List<StalkerStreamDto> movieStreams,
       List<StalkerStreamDto> seriesStreams,
-    }) data,
+    })
+    data,
   ) async {
     final playlists = _mapper.buildPlaylists(
       accountId: accountId,
@@ -601,10 +620,14 @@ class StalkerRepositoryImpl implements StalkerRepository {
       seriesStreams: data.seriesStreams,
     );
 
-    _debugLog(() => '🔧 [STALKER REPO] Playlists construites: ${playlists.length} playlists');
+    _debugLog(
+      () =>
+          '🔧 [STALKER REPO] Playlists construites: ${playlists.length} playlists',
+    );
     for (final pl in playlists) {
       _debugLog(
-        () => '🔧 [STALKER REPO]   - ${pl.title} (${pl.type.name}): ${pl.items.length} items',
+        () =>
+            '🔧 [STALKER REPO]   - ${pl.title} (${pl.type.name}): ${pl.items.length} items',
       );
     }
 
@@ -645,7 +668,8 @@ class StalkerRepositoryImpl implements StalkerRepository {
     for (final s in existing) {
       if (s.type == XtreamPlaylistType.movies && s.position > maxMovies) {
         maxMovies = s.position;
-      } else if (s.type == XtreamPlaylistType.series && s.position > maxSeries) {
+      } else if (s.type == XtreamPlaylistType.series &&
+          s.position > maxSeries) {
         maxSeries = s.position;
       }
       if (s.globalPosition > maxGlobal) {
@@ -708,18 +732,22 @@ class StalkerRepositoryImpl implements StalkerRepository {
       List<StalkerCategoryDto> seriesCategories,
       List<StalkerStreamDto> movieStreams,
       List<StalkerStreamDto> seriesStreams,
-    }) data,
+    })
+    data,
   ) async {
     // 🔧 FIX: Sauvegarder les playlists AVANT le snapshot
     _debugLog(() => '💾 [STALKER REPO] Sauvegarde des playlists en DB...');
     final playlists = await _buildAndSavePlaylists(accountId, data);
-    _debugLog(() => '✅ [STALKER REPO] Playlists sauvegardées: ${playlists.length} playlists');
-    
+    _debugLog(
+      () =>
+          '✅ [STALKER REPO] Playlists sauvegardées: ${playlists.length} playlists',
+    );
+
     // Synchroniser les settings (ordre, visibilité)
     _debugLog(() => '💾 [STALKER REPO] Synchronisation des settings...');
     await _syncPlaylistSettings(accountId: accountId, playlists: playlists);
     _debugLog(() => '✅ [STALKER REPO] Settings synchronisés');
-    
+
     return _createAndStoreSnapshotFromCounts(
       accountId: accountId,
       movieCount: data.movieStreams.length,
@@ -749,4 +777,3 @@ class StalkerRepositoryImpl implements StalkerRepository {
     return _local.getPlaylists(accountId);
   }
 }
-

@@ -57,12 +57,7 @@ enum AuthOtpEmailError { invalid }
 
 enum AuthOtpGlobalError { supabaseUnavailable }
 
-enum AuthOtpStatus {
-  idle,
-  sendingCode,
-  codeSent,
-  verifyingCode,
-}
+enum AuthOtpStatus { idle, sendingCode, codeSent, verifyingCode }
 
 class AuthOtpController extends Notifier<AuthOtpState> {
   Timer? _cooldownTimer;
@@ -107,12 +102,8 @@ class AuthOtpController extends Notifier<AuthOtpState> {
 
   bool _validateEmail() {
     final email = state.email;
-    if (email.isEmpty ||
-        !email.contains('@') ||
-        !email.contains('.')) {
-      state = state.copyWith(
-        emailError: AuthOtpEmailError.invalid,
-      );
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      state = state.copyWith(emailError: AuthOtpEmailError.invalid);
       return false;
     }
     return true;
@@ -206,9 +197,7 @@ class AuthOtpController extends Notifier<AuthOtpState> {
       );
 
       // L'état d'auth globale sera mis à jour via AuthController.
-      state = state.copyWith(
-        status: AuthOtpStatus.idle,
-      );
+      state = state.copyWith(status: AuthOtpStatus.idle);
     } catch (error, stackTrace) {
       final failure = mapSupabaseError(error, stackTrace: stackTrace);
       state = state.copyWith(
@@ -256,5 +245,3 @@ class AuthOtpController extends Notifier<AuthOtpState> {
 
 final authOtpControllerProvider =
     NotifierProvider<AuthOtpController, AuthOtpState>(AuthOtpController.new);
-
-

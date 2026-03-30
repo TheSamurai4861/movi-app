@@ -175,33 +175,33 @@ class MovieRepositoryImpl implements MovieRepository {
   }
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {
-  final poster = _images.poster(
-  dto.posterPath ?? dto.posterBackground,
-  size: 'w780',
-);
+    final poster = _images.poster(
+      dto.posterPath ?? dto.posterBackground,
+      size: 'w780',
+    );
 
-if (poster == null) {
-  throw StateError('Movie ${dto.id} missing poster');
-}
+    if (poster == null) {
+      throw StateError('Movie ${dto.id} missing poster');
+    }
 
-final posterBackground =
-    _images.poster(dto.posterBackground, size: 'original') ?? poster;
+    final posterBackground =
+        _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
-final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
 
-  return Movie(
-    id: MovieId(dto.id.toString()),
-    tmdbId: dto.id,
-    title: MediaTitle(dto.title),
-    synopsis: Synopsis(dto.overview),
-    duration: Duration(minutes: dto.runtime ?? 0),
-    poster: poster,
-    posterBackground: posterBackground,
-    backdrop: backdrop,
-    releaseDate:
-        _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
-    rating: _mapRating(dto.voteAverage),
-    voteAverage: dto.voteAverage,
+    return Movie(
+      id: MovieId(dto.id.toString()),
+      tmdbId: dto.id,
+      title: MediaTitle(dto.title),
+      synopsis: Synopsis(dto.overview),
+      duration: Duration(minutes: dto.runtime ?? 0),
+      poster: poster,
+      posterBackground: posterBackground,
+      backdrop: backdrop,
+      releaseDate:
+          _parseDate(dto.releaseDate) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      rating: _mapRating(dto.voteAverage),
+      voteAverage: dto.voteAverage,
       genres: dto.genres,
       cast: dto.cast.take(10).map(_mapCast).toList(),
       directors: dto.directors

@@ -179,7 +179,7 @@ class IptvConnectController extends Notifier<IptvConnectState> {
 
     try {
       String accountId;
-      
+
       if (sourceType == IptvSourceType.xtream) {
         // 1) Ajouter localement via le usecase Xtream (SQLite + validation)
         if (rawUser.isEmpty || rawPass.isEmpty) {
@@ -198,7 +198,10 @@ class IptvConnectController extends Notifier<IptvConnectState> {
         );
 
         if (res.isErr()) {
-          final message = res.fold<String>(ok: (_) => '', err: (f) => f.message);
+          final message = res.fold<String>(
+            ok: (_) => '',
+            err: (f) => f.message,
+          );
           state = state.copyWith(isLoading: false, error: message);
           return false;
         }
@@ -274,7 +277,10 @@ class IptvConnectController extends Notifier<IptvConnectState> {
         );
 
         if (res.isErr()) {
-          final message = res.fold<String>(ok: (_) => '', err: (f) => f.message);
+          final message = res.fold<String>(
+            ok: (_) => '',
+            err: (f) => f.message,
+          );
           state = state.copyWith(isLoading: false, error: message);
           return false;
         }
@@ -300,7 +306,6 @@ class IptvConnectController extends Notifier<IptvConnectState> {
         unawaited(_runBackgroundSync(accountId));
         return true;
       }
-
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
       return false;
@@ -360,10 +365,7 @@ class IptvConnectController extends Notifier<IptvConnectState> {
       try {
         if (edgeCipher != null) {
           encryptedCredentials = await edgeCipher
-              .encrypt(
-                username: username,
-                password: password,
-              )
+              .encrypt(username: username, password: password)
               .timeout(const Duration(seconds: 5));
           if (kDebugMode) {
             debugPrint(

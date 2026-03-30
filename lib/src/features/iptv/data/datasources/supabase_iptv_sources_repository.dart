@@ -110,17 +110,17 @@ class SupabaseIptvSourceEntity {
   }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'id': id,
-        'account_id': accountId,
-        'name': name,
-        if (localId != null) 'local_id': localId,
-        'is_active': isActive,
-        'last_sync_at': lastSyncAt?.toIso8601String(),
-        'expires_at': expiresAt?.toIso8601String(),
-        'server_url': serverUrl,
-        'username': username,
-        'encrypted_credentials': encryptedCredentials,
-      };
+    'id': id,
+    'account_id': accountId,
+    'name': name,
+    if (localId != null) 'local_id': localId,
+    'is_active': isActive,
+    'last_sync_at': lastSyncAt?.toIso8601String(),
+    'expires_at': expiresAt?.toIso8601String(),
+    'server_url': serverUrl,
+    'username': username,
+    'encrypted_credentials': encryptedCredentials,
+  };
 }
 
 class SupabaseIptvSourcesRepository {
@@ -128,9 +128,9 @@ class SupabaseIptvSourcesRepository {
     this._client, {
     IptvSourceTruthMode? truthMode,
     bool? diagnosticsEnabled,
-  })  : _truthMode = truthMode ?? IptvSourceTruthMode.remoteWithServerMeta,
-        _diagnosticsEnabled =
-            diagnosticsEnabled ?? !const bool.fromEnvironment('dart.vm.product');
+  }) : _truthMode = truthMode ?? IptvSourceTruthMode.remoteWithServerMeta,
+       _diagnosticsEnabled =
+           diagnosticsEnabled ?? !const bool.fromEnvironment('dart.vm.product');
 
   final SupabaseClient _client;
   final IptvSourceTruthMode _truthMode;
@@ -155,7 +155,9 @@ class SupabaseIptvSourcesRepository {
       'Possible causes: Supabase not initialized, client mismatch in DI, or session not restored yet.',
     );
 
-    throw StateError('User not authenticated (Supabase auth.currentUser is null).');
+    throw StateError(
+      'User not authenticated (Supabase auth.currentUser is null).',
+    );
   }
 
   /// Colonnes lues depuis Supabase.
@@ -200,7 +202,9 @@ class SupabaseIptvSourcesRepository {
           .eq('account_id', resolvedAccountId);
 
       final list = (rows as List)
-          .map((e) => SupabaseIptvSourceEntity.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => SupabaseIptvSourceEntity.fromJson(e as Map<String, dynamic>),
+          )
           .toList(growable: false);
 
       log('getSources: OK -> ${list.length} row(s)');
@@ -239,7 +243,8 @@ class SupabaseIptvSourcesRepository {
       if (isActive != null) 'is_active': isActive,
       if (lastSyncAt != null) 'last_sync_at': lastSyncAt.toIso8601String(),
       if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
-      if (encryptedCredentials != null) 'encrypted_credentials': encryptedCredentials,
+      if (encryptedCredentials != null)
+        'encrypted_credentials': encryptedCredentials,
     };
 
     if (_truthMode == IptvSourceTruthMode.remoteWithServerMeta) {
@@ -250,7 +255,11 @@ class SupabaseIptvSourcesRepository {
     log('createSource: start uid=$resolvedAccountId mode=$_truthMode');
 
     try {
-      final row = await _client.from(_table).insert(payload).select(_selectColumns()).single();
+      final row = await _client
+          .from(_table)
+          .insert(payload)
+          .select(_selectColumns())
+          .single();
       log('createSource: OK');
       return SupabaseIptvSourceEntity.fromJson(row);
     } catch (error, stackTrace) {
@@ -283,16 +292,21 @@ class SupabaseIptvSourcesRepository {
       final updates = <String, dynamic>{};
       if (name != null) updates['name'] = name;
       if (isActive != null) updates['is_active'] = isActive;
-      if (lastSyncAt != null) updates['last_sync_at'] = lastSyncAt.toIso8601String();
-      if (expiresAt != null) updates['expires_at'] = expiresAt.toIso8601String();
-      if (encryptedCredentials != null) updates['encrypted_credentials'] = encryptedCredentials;
+      if (lastSyncAt != null)
+        updates['last_sync_at'] = lastSyncAt.toIso8601String();
+      if (expiresAt != null)
+        updates['expires_at'] = expiresAt.toIso8601String();
+      if (encryptedCredentials != null)
+        updates['encrypted_credentials'] = encryptedCredentials;
 
       if (_truthMode == IptvSourceTruthMode.remoteWithServerMeta) {
         if (serverUrl != null) updates['server_url'] = serverUrl;
         if (username != null) updates['username'] = username;
       }
 
-      log('updateSource: start id=$id uid=$resolvedAccountId fields=${updates.keys.toList()}');
+      log(
+        'updateSource: start id=$id uid=$resolvedAccountId fields=${updates.keys.toList()}',
+      );
 
       final row = await _client
           .from(_table)
@@ -338,7 +352,8 @@ class SupabaseIptvSourcesRepository {
       if (isActive != null) 'is_active': isActive,
       if (lastSyncAt != null) 'last_sync_at': lastSyncAt.toIso8601String(),
       if (expiresAt != null) 'expires_at': expiresAt.toIso8601String(),
-      if (encryptedCredentials != null) 'encrypted_credentials': encryptedCredentials,
+      if (encryptedCredentials != null)
+        'encrypted_credentials': encryptedCredentials,
     };
 
     if (_truthMode == IptvSourceTruthMode.remoteWithServerMeta) {
@@ -346,7 +361,9 @@ class SupabaseIptvSourcesRepository {
       if (username != null) payload['username'] = username;
     }
 
-    log('upsertSource: start uid=$resolvedAccountId localId=$localId mode=$_truthMode');
+    log(
+      'upsertSource: start uid=$resolvedAccountId localId=$localId mode=$_truthMode',
+    );
 
     try {
       final row = await _client
@@ -378,7 +395,11 @@ class SupabaseIptvSourcesRepository {
 
     try {
       log('deleteSource: start id=$id uid=$resolvedAccountId');
-      await _client.from(_table).delete().eq('id', id).eq('account_id', resolvedAccountId);
+      await _client
+          .from(_table)
+          .delete()
+          .eq('id', id)
+          .eq('account_id', resolvedAccountId);
       log('deleteSource: OK id=$id');
     } catch (error, stackTrace) {
       log('deleteSource: ERROR type=${error.runtimeType} message=$error');

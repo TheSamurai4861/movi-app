@@ -1,4 +1,3 @@
-
 class LanguageFormatter {
   /// Formate un code de langue en nom lisible
   /// Gère les codes courts (fr), les codes avec région (FR_fr, fr-FR), etc.
@@ -158,7 +157,6 @@ class LanguageFormatter {
     }
     return null;
   }
-
 
   static String? normalizeLanguageCode(String? code) {
     if (code == null || code.isEmpty) return null;

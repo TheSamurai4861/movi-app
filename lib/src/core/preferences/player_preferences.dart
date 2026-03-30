@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
 import 'package:movi/src/features/player/domain/value_objects/video_fit_mode.dart';
 
 /// Persisted player preferences (audio and subtitle languages) with change notifications.
@@ -12,6 +13,9 @@ class PlayerPreferences {
     required String subtitleLanguageStorageKey,
     required String? preferredSubtitleLanguage,
     required StreamController<String?> subtitleLanguageController,
+    required String qualityStorageKey,
+    required PreferredPlaybackQuality? preferredPlaybackQuality,
+    required StreamController<PreferredPlaybackQuality?> qualityController,
     required String videoFitModeStorageKey,
     required VideoFitMode? preferredVideoFitMode,
     required StreamController<String?> videoFitModeController,
@@ -22,6 +26,9 @@ class PlayerPreferences {
        _subtitleLanguageStorageKey = subtitleLanguageStorageKey,
        _preferredSubtitleLanguage = preferredSubtitleLanguage,
        _subtitleLanguageController = subtitleLanguageController,
+       _qualityStorageKey = qualityStorageKey,
+       _preferredPlaybackQuality = preferredPlaybackQuality,
+       _qualityController = qualityController,
        _videoFitModeStorageKey = videoFitModeStorageKey,
        _preferredVideoFitMode = preferredVideoFitMode,
        _videoFitModeController = videoFitModeController;
@@ -30,6 +37,8 @@ class PlayerPreferences {
       'prefs.player_preferred_audio_language';
   static const String _defaultSubtitleLanguageStorageKey =
       'prefs.player_preferred_subtitle_language';
+  static const String _defaultQualityStorageKey =
+      'prefs.player_preferred_quality';
   static const String _defaultVideoFitModeStorageKey =
       'prefs.player_preferred_video_fit_mode';
 
@@ -40,6 +49,8 @@ class PlayerPreferences {
     String audioLanguageStorageKey = _defaultAudioLanguageStorageKey,
     String? defaultSubtitleLanguage,
     String subtitleLanguageStorageKey = _defaultSubtitleLanguageStorageKey,
+    PreferredPlaybackQuality? defaultPreferredPlaybackQuality,
+    String qualityStorageKey = _defaultQualityStorageKey,
     VideoFitMode? defaultVideoFitMode,
     String videoFitModeStorageKey = _defaultVideoFitModeStorageKey,
   }) async {
@@ -57,11 +68,22 @@ class PlayerPreferences {
     final persistedSubtitle = _normalizeLanguageCode(persistedSubtitleRaw);
     final initialSubtitle = persistedSubtitle ?? defaultSubtitleLanguage;
 
+    final persistedQualityRaw = await resolvedStorage.read(
+      key: qualityStorageKey,
+    );
+    final persistedQuality = PreferredPlaybackQualityValue.fromValue(
+      persistedQualityRaw,
+    );
+    final initialQuality = persistedQuality ?? defaultPreferredPlaybackQuality;
+
     final persistedVideoFitModeRaw = await resolvedStorage.read(
       key: videoFitModeStorageKey,
     );
-    final persistedVideoFitMode = VideoFitMode.fromValue(persistedVideoFitModeRaw);
-    final initialVideoFitMode = persistedVideoFitMode ?? defaultVideoFitMode ?? VideoFitMode.contain;
+    final persistedVideoFitMode = VideoFitMode.fromValue(
+      persistedVideoFitModeRaw,
+    );
+    final initialVideoFitMode =
+        persistedVideoFitMode ?? defaultVideoFitMode ?? VideoFitMode.contain;
 
     return PlayerPreferences._(
       storage: resolvedStorage,
@@ -71,6 +93,10 @@ class PlayerPreferences {
       subtitleLanguageStorageKey: subtitleLanguageStorageKey,
       preferredSubtitleLanguage: initialSubtitle,
       subtitleLanguageController: StreamController<String?>.broadcast(),
+      qualityStorageKey: qualityStorageKey,
+      preferredPlaybackQuality: initialQuality,
+      qualityController:
+          StreamController<PreferredPlaybackQuality?>.broadcast(),
       videoFitModeStorageKey: videoFitModeStorageKey,
       preferredVideoFitMode: initialVideoFitMode,
       videoFitModeController: StreamController<String?>.broadcast(),
@@ -84,6 +110,9 @@ class PlayerPreferences {
   final String _subtitleLanguageStorageKey;
   final StreamController<String?> _subtitleLanguageController;
   String? _preferredSubtitleLanguage;
+  final String _qualityStorageKey;
+  final StreamController<PreferredPlaybackQuality?> _qualityController;
+  PreferredPlaybackQuality? _preferredPlaybackQuality;
   final String _videoFitModeStorageKey;
   final StreamController<String?> _videoFitModeController;
   VideoFitMode? _preferredVideoFitMode;
@@ -112,6 +141,18 @@ class PlayerPreferences {
   Stream<String?> get preferredSubtitleLanguageStreamWithInitial async* {
     yield _preferredSubtitleLanguage;
     yield* _subtitleLanguageController.stream;
+  }
+
+  PreferredPlaybackQuality? get preferredPlaybackQuality =>
+      _preferredPlaybackQuality;
+
+  Stream<PreferredPlaybackQuality?> get preferredPlaybackQualityStream =>
+      _qualityController.stream;
+
+  Stream<PreferredPlaybackQuality?>
+  get preferredPlaybackQualityStreamWithInitial async* {
+    yield _preferredPlaybackQuality;
+    yield* _qualityController.stream;
   }
 
   /// Currently selected preferred video fit mode (null = use default contain).
@@ -161,6 +202,22 @@ class PlayerPreferences {
     }
   }
 
+  Future<void> setPreferredPlaybackQuality(
+    PreferredPlaybackQuality? quality,
+  ) async {
+    if (quality == _preferredPlaybackQuality) return;
+
+    _preferredPlaybackQuality = quality;
+    if (quality == null) {
+      await _storage.delete(key: _qualityStorageKey);
+    } else {
+      await _storage.write(key: _qualityStorageKey, value: quality.toValue());
+    }
+    if (!_qualityController.isClosed) {
+      _qualityController.add(quality);
+    }
+  }
+
   /// Persists and notifies a new preferred video fit mode.
   Future<void> setPreferredVideoFitMode(VideoFitMode mode) async {
     if (mode == _preferredVideoFitMode) return;
@@ -177,6 +234,7 @@ class PlayerPreferences {
   Future<void> dispose() async {
     await _audioLanguageController.close();
     await _subtitleLanguageController.close();
+    await _qualityController.close();
     await _videoFitModeController.close();
   }
 
@@ -198,8 +256,3 @@ class PlayerPreferences {
     return normalized.isEmpty ? null : normalized;
   }
 }
-
-
-
-
-

@@ -11,10 +11,7 @@ enum PinRecoveryStatus {
 
 @immutable
 class PinRecoveryResult {
-  const PinRecoveryResult._(
-    this.status, {
-    this.resetToken,
-  });
+  const PinRecoveryResult._(this.status, {this.resetToken});
 
   final PinRecoveryStatus status;
   final String? resetToken;
@@ -22,8 +19,7 @@ class PinRecoveryResult {
   bool get isSuccess => status == PinRecoveryStatus.success;
 
   const PinRecoveryResult.success({String? resetToken})
-      : this._(PinRecoveryStatus.success, resetToken: resetToken);
+    : this._(PinRecoveryStatus.success, resetToken: resetToken);
 
-  const PinRecoveryResult.failure(PinRecoveryStatus status)
-      : this._(status);
+  const PinRecoveryResult.failure(PinRecoveryStatus status) : this._(status);
 }

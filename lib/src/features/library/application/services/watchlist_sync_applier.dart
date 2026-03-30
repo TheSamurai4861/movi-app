@@ -15,18 +15,14 @@ class WatchlistSyncApplier {
     Uri? poster,
     required DateTime addedAtUtc,
   }) async {
-    await _db.insert(
-      'watchlist',
-      {
-        'content_id': contentId,
-        'content_type': type.name,
-        'title': title,
-        'poster': poster?.toString(),
-        'added_at': addedAtUtc.toLocal().millisecondsSinceEpoch,
-        'user_id': userId,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert('watchlist', {
+      'content_id': contentId,
+      'content_type': type.name,
+      'title': title,
+      'poster': poster?.toString(),
+      'added_at': addedAtUtc.toLocal().millisecondsSinceEpoch,
+      'user_id': userId,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> remove({
@@ -41,4 +37,3 @@ class WatchlistSyncApplier {
     );
   }
 }
-
