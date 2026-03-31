@@ -15,6 +15,10 @@ import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
 
 Future<bool> _guardParental(
   BuildContext context,
@@ -62,6 +66,48 @@ Future<bool> _guardParental(
     reason: decision.reason,
   );
   return unlocked;
+}
+
+Future<bool> _guardPremiumFeature(
+  BuildContext context,
+  WidgetRef ref, {
+  required PremiumFeature feature,
+}) async {
+  final hasPremium = await ref.read(
+    canAccessPremiumFeatureProvider(feature).future,
+  );
+  if (hasPremium) return true;
+  if (!context.mounted) return false;
+  await showPremiumFeatureLockedSheet(context);
+  return false;
+}
+
+Future<void> navigateToPersonDetail(
+  BuildContext context,
+  WidgetRef ref, {
+  required PersonSummary person,
+}) async {
+  final allowed = await _guardPremiumFeature(
+    context,
+    ref,
+    feature: PremiumFeature.extendedDiscoveryDetails,
+  );
+  if (!allowed || !context.mounted) return;
+  context.push(AppRouteNames.person, extra: person);
+}
+
+Future<void> navigateToSagaDetail(
+  BuildContext context,
+  WidgetRef ref, {
+  required String sagaId,
+}) async {
+  final allowed = await _guardPremiumFeature(
+    context,
+    ref,
+    feature: PremiumFeature.extendedDiscoveryDetails,
+  );
+  if (!allowed || !context.mounted) return;
+  context.push(AppRouteNames.sagaDetail, extra: sagaId);
 }
 
 /// Navigue vers la page de détails d'un film avec vérification d'enrichissement.

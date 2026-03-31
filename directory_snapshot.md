@@ -318,6 +318,49 @@ lib/
 │   │   │   │   └── storage_module.dart
 │   │   │   ├── storage.dart
 │   │   │   └── storage_failures.dart
+│   │   ├── subscription/
+│   │   │   ├── application/
+│   │   │   │   └── usecases/
+│   │   │   │       ├── can_access_premium_feature.dart
+│   │   │   │       ├── get_current_subscription.dart
+│   │   │   │       ├── load_available_subscription_offers.dart
+│   │   │   │       ├── purchase_subscription.dart
+│   │   │   │       ├── refresh_subscription.dart
+│   │   │   │       └── restore_subscription.dart
+│   │   │   ├── data/
+│   │   │   │   ├── adapters/
+│   │   │   │   │   ├── in_app_purchase_subscription_store_adapter.dart
+│   │   │   │   │   ├── store_product_offer.dart
+│   │   │   │   │   ├── subscription_store_adapter.dart
+│   │   │   │   │   └── unsupported_subscription_store_adapter.dart
+│   │   │   │   ├── catalog/
+│   │   │   │   │   ├── subscription_offer_definition.dart
+│   │   │   │   │   └── subscription_product_catalog.dart
+│   │   │   │   ├── datasources/
+│   │   │   │   │   └── subscription_local_cache_data_source.dart
+│   │   │   │   ├── factories/
+│   │   │   │   │   └── subscription_store_adapter_factory.dart
+│   │   │   │   └── repositories/
+│   │   │   │       ├── local_subscription_repository.dart
+│   │   │   │       └── store_subscription_repository.dart
+│   │   │   ├── domain/
+│   │   │   │   ├── entities/
+│   │   │   │   │   ├── billing_availability.dart
+│   │   │   │   │   ├── premium_feature.dart
+│   │   │   │   │   ├── subscription_entitlement.dart
+│   │   │   │   │   ├── subscription_offer.dart
+│   │   │   │   │   ├── subscription_snapshot.dart
+│   │   │   │   │   └── subscription_status.dart
+│   │   │   │   ├── failures/
+│   │   │   │   │   └── subscription_failure.dart
+│   │   │   │   └── repositories/
+│   │   │   │       └── subscription_repository.dart
+│   │   │   ├── presentation/
+│   │   │   │   └── providers/
+│   │   │   │       └── subscription_providers.dart
+│   │   │   ├── README.md
+│   │   │   ├── subscription.dart
+│   │   │   └── subscription_module.dart
 │   │   ├── supabase/
 │   │   │   ├── supabase_client_provider.dart
 │   │   │   ├── supabase_error_mapper.dart
@@ -513,6 +556,7 @@ lib/
 │   │   │   │   │   └── sync_cursor.dart
 │   │   │   │   └── services/
 │   │   │   │       ├── cloud_selected_profile_id_sanitizer.dart
+│   │   │   │       ├── cloud_sync_access_policy.dart
 │   │   │   │       ├── cloud_sync_cursor_store.dart
 │   │   │   │       ├── cloud_sync_preferences.dart
 │   │   │   │       ├── comprehensive_cloud_sync_service.dart
@@ -556,6 +600,7 @@ lib/
 │   │   │   │   │   ├── library_page.dart
 │   │   │   │   │   └── library_playlist_detail_page.dart
 │   │   │   │   ├── providers/
+│   │   │   │   │   ├── library_cloud_sync_access_providers.dart
 │   │   │   │   │   ├── library_cloud_sync_providers.dart
 │   │   │   │   │   ├── library_providers.dart
 │   │   │   │   │   └── library_remote_providers.dart
@@ -859,6 +904,8 @@ lib/
 │   │   │   │       ├── language_code.dart
 │   │   │   │       └── metadata_preference.dart
 │   │   │   ├── presentation/
+│   │   │   │   ├── localization/
+│   │   │   │   │   └── movi_premium_localizer.dart
 │   │   │   │   ├── pages/
 │   │   │   │   │   ├── about_page.dart
 │   │   │   │   │   ├── iptv_connect_page.dart
@@ -867,14 +914,19 @@ lib/
 │   │   │   │   │   ├── iptv_source_organize_page.dart
 │   │   │   │   │   ├── iptv_source_select_page.dart
 │   │   │   │   │   ├── iptv_sources_page.dart
+│   │   │   │   │   ├── movi_premium_page.dart
 │   │   │   │   │   └── settings_page.dart
 │   │   │   │   ├── providers/
 │   │   │   │   │   ├── iptv_connect_providers.dart
 │   │   │   │   │   ├── iptv_source_edit_providers.dart
 │   │   │   │   │   ├── iptv_source_organize_providers.dart
 │   │   │   │   │   ├── iptv_sources_providers.dart
+│   │   │   │   │   ├── movi_premium_providers.dart
 │   │   │   │   │   └── user_settings_providers.dart
+│   │   │   │   ├── services/
+│   │   │   │   │   └── movi_premium_feedback_resolver.dart
 │   │   │   │   └── widgets/
+│   │   │   │       ├── movi_premium_settings_tile.dart
 │   │   │   │       ├── settings_content_width.dart
 │   │   │   │       └── settings_page_width.dart
 │   │   │   └── settings.dart
@@ -14664,6 +14716,1251 @@ class StorageModule {
 [... snapshot tronqué ...]
 ```
 
+## src/core/subscription/README.md
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\README.md`
+- Taille : `9088` octets
+
+```text
+## Core Subscription
+
+Cadrage de l’étape 1 pour introduire les abonnements dans Movi sans casser les usages gratuits essentiels.
+
+### Objectif métier
+
+Introduire un modèle freemium lisible, cohérent et testable où l’abonnement contrôle un ensemble clair de capacités premium, tout en conservant une base gratuite suffisamment utile pour découvrir et utiliser l’application.
+
+Ce module doit rester **métier d’abord** :
+- le droit d’accès premium est un **entitlement utilisateur**
+- ce n’est **pas** un `FeatureFlag`
+- ce n’est **pas** une décision laissée aux widgets
+- ce n’est **pas** un détail du SDK d’achat
+
+### Pourquoi ce cadrage
+
+Le périmètre gratuit doit préserver le cœur de l’expérience :
+- consulter le catalogue
+- lire une vidéo
+- rechercher du contenu
+- gérer une bibliothèque locale simple
+- connecter et gérer localement ses sources IPTV
+
+Le premium v1 peut ensuite monétiser :
+- la continuité multi-appareils via le cloud
+- des fonctionnalités locales avancées jugées à forte valeur perçue
+- des fiches et espaces de découverte plus riches
+
+### Décision produit v1
+
+#### Gratuit
+- lecture vidéo locale et navigation dans l’app
+- recherche
+- fiches film / série
+- playlists locales
+- watchlist locale
+- historique local
+- gestion locale des sources IPTV
+
+#### Premium
+- synchronisation cloud de la bibliothèque
+- restauration cloud de la bibliothèque sur un autre appareil
+- synchronisation cloud des playlists
+- synchronisation cloud de l’historique et de la progression
+- synchronisation cloud des favoris / watchlist
+- continue watching local
+- profils locaux
+- contrôle parental local
+- fiches saga / acteur
+
+### Fonctionnalités premium cadrées
+
+#### `cloudLibrarySync`
+**Valeur perçue**
+Retrouver automatiquement sa bibliothèque sur plusieurs appareils.
+
+**Risque si laissé gratuit**
+La principale valeur de continuité multi-appareils devient difficile à monétiser.
+
+**Décision**
+Premium v1.
+
+#### `cloudLibraryRestore`
+**Valeur perçue**
+Récupérer rapidement sa bibliothèque après connexion sur un nouvel appareil.
+
+**Risque si laissé gratuit**
+La restauration devient gratuite alors qu’elle dépend de l’infrastructure cloud premium.
+
+**Décision**
+Premium v1.
+
+#### `cloudPlaylistSync`
+**Valeur perçue**
+Conserver ses playlists entre mobile, desktop et TV.
+
+**Risque si laissé gratuit**
+Réduit fortement la différenciation du premium.
+
+**Décision**
+
+[... snapshot tronqué ...]
+```
+
+## src/core/subscription/subscription.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\subscription.dart`
+- Taille : `1473` octets
+
+```text
+export 'subscription_module.dart';
+
+export 'application/usecases/can_access_premium_feature.dart';
+export 'application/usecases/get_current_subscription.dart';
+export 'application/usecases/load_available_subscription_offers.dart';
+export 'application/usecases/purchase_subscription.dart';
+export 'application/usecases/refresh_subscription.dart';
+export 'application/usecases/restore_subscription.dart';
+
+export 'data/adapters/in_app_purchase_subscription_store_adapter.dart';
+export 'data/adapters/store_product_offer.dart';
+export 'data/adapters/subscription_store_adapter.dart';
+export 'data/adapters/unsupported_subscription_store_adapter.dart';
+export 'data/catalog/subscription_offer_definition.dart';
+export 'data/catalog/subscription_product_catalog.dart';
+export 'data/datasources/subscription_local_cache_data_source.dart';
+export 'data/factories/subscription_store_adapter_factory.dart';
+export 'data/repositories/store_subscription_repository.dart';
+
+export 'domain/entities/billing_availability.dart';
+export 'domain/entities/premium_feature.dart';
+export 'domain/entities/subscription_entitlement.dart';
+export 'domain/entities/subscription_offer.dart';
+export 'domain/entities/subscription_snapshot.dart';
+export 'domain/entities/subscription_status.dart';
+export 'domain/failures/subscription_failure.dart';
+export 'domain/repositories/subscription_repository.dart';
+
+export 'presentation/providers/subscription_providers.dart';
+```
+
+## src/core/subscription/subscription_module.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\subscription_module.dart`
+- Taille : `3639` octets
+
+```text
+import 'package:get_it/get_it.dart';
+
+import 'package:movi/src/core/config/services/platform_selector.dart';
+import 'package:movi/src/core/subscription/application/usecases/can_access_premium_feature.dart';
+import 'package:movi/src/core/subscription/application/usecases/get_current_subscription.dart';
+import 'package:movi/src/core/subscription/application/usecases/load_available_subscription_offers.dart';
+import 'package:movi/src/core/subscription/application/usecases/purchase_subscription.dart';
+import 'package:movi/src/core/subscription/application/usecases/refresh_subscription.dart';
+import 'package:movi/src/core/subscription/application/usecases/restore_subscription.dart';
+import 'package:movi/src/core/subscription/data/adapters/subscription_store_adapter.dart';
+import 'package:movi/src/core/subscription/data/catalog/subscription_product_catalog.dart';
+import 'package:movi/src/core/subscription/data/datasources/subscription_local_cache_data_source.dart';
+import 'package:movi/src/core/subscription/data/factories/subscription_store_adapter_factory.dart';
+import 'package:movi/src/core/subscription/data/repositories/store_subscription_repository.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class SubscriptionModule {
+  static void register(GetIt sl) {
+    if (!sl.isRegistered<PlatformInfo>()) {
+      sl.registerLazySingleton<PlatformInfo>(PlatformSelector.new);
+    }
+
+    if (!sl.isRegistered<SubscriptionProductCatalog>()) {
+      sl.registerLazySingleton<SubscriptionProductCatalog>(
+        SubscriptionProductCatalog.new,
+      );
+    }
+
+    if (!sl.isRegistered<SubscriptionLocalCacheDataSource>()) {
+      sl.registerLazySingleton<SubscriptionLocalCacheDataSource>(
+        SubscriptionLocalCacheDataSource.new,
+      );
+    }
+
+    if (!sl.isRegistered<SubscriptionStoreAdapter>()) {
+      sl.registerLazySingleton<SubscriptionStoreAdapter>(
+        () => SubscriptionStoreAdapterFactory(sl<PlatformInfo>()).create(),
+      );
+    }
+
+    if (!sl.isRegistered<SubscriptionRepository>()) {
+      sl.registerLazySingleton<SubscriptionRepository>(
+        () => StoreSubscriptionRepository(
+          localCache: sl<SubscriptionLocalCacheDataSource>(),
+          storeAdapter: sl<SubscriptionStoreAdapter>(),
+          productCatalog: sl<SubscriptionProductCatalog>(),
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<GetCurrentSubscription>()) {
+      sl.registerLazySingleton<GetCurrentSubscription>(
+        () => GetCurrentSubscription(sl<SubscriptionRepository>()),
+      );
+    }
+
+    if (!sl.isRegistered<LoadAvailableSubscriptionOffers>()) {
+      sl.registerLazySingleton<LoadAvailableSubscriptionOffers>(
+        () => LoadAvailableSubscriptionOffers(sl<SubscriptionRepository>()),
+      );
+    }
+
+    if (!sl.isRegistered<PurchaseSubscription>()) {
+      sl.registerLazySingleton<PurchaseSubscription>(
+        () => PurchaseSubscription(sl<SubscriptionRepository>()),
+      );
+    }
+
+    if (!sl.isRegistered<RestoreSubscription>()) {
+      sl.registerLazySingleton<RestoreSubscription>(
+        () => RestoreSubscription(sl<SubscriptionRepository>()),
+      );
+    }
+
+    if (!sl.isRegistered<RefreshSubscription>()) {
+      sl.registerLazySingleton<RefreshSubscription>(
+        () => RefreshSubscription(sl<SubscriptionRepository>()),
+      );
+    }
+
+
+[... snapshot tronqué ...]
+```
+
+## src/core/subscription/application/usecases/can_access_premium_feature.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\application\usecases\can_access_premium_feature.dart`
+- Taille : `484` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class CanAccessPremiumFeature {
+  const CanAccessPremiumFeature(this._repository);
+
+  final SubscriptionRepository _repository;
+
+  Future<bool> call(PremiumFeature feature) async {
+    final snapshot = await _repository.getCurrentSubscription();
+    return snapshot.hasAccessTo(feature);
+  }
+}
+```
+
+## src/core/subscription/application/usecases/get_current_subscription.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\application\usecases\get_current_subscription.dart`
+- Taille : `417` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class GetCurrentSubscription {
+  const GetCurrentSubscription(this._repository);
+
+  final SubscriptionRepository _repository;
+
+  Future<SubscriptionSnapshot> call() {
+    return _repository.getCurrentSubscription();
+  }
+}
+```
+
+## src/core/subscription/application/usecases/load_available_subscription_offers.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\application\usecases\load_available_subscription_offers.dart`
+- Taille : `432` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class LoadAvailableSubscriptionOffers {
+  const LoadAvailableSubscriptionOffers(this._repository);
+
+  final SubscriptionRepository _repository;
+
+  Future<List<SubscriptionOffer>> call() {
+    return _repository.loadAvailableOffers();
+  }
+}
+```
+
+## src/core/subscription/application/usecases/purchase_subscription.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\application\usecases\purchase_subscription.dart`
+- Taille : `452` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class PurchaseSubscription {
+  const PurchaseSubscription(this._repository);
+
+  final SubscriptionRepository _repository;
+
+  Future<SubscriptionSnapshot> call({required String offerId}) {
+    return _repository.purchaseSubscription(offerId: offerId);
+  }
+}
+```
+
+## src/core/subscription/application/usecases/refresh_subscription.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\application\usecases\refresh_subscription.dart`
+- Taille : `408` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class RefreshSubscription {
+  const RefreshSubscription(this._repository);
+
+  final SubscriptionRepository _repository;
+
+  Future<SubscriptionSnapshot> call() {
+    return _repository.refreshSubscription();
+  }
+}
+```
+
+## src/core/subscription/application/usecases/restore_subscription.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\application\usecases\restore_subscription.dart`
+- Taille : `408` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class RestoreSubscription {
+  const RestoreSubscription(this._repository);
+
+  final SubscriptionRepository _repository;
+
+  Future<SubscriptionSnapshot> call() {
+    return _repository.restoreSubscription();
+  }
+}
+```
+
+## src/core/subscription/data/adapters/in_app_purchase_subscription_store_adapter.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\adapters\in_app_purchase_subscription_store_adapter.dart`
+- Taille : `8290` octets
+
+```text
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+
+import 'package:movi/src/core/subscription/data/adapters/store_product_offer.dart';
+import 'package:movi/src/core/subscription/data/adapters/subscription_store_adapter.dart';
+import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+
+class InAppPurchaseSubscriptionStoreAdapter
+    implements SubscriptionStoreAdapter {
+  InAppPurchaseSubscriptionStoreAdapter({
+    InAppPurchase? inAppPurchase,
+    Duration purchaseTimeout = const Duration(minutes: 2),
+    Duration restoreTimeout = const Duration(seconds: 20),
+    Duration restoreSettleDelay = const Duration(seconds: 2),
+  }) : _inAppPurchase = inAppPurchase ?? InAppPurchase.instance,
+       _purchaseTimeout = purchaseTimeout,
+       _restoreTimeout = restoreTimeout,
+       _restoreSettleDelay = restoreSettleDelay;
+
+  final InAppPurchase _inAppPurchase;
+  final Duration _purchaseTimeout;
+  final Duration _restoreTimeout;
+  final Duration _restoreSettleDelay;
+
+  @override
+  Future<BillingAvailability> getBillingAvailability() async {
+    try {
+      final isAvailable = await _inAppPurchase.isAvailable();
+      return isAvailable
+          ? BillingAvailability.available
+          : BillingAvailability.unavailable;
+    } on MissingPluginException {
+      return BillingAvailability.unavailable;
+    } catch (_) {
+      return BillingAvailability.unavailable;
+    }
+  }
+
+  @override
+  Future<List<StoreProductOffer>> loadOffers(Set<String> productIds) async {
+    await _ensureBillingAvailable();
+
+    try {
+      final response = await _inAppPurchase.queryProductDetails(productIds);
+      if (response.error != null) {
+        throw SubscriptionFailure.storeQueryFailed(response.error!.message);
+      }
+
+      return response.productDetails
+          .map(
+            (product) => StoreProductOffer(
+              productId: product.id,
+              title: product.title,
+              description: product.description,
+              priceLabel: product.price,
+            ),
+          )
+          .toList(growable: false);
+    } on SubscriptionFailure {
+      rethrow;
+    } catch (error) {
+      throw SubscriptionFailure.storeQueryFailed(
+        'Failed to load subscription offers: $error',
+      );
+    }
+  }
+
+  @override
+  Future<Set<String>> purchase(String productId) async {
+    await _ensureBillingAvailable();
+    final product = await _loadSingleProduct(productId);
+
+    late final StreamSubscription<List<PurchaseDetails>> subscription;
+    final completer = Completer<Set<String>>();
+
+    subscription = _inAppPurchase.purchaseStream.listen(
+      (purchaseDetailsList) async {
+
+[... snapshot tronqué ...]
+```
+
+## src/core/subscription/data/adapters/store_product_offer.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\adapters\store_product_offer.dart`
+- Taille : `351` octets
+
+```text
+import 'package:flutter/foundation.dart';
+
+@immutable
+class StoreProductOffer {
+  const StoreProductOffer({
+    required this.productId,
+    required this.title,
+    required this.description,
+    required this.priceLabel,
+  });
+
+  final String productId;
+  final String title;
+  final String description;
+  final String priceLabel;
+}
+```
+
+## src/core/subscription/data/adapters/subscription_store_adapter.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\adapters\subscription_store_adapter.dart`
+- Taille : `440` octets
+
+```text
+import 'package:movi/src/core/subscription/data/adapters/store_product_offer.dart';
+import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
+
+abstract class SubscriptionStoreAdapter {
+  Future<BillingAvailability> getBillingAvailability();
+
+  Future<List<StoreProductOffer>> loadOffers(Set<String> productIds);
+
+  Future<Set<String>> purchase(String productId);
+
+  Future<Set<String>> restore();
+}
+```
+
+## src/core/subscription/data/adapters/unsupported_subscription_store_adapter.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\adapters\unsupported_subscription_store_adapter.dart`
+- Taille : `1003` octets
+
+```text
+import 'package:movi/src/core/subscription/data/adapters/store_product_offer.dart';
+import 'package:movi/src/core/subscription/data/adapters/subscription_store_adapter.dart';
+import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+
+class UnsupportedSubscriptionStoreAdapter implements SubscriptionStoreAdapter {
+  const UnsupportedSubscriptionStoreAdapter();
+
+  @override
+  Future<BillingAvailability> getBillingAvailability() async {
+    return BillingAvailability.unavailable;
+  }
+
+  @override
+  Future<List<StoreProductOffer>> loadOffers(Set<String> productIds) async {
+    return const <StoreProductOffer>[];
+  }
+
+  @override
+  Future<Set<String>> purchase(String productId) async {
+    throw SubscriptionFailure.billingUnavailable();
+  }
+
+  @override
+  Future<Set<String>> restore() async {
+    throw SubscriptionFailure.providerNotConfigured();
+  }
+}
+```
+
+## src/core/subscription/data/catalog/subscription_offer_definition.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\catalog\subscription_offer_definition.dart`
+- Taille : `435` octets
+
+```text
+import 'package:flutter/foundation.dart';
+
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+
+@immutable
+class SubscriptionOfferDefinition {
+  const SubscriptionOfferDefinition({
+    required this.offerId,
+    required this.storeProductId,
+    required this.unlockedFeatures,
+  });
+
+  final String offerId;
+  final String storeProductId;
+  final List<PremiumFeature> unlockedFeatures;
+}
+```
+
+## src/core/subscription/data/catalog/subscription_product_catalog.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\catalog\subscription_product_catalog.dart`
+- Taille : `2348` octets
+
+```text
+import 'package:movi/src/core/subscription/data/catalog/subscription_offer_definition.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_entitlement.dart';
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+
+class SubscriptionProductCatalog {
+  SubscriptionProductCatalog({List<SubscriptionOfferDefinition>? offers})
+    : _offers = offers ?? _defaultOffers;
+
+  final List<SubscriptionOfferDefinition> _offers;
+
+  static const List<SubscriptionOfferDefinition> _defaultOffers =
+      <SubscriptionOfferDefinition>[
+        SubscriptionOfferDefinition(
+          offerId: 'movi_premium_monthly',
+          storeProductId: 'movi_premium_monthly',
+          unlockedFeatures: PremiumFeature.values,
+        ),
+        SubscriptionOfferDefinition(
+          offerId: 'movi_premium_annual',
+          storeProductId: 'movi_premium_annual',
+          unlockedFeatures: PremiumFeature.values,
+        ),
+      ];
+
+  List<SubscriptionOfferDefinition> get offers =>
+      List<SubscriptionOfferDefinition>.unmodifiable(_offers);
+
+  Set<String> get storeProductIds =>
+      _offers.map((offer) => offer.storeProductId).toSet();
+
+  String storeProductIdForOffer(String offerId) {
+    for (final offer in _offers) {
+      if (offer.offerId == offerId) {
+        return offer.storeProductId;
+      }
+    }
+    throw SubscriptionFailure.offerNotFound(offerId);
+  }
+
+  String? activePlanIdFromProductIds(Set<String> activeProductIds) {
+    for (final offer in _offers) {
+      if (activeProductIds.contains(offer.storeProductId)) {
+        return offer.offerId;
+      }
+    }
+    return null;
+  }
+
+  List<SubscriptionEntitlement> buildEntitlements(
+    Set<String> activeProductIds,
+  ) {
+    final activeFeatures = <PremiumFeature>{};
+
+    for (final offer in _offers) {
+      if (activeProductIds.contains(offer.storeProductId)) {
+        activeFeatures.addAll(offer.unlockedFeatures);
+      }
+    }
+
+    return PremiumFeature.values
+        .map(
+          (feature) => SubscriptionEntitlement(
+            feature: feature,
+            isActive: activeFeatures.contains(feature),
+          ),
+        )
+        .toList(growable: false);
+  }
+}
+```
+
+## src/core/subscription/data/datasources/subscription_local_cache_data_source.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\datasources\subscription_local_cache_data_source.dart`
+- Taille : `480` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+
+class SubscriptionLocalCacheDataSource {
+  SubscriptionSnapshot _cachedSnapshot = SubscriptionSnapshot.empty;
+
+  Future<SubscriptionSnapshot> read() async {
+    return _cachedSnapshot;
+  }
+
+  Future<void> write(SubscriptionSnapshot snapshot) async {
+    _cachedSnapshot = snapshot;
+  }
+
+  Future<void> clear() async {
+    _cachedSnapshot = SubscriptionSnapshot.empty;
+  }
+}
+```
+
+## src/core/subscription/data/factories/subscription_store_adapter_factory.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\factories\subscription_store_adapter_factory.dart`
+- Taille : `992` octets
+
+```text
+import 'package:movi/src/core/config/services/platform_selector.dart';
+import 'package:movi/src/core/subscription/data/adapters/in_app_purchase_subscription_store_adapter.dart';
+import 'package:movi/src/core/subscription/data/adapters/subscription_store_adapter.dart';
+import 'package:movi/src/core/subscription/data/adapters/unsupported_subscription_store_adapter.dart';
+
+class SubscriptionStoreAdapterFactory {
+  const SubscriptionStoreAdapterFactory(this._platformInfo);
+
+  final PlatformInfo _platformInfo;
+
+  SubscriptionStoreAdapter create() {
+    switch (_platformInfo.currentPlatform) {
+      case AppPlatform.android:
+      case AppPlatform.ios:
+      case AppPlatform.macos:
+        return InAppPurchaseSubscriptionStoreAdapter();
+      case AppPlatform.windows:
+      case AppPlatform.linux:
+      case AppPlatform.web:
+      case AppPlatform.fuchsia:
+      case AppPlatform.unknown:
+        return const UnsupportedSubscriptionStoreAdapter();
+    }
+  }
+}
+```
+
+## src/core/subscription/data/repositories/local_subscription_repository.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\repositories\local_subscription_repository.dart`
+- Taille : `1530` octets
+
+```text
+import 'package:movi/src/core/subscription/data/datasources/subscription_local_cache_data_source.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class LocalSubscriptionRepository implements SubscriptionRepository {
+  LocalSubscriptionRepository(this._cache);
+
+  final SubscriptionLocalCacheDataSource _cache;
+
+  @override
+  Future<SubscriptionSnapshot> getCurrentSubscription() {
+    return _cache.read();
+  }
+
+  @override
+  Future<SubscriptionSnapshot> purchaseSubscription({
+    required String offerId,
+  }) async {
+    throw UnsupportedError(
+      'Subscription purchase provider is not configured yet. '
+      'Register a concrete store/provider-backed SubscriptionRepository '
+      'before calling purchaseSubscription().',
+    );
+  }
+
+  @override
+  Future<SubscriptionSnapshot> restoreSubscription() async {
+    throw UnsupportedError(
+      'Subscription restore provider is not configured yet. '
+      'Register a concrete store/provider-backed SubscriptionRepository '
+      'before calling restoreSubscription().',
+    );
+  }
+
+  @override
+  Future<List<SubscriptionOffer>> loadAvailableOffers() async {
+    return const <SubscriptionOffer>[];
+  }
+
+  @override
+  Future<SubscriptionSnapshot> refreshSubscription() {
+    return _cache.read();
+  }
+}
+```
+
+## src/core/subscription/data/repositories/store_subscription_repository.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\data\repositories\store_subscription_repository.dart`
+- Taille : `5424` octets
+
+```text
+import 'package:movi/src/core/subscription/data/adapters/store_product_offer.dart';
+import 'package:movi/src/core/subscription/data/adapters/subscription_store_adapter.dart';
+import 'package:movi/src/core/subscription/data/catalog/subscription_product_catalog.dart';
+import 'package:movi/src/core/subscription/data/datasources/subscription_local_cache_data_source.dart';
+import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_status.dart';
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+
+class StoreSubscriptionRepository implements SubscriptionRepository {
+  StoreSubscriptionRepository({
+    required SubscriptionLocalCacheDataSource localCache,
+    required SubscriptionStoreAdapter storeAdapter,
+    required SubscriptionProductCatalog productCatalog,
+  }) : _localCache = localCache,
+       _storeAdapter = storeAdapter,
+       _productCatalog = productCatalog;
+
+  final SubscriptionLocalCacheDataSource _localCache;
+  final SubscriptionStoreAdapter _storeAdapter;
+  final SubscriptionProductCatalog _productCatalog;
+
+  @override
+  Future<SubscriptionSnapshot> getCurrentSubscription() async {
+    final cachedSnapshot = await _localCache.read();
+    final billingAvailability = await _storeAdapter.getBillingAvailability();
+    return cachedSnapshot.copyWith(billingAvailability: billingAvailability);
+  }
+
+  @override
+  Future<List<SubscriptionOffer>> loadAvailableOffers() async {
+    final billingAvailability = await _storeAdapter.getBillingAvailability();
+    if (billingAvailability == BillingAvailability.unavailable) {
+      return const <SubscriptionOffer>[];
+    }
+
+    final storeOffers = await _storeAdapter.loadOffers(
+      _productCatalog.storeProductIds,
+    );
+
+    return _mapStoreOffers(storeOffers);
+  }
+
+  @override
+  Future<SubscriptionSnapshot> purchaseSubscription({
+    required String offerId,
+  }) async {
+    final billingAvailability = await _storeAdapter.getBillingAvailability();
+    if (billingAvailability != BillingAvailability.available) {
+      throw SubscriptionFailure.billingUnavailable();
+    }
+
+    final storeProductId = _productCatalog.storeProductIdForOffer(offerId);
+    final activeProductIds = await _storeAdapter.purchase(storeProductId);
+    final snapshot = _buildSnapshot(
+      activeProductIds: activeProductIds,
+      billingAvailability: billingAvailability,
+    );
+
+    await _localCache.write(snapshot);
+    return snapshot;
+  }
+
+  @override
+  Future<SubscriptionSnapshot> restoreSubscription() async {
+    final billingAvailability = await _storeAdapter.getBillingAvailability();
+    if (billingAvailability == BillingAvailability.unavailable) {
+      throw SubscriptionFailure.providerNotConfigured();
+    }
+
+    final activeProductIds = await _storeAdapter.restore();
+    final snapshot = _buildSnapshot(
+      activeProductIds: activeProductIds,
+      billingAvailability: billingAvailability,
+    );
+
+    await _localCache.write(snapshot);
+    return snapshot;
+
+[... snapshot tronqué ...]
+```
+
+## src/core/subscription/domain/entities/billing_availability.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\entities\billing_availability.dart`
+- Taille : `66` octets
+
+```text
+enum BillingAvailability { available, restoreOnly, unavailable }
+```
+
+## src/core/subscription/domain/entities/premium_feature.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\entities\premium_feature.dart`
+- Taille : `237` octets
+
+```text
+enum PremiumFeature {
+  cloudLibrarySync,
+  cloudLibraryRestore,
+  cloudPlaylistSync,
+  cloudPlaybackSync,
+  cloudFavoritesSync,
+  localContinueWatching,
+  localProfiles,
+  localParentalControls,
+  extendedDiscoveryDetails,
+}
+```
+
+## src/core/subscription/domain/entities/subscription_entitlement.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\entities\subscription_entitlement.dart`
+- Taille : `1003` octets
+
+```text
+import 'package:flutter/foundation.dart';
+
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+
+@immutable
+class SubscriptionEntitlement {
+  const SubscriptionEntitlement({
+    required this.feature,
+    required this.isActive,
+  });
+
+  final PremiumFeature feature;
+  final bool isActive;
+
+  SubscriptionEntitlement copyWith({PremiumFeature? feature, bool? isActive}) {
+    return SubscriptionEntitlement(
+      feature: feature ?? this.feature,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is SubscriptionEntitlement &&
+            other.feature == feature &&
+            other.isActive == isActive;
+  }
+
+  @override
+  int get hashCode => Object.hash(feature, isActive);
+
+  @override
+  String toString() {
+    return 'SubscriptionEntitlement('
+        'feature: $feature, '
+        'isActive: $isActive'
+        ')';
+  }
+}
+```
+
+## src/core/subscription/domain/entities/subscription_offer.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\entities\subscription_offer.dart`
+- Taille : `1311` octets
+
+```text
+import 'package:flutter/foundation.dart';
+
+@immutable
+class SubscriptionOffer {
+  const SubscriptionOffer({
+    required this.id,
+    required this.storeProductId,
+    required this.title,
+    required this.description,
+    required this.displayPrice,
+  });
+
+  final String id;
+  final String storeProductId;
+  final String title;
+  final String description;
+  final String displayPrice;
+
+  SubscriptionOffer copyWith({
+    String? id,
+    String? storeProductId,
+    String? title,
+    String? description,
+    String? displayPrice,
+  }) {
+    return SubscriptionOffer(
+      id: id ?? this.id,
+      storeProductId: storeProductId ?? this.storeProductId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      displayPrice: displayPrice ?? this.displayPrice,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is SubscriptionOffer &&
+            other.id == id &&
+            other.storeProductId == storeProductId &&
+            other.title == title &&
+            other.description == description &&
+            other.displayPrice == displayPrice;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, storeProductId, title, description, displayPrice);
+}
+```
+
+## src/core/subscription/domain/entities/subscription_snapshot.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\entities\subscription_snapshot.dart`
+- Taille : `3129` octets
+
+```text
+import 'package:flutter/foundation.dart';
+
+import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_entitlement.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_status.dart';
+
+@immutable
+class SubscriptionSnapshot {
+  SubscriptionSnapshot({
+    required this.status,
+    required this.billingAvailability,
+    List<SubscriptionEntitlement> entitlements =
+        const <SubscriptionEntitlement>[],
+    this.activePlanId,
+    this.expiresAtUtc,
+  }) : entitlements = List<SubscriptionEntitlement>.unmodifiable(entitlements);
+
+  final SubscriptionStatus status;
+  final BillingAvailability billingAvailability;
+  final List<SubscriptionEntitlement> entitlements;
+  final String? activePlanId;
+  final DateTime? expiresAtUtc;
+
+  static final SubscriptionSnapshot empty = SubscriptionSnapshot(
+    status: SubscriptionStatus.inactive,
+    billingAvailability: BillingAvailability.unavailable,
+  );
+
+  bool get hasActiveSubscription =>
+      status == SubscriptionStatus.active ||
+      status == SubscriptionStatus.gracePeriod;
+
+  bool hasAccessTo(PremiumFeature feature) {
+    for (final entitlement in entitlements) {
+      if (entitlement.feature == feature) {
+        return entitlement.isActive;
+      }
+    }
+    return false;
+  }
+
+  SubscriptionSnapshot copyWith({
+    SubscriptionStatus? status,
+    BillingAvailability? billingAvailability,
+    List<SubscriptionEntitlement>? entitlements,
+    Object? activePlanId = _sentinel,
+    Object? expiresAtUtc = _sentinel,
+  }) {
+    return SubscriptionSnapshot(
+      status: status ?? this.status,
+      billingAvailability: billingAvailability ?? this.billingAvailability,
+      entitlements: entitlements ?? this.entitlements,
+      activePlanId: identical(activePlanId, _sentinel)
+          ? this.activePlanId
+          : activePlanId as String?,
+      expiresAtUtc: identical(expiresAtUtc, _sentinel)
+          ? this.expiresAtUtc
+          : expiresAtUtc as DateTime?,
+    );
+  }
+
+  static const Object _sentinel = Object();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is SubscriptionSnapshot &&
+            other.status == status &&
+            other.billingAvailability == billingAvailability &&
+            listEquals(other.entitlements, entitlements) &&
+            other.activePlanId == activePlanId &&
+            other.expiresAtUtc == expiresAtUtc;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    status,
+    billingAvailability,
+    Object.hashAll(entitlements),
+
+[... snapshot tronqué ...]
+```
+
+## src/core/subscription/domain/entities/subscription_status.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\entities\subscription_status.dart`
+- Taille : `77` octets
+
+```text
+enum SubscriptionStatus { unknown, inactive, active, gracePeriod, expired }
+```
+
+## src/core/subscription/domain/failures/subscription_failure.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\failures\subscription_failure.dart`
+- Taille : `3231` octets
+
+```text
+enum SubscriptionFailureCategory { user, technical }
+
+enum SubscriptionFailureCode {
+  billingUnavailable,
+  offerNotFound,
+  purchaseCancelled,
+  purchaseFailed,
+  restoreFailed,
+  storeQueryFailed,
+  storeTimeout,
+  providerNotConfigured,
+  unknown,
+}
+
+class SubscriptionFailure implements Exception {
+  const SubscriptionFailure({
+    required this.category,
+    required this.code,
+    required this.message,
+  });
+
+  final SubscriptionFailureCategory category;
+  final SubscriptionFailureCode code;
+  final String message;
+
+  bool get isUserFailure => category == SubscriptionFailureCategory.user;
+  bool get isTechnicalFailure =>
+      category == SubscriptionFailureCategory.technical;
+
+  factory SubscriptionFailure.billingUnavailable() {
+    return const SubscriptionFailure(
+      category: SubscriptionFailureCategory.technical,
+      code: SubscriptionFailureCode.billingUnavailable,
+      message:
+          'Billing is unavailable on this platform or store connection failed.',
+    );
+  }
+
+  factory SubscriptionFailure.offerNotFound(String offerId) {
+    return SubscriptionFailure(
+      category: SubscriptionFailureCategory.technical,
+      code: SubscriptionFailureCode.offerNotFound,
+      message: 'Subscription offer not found: $offerId.',
+    );
+  }
+
+  factory SubscriptionFailure.purchaseCancelled() {
+    return const SubscriptionFailure(
+      category: SubscriptionFailureCategory.user,
+      code: SubscriptionFailureCode.purchaseCancelled,
+      message: 'The subscription purchase was cancelled by the user.',
+    );
+  }
+
+  factory SubscriptionFailure.purchaseFailed(String message) {
+    return SubscriptionFailure(
+      category: SubscriptionFailureCategory.technical,
+      code: SubscriptionFailureCode.purchaseFailed,
+      message: message,
+    );
+  }
+
+  factory SubscriptionFailure.restoreFailed(String message) {
+    return SubscriptionFailure(
+      category: SubscriptionFailureCategory.technical,
+      code: SubscriptionFailureCode.restoreFailed,
+      message: message,
+    );
+  }
+
+  factory SubscriptionFailure.storeQueryFailed(String message) {
+    return SubscriptionFailure(
+      category: SubscriptionFailureCategory.technical,
+      code: SubscriptionFailureCode.storeQueryFailed,
+      message: message,
+    );
+  }
+
+  factory SubscriptionFailure.storeTimeout(String operation) {
+    return SubscriptionFailure(
+
+[... snapshot tronqué ...]
+```
+
+## src/core/subscription/domain/repositories/subscription_repository.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\domain\repositories\subscription_repository.dart`
+- Taille : `536` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+
+abstract class SubscriptionRepository {
+  Future<SubscriptionSnapshot> getCurrentSubscription();
+
+  Future<List<SubscriptionOffer>> loadAvailableOffers();
+
+  Future<SubscriptionSnapshot> purchaseSubscription({required String offerId});
+
+  Future<SubscriptionSnapshot> restoreSubscription();
+
+  Future<SubscriptionSnapshot> refreshSubscription();
+}
+```
+
+## src/core/subscription/presentation/providers/subscription_providers.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\subscription\presentation\providers\subscription_providers.dart`
+- Taille : `8896` octets
+
+```text
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get_it/get_it.dart';
+
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/subscription/application/usecases/can_access_premium_feature.dart';
+import 'package:movi/src/core/subscription/application/usecases/get_current_subscription.dart';
+import 'package:movi/src/core/subscription/application/usecases/load_available_subscription_offers.dart';
+import 'package:movi/src/core/subscription/application/usecases/purchase_subscription.dart';
+import 'package:movi/src/core/subscription/application/usecases/refresh_subscription.dart';
+import 'package:movi/src/core/subscription/application/usecases/restore_subscription.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
+import 'package:movi/src/core/subscription/subscription_module.dart';
+
+void _ensureSubscriptionModule(GetIt locator) {
+  if (!locator.isRegistered<SubscriptionRepository>()) {
+    SubscriptionModule.register(locator);
+  }
+}
+
+final subscriptionRepositoryProvider = Provider<SubscriptionRepository>((ref) {
+  final locator = ref.watch(slProvider);
+  _ensureSubscriptionModule(locator);
+  return locator<SubscriptionRepository>();
+});
+
+final getCurrentSubscriptionUseCaseProvider = Provider<GetCurrentSubscription>((
+  ref,
+) {
+  final locator = ref.watch(slProvider);
+  _ensureSubscriptionModule(locator);
+  return locator<GetCurrentSubscription>();
+});
+
+final loadAvailableSubscriptionOffersUseCaseProvider =
+    Provider<LoadAvailableSubscriptionOffers>((ref) {
+      final locator = ref.watch(slProvider);
+      _ensureSubscriptionModule(locator);
+      return locator<LoadAvailableSubscriptionOffers>();
+    });
+
+final purchaseSubscriptionUseCaseProvider = Provider<PurchaseSubscription>((
+  ref,
+) {
+  final locator = ref.watch(slProvider);
+  _ensureSubscriptionModule(locator);
+  return locator<PurchaseSubscription>();
+});
+
+final restoreSubscriptionUseCaseProvider = Provider<RestoreSubscription>((ref) {
+  final locator = ref.watch(slProvider);
+  _ensureSubscriptionModule(locator);
+  return locator<RestoreSubscription>();
+});
+
+final refreshSubscriptionUseCaseProvider = Provider<RefreshSubscription>((ref) {
+  final locator = ref.watch(slProvider);
+  _ensureSubscriptionModule(locator);
+  return locator<RefreshSubscription>();
+});
+
+final canAccessPremiumFeatureUseCaseProvider =
+    Provider<CanAccessPremiumFeature>((ref) {
+      final locator = ref.watch(slProvider);
+      _ensureSubscriptionModule(locator);
+      return locator<CanAccessPremiumFeature>();
+    });
+
+final currentSubscriptionProvider = FutureProvider<SubscriptionSnapshot>((ref) {
+  final getCurrentSubscription = ref.watch(
+    getCurrentSubscriptionUseCaseProvider,
+  );
+  return getCurrentSubscription();
+});
+
+final subscriptionOffersProvider = FutureProvider<List<SubscriptionOffer>>((
+
+[... snapshot tronqué ...]
+```
+
 ## src/core/supabase/supabase_client_provider.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\core\supabase\supabase_client_provider.dart`
@@ -23808,6 +25105,96 @@ class CloudSelectedProfileIdSanitizer {
 }
 ```
 
+## src/features/library/application/services/cloud_sync_access_policy.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\library\application\services\cloud_sync_access_policy.dart`
+- Taille : `2389` octets
+
+```text
+import 'package:flutter/foundation.dart';
+
+@immutable
+class CloudSyncAccessState {
+  const CloudSyncAccessState({
+    required this.userWantsAutoSync,
+    required this.isAuthenticated,
+    required this.hasPremiumEntitlement,
+  });
+
+  final bool userWantsAutoSync;
+  final bool isAuthenticated;
+  final bool hasPremiumEntitlement;
+
+  bool get effectiveCloudSyncEnabled =>
+      userWantsAutoSync && isAuthenticated && hasPremiumEntitlement;
+
+  CloudSyncAccessState copyWith({
+    bool? userWantsAutoSync,
+    bool? isAuthenticated,
+    bool? hasPremiumEntitlement,
+  }) {
+    return CloudSyncAccessState(
+      userWantsAutoSync: userWantsAutoSync ?? this.userWantsAutoSync,
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      hasPremiumEntitlement:
+          hasPremiumEntitlement ?? this.hasPremiumEntitlement,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is CloudSyncAccessState &&
+            other.userWantsAutoSync == userWantsAutoSync &&
+            other.isAuthenticated == isAuthenticated &&
+            other.hasPremiumEntitlement == hasPremiumEntitlement;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(userWantsAutoSync, isAuthenticated, hasPremiumEntitlement);
+
+  @override
+  String toString() {
+    return 'CloudSyncAccessState('
+        'userWantsAutoSync: $userWantsAutoSync, '
+        'isAuthenticated: $isAuthenticated, '
+        'hasPremiumEntitlement: $hasPremiumEntitlement, '
+        'effectiveCloudSyncEnabled: $effectiveCloudSyncEnabled'
+        ')';
+  }
+}
+
+class CloudSyncAccessPolicy {
+  const CloudSyncAccessPolicy();
+
+  CloudSyncAccessState resolve({
+    required bool userWantsAutoSync,
+    required bool isAuthenticated,
+    required bool hasPremiumEntitlement,
+  }) {
+    return CloudSyncAccessState(
+      userWantsAutoSync: userWantsAutoSync,
+      isAuthenticated: isAuthenticated,
+      hasPremiumEntitlement: hasPremiumEntitlement,
+    );
+  }
+
+  bool isEnabled({
+    required bool userWantsAutoSync,
+    required bool isAuthenticated,
+    required bool hasPremiumEntitlement,
+  }) {
+    return resolve(
+      userWantsAutoSync: userWantsAutoSync,
+      isAuthenticated: isAuthenticated,
+      hasPremiumEntitlement: hasPremiumEntitlement,
+    ).effectiveCloudSyncEnabled;
+  }
+
+[... snapshot tronqué ...]
+```
+
 ## src/features/library/application/services/cloud_sync_cursor_store.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\library\application\services\cloud_sync_cursor_store.dart`
@@ -23859,7 +25246,7 @@ class CloudSyncCursorStore {
 ## src/features/library/application/services/cloud_sync_preferences.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\library\application\services\cloud_sync_preferences.dart`
-- Taille : `1565` octets
+- Taille : `2417` octets
 
 ```text
 import 'dart:async';
@@ -23894,11 +25281,29 @@ class CloudSyncPreferences {
     );
   }
 
+  /// Backward-compatible name kept for existing call sites.
+  ///
+  /// This value is the **user preference only**. It must not be confused with
+  /// the effective cloud sync state, which also depends on authentication and
+  /// premium entitlement.
   bool get autoSyncEnabled => _autoSyncEnabled;
+
+  /// Explicit business-oriented alias for the persisted user preference.
+  bool get userWantsAutoSync => _autoSyncEnabled;
+
+  /// Backward-compatible stream kept for existing call sites.
   Stream<bool> get autoSyncEnabledStream => _controller.stream;
+
+  /// Explicit business-oriented alias for the persisted user preference stream.
+  Stream<bool> get userWantsAutoSyncStream => _controller.stream;
 
   Stream<bool> get autoSyncEnabledStreamWithInitial async* {
     yield _autoSyncEnabled;
+    yield* _controller.stream;
+  }
+
+  Stream<bool> get userWantsAutoSyncStreamWithInitial async* {
+    yield userWantsAutoSync;
     yield* _controller.stream;
   }
 
@@ -23906,7 +25311,13 @@ class CloudSyncPreferences {
     if (enabled == _autoSyncEnabled) return;
     _autoSyncEnabled = enabled;
     await _storage.put(key: _key, payload: {'value': enabled});
-    if (!_controller.isClosed) _controller.add(enabled);
+    if (!_controller.isClosed) {
+      _controller.add(enabled);
+    }
+  }
+
+  Future<void> setUserWantsAutoSync(bool enabled) {
+    return setAutoSyncEnabled(enabled);
   }
 
   Future<void> dispose() async {
@@ -25977,6 +27388,96 @@ class _LibraryPlaylistDetailPageState
 [... snapshot tronqué ...]
 ```
 
+## src/features/library/presentation/providers/library_cloud_sync_access_providers.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\library\presentation\providers\library_cloud_sync_access_providers.dart`
+- Taille : `3103` octets
+
+```text
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
+import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/features/library/application/services/cloud_sync_access_policy.dart';
+import 'package:movi/src/features/library/application/services/cloud_sync_preferences.dart';
+
+final cloudSyncAccessPolicyProvider = Provider<CloudSyncAccessPolicy>((ref) {
+  return const CloudSyncAccessPolicy();
+});
+
+final cloudSyncPreferencesProvider = FutureProvider<CloudSyncPreferences>((
+  ref,
+) async {
+  final locator = ref.watch(slProvider);
+  final preferences = await CloudSyncPreferences.create(
+    storage: locator<SecureStorageRepository>(),
+  );
+
+  ref.onDispose(() {
+    unawaited(preferences.dispose());
+  });
+
+  return preferences;
+});
+
+final cloudSyncUserPreferenceProvider = StreamProvider<bool>((ref) async* {
+  final preferences = await ref.watch(cloudSyncPreferencesProvider.future);
+  yield* preferences.userWantsAutoSyncStreamWithInitial;
+});
+
+final cloudSyncAuthSnapshotProvider = StreamProvider<AuthSnapshot>((
+  ref,
+) async* {
+  final repository = ref.watch(authRepositoryProvider);
+  final currentSession = repository.currentSession;
+
+  if (currentSession == null) {
+    yield AuthSnapshot.unauthenticated;
+  } else {
+    yield AuthSnapshot(
+      status: AuthStatus.authenticated,
+      session: currentSession,
+    );
+  }
+
+  yield* repository.onAuthStateChange;
+});
+
+final cloudLibrarySyncEntitlementProvider = Provider<bool>((ref) {
+  return ref
+      .watch(canAccessPremiumFeatureProvider(PremiumFeature.cloudLibrarySync))
+      .maybeWhen(data: (value) => value, orElse: () => false);
+});
+
+final cloudSyncAccessStateProvider = Provider<CloudSyncAccessState>((ref) {
+  final policy = ref.watch(cloudSyncAccessPolicyProvider);
+  final userWantsAutoSync = ref
+      .watch(cloudSyncUserPreferenceProvider)
+      .maybeWhen(data: (value) => value, orElse: () => false);
+  final authSnapshot = ref
+      .watch(cloudSyncAuthSnapshotProvider)
+      .maybeWhen(data: (value) => value, orElse: () => AuthSnapshot.unknown);
+  final hasPremiumEntitlement = ref.watch(cloudLibrarySyncEntitlementProvider);
+
+  return policy.resolve(
+    userWantsAutoSync: userWantsAutoSync,
+    isAuthenticated: authSnapshot.isAuthenticated,
+    hasPremiumEntitlement: hasPremiumEntitlement,
+  );
+});
+
+final effectiveCloudSyncEnabledProvider = Provider<bool>((ref) {
+  return ref.watch(cloudSyncAccessStateProvider).effectiveCloudSyncEnabled;
+
+[... snapshot tronqué ...]
+```
+
 ## src/features/library/presentation/providers/library_cloud_sync_providers.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\library\presentation\providers\library_cloud_sync_providers.dart`
@@ -26383,12 +27884,13 @@ Future<void> showAddToPlaylistActionSheet({
 ## src/features/library/presentation/widgets/library_cloud_sync_bootstrapper.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\library\presentation\widgets\library_cloud_sync_bootstrapper.dart`
-- Taille : `636` octets
+- Taille : `927` octets
 
 ```text
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_access_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 
 class LibraryCloudSyncBootstrapper extends ConsumerWidget {
@@ -26398,9 +27900,15 @@ class LibraryCloudSyncBootstrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Ensures the controller is mounted early so it can listen to profile/client
-    // changes and run background sync.
-    ref.watch(libraryCloudSyncControllerProvider);
+    final shouldBootstrap = ref.watch(shouldBootstrapLibraryCloudSyncProvider);
+
+    // The cloud sync controller must only be mounted when the effective cloud
+    // sync rule is satisfied:
+    // userWantsCloudSync && isAuthenticated && hasPremiumEntitlement.
+    if (shouldBootstrap) {
+      ref.watch(libraryCloudSyncControllerProvider);
+    }
+
     return child;
   }
 }
@@ -28653,7 +30161,7 @@ class MovieDetailViewModel {
 ## src/features/movie/presentation/pages/movie_detail_page.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\movie\presentation\pages\movie_detail_page.dart`
-- Taille : `43641` octets
+- Taille : `43672` octets
 
 ```text
 import 'dart:async';
@@ -28970,11 +30478,12 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
 ## src/features/movie/presentation/widgets/movie_detail_main_actions.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\movie\presentation\widgets\movie_detail_main_actions.dart`
-- Taille : `4367` octets
+- Taille : `4383` octets
 
 ```text
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -28983,6 +30492,7 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 class MovieDetailMainActions extends ConsumerWidget {
   const MovieDetailMainActions({
@@ -29004,11 +30514,27 @@ class MovieDetailMainActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
+    final localizations = AppLocalizations.of(context)!;
     final historyAsync = ref.watch(
       hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
     );
     final isFavoriteAsync = ref.watch(movieIsFavoriteProvider(movieId));
+
+    final playLabel = historyAsync.maybeWhen(
+      data: (history) => history == null
+          ? localizations.homeWatchNow
+          : localizations.homeContinueWatching,
+      orElse: () => localizations.homeWatchNow,
+    );
+
+    Future<void> toggleFavorite() async {
+      final repository = ref.read(movieRepositoryProvider);
+      final isFavorite = await ref.read(
+        movieIsFavoriteProvider(movieId).future,
+      );
+      await repository.setWatchlist(MovieId(movieId), saved: !isFavorite);
+      ref.invalidate(movieIsFavoriteProvider(movieId));
+    }
 
     return Column(
       children: [
@@ -29035,24 +30561,6 @@ class MovieDetailMainActions extends ConsumerWidget {
                 ratingText,
                 large: true,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                color: const Color(0xFF292929),
-                trailingIcon: const MoviAssetIcon(
-                  AppAssets.iconStarFilled,
-                  width: 18,
-                  height: 18,
-                  color: AppColors.ratingAccent,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 55,
-          child: Row(
-            children: [
-              Expanded(
-                child: MoviPrimaryButton(
 
 [... snapshot tronqué ...]
 ```
@@ -36464,6 +37972,96 @@ class MetadataPreference {
 }
 ```
 
+## src/features/settings/presentation/localization/movi_premium_localizer.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\localization\movi_premium_localizer.dart`
+- Taille : `21675` octets
+
+```text
+import 'package:flutter/widgets.dart';
+
+import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/features/settings/presentation/services/movi_premium_feedback_resolver.dart';
+
+class MoviPremiumLocalizer {
+  MoviPremiumLocalizer._(this._strings);
+
+  final _MoviPremiumStrings _strings;
+
+  factory MoviPremiumLocalizer.fromBuildContext(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final localeName = l10n?.localeName ?? 'en';
+    final languageCode = localeName.split('_').first.toLowerCase();
+
+    switch (languageCode) {
+      case 'fr':
+        return MoviPremiumLocalizer._(_fr);
+      case 'de':
+        return MoviPremiumLocalizer._(_de);
+      case 'es':
+        return MoviPremiumLocalizer._(_es);
+      case 'it':
+        return MoviPremiumLocalizer._(_it);
+      case 'nl':
+        return MoviPremiumLocalizer._(_nl);
+      case 'pl':
+        return MoviPremiumLocalizer._(_pl);
+      case 'pt':
+        return MoviPremiumLocalizer._(_pt);
+      case 'en':
+      default:
+        return MoviPremiumLocalizer._(_en);
+    }
+  }
+
+  String get entryTitle => _strings.entryTitle;
+  String get entrySubtitle => _strings.entrySubtitle;
+  String get entrySubtitleActive => _strings.entrySubtitleActive;
+  String get pageTitle => _strings.pageTitle;
+  String get pageSubtitle => _strings.pageSubtitle;
+  String get currentPlanTitle => _strings.currentPlanTitle;
+  String get offersTitle => _strings.offersTitle;
+  String get restoreButtonLabel => _strings.restoreButtonLabel;
+  String get retryButtonLabel => _strings.retryButtonLabel;
+  String get accountRequiredHint => _strings.accountRequiredHint;
+  String get activeSubscriptionHint => _strings.activeSubscriptionHint;
+  String get billingUnavailableHint => _strings.billingUnavailableHint;
+  List<String> get premiumHighlights => _strings.premiumHighlights;
+
+  String activePlanLabel(String? planId) {
+    final normalized = (planId ?? '').trim();
+    if (normalized.isEmpty) {
+      return _strings.activePlanGeneric;
+    }
+    return _strings.activePlanWithId(normalized);
+  }
+
+  String get inactivePlanLabel => _strings.inactivePlanLabel;
+
+  String purchaseButtonLabel(String priceLabel) {
+    return _strings.purchaseButtonLabel(priceLabel);
+  }
+
+  String feedback(MoviPremiumFeedbackKind kind) {
+    switch (kind) {
+      case MoviPremiumFeedbackKind.purchaseSucceeded:
+        return _strings.purchaseSucceeded;
+      case MoviPremiumFeedbackKind.restoreSucceeded:
+        return _strings.restoreSucceeded;
+      case MoviPremiumFeedbackKind.noPurchaseFound:
+        return _strings.noPurchaseFound;
+      case MoviPremiumFeedbackKind.billingUnavailable:
+        return _strings.billingUnavailable;
+      case MoviPremiumFeedbackKind.networkUnavailable:
+        return _strings.networkUnavailable;
+      case MoviPremiumFeedbackKind.accountRequired:
+        return _strings.accountRequired;
+      case MoviPremiumFeedbackKind.purchaseCancelled:
+        return _strings.purchaseCancelled;
+
+[... snapshot tronqué ...]
+```
+
 ## src/features/settings/presentation/pages/about_page.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\pages\about_page.dart`
@@ -37094,10 +38692,100 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 [... snapshot tronqué ...]
 ```
 
+## src/features/settings/presentation/pages/movi_premium_page.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\pages\movi_premium_page.dart`
+- Taille : `14078` octets
+
+```text
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/features/settings/presentation/localization/movi_premium_localizer.dart';
+import 'package:movi/src/features/settings/presentation/providers/movi_premium_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
+
+class MoviPremiumPage extends ConsumerWidget {
+  const MoviPremiumPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final localizer = MoviPremiumLocalizer.fromBuildContext(context);
+    final pageState = ref.watch(moviPremiumPageStateProvider);
+    final actionState = ref.watch(moviPremiumPageControllerProvider);
+    final controller = ref.read(moviPremiumPageControllerProvider.notifier);
+
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
+        child: SettingsContentWidth(
+          child: RefreshIndicator(
+            onRefresh: controller.refresh,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.of(context).maybePop(),
+                      icon: const Icon(Icons.arrow_back),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            localizer.pageTitle,
+                            style: theme.textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            localizer.pageSubtitle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                if (actionState.feedbackKind != null) ...[
+                  _FeedbackCard(
+                    message: localizer.feedback(actionState.feedbackKind!),
+                    isError:
+                        actionState.phase == MoviPremiumActionPhase.failure,
+                    onDismiss: controller.clearFeedback,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                _CurrentPlanCard(
+                  title: localizer.currentPlanTitle,
+                  value: pageState.hasActiveSubscription
+                      ? localizer.activePlanLabel(pageState.activePlanId)
+                      : localizer.inactivePlanLabel,
+                ),
+                const SizedBox(height: 16),
+                if (pageState.shouldShowAccountHint) ...[
+                  _InfoCard(
+                    icon: Icons.person_outline,
+                    message: localizer.accountRequiredHint,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (pageState.isBillingUnavailable) ...[
+
+[... snapshot tronqué ...]
+```
+
 ## src/features/settings/presentation/pages/settings_page.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\pages\settings_page.dart`
-- Taille : `55857` octets
+- Taille : `55934` octets
 
 ```text
 // lib/src/features/settings/presentation/pages/settings_page.dart
@@ -37520,6 +39208,96 @@ final iptvSourceStatsProvider = FutureProvider.family<IptvSourceStats, String>((
 });
 ```
 
+## src/features/settings/presentation/providers/movi_premium_providers.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\providers\movi_premium_providers.dart`
+- Taille : `12035` octets
+
+```text
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
+import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
+import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
+import 'package:movi/src/features/settings/presentation/services/movi_premium_feedback_resolver.dart';
+
+final moviPremiumFeedbackResolverProvider =
+    Provider<MoviPremiumFeedbackResolver>((ref) {
+      return const MoviPremiumFeedbackResolver();
+    });
+
+final moviPremiumAuthProvider = StreamProvider<AuthSnapshot>((ref) async* {
+  final repository = ref.watch(authRepositoryProvider);
+  final currentSession = repository.currentSession;
+
+  if (currentSession == null) {
+    yield AuthSnapshot.unauthenticated;
+  } else {
+    yield AuthSnapshot(
+      status: AuthStatus.authenticated,
+      session: currentSession,
+    );
+  }
+
+  yield* repository.onAuthStateChange;
+});
+
+@immutable
+class MoviPremiumPageState {
+  const MoviPremiumPageState({
+    required this.isAuthenticated,
+    required this.isLoadingSubscription,
+    required this.isLoadingOffers,
+    required this.billingAvailability,
+    required this.hasActiveSubscription,
+    required this.activePlanId,
+    required this.offers,
+  });
+
+  final bool isAuthenticated;
+  final bool isLoadingSubscription;
+  final bool isLoadingOffers;
+  final BillingAvailability billingAvailability;
+  final bool hasActiveSubscription;
+  final String? activePlanId;
+  final List<SubscriptionOffer> offers;
+
+  bool get isBillingUnavailable =>
+      billingAvailability == BillingAvailability.unavailable;
+
+  bool get isRestoreOnly =>
+      billingAvailability == BillingAvailability.restoreOnly;
+
+  bool get canPurchase =>
+      isAuthenticated && billingAvailability == BillingAvailability.available;
+
+  bool get canRestore =>
+      isAuthenticated && billingAvailability != BillingAvailability.unavailable;
+
+  bool get shouldShowAccountHint => !isAuthenticated;
+
+  bool get isInitialLoading =>
+      isLoadingSubscription && activePlanId == null && offers.isEmpty;
+
+  MoviPremiumPageState copyWith({
+    bool? isAuthenticated,
+    bool? isLoadingSubscription,
+    bool? isLoadingOffers,
+    BillingAvailability? billingAvailability,
+    bool? hasActiveSubscription,
+    Object? activePlanId = _sentinel,
+    List<SubscriptionOffer>? offers,
+  }) {
+
+[... snapshot tronqué ...]
+```
+
 ## src/features/settings/presentation/providers/user_settings_providers.dart
 
 - Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\providers\user_settings_providers.dart`
@@ -37608,6 +39386,116 @@ class UserSettingsController extends Notifier<UserSettingsState> {
 
 
 [... snapshot tronqué ...]
+```
+
+## src/features/settings/presentation/services/movi_premium_feedback_resolver.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\services\movi_premium_feedback_resolver.dart`
+- Taille : `1932` octets
+
+```text
+import 'package:movi/src/core/subscription/domain/failures/subscription_failure.dart';
+
+enum MoviPremiumFeedbackKind {
+  purchaseSucceeded,
+  restoreSucceeded,
+  noPurchaseFound,
+  billingUnavailable,
+  networkUnavailable,
+  accountRequired,
+  purchaseCancelled,
+  technicalFailure,
+}
+
+class MoviPremiumFeedbackResolver {
+  const MoviPremiumFeedbackResolver();
+
+  MoviPremiumFeedbackKind resolveRestoreSuccess({
+    required bool hasActiveSubscription,
+  }) {
+    return hasActiveSubscription
+        ? MoviPremiumFeedbackKind.restoreSucceeded
+        : MoviPremiumFeedbackKind.noPurchaseFound;
+  }
+
+  MoviPremiumFeedbackKind resolveFailure(SubscriptionFailure failure) {
+    if (_looksLikeNetworkFailure(failure)) {
+      return MoviPremiumFeedbackKind.networkUnavailable;
+    }
+
+    switch (failure.code) {
+      case SubscriptionFailureCode.billingUnavailable:
+      case SubscriptionFailureCode.providerNotConfigured:
+        return MoviPremiumFeedbackKind.billingUnavailable;
+      case SubscriptionFailureCode.purchaseCancelled:
+        return MoviPremiumFeedbackKind.purchaseCancelled;
+      case SubscriptionFailureCode.storeTimeout:
+        return MoviPremiumFeedbackKind.networkUnavailable;
+      case SubscriptionFailureCode.offerNotFound:
+      case SubscriptionFailureCode.purchaseFailed:
+      case SubscriptionFailureCode.restoreFailed:
+      case SubscriptionFailureCode.storeQueryFailed:
+      case SubscriptionFailureCode.unknown:
+        return MoviPremiumFeedbackKind.technicalFailure;
+    }
+  }
+
+  bool _looksLikeNetworkFailure(SubscriptionFailure failure) {
+    final message = failure.message.toLowerCase();
+    return message.contains('network') ||
+        message.contains('connection') ||
+        message.contains('offline') ||
+        message.contains('socket') ||
+        message.contains('timed out') ||
+        message.contains('timeout');
+  }
+}
+```
+
+## src/features/settings/presentation/widgets/movi_premium_settings_tile.dart
+
+- Chemin absolu : `C:\Users\matte\Documents\DEV\Flutter\movi-app\lib\src\features\settings\presentation\widgets\movi_premium_settings_tile.dart`
+- Taille : `1461` octets
+
+```text
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:movi/src/features/settings/presentation/localization/movi_premium_localizer.dart';
+import 'package:movi/src/features/settings/presentation/pages/movi_premium_page.dart';
+import 'package:movi/src/features/settings/presentation/providers/movi_premium_providers.dart';
+
+/// Reusable Settings entry for Movi Premium.
+///
+/// Insert this tile in the account section of `settings_page.dart`.
+/// The widget stays presentation-only: all premium rules remain in providers.
+class MoviPremiumSettingsTile extends ConsumerWidget {
+  const MoviPremiumSettingsTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pageState = ref.watch(moviPremiumPageStateProvider);
+    final localizer = MoviPremiumLocalizer.fromBuildContext(context);
+
+    final subtitle = pageState.hasActiveSubscription
+        ? localizer.entrySubtitleActive
+        : localizer.entrySubtitle;
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.workspace_premium_outlined),
+        title: Text(localizer.entryTitle),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const MoviPremiumPage()),
+          );
+        },
+      ),
+    );
+  }
+}
 ```
 
 ## src/features/settings/presentation/widgets/settings_content_width.dart

@@ -332,10 +332,11 @@ void main() {
         context: const PlaybackSelectionContext(contentType: ContentType.movie),
       );
 
-      expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-      expect(decision.reason, PlaybackSelectionReason.preferredQualityMatch);
-      expect(decision.selectedVariant?.qualityLabel, '4K');
-      expect(decision.selectedVariant?.qualityRank, 4);
+      expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+      expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+      expect(decision.selectedVariant, isNull);
+      expect(decision.rankedVariants.first.qualityLabel, '4K');
+      expect(decision.rankedVariants.first.qualityRank, 4);
     },
   );
 

@@ -43,6 +43,9 @@ import 'package:movi/src/core/reporting/presentation/widgets/report_problem_shee
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
 import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
+import 'package:movi/src/core/subscription/subscription.dart';
+import 'package:movi/src/core/utils/navigation_helpers.dart';
+import 'package:movi/src/features/tv/presentation/widgets/episode_playback_variant_sheet.dart';
 
 class TvDetailPage extends ConsumerStatefulWidget {
   const TvDetailPage({super.key, required this.seriesId});
@@ -831,9 +834,19 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               if (entry != null &&
                   entry.season != null &&
                   entry.episode != null) {
-                return AppLocalizations.of(
-                  context,
-                )!.tvResumeSeasonEpisode(entry.season!, entry.episode!);
+                final hasContinueWatchingPremium = ref
+                    .watch(
+                      canAccessPremiumFeatureProvider(
+                        PremiumFeature.localContinueWatching,
+                      ),
+                    )
+                    .maybeWhen(data: (value) => value, orElse: () => false);
+                if (hasContinueWatchingPremium) {
+                  return AppLocalizations.of(
+                    context,
+                  )!.tvResumeSeasonEpisode(entry.season!, entry.episode!);
+                }
+                return AppLocalizations.of(context)!.homeWatchNow;
               }
               return AppLocalizations.of(context)!.homeWatchNow;
             },
@@ -847,7 +860,28 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               borderRadius: BorderRadius.circular(32),
             ),
           ),
-          onPressed: () => _playSeries(context, seriesId, mediaTitle),
+          onPressed: () async {
+            final hasContinueWatchingPremium = ref
+                .read(
+                  canAccessPremiumFeatureProvider(
+                    PremiumFeature.localContinueWatching,
+                  ),
+                )
+                .maybeWhen(data: (value) => value, orElse: () => false);
+            if (!hasContinueWatchingPremium) {
+              // Non-premium: always start from S1E1 (no resume).
+              // ignore: use_build_context_synchronously
+              await _openFirstEpisode(startFromBeginning: true);
+              return;
+            }
+            // ignore: use_build_context_synchronously
+            await _playSeries(
+              context,
+              seriesId,
+              mediaTitle,
+              startFromBeginning: false,
+            );
+          },
         );
       },
     );
@@ -1046,7 +1080,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     role: person.role,
                     photo: person.poster,
                   );
-                  context.push(AppRouteNames.person, extra: personSummary);
+                  navigateToPersonDetail(context, ref, person: personSummary);
                 },
               );
             },
@@ -1603,9 +1637,46 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
+  Future<void> _openFirstEpisode({required bool startFromBeginning}) async {
+    final vmAsync = ref.read(tvDetailProgressiveControllerProvider(widget.seriesId));
+    final vm = vmAsync.value;
+    final seasonsList = (vm?.seasons ?? seasons).toList(growable: false);
+
+    if (seasonsList.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chargement des épisodes en cours...')),
+      );
+      return;
+    }
+
+    final sortedSeasons = seasonsList.toList(growable: true)
+      ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
+    final firstSeason = sortedSeasons.first;
+
+    if (firstSeason.isLoadingEpisodes || firstSeason.episodes.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Chargement des épisodes en cours...')),
+      );
+      return;
+    }
+
+    final sortedEpisodes = firstSeason.episodes.toList(growable: true)
+      ..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
+    final firstEpisode = sortedEpisodes.first;
+
+    await _openEpisodePlayer(
+      firstEpisode,
+      firstSeason.seasonNumber,
+      startFromBeginning: startFromBeginning,
+    );
+  }
+
   Future<void> _openEpisodePlayer(
     EpisodeViewModel episode,
     int seasonNumber,
+    {bool startFromBeginning = false}
   ) async {
     try {
       final locator = ref.read(slProvider);
@@ -1640,25 +1711,38 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         return;
       }
 
-      final selectedVariant = variants.first;
       final seriesTitle = vm?.title ?? mediaTitle;
       final episodeTitle = episode.title.isNotEmpty
           ? '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')} - ${episode.title}'
           : '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
       final posterUri = vm?.poster;
 
-      Duration? resumePosition;
-      try {
-        final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
-        final historyEntry = await historyRepo.getEntry(
-          widget.seriesId,
-          ContentType.series,
-          season: seasonNumber,
-          episode: episode.episodeNumber,
+      var selectedVariant = variants.first;
+      if (variants.length > 1) {
+        final manual = await EpisodePlaybackVariantSheet.show(
+          // ignore: use_build_context_synchronously
+          context,
+          episodeTitle: episodeTitle,
+          variants: variants,
         );
-        resumePosition = historyEntry?.lastPosition;
-      } catch (e) {
-        logger.debug('Impossible de recuperer la position de reprise: $e');
+        if (manual == null || !mounted || !context.mounted) return;
+        selectedVariant = manual;
+      }
+
+      Duration? resumePosition;
+      if (!startFromBeginning) {
+        try {
+          final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
+          final historyEntry = await historyRepo.getEntry(
+            widget.seriesId,
+            ContentType.series,
+            season: seasonNumber,
+            episode: episode.episodeNumber,
+          );
+          resumePosition = historyEntry?.lastPosition;
+        } catch (e) {
+          logger.debug('Impossible de recuperer la position de reprise: $e');
+        }
       }
 
       if (!mounted) return;
@@ -1685,6 +1769,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     BuildContext context,
     String seriesId,
     String title,
+    {bool startFromBeginning = false}
   ) async {
     try {
       // Récupérer l'historique pour trouver l'épisode à reprendre
@@ -1695,15 +1780,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         ContentType.series,
       );
 
-      // Si pas d'historique ou pas d'épisode en cours, afficher un message
+      // Premium: resume if possible, otherwise fall back to first episode.
       if (historyEntry == null ||
           historyEntry.season == null ||
           historyEntry.episode == null) {
-        if (!mounted) return;
-        if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sélectionnez un épisode pour le lire')),
-        );
+        await _openFirstEpisode(startFromBeginning: startFromBeginning);
         return;
       }
 
@@ -1750,7 +1831,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       );
 
       // Lancer l'épisode à reprendre
-      await _openEpisodePlayer(episode, seasonNumber);
+      await _openEpisodePlayer(
+        episode,
+        seasonNumber,
+        startFromBeginning: startFromBeginning,
+      );
     } catch (e) {
       final logger = ref.read(slProvider)<AppLogger>();
       logger.error('Erreur lors de la reprise de la série: $e', e);

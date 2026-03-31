@@ -1247,16 +1247,60 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: GestureDetector(
-          onTapDown: _onScreenTap,
-          onDoubleTapDown: _onDoubleTap,
-          onVerticalDragStart: _onVerticalDragStart,
-          onVerticalDragUpdate: _onVerticalDragUpdate,
-          onVerticalDragEnd: _onVerticalDragEnd,
-          behavior: HitTestBehavior.opaque,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
+        body: Focus(
+          autofocus: true,
+          onKeyEvent: (_, event) {
+            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            final key = event.logicalKey;
+
+            if (key == LogicalKeyboardKey.escape ||
+                key == LogicalKeyboardKey.goBack ||
+                key == LogicalKeyboardKey.backspace) {
+              unawaited(_onBack(context));
+              return KeyEventResult.handled;
+            }
+
+            final isNavigationKey =
+                key == LogicalKeyboardKey.arrowUp ||
+                key == LogicalKeyboardKey.arrowDown ||
+                key == LogicalKeyboardKey.arrowLeft ||
+                key == LogicalKeyboardKey.arrowRight ||
+                key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space;
+
+            if (isNavigationKey && !_showControls) {
+              setState(() => _showControls = true);
+            }
+
+            if (key == LogicalKeyboardKey.select ||
+                key == LogicalKeyboardKey.enter ||
+                key == LogicalKeyboardKey.space) {
+              _togglePlayPause();
+              return KeyEventResult.handled;
+            }
+
+            if (key == LogicalKeyboardKey.arrowLeft) {
+              _seekBackward(10);
+              return KeyEventResult.handled;
+            }
+            if (key == LogicalKeyboardKey.arrowRight) {
+              _seekForward(10);
+              return KeyEventResult.handled;
+            }
+
+            return KeyEventResult.ignored;
+          },
+          child: GestureDetector(
+            onTapDown: _onScreenTap,
+            onDoubleTapDown: _onDoubleTap,
+            onVerticalDragStart: _onVerticalDragStart,
+            onVerticalDragUpdate: _onVerticalDragUpdate,
+            onVerticalDragEnd: _onVerticalDragEnd,
+            behavior: HitTestBehavior.opaque,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
               // Vidéo (sans contrôles natifs)
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -1354,6 +1398,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                 ),
             ],
           ),
+        ),
         ),
       ),
     );

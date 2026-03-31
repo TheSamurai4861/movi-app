@@ -340,6 +340,7 @@ class _FakeProfileRepository implements ProfileRepository {
     if (index == -1) {
       throw StateError('Profile not found: $profileId');
     }
+
     final current = _profiles[index];
     final updated = current.copyWith(
       name: name,
@@ -350,6 +351,7 @@ class _FakeProfileRepository implements ProfileRepository {
           ? current.pegiLimit
           : pegiLimit as int?,
     );
+
     _profiles[index] = updated;
     return updated;
   }
@@ -360,13 +362,20 @@ class _MemoryCloudSyncPreferences implements CloudSyncPreferences {
     : _autoSyncEnabled = autoSyncEnabled;
 
   final StreamController<bool> _controller = StreamController<bool>.broadcast();
+
   bool _autoSyncEnabled;
 
   @override
   bool get autoSyncEnabled => _autoSyncEnabled;
 
   @override
+  bool get userWantsAutoSync => autoSyncEnabled;
+
+  @override
   Stream<bool> get autoSyncEnabledStream => _controller.stream;
+
+  @override
+  Stream<bool> get userWantsAutoSyncStream => autoSyncEnabledStream;
 
   @override
   Stream<bool> get autoSyncEnabledStreamWithInitial async* {
@@ -375,12 +384,21 @@ class _MemoryCloudSyncPreferences implements CloudSyncPreferences {
   }
 
   @override
+  Stream<bool> get userWantsAutoSyncStreamWithInitial =>
+      autoSyncEnabledStreamWithInitial;
+
+  @override
   Future<void> setAutoSyncEnabled(bool enabled) async {
     if (enabled == _autoSyncEnabled) return;
     _autoSyncEnabled = enabled;
     if (!_controller.isClosed) {
       _controller.add(enabled);
     }
+  }
+
+  @override
+  Future<void> setUserWantsAutoSync(bool enabled) {
+    return setAutoSyncEnabled(enabled);
   }
 
   @override
@@ -444,6 +462,7 @@ class _MemoryLocalePreferences implements LocalePreferences {
 class _MemorySelectedProfilePreferences implements SelectedProfilePreferences {
   final StreamController<String?> _controller =
       StreamController<String?>.broadcast();
+
   String? _selectedProfileId;
 
   @override

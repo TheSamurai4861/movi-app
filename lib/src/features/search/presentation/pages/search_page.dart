@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -16,8 +17,10 @@ import 'package:movi/src/features/search/presentation/providers/search_history_p
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/widgets/genres_grid.dart';
 import 'package:movi/src/features/search/presentation/widgets/watch_providers_grid.dart';
+import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
+import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 
 /// SearchPage (version "content-only" pour être hostée par le Shell).
 ///
@@ -98,6 +101,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
+    final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    shellFocusCoordinator.registerPreferredNode(ShellTab.search, _focusNode);
 
     // Charger l’historique une fois.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -139,6 +144,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   void dispose() {
+    final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    shellFocusCoordinator.unregisterPreferredNode(ShellTab.search, _focusNode);
     _historyHideTimer?.cancel();
     _textCtrl.removeListener(_onTextChangedLocal);
     _focusNode.removeListener(_onFocusChangedLocal);
@@ -318,11 +325,18 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             )
                           : const SizedBox.shrink(),
                     ),
-                    WatchProvidersGrid(
-                      horizontalPadding: horizontalPadding,
-                      maxContentWidth: gridMaxWidth,
-                      firstItemFocusNode: _firstProviderFocusNode,
-                    ),
+                    if (ref
+                        .watch(
+                          canAccessPremiumFeatureProvider(
+                            PremiumFeature.extendedDiscoveryDetails,
+                          ),
+                        )
+                        .maybeWhen(data: (value) => value, orElse: () => false))
+                      WatchProvidersGrid(
+                        horizontalPadding: horizontalPadding,
+                        maxContentWidth: gridMaxWidth,
+                        firstItemFocusNode: _firstProviderFocusNode,
+                      ),
                     const SizedBox(height: 32),
                     GenresGrid(
                       horizontalPadding: horizontalPadding,
@@ -1089,13 +1103,13 @@ class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
   }
 }
 
-class _SagaCard extends StatelessWidget {
+class _SagaCard extends ConsumerWidget {
   const _SagaCard({required this.saga});
 
   final SagaSummary saga;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     final textStyle =
@@ -1103,7 +1117,11 @@ class _SagaCard extends StatelessWidget {
         const TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
 
     return GestureDetector(
-      onTap: () => context.push(AppRouteNames.sagaDetail, extra: saga.id.value),
+      onTap: () => navigateToSagaDetail(
+        context,
+        ref,
+        sagaId: saga.id.value,
+      ),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 150,

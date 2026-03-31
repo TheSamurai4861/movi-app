@@ -15,12 +15,14 @@ import 'package:movi/src/features/library/library_constants.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_filter_pills.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
+import 'package:movi/src/features/library/presentation/widgets/library_premium_banner.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/core/utils/navigation_helpers.dart';
 
 /// LibraryPage (version "content-only" pour être hostée par le Shell).
 ///
@@ -602,16 +604,19 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
         LibraryConstants.actorPrefix,
         '',
       );
-      context.push(
-        AppRouteNames.person,
-        extra: PersonSummary(id: PersonId(personId), name: playlist.title),
+      unawaited(
+        navigateToPersonDetail(
+          context,
+          ref,
+          person: PersonSummary(id: PersonId(personId), name: playlist.title),
+        ),
       );
       return;
     }
 
     if (playlist.id.startsWith(LibraryConstants.sagaPrefix)) {
       final sagaId = playlist.id.replaceFirst(LibraryConstants.sagaPrefix, '');
-      context.push(AppRouteNames.sagaDetail, extra: sagaId);
+      unawaited(navigateToSagaDetail(context, ref, sagaId: sagaId));
       return;
     }
 
@@ -784,6 +789,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 ref.read(libraryFilterProvider.notifier).setFilter(newFilter);
               },
             ),
+          ),
+
+          const SizedBox(height: 12),
+
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: const LibraryPremiumBanner(),
           ),
 
           const SizedBox(height: 20),

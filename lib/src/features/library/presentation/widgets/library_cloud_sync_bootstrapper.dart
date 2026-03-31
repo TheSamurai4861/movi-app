@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_access_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 
 class LibraryCloudSyncBootstrapper extends ConsumerWidget {
@@ -10,9 +11,15 @@ class LibraryCloudSyncBootstrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Ensures the controller is mounted early so it can listen to profile/client
-    // changes and run background sync.
-    ref.watch(libraryCloudSyncControllerProvider);
+    final shouldBootstrap = ref.watch(shouldBootstrapLibraryCloudSyncProvider);
+
+    // The cloud sync controller must only be mounted when the effective cloud
+    // sync rule is satisfied:
+    // userWantsCloudSync && isAuthenticated && hasPremiumEntitlement.
+    if (shouldBootstrap) {
+      ref.watch(libraryCloudSyncControllerProvider);
+    }
+
     return child;
   }
 }

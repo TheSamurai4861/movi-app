@@ -30,11 +30,29 @@ class CloudSyncPreferences {
     );
   }
 
+  /// Backward-compatible name kept for existing call sites.
+  ///
+  /// This value is the **user preference only**. It must not be confused with
+  /// the effective cloud sync state, which also depends on authentication and
+  /// premium entitlement.
   bool get autoSyncEnabled => _autoSyncEnabled;
+
+  /// Explicit business-oriented alias for the persisted user preference.
+  bool get userWantsAutoSync => _autoSyncEnabled;
+
+  /// Backward-compatible stream kept for existing call sites.
   Stream<bool> get autoSyncEnabledStream => _controller.stream;
+
+  /// Explicit business-oriented alias for the persisted user preference stream.
+  Stream<bool> get userWantsAutoSyncStream => _controller.stream;
 
   Stream<bool> get autoSyncEnabledStreamWithInitial async* {
     yield _autoSyncEnabled;
+    yield* _controller.stream;
+  }
+
+  Stream<bool> get userWantsAutoSyncStreamWithInitial async* {
+    yield userWantsAutoSync;
     yield* _controller.stream;
   }
 
@@ -42,7 +60,13 @@ class CloudSyncPreferences {
     if (enabled == _autoSyncEnabled) return;
     _autoSyncEnabled = enabled;
     await _storage.put(key: _key, payload: {'value': enabled});
-    if (!_controller.isClosed) _controller.add(enabled);
+    if (!_controller.isClosed) {
+      _controller.add(enabled);
+    }
+  }
+
+  Future<void> setUserWantsAutoSync(bool enabled) {
+    return setAutoSyncEnabled(enabled);
   }
 
   Future<void> dispose() async {

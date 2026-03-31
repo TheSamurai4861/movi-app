@@ -17,4 +17,14 @@ class MoviScrollBehavior extends MaterialScrollBehavior {
     PointerDeviceKind.invertedStylus,
     PointerDeviceKind.trackpad,
   };
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    // Hide scrollbars globally (desktop/web) while keeping scrolling behavior.
+    return child;
+  }
 }

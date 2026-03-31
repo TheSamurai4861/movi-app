@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as app_state;
+import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/theme/theme.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_cloud_sync_bootstrapper.dart';
 import 'package:movi/src/core/widgets/movi_remote_navigation.dart';
@@ -62,8 +63,10 @@ class MyApp extends ConsumerWidget {
       routerConfig: router,
       builder: (context, child) {
         return MoviRemoteNavigation(
-          child: LibraryCloudSyncBootstrapper(
-            child: child ?? const SizedBox.shrink(),
+          child: SubscriptionBootstrapper(
+            child: LibraryCloudSyncBootstrapper(
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
         );
       },

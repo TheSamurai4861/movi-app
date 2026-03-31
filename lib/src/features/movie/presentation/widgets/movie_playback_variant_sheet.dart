@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 
 class MoviePlaybackVariantSheet extends StatelessWidget {
   const MoviePlaybackVariantSheet({
@@ -50,28 +51,37 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final variant = variants[index];
-                return InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () => Navigator.of(context).pop(variant),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _buildVariantTitle(variant, index),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                final label = _buildVariantTitle(variant, index);
+                return MoviFocusableAction(
+                  autofocus: index == 0,
+                  semanticLabel: label,
+                  onPressed: () => Navigator.of(context).pop(variant),
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.01 : 1,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 12,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      backgroundColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.10)
+                          : Colors.transparent,
+                      borderColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.55)
+                          : Colors.white.withValues(alpha: 0.10),
+                      borderWidth: state.focused ? 2 : 1,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        label,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 );
               },
             ),

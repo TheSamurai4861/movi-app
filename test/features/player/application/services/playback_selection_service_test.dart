@@ -51,12 +51,10 @@ void main() {
       context: context,
     );
 
-    expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-    expect(
-      decision.reason,
-      PlaybackSelectionReason.preferredAudioLanguageMatch,
-    );
-    expect(decision.selectedVariant?.id, 'b:2');
+    expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+    expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+    expect(decision.selectedVariant, isNull);
+    expect(decision.rankedVariants.first.id, 'b:2');
   });
 
   test('uses audio preference before unknown metadata when available', () {
@@ -77,12 +75,10 @@ void main() {
       context: context,
     );
 
-    expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-    expect(
-      decision.reason,
-      PlaybackSelectionReason.preferredAudioLanguageMatch,
-    );
-    expect(decision.selectedVariant?.id, 'a:1');
+    expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+    expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+    expect(decision.selectedVariant, isNull);
+    expect(decision.rankedVariants.first.id, 'a:1');
   });
 
   test('falls back deterministically to the best known quality', () {
@@ -101,9 +97,10 @@ void main() {
       context: context,
     );
 
-    expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-    expect(decision.reason, PlaybackSelectionReason.deterministicFallback);
-    expect(decision.selectedVariant?.id, 'a:1');
+    expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+    expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+    expect(decision.selectedVariant, isNull);
+    expect(decision.rankedVariants.first.id, 'a:1');
   });
 
   test('prefers the configured quality when several known variants exist', () {
@@ -128,9 +125,10 @@ void main() {
       context: context,
     );
 
-    expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-    expect(decision.reason, PlaybackSelectionReason.preferredQualityMatch);
-    expect(decision.selectedVariant?.id, 'b:2');
+    expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+    expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+    expect(decision.selectedVariant, isNull);
+    expect(decision.rankedVariants.first.id, 'b:2');
   });
 
   test(
@@ -170,9 +168,10 @@ void main() {
         context: context,
       );
 
-      expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-      expect(decision.reason, PlaybackSelectionReason.deterministicFallback);
-      expect(decision.selectedVariant?.id, 'vo-4k');
+      expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+      expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+      expect(decision.selectedVariant, isNull);
+      expect(decision.rankedVariants.first.id, 'vo-4k');
       expect(decision.rankedVariants.map((variant) => variant.id), <String>[
         'vo-4k',
         'vf-fhd',
@@ -209,9 +208,10 @@ void main() {
         context: context,
       );
 
-      expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
-      expect(decision.reason, PlaybackSelectionReason.preferredQualityMatch);
-      expect(decision.selectedVariant?.id, 'known-hd');
+      expect(decision.disposition, PlaybackSelectionDisposition.manualSelection);
+      expect(decision.reason, PlaybackSelectionReason.ambiguousVariants);
+      expect(decision.selectedVariant, isNull);
+      expect(decision.rankedVariants.first.id, 'known-hd');
     },
   );
 
@@ -253,7 +253,7 @@ void main() {
       );
       expect(
         decision.reason,
-        PlaybackSelectionReason.preferredVariantUnavailable,
+        PlaybackSelectionReason.ambiguousVariants,
       );
       expect(decision.selectedVariant, isNull);
     },

@@ -4,6 +4,8 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/features/library/domain/repositories/library_repository.dart';
 import 'package:movi/src/features/library/data/repositories/library_repository_impl.dart';
 import 'package:movi/src/features/library/library_constants.dart';
@@ -125,6 +127,9 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   final repository = ref.watch(libraryRepositoryProvider);
   final locale = ref.watch(currentLocaleProvider);
   final localizations = lookupAppLocalizations(locale);
+  final hasContinueWatchingPremium = await ref.read(
+    canAccessPremiumFeatureProvider(PremiumFeature.localContinueWatching).future,
+  );
 
   final system = <LibraryPlaylistItem>[];
   final pinnedUserPlaylists = <LibraryPlaylistItem>[];
@@ -133,17 +138,19 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   final sagas = <LibraryPlaylistItem>[];
 
   // Médias en cours de lecture
-  final inProgress = await repository.getHistoryInProgress();
-  if (inProgress.isNotEmpty) {
-    system.add(
-      LibraryPlaylistItem(
-        id: LibraryConstants.inProgressPlaylistId,
-        title: localizations.libraryInProgress,
-        itemCount: inProgress.length,
-        type: LibraryPlaylistType.inProgress,
-        isPinned: true,
-      ),
-    );
+  if (hasContinueWatchingPremium) {
+    final inProgress = await repository.getHistoryInProgress();
+    if (inProgress.isNotEmpty) {
+      system.add(
+        LibraryPlaylistItem(
+          id: LibraryConstants.inProgressPlaylistId,
+          title: localizations.libraryInProgress,
+          itemCount: inProgress.length,
+          type: LibraryPlaylistType.inProgress,
+          isPinned: true,
+        ),
+      );
+    }
   }
 
   // Films favoris
@@ -175,22 +182,24 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   }
 
   // Historique de visionnage
-  final historyCompleted = await repository.getHistoryCompleted();
-  final historyInProgress = await repository.getHistoryInProgress();
-  final totalHistory = {
-    for (final item in [...historyCompleted, ...historyInProgress])
-      '${item.type.name}:${item.id}',
-  }.length;
-  if (totalHistory > 0) {
-    system.add(
-      LibraryPlaylistItem(
-        id: LibraryConstants.watchHistoryPlaylistId,
-        title: localizations.libraryWatchHistory,
-        itemCount: totalHistory,
-        type: LibraryPlaylistType.watchHistory,
-        isPinned: true,
-      ),
-    );
+  if (hasContinueWatchingPremium) {
+    final historyCompleted = await repository.getHistoryCompleted();
+    final historyInProgress = await repository.getHistoryInProgress();
+    final totalHistory = {
+      for (final item in [...historyCompleted, ...historyInProgress])
+        '${item.type.name}:${item.id}',
+    }.length;
+    if (totalHistory > 0) {
+      system.add(
+        LibraryPlaylistItem(
+          id: LibraryConstants.watchHistoryPlaylistId,
+          title: localizations.libraryWatchHistory,
+          itemCount: totalHistory,
+          type: LibraryPlaylistType.watchHistory,
+          isPinned: true,
+        ),
+      );
+    }
   }
 
   // Playlists utilisateur

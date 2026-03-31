@@ -41,6 +41,8 @@ import 'package:movi/src/core/profile/presentation/providers/current_profile_pro
 import 'package:movi/src/core/parental/presentation/utils/parental_reason_localizer.dart';
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/reporting/presentation/widgets/report_problem_sheet.dart';
+import 'package:movi/src/core/subscription/subscription.dart';
+import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
 class MovieDetailPage extends ConsumerStatefulWidget {
   const MovieDetailPage({super.key, required this.movieId});
@@ -572,6 +574,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required bool expandPrimary,
   }) {
     final cs = Theme.of(context).colorScheme;
+    final hasContinueWatchingPremium = ref
+        .watch(
+          canAccessPremiumFeatureProvider(PremiumFeature.localContinueWatching),
+        )
+        .maybeWhen(data: (value) => value, orElse: () => false);
     final historyAsync = ref.watch(
       hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
     );
@@ -582,7 +589,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
     final primaryButton = MoviPrimaryButton(
       label: historyAsync.when(
-        data: (entry) => entry != null
+        data: (entry) => (entry != null && hasContinueWatchingPremium)
             ? AppLocalizations.of(context)!.resumePlayback
             : AppLocalizations.of(context)!.homeWatchNow,
         loading: () => AppLocalizations.of(context)!.homeWatchNow,
@@ -593,7 +600,15 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         backgroundColor: cs.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       ),
-      onPressed: () => _playMovie(context, mediaTitle),
+      onPressed: () async {
+        final entry = historyAsync.asData?.value;
+        final isResumeAttempt = entry != null;
+        _playMovie(
+          context,
+          mediaTitle,
+          startFromBeginning: isResumeAttempt && !hasContinueWatchingPremium,
+        );
+      },
     );
 
     final playButton = expandPrimary
@@ -603,6 +618,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       data: (isAvailable) => isAvailable,
       orElse: () => false,
     );
+    // ignore: unused_local_variable
     final manualChoiceButton = canOpenVariants
         ? SizedBox(
             height: expandPrimary ? 55 : 48,
@@ -626,10 +642,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
         children: [
           playButton,
-          // if (manualChoiceButton != null) ...[
-          //   const SizedBox(width: 12),
-          //   manualChoiceButton,
-          // ],
+          if (manualChoiceButton != null) ...[
+            const SizedBox(width: 12),
+            manualChoiceButton,
+          ],
           const SizedBox(width: 16),
           SizedBox(
             width: 40,
@@ -1108,7 +1124,26 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
-  Future<void> _playMovie(BuildContext context, String title) async {
+  VideoSource _copyVideoSource(VideoSource source, {Duration? resumePosition}) {
+    return VideoSource(
+      url: source.url,
+      title: source.title,
+      subtitle: source.subtitle,
+      contentId: source.contentId,
+      tmdbId: source.tmdbId,
+      contentType: source.contentType,
+      poster: source.poster,
+      season: source.season,
+      episode: source.episode,
+      resumePosition: resumePosition,
+    );
+  }
+
+  Future<void> _playMovie(
+    BuildContext context,
+    String title, {
+    bool startFromBeginning = false,
+  }) async {
     final logger = ref.read(slProvider)<AppLogger>();
     final diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
     final stopwatch = Stopwatch()..start();
@@ -1137,16 +1172,20 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
       var source = decision.selectedVariant?.videoSource;
       if (!mounted || !context.mounted) return;
-      final selectedVariant = await MoviePlaybackVariantSheet.show(
-        context,
-        movieTitle: title,
-        variants: decision.rankedVariants,
-      );
-      if (selectedVariant == null || !mounted || !context.mounted) {
-        return;
-      }
-      source = selectedVariant.videoSource;
 
+      if (decision.requiresManualSelection) {
+        final selectedVariant = await MoviePlaybackVariantSheet.show(
+          context,
+          movieTitle: title,
+          variants: decision.rankedVariants,
+        );
+        if (selectedVariant == null || !mounted || !context.mounted) {
+          return;
+        }
+        source = selectedVariant.videoSource;
+      }
+
+      // ignore: dead_code, unnecessary_null_comparison
       if (source == null) {
         diagnostics.completed(
           'movie_play_action',
@@ -1179,7 +1218,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           'variants': decision.rankedVariants.length,
         },
       );
-      context.push(AppRouteNames.player, extra: source);
+      final effectiveSource = startFromBeginning
+          ? _copyVideoSource(source, resumePosition: Duration.zero)
+          : source;
+      context.push(AppRouteNames.player, extra: effectiveSource);
     } catch (e, st) {
       diagnostics.failed(
         'movie_play_action',

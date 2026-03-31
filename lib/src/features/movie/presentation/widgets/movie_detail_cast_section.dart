@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:movi/src/core/router/router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 
-class MovieDetailCastSection extends StatelessWidget {
+class MovieDetailCastSection extends ConsumerWidget {
   const MovieDetailCastSection({
     super.key,
     required this.cast,
@@ -16,7 +16,7 @@ class MovieDetailCastSection extends StatelessWidget {
   final double horizontalPadding;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       height: MoviPersonCard.listHeight,
       child: ListView.separated(
@@ -39,7 +39,7 @@ class MovieDetailCastSection extends StatelessWidget {
                 role: person.role,
                 photo: person.poster,
               );
-              context.push(AppRouteNames.person, extra: personSummary);
+              navigateToPersonDetail(context, ref, person: personSummary);
             },
           );
         },

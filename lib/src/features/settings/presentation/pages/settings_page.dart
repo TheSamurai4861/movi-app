@@ -14,6 +14,8 @@ import 'package:movi/src/core/auth/application/services/local_data_cleanup_servi
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
@@ -47,6 +49,9 @@ import 'package:movi/src/features/shell/presentation/navigation/shell_destinatio
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
+import 'package:movi/src/features/settings/presentation/widgets/movi_premium_settings_tile.dart';
+import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// SettingsPage (content-only): pas de Scaffold ici.
 /// Le Shell (Home layout) gère le Scaffold/SafeArea/Bottombar.
@@ -58,6 +63,13 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  static final Uri _privacyPolicyUrl = Uri.parse(
+    'https://thesamurai4861.github.io/movi-privacy/',
+  );
+  static final Uri _termsOfUseUrl = Uri.parse(
+    'https://thesamurai4861.github.io/movi-terms/',
+  );
+
   bool _refreshingIptv = false;
   bool _unlocking = false;
   bool _wasUnlockedForSettings = false;
@@ -76,6 +88,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ('pl', 'Polski'),
     ('pt', 'Português'),
   ];
+
+  Future<void> _openExternalLink(Uri url) async {
+    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (ok) return;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Impossible d’ouvrir le lien')),
+    );
+  }
 
   static const List<(Duration? interval, String label)> _syncIntervalOptions = [
     (null, 'Désactivé'),
@@ -1041,6 +1062,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     ]);
   }
 
+  // ignore: unused_element
   Widget _buildPlaybackSettingsSection(BuildContext context) {
     final preferredAudioLanguage = ref.watch(
       asp.currentPreferredAudioLanguageProvider,
@@ -1164,7 +1186,29 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Future<bool> _ensurePremiumFeature(PremiumFeature feature) async {
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(feature).future,
+    );
+
+    if (hasPremium) {
+      return true;
+    }
+
+    if (!mounted) {
+      return false;
+    }
+
+    await showPremiumFeatureLockedSheet(context);
+    return false;
+  }
+
   Future<void> _onAddProfile() async {
+    final hasPremium = await _ensurePremiumFeature(
+      PremiumFeature.localProfiles,
+    );
+    if (!hasPremium) return;
+
     final ok = await _ensureSettingsUnlocked();
     if (!ok || !mounted) return;
     await CreateProfileDialog.show(context);
@@ -1172,6 +1216,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _onSelectProfile(Profile profile) async {
+    final currentSelectedId = ref.read(selectedProfileIdProvider);
+    final isChangingProfile = currentSelectedId != null &&
+        currentSelectedId.isNotEmpty &&
+        currentSelectedId != profile.id;
+    if (isChangingProfile) {
+      final hasPremium = await _ensurePremiumFeature(PremiumFeature.localProfiles);
+      if (!hasPremium) return;
+    }
+
     final isTargetChild = profile.isKid || profile.pegiLimit != null;
 
     if (isTargetChild) {
@@ -1187,6 +1240,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<void> _onManageProfile(Profile profile) async {
+    final hasPremium = await _ensurePremiumFeature(
+      PremiumFeature.localProfiles,
+    );
+    if (!hasPremium) return;
+
     final ok = await _ensureSettingsUnlocked();
     if (!ok || !mounted) return;
     await ManageProfileDialog.show(context, profile: profile);
@@ -1299,6 +1357,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final currentLangLabel = _getLanguageLabel(currentLangCode);
     final currentSyncInterval = ref.watch(asp.currentIptvSyncIntervalProvider);
     final currentAccentColor = ref.watch(asp.currentAccentColorProvider);
+    final hasCloudSyncPremium = ref
+        .watch(canAccessPremiumFeatureProvider(PremiumFeature.cloudLibrarySync))
+        .maybeWhen(data: (value) => value, orElse: () => false);
 
     final cloudSync = ref.watch(libraryCloudSyncControllerProvider);
     final cloudSyncController = ref.read(
@@ -1356,6 +1417,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ),
                   const SizedBox(height: _sectionTitleGap),
                   _buildProfilesSection(),
+                  const SizedBox(height: _sectionItemGap),
+                  const MoviPremiumSettingsTile(),
 
                   const SizedBox(height: _sectionGap),
 
@@ -1411,24 +1474,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                   const SizedBox(height: _sectionGap),
 
-                  // Text(
-                  //   'Lecture',
-                  //   style:
-                  //       Theme.of(context).textTheme.titleLarge?.copyWith(
-                  //         color: Colors.white,
-                  //         fontWeight: FontWeight.w600,
-                  //       ) ??
-                  //       const TextStyle(
-                  //         fontSize: 20,
-                  //         fontWeight: FontWeight.w600,
-                  //         color: Colors.white,
-                  //       ),
-                  // ),
-                  // const SizedBox(height: _sectionTitleGap),
-                  // _buildPlaybackSettingsSection(context),
-
-                  // const SizedBox(height: _sectionGap),
-
                   // --- App settings
                   Text(
                     l10n.settingsAppSection,
@@ -1444,8 +1489,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                   ),
                   const SizedBox(height: _sectionTitleGap),
-
-                  // ✅ FIX: pas de l10n.navAbout / pas de AppRouteNames.about
                   _buildSettingsGroup([
                     _buildSettingItem(
                       title: l10n.settingsLanguageLabel,
@@ -1479,6 +1522,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                     ),
                     _buildSettingItem(
+                      title: 'Politique de confidentialité',
+                      onTap: () => _openExternalLink(_privacyPolicyUrl),
+                    ),
+                    _buildSettingItem(
+                      title: 'Conditions d’utilisation',
+                      onTap: () => _openExternalLink(_termsOfUseUrl),
+                    ),
+                    _buildSettingItem(
                       title: 'À propos',
                       onTap: () => context.push(AppRoutePaths.about),
                     ),
@@ -1507,9 +1558,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       trailing: Switch.adaptive(
                         value: cloudSync.autoSyncEnabled,
                         activeThumbColor: currentAccentColor,
-                        onChanged: (value) => _guard(
-                          () => cloudSyncController.setAutoSyncEnabled(value),
-                        ),
+                        onChanged: (value) => unawaited(() async {
+                          if (!value) {
+                            _guard(
+                              () =>
+                                  cloudSyncController.setAutoSyncEnabled(false),
+                            );
+                            return;
+                          }
+
+                          final hasPremium = await _ensurePremiumFeature(
+                            PremiumFeature.cloudLibrarySync,
+                          );
+                          if (!hasPremium) return;
+                          _guard(
+                            () => cloudSyncController.setAutoSyncEnabled(true),
+                          );
+                        }()),
                       ),
                     ),
                     _buildSettingItem(
@@ -1532,8 +1597,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           : null,
                       onTap: cloudSync.isSyncing
                           ? null
-                          : () => _guard(() => cloudSyncController.syncNow()),
+                          : () => unawaited(() async {
+                              final hasPremium = await _ensurePremiumFeature(
+                                PremiumFeature.cloudLibrarySync,
+                              );
+                              if (!hasPremium) return;
+                              _guard(() => cloudSyncController.syncNow());
+                            }()),
                     ),
+                    if (!hasCloudSyncPremium)
+                      const Text(
+                        'Movi Premium requis pour la synchronisation cloud.',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
                     if (cloudSync.lastError != null &&
                         cloudSync.lastError!.trim().isNotEmpty)
                       Text(

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
@@ -23,6 +22,15 @@ class MovieDetailSagaSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hasExtendedDiscoveryPremium = ref
+        .watch(
+          canAccessPremiumFeatureProvider(PremiumFeature.extendedDiscoveryDetails),
+        )
+        .maybeWhen(data: (value) => value, orElse: () => false);
+    if (!hasExtendedDiscoveryPremium) {
+      return const SizedBox.shrink();
+    }
+
     final sagaMoviesAsync = ref.watch(sagaMoviesProvider(sagaLink));
     return sagaMoviesAsync.when(
       data: (sagaMovies) {
@@ -47,12 +55,11 @@ class MovieDetailSagaSection extends ConsumerWidget {
                   ),
                   const SizedBox(width: 16),
                   MoviFocusableAction(
-                    onPressed: () {
-                      context.push(
-                        AppRouteNames.sagaDetail,
-                        extra: sagaLink.id.value,
-                      );
-                    },
+                    onPressed: () => navigateToSagaDetail(
+                      context,
+                      ref,
+                      sagaId: sagaLink.id.value,
+                    ),
                     semanticLabel: 'Voir la page de la saga',
                     builder: (context, state) {
                       return MoviFocusFrame(

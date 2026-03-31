@@ -32,7 +32,7 @@ void main() {
   });
 
   testWidgets(
-    'SettingsPage shows playback preferences and updates audio selection',
+    'SettingsPage does not show playback preferences (feature disabled)',
     (tester) async {
       final localePreferences = _MemoryLocalePreferences();
       final syncPreferences = _MemoryIptvSyncPreferences();
@@ -112,42 +112,16 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('Lecture'), findsOneWidget);
-      expect(find.text('Langue audio'), findsOneWidget);
-      expect(find.text('Français'), findsOneWidget);
-      expect(find.text('Sous-titres'), findsOneWidget);
-      expect(find.text('Anglais'), findsOneWidget);
-      expect(find.text('Qualité préférée'), findsOneWidget);
-      expect(find.text('Full HD'), findsOneWidget);
-
-      await tester.tap(find.text('Langue audio'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(find.text('Langue audio préférée'), findsOneWidget);
-      await tester.tap(find.text('Allemand'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(playerPreferences.preferredAudioLanguage, 'de');
-      expect(find.text('Allemand'), findsWidgets);
-
-      await tester.ensureVisible(find.text('Qualité préférée'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Qualité préférée'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(find.text('Qualité préférée'), findsWidgets);
-      await tester.tap(find.text('4K'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(
-        playerPreferences.preferredPlaybackQuality,
-        PreferredPlaybackQuality.ultraHd4k,
+      await tester.scrollUntilVisible(
+        find.text('À propos'),
+        300,
+        scrollable: find.byType(Scrollable).first,
       );
-      expect(find.text('4K'), findsWidgets);
+
+      expect(find.text('Lecture'), findsNothing);
+      expect(find.text('Langue audio'), findsNothing);
+      expect(find.text('Sous-titres'), findsNothing);
+      expect(find.text('Qualité préférée'), findsNothing);
     },
   );
 }

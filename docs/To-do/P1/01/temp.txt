@@ -1,0 +1,7 @@
+J'aimerais désactiver une fonctionnalité qui n'est pas encore prête. 
+
+C'est les paramètres "Lecture" dans la page Settings
+Je lance une film en choisissant la version via la bottom sheet
+Je lance un épisode de la même manière
+Vérifier que les épisodes proposes bien plusieurs versions
+Le bouton "Regarder" d'une série reprends soit à l'épisode en cours ou le prmeier épisode en premium et commence toujours le premier épisode S1E1 en non premium
