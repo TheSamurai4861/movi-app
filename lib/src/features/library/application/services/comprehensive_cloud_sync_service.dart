@@ -188,9 +188,10 @@ class ComprehensiveCloudSyncService {
       if (_sl.isRegistered<AccentColorPreferences>()) {
         final accentPrefs = _sl<AccentColorPreferences>();
         final color = accentPrefs.accentColor;
-        prefs['accent_color'] = color.value
+        prefs['accent_color'] = color
+            .toARGB32()
             .toRadixString(16)
-            .padLeft(8, '0'); // ignore: deprecated_member_use
+            .padLeft(8, '0');
       }
 
       // Player preferences

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/parental/application/services/child_profile_rating_preload_service.dart';
@@ -22,33 +24,59 @@ class ChildProfilePreloadPage extends ConsumerStatefulWidget {
 
 class _ChildProfilePreloadPageState
     extends ConsumerState<ChildProfilePreloadPage> {
+  StreamSubscription<PreloadProgress>? _progressSubscription;
   PreloadProgress? _progress;
+  bool _completionTriggered = false;
 
   @override
   void initState() {
     super.initState();
-    widget.preloadService.progress.listen(
-      (progress) {
-        if (mounted) {
-          setState(() {
-            _progress = progress;
-          });
-          if (progress.phase == PreloadPhase.completed) {
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (mounted) {
-                widget.onComplete();
-              }
-            });
-          }
-        }
-      },
-      onError: (error) {
-        // En cas d'erreur, continuer quand même
-        if (mounted) {
-          widget.onComplete();
-        }
-      },
+    _startPreload();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_progressSubscription?.cancel());
+    super.dispose();
+  }
+
+  void _startPreload() {
+    _progressSubscription = widget.preloadService.preloadRatings().listen(
+      _handleProgress,
+      onError: _handleError,
     );
+  }
+
+  void _handleProgress(PreloadProgress progress) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _progress = progress;
+    });
+
+    if (progress.phase == PreloadPhase.completed) {
+      _scheduleCompletion();
+    }
+  }
+
+  void _handleError(Object error, StackTrace stackTrace) {
+    _scheduleCompletion();
+  }
+
+  void _scheduleCompletion() {
+    if (_completionTriggered) {
+      return;
+    }
+    _completionTriggered = true;
+
+    Future<void>.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) {
+        return;
+      }
+      widget.onComplete();
+    });
   }
 
   @override
@@ -60,15 +88,13 @@ class _ChildProfilePreloadPageState
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              // Icône ou animation
               Icon(Icons.child_care, size: 64, color: accentColor),
               const SizedBox(height: 32),
-              // Titre
               Text(
                 'Sécurisation du contenu',
                 style: theme.textTheme.headlineSmall?.copyWith(
@@ -85,7 +111,6 @@ class _ChildProfilePreloadPageState
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
-              // Phase actuelle
               if (progress != null) ...[
                 Text(
                   _getPhaseText(progress.phase),
@@ -95,7 +120,6 @@ class _ChildProfilePreloadPageState
                   ),
                 ),
                 const SizedBox(height: 24),
-                // Barre de progression globale
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
@@ -113,10 +137,8 @@ class _ChildProfilePreloadPageState
                   ),
                 ),
                 const SizedBox(height: 32),
-                // Compteurs
                 _buildCounters(theme, progress),
                 const SizedBox(height: 24),
-                // Estimation du temps
                 if (progress.estimatedSecondsRemaining != null)
                   Text(
                     _formatTimeRemaining(progress.estimatedSecondsRemaining!),
@@ -125,11 +147,9 @@ class _ChildProfilePreloadPageState
                     ),
                   ),
               ] else ...[
-                // Indicateur de chargement initial
                 CircularProgressIndicator(color: accentColor),
               ],
               const Spacer(),
-              // Bouton "Passer" (optionnel)
               if (widget.onSkip != null && progress != null)
                 TextButton(
                   onPressed: widget.onSkip,
@@ -198,11 +218,14 @@ class _ChildProfilePreloadPageState
     if (seconds < 60) {
       return 'Environ $seconds seconde${seconds > 1 ? 's' : ''} restante${seconds > 1 ? 's' : ''}';
     }
+
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
+
     if (remainingSeconds == 0) {
       return 'Environ $minutes minute${minutes > 1 ? 's' : ''} restante${minutes > 1 ? 's' : ''}';
     }
+
     return 'Environ $minutes min $remainingSeconds sec restantes';
   }
 }

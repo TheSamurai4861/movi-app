@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:movi/src/features/movie/presentation/utils/movie_playback_variant_descriptor_builder.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 
 class MoviePlaybackVariantSheet extends StatelessWidget {
@@ -30,10 +29,6 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final titleStyle = theme.textTheme.titleLarge;
-    final accentColor = theme.colorScheme.primary;
-    final descriptors = const MoviePlaybackVariantDescriptorBuilder().build(
-      variants,
-    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -55,7 +50,6 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final variant = variants[index];
-                final descriptor = descriptors[index];
                 return InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () => Navigator.of(context).pop(variant),
@@ -68,26 +62,13 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          descriptor.title,
+                          _buildVariantTitle(variant, index),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (descriptor.tags.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: descriptor.tags
-                                .map(
-                                  (tag) => _VariantTag(
-                                    label: tag,
-                                    accentColor: accentColor,
-                                  ),
-                                )
-                                .toList(growable: false),
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -99,31 +80,18 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
       ),
     );
   }
-}
 
-class _VariantTag extends StatelessWidget {
-  const _VariantTag({required this.label, required this.accentColor});
+  String _buildVariantTitle(PlaybackVariant variant, int index) {
+    final rawTitle = variant.rawTitle.trim();
+    if (rawTitle.isNotEmpty) {
+      return rawTitle;
+    }
 
-  final String label;
-  final Color accentColor;
+    final sourceLabel = variant.sourceLabel.trim();
+    if (sourceLabel.isNotEmpty) {
+      return sourceLabel;
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: accentColor.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: accentColor.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
+    return 'Version ${index + 1}';
   }
 }

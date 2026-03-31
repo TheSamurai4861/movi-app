@@ -2,279 +2,242 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/storage/repositories/secure_storage_repository.dart';
-import 'package:movi/src/core/security/credentials_vault.dart';
 
-/// Service responsable du nettoyage de toutes les données locales lors de la déconnexion.
+/// Service responsable du nettoyage des données locales lors de la déconnexion.
 ///
-/// Supprime :
-/// - Toutes les sources IPTV et leurs données associées
-/// - L'historique de lecture
-/// - Les playlists
-/// - La watchlist
-/// - "Continuer à regarder"
-/// - Le cache (historique de recherche, etc.)
-/// - Les préférences sécurisées
-/// - La queue de synchronisation
+/// Le nettoyage est volontairement tolérant aux erreurs : une étape qui échoue
+/// ne doit pas bloquer la déconnexion.
 class LocalDataCleanupService {
-  LocalDataCleanupService({required Database db, required GetIt sl})
-    : _db = db,
-      _sl = sl;
+  LocalDataCleanupService({
+    required Database db,
+    required GetIt sl,
+  }) : _db = db,
+       _sl = sl;
+
+  static const List<String> _secureStorageKeysToRemove = <String>[
+    'selected_profile_id',
+    'selected_iptv_source_id',
+    'accent_color',
+    'preferred_audio_language',
+    'preferred_subtitle_language',
+    'preferred_locale',
+    'theme_mode',
+    'iptv_sync_interval',
+  ];
+
+  static const List<String> _cacheTypesToClear = <String>[
+    'search',
+    'settings',
+  ];
 
   final Database _db;
   final GetIt _sl;
 
   /// Supprime toutes les données locales de l'utilisateur.
-  ///
-  /// Cette méthode est appelée lors de la déconnexion pour nettoyer
-  /// complètement l'appareil avant de rediriger vers la page d'authentification.
   Future<void> clearAllLocalData() async {
-    if (kDebugMode) {
-      debugPrint('[LocalDataCleanupService] Starting local data cleanup...');
+    _log('Starting local data cleanup...');
+
+    final iptvAccounts = await _loadIptvAccountsForCleanup();
+
+    // Important : supprimer les credentials avant les comptes IPTV,
+    // sinon les identifiants peuvent ne plus être accessibles.
+    await _clearCredentialsVault(iptvAccounts);
+    await _clearIptvData(iptvAccounts);
+
+    await _clearHistory();
+    await _clearPlaylists();
+    await _clearWatchlist();
+    await _clearContinueWatching();
+    await _clearCache();
+    await _clearSecureStorage();
+    await _clearSyncOutbox();
+
+    _log('Local data cleanup completed');
+  }
+
+  Future<List<dynamic>> _loadIptvAccountsForCleanup() async {
+    final iptvRepository = _getOptional<IptvLocalRepository>();
+    if (iptvRepository == null) {
+      return const <dynamic>[];
     }
 
     try {
-      // 1) Supprimer toutes les sources IPTV et leurs données associées
-      await _clearIptvData();
-
-      // 2) Supprimer l'historique de lecture
-      await _clearHistory();
-
-      // 3) Supprimer les playlists
-      await _clearPlaylists();
-
-      // 4) Supprimer la watchlist
-      await _clearWatchlist();
-
-      // 5) Supprimer "continuer à regarder"
-      await _clearContinueWatching();
-
-      // 6) Nettoyer le cache (historique de recherche, etc.)
-      await _clearCache();
-
-      // 7) Nettoyer les préférences sécurisées
-      await _clearSecureStorage();
-
-      // 8) Nettoyer la queue de synchronisation
-      await _clearSyncOutbox();
-
-      // 9) Nettoyer le vault des credentials IPTV
-      await _clearCredentialsVault();
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Local data cleanup completed');
-      }
-    } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error during cleanup: $e\n$st');
-      }
-      // On continue même en cas d'erreur pour ne pas bloquer la déconnexion
+      return await iptvRepository.getAccounts();
+    } catch (error, stackTrace) {
+      _log(
+        'Error loading IPTV accounts for cleanup: $error\n$stackTrace',
+      );
+      return const <dynamic>[];
     }
   }
 
-  Future<void> _clearIptvData() async {
-    if (!_sl.isRegistered<IptvLocalRepository>()) return;
-
-    try {
-      final iptvRepo = _sl<IptvLocalRepository>();
-      final accounts = await iptvRepo.getAccounts();
-
-      // Supprimer chaque compte (cela supprime aussi les playlists associées)
-      for (final account in accounts) {
-        await iptvRepo.removeAccount(account.id);
-      }
-
-      if (kDebugMode) {
-        debugPrint(
-          '[LocalDataCleanupService] Cleared ${accounts.length} IPTV account(s)',
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error clearing IPTV data: $e');
-      }
+  Future<void> _clearIptvData(List<dynamic> accounts) async {
+    final iptvRepository = _getOptional<IptvLocalRepository>();
+    if (iptvRepository == null || accounts.isEmpty) {
+      return;
     }
+
+    await _runSafely(
+      errorContext: 'clearing IPTV data',
+      action: () async {
+        for (final account in accounts) {
+          await iptvRepository.removeAccount(account.id);
+        }
+
+        _log('Cleared ${accounts.length} IPTV account(s)');
+      },
+    );
   }
 
   Future<void> _clearHistory() async {
-    try {
-      final db = _db;
-
-      // Supprimer tout l'historique
-      await db.delete('history');
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared playback history');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error clearing history: $e');
-      }
-    }
+    await _deleteTables(
+      tableNames: const <String>['history'],
+      successMessage: 'Cleared playback history',
+      errorContext: 'clearing playback history',
+    );
   }
 
   Future<void> _clearPlaylists() async {
-    try {
-      final db = _db;
-
-      // Supprimer toutes les playlists et leurs items
-      await db.delete('playlist_items');
-      await db.delete('playlists');
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared playlists');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error clearing playlists: $e');
-      }
-    }
+    await _deleteTables(
+      tableNames: const <String>['playlist_items', 'playlists'],
+      successMessage: 'Cleared playlists',
+      errorContext: 'clearing playlists',
+    );
   }
 
   Future<void> _clearWatchlist() async {
-    try {
-      final db = _db;
-
-      // Supprimer toute la watchlist
-      await db.delete('watchlist');
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared watchlist');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error clearing watchlist: $e');
-      }
-    }
+    await _deleteTables(
+      tableNames: const <String>['watchlist'],
+      successMessage: 'Cleared watchlist',
+      errorContext: 'clearing watchlist',
+    );
   }
 
   Future<void> _clearContinueWatching() async {
-    try {
-      final db = _db;
-
-      // Supprimer tous les "continuer à regarder"
-      await db.delete('continue_watching');
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared continue watching');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint(
-          '[LocalDataCleanupService] Error clearing continue watching: $e',
-        );
-      }
-    }
+    await _deleteTables(
+      tableNames: const <String>['continue_watching'],
+      successMessage: 'Cleared continue watching',
+      errorContext: 'clearing continue watching',
+    );
   }
 
   Future<void> _clearCache() async {
-    if (!_sl.isRegistered<ContentCacheRepository>()) return;
-
-    try {
-      final cacheRepo = _sl<ContentCacheRepository>();
-
-      // Nettoyer les types de cache connus
-      await cacheRepo.clearType('search');
-      await cacheRepo.clearType('settings');
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared cache');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error clearing cache: $e');
-      }
+    final cacheRepository = _getOptional<ContentCacheRepository>();
+    if (cacheRepository == null) {
+      return;
     }
+
+    await _runSafely(
+      errorContext: 'clearing cache',
+      action: () async {
+        for (final cacheType in _cacheTypesToClear) {
+          await cacheRepository.clearType(cacheType);
+        }
+
+        _log('Cleared cache');
+      },
+    );
   }
 
   Future<void> _clearSecureStorage() async {
-    if (!_sl.isRegistered<SecureStorageRepository>()) return;
-
-    try {
-      final secureRepo = _sl<SecureStorageRepository>();
-
-      // Nettoyer toutes les clés de préférences connues
-      // Note: on ne peut pas tout supprimer car certaines clés sont système
-      // On supprime seulement les clés utilisateur
-      final userKeys = [
-        'selected_profile_id',
-        'selected_iptv_source_id',
-        'accent_color',
-        'preferred_audio_language',
-        'preferred_subtitle_language',
-        'preferred_locale',
-        'theme_mode',
-        'iptv_sync_interval',
-      ];
-
-      for (final key in userKeys) {
-        try {
-          await secureRepo.remove(key);
-        } catch (_) {
-          // Ignorer les erreurs si la clé n'existe pas
-        }
-      }
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared secure storage');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint(
-          '[LocalDataCleanupService] Error clearing secure storage: $e',
-        );
-      }
+    final secureStorageRepository = _getOptional<SecureStorageRepository>();
+    if (secureStorageRepository == null) {
+      return;
     }
+
+    await _runSafely(
+      errorContext: 'clearing secure storage',
+      action: () async {
+        for (final key in _secureStorageKeysToRemove) {
+          try {
+            await secureStorageRepository.remove(key);
+          } catch (error) {
+            _log('Skipped secure storage key "$key": $error');
+          }
+        }
+
+        _log('Cleared secure storage');
+      },
+    );
   }
 
   Future<void> _clearSyncOutbox() async {
+    await _deleteTables(
+      tableNames: const <String>['sync_outbox'],
+      successMessage: 'Cleared sync outbox',
+      errorContext: 'clearing sync outbox',
+    );
+  }
+
+  Future<void> _clearCredentialsVault(List<dynamic> accounts) async {
+    final credentialsVault = _getOptional<CredentialsVault>();
+    if (credentialsVault == null || accounts.isEmpty) {
+      return;
+    }
+
+    await _runSafely(
+      errorContext: 'clearing credentials vault',
+      action: () async {
+        for (final account in accounts) {
+          try {
+            await credentialsVault.removePassword(account.id);
+          } catch (error) {
+            _log(
+              'Skipped credential removal for account "${account.id}": $error',
+            );
+          }
+        }
+
+        _log('Cleared credentials vault');
+      },
+    );
+  }
+
+  Future<void> _deleteTables({
+    required List<String> tableNames,
+    required String successMessage,
+    required String errorContext,
+  }) async {
+    await _runSafely(
+      errorContext: errorContext,
+      action: () async {
+        for (final tableName in tableNames) {
+          await _db.delete(tableName);
+        }
+
+        _log(successMessage);
+      },
+    );
+  }
+
+  Future<void> _runSafely({
+    required String errorContext,
+    required Future<void> Function() action,
+  }) async {
     try {
-      final db = _db;
-
-      // Supprimer toute la queue de synchronisation
-      await db.delete('sync_outbox');
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared sync outbox');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Error clearing sync outbox: $e');
-      }
+      await action();
+    } catch (error, stackTrace) {
+      _log('Error $errorContext: $error\n$stackTrace');
     }
   }
 
-  Future<void> _clearCredentialsVault() async {
-    if (!_sl.isRegistered<CredentialsVault>()) return;
-
-    try {
-      final vault = _sl<CredentialsVault>();
-
-      // Récupérer tous les comptes IPTV pour supprimer leurs credentials
-      if (_sl.isRegistered<IptvLocalRepository>()) {
-        final iptvRepo = _sl<IptvLocalRepository>();
-        final accounts = await iptvRepo.getAccounts();
-
-        for (final account in accounts) {
-          try {
-            await vault.removePassword(account.id);
-          } catch (_) {
-            // Ignorer les erreurs si le credential n'existe pas
-          }
-        }
-      }
-
-      if (kDebugMode) {
-        debugPrint('[LocalDataCleanupService] Cleared credentials vault');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint(
-          '[LocalDataCleanupService] Error clearing credentials vault: $e',
-        );
-      }
+  T? _getOptional<T extends Object>() {
+    if (!_sl.isRegistered<T>()) {
+      return null;
     }
+
+    return _sl<T>();
+  }
+
+  void _log(String message) {
+    if (!kDebugMode) {
+      return;
+    }
+
+    debugPrint('[LocalDataCleanupService] $message');
   }
 }

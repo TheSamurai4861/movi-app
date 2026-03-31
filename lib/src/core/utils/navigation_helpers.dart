@@ -22,15 +22,22 @@ Future<bool> _guardParental(
   required ContentRouteArgs args,
 }) async {
   // Xtream IDs cannot be evaluated reliably here.
-  if (args.isXtream) return true;
-  if (args.type != ContentType.movie && args.type != ContentType.series)
+  if (args.isXtream) {
     return true;
+  }
+  if (args.type != ContentType.movie && args.type != ContentType.series) {
+    return true;
+  }
 
   final profile = ref.read(currentProfileProvider);
-  if (profile == null) return true;
+  if (profile == null) {
+    return true;
+  }
 
   final hasRestrictions = profile.isKid || profile.pegiLimit != null;
-  if (!hasRestrictions) return true;
+  if (!hasRestrictions) {
+    return true;
+  }
 
   final content = ContentReference(
     id: args.id,
@@ -41,9 +48,13 @@ Future<bool> _guardParental(
   final decision = await ref.read(
     parental.contentAgeDecisionProvider(content).future,
   );
-  if (decision.isAllowed) return true;
+  if (decision.isAllowed) {
+    return true;
+  }
 
-  if (!context.mounted) return false;
+  if (!context.mounted) {
+    return false;
+  }
   final unlocked = await RestrictedContentSheet.show(
     context,
     ref,
@@ -77,7 +88,9 @@ Future<void> navigateToMovieDetail(
 
   // Parental gate (tap guard)
   final allowed = await _guardParental(context, ref, args: args);
-  if (!allowed) return;
+  if (!allowed) {
+    return;
+  }
   if (!context.mounted) return;
 
   // Pour les films IPTV (`xtream:*`), la page de détail gère le fallback / matching TMDB.

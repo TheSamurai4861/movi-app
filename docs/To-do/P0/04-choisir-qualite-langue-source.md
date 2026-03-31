@@ -1669,3 +1669,138 @@ Objectif :
   - une langue détectée doit rester visible même si le titre normalisé la retire
 - Livrable :
   - couverture de régression sur extraction, normalisation d'affichage et rendu UI
+
+### État actuel des épisodes
+
+Constat :
+
+- non, les épisodes n'ont pas aujourd'hui le même système que les films
+- le flux film passe par :
+  - un resolver dédié de variantes
+  - une `PlaybackSelectionDecision`
+  - un provider `moviePlaybackSelectionProvider`
+  - une UI de choix manuel via bottom sheet
+- le flux épisode repose encore sur une ouverture directe depuis `TvDetailPage` :
+  - conversion TMDB -> Xtream du numéro d'épisode
+  - recherche impérative de la première série compatible dans les comptes actifs
+  - construction immédiate de l'URL de lecture
+  - ouverture du player sans `PlaybackSelectionDecision`
+  - aucun choix manuel de variantes utile pour un épisode
+
+Conséquence produit :
+
+- si plusieurs versions d'un même épisode existent :
+  - source différente
+  - qualité différente
+  - langue différente
+  - titre brut différent
+- l'utilisateur ne bénéficie pas aujourd'hui du même comportement que sur un film :
+  - pas de ranking métier explicite
+  - pas de choix manuel de variante
+  - pas de contrat unique entre résolution, décision et UI
+
+### Roadmap épisodes
+
+Objectif :
+
+- aligner le lancement d'un épisode sur le même contrat métier que les films
+- garder la conversion TMDB/Xtream isolée du choix de variante
+- éviter de recopier la logique de sélection dans `TvDetailPage`
+
+### Étape 1 - Isoler la résolution des variantes d'épisode OK 
+
+- Extraire la partie métier actuellement portée par `_openEpisodePlayer`
+- Introduire un resolver dédié du type :
+  - `EpisodePlaybackVariantResolver`
+- Responsabilités du resolver :
+  - recevoir :
+    - `seriesId`
+    - `seasonNumber`
+    - `episodeNumber`
+    - `candidateSourceIds`
+  - convertir proprement le numéro d'épisode TMDB vers la numérotation Xtream si nécessaire
+  - retrouver toutes les occurrences lisibles de l'épisode dans les sources actives
+  - transformer chaque occurrence en `PlaybackVariant`
+- Ne pas lui faire porter :
+  - l'ouverture du player
+  - l'affichage UI
+  - la récupération de la position de reprise
+- Livrable :
+  - un contrat unique `épisode -> variantes candidates`
+
+### Étape 2 - Réutiliser la décision métier commune OK
+
+- Ajouter un use case dédié du type :
+  - `ResolveEpisodePlaybackSelection`
+- Réutiliser :
+  - `PlaybackVariant`
+  - `PlaybackSelectionPreferences`
+  - `PlaybackSelectionDecision`
+  - `PlaybackSelectionService`
+- Contexte attendu :
+  - `contentType: ContentType.series`
+- But :
+  - obtenir pour un épisode les mêmes sorties que pour un film :
+    - `autoPlay`
+    - `manualSelection`
+    - `unavailable`
+- Livrable :
+  - une décision métier homogène entre film et épisode
+
+### Étape 3 - Rebrancher `TvDetailPage` sur ce contrat
+
+- Ajouter un provider dédié du type :
+  - `episodePlaybackSelectionProvider`
+- Faire de `TvDetailPage` une simple orchestration UI :
+  - charger la décision
+  - lancer directement si le cas est non ambigu
+  - ouvrir un sélecteur manuel si plusieurs variantes restent crédibles
+- Prévoir une UI cohérente avec le flux film :
+  - soit réutilisation directe de la bottom sheet existante
+  - soit extraction d'une sheet générique de variantes de lecture
+- Ne plus choisir implicitement la première occurrence trouvée dans la page
+- Livrable :
+  - même expérience visible pour film et épisode
+
+### Étape 4 - Gérer les spécificités épisode sans polluer le contrat commun
+
+- Conserver hors du service de sélection commun :
+  - la conversion TMDB -> Xtream
+  - la logique de fallback si la série est mal catégorisée dans une playlist
+  - le titre final `SxxExx`
+  - la position de reprise
+- Vérifier la compatibilité avec :
+  - `NextEpisodeService`
+  - l'historique de lecture
+  - l'ouverture du player sur séries
+- Éviter :
+  - de dupliquer le code film dans `tv`
+  - de mélanger logique de matching épisode et logique UI
+- Livrable :
+  - un flux épisode propre, spécialisé là où il faut, commun là où c'est possible
+
+### Étape 5 - Verrouiller par tests ciblés
+
+- Ajouter des tests métier sur :
+  - épisode unique disponible
+  - plusieurs variantes du même épisode
+  - conversion TMDB -> Xtream correcte
+  - absence d'épisode malgré série présente
+  - préférences qualité / audio / sous-titres appliquées au ranking
+- Ajouter des tests provider sur :
+  - transmission des préférences persistées
+  - filtrage par sources IPTV actives
+- Ajouter des tests widget sur :
+  - clic sur un épisode qui lance directement
+  - clic sur un épisode qui ouvre le sélecteur
+  - choix manuel d'une variante d'épisode
+- Livrable :
+  - couverture de régression sur le flux épisode complet
+
+### Priorité recommandée pour les épisodes
+
+1. extraire la résolution de variantes hors de `TvDetailPage`
+2. brancher un vrai `PlaybackSelectionDecision` pour les épisodes
+3. réutiliser une bottom sheet de choix manuel
+4. sécuriser la conversion TMDB/Xtream et `NextEpisodeService`
+5. verrouiller le tout par tests métier, provider et widget

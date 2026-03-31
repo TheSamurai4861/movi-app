@@ -1,74 +1,92 @@
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/shared/data/services/tmdb_client.dart';
-import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network_executor.dart';
+import 'package:movi/src/core/parental/domain/services/movie_metadata_resolver.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
-import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
+import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/data/services/xtream_stream_url_builder_impl.dart';
-import 'package:movi/src/features/movie/domain/services/movie_streaming_service.dart';
-import 'package:movi/src/features/movie/domain/services/movie_playback_variant_resolver.dart';
-import 'package:movi/src/features/movie/domain/services/movie_variant_matcher.dart';
-import 'package:movi/src/features/movie/domain/services/iptv_availability_service.dart';
-import 'package:movi/src/features/movie/data/services/movie_streaming_service_impl.dart';
-import 'package:movi/src/features/movie/data/services/movie_playback_variant_resolver_impl.dart';
-import 'package:movi/src/features/movie/data/services/iptv_availability_service_impl.dart';
-import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/continue_watching_repository.dart';
+import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
+import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/data/repositories/movie_repository_impl.dart';
+import 'package:movi/src/features/movie/data/services/iptv_availability_service_impl.dart';
+import 'package:movi/src/features/movie/data/services/movie_metadata_resolver_adapter.dart';
+import 'package:movi/src/features/movie/data/services/movie_playback_variant_resolver_impl.dart';
+import 'package:movi/src/features/movie/data/services/movie_streaming_service_impl.dart';
 import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
-import 'package:movi/src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart';
+import 'package:movi/src/features/movie/domain/services/iptv_availability_service.dart';
+import 'package:movi/src/features/movie/domain/services/movie_playback_variant_resolver.dart';
+import 'package:movi/src/features/movie/domain/services/movie_streaming_service.dart';
+import 'package:movi/src/features/movie/domain/services/movie_variant_matcher.dart';
+import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.dart';
 import 'package:movi/src/features/movie/domain/usecases/build_movie_video_source.dart';
-import 'package:movi/src/features/movie/domain/usecases/resolve_movie_playback_selection.dart';
+import 'package:movi/src/features/movie/domain/usecases/ensure_movie_enrichment.dart';
+import 'package:movi/src/features/movie/domain/usecases/filter_recommendations_by_iptv.dart';
 import 'package:movi/src/features/movie/domain/usecases/get_movie_availability_on_iptv.dart';
 import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_seen.dart';
 import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_unseen.dart';
-import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.dart';
-import 'package:movi/src/features/movie/domain/usecases/ensure_movie_enrichment.dart';
+import 'package:movi/src/features/movie/domain/usecases/resolve_movie_playback_selection.dart';
 import 'package:movi/src/features/player/application/services/playback_selection_service.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
-import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
-import 'package:movi/src/features/movie/data/repositories/movie_repository_impl.dart';
+import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
+import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/services/enrichment_check_service.dart';
 
 class MovieDataModule {
   static void register() {
-    if (sl.isRegistered<MovieRepository>()) return;
-    sl.registerLazySingleton<TmdbMovieRemoteDataSource>(
-      () => TmdbMovieRemoteDataSource(sl<TmdbClient>()),
-    );
-    sl.registerLazySingleton<MovieLocalDataSource>(
-      () => MovieLocalDataSource(sl()),
-    );
+    _registerDataSources();
+    _registerRepositories();
+    _registerParentalResolvers();
+    _registerMovieServices();
+    _registerMovieUseCases();
+  }
 
-    // Enregistrer EnrichmentCheckService après que MovieLocalDataSource soit disponible
-    // (TvLocalDataSource sera disponible après TvDataModule.register())
-    if (!sl.isRegistered<EnrichmentCheckService>() &&
-        sl.isRegistered<MovieLocalDataSource>()) {
-      // On vérifiera TvLocalDataSource dans TvDataModule
-      // Pour l'instant, on attend que TvDataModule soit appelé
+  static void _registerDataSources() {
+    if (!sl.isRegistered<TmdbMovieRemoteDataSource>()) {
+      sl.registerLazySingleton<TmdbMovieRemoteDataSource>(
+        () => TmdbMovieRemoteDataSource(sl<TmdbClient>()),
+      );
     }
 
-    // Enregistrer MovieRepository pour les services qui le consomment via GetIt
-    sl.registerLazySingleton<MovieRepository>(
-      () => MovieRepositoryImpl(
-        sl<TmdbMovieRemoteDataSource>(),
-        sl<TmdbImageResolver>(),
-        sl<WatchlistLocalRepository>(),
-        sl<MovieLocalDataSource>(),
-        sl<ContinueWatchingLocalRepository>(),
-        sl<AppStateController>(),
-      ),
-    );
+    if (!sl.isRegistered<MovieLocalDataSource>()) {
+      sl.registerLazySingleton<MovieLocalDataSource>(
+        () => MovieLocalDataSource(sl<ContentCacheRepository>()),
+      );
+    }
+  }
 
-    sl.registerLazySingleton<FilterRecommendationsByIptvAvailability>(
-      () => FilterRecommendationsByIptvAvailability(sl<IptvLocalRepository>()),
-    );
+  static void _registerRepositories() {
+    if (!sl.isRegistered<MovieRepository>()) {
+      sl.registerLazySingleton<MovieRepository>(
+        () => MovieRepositoryImpl(
+          sl<TmdbMovieRemoteDataSource>(),
+          sl<TmdbImageResolver>(),
+          sl<WatchlistLocalRepository>(),
+          sl<MovieLocalDataSource>(),
+          sl<ContinueWatchingLocalRepository>(),
+          sl<AppStateController>(),
+        ),
+      );
+    }
+  }
 
+  static void _registerParentalResolvers() {
+    if (!sl.isRegistered<MovieMetadataResolver>()) {
+      sl.registerLazySingleton<MovieMetadataResolver>(
+        () => MovieMetadataResolverAdapter(
+          repository: sl<MovieRepository>(),
+          logger: sl<AppLogger>(),
+        ),
+      );
+    }
+  }
+
+  static void _registerMovieServices() {
     if (!sl.isRegistered<XtreamStreamUrlBuilder>()) {
       sl.registerLazySingleton<XtreamStreamUrlBuilder>(
         () => XtreamStreamUrlBuilderImpl(
@@ -79,27 +97,9 @@ class MovieDataModule {
       );
     }
 
-    if (!sl.isRegistered<PlaybackSelectionService>()) {
-      sl.registerLazySingleton<PlaybackSelectionService>(
-        () => const PlaybackSelectionService(),
-      );
-    }
-
     if (!sl.isRegistered<MovieVariantMatcher>()) {
       sl.registerLazySingleton<MovieVariantMatcher>(
         () => const MovieVariantMatcher(),
-      );
-    }
-
-    if (!sl.isRegistered<MoviePlaybackVariantResolver>()) {
-      sl.registerLazySingleton<MoviePlaybackVariantResolver>(
-        () => MoviePlaybackVariantResolverImpl(
-          iptvLocal: sl<IptvLocalRepository>(),
-          urlBuilder: sl<XtreamStreamUrlBuilder>(),
-          matcher: sl<MovieVariantMatcher>(),
-          logger: sl<AppLogger>(),
-          diagnostics: sl<PerformanceDiagnosticLogger>(),
-        ),
       );
     }
 
@@ -115,12 +115,34 @@ class MovieDataModule {
       );
     }
 
+    if (!sl.isRegistered<MoviePlaybackVariantResolver>()) {
+      sl.registerLazySingleton<MoviePlaybackVariantResolver>(
+        () => MoviePlaybackVariantResolverImpl(
+          iptvLocal: sl<IptvLocalRepository>(),
+          urlBuilder: sl<XtreamStreamUrlBuilder>(),
+          matcher: sl<MovieVariantMatcher>(),
+          logger: sl<AppLogger>(),
+          diagnostics: sl<PerformanceDiagnosticLogger>(),
+        ),
+      );
+    }
+
     if (!sl.isRegistered<IptvAvailabilityService>()) {
       sl.registerLazySingleton<IptvAvailabilityService>(
         () => IptvAvailabilityServiceImpl(
           iptvLocal: sl<IptvLocalRepository>(),
           logger: sl<AppLogger>(),
           lookup: sl<XtreamLookupService>(),
+        ),
+      );
+    }
+  }
+
+  static void _registerMovieUseCases() {
+    if (!sl.isRegistered<FilterRecommendationsByIptvAvailability>()) {
+      sl.registerLazySingleton<FilterRecommendationsByIptvAvailability>(
+        () => FilterRecommendationsByIptvAvailability(
+          sl<IptvLocalRepository>(),
         ),
       );
     }
@@ -134,27 +156,19 @@ class MovieDataModule {
       );
     }
 
-    if (!sl.isRegistered<ResolveMoviePlaybackSelection>()) {
-      sl.registerLazySingleton<ResolveMoviePlaybackSelection>(
-        () => ResolveMoviePlaybackSelection(
-          sl<MoviePlaybackVariantResolver>(),
-          sl<PlaybackSelectionService>(),
-          sl<PlaybackHistoryRepository>(),
-          sl<AppLogger>(),
-          sl<PerformanceDiagnosticLogger>(),
-        ),
-      );
-    }
-
     if (!sl.isRegistered<GetMovieAvailabilityOnIptv>()) {
       sl.registerLazySingleton<GetMovieAvailabilityOnIptv>(
-        () => GetMovieAvailabilityOnIptv(sl<IptvAvailabilityService>()),
+        () => GetMovieAvailabilityOnIptv(
+          sl<IptvAvailabilityService>(),
+        ),
       );
     }
 
     if (!sl.isRegistered<MarkMovieAsSeen>()) {
       sl.registerLazySingleton<MarkMovieAsSeen>(
-        () => MarkMovieAsSeen(sl<PlaybackHistoryRepository>()),
+        () => MarkMovieAsSeen(
+          sl<PlaybackHistoryRepository>(),
+        ),
       );
     }
 
@@ -169,7 +183,21 @@ class MovieDataModule {
 
     if (!sl.isRegistered<AddMovieToPlaylist>()) {
       sl.registerLazySingleton<AddMovieToPlaylist>(
-        () => AddMovieToPlaylist(sl<PlaylistRepository>()),
+        () => AddMovieToPlaylist(
+          sl<PlaylistRepository>(),
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<ResolveMoviePlaybackSelection>()) {
+      sl.registerLazySingleton<ResolveMoviePlaybackSelection>(
+        () => ResolveMoviePlaybackSelection(
+          sl<MoviePlaybackVariantResolver>(),
+          sl<PlaybackSelectionService>(),
+          sl<PlaybackHistoryRepository>(),
+          sl<AppLogger>(),
+          sl<PerformanceDiagnosticLogger>(),
+        ),
       );
     }
 

@@ -332,12 +332,19 @@ bool _matchesIptvFilter(
   List<ContentReference> items,
   hp.HomeIptvMediaFilter filter,
 ) {
-  if (filter == hp.HomeIptvMediaFilter.all) return true;
-  if (items.isEmpty) return false;
+  if (filter == hp.HomeIptvMediaFilter.all) {
+    return true;
+  }
+  if (items.isEmpty) {
+    return false;
+  }
 
   final type = items.first.type;
-  if (filter == hp.HomeIptvMediaFilter.movies) return type == ContentType.movie;
-  if (filter == hp.HomeIptvMediaFilter.series)
+  if (filter == hp.HomeIptvMediaFilter.movies) {
+    return type == ContentType.movie;
+  }
+  if (filter == hp.HomeIptvMediaFilter.series) {
     return type == ContentType.series;
+  }
   return false;
 }

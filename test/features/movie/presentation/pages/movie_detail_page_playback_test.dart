@@ -118,8 +118,17 @@ void main() {
             disposition: PlaybackSelectionDisposition.manualSelection,
             reason: PlaybackSelectionReason.ambiguousVariants,
             rankedVariants: <PlaybackVariant>[
-              _variant('Salon', '1', qualityLabel: 'Full HD'),
-              _variant('Chambre', '2'),
+              _variant(
+                'Salon',
+                '1',
+                rawTitle: 'The.Matrix.1999.1080p.TRUEFRENCH',
+                qualityLabel: 'Full HD',
+              ),
+              _variant(
+                'Chambre',
+                '2',
+                rawTitle: 'The.Matrix.1999.2160p.VOSTFR',
+              ),
             ],
           ),
         ),
@@ -155,10 +164,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
-    expect(find.text('Version 1'), findsOneWidget);
-    expect(find.text('Chambre'), findsOneWidget);
+    expect(find.text('The.Matrix.1999.1080p.TRUEFRENCH'), findsOneWidget);
+    expect(find.text('The.Matrix.1999.2160p.VOSTFR'), findsOneWidget);
 
-    await tester.tap(find.text('Chambre'));
+    await tester.tap(find.text('The.Matrix.1999.2160p.VOSTFR'));
     await tester.pumpAndSettle();
 
     expect(pushedSources, hasLength(1));
@@ -193,6 +202,7 @@ void main() {
                 _variant(
                   'Salon',
                   '1',
+                  rawTitle: 'The.Matrix.1999.2160p.VF.VOSTFR',
                   qualityLabel: '4K',
                   audioLanguageLabel: 'VF',
                   subtitleLanguageLabel: 'FR',
@@ -200,6 +210,7 @@ void main() {
                 _variant(
                   'Chambre',
                   '2',
+                  rawTitle: 'The.Matrix.1999.1080p.VO.SUB',
                   qualityLabel: 'Full HD',
                   audioLanguageLabel: 'VO',
                   hasSubtitles: true,
@@ -238,16 +249,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
-      expect(find.text('Version 1'), findsOneWidget);
-      expect(find.text('4K'), findsOneWidget);
-      expect(find.text('VF'), findsOneWidget);
-      expect(find.text('ST FR'), findsOneWidget);
-      expect(find.text('Version 2'), findsOneWidget);
-      expect(find.text('Full HD'), findsOneWidget);
-      expect(find.text('VO'), findsOneWidget);
-      expect(find.text('ST'), findsOneWidget);
-      expect(find.text('Salon'), findsNothing);
-      expect(find.text('Chambre'), findsNothing);
+      expect(find.text('The.Matrix.1999.2160p.VF.VOSTFR'), findsOneWidget);
+      expect(find.text('The.Matrix.1999.1080p.VO.SUB'), findsOneWidget);
+      expect(find.text('4K'), findsNothing);
+      expect(find.text('VF'), findsNothing);
+      expect(find.text('ST FR'), findsNothing);
+      expect(find.text('Full HD'), findsNothing);
+      expect(find.text('VO'), findsNothing);
+      expect(find.text('ST'), findsNothing);
     },
   );
 
@@ -420,6 +429,7 @@ MovieDetailViewModel _movieViewModel() {
 PlaybackVariant _variant(
   String sourceLabel,
   String id, {
+  String? rawTitle,
   String? qualityLabel,
   String? audioLanguageLabel,
   String? subtitleLanguageLabel,
@@ -436,7 +446,7 @@ PlaybackVariant _variant(
       contentType: ContentType.movie,
     ),
     contentType: ContentType.movie,
-    rawTitle: 'The.Matrix.1999',
+    rawTitle: rawTitle ?? 'The.Matrix.1999',
     normalizedTitle: 'The Matrix',
     qualityLabel: qualityLabel,
     qualityRank: qualityLabel == null ? null : 3,

@@ -14,6 +14,7 @@ import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/performance/providers/performance_providers.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/responsive_context.dart';
@@ -118,6 +119,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   bool _lastNotifiedLoadingState = false;
   bool _isBackgroundWorkSuspended = false;
   bool _visibilitySyncScheduled = false;
+  bool _hasInitializedDependencies = false;
   bool _initialHeroWarmupPending = true;
   int _heroWorkGeneration = 0;
   int? _activeLiteHydrationId;
@@ -125,6 +127,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   final Set<int> _precachedBgIds = <int>{};
   String? _lastLoggedHeroBuildSignature;
   String? _lastLoggedResolvedMediaSignature;
+  ScreenType _screenType = ScreenType.mobile;
 
   void _logHeroDebug(
     String event, {
@@ -152,19 +155,37 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _localePreferences = ref.read(slProvider)<LocalePreferences>();
     _diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
     WidgetsBinding.instance.addObserver(this);
-    _logHeroDebug(
-      'init_state',
-      context: <String, Object?>{
-        'items': widget.items.length,
-        'useLargeHeroImages': _useLargeHeroImages,
-      },
-    );
     final persistedIndex = ref.read(hp.homeHeroIndexProvider);
     if (persistedIndex > 0 && persistedIndex < widget.items.length) {
       _index = persistedIndex;
     }
-    _prepareCurrentMeta();
-    _startTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final previousScreenType = _screenType;
+    _screenType = context.screenType;
+
+    if (!_hasInitializedDependencies) {
+      _hasInitializedDependencies = true;
+      _logHeroDebug(
+        'dependencies_ready',
+        context: <String, Object?>{
+          'items': widget.items.length,
+          'screenType': _screenType.name,
+          'useLargeHeroImages': _useLargeHeroImages,
+        },
+      );
+      _prepareCurrentMeta();
+      _startTimer();
+      return;
+    }
+
+    if (previousScreenType != _screenType) {
+      _handleScreenTypeChanged(previousScreenType);
+    }
   }
 
   @override
@@ -534,11 +555,13 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   }
 
   bool get _useLargeHeroImages =>
-      context.isDesktop || context.isTablet || context.isTv;
+      _screenType == ScreenType.desktop ||
+      _screenType == ScreenType.tablet ||
+      _screenType == ScreenType.tv;
 
   bool get _useConservativeWindowsHeroImages =>
       defaultTargetPlatform == TargetPlatform.windows &&
-      (context.isDesktop || context.isTv);
+      (_screenType == ScreenType.desktop || _screenType == ScreenType.tv);
 
   bool get _disableHeroPrecacheOnCurrentPlatform =>
       defaultTargetPlatform == TargetPlatform.windows;
@@ -565,6 +588,34 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   String get _heroPrecacheBackdropSize =>
       _useLargeHeroImages ? 'w1280' : 'w780';
+
+  bool get _isWideHeroLayout =>
+      _screenType == ScreenType.desktop || _screenType == ScreenType.tablet;
+
+  bool get _shouldExtendDesktopHero =>
+      _screenType == ScreenType.desktop || _screenType == ScreenType.tv;
+
+  Alignment get _heroContentAlignment => _screenType == ScreenType.desktop
+      ? const Alignment(-1, 0.24)
+      : Alignment.centerLeft;
+
+  void _handleScreenTypeChanged(ScreenType previousScreenType) {
+    _logHeroDebug(
+      'screen_type_changed',
+      context: <String, Object?>{
+        'previousScreenType': previousScreenType.name,
+        'screenType': _screenType.name,
+        'currentId': _tmdbIdOf(_currentItem),
+      },
+    );
+    _invalidateHeroWorkGeneration();
+    _metaFutures.clear();
+    _precachedBgIds.clear();
+    _retriedIds.clear();
+    _lastNotifiedLoadingState = false;
+    _prepareCurrentMeta();
+    _restartTimer();
+  }
 
   Future<_HeroMeta?> _loadMeta(ContentReference item) async {
     int? id = _tmdbIdOf(item);
@@ -1245,11 +1296,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _scheduleVisibilitySync();
     final ContentReference? item = _currentItem;
     final int? tmdbId = _tmdbIdOf(item);
-    final bool isWideHero = context.isDesktop || context.isTablet;
-    final bool shouldExtendDesktopHero = context.isDesktop || context.isTv;
-    final Alignment heroContentAlignment = context.isDesktop
-        ? const Alignment(-1, 0.24)
-        : Alignment.centerLeft;
+    final bool isWideHero = _isWideHeroLayout;
+    final bool shouldExtendDesktopHero = _shouldExtendDesktopHero;
+    final Alignment heroContentAlignment = _heroContentAlignment;
     final double layoutHeight = widget.layoutHeight ?? _totalHeight;
     final double visualBleed = shouldExtendDesktopHero
         ? _desktopVisualBleed

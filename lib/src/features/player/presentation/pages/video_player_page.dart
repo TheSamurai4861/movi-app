@@ -631,8 +631,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       targetValue = (_initialBrightness + totalDeltaPercent).clamp(0.0, 1.0);
       // Calculer seulement la différence depuis la dernière valeur appliquée
       final deltaToApply = targetValue - _lastAppliedBrightness;
-      if (deltaToApply.abs() < 0.01)
+      if (deltaToApply.abs() < 0.01) {
         return; // Ignorer les changements trop petits
+      }
 
       final systemControlRepo = ref.read(systemControlRepositoryProvider);
       final adjustBrightness = AdjustBrightness(systemControlRepo);
@@ -642,8 +643,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       targetValue = (_initialVolume + totalDeltaPercent).clamp(0.0, 1.0);
       // Calculer seulement la différence depuis la dernière valeur appliquée
       final deltaToApply = targetValue - _lastAppliedVolume;
-      if (deltaToApply.abs() < 0.01)
+      if (deltaToApply.abs() < 0.01) {
         return; // Ignorer les changements trop petits
+      }
 
       final systemControlRepo = ref.read(systemControlRepositoryProvider);
       final adjustVolume = AdjustVolume(systemControlRepo);

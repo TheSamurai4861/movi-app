@@ -24,6 +24,7 @@ import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/tv/domain/usecases/ensure_tv_enrichment.dart';
+import 'package:movi/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart';
 
 /// Provider pour TvRepository avec userId actuel
 final tvRepositoryProvider = Provider<TvRepository>((ref) {
@@ -74,6 +75,11 @@ final tvToggleFavoriteProvider =
 final ensureTvEnrichmentUseCaseProvider = Provider<EnsureTvEnrichment>(
   (ref) => ref.watch(slProvider)<EnsureTvEnrichment>(),
 );
+
+final resolveEpisodePlaybackSelectionUseCaseProvider =
+    Provider<ResolveEpisodePlaybackSelection>(
+      (ref) => ref.watch(slProvider)<ResolveEpisodePlaybackSelection>(),
+    );
 
 /// Provider qui vérifie et déclenche l'enrichissement d'une série si nécessaire.
 /// Retourne `true` si un enrichissement a été déclenché, `false` si déjà complet.

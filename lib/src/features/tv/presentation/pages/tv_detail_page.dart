@@ -21,11 +21,9 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/logging/logger.dart';
-import 'package:movi/src/core/network/network_executor.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
-import 'package:movi/src/features/iptv/data/services/xtream_stream_url_builder_impl.dart';
+import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
@@ -43,6 +41,8 @@ import 'package:movi/src/core/parental/presentation/utils/parental_reason_locali
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/reporting/presentation/widgets/report_problem_sheet.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
+import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
 
 class TvDetailPage extends ConsumerStatefulWidget {
   const TvDetailPage({super.key, required this.seriesId});
@@ -1567,73 +1567,40 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return '${hours}h ${remainingMinutes}m';
   }
 
-  /// Détecte si une saison utilise la numérotation globale ou relative
-  ///
-  /// Retourne true si la saison utilise la numérotation globale (ex: épisode 1055),
-  /// false si elle utilise la numérotation relative (ex: épisode 1, 2, 3...).
-  bool _isSeasonUsingGlobalNumbering(
-    int seasonNumber,
+  List<EpisodePlaybackSeasonSnapshot> _buildEpisodePlaybackSeasonSnapshots(
     List<SeasonViewModel> seasons,
   ) {
-    // Trouver la saison
-    final season = seasons.firstWhere(
-      (s) => s.seasonNumber == seasonNumber,
-      orElse: () => seasons.firstOrNull ?? seasons.first,
-    );
-
-    if (season.episodes.isEmpty) return false;
-
-    // Si le premier épisode de la saison a un numéro > 1, c'est probablement global
-    final firstEpisodeNumber = season.episodes.first.episodeNumber;
-    if (firstEpisodeNumber > 1) {
-      return true;
-    }
-
-    // Si le numéro du dernier épisode est supérieur au nombre d'épisodes dans la saison,
-    // c'est probablement global
-    final lastEpisodeNumber = season.episodes.last.episodeNumber;
-    if (lastEpisodeNumber > season.episodes.length) {
-      return true;
-    }
-
-    // Sinon, c'est probablement relatif
-    return false;
+    return seasons
+        .map(
+          (season) => EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+            seasonNumber: season.seasonNumber,
+            episodeNumbers: season.episodes.map(
+              (episode) => episode.episodeNumber,
+            ),
+          ),
+        )
+        .toList(growable: false);
   }
 
-  /// Convertit le numéro d'épisode TMDB en numéro relatif à la saison pour Xtream
-  ///
-  /// Détecte automatiquement si la saison utilise la numérotation globale ou relative.
-  /// Si globale (ex: épisode 1055 pour la saison 21), convertit en relatif (ex: épisode 55).
-  /// Si relative (ex: épisode 1, 2, 3...), utilise le numéro tel quel.
-  int _convertTmdbEpisodeToXtream(
-    int tmdbEpisodeNumber,
-    int seasonNumber,
-    List<SeasonViewModel> seasons,
-  ) {
-    // Détecter si la saison utilise la numérotation globale
-    final isGlobal = _isSeasonUsingGlobalNumbering(seasonNumber, seasons);
-
-    if (!isGlobal) {
-      // La saison utilise déjà la numérotation relative, utiliser le numéro tel quel
-      return tmdbEpisodeNumber;
-    }
-
-    // La saison utilise la numérotation globale, convertir en relatif
-    // Calculer le nombre total d'épisodes dans toutes les saisons précédentes
-    // IMPORTANT: Exclure la saison 0 car elle n'existe pas dans Xtream
-    int totalEpisodesBefore = 0;
-    for (final season in seasons) {
-      // Ignorer la saison 0 (épisodes spéciaux qui n'existent pas dans Xtream)
-      if (season.seasonNumber > 0 && season.seasonNumber < seasonNumber) {
-        totalEpisodesBefore += season.episodes.length;
-      }
-    }
-
-    // Convertir en numéro relatif à la saison
-    final xtreamEpisodeNumber = tmdbEpisodeNumber - totalEpisodesBefore;
-
-    // Gérer les cas limites : si le calcul donne un numéro <= 0, utiliser 1 comme fallback
-    return xtreamEpisodeNumber > 0 ? xtreamEpisodeNumber : 1;
+  VideoSource _buildEpisodePlayerSource({
+    required PlaybackVariant variant,
+    required String title,
+    required Uri? poster,
+    required int seasonNumber,
+    required int episodeNumber,
+    Duration? resumePosition,
+  }) {
+    return VideoSource(
+      url: variant.videoSource.url,
+      title: title,
+      contentId: widget.seriesId,
+      tmdbId: variant.videoSource.tmdbId,
+      contentType: ContentType.series,
+      poster: poster,
+      season: seasonNumber,
+      episode: episodeNumber,
+      resumePosition: resumePosition,
+    );
   }
 
   Future<void> _openEpisodePlayer(
@@ -1642,263 +1609,67 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   ) async {
     try {
       final locator = ref.read(slProvider);
-      final iptvLocal = locator<IptvLocalRepository>();
-      final vault = locator<CredentialsVault>();
+      final resolver = locator<EpisodePlaybackVariantResolver>();
       final logger = locator<AppLogger>();
-      final networkExecutor = locator<NetworkExecutor>();
-      final urlBuilder = XtreamStreamUrlBuilderImpl(
-        iptvLocal: iptvLocal,
-        vault: vault,
-        networkExecutor: networkExecutor,
-      );
-
-      // Récupérer le ViewModel pour obtenir toutes les saisons et convertir le numéro d'épisode
       final vmAsync = ref.read(
         tvDetailProgressiveControllerProvider(widget.seriesId),
       );
       final vm = vmAsync.value;
-
-      // Convertir le numéro d'épisode TMDB en numéro Xtream
-      int xtreamEpisodeNumber = episode.episodeNumber;
-      if (vm != null && vm.seasons.isNotEmpty) {
-        final isGlobal = _isSeasonUsingGlobalNumbering(
-          seasonNumber,
-          vm.seasons,
-        );
-        final convertedNumber = _convertTmdbEpisodeToXtream(
-          episode.episodeNumber,
-          seasonNumber,
-          vm.seasons,
-        );
-
-        if (isGlobal) {
-          logger.debug(
-            'Conversion épisode TMDB->Xtream (global): S${seasonNumber}E${episode.episodeNumber} (TMDB global) -> S${seasonNumber}E$convertedNumber (Xtream relatif)',
-          );
-        } else {
-          logger.debug(
-            'Épisode déjà en numérotation relative: S${seasonNumber}E${episode.episodeNumber} (pas de conversion nécessaire)',
-          );
-        }
-        xtreamEpisodeNumber = convertedNumber;
-      } else {
-        logger.debug(
-          'ViewModel non disponible ou saisons vides, utilisation du numéro d\'épisode original: ${episode.episodeNumber}',
-        );
-      }
-
-      // Chercher l'item Xtream correspondant
-      XtreamPlaylistItem? xtreamItem;
-      final activeSourceIds = ref
-          .read(asp.appStateControllerProvider)
-          .preferredIptvSourceIds;
-      final xtreamAccounts = await iptvLocal.getAccounts();
-      final stalkerAccounts = await iptvLocal.getStalkerAccounts();
-      final accountIds = <String>{
-        ...xtreamAccounts.map((a) => a.id),
-        ...stalkerAccounts.map((a) => a.id),
-      };
-      if (activeSourceIds.isEmpty) {
-        accountIds.clear();
-      } else {
-        accountIds.removeWhere((id) => !activeSourceIds.contains(id));
-      }
-      final seriesId = widget.seriesId;
-
-      logger.debug(
-        'Recherche de la série seriesId=$seriesId, saison=$seasonNumber, épisode=$xtreamEpisodeNumber (Xtream) dans ${accountIds.length} comptes',
+      final seasonSnapshots = _buildEpisodePlaybackSeasonSnapshots(
+        vm?.seasons ?? seasons,
       );
-
-      for (final accountId in accountIds) {
-        final playlists = await iptvLocal.getPlaylists(accountId);
-        logger.debug('Compte $accountId: ${playlists.length} playlists');
-        // Recherche globale dans toutes les playlists (movies et series)
-        // car certaines séries peuvent être mal catégorisées
-        for (final playlist in playlists) {
-          logger.debug(
-            'Playlist ${playlist.title} (${playlist.type.name}): ${playlist.items.length} items',
-          );
-          // Si l'ID commence par "xtream:", chercher par streamId
-          if (seriesId.startsWith('xtream:')) {
-            final streamIdStr = seriesId.substring(7);
-            final streamId = int.tryParse(streamIdStr);
-            if (streamId != null) {
-              try {
-                // Chercher dans tous les items, peu importe le type
-                final found = playlist.items.firstWhere(
-                  (item) => item.streamId == streamId,
-                );
-                logger.debug(
-                  'Série trouvée: ${found.title} (streamId=${found.streamId}, tmdbId=${found.tmdbId}, type=${found.type.name})',
-                );
-                // Vérifier que c'est bien une série et que le streamId est valide
-                if (found.type != XtreamPlaylistItemType.series) {
-                  logger.debug(
-                    'Item trouvé n\'est pas une série (type=${found.type.name}), continuer la recherche',
-                  );
-                  continue;
-                }
-                if (found.streamId == 0) {
-                  logger.debug(
-                    'Série trouvée avec streamId invalide (${found.streamId}), continuer la recherche',
-                  );
-                  continue;
-                }
-                xtreamItem = found;
-              } catch (_) {
-                // Item non trouvé, continuer la recherche
-                logger.debug(
-                  'Série avec streamId=$streamId non trouvée dans ${playlist.title}',
-                );
-              }
-            }
-          } else {
-            // Sinon, chercher par tmdbId
-            final tmdbId = int.tryParse(seriesId);
-            if (tmdbId != null) {
-              try {
-                // Chercher dans tous les items, peu importe le type
-                // Chercher toutes les occurrences pour trouver celle avec un streamId valide
-                final candidates = playlist.items
-                    .where(
-                      (item) =>
-                          item.tmdbId == tmdbId &&
-                          item.type == XtreamPlaylistItemType.series,
-                    )
-                    .toList();
-
-                if (candidates.isNotEmpty) {
-                  // Préférer celle avec un streamId valide (non nul)
-                  final validCandidate = candidates.firstWhere(
-                    (item) => item.streamId > 0,
-                    orElse: () => candidates.first,
-                  );
-
-                  logger.debug(
-                    'Série trouvée: ${validCandidate.title} (streamId=${validCandidate.streamId}, tmdbId=${validCandidate.tmdbId}, type=${validCandidate.type.name})',
-                  );
-
-                  // Si le streamId est toujours 0, continuer la recherche dans d'autres playlists
-                  if (validCandidate.streamId == 0) {
-                    logger.debug(
-                      'Série trouvée avec streamId invalide (${validCandidate.streamId}), continuer la recherche',
-                    );
-                    continue;
-                  }
-
-                  xtreamItem = validCandidate;
-                }
-              } catch (_) {
-                // Item non trouvé, continuer la recherche
-                logger.debug(
-                  'Série avec tmdbId=$tmdbId non trouvée dans ${playlist.title}',
-                );
-              }
-            }
-          }
-
-          if (xtreamItem != null) break;
-        }
-        if (xtreamItem != null) break;
-      }
-
-      if (xtreamItem == null) {
-        logger.info('Série seriesId=$seriesId non trouvée dans les playlists');
+      final variants = await resolver.resolveVariants(
+        seriesId: widget.seriesId,
+        seasonNumber: seasonNumber,
+        episodeNumber: episode.episodeNumber,
+        seasonSnapshots: seasonSnapshots,
+        candidateSourceIds: ref
+            .read(asp.appStateControllerProvider)
+            .preferredIptvSourceIds,
+      );
+      if (variants.isEmpty) {
+        logger.info(
+          'Episode playback variants unavailable seriesId=${widget.seriesId}',
+        );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Épisode non disponible dans la playlist'),
+            content: Text('\u00c9pisode non disponible dans la playlist'),
           ),
         );
         return;
       }
 
-      logger.debug(
-        'Construction URL pour série streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=$xtreamEpisodeNumber (Xtream)',
-      );
-
-      // Vérifier si l'épisode est en cache avant de construire l'URL
-      final cachedEpisodeData = await iptvLocal.getEpisodeData(
-        accountId: xtreamItem.accountId,
-        seriesId: xtreamItem.streamId,
-        seasonNumber: seasonNumber,
-        episodeNumber: xtreamEpisodeNumber,
-      );
-      if (cachedEpisodeData != null) {
-        logger.debug(
-          'Épisode trouvé en cache: S${seasonNumber}E$xtreamEpisodeNumber -> episodeId=${cachedEpisodeData.episodeId}',
-        );
-      } else {
-        logger.debug(
-          'Épisode NON trouvé en cache: S${seasonNumber}E$xtreamEpisodeNumber, chargement depuis l\'API...',
-        );
-      }
-
-      // Construire l'URL de streaming
-      final streamUrl = await urlBuilder.buildStreamUrlFromSeriesItem(
-        item: xtreamItem,
-        seasonNumber: seasonNumber,
-        episodeNumber: xtreamEpisodeNumber,
-      );
-      if (streamUrl == null) {
-        logger.error(
-          'Impossible de construire l\'URL pour streamId=${xtreamItem.streamId}, saison=$seasonNumber, épisode=$xtreamEpisodeNumber',
-        );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible de construire l\'URL de streaming'),
-          ),
-        );
-        return;
-      }
-
-      logger.debug('URL de streaming construite: $streamUrl');
-
-      // Construire le titre de l'épisode
-      // Utiliser le ViewModel déjà récupéré
+      final selectedVariant = variants.first;
       final seriesTitle = vm?.title ?? mediaTitle;
-      // Afficher le numéro d'épisode TMDB dans le titre (pour l'utilisateur)
       final episodeTitle = episode.title.isNotEmpty
           ? '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')} - ${episode.title}'
           : '$seriesTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episode.episodeNumber.toString().padLeft(2, '0')}';
-
-      // Récupérer le poster depuis le view model
       final posterUri = vm?.poster;
 
-      // Récupérer la position de reprise depuis l'historique
-      // Utiliser le numéro d'épisode TMDB pour l'historique (c'est ce qui est stocké)
       Duration? resumePosition;
       try {
-        // Utiliser le repository hybride (local + Supabase si disponible)
         final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
         final historyEntry = await historyRepo.getEntry(
-          seriesId,
+          widget.seriesId,
           ContentType.series,
           season: seasonNumber,
           episode: episode.episodeNumber,
         );
         resumePosition = historyEntry?.lastPosition;
       } catch (e) {
-        // Ignorer les erreurs de récupération de l'historique
-        logger.debug('Impossible de récupérer la position de reprise: $e');
+        logger.debug('Impossible de recuperer la position de reprise: $e');
       }
 
-      // Ouvrir le player
-      // Utiliser le numéro d'épisode TMDB pour l'affichage dans le player
       if (!mounted) return;
       context.push(
         AppRouteNames.player,
-        extra: VideoSource(
-          url: streamUrl.toString(),
+        extra: _buildEpisodePlayerSource(
+          variant: selectedVariant,
           title: episodeTitle,
-          contentId: seriesId,
-          tmdbId: xtreamItem.tmdbId ?? int.tryParse(seriesId),
-          contentType: ContentType.series,
           poster: posterUri,
-          season: seasonNumber,
-          episode:
-              episode.episodeNumber, // Utiliser le numéro TMDB pour l'affichage
+          seasonNumber: seasonNumber,
+          episodeNumber: episode.episodeNumber,
           resumePosition: resumePosition,
         ),
       );

@@ -290,18 +290,29 @@ class SupabaseIptvSourcesRepository {
 
     try {
       final updates = <String, dynamic>{};
-      if (name != null) updates['name'] = name;
-      if (isActive != null) updates['is_active'] = isActive;
-      if (lastSyncAt != null)
+      if (name != null) {
+        updates['name'] = name;
+      }
+      if (isActive != null) {
+        updates['is_active'] = isActive;
+      }
+      if (lastSyncAt != null) {
         updates['last_sync_at'] = lastSyncAt.toIso8601String();
-      if (expiresAt != null)
+      }
+      if (expiresAt != null) {
         updates['expires_at'] = expiresAt.toIso8601String();
-      if (encryptedCredentials != null)
+      }
+      if (encryptedCredentials != null) {
         updates['encrypted_credentials'] = encryptedCredentials;
+      }
 
       if (_truthMode == IptvSourceTruthMode.remoteWithServerMeta) {
-        if (serverUrl != null) updates['server_url'] = serverUrl;
-        if (username != null) updates['username'] = username;
+        if (serverUrl != null) {
+          updates['server_url'] = serverUrl;
+        }
+        if (username != null) {
+          updates['username'] = username;
+        }
       }
 
       log(
