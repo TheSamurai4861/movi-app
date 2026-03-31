@@ -40,8 +40,6 @@ import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/unawaited.dart';
-import 'package:movi/src/features/player/application/usecases/enter_picture_in_picture.dart';
-import 'package:movi/src/features/player/application/usecases/exit_picture_in_picture.dart';
 import 'package:movi/src/features/player/application/usecases/auto_enter_picture_in_picture.dart';
 import 'dart:io';
 
@@ -88,6 +86,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   VideoSource? _currentVideoSource;
   final List<StreamSubscription> _subscriptions = [];
   VideoFitMode _currentVideoFitMode = VideoFitMode.contain;
+  final FocusNode _keyboardFocusNode = FocusNode(debugLabel: 'player_keyboard');
 
   // Variables pour la détection des gestes verticaux
   double? _gestureStartY;
@@ -169,6 +168,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     // le 1er montage (et laisser les listeners s'installer correctement).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Assurer que la page capture bien les touches (TV/desktop).
+      if (!_keyboardFocusNode.hasFocus) {
+        _keyboardFocusNode.requestFocus();
+      }
       if (_currentVideoSource != null) {
         unawaited(_openGuarded(_currentVideoSource!));
       }
@@ -1000,18 +1003,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     );
   }
 
-  Future<void> _onPictureInPicture() async {
-    final pipRepo = ref.read(pictureInPictureRepositoryProvider);
-    if (_isPipActive) {
-      final exitUseCase = ExitPictureInPicture(pipRepo);
-      await exitUseCase();
-    } else {
-      final enterUseCase = EnterPictureInPicture(pipRepo);
-      await enterUseCase();
-    }
-    _startHideControlsTimer();
-  }
-
   Future<void> _showVideoFitModeMenu() async {
     // Ne pas masquer les contrôles pendant la sélection
     _hideControlsTimer?.cancel();
@@ -1057,29 +1048,20 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     }
   }
 
-  void _onChromecast() {
-    // Nécessite l'ajout d'un package comme flutter_cast ou cast_framework
-    // et la configuration des services Google Cast
-    if (mounted) {
-      final logger = ref.read(slProvider)<AppLogger>();
-      logger.info('Chromecast tapped', category: 'Player');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.featureComingSoon),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-    _startHideControlsTimer();
-  }
 
   Future<void> _onBack(BuildContext context) async {
     // Sauvegarder l'historique et synchroniser en parallèle sans bloquer la navigation
     // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
     final videoSource = _currentVideoSource ?? widget.videoSource;
 
-    // Si la vidéo est en lecture et que le PiP est supporté, entrer en PiP au lieu de fermer
-    if (_isPlaying && _isPipSupported && !_isPipActive) {
+    // Si la vidéo est en lecture et que le PiP est supporté, entrer en PiP au lieu de fermer.
+    //
+    // Sur iOS, on privilégie un retour "fermer le player" car l'auto-PiP à l'appui
+    // sur retour est souvent perçu comme un bouton qui ne fait rien (selon device/OS).
+    if (defaultTargetPlatform != TargetPlatform.iOS &&
+        _isPlaying &&
+        _isPipSupported &&
+        !_isPipActive) {
       // Pour PiP, on doit attendre avant de naviguer
       try {
         final pipRepo = ref.read(pictureInPictureRepositoryProvider);
@@ -1179,6 +1161,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
     _hideControlsTimer?.cancel();
     _controlsAnimationController.dispose();
+    _keyboardFocusNode.dispose();
 
     // Annuler toutes les subscriptions avant de disposer le player
     for (final subscription in _subscriptions) {
@@ -1249,13 +1232,20 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         backgroundColor: Colors.black,
         body: Focus(
           autofocus: true,
+          focusNode: _keyboardFocusNode,
           onKeyEvent: (_, event) {
-            if (event is! KeyDownEvent) return KeyEventResult.ignored;
+            if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+              return KeyEventResult.ignored;
+            }
             final key = event.logicalKey;
 
             if (key == LogicalKeyboardKey.escape ||
                 key == LogicalKeyboardKey.goBack ||
-                key == LogicalKeyboardKey.backspace) {
+                key == LogicalKeyboardKey.backspace ||
+                key == LogicalKeyboardKey.browserBack ||
+                key == LogicalKeyboardKey.cancel ||
+                key == LogicalKeyboardKey.gameButtonB ||
+                key == LogicalKeyboardKey.mediaStop) {
               unawaited(_onBack(context));
               return KeyEventResult.handled;
             }
@@ -1381,7 +1371,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                     onSeek: _onSeek,
                     onToggleSubtitles: _showSubtitleMenu,
                     onAudio: _showAudioMenu,
-                    onChromecast: _onChromecast,
+                    onChromecast: null,
                     onVideoFitMode: _showVideoFitModeMenu,
                     formatDuration: _formatDuration,
                     hasAudioTracks: _audioTracks.isNotEmpty,
@@ -1391,9 +1381,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                         ? _goToNextEpisode
                         : null,
                     isSeries: videoSource?.contentType == ContentType.series,
-                    onPictureInPicture: _onPictureInPicture,
-                    isPipSupported: _isPipSupported,
-                    isPipActive: _isPipActive,
+                    onPictureInPicture: null,
+                    isPipSupported: false,
+                    isPipActive: false,
                   ),
                 ),
             ],

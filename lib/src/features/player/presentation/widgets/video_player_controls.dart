@@ -25,7 +25,7 @@ class VideoPlayerControls extends ConsumerWidget {
     required this.onSeek,
     required this.onToggleSubtitles,
     this.onAudio,
-    required this.onChromecast,
+    this.onChromecast,
     this.onVideoFitMode,
     required this.formatDuration,
     this.hasAudioTracks = false,
@@ -53,7 +53,7 @@ class VideoPlayerControls extends ConsumerWidget {
   final void Function(double) onSeek;
   final VoidCallback onToggleSubtitles;
   final VoidCallback? onAudio;
-  final VoidCallback onChromecast;
+  final VoidCallback? onChromecast;
   final VoidCallback? onVideoFitMode;
   final String Function(Duration) formatDuration;
   final bool hasAudioTracks;
@@ -193,12 +193,14 @@ class VideoPlayerControls extends ConsumerWidget {
                       onTap: onVideoFitMode,
                       iconAsset: AppAssets.iconResize,
                     ),
-                  if (onVideoFitMode != null) const SizedBox(width: 24),
-                  // Bouton Chromecast
-                  _IconButton(
-                    onTap: onChromecast,
-                    iconAsset: AppAssets.iconChromecast,
-                  ),
+                  if (onVideoFitMode != null && onChromecast != null)
+                    const SizedBox(width: 24),
+                  // Bouton Chromecast (masqué tant que non implémenté)
+                  if (onChromecast != null)
+                    _IconButton(
+                      onTap: onChromecast,
+                      iconAsset: AppAssets.iconChromecast,
+                    ),
                 ],
               ),
             ),
@@ -399,8 +401,8 @@ class VideoPlayerControls extends ConsumerWidget {
                               ? AppAssets.iconSubtitles
                               : AppAssets.iconSubtitlesDisabled,
                         ),
-                        // Bouton PiP (si supporté)
-                        if (isPipSupported) ...[
+                        // Bouton PiP (masqué tant que non implémenté / non câblé)
+                        if (isPipSupported && onPictureInPicture != null) ...[
                           const SizedBox(width: 24),
                           _IconButton(
                             onTap: onPictureInPicture,
