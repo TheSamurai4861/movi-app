@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 /// Carte "Voir tout" alignée sur MoviMediaCard (largeur 150).
 /// Affiche un motif 2x2 stylisé et le libellé "Voir tout".
@@ -29,6 +30,8 @@ class _SeeAllCardState extends State<SeeAllCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final seeAllLabel = l10n?.actionSeeAll ?? 'Voir tout';
     return SizedBox(
       width: widget.width,
       child: Material(
@@ -64,10 +67,10 @@ class _SeeAllCardState extends State<SeeAllCard> {
                 ),
                 const SizedBox(height: 12),
                 Semantics(
-                  label: 'Voir tout ${widget.title}',
+                  label: '$seeAllLabel ${widget.title}',
                   button: true,
                   child: Text(
-                    'Voir tout',
+                    seeAllLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style:

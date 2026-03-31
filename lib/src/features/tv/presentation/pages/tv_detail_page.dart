@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
@@ -22,6 +25,8 @@ import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/shared/domain/constants/playback_progress_thresholds.dart';
+import 'package:movi/src/shared/presentation/providers/playback_history_providers.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
@@ -31,6 +36,7 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_remote_providers.dart';
 import 'package:movi/src/features/library/presentation/widgets/add_to_playlist_action_sheet.dart';
@@ -60,6 +66,30 @@ class TvDetailPage extends ConsumerStatefulWidget {
 
 enum EpisodeSortOrder { ascending, descending }
 
+/// Clés "saison:épisode" considérées comme terminées (>= 95%).
+final _watchedEpisodeKeysProvider =
+    FutureProvider.family<Set<String>, String>((ref, seriesId) async {
+      final historyRepo = ref.watch(slProvider)<HistoryLocalRepository>();
+      final userId = ref.watch(currentUserIdProvider);
+      final entries = await historyRepo.readAll(ContentType.series, userId: userId);
+
+      final watched = <String>{};
+      for (final e in entries) {
+        if (e.contentId != seriesId) continue;
+        final s = e.season;
+        final ep = e.episode;
+        if (s == null || ep == null) continue;
+        final d = e.duration;
+        if (d == null || d.inSeconds <= 0) continue;
+        final pos = e.lastPosition?.inSeconds ?? 0;
+        final progress = pos / d.inSeconds;
+        if (progress >= PlaybackProgressThresholds.maxInProgress) {
+          watched.add('$s:$ep');
+        }
+      }
+      return watched;
+    });
+
 class _TvDetailPageState extends ConsumerState<TvDetailPage>
     with TickerProviderStateMixin {
   bool _overviewExpanded = false;
@@ -73,10 +103,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   String overviewText = '';
   List<MoviPerson> cast = const [];
   List<SeasonViewModel> seasons = const [];
+  TvDetailViewModel? _lastVm;
   bool _changeVersionFocused = false;
   Timer? _autoRefreshTimer;
   Timer? _seasonsCheckTimer;
+  bool _reloadInFlight = false;
+  DateTime? _lastReloadAt;
   int _retryCount = 0;
+  bool _seasonTabListenerAttached = false;
   final Map<int, DateTime> _seasonLoadingStartTimes = {};
   final Map<int, FocusNode> _seasonEpisodeEntryFocusNodes = {};
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'TvHeroBack');
@@ -86,6 +120,33 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   static const Duration _loadingTimeout = Duration(seconds: 15);
   static const Duration _seasonLoadingTimeout = Duration(seconds: 10);
   static const Duration _seasonsCheckInterval = Duration(seconds: 3);
+  static const Duration _reloadCooldown = Duration(seconds: 2);
+
+  static const String _spoilerModeStorageKey = 'prefs.tv_spoiler_mode_enabled';
+  final FlutterSecureStorage _spoilerStorage = const FlutterSecureStorage();
+  bool _spoilerModeEnabled = false;
+
+  void _requestReload(String mediaId) {
+    if (!mounted) return;
+    if (_reloadInFlight) return;
+
+    final now = DateTime.now();
+    final last = _lastReloadAt;
+    if (last != null && now.difference(last) < _reloadCooldown) return;
+
+    final current = ref.read(tvDetailProgressiveControllerProvider(mediaId));
+    if (current.isLoading) return;
+
+    _reloadInFlight = true;
+    _lastReloadAt = now;
+    ref.invalidate(tvDetailProgressiveControllerProvider(mediaId));
+
+    // Libère le verrou après un court délai pour éviter les rafales.
+    Future<void>.delayed(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      _reloadInFlight = false;
+    });
+  }
 
   @override
   void initState() {
@@ -94,12 +155,41 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     _tabController = TabController(length: 1, vsync: this);
     _startAutoRefreshTimer();
     _startSeasonsCheckTimer();
+    unawaited(_loadSpoilerMode());
+  }
+
+  Future<void> _loadSpoilerMode() async {
+    try {
+      final raw = await _spoilerStorage.read(key: _spoilerModeStorageKey);
+      final enabled = raw == '1' || raw == 'true';
+      if (!mounted) return;
+      setState(() => _spoilerModeEnabled = enabled);
+    } catch (_) {
+      // Best-effort: ignore storage errors.
+    }
+  }
+
+  Future<void> _setSpoilerMode(bool enabled) async {
+    if (_spoilerModeEnabled == enabled) return;
+    if (mounted) setState(() => _spoilerModeEnabled = enabled);
+    try {
+      if (enabled) {
+        await _spoilerStorage.write(key: _spoilerModeStorageKey, value: '1');
+      } else {
+        await _spoilerStorage.delete(key: _spoilerModeStorageKey);
+      }
+    } catch (_) {
+      // Best-effort: ignore storage errors.
+    }
   }
 
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
     _seasonsCheckTimer?.cancel();
+    if (_seasonTabListenerAttached) {
+      _tabController.removeListener(_onSeasonTabChanged);
+    }
     for (final node in _seasonEpisodeEntryFocusNodes.values) {
       node.dispose();
     }
@@ -107,6 +197,32 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     _moreFocusNode.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onSeasonTabChanged() {
+    if (!mounted) return;
+    // Ignore intermediate animation ticks.
+    if (_tabController.indexIsChanging) return;
+
+    final vm = ref.read(tvDetailProgressiveControllerProvider(widget.seriesId)).value;
+    if (vm == null) return;
+
+    final seasonsList = vm.seasons;
+    final index = _tabController.index;
+    if (index < 0 || index >= seasonsList.length) return;
+
+    final season = seasonsList[index];
+    // Si la saison affichée n'a pas encore d'épisodes et n'est pas en chargement,
+    // on la charge immédiatement (priorité UX).
+    if (!season.isLoadingEpisodes && season.episodes.isEmpty) {
+      unawaited(
+        ref
+            .read(
+              tvDetailProgressiveControllerProvider(widget.seriesId).notifier,
+            )
+            .reloadSeasonEpisodes(season.seasonNumber),
+      );
+    }
   }
 
   KeyEventResult _handleHeroBackKey(KeyEvent event) {
@@ -156,7 +272,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         // Si toujours en chargement après le timeout, relancer
         if (vmAsync.isLoading && mounted) {
           _retryCount++;
-          ref.invalidate(tvDetailProgressiveControllerProvider(mediaId));
+          _requestReload(mediaId);
           if (mounted) {
             _startAutoRefreshTimer();
           }
@@ -251,9 +367,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     );
                     _seasonLoadingStartTimes.remove(seasonKey);
                     if (mounted) {
-                      ref.invalidate(
-                        tvDetailProgressiveControllerProvider(mediaId),
-                      );
+                      _requestReload(mediaId);
                     }
                   } catch (e) {
                     // Ignorer les erreurs si le widget est démonté
@@ -274,7 +388,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
         // Relancer le chargement si nécessaire
         if (shouldReload && mounted) {
-          ref.invalidate(tvDetailProgressiveControllerProvider(mediaId));
+          _requestReload(mediaId);
         }
       } catch (e) {
         // Ignorer les erreurs si le widget est démonté
@@ -457,12 +571,42 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
 
     return vmAsync.when(
-      loading: () => Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: const OverlaySplash(),
-      ),
+      loading: () {
+        final cached = _lastVm;
+        if (cached == null) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: OverlaySplash(
+              message: AppLocalizations.of(context)!.overlayPreparingMetadata,
+            ),
+          );
+        }
+
+        // Évite le flicker "détails -> placeholder -> détails" quand le provider est invalidé
+        // (ex: saisons longues à charger). On garde l'écran de détails affiché.
+        final seasonsLength = cached.seasons.isEmpty ? 1 : cached.seasons.length;
+        if (_tabController.length != seasonsLength) {
+          _tabController.dispose();
+          _tabController = TabController(length: seasonsLength, vsync: this);
+        }
+        return _buildWithValues(
+          mediaTitle: cached.title,
+          yearText: cached.yearText,
+          seasonsCountText: cached.seasonsCountText,
+          ratingText: cached.ratingText,
+          overviewText: cached.overviewText,
+          cast: cached.cast,
+          seasons: cached.seasons,
+          isLoading: false,
+          logo: cached.logo,
+          poster: cached.poster,
+          posterBackground: cached.posterBackground,
+          backdrop: cached.backdrop,
+        );
+      },
       error: (e, st) => _buildErrorScaffold(e),
       data: (vm) {
+        _lastVm = vm;
         // Démarrer la transition d'opacité après un court délai
         if (_isTransitioningFromLoading) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -504,6 +648,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           cast: vm.cast,
           seasons: vm.seasons,
           isLoading: _isTransitioningFromLoading,
+          logo: vm.logo,
           poster: vm.poster,
           posterBackground: vm.posterBackground,
           backdrop: vm.backdrop,
@@ -664,6 +809,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required List<MoviPerson> cast,
     required List<SeasonViewModel> seasons,
     required bool isLoading,
+    Uri? logo,
     Uri? poster,
     Uri? posterBackground,
     Uri? backdrop,
@@ -710,6 +856,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                                   seasonsCountText: seasonsCountText,
                                   ratingText: ratingText,
                                   overviewText: overviewText,
+                                  seasons: seasons,
+                                  logo: logo,
                                 ),
                             ],
                           ),
@@ -720,6 +868,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                               seasonsCountText: seasonsCountText,
                               ratingText: ratingText,
                               overviewText: overviewText,
+                              seasons: seasons,
+                              logo: logo,
                             ),
                           const SizedBox(height: 32),
                           _buildDistribution(cast),
@@ -781,28 +931,109 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String seasonsCountText,
     required String ratingText,
     required String overviewText,
+    required List<SeasonViewModel> seasons,
+    Uri? logo,
   }) {
+    final l10n = AppLocalizations.of(context)!;
+    final watchedKeys =
+        ref.watch(_watchedEpisodeKeysProvider(widget.seriesId)).value ??
+        const <String>{};
+    final inProgressAsync = ref.watch(
+      inProgressHistoryEntryProvider((
+        contentId: widget.seriesId,
+        type: ContentType.series,
+      )),
+    );
+
+    final totalEpisodeKeys = <String>{
+      for (final s in seasons)
+        if (s.seasonNumber > 0)
+          for (final e in s.episodes) '${s.seasonNumber}:${e.episodeNumber}',
+    };
+    final watchedCount = watchedKeys.intersection(totalEpisodeKeys).length;
+    final totalCount = totalEpisodeKeys.length;
+    final percent = totalCount == 0 ? null : (watchedCount / totalCount);
+
     return MoviDetailHeroDesktopOverlay(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            mediaTitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style:
-                Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  height: 1.05,
-                ) ??
-                const TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  height: 1.05,
-                ),
+          Semantics(
+            header: true,
+            label: mediaTitle,
+            child: logo == null
+                ? Text(
+                    mediaTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        Theme.of(context).textTheme.displaySmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              height: 1.05,
+                            ) ??
+                            const TextStyle(
+                              fontSize: 42,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.05,
+                            ),
+                  )
+                : MoviResponsiveLogo(
+                    imageUrl: logo.toString(),
+                    semanticLabel: mediaTitle,
+                    alignment: Alignment.centerLeft,
+                    maxWidth: 520,
+                    reservedHeight: 72,
+                    wideMaxHeight: 72,
+                    tallMaxHeight: 128,
+                    blockyMaxHeight: 160,
+                    blockyRatioThreshold: 1.45,
+                    overflowUpFactor: 1.0,
+                    extraUpOffset: 18,
+                    onErrorFallback: (_) => Text(
+                      mediaTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          Theme.of(context).textTheme.displaySmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                height: 1.05,
+                              ) ??
+                              const TextStyle(
+                                fontSize: 42,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: 1.05,
+                              ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              inProgressAsync.when(
+                data: (entry) {
+                  final s = entry?.season;
+                  final e = entry?.episode;
+                  if (s == null || e == null) return const SizedBox.shrink();
+                  return MoviPill(
+                    l10n.tvResumeSeasonEpisode(s, e),
+                    large: true,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           _buildMetaPills(
@@ -810,6 +1041,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             seasonsCountText: seasonsCountText,
             ratingText: ratingText,
             alignment: WrapAlignment.start,
+            leading: [
+              if (percent != null)
+                MoviPill(
+                  '${(percent * 100).round()}% vu',
+                  large: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                ),
+            ],
           ),
           if (overviewText.trim().isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -845,8 +1084,31 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String seasonsCountText,
     required String ratingText,
     required String overviewText,
+    required List<SeasonViewModel> seasons,
+    Uri? logo,
   }) {
+    final l10n = AppLocalizations.of(context)!;
+    final watchedKeys =
+        ref.watch(_watchedEpisodeKeysProvider(widget.seriesId)).value ??
+        const <String>{};
+    final inProgressAsync = ref.watch(
+      inProgressHistoryEntryProvider((
+        contentId: widget.seriesId,
+        type: ContentType.series,
+      )),
+    );
+
+    final totalEpisodeKeys = <String>{
+      for (final s in seasons)
+        if (s.seasonNumber > 0)
+          for (final e in s.episodes) '${s.seasonNumber}:${e.episodeNumber}',
+    };
+    final watchedCount = watchedKeys.intersection(totalEpisodeKeys).length;
+    final totalCount = totalEpisodeKeys.length;
+    final percent = totalCount == 0 ? null : (watchedCount / totalCount);
+
     final titleStyle = Theme.of(context).textTheme.headlineSmall;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: 20, end: 20),
@@ -854,7 +1116,57 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: 16),
-          Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left),
+          Semantics(
+            header: true,
+            label: mediaTitle,
+            child: logo == null
+                ? Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left)
+                : Transform.translate(
+                    offset: const Offset(0, -16),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: (screenWidth * 0.82).clamp(220.0, 420.0),
+                        maxHeight: 56,
+                      ),
+                      child: Image.network(
+                        logo.toString(),
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) =>
+                            Text(mediaTitle, style: titleStyle),
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              inProgressAsync.when(
+                data: (entry) {
+                  final s = entry?.season;
+                  final e = entry?.episode;
+                  if (s == null || e == null) return const SizedBox.shrink();
+                  return MoviPill(
+                    l10n.tvResumeSeasonEpisode(s, e),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withValues(alpha: 0.55),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           _buildMetaPills(
             yearText: yearText,
@@ -862,6 +1174,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             ratingText: ratingText,
             alignment: WrapAlignment.center,
             pillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            leading: [
+              if (percent != null)
+                MoviPill(
+                  '${(percent * 100).round()}% vu',
+                  large: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withValues(alpha: 0.55),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           _buildActionButtons(mediaTitle: mediaTitle, expandPrimary: true),
@@ -880,12 +1204,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String ratingText,
     required WrapAlignment alignment,
     Color? pillColor,
+    List<Widget> leading = const [],
   }) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       alignment: alignment,
       children: [
+        ...leading,
         MoviPill(
           yearText,
           large: true,
@@ -1240,8 +1566,19 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     // Ensure tab controller length matches seasons length
     // This should already be handled in the build method, but double-check here
     if (_tabController.length != seasons.length) {
+      if (_seasonTabListenerAttached) {
+        _tabController.removeListener(_onSeasonTabChanged);
+        _seasonTabListenerAttached = false;
+      }
       _tabController.dispose();
       _tabController = TabController(length: seasons.length, vsync: this);
+    }
+
+    if (!_seasonTabListenerAttached) {
+      _tabController.addListener(_onSeasonTabChanged);
+      _seasonTabListenerAttached = true;
+      // Charger immédiatement la saison sélectionnée si elle n'est pas prête.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onSeasonTabChanged());
     }
 
     final cs = Theme.of(context).colorScheme;
@@ -1318,22 +1655,33 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             Positioned(
               top: 56,
               right: horizontalPadding,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  setState(() {
-                    _episodeSortOrder =
-                        _episodeSortOrder == EpisodeSortOrder.ascending
-                        ? EpisodeSortOrder.descending
-                        : EpisodeSortOrder.ascending;
-                  });
-                },
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: const MoviAssetIcon(
-                    AppAssets.iconSort,
-                    color: Colors.white,
+              child: ClipOval(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    child: IconButton(
+                      padding: const EdgeInsets.all(10),
+                      icon: Transform.rotate(
+                        angle: _episodeSortOrder == EpisodeSortOrder.descending
+                            ? math.pi
+                            : 0,
+                        child: const MoviAssetIcon(
+                          AppAssets.iconSort,
+                          width: 24,
+                          height: 24,
+                          color: Colors.white,
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _episodeSortOrder =
+                              _episodeSortOrder == EpisodeSortOrder.ascending
+                              ? EpisodeSortOrder.descending
+                              : EpisodeSortOrder.ascending;
+                        });
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -1391,6 +1739,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       sortedEpisodes.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
     }
 
+    final watchedKeys =
+        ref.watch(_watchedEpisodeKeysProvider(widget.seriesId)).value ??
+        const <String>{};
+
     if (_useDesktopDetailLayout(context)) {
       return ListView.separated(
         padding: EdgeInsetsDirectional.only(
@@ -1403,12 +1755,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         separatorBuilder: (_, __) => const SizedBox(width: 18),
         itemBuilder: (context, index) {
           final episode = sortedEpisodes[index];
+          final hideSpoilers =
+              _spoilerModeEnabled &&
+              !watchedKeys.contains(
+                '${season.seasonNumber}:${episode.episodeNumber}',
+              );
           return MoviFocusableAction(
             focusNode: index == 0
                 ? _episodeEntryFocusNode(season.seasonNumber)
                 : null,
             onPressed: () => _openEpisodePlayer(episode, season.seasonNumber),
-            semanticLabel: episode.title,
+            semanticLabel:
+                hideSpoilers ? 'Épisode ${episode.episodeNumber}' : episode.title,
             builder: (context, state) {
               final accent = Theme.of(context).colorScheme.primary;
               return MoviFocusFrame(
@@ -1424,7 +1782,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         width: 2,
                       ),
                     ),
-                    child: _buildDesktopEpisodeCard(episode),
+                    child: _buildDesktopEpisodeCard(
+                      episode,
+                      hideSpoilers: hideSpoilers,
+                    ),
                   ),
                 ),
               );
@@ -1440,12 +1801,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       separatorBuilder: (_, __) => const SizedBox(height: 24),
       itemBuilder: (context, index) {
         final episode = sortedEpisodes[index];
+        final hideSpoilers =
+            _spoilerModeEnabled &&
+            !watchedKeys.contains(
+              '${season.seasonNumber}:${episode.episodeNumber}',
+            );
         return MoviFocusableAction(
           focusNode: index == 0
               ? _episodeEntryFocusNode(season.seasonNumber)
               : null,
           onPressed: () => _openEpisodePlayer(episode, season.seasonNumber),
-          semanticLabel: episode.title,
+          semanticLabel:
+              hideSpoilers ? 'Épisode ${episode.episodeNumber}' : episode.title,
           builder: (context, state) {
             final accent = Theme.of(context).colorScheme.primary;
             return MoviFocusFrame(
@@ -1459,7 +1826,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     width: 2,
                   ),
                 ),
-                child: _buildEpisodeCard(episode),
+                child: _buildEpisodeCard(episode, hideSpoilers: hideSpoilers),
               ),
             );
           },
@@ -1468,48 +1835,142 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
-  Widget _buildEpisodeCard(EpisodeViewModel episode) {
+  Widget _buildEpisodeCard(
+    EpisodeViewModel episode, {
+    required bool hideSpoilers,
+  }) {
     final cs = Theme.of(context).colorScheme;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Prendre la moitié de la largeur disponible
-        final imageWidth = constraints.maxWidth / 2;
-        final imageHeight =
-            imageWidth * (100 / 178); // Conserver le ratio 178:100
+        // La vignette doit laisser de la place au texte (titre + pills).
+        // On garde un ratio 178:100 (~16:9) mais la largeur est auto-ajustée.
+        // La hauteur est volontairement stable (comme si le titre faisait 2 lignes),
+        // pour éviter que la vignette "saute" entre 1 et 2 lignes.
+        final thumbHeight = (constraints.maxWidth * 0.22).clamp(78.0, 92.0);
+        const thumbAspectRatio = 178 / 100;
+        final thumbWidth = (thumbHeight * thumbAspectRatio).clamp(120.0, 164.0);
+
+        Widget thumbnail() {
+          final url = _episodeStillUrl(episode.still, highQuality: false);
+          final base = (episode.still == null || url.isEmpty)
+              ? Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        cs.surfaceContainerHighest,
+                        cs.surfaceContainer,
+                      ],
+                    ),
+                  ),
+                  child: const Center(
+                    child: MoviAssetIcon(
+                      AppAssets.iconAppLogoSvg,
+                      width: 22,
+                      height: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              : Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: cs.surfaceContainerHighest,
+                  ),
+                );
+
+          final effectiveBase = hideSpoilers
+              ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    base,
+                    BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.22),
+                      ),
+                    ),
+                  ],
+                )
+              : base;
+
+          final runtime = episode.runtime;
+          if (runtime == null) return effectiveBase;
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              effectiveBase,
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          _formatDuration(runtime),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ) ??
+                                  const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: episode.still != null
-                  ? _buildEpisodeStillImage(
-                      episode,
-                      width: imageWidth,
-                      height: imageHeight,
-                      colorScheme: cs,
-                      highQuality: false,
-                    )
-                  : _buildEpisodeImagePlaceholder(
-                      width: imageWidth,
-                      height: imageHeight,
-                      colorScheme: cs,
-                    ),
+            SizedBox(
+              width: thumbWidth,
+              height: thumbHeight,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: thumbnail(),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${episode.episodeNumber}. ${episode.title}',
+                      hideSpoilers
+                          ? 'Épisode ${episode.episodeNumber}'
+                          : '${episode.episodeNumber}. ${episode.title}',
                     style:
-                        Theme.of(context).textTheme.titleMedium?.copyWith(
+                        Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ) ??
                         TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: cs.onSurface,
                         ),
@@ -1524,15 +1985,6 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       if (episode.airDate != null)
                         MoviPill(
                           _formatDate(episode.airDate!),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          color: cs.surfaceContainerHighest,
-                        ),
-                      if (episode.runtime != null)
-                        MoviPill(
-                          _formatDuration(episode.runtime!),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 4,
@@ -1561,10 +2013,41 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
-  Widget _buildDesktopEpisodeCard(EpisodeViewModel episode) {
+  Widget _buildDesktopEpisodeCard(
+    EpisodeViewModel episode, {
+    required bool hideSpoilers,
+  }) {
     final cs = Theme.of(context).colorScheme;
     const cardRadius = 20.0;
     const imageAspectRatio = 178 / 100;
+
+    Widget thumbnail() {
+      final base = episode.still != null
+          ? _buildEpisodeStillImage(
+              episode,
+              width: double.infinity,
+              height: double.infinity,
+              colorScheme: cs,
+              highQuality: true,
+            )
+          : _buildEpisodeImagePlaceholder(
+              width: double.infinity,
+              height: double.infinity,
+              colorScheme: cs,
+            );
+
+      if (!hideSpoilers) return base;
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          base,
+          BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Container(color: Colors.black.withValues(alpha: 0.22)),
+          ),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1573,33 +2056,23 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           borderRadius: BorderRadius.circular(cardRadius),
           child: AspectRatio(
             aspectRatio: imageAspectRatio,
-            child: episode.still != null
-                ? _buildEpisodeStillImage(
-                    episode,
-                    width: double.infinity,
-                    height: double.infinity,
-                    colorScheme: cs,
-                    highQuality: true,
-                  )
-                : _buildEpisodeImagePlaceholder(
-                    width: double.infinity,
-                    height: double.infinity,
-                    colorScheme: cs,
-                  ),
+            child: thumbnail(),
           ),
         ),
         const SizedBox(height: 12),
         Text(
-          '${episode.episodeNumber}. ${episode.title}',
+          hideSpoilers
+              ? 'Épisode ${episode.episodeNumber}'
+              : '${episode.episodeNumber}. ${episode.title}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style:
-              Theme.of(context).textTheme.titleMedium?.copyWith(
+              Theme.of(context).textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: cs.onSurface,
               ) ??
               TextStyle(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: cs.onSurface,
               ),
@@ -2329,6 +2802,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   onPressed: _onRefreshMetadata,
                 ),
                 MoviTvActionMenuAction(
+                  label: _spoilerModeEnabled
+                      ? 'Désactiver le mode spoiler'
+                      : 'Activer le mode spoiler',
+                  onPressed: () {
+                    unawaited(_setSpoilerMode(!_spoilerModeEnabled));
+                  },
+                ),
+                MoviTvActionMenuAction(
                   label: l10n.actionAddToList,
                   onPressed: () => _showAddToListDialog(context, ref, seriesId),
                 ),
@@ -2410,6 +2891,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               MoviTvActionMenuAction(
                 label: l10n.actionRefreshMetadata,
                 onPressed: _onRefreshMetadata,
+              ),
+              MoviTvActionMenuAction(
+                label: _spoilerModeEnabled
+                    ? 'Désactiver le mode spoiler'
+                    : 'Activer le mode spoiler',
+                onPressed: () {
+                  unawaited(_setSpoilerMode(!_spoilerModeEnabled));
+                },
               ),
               MoviTvActionMenuAction(
                 label: l10n.actionAddToList,

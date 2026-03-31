@@ -9,6 +9,7 @@ import 'package:movi/l10n/app_localizations.dart';
 class MovieDetailViewModel {
   MovieDetailViewModel({
     required this.title,
+    this.logo,
     required this.yearText,
     required this.durationText,
     required this.ratingText,
@@ -23,6 +24,7 @@ class MovieDetailViewModel {
   });
 
   final String title;
+  final Uri? logo;
   final String yearText;
   final String durationText;
   final String ratingText;
@@ -73,6 +75,7 @@ class MovieDetailViewModel {
 
     return MovieDetailViewModel(
       title: detail.title.display,
+      logo: detail.logo,
       yearText: detail.releaseDate.year.toString(),
       durationText: '${h}h ${mn}m',
       ratingText: detail.voteAverage != null

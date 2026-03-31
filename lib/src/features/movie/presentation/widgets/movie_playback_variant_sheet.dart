@@ -55,6 +55,7 @@ class MoviePlaybackVariantSheet extends StatelessWidget {
                 final variant = variants[index];
                 final label = _buildVariantTitle(variant, index, l10n);
                 return MoviFocusableAction(
+                  key: Key('movie_variant_$index'),
                   autofocus: index == 0,
                   semanticLabel: label,
                   onPressed: () => Navigator.of(context).pop(variant),

@@ -4,6 +4,7 @@
 // - Surface-colored background
 // Use across Bootstrap and Home to ensure consistent UX.
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,12 +13,20 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 class OverlaySplash extends ConsumerWidget {
-  const OverlaySplash({super.key, this.message, this.fadeInDuration});
+  const OverlaySplash({
+    super.key,
+    this.message,
+    this.fadeInDuration,
+    this.showProgressDetails = true,
+  });
 
   final String? message;
 
   /// Durée du fade-in interne (optionnel). Par défaut 300 ms.
   final Duration? fadeInDuration;
+
+  /// Affiche des infos d'avancement sous le spinner (temps écoulé).
+  final bool showProgressDetails;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -52,22 +61,25 @@ class OverlaySplash extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (message != null && message!.isNotEmpty) ...[
-                    Text(
-                      message!,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
                   Semantics(
                     label: 'Chargement en cours',
                     child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: (theme.platform == TargetPlatform.iOS ||
+                              theme.platform == TargetPlatform.macOS)
+                          ? const CupertinoActivityIndicator(radius: 12)
+                          : const CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
+                  if (showProgressDetails) ...[
+                    const SizedBox(height: 10),
+                    _ElapsedLoadingText(
+                      baseText: message?.trim().isNotEmpty == true
+                          ? message!.trim()
+                          : 'Chargement…',
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -83,5 +95,44 @@ class OverlaySplash extends ConsumerWidget {
     } catch (_) {
       return theme.colorScheme.primary;
     }
+  }
+}
+
+class _ElapsedLoadingText extends StatefulWidget {
+  const _ElapsedLoadingText({required this.baseText});
+
+  final String baseText;
+
+  @override
+  State<_ElapsedLoadingText> createState() => _ElapsedLoadingTextState();
+}
+
+class _ElapsedLoadingTextState extends State<_ElapsedLoadingText> {
+  late final Stopwatch _sw = Stopwatch()..start();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return StreamBuilder<int>(
+      stream: Stream<int>.periodic(const Duration(seconds: 1), (i) => i),
+      builder: (_, __) {
+        final s = _sw.elapsed.inSeconds;
+        final text = '${
+            widget.baseText.isEmpty ? 'Chargement…' : widget.baseText
+          } · ${s}s';
+        return Text(
+          text,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70) ??
+              const TextStyle(color: Colors.white70, fontSize: 12),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _sw.stop();
+    super.dispose();
   }
 }

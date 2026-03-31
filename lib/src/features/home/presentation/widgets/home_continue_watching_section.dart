@@ -193,8 +193,11 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     );
     if (!context.mounted) return;
     if (!resolution.isAvailable || resolution.resolvedContentId == null) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pas disponible sur cette source')),
+        SnackBar(
+          content: Text(l10n.hc_pas_disponible_sur_cette_source_fa6e19a7),
+        ),
       );
       return;
     }

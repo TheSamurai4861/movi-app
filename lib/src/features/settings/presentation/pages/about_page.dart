@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -15,6 +16,7 @@ class AboutPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accent = ref.watch(asp.currentAccentColorProvider);
+    final l10n = AppLocalizations.of(context)!;
     final bottomInset =
         MoviBottomNavBar.height + moviNavBarBottomOffset(context) + 16;
 
@@ -26,7 +28,7 @@ class AboutPage extends ConsumerWidget {
             padding: EdgeInsets.fromLTRB(20, 16, 20, 24 + bottomInset),
             children: [
               _HeaderBar(
-                title: 'À propos',
+                title: l10n.settingsAboutTitle,
                 accent: accent,
                 onBack: () => context.pop(),
               ),
@@ -51,15 +53,15 @@ class AboutPage extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Version 1.0.0',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+              Text(
+                'Version ${const String.fromEnvironment('MOVI_VERSION', defaultValue: '1.0.0')}',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const SizedBox(height: 32),
 
               // Section Crédits / Attribution
-              const Text(
-                'Crédits',
+              Text(
+                l10n.aboutCreditsSectionTitle,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -101,20 +103,10 @@ class AboutPage extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'This product uses the TMDB API but is not endorsed or certified by TMDB.',
+                    Text(
+                      l10n.aboutTmdbDisclaimer,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Ce produit utilise l\'API TMDB mais n\'est ni approuvé ni certifié par TMDB.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
                         fontStyle: FontStyle.italic,
@@ -156,7 +148,7 @@ class _HeaderBar extends StatelessWidget {
               height: 35,
               child: MoviFocusableAction(
                 onPressed: onBack,
-                semanticLabel: 'Retour',
+                semanticLabel: AppLocalizations.of(context)!.semanticsBack,
                 builder: (context, state) {
                   return MoviFocusFrame(
                     scale: state.focused ? 1.04 : 1,

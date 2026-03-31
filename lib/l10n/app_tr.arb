@@ -1,0 +1,710 @@
+{
+  "welcomeTitle": "Hoş geldiniz!",
+  "welcomeSubtitle": "Movi’yi kişiselleştirmek için tercihlerinizi doldurun.",
+  "labelUsername": "Takma ad",
+  "labelPreferredLanguage": "Tercih edilen dil",
+  "actionContinue": "Devam",
+  "hintUsername": "Takma adınız",
+  "errorFillFields": "Lütfen alanları doğru şekilde doldurun.",
+  "homeWatchNow": "İzle",
+  "welcomeSourceTitle": "Hoş geldiniz!",
+  "welcomeSourceSubtitle": "Movi’de deneyiminizi kişiselleştirmek için bir kaynak ekleyin.",
+  "welcomeSourceAdd": "Kaynak ekle",
+  "searchTitle": "Ara",
+  "searchHint": "Aramanızı yazın",
+  "clear": "Temizle",
+  "moviesTitle": "Filmler",
+  "seriesTitle": "Diziler",
+  "noResults": "Sonuç yok",
+  "historyTitle": "Geçmiş",
+  "historyEmpty": "Yakın arama yok",
+  "delete": "Sil",
+  "resultsCount": "({count} sonuç)",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorUnknown": "Bilinmeyen hata",
+  "errorConnectionFailed": "Bağlantı başarısız: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorConnectionGeneric": "Bağlantı başarısız",
+  "validationRequired": "Zorunlu",
+  "validationInvalidUrl": "Geçersiz URL",
+  "snackbarSourceAddedBackground": "IPTV kaynağı eklendi. Arka planda senkronize ediliyor…",
+  "snackbarSourceAddedSynced": "IPTV kaynağı eklendi ve senkronize edildi",
+  "navHome": "Ana sayfa",
+  "navSearch": "Ara",
+  "navLibrary": "Kütüphane",
+  "navSettings": "Ayarlar",
+  "settingsTitle": "Ayarlar",
+  "settingsLanguageLabel": "Uygulama dili",
+  "settingsGeneralTitle": "Genel tercihler",
+  "settingsDarkModeTitle": "Karanlık mod",
+  "settingsDarkModeSubtitle": "Geceye uygun bir tema etkinleştirin.",
+  "settingsNotificationsTitle": "Bildirimler",
+  "settingsNotificationsSubtitle": "Yeni çıkanlardan haberdar olun.",
+  "settingsAccountTitle": "Hesap",
+  "settingsProfileInfoTitle": "Profil bilgileri",
+  "settingsProfileInfoSubtitle": "İsim, avatar, tercihler",
+  "settingsAboutTitle": "Hakkında",
+  "settingsLegalMentionsTitle": "Yasal bilgiler",
+  "settingsPrivacyPolicyTitle": "Gizlilik politikası",
+  "actionCancel": "İptal",
+  "actionConfirm": "Onayla",
+  "actionRetry": "Yeniden dene",
+  "settingsHelpDiagnosticsSection": "Yardım ve tanılama",
+  "settingsExportErrorLogs": "Hata günlüklerini dışa aktar",
+  "diagnosticsExportTitle": "Hata günlüklerini dışa aktar",
+  "diagnosticsExportDescription": "Tanılama yalnızca son WARN/ERROR günlüklerini ve (etkinse) karmalanmış hesap/profil tanımlayıcılarını içerir. Hiçbir anahtar/token görünmemelidir.",
+  "diagnosticsIncludeHashedIdsTitle": "Hesap/profil tanımlayıcılarını (karmalanmış) dahil et",
+  "diagnosticsIncludeHashedIdsSubtitle": "Ham kimliği ifşa etmeden hatayı ilişkilendirmeye yardımcı olur.",
+  "diagnosticsCopiedClipboard": "Tanılama panoya kopyalandı.",
+  "diagnosticsSavedFile": "Tanılama kaydedildi: {fileName}",
+  "@diagnosticsSavedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticsActionCopy": "Kopyala",
+  "diagnosticsActionSave": "Kaydet",
+  "actionChangeVersion": "Sürümü değiştir",
+  "semanticsBack": "Geri",
+  "semanticsMoreActions": "Daha fazla işlem",
+  "snackbarLoadingPlaylists": "Oynatma listeleri yükleniyor…",
+  "snackbarNoPlaylistsAvailableCreateOne": "Oynatma listesi yok. Bir tane oluşturun.",
+  "errorAddToPlaylist": "Oynatma listesine eklenirken hata: {error}",
+  "@errorAddToPlaylist": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorAlreadyInPlaylist": "Bu medya zaten bu oynatma listesinde",
+  "errorLoadingPlaylists": "Oynatma listeleri yüklenirken hata: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorReportUnavailableForContent": "Bu içerik için raporlama kullanılamıyor.",
+  "snackbarLoadingEpisodes": "Bölümler yükleniyor…",
+  "snackbarEpisodeUnavailableInPlaylist": "Bölüm oynatma listesinde kullanılamıyor",
+  "snackbarGenericError": "Hata: {error}",
+  "@snackbarGenericError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarLoading": "Yükleniyor…",
+  "snackbarNoVersionAvailable": "Sürüm yok",
+  "snackbarVersionSaved": "Sürüm kaydedildi",
+  "playbackVariantFallbackLabel": "Sürüm {index}",
+  "@playbackVariantFallbackLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "actionReadMore": "Devamını oku",
+  "actionShowLess": "Daha az göster",
+  "actionViewPage": "Sayfayı görüntüle",
+  "semanticsSeeSagaPage": "Saga sayfasını gör",
+  "libraryTypeSaga": "Saga",
+  "libraryTypeInProgress": "Devam ediyor",
+  "libraryTypeFavoriteMovies": "Favori filmler",
+  "libraryTypeFavoriteSeries": "Favori diziler",
+  "libraryTypeHistory": "Geçmiş",
+  "libraryTypePlaylist": "Oynatma listesi",
+  "libraryTypeArtist": "Sanatçı",
+  "libraryItemCount": "{count} öğe",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackbarPlaylistRenamed": "Oynatma listesinin adı \"{name}\" olarak değiştirildi",
+  "@snackbarPlaylistRenamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarPlaylistDeleted": "Oynatma listesi silindi",
+  "dialogConfirmDeletePlaylist": "\"{title}\" silinsin mi?",
+  "@dialogConfirmDeletePlaylist": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNoResultsForQuery": "\"{query}\" için sonuç yok",
+  "@libraryNoResultsForQuery": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "errorGenericWithMessage": "Hata: {error}",
+  "@errorGenericWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarMediaAlreadyInPlaylist": "Bu medya zaten oynatma listesinde",
+  "snackbarAddedToPlaylist": "Oynatma listesine eklendi",
+  "addMediaTitle": "Medya ekle",
+  "searchMinCharsHint": "Aramak için en az 3 karakter yazın",
+  "badgeAdded": "Eklendi",
+  "snackbarNotAvailableOnSource": "Bu kaynakta kullanılamıyor",
+  "errorLoadingTitle": "Yükleme hatası",
+  "errorLoadingWithMessage": "Yükleme hatası: {error}",
+  "@errorLoadingWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingPlaylistsWithMessage": "Oynatma listeleri yüklenirken hata: {error}",
+  "@errorLoadingPlaylistsWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryClearFilterSemanticLabel": "Filtreyi temizle",
+  "homeErrorSwipeToRetry": "Bir hata oluştu. Yenilemek için aşağı kaydırın.",
+  "homeContinueWatching": "İzlemeye devam et",
+  "homeNoIptvSources": "Etkin IPTV kaynağı yok. Kategorilerinizi görmek için Ayarlar’dan bir kaynak ekleyin.",
+  "homeNoTrends": "Trend içerik yok",
+  "actionRefreshMetadata": "Meta verileri yenile",
+  "actionChangeMetadata": "Meta verileri değiştir",
+  "actionAddToList": "Listeye ekle",
+  "metadataRefreshed": "Meta veriler yenilendi",
+  "errorRefreshingMetadata": "Meta veriler yenilenirken hata",
+  "actionMarkSeen": "İzlendi olarak işaretle",
+  "actionMarkUnseen": "İzlenmedi olarak işaretle",
+  "actionReportProblem": "Sorun bildir",
+  "featureComingSoon": "Özellik yakında",
+  "subtitlesMenuTitle": "Altyazılar",
+  "audioMenuTitle": "Ses",
+  "videoFitModeMenuTitle": "Görüntü modu",
+  "videoFitModeContain": "Orijinal oran",
+  "videoFitModeCover": "Ekranı doldur",
+  "actionDisable": "Devre dışı bırak",
+  "defaultTrackLabel": "Parça {id}",
+  "@defaultTrackLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "controlRewind10": "10 sn",
+  "controlRewind30": "30 sn",
+  "controlForward10": "+ 10 sn",
+  "controlForward30": "+ 30 sn",
+  "actionNextEpisode": "Sonraki bölüm",
+  "actionRestart": "Yeniden başlat",
+  "errorSeriesDataUnavailable": "Dizi verileri yüklenemedi",
+  "errorNextEpisodeFailed": "Sonraki bölüm belirlenemedi",
+  "actionLoadMore": "Daha fazla yükle",
+  "iptvServerUrlLabel": "Sunucu URL’si",
+  "iptvServerUrlHint": "Xtream sunucu URL’si",
+  "iptvPasswordLabel": "Şifre",
+  "iptvPasswordHint": "Xtream şifresi",
+  "actionConnect": "Bağlan",
+  "settingsRefreshIptvPlaylistsTitle": "IPTV oynatma listelerini yenile",
+  "activeSourceTitle": "Etkin kaynak",
+  "statusActive": "Etkin",
+  "statusNoActiveSource": "Etkin kaynak yok",
+  "overlayPreparingHome": "Ana sayfa hazırlanıyor…",
+  "overlayLoadingMoviesAndSeries": "Filmler ve diziler yükleniyor…",
+  "overlayLoadingCategories": "Kategoriler yükleniyor…",
+  "bootstrapRefreshing": "IPTV listeleri yenileniyor…",
+  "bootstrapEnriching": "Meta veriler hazırlanıyor…",
+  "errorPrepareHome": "Ana sayfa hazırlanamadı",
+  "overlayOpeningHome": "Ana sayfa açılıyor…",
+  "overlayRefreshingIptvLists": "IPTV listeleri yenileniyor…",
+  "overlayPreparingMetadata": "Meta veriler hazırlanıyor…",
+  "errorHomeLoadTimeout": "Ana sayfa yükleme zaman aşımı",
+  "faqLabel": "SSS",
+  "iptvUsernameLabel": "Kullanıcı adı",
+  "iptvUsernameHint": "Xtream kullanıcı adı",
+  "actionBack": "Geri",
+  "actionSeeAll": "Tümünü gör",
+  "actionExpand": "Genişlet",
+  "actionCollapse": "Daralt",
+  "providerSearchPlaceholder": "{provider} üzerinde ara...",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "actionClearHistory": "Geçmişi temizle",
+  "castTitle": "Oyuncular",
+  "recommendationsTitle": "Öneriler",
+  "libraryHeader": "Kütüphaneniz",
+  "libraryDataInfo": "Veriler, data/domain uygulandığında görüntülenecek.",
+  "libraryEmpty": "Beğendiğiniz film, dizi veya oyuncular burada görünecek.",
+  "serie": "Dizi",
+  "recherche": "Ara",
+  "notYetAvailable": "Henüz mevcut değil",
+  "createPlaylistTitle": "Oynatma listesi oluştur",
+  "playlistName": "Oynatma listesi adı",
+  "addMedia": "Medya ekle",
+  "renamePlaylist": "Yeniden adlandır",
+  "deletePlaylist": "Sil",
+  "pinPlaylist": "Sabitle",
+  "unpinPlaylist": "Sabitlemeyi kaldır",
+  "playlistPinned": "Oynatma listesi sabitlendi",
+  "playlistUnpinned": "Oynatma listesi sabitlemesi kaldırıldı",
+  "playlistDeleted": "Oynatma listesi silindi",
+  "playlistCreatedSuccess": "\"{name}\" oynatma listesi oluşturuldu",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "Oynatma listesi oluşturulurken hata: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "Eklendi",
+  "pinRecoveryLink": "PIN kodunu kurtar",
+  "pinRecoveryTitle": "PIN kodunu kurtar",
+  "pinRecoveryDescription": "Korumalı profilinizin PIN kodunu alın.",
+  "pinRecoveryComingSoon": "Bu özellik yakında geliyor.",
+  "pinRecoveryCodeLabel": "Kurtarma kodu",
+  "pinRecoveryCodeHint": "8 hane",
+  "pinRecoveryVerifyButton": "Doğrula",
+  "pinRecoveryCodeInvalid": "8 haneli kodu girin",
+  "pinRecoveryCodeExpired": "Kurtarma kodunun süresi doldu",
+  "pinRecoveryTooManyAttempts": "Çok fazla deneme. Daha sonra tekrar deneyin.",
+  "pinRecoveryUnknownError": "Beklenmeyen bir hata oluştu",
+  "pinRecoveryNewPinLabel": "Yeni PIN",
+  "pinRecoveryNewPinHint": "4-6 hane",
+  "pinRecoveryConfirmPinLabel": "PIN’i onayla",
+  "pinRecoveryConfirmPinHint": "PIN’i tekrar girin",
+  "pinRecoveryResetButton": "PIN’i güncelle",
+  "pinRecoveryPinInvalid": "4-6 haneli PIN girin",
+  "pinRecoveryPinMismatch": "PIN’ler eşleşmiyor",
+  "pinRecoveryResetSuccess": "PIN güncellendi",
+  "settingsAccountsSection": "Hesaplar",
+  "settingsIptvSection": "IPTV ayarları",
+  "settingsSourcesManagement": "Kaynak yönetimi",
+  "settingsSyncFrequency": "Güncelleme sıklığı",
+  "settingsAppSection": "Uygulama ayarları",
+  "settingsAccentColor": "Vurgu rengi",
+  "settingsPlaybackSection": "Oynatma ayarları",
+  "settingsPreferredAudioLanguage": "Tercih edilen dil",
+  "settingsPreferredSubtitleLanguage": "Tercih edilen altyazılar",
+  "libraryPlaylistsFilter": "Oynatma listeleri",
+  "librarySagasFilter": "Sagalara",
+  "libraryArtistsFilter": "Sanatçılar",
+  "librarySearchPlaceholder": "Kütüphanemde ara...",
+  "libraryInProgress": "Devam ediyor",
+  "libraryFavoriteMovies": "Favori filmler",
+  "libraryFavoriteSeries": "Favori diziler",
+  "libraryWatchHistory": "İzleme geçmişi",
+  "libraryItemCountPlural": "{count} öğe",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchPeopleTitle": "Kişiler",
+  "searchSagasTitle": "Sagalara",
+  "searchByProvidersTitle": "Sağlayıcılara göre",
+  "searchByGenresTitle": "Türlere göre",
+  "personRoleActor": "Oyuncu",
+  "personRoleDirector": "Yönetmen",
+  "personRoleCreator": "Yaratıcı",
+  "tvDistribution": "Oyuncular",
+  "tvSeasonLabel": "Sezon {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tvNoEpisodesAvailable": "Bölüm yok",
+  "tvResumeSeasonEpisode": "Devam et S{season} B{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaViewPage": "Sayfayı görüntüle",
+  "sagaStartNow": "Şimdi başla",
+  "sagaContinue": "Devam",
+  "sagaMovieCount": "{count} film",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaMoviesList": "Film listesi",
+  "personMoviesCount": "{movies} film - {shows} dizi",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
+    }
+  },
+  "personPlayRandomly": "Rastgele oynat",
+  "personMoviesList": "Film listesi",
+  "personSeriesList": "Dizi listesi",
+  "playlistPlayRandomly": "Rastgele oynat",
+  "playlistAddButton": "Ekle",
+  "playlistSortButton": "Sırala",
+  "playlistSortByTitle": "Sırala",
+  "playlistSortByTitleOption": "Başlık",
+  "playlistSortRecentAdditions": "Son eklenenler",
+  "playlistSortOldestFirst": "Önce en eski",
+  "playlistSortNewestFirst": "Önce en yeni",
+  "playlistEmptyMessage": "Bu oynatma listesinde öğe yok",
+  "playlistItemCount": "{count} öğe",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistItemCountPlural": "{count} öğe",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSeasonSingular": "sezon",
+  "playlistSeasonPlural": "sezon",
+  "playlistRenameTitle": "Oynatma listesini yeniden adlandır",
+  "playlistNamePlaceholder": "Oynatma listesi adı",
+  "playlistRenamedSuccess": "Oynatma listesinin adı \"{name}\" olarak değiştirildi",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteTitle": "Sil",
+  "playlistDeleteConfirm": "\"{title}\" silinsin mi?",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeletedSuccess": "Oynatma listesi silindi",
+  "playlistItemRemovedSuccess": "Öğe kaldırıldı",
+  "playlistRemoveItemConfirm": "\"{title}\" oynatma listesinden kaldırılsın mı?",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryLoadFailed": "Kategori yüklenemedi.",
+  "categoryEmpty": "Bu kategoride öğe yok.",
+  "categoryLoadingMore": "Daha fazlası yükleniyor…",
+  "movieNoPlaylistsAvailable": "Oynatma listesi yok",
+  "playlistAddedTo": "\"{title}\" listesine eklendi",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWithMessage": "Hata: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film oynatma listesinde mevcut değil",
+  "errorPlaybackFailed": "Film oynatılırken hata: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNoMedia": "Gösterilecek medya yok",
+  "personNoData": "Gösterilecek kişi yok.",
+  "personGenericError": "Bu kişi yüklenirken hata oluştu.",
+  "personBiographyTitle": "Biyografi",
+  "authOtpTitle": "Giriş yap",
+  "authOtpSubtitle": "E‑posta adresinizi ve size gönderdiğimiz 8 haneli kodu girin.",
+  "authOtpEmailLabel": "E‑posta",
+  "authOtpEmailHint": "you@email",
+  "authOtpEmailHelp": "8 haneli bir kod göndereceğiz. Gerekirse spam klasörünü kontrol edin.",
+  "authOtpCodeLabel": "Doğrulama kodu",
+  "authOtpCodeHint": "8 haneli kod",
+  "authOtpCodeHelp": "E‑posta ile gelen 8 haneli kodu girin.",
+  "authOtpPrimarySend": "Kodu gönder",
+  "authOtpPrimarySubmit": "Giriş yap",
+  "authOtpResend": "Kodu tekrar gönder",
+  "authOtpResendDisabled": "{seconds} sn sonra tekrar gönder",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "E‑postayı değiştir",
+  "resumePlayback": "Oynatmaya devam et",
+  "settingsCloudSyncSection": "Bulut senkronizasyonu",
+  "settingsCloudSyncAuto": "Otomatik senkronizasyon",
+  "settingsCloudSyncNow": "Şimdi senkronize et",
+  "settingsCloudSyncInProgress": "Senkronize ediliyor…",
+  "settingsCloudSyncNever": "Asla",
+  "settingsCloudSyncError": "Son hata: {error}",
+  "@settingsCloudSyncError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notFoundWithEntity": "{entity} bulunamadı",
+  "@notFoundWithEntity": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      }
+    }
+  },
+  "notFoundWithEntityAndError": "{entity} bulunamadı: {error}",
+  "@notFoundWithEntityAndError": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "entityProvider": "Sağlayıcı",
+  "entityGenre": "Tür",
+  "entityPlaylist": "Oynatma listesi",
+  "entitySource": "Kaynak",
+  "entityMovie": "Film",
+  "entitySeries": "Dizi",
+  "entityPerson": "Kişi",
+  "entitySaga": "Saga",
+  "entityVideo": "Video",
+  "entityRoute": "Rota",
+  "errorTimeoutLoading": "Yükleme zaman aşımına uğradı",
+  "parentalContentRestricted": "Kısıtlı içerik",
+  "parentalContentRestrictedDefault": "Bu içerik, bu profilin ebeveyn denetimleri tarafından engellendi.",
+  "parentalReasonTooYoung": "Bu içerik, bu profilin sınırından daha yüksek bir yaş gerektirir.",
+  "parentalReasonUnknownRating": "Bu içerik için yaş derecelendirmesi mevcut değil.",
+  "parentalReasonInvalidTmdbId": "Bu içerik ebeveyn denetimi için değerlendirilemiyor.",
+  "parentalUnlockButton": "Kilidi aç",
+  "@navHome": {
+    "description": "Sidebar navigation label: Home tab"
+  },
+  "@navSearch": {
+    "description": "Sidebar navigation label: Search tab"
+  },
+  "@navLibrary": {
+    "description": "Sidebar navigation label: Library tab"
+  },
+  "@navSettings": {
+    "description": "Sidebar navigation label: Settings tab"
+  },
+  "hc_arb_dir_4de4827b": "arb-dir",
+  "hc_template_arb_file_eeae5194": "template-arb-file",
+  "hc_output_localization_file_ed018380": "output-localization-file",
+  "hc_output_class_f1ae6b52": "output-class",
+  "hc_applocalizations_878fdc50": "AppLocalizations",
+  "hc_untranslated_messages_file_fa6a22b7": "untranslated-messages-file",
+  "hc_chargement_episodes_en_cours_33fc4ace": "Bölümler yükleniyor…",
+  "hc_aucune_playlist_disponible_creez_en_une_f6b75c90": "Oynatma listesi yok. Bir tane oluşturun.",
+  "hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3": "Oynatma listeleri yüklenirken hata: $e",
+  "hc_impossible_douvrir_lien_90d0dcaa": "Bağlantı açılamıyor",
+  "hc_qualite_preferee_776dbeea": "Tercih edilen kalite",
+  "hc_annuler_49ba3292": "İptal",
+  "hc_deconnexion_903dca17": "Çıkış yap",
+  "hc_erreur_lors_deconnexion_placeholder_f5a211b4": "Çıkış yapılırken hata: $e",
+  "hc_choisir_b030d590": "Seç",
+  "hc_avantages_08d7f47c": "Avantajlar",
+  "hc_signalement_envoye_merci_d302e576": "Bildirim gönderildi. Teşekkürler.",
+  "hc_plus_tard_1f42ab3b": "Daha sonra",
+  "hc_redemarrer_maintenant_053e8e68": "Şimdi yeniden başlat",
+  "hc_utiliser_cette_source_c6c8bbc5": "Bu kaynak kullanılsın mı?",
+  "hc_utiliser_fb5e43ce": "Kullan",
+  "hc_source_ajout_e_e41b01d9": "Kaynak eklendi",
+  "hc_title_0a57b7eb": "title: '...'",
+  "hc_labeltext_469a28db": "labelText: '...'",
+  "hc_hinttext_6fd1d945": "hintText: '...'",
+  "hc_tooltip_db0de3fe": "tooltip: '...'",
+  "hc_parametres_verrouilles_3a9b1b51": "Kilitli ayarlar",
+  "hc_compte_cloud_2812b31e": "Bulut hesabı",
+  "hc_se_connecter_fedf2439": "Giriş yap",
+  "hc_propos_5345add5": "Hakkında",
+  "hc_politique_confidentialite_42b0e51e": "Gizlilik politikası",
+  "hc_conditions_dutilisation_9074eac7": "Kullanım koşulları",
+  "hc_sources_sauvegardees_9f1382e5": "Kayıtlı kaynaklar",
+  "hc_rafraichir_be30b7d1": "Yenile",
+  "hc_activer_une_source_749ced38": "Bir kaynak etkinleştir",
+  "hc_nom_source_9a3e4156": "Kaynak adı",
+  "hc_mon_iptv_b239352c": "IPTV’m",
+  "hc_username_84c29015": "Kullanıcı adı",
+  "hc_password_8be3c943": "Şifre",
+  "hc_server_url_1d5d1eff": "Sunucu URL’si",
+  "hc_verification_pin_e17c8fe0": "PIN doğrulaması",
+  "hc_definir_un_pin_f9c2178d": "PIN belirle",
+  "hc_pin_3adadd31": "PIN",
+  "hc_message_9ff08507": "message: '...'",
+  "hc_subscription_offer_not_found_placeholder_d07ac9d3": "Abonelik teklifi bulunamadı: $offerId.",
+  "hc_subscription_purchase_was_cancelled_by_user_443e1dab": "Abonelik satın alma işlemi kullanıcı tarafından iptal edildi.",
+  "hc_store_operation_timed_out_placeholder_6c3f9df2": "Mağaza işlemi zaman aşımına uğradı: $operation.",
+  "hc_erreur_http_lors_handshake_02db57b2": "Handshake sırasında HTTP hatası",
+  "hc_reponse_non_json_serveur_xtream_e896b8df": "Xtream sunucusundan JSON olmayan yanıt",
+  "hc_reponse_invalide_serveur_xtream_afc0955f": "Xtream sunucusundan geçersiz yanıt",
+  "hc_rg_exe_af0d2be6": "rg.exe",
+  "hc_alertdialog_5a747a86": "AlertDialog",
+  "hc_cupertinoalertdialog_3ed27f52": "CupertinoAlertDialog",
+  "hc_pas_disponible_sur_cette_source_fa6e19a7": "Bu kaynakta mevcut değil",
+  "hc_source_supprimee_4bfaa0a1": "Kaynak kaldırıldı",
+  "hc_source_modifiee_335ef502": "Kaynak güncellendi",
+  "hc_definir_code_pin_53a0bd07": "PIN kodu belirle",
+  "hc_marquer_comme_non_vu_9cf9d3f8": "İzlenmedi olarak işaretle",
+  "hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661": "Çıkış yapmak istediğinize emin misiniz?",
+  "hc_movi_premium_requis_pour_synchronisation_cloud_15b551df": "Bulut senkronizasyonu için Movi Premium gerekir.",
+  "hc_auto_c614ba7c": "Otomatik",
+  "hc_organiser_838a7e57": "Düzenle",
+  "hc_modifier_f260e757": "Düzenle",
+  "hc_ajouter_87c57ed1": "Ekle",
+  "hc_source_active_e571305e": "Etkin kaynak",
+  "hc_autres_sources_e32592a6": "Diğer kaynaklar",
+  "hc_signalement_indisponible_pour_ce_contenu_d9ad88b7": "Bu içerik için bildirim kullanılamıyor.",
+  "hc_securisation_contenu_e5195111": "İçerik güvenliği",
+  "hc_verification_classifications_d_age_006eebfe": "Yaş derecelendirmeleri kontrol ediliyor…",
+  "hc_voir_tout_7b7d86e8": "Tümünü gör",
+  "hc_signaler_un_probleme_13183c0f": "Bir sorun bildir",
+  "hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436": "Bu içerik uygun değilse ve kısıtlamalara rağmen erişilebildiyse, sorunu kısaca açıklayın.",
+  "hc_envoyer_e9ce243b": "Gönder",
+  "hc_profil_enfant_cree_39f4eb7d": "Çocuk profili oluşturuldu",
+  "hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a": "Bir çocuk profili oluşturuldu. Uygulamayı güvene almak ve yaş derecelendirmelerini önceden yüklemek için uygulamayı yeniden başlatmanız önerilir.",
+  "hc_pseudo_4cf966c0": "Takma ad",
+  "hc_profil_enfant_2c8a01c0": "Çocuk profili",
+  "hc_limite_d_age_5b170fc9": "Yaş sınırı",
+  "hc_code_pin_e79c48bd": "PIN kodu",
+  "hc_changer_code_pin_3b069731": "PIN kodunu değiştir",
+  "hc_supprimer_code_pin_0dcf8a48": "PIN kodunu kaldır",
+  "hc_supprimer_pin_51850c7b": "PIN’i kaldır",
+  "hc_supprimer_1acfc1c7": "Sil",
+  "hc_oblige_un_pin_active_filtre_pegi_8447ac9b": "PIN gerektirir ve PEGI filtresini etkinleştirir.",
+  "hc_voulez_vous_activer_cette_source_maintenant_f2593894": "Bu kaynağı şimdi etkinleştirmek istiyor musunuz?",
+  "hc_application_b291beb8": "Uygulama",
+  "hc_version_1_0_0_347e553c": "Sürüm 1.0.0",
+  "hc_credits_293a6081": "Katkıda bulunanlar",
+  "hc_this_product_uses_tmdb_api_but_is_not_0033d77f": "Bu ürün TMDB API’sini kullanır ancak TMDB tarafından onaylanmamış veya sertifikalandırılmamıştır.",
+  "hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a": "Bu ürün TMDB API’sini kullanır ancak TMDB tarafından onaylanmamış veya sertifikalandırılmamıştır.",
+  "hc_verification_targets_d51632f8": "Doğrulama hedefleri",
+  "hc_fade_must_eat_frame_5f1bfc77": "Geçiş efekti çerçeveyi yutmalı",
+  "hc_invalid_xtream_streamid_eb04e9f9": "Geçersiz Xtream streamId: ...",
+  "hc_series_xtream_missing_poster_065b5103": "Dizi xtream:... afiş eksik",
+  "hc_movie_not_found_a7fe72d9": "Film ... bulunamadı ...",
+  "hc_missing_poster_1c9ba558": "... afiş eksik",
+  "hc_invalid_watchlist_outbox_payload_327ac6c3": "İzleme listesi outbox yükü geçersiz.",
+  "hc_unknown_watchlist_operation_e9259c07": "Bilinmeyen izleme listesi işlemi: ...",
+  "hc_invalid_playlist_outbox_payload_2d76e64f": "Oynatma listesi outbox yükü geçersiz.",
+  "hc_unknown_playlist_operation_c98cbd41": "Bilinmeyen oynatma listesi işlemi: ...",
+  "hc_url_invalide_aa227a66": "Geçersiz URL",
+  "hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3": "Eski IV eksik: eski şifreli metin çözülemiyor.",
+  "hc_tooltip_rafraichir_a22b17e3": "tooltip: 'Yenile'",
+  "hc_tooltip_menu_d8fa6679": "tooltip: 'Menü'",
+  "hc_retour_e5befb1f": "Geri",
+  "hc_semanticlabel_plus_d_actions_1bd19eb6": "semanticLabel: 'Daha fazla işlem'",
+  "hc_plus_d_actions_ffe6be2a": "Daha fazla işlem",
+  "hc_semanticlabel_rechercher_3ae4e02c": "semanticLabel: 'Ara'",
+  "hc_semanticlabel_ajouter_ac362a68": "semanticLabel: 'Ekle'",
+  "hc_l10n_86d50bf0": "l10n.*",
+  "actionOk": "Tamam",
+  "actionSignOut": "Çıkış yap",
+  "dialogSignOutBody": "Çıkış yapmak istediğine emin misin?",
+  "settingsUnableToOpenLink": "Bağlantı açılamadı",
+  "settingsSyncDisabled": "Devre dışı",
+  "settingsSyncEveryHour": "Her saat",
+  "settingsSyncEvery2Hours": "2 saatte bir",
+  "settingsSyncEvery4Hours": "4 saatte bir",
+  "settingsSyncEvery6Hours": "6 saatte bir",
+  "settingsSyncEveryDay": "Her gün",
+  "settingsSyncEvery2Days": "2 günde bir",
+  "settingsColorCustom": "Özel",
+  "settingsColorBlue": "Mavi",
+  "settingsColorPink": "Pembe",
+  "settingsColorGreen": "Yeşil",
+  "settingsColorPurple": "Mor",
+  "settingsColorOrange": "Turuncu",
+  "settingsColorTurquoise": "Turkuaz",
+  "settingsColorYellow": "Sarı",
+  "settingsColorIndigo": "İndigo",
+  "settingsCloudAccountTitle": "Bulut hesabı",
+  "settingsAccountConnected": "Bağlı",
+  "settingsAccountLocalMode": "Yerel mod",
+  "settingsAccountCloudUnavailable": "Bulut kullanılamıyor",
+  "aboutTmdbDisclaimer": "Bu ürün TMDB API'sini kullanır ancak TMDB tarafından desteklenmez veya sertifikalandırılmaz.",
+  "aboutCreditsSectionTitle": "Katkıda bulunanlar"
+}

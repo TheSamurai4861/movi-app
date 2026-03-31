@@ -188,6 +188,7 @@ class MovieRepositoryImpl implements MovieRepository {
         _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
     final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final logo = _images.logo(dto.logoPath, size: 'w500');
 
     return Movie(
       id: MovieId(dto.id.toString()),
@@ -196,6 +197,7 @@ class MovieRepositoryImpl implements MovieRepository {
       synopsis: Synopsis(dto.overview),
       duration: Duration(minutes: dto.runtime ?? 0),
       poster: poster,
+      logo: logo,
       posterBackground: posterBackground,
       backdrop: backdrop,
       releaseDate:

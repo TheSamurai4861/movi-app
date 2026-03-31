@@ -12,6 +12,7 @@ class TvDetailViewModel {
     required this.overviewText,
     required this.cast,
     required this.seasons,
+    this.logo,
     required this.poster,
     this.posterBackground,
     required this.backdrop,
@@ -25,6 +26,7 @@ class TvDetailViewModel {
   final String overviewText;
   final List<MoviPerson> cast;
   final List<SeasonViewModel> seasons;
+  final Uri? logo;
   final Uri? poster;
   final Uri? posterBackground;
   final Uri? backdrop;
@@ -106,6 +108,7 @@ class TvDetailViewModel {
       overviewText: detail.synopsis.value,
       cast: cast,
       seasons: seasons,
+      logo: detail.logo,
       poster: detail.poster,
       posterBackground: detail.posterBackground,
       backdrop: detail.backdrop,

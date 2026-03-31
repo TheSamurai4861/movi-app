@@ -11,6 +11,7 @@ import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -248,6 +249,11 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
 
+    if (isLoading) {
+      // Unifier le rendu avec le splash de lancement (logo + spinner + message en bas).
+      return OverlaySplash(message: statusMessage);
+    }
+
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
@@ -269,16 +275,7 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.xl),
                 ],
-                if (isLoading) ...[
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (statusMessage.isNotEmpty)
-                    Text(
-                      statusMessage,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                ] else if (error != null) ...[
+                if (error != null) ...[
                   Icon(
                     Icons.error_outline,
                     size: 64,

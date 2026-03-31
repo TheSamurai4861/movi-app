@@ -55,6 +55,22 @@ final homeHeroIndexProvider = NotifierProvider<HomeHeroIndexController, int>(
   HomeHeroIndexController.new,
 );
 
+enum HomeBootstrapProgressStage { loadingMoviesAndSeries, loadingCategories, openingHome }
+
+/// Progression affichable pendant le bootstrap (écran `/bootstrap`).
+class HomeBootstrapProgressController
+    extends Notifier<HomeBootstrapProgressStage?> {
+  @override
+  HomeBootstrapProgressStage? build() => null;
+
+  void set(HomeBootstrapProgressStage? stage) => state = stage;
+}
+
+final homeBootstrapProgressStageProvider =
+    NotifierProvider<HomeBootstrapProgressController, HomeBootstrapProgressStage?>(
+      HomeBootstrapProgressController.new,
+    );
+
 enum HomeIptvMediaFilter { all, movies, series }
 
 class HomeIptvMediaFilterController extends Notifier<HomeIptvMediaFilter> {
@@ -447,6 +463,13 @@ class HomeController extends Notifier<HomeState> {
     // Toujours “safe”: ne jamais throw (le bootstrap ne doit pas exploser sur Home).
     state = state.copyWith(isLoading: true, error: null);
 
+    final bool isBootstrapPreload = reason == 'preload';
+    if (isBootstrapPreload) {
+      ref
+          .read(homeBootstrapProgressStageProvider.notifier)
+          .set(HomeBootstrapProgressStage.loadingMoviesAndSeries);
+    }
+
     final tuning = ref.read(performanceTuningProvider);
     final profile = ref.read(currentProfileProvider);
     final bool isKid = profile?.isKid == true;
@@ -478,6 +501,29 @@ class HomeController extends Notifier<HomeState> {
 
     // Charger hero et IPTV en parallèle (chacun reste "safe").
     final futures = <Future<void>>[];
+    var heroDone = disableHero;
+    var iptvDone = deferIptv;
+
+    void updateBootstrapStage() {
+      if (!isBootstrapPreload) return;
+      if (!heroDone) {
+        ref
+            .read(homeBootstrapProgressStageProvider.notifier)
+            .set(HomeBootstrapProgressStage.loadingMoviesAndSeries);
+        return;
+      }
+      if (!iptvDone) {
+        ref
+            .read(homeBootstrapProgressStageProvider.notifier)
+            .set(HomeBootstrapProgressStage.loadingCategories);
+        return;
+      }
+      ref
+          .read(homeBootstrapProgressStageProvider.notifier)
+          .set(HomeBootstrapProgressStage.openingHome);
+    }
+
+    updateBootstrapStage();
 
     // Load trending hero for all profiles (including kids, but kids will filter by age)
     if (!disableHero) {
@@ -488,6 +534,9 @@ class HomeController extends Notifier<HomeState> {
           } catch (e) {
             error ??= e.toString();
             heroResult = null;
+          } finally {
+            heroDone = true;
+            updateBootstrapStage();
           }
         }),
       );
@@ -503,6 +552,9 @@ class HomeController extends Notifier<HomeState> {
           } catch (e) {
             error ??= e.toString();
             iptvResult = null;
+          } finally {
+            iptvDone = true;
+            updateBootstrapStage();
           }
         }),
       );
@@ -661,6 +713,10 @@ class HomeController extends Notifier<HomeState> {
       duration: DateTime.now().difference(startedAt),
       detail: error == null ? null : 'error',
     );
+
+    if (isBootstrapPreload) {
+      ref.read(homeBootstrapProgressStageProvider.notifier).set(null);
+    }
   }
 
   Future<void> refresh({String reason = 'userAction'}) {

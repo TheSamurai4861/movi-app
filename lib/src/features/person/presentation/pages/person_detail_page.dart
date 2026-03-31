@@ -60,7 +60,9 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     return vmAsync.when(
       loading: () => Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: const OverlaySplash(),
+        body: OverlaySplash(
+          message: AppLocalizations.of(context)!.overlayPreparingMetadata,
+        ),
       ),
       error: (e, st) => Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,

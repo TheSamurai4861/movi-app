@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
+import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
 class SplashBootstrapPage extends ConsumerWidget {
@@ -14,9 +16,21 @@ class SplashBootstrapPage extends ConsumerWidget {
     final error = launchState.error;
 
     if (error == null) {
+      final l10n = AppLocalizations.of(context)!;
+      final stage = ref.watch(homeBootstrapProgressStageProvider);
+      final message = launchState.phase == AppLaunchPhase.preloadMinimalHome
+          ? switch (stage) {
+              HomeBootstrapProgressStage.loadingMoviesAndSeries =>
+                l10n.overlayLoadingMoviesAndSeries,
+              HomeBootstrapProgressStage.loadingCategories =>
+                l10n.overlayLoadingCategories,
+              HomeBootstrapProgressStage.openingHome => l10n.overlayOpeningHome,
+              null => l10n.overlayPreparingHome,
+            }
+          : l10n.overlayPreparingHome;
       return Scaffold(
         body: OverlaySplash(
-          message: AppLocalizations.of(context)!.overlayPreparingHome,
+          message: message,
         ),
       );
     }

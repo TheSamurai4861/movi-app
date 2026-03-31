@@ -2,11 +2,13 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
@@ -79,45 +81,130 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final _firstProfileFocusNode = FocusNode(debugLabel: 'SettingsFirstProfile');
   late final ShellFocusCoordinator _shellFocusCoordinator;
 
-  static const List<(String code, String label)> _availableLanguages = [
-    ('en', 'English'),
-    ('es', 'Español'),
-    ('fr', 'Français'),
-    ('de', 'Deutsch'),
-    ('it', 'Italiano'),
-    ('nl', 'Nederlands'),
-    ('pl', 'Polski'),
-    ('pt', 'Português'),
-  ];
+  static const Map<String, String> _languageNativeNames = {
+    'ar': 'العربية',
+    'de': 'Deutsch',
+    'en': 'English',
+    'es': 'Español',
+    'fr': 'Français',
+    'it': 'Italiano',
+    'ja': '日本語',
+    'ko': '한국어',
+    'nl': 'Nederlands',
+    'pl': 'Polski',
+    'pt': 'Português',
+    'ru': 'Русский',
+    'tr': 'Türkçe',
+    'uk': 'Українська',
+    'zh': '中文',
+  };
+
+  static List<(String code, String label)> _availableLanguages() {
+    final out = <(String, String)>[];
+    final seen = <String>{};
+
+    for (final locale in AppLocalizations.supportedLocales) {
+      final lang = locale.languageCode.toLowerCase();
+      if (seen.contains(lang)) continue;
+      seen.add(lang);
+      out.add((lang, _languageNativeNames[lang] ?? lang.toUpperCase()));
+    }
+
+    out.sort((a, b) => a.$2.compareTo(b.$2));
+    return out;
+  }
+
+  Future<void> _showCupertinoLanguageSelector(
+    BuildContext context,
+    String currentCode,
+  ) async {
+    final localePrefs = ref.read(slProvider)<LocalePreferences>();
+    final l10n = AppLocalizations.of(context)!;
+    final items = _availableLanguages();
+    final currentLang = currentCode.toLowerCase().split('-').first;
+    final initialIndex = items.indexWhere(
+      (e) => e.$1.toLowerCase().split('-').first == currentLang,
+    );
+    var pickedIndex = initialIndex >= 0 ? initialIndex : 0;
+
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(l10n.settingsLanguageLabel),
+        actions: [
+          SizedBox(
+            height: 44.0 * 5,
+            child: CupertinoPicker(
+              itemExtent: 44,
+              scrollController: FixedExtentScrollController(
+                initialItem: pickedIndex,
+              ),
+              onSelectedItemChanged: (i) => pickedIndex = i,
+              children: [for (final (_, label) in items) Center(child: Text(label))],
+            ),
+          ),
+        ],
+        cancelButton: Row(
+          children: [
+            Expanded(
+              child: CupertinoActionSheetAction(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  l10n.actionCancel,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+            Expanded(
+              child: CupertinoActionSheetAction(
+                isDefaultAction: true,
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  final code = items[pickedIndex].$1;
+                  unawaited(() async {
+                    await localePrefs.setLanguageCode(code);
+                    _lockSessionIfUnlocked();
+                  }());
+                },
+                child: const Text('OK', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _openExternalLink(Uri url) async {
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (ok) return;
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Impossible d’ouvrir le lien')),
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.settingsUnableToOpenLink),
+      ),
     );
   }
 
-  static const List<(Duration? interval, String label)> _syncIntervalOptions = [
-    (null, 'Désactivé'),
-    (Duration(minutes: 60), 'Toutes les heures'),
-    (Duration(minutes: 120), 'Toutes les 2 heures'),
-    (Duration(minutes: 240), 'Toutes les 4 heures'),
-    (Duration(minutes: 360), 'Toutes les 6 heures'),
-    (Duration(minutes: 1440), 'Tous les jours'),
-    (Duration(minutes: 2880), 'Tous les 2 jours'),
+  static const List<Duration?> _syncIntervalOptions = [
+    null,
+    Duration(minutes: 60),
+    Duration(minutes: 120),
+    Duration(minutes: 240),
+    Duration(minutes: 360),
+    Duration(minutes: 1440),
+    Duration(minutes: 2880),
   ];
 
-  static const List<(Color color, String name)> _accentColorOptions = [
-    (Color(0xFF2160AB), 'Bleu'),
-    (Color(0xFFF48FB1), 'Rose'),
-    (Color(0xFF81C784), 'Vert'),
-    (Color(0xFFBA68C8), 'Violet'),
-    (Color(0xFFFFB74D), 'Orange'),
-    (Color(0xFF4DB6AC), 'Turquoise'),
-    (Color(0xFFFFE082), 'Jaune'),
-    (Color(0xFF7986CB), 'Indigo'),
+  static const List<Color> _accentColorOptions = [
+    Color(0xFF2160AB),
+    Color(0xFFF48FB1),
+    Color(0xFF81C784),
+    Color(0xFFBA68C8),
+    Color(0xFFFFB74D),
+    Color(0xFF4DB6AC),
+    Color(0xFFFFE082),
+    Color(0xFF7986CB),
   ];
 
   static const List<String> _playbackLanguageCodes = [
@@ -265,16 +352,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // -------------------- Helpers --------------------
 
-  String _getLanguageLabel(String code) {
-    final normalized = code.toLowerCase().split('-').first;
-
-    final entry = _availableLanguages.firstWhere(
-      (e) => e.$1.toLowerCase() == normalized,
-      orElse: () => (code, code),
-    );
-    return entry.$2;
-  }
-
   bool _isCurrentLanguage(String currentCode, String code) {
     final current = currentCode.toLowerCase();
     final option = code.toLowerCase();
@@ -282,26 +359,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   String _formatSyncInterval(Duration interval) {
-    if (interval.inDays >= 365) return 'Désactivé';
+    final l10n = AppLocalizations.of(context)!;
+    if (interval.inDays >= 365) return l10n.settingsSyncDisabled;
 
     final minutes = interval.inMinutes;
-    if (minutes < 60) {
-      return '$minutes minute${minutes > 1 ? 's' : ''}';
-    }
-    if (minutes < 1440) {
-      final hours = minutes ~/ 60;
-      if (minutes % 60 == 0) {
-        return hours == 1 ? 'Toutes les heures' : 'Toutes les $hours heures';
-      }
-      return '$hours h ${minutes % 60} min';
-    }
-
-    final days = minutes ~/ 1440;
-    if (minutes % 1440 == 0) {
-      return days == 1 ? 'Tous les jours' : 'Tous les $days jours';
-    }
-    final hours = (minutes % 1440) ~/ 60;
-    return '$days jour${days > 1 ? 's' : ''} ${hours}h';
+    if (minutes == 60) return l10n.settingsSyncEveryHour;
+    if (minutes == 120) return l10n.settingsSyncEvery2Hours;
+    if (minutes == 240) return l10n.settingsSyncEvery4Hours;
+    if (minutes == 360) return l10n.settingsSyncEvery6Hours;
+    if (minutes == 1440) return l10n.settingsSyncEveryDay;
+    if (minutes == 2880) return l10n.settingsSyncEvery2Days;
+    return '${interval.inHours}h';
   }
 
   bool _isCurrentSyncInterval(Duration current, Duration? option) {
@@ -311,13 +379,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   String _getAccentColorName(Color color) {
+    final l10n = AppLocalizations.of(context)!;
     // ignore: deprecated_member_use
-    final option = _accentColorOptions.firstWhere(
-      // ignore: deprecated_member_use
-      (e) => e.$1.value == color.value,
-      orElse: () => (color, 'Personnalisé'),
-    );
-    return option.$2;
+    final v = color.value;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFF2160AB).value) return l10n.settingsColorBlue;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFFF48FB1).value) return l10n.settingsColorPink;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFF81C784).value) return l10n.settingsColorGreen;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFFBA68C8).value) return l10n.settingsColorPurple;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFFFFB74D).value) return l10n.settingsColorOrange;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFF4DB6AC).value) return l10n.settingsColorTurquoise;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFFFFE082).value) return l10n.settingsColorYellow;
+    // ignore: deprecated_member_use
+    if (v == const Color(0xFF7986CB).value) return l10n.settingsColorIndigo;
+    return l10n.settingsColorCustom;
   }
 
   bool _isCurrentAccentColor(Color current, Color option) {
@@ -341,57 +422,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // -------------------- Selectors --------------------
 
-  Future<void> _showLanguageSelector(
-    BuildContext context,
-    String currentCode,
-  ) async {
-    final localePrefs = ref.read(slProvider)<LocalePreferences>();
-    final accentColor = ref.read(asp.currentAccentColorProvider);
-    final l10n = AppLocalizations.of(context)!;
-
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: Text(l10n.settingsLanguageLabel),
-        actions: [
-          for (final (code, label) in _availableLanguages)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                unawaited(() async {
-                  await localePrefs.setLanguageCode(code);
-                  _lockSessionIfUnlocked();
-                }());
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: _isCurrentLanguage(currentCode, code)
-                          ? accentColor
-                          : Colors.white,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  if (_isCurrentLanguage(currentCode, code)) ...[
-                    const SizedBox(width: 8),
-                    Icon(Icons.check, color: accentColor, size: 20),
-                  ],
-                ],
-              ),
-            ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(l10n.actionCancel, style: TextStyle(fontSize: 16)),
-        ),
-      ),
-    );
-  }
-
   Future<void> _showSyncIntervalSelector(
     BuildContext context,
     Duration currentInterval,
@@ -406,7 +436,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       builder: (ctx) => CupertinoActionSheet(
         title: Text(l10n.settingsSyncFrequency),
         actions: [
-          for (final (interval, label) in _syncIntervalOptions)
+          for (final interval in _syncIntervalOptions)
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(ctx).pop();
@@ -426,7 +456,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    label,
+                    interval == null
+                        ? l10n.settingsSyncDisabled
+                        : _formatSyncInterval(interval),
                     style: TextStyle(
                       fontSize: 16,
                       color: _isCurrentSyncInterval(currentInterval, interval)
@@ -466,7 +498,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       builder: (ctx) => CupertinoActionSheet(
         title: Text(l10n.settingsAccentColor),
         actions: [
-          for (final (color, name) in _accentColorOptions)
+          for (final color in _accentColorOptions)
             CupertinoActionSheetAction(
               onPressed: () {
                 Navigator.of(ctx).pop();
@@ -497,7 +529,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          name,
+                          _getAccentColorName(color),
                           style: TextStyle(
                             fontSize: 16,
                             color: _isCurrentAccentColor(currentColor, color)
@@ -530,11 +562,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     String? currentCode,
   ) async {
     final prefs = ref.read(slProvider)<PlayerPreferences>();
+    final l10n = AppLocalizations.of(context)!;
     await _showPlaybackLanguageSelector(
       context: context,
-      title: 'Langue audio préférée',
+      title: l10n.settingsPreferredAudioLanguage,
       currentCode: currentCode,
-      nullOptionLabel: 'Automatique',
+      nullOptionLabel: l10n.hc_auto_c614ba7c,
       onSelected: prefs.setPreferredAudioLanguage,
     );
   }
@@ -544,11 +577,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     String? currentCode,
   ) async {
     final prefs = ref.read(slProvider)<PlayerPreferences>();
+    final l10n = AppLocalizations.of(context)!;
     await _showPlaybackLanguageSelector(
       context: context,
-      title: 'Langue des sous-titres',
+      title: l10n.settingsPreferredSubtitleLanguage,
       currentCode: currentCode,
-      nullOptionLabel: 'Désactivés',
+      nullOptionLabel: l10n.settingsSyncDisabled,
       onSelected: prefs.setPreferredSubtitleLanguage,
     );
   }
@@ -1035,25 +1069,25 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (hasCloudSession) {
       accountValue = (accountEmail?.isNotEmpty ?? false)
           ? accountEmail!
-          : 'Connecté';
+          : AppLocalizations.of(context)!.settingsAccountConnected;
       accountValueColor = ref.watch(asp.currentAccentColorProvider);
     } else if (client != null) {
-      accountValue = 'Mode local';
+      accountValue = AppLocalizations.of(context)!.settingsAccountLocalMode;
       accountValueColor = Colors.white70;
     } else {
-      accountValue = 'Cloud indisponible';
+      accountValue = AppLocalizations.of(context)!.settingsAccountCloudUnavailable;
       accountValueColor = theme.colorScheme.error;
     }
 
     return _buildSettingsGroup([
       _buildSettingItem(
-        title: 'Compte cloud',
+        title: AppLocalizations.of(context)!.settingsCloudAccountTitle,
         value: accountValue,
         valueColor: accountValueColor,
       ),
       if (!hasCloudSession && client != null)
         _buildSettingItem(
-          title: 'Se connecter',
+          title: AppLocalizations.of(context)!.hc_se_connecter_fedf2439,
           onTap: () => _guard(
             () => context.push('${AppRoutePaths.authOtp}?return_to=previous'),
           ),
@@ -1065,6 +1099,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // ignore: unused_element
   Widget _buildPlaybackSettingsSection(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final preferredAudioLanguage = ref.watch(
       asp.currentPreferredAudioLanguageProvider,
     );
@@ -1077,9 +1112,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return _buildSettingsGroup([
       _buildSettingItem(
-        title: 'Langue audio',
+        title: l10n.settingsPreferredAudioLanguage,
         value: preferredAudioLanguage == null
-            ? 'Automatique'
+            ? l10n.hc_auto_c614ba7c
             : LanguageFormatter.formatLanguageCode(preferredAudioLanguage),
         showChevronDown: true,
         onTap: () => _guard(
@@ -1090,9 +1125,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
       _buildSettingItem(
-        title: 'Sous-titres',
+        title: l10n.settingsPreferredSubtitleLanguage,
         value: preferredSubtitleLanguage == null
-            ? 'Désactivés'
+            ? l10n.settingsSyncDisabled
             : LanguageFormatter.formatLanguageCode(preferredSubtitleLanguage),
         showChevronDown: true,
         onTap: () => _guard(
@@ -1103,9 +1138,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
       _buildSettingItem(
-        title: 'Qualité préférée',
+        title: l10n.hc_qualite_preferee_776dbeea,
         value: preferredPlaybackQuality == null
-            ? 'Auto'
+            ? l10n.hc_auto_c614ba7c
             : _preferredPlaybackQualityLabel(preferredPlaybackQuality),
         showChevronDown: true,
         onTap: () => _guard(
@@ -1254,6 +1289,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Widget _buildSignOutButton(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Focus(
       canRequestFocus: false,
@@ -1263,20 +1299,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           final confirmed = await showCupertinoDialog<bool>(
             context: context,
             builder: (ctx) => CupertinoAlertDialog(
-              title: const Text('Déconnexion'),
-              content: const Text(
-                'Êtes-vous sûr de vouloir vous déconnecter ?',
-              ),
+              title: Text(l10n.actionSignOut),
+              content: Text(l10n.dialogSignOutBody),
               actions: [
                 CupertinoDialogAction(
                   isDefaultAction: true,
                   onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Annuler'),
+                  child: Text(l10n.actionCancel),
                 ),
                 CupertinoDialogAction(
                   isDestructiveAction: true,
                   onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text('Déconnexion'),
+                  child: Text(l10n.actionSignOut),
                 ),
               ],
             ),
@@ -1313,7 +1347,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             if (!mounted) return;
             ScaffoldMessenger.of(navigatorContext).showSnackBar(
               SnackBar(
-                content: Text('Erreur lors de la déconnexion: $e'),
+                content: Text('${l10n.hc_erreur_lors_deconnexion_placeholder_f5a211b4}: $e'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -1335,7 +1369,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Déconnexion',
+                l10n.actionSignOut,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: Colors.white,
@@ -1355,7 +1389,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
 
     final currentLangCode = ref.watch(asp.currentLanguageCodeProvider);
-    final currentLangLabel = _getLanguageLabel(currentLangCode);
     final currentSyncInterval = ref.watch(asp.currentIptvSyncIntervalProvider);
     final currentAccentColor = ref.watch(asp.currentAccentColorProvider);
     final hasCloudSyncPremium = ref
@@ -1493,10 +1526,112 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   _buildSettingsGroup([
                     _buildSettingItem(
                       title: l10n.settingsLanguageLabel,
-                      value: currentLangLabel,
-                      showChevronDown: true,
-                      onTap: () => _guard(
-                        () => _showLanguageSelector(context, currentLangCode),
+                      trailing: Builder(
+                        builder: (context) {
+                          final localePrefs =
+                              ref.read(slProvider)<LocalePreferences>();
+                          final items = _availableLanguages();
+                          final selected = items
+                              .where((e) => _isCurrentLanguage(currentLangCode, e.$1))
+                              .map((e) => e.$1)
+                              .cast<String?>()
+                              .firstWhere((_) => true, orElse: () => items.first.$1);
+
+                          final platform = Theme.of(context).platform;
+                          final isCupertinoPlatform =
+                              platform == TargetPlatform.iOS ||
+                              platform == TargetPlatform.macOS;
+
+                          if (isCupertinoPlatform) {
+                            return CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () => _guard(
+                                () => _showCupertinoLanguageSelector(
+                                  context,
+                                  currentLangCode,
+                                ),
+                              ),
+                              child: Text(
+                                items.firstWhere((e) => e.$1 == selected).$2,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: ref.read(asp.currentAccentColorProvider),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return DropdownButtonHideUnderline(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.10),
+                                  width: 1,
+                                ),
+                              ),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final screenW = MediaQuery.sizeOf(context).width;
+                                  final maxW = math.min(220.0, screenW * 0.45);
+
+                                  return ConstrainedBox(
+                                    constraints: BoxConstraints(maxWidth: maxW),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      child: DropdownButton<String>(
+                                        value: selected,
+                                        isDense: true,
+                                        menuMaxHeight: 48.0 * 5,
+                                        borderRadius: BorderRadius.circular(14),
+                                        dropdownColor: const Color(0xFF1E1E1E),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        icon: Transform.rotate(
+                                          angle: -math.pi / 2,
+                                          child: SvgPicture.asset(
+                                            'assets/icons/actions/back.svg',
+                                            width: 18,
+                                            height: 18,
+                                            colorFilter: ColorFilter.mode(
+                                              ref.read(
+                                                asp.currentAccentColorProvider,
+                                              ),
+                                              BlendMode.srcIn,
+                                            ),
+                                          ),
+                                        ),
+                                        items: [
+                                          for (final (code, label) in items)
+                                            DropdownMenuItem<String>(
+                                              value: code,
+                                              child: Text(label),
+                                            ),
+                                        ],
+                                        onChanged: (value) {
+                                          if (value == null) return;
+                                          _guard(() async {
+                                            await localePrefs.setLanguageCode(value);
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     _buildSettingItem(
@@ -1523,15 +1658,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                     ),
                     _buildSettingItem(
-                      title: 'Politique de confidentialité',
+                      title: l10n.settingsPrivacyPolicyTitle,
                       onTap: () => _openExternalLink(_privacyPolicyUrl),
                     ),
                     _buildSettingItem(
-                      title: 'Conditions d’utilisation',
+                      title: l10n.hc_conditions_dutilisation_9074eac7,
                       onTap: () => _openExternalLink(_termsOfUseUrl),
                     ),
                     _buildSettingItem(
-                      title: 'À propos',
+                      title: l10n.settingsAboutTitle,
                       onTap: () => context.push(AppRoutePaths.about),
                     ),
                   ]),
@@ -1633,9 +1768,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             }()),
                     ),
                     if (!hasCloudSyncPremium)
-                      const Text(
-                        'Movi Premium requis pour la synchronisation cloud.',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      Text(
+                        l10n.hc_movi_premium_requis_pour_synchronisation_cloud_15b551df,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     if (cloudSync.lastError != null &&
                         cloudSync.lastError!.trim().isNotEmpty)

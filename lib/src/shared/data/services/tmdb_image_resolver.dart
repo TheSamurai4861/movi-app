@@ -51,8 +51,16 @@ class TmdbImageResolver {
 
   /// Construit l’URL d’un logo (transparent, centré).
   /// Taille par défaut : `w300`.
-  Uri? logo(String? path, {String size = 'w300'}) =>
-      _build(path, _sanitizeSize(size, fallback: 'w300'));
+  Uri? logo(String? path, {String size = 'w300'}) {
+    final p = path?.trim() ?? '';
+    // Les logos TMDB peuvent être en SVG. Le CDN ne supporte pas toujours
+    // les variantes redimensionnées (w300/w500) pour les SVG → utiliser original.
+    final isSvg = p.toLowerCase().endsWith('.svg');
+    final resolvedSize = isSvg
+        ? 'original'
+        : _sanitizeSize(size, fallback: 'w300');
+    return _build(path, resolvedSize);
+  }
 
   /// Construit l’URL d’une image de scène (still).
   /// Taille par défaut : `w185`.

@@ -123,7 +123,11 @@ class HomeHeroMetadataService {
         TmdbImageSelectorService.selectPosterPath(posters) ??
         data['poster_path']?.toString();
     final String? posterBgPath = data['poster_background']?.toString();
-    final String? logoPath = TmdbImageSelectorService.selectLogoPath(logos);
+    final preferredLang = language.split('-').first;
+    final String? logoPath = TmdbImageSelectorService.selectLogoPath(
+      logos,
+      preferredLang: preferredLang,
+    );
 
     // Tailles standardisées pour stabilité/perf
     final Uri? posterUri = _images.poster(posterPath, size: 'w500');

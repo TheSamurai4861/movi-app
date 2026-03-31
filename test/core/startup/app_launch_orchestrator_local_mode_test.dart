@@ -121,6 +121,11 @@ void main() {
       expect(harness.selectedProfilePreferences.selectedProfileId, created.id);
       expect(harness.selectedSourcePreferences.selectedSourceId, accountId);
       expect(harness.homeController.loadCalls, 1);
+      // Bootstrap progress stage should be cleared after preload.
+      expect(
+        harness.container.read(homeBootstrapProgressStageProvider),
+        isNull,
+      );
       expect(
         harness.container.read(appStateControllerProvider).activeIptvSourceIds,
         {accountId},

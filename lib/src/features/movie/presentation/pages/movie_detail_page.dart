@@ -205,7 +205,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     return vmAsync.when(
       loading: () => Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: const OverlaySplash(),
+        body: OverlaySplash(
+          message: AppLocalizations.of(context)!.overlayPreparingMetadata,
+        ),
       ),
       error: (e, st) => _buildErrorScaffold(e),
       data: (vm) {
@@ -225,6 +227,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         }
         return _buildWithValues(
           mediaTitle: vm.title,
+          logo: vm.logo,
           yearText: vm.yearText,
           durationText: vm.durationText,
           ratingText: vm.ratingText,
@@ -273,6 +276,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   Widget _buildWithValues({
     required String mediaTitle,
+    Uri? logo,
     required String yearText,
     required String durationText,
     required String ratingText,
@@ -324,6 +328,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                               if (isWideLayout)
                                 _buildDesktopHeroOverlay(
                                   mediaTitle: mediaTitle,
+                                  logo: logo,
                                   yearText: yearText,
                                   durationText: durationText,
                                   ratingText: ratingText,
@@ -335,6 +340,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                           if (!isWideLayout)
                             _buildMobileMetaSection(
                               mediaTitle: mediaTitle,
+                              logo: logo,
                               yearText: yearText,
                               durationText: durationText,
                               ratingText: ratingText,
@@ -426,33 +432,59 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   Widget _buildDesktopHeroOverlay({
     required String mediaTitle,
+    Uri? logo,
     required String yearText,
     required String durationText,
     required String ratingText,
     required String overviewText,
     required String movieId,
   }) {
+    final titleStyle =
+        Theme.of(context).textTheme.displaySmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              height: 1.05,
+            ) ??
+        const TextStyle(
+          fontSize: 42,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          height: 1.05,
+        );
     return MoviDetailHeroDesktopOverlay(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            mediaTitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style:
-                Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  height: 1.05,
-                ) ??
-                const TextStyle(
-                  fontSize: 42,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  height: 1.05,
-                ),
+          Semantics(
+            header: true,
+            label: mediaTitle,
+            child: logo == null
+                ? Text(
+                    mediaTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  )
+                : MoviResponsiveLogo(
+                    imageUrl: logo.toString(),
+                    semanticLabel: mediaTitle,
+                    alignment: Alignment.centerLeft,
+                    maxWidth: 520,
+                    reservedHeight: 72,
+                    wideMaxHeight: 72,
+                    tallMaxHeight: 128,
+                    blockyMaxHeight: 160,
+                    blockyRatioThreshold: 1.45,
+                    overflowUpFactor: 1.0,
+                    extraUpOffset: 18,
+                    onErrorFallback: (_) => Text(
+                      mediaTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: titleStyle,
+                    ),
+                  ),
           ),
           const SizedBox(height: 16),
           _buildMetaPills(
@@ -495,6 +527,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   Widget _buildMobileMetaSection({
     required String mediaTitle,
+    Uri? logo,
     required String yearText,
     required String durationText,
     required String ratingText,
@@ -502,6 +535,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required String movieId,
   }) {
     final titleStyle = Theme.of(context).textTheme.headlineSmall;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
       padding: const EdgeInsetsDirectional.only(start: 20, end: 20),
@@ -509,7 +543,29 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const SizedBox(height: AppSpacing.m),
-          Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left),
+          Semantics(
+            header: true,
+            label: mediaTitle,
+            child: logo == null
+                ? Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left)
+                : Transform.translate(
+                    offset: const Offset(0, -16),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: (screenWidth * 0.82).clamp(220.0, 420.0),
+                        maxHeight: 56,
+                      ),
+                      child: Image.network(
+                        logo.toString(),
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.high,
+                        errorBuilder: (_, __, ___) =>
+                            Text(mediaTitle, style: titleStyle),
+                      ),
+                    ),
+                  ),
+          ),
           const SizedBox(height: AppSpacing.m),
           _buildMetaPills(
             yearText: yearText,
@@ -623,6 +679,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
+            key: const Key('movie_change_version_button'),
             onTap: () async {
               await _chooseMovieVersionAndPlay(mediaTitle);
             },
@@ -658,15 +715,22 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       ),
     );
 
+    final isAvailable =
+        ref.watch(mdp.movieAvailabilityOnIptvProvider(movieId)).value ?? true;
+
     return SizedBox(
       height: expandPrimary ? 55 : 48,
       child: Row(
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
         children: [
           playButton,
-          const SizedBox(width: 12),
-          changeVersionButton,
-          const SizedBox(width: 12),
+          if (isAvailable) ...[
+            const SizedBox(width: 12),
+            changeVersionButton,
+            const SizedBox(width: 12),
+          ] else ...[
+            const SizedBox(width: 12),
+          ],
           SizedBox(
             width: 40,
             height: 40,

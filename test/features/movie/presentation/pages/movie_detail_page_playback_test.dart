@@ -82,10 +82,12 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      // MovieDetailPage can show OverlaySplash with a periodic timer (elapsed seconds),
+      // so it never "settles". Pump a short duration instead.
+      await tester.pump(const Duration(milliseconds: 200));
 
       await tester.tap(find.text('Watch'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.byType(MoviePlaybackVariantSheet), findsNothing);
       expect(pushedSources, hasLength(1));
@@ -158,17 +160,21 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 200));
 
     await tester.tap(find.text('Watch'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
     expect(find.text('The.Matrix.1999.1080p.TRUEFRENCH'), findsOneWidget);
     expect(find.text('The.Matrix.1999.2160p.VOSTFR'), findsOneWidget);
 
-    await tester.tap(find.text('The.Matrix.1999.2160p.VOSTFR'));
-    await tester.pumpAndSettle();
+    final variantKey = find.byKey(const Key('movie_variant_1'));
+    await tester.ensureVisible(variantKey);
+    await tester.tap(variantKey, warnIfMissed: false);
+    // After selection, the sheet closes and we should navigate to /player.
+    // Once on /player, the tree should settle normally.
+    await tester.pumpAndSettle(const Duration(milliseconds: 100));
 
     expect(pushedSources, hasLength(1));
     expect(pushedSources.single.url, 'https://video.example/2.mp4');
@@ -243,10 +249,10 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
       await tester.tap(find.text('Watch'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
       expect(find.text('The.Matrix.1999.2160p.VF.VOSTFR'), findsOneWidget);
@@ -317,13 +323,13 @@ void main() {
         ),
       );
 
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('Versions'), findsOneWidget);
+      expect(find.byKey(const Key('movie_change_version_button')), findsOneWidget);
       expect(selectionCalls, 0);
 
-      await tester.tap(find.text('Versions'));
-      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('movie_change_version_button')));
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(selectionCalls, 1);
       expect(find.byType(MoviePlaybackVariantSheet), findsOneWidget);
@@ -381,10 +387,10 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
-
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 100)); // flush delayed UI timers
     expect(find.text('Watch'), findsOneWidget);
-    expect(find.text('Versions'), findsNothing);
+    expect(find.byKey(const Key('movie_change_version_button')), findsNothing);
   });
 }
 

@@ -657,7 +657,12 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final String? posterPath =
         _selectHeroPosterPath(posters) ?? data['poster_path']?.toString();
     final String? posterBgPath = data['poster_background']?.toString();
-    final String? logoPath = TmdbImageSelectorService.selectLogoPath(logos);
+    final preferredLang =
+        (ref.read(asp.currentLanguageCodeProvider)).split('-').first;
+    final String? logoPath = TmdbImageSelectorService.selectLogoPath(
+      logos,
+      preferredLang: preferredLang,
+    );
 
     // Sur grands écrans, le hero doit consommer une source plus généreuse
     // pour éviter le flou sur desktop/tablette/TV.
@@ -1434,6 +1439,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                     final String displayTitle = hasTitle
                         ? meta!.title!
                         : item.title.value;
+                    final String? logoUrl = _coerceHttpUrl(meta?.logo);
                     final int? year = meta?.year ?? item.year;
                     final String yearText = (year ?? '—').toString();
                     final double? rating = meta?.rating;
@@ -1500,21 +1506,51 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                   if (current != null) current,
                                                 ],
                                               ),
-                                          child: Text(
-                                            displayTitle,
-                                            key: ValueKey(
-                                              hasTitle
-                                                  ? '${tmdbId}_title_wide'
-                                                  : '${tmdbId}_titleFallback_wide',
-                                            ),
-                                            textAlign: TextAlign.left,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
+                                          child: Semantics(
+                                            header: true,
+                                            label: displayTitle,
+                                            child: logoUrl == null
+                                                ? Text(
+                                                    displayTitle,
+                                                    key: ValueKey(
+                                                      hasTitle
+                                                          ? '${tmdbId}_title_wide'
+                                                          : '${tmdbId}_titleFallback_wide',
+                                                    ),
+                                                    textAlign: TextAlign.left,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.white,
+                                                    ),
+                                                  )
+                                                : MoviResponsiveLogo(
+                                                    imageUrl: logoUrl,
+                                                    semanticLabel: displayTitle,
+                                                    alignment:
+                                                        Alignment.centerLeft,
+                                                    maxWidth: 520,
+                                                    reservedHeight: 60,
+                                                    wideMaxHeight: 60,
+                                                    tallMaxHeight: 104,
+                                                    blockyMaxHeight: 132,
+                                                    blockyRatioThreshold: 1.45,
+                                                    onErrorFallback: (_) => Text(
+                                                      displayTitle,
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
                                           ),
                                         ),
                                         const SizedBox(height: 16),
@@ -1703,21 +1739,50 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                       if (current != null) current,
                                     ],
                                   ),
-                                  child: Text(
-                                    displayTitle,
-                                    key: ValueKey(
-                                      hasTitle
-                                          ? '${tmdbId}_title'
-                                          : '${tmdbId}_titleFallback',
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
+                                  child: Semantics(
+                                    header: true,
+                                    label: displayTitle,
+                                    child: logoUrl == null
+                                        ? Text(
+                                            displayTitle,
+                                            key: ValueKey(
+                                              hasTitle
+                                                  ? '${tmdbId}_title'
+                                                  : '${tmdbId}_titleFallback',
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 420,
+                                              maxHeight: 56,
+                                            ),
+                                            child: Image.network(
+                                              logoUrl,
+                                              key: ValueKey('${tmdbId}_logo'),
+                                              fit: BoxFit.contain,
+                                              alignment: Alignment.center,
+                                              filterQuality: FilterQuality.high,
+                                              errorBuilder: (_, __, ___) => Text(
+                                                displayTitle,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),

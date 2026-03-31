@@ -227,6 +227,7 @@ class TvDetailProgressiveController
               tmdbId: tmdbShow.tmdbId,
               title: tmdbShow.title,
               synopsis: tmdbShow.synopsis,
+              logo: tmdbShow.logo,
               poster: tmdbShow.poster,
               posterBackground: tmdbShow.posterBackground,
               backdrop: tmdbShow.backdrop,

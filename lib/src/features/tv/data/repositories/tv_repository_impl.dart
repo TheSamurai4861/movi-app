@@ -555,12 +555,14 @@ class TvRepositoryImpl implements TvRepository {
         _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
     final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final logo = _images.logo(dto.logoPath, size: 'w500');
 
     return TvShow(
       id: SeriesId(dto.id.toString()),
       tmdbId: dto.id,
       title: MediaTitle(dto.name),
       synopsis: Synopsis(dto.overview),
+      logo: logo,
       poster: poster,
       posterBackground: posterBackground,
       backdrop: backdrop,
@@ -598,12 +600,14 @@ class TvRepositoryImpl implements TvRepository {
         _images.poster(dto.posterBackground, size: 'original') ?? poster;
 
     final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final logo = _images.logo(dto.logoPath, size: 'w500');
 
     return TvShow(
       id: SeriesId(dto.id.toString()),
       tmdbId: dto.id,
       title: MediaTitle(dto.name),
       synopsis: Synopsis(dto.overview),
+      logo: logo,
       poster: poster,
       posterBackground: posterBackground,
       backdrop: backdrop,

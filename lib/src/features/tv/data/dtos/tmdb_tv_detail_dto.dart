@@ -29,7 +29,13 @@ class TmdbTvDetailDto {
         ? (json['images'] as Map).cast<String, dynamic>()
         : null;
     final logos = images?['logos'] as List<dynamic>? ?? const [];
-    final logoPath = _selectLogo(logos);
+    final preferredLang =
+        (json['__movi_preferred_image_lang']?.toString() ?? '')
+            .split('-')
+            .first
+            .toLowerCase()
+            .trim();
+    final logoPath = _selectLogo(logos, preferredLang: preferredLang);
     final credits = json['credits'] as Map<String, dynamic>?;
     final cast = (credits?['cast'] as List<dynamic>? ?? const [])
         .map((item) => TmdbTvCastDto.fromJson(item as Map<String, dynamic>))
@@ -187,20 +193,51 @@ String? _selectPosterBackground(Map<String, dynamic>? images) {
   return null;
 }
 
-String? _selectLogo(List<dynamic> logos) {
+String? _selectLogo(List<dynamic> logos, {required String preferredLang}) {
   if (logos.isEmpty) return null;
-  logos.sort(
-    (a, b) =>
-        ((b['vote_average'] as num?)?.compareTo(
-          (a['vote_average'] as num?) ?? 0,
-        ) ??
-        0),
-  );
-  final best = logos.cast<Map<String, dynamic>>().firstWhere(
-    (logo) => (logo['iso_639_1']?.toString().isNotEmpty ?? false),
-    orElse: () => logos.first as Map<String, dynamic>,
-  );
-  return best['file_path']?.toString();
+
+  final list = logos
+      .whereType<Map>()
+      .map((e) => e.cast<String, dynamic>())
+      .where((m) => (m['file_path']?.toString().trim().isNotEmpty ?? false))
+      .toList(growable: false);
+  if (list.isEmpty) return null;
+
+  // Règle stricte : n'utiliser que des PNG (le CDN TMDB peut ne pas servir les SVG).
+  final pngOnly = list
+      .where(
+        (m) => (m['file_path']?.toString().toLowerCase().trim().endsWith('.png') ??
+            false),
+      )
+      .toList(growable: false);
+  if (pngOnly.isEmpty) return null;
+
+  int score(Map<String, dynamic> m) {
+    final vote = (m['vote_average'] as num?)?.toDouble() ?? 0.0;
+    final lang = m['iso_639_1']?.toString().toLowerCase();
+
+    // Format bonus inutile ici (pngOnly), on garde juste un léger bonus neutre.
+    const formatBonus = 0;
+
+    // Bonus langue: app -> en -> neutre -> autre.
+    int langBonus = 0;
+    if (preferredLang.isNotEmpty && lang == preferredLang) {
+      langBonus = 300;
+    } else if (lang == 'en') {
+      langBonus = 200;
+    } else if (lang == null || lang.isEmpty) {
+      langBonus = 150;
+    } else {
+      langBonus = 0;
+    }
+
+    // Vote contributes but should not override language choice.
+    return langBonus + formatBonus + (vote * 10).round();
+  }
+
+  final sorted = pngOnly.toList(growable: true)
+    ..sort((a, b) => score(b).compareTo(score(a)));
+  return sorted.first['file_path']?.toString();
 }
 
 class TmdbTvCastDto {

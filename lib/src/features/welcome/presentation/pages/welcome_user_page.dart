@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/profile/presentation/ui/widgets/profile_avatar_chip.dart';
 import 'package:movi/src/features/settings/domain/entities/user_settings.dart';
@@ -22,6 +24,7 @@ import 'package:movi/src/core/profile/presentation/providers/profiles_providers.
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/profile_auth_providers.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
+import 'package:movi/src/core/supabase/supabase_providers.dart';
 
 class WelcomeUserPage extends ConsumerStatefulWidget {
   const WelcomeUserPage({super.key});
@@ -35,6 +38,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
   final _nameFocusNode = FocusNode(debugLabel: 'WelcomeUserName');
   final _submitFocusNode = FocusNode(debugLabel: 'WelcomeUserSubmit');
   bool _hasInvalidatedOnAuth = false;
+  bool _autoOpenedOtp = false;
   ProviderSubscription<SupabaseAuthStatus>? _authStatusSub;
 
   @override
@@ -42,6 +46,15 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // Robustesse: si Supabase est dispo mais l'utilisateur n'est pas encore
+      // authentifié, on priorise l'écran email/OTP et on évite de toucher aux
+      // providers "local mode" (DI) tant que l'auth n'est pas faite.
+      final client = ref.read(supabaseClientProvider);
+      final authStatus = ref.read(supabaseAuthStatusProvider);
+      final shouldPrioritizeEmailAuth =
+          client != null && authStatus == SupabaseAuthStatus.unauthenticated;
+      if (shouldPrioritizeEmailAuth) return;
+
       unawaited(ref.read(userSettingsControllerProvider.notifier).load());
     });
 
@@ -84,9 +97,34 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(userSettingsControllerProvider);
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final l10n = AppLocalizations.of(context)!;
+    final supabaseClient = ref.watch(supabaseClientProvider);
+    final supabaseAuthStatus = ref.watch(supabaseAuthStatusProvider);
+    final shouldPrioritizeEmailAuth =
+        supabaseClient != null &&
+        supabaseAuthStatus == SupabaseAuthStatus.unauthenticated;
+
+    // Robustesse: si on priorise l'auth, ne pas "watch" les providers de profil/settings
+    // pour éviter de dépendre d'une DI complète avant la connexion.
+    if (shouldPrioritizeEmailAuth) {
+      if (!_autoOpenedOtp) {
+        _autoOpenedOtp = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          unawaited(
+            context.push<bool>(
+              '${AppRoutePaths.authOtp}?return_to=previous',
+            ),
+          );
+        });
+      }
+      return Scaffold(
+        body: OverlaySplash(message: l10n.authOtpTitle),
+      );
+    }
+
+    final state = ref.watch(userSettingsControllerProvider);
     final profilesAsync = ref.watch(profilesControllerProvider);
     final selectedProfileId = ref.watch(selectedProfileControllerProvider);
 

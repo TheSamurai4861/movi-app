@@ -478,6 +478,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get overlayPreparingHome => 'Préparation de l\'accueil…';
 
   @override
+  String get overlayLoadingMoviesAndSeries => 'Chargement des films et séries…';
+
+  @override
+  String get overlayLoadingCategories => 'Chargement des catégories…';
+
+  @override
   String get bootstrapRefreshing => 'Rafraîchissement des listes IPTV…';
 
   @override
@@ -1027,4 +1033,447 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get parentalUnlockButton => 'Débloquer';
+
+  @override
+  String get hc_arb_dir_4de4827b => 'arb-dir';
+
+  @override
+  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
+
+  @override
+  String get hc_output_localization_file_ed018380 => 'output-localization-file';
+
+  @override
+  String get hc_output_class_f1ae6b52 => 'output-class';
+
+  @override
+  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
+
+  @override
+  String get hc_untranslated_messages_file_fa6a22b7 =>
+      'untranslated-messages-file';
+
+  @override
+  String get hc_chargement_episodes_en_cours_33fc4ace =>
+      'Chargement des épisodes en cours...';
+
+  @override
+  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
+      'Aucune playlist disponible. Créez en une';
+
+  @override
+  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
+      'Erreur lors du chargement des playlists: \$e';
+
+  @override
+  String get hc_impossible_douvrir_lien_90d0dcaa =>
+      'Impossible d’ouvrir le lien';
+
+  @override
+  String get hc_qualite_preferee_776dbeea => 'Qualité préférée';
+
+  @override
+  String get hc_annuler_49ba3292 => 'Annuler';
+
+  @override
+  String get hc_deconnexion_903dca17 => 'Déconnexion';
+
+  @override
+  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 =>
+      'Erreur lors de la déconnexion: \$e';
+
+  @override
+  String get hc_choisir_b030d590 => 'Choisir';
+
+  @override
+  String get hc_avantages_08d7f47c => 'Avantages';
+
+  @override
+  String get hc_signalement_envoye_merci_d302e576 =>
+      'Signalement envoyé. Merci.';
+
+  @override
+  String get hc_plus_tard_1f42ab3b => 'Plus tard';
+
+  @override
+  String get hc_redemarrer_maintenant_053e8e68 => 'Redémarrer maintenant';
+
+  @override
+  String get hc_utiliser_cette_source_c6c8bbc5 => 'Utiliser cette source ?';
+
+  @override
+  String get hc_utiliser_fb5e43ce => 'Utiliser';
+
+  @override
+  String get hc_source_ajout_e_e41b01d9 => 'Source ajoutée';
+
+  @override
+  String get hc_title_0a57b7eb => 'title: \'...\'';
+
+  @override
+  String get hc_labeltext_469a28db => 'labelText: \'...\'';
+
+  @override
+  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
+
+  @override
+  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
+
+  @override
+  String get hc_parametres_verrouilles_3a9b1b51 => 'Paramètres verrouillés';
+
+  @override
+  String get hc_compte_cloud_2812b31e => 'Compte cloud';
+
+  @override
+  String get hc_se_connecter_fedf2439 => 'Se connecter';
+
+  @override
+  String get hc_propos_5345add5 => 'À propos';
+
+  @override
+  String get hc_politique_confidentialite_42b0e51e =>
+      'Politique de confidentialité';
+
+  @override
+  String get hc_conditions_dutilisation_9074eac7 => 'Conditions d’utilisation';
+
+  @override
+  String get hc_sources_sauvegardees_9f1382e5 => 'Sources sauvegardées';
+
+  @override
+  String get hc_rafraichir_be30b7d1 => 'Rafraîchir';
+
+  @override
+  String get hc_activer_une_source_749ced38 => 'Activer une source';
+
+  @override
+  String get hc_nom_source_9a3e4156 => 'Nom de la source';
+
+  @override
+  String get hc_mon_iptv_b239352c => 'Mon IPTV';
+
+  @override
+  String get hc_username_84c29015 => 'Username';
+
+  @override
+  String get hc_password_8be3c943 => 'Password';
+
+  @override
+  String get hc_server_url_1d5d1eff => 'Server URL';
+
+  @override
+  String get hc_verification_pin_e17c8fe0 => 'Vérification PIN';
+
+  @override
+  String get hc_definir_un_pin_f9c2178d => 'Définir un PIN';
+
+  @override
+  String get hc_pin_3adadd31 => 'PIN';
+
+  @override
+  String get hc_message_9ff08507 => 'message: \'...\'';
+
+  @override
+  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
+      'Subscription offer not found: \$offerId.';
+
+  @override
+  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
+      'The subscription purchase was cancelled by the user.';
+
+  @override
+  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
+      'The store operation timed out: \$operation.';
+
+  @override
+  String get hc_erreur_http_lors_handshake_02db57b2 =>
+      'Erreur HTTP ... lors du handshake';
+
+  @override
+  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
+      'Réponse non-JSON du serveur Xtream';
+
+  @override
+  String get hc_reponse_invalide_serveur_xtream_afc0955f =>
+      'Réponse invalide du serveur Xtream';
+
+  @override
+  String get hc_rg_exe_af0d2be6 => 'rg.exe';
+
+  @override
+  String get hc_alertdialog_5a747a86 => 'AlertDialog';
+
+  @override
+  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
+
+  @override
+  String get hc_pas_disponible_sur_cette_source_fa6e19a7 =>
+      'Pas disponible sur cette source';
+
+  @override
+  String get hc_source_supprimee_4bfaa0a1 => 'Source supprimée';
+
+  @override
+  String get hc_source_modifiee_335ef502 => 'Source modifiée';
+
+  @override
+  String get hc_definir_code_pin_53a0bd07 => 'Définir le code PIN';
+
+  @override
+  String get hc_marquer_comme_non_vu_9cf9d3f8 => 'Marquer comme non vu';
+
+  @override
+  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 =>
+      'Êtes-vous sûr de vouloir vous déconnecter ?';
+
+  @override
+  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
+      'Movi Premium requis pour la synchronisation cloud.';
+
+  @override
+  String get hc_auto_c614ba7c => 'Auto';
+
+  @override
+  String get hc_organiser_838a7e57 => 'Organiser';
+
+  @override
+  String get hc_modifier_f260e757 => 'Modifier';
+
+  @override
+  String get hc_ajouter_87c57ed1 => 'Ajouter';
+
+  @override
+  String get hc_source_active_e571305e => 'Source active';
+
+  @override
+  String get hc_autres_sources_e32592a6 => 'Autres sources';
+
+  @override
+  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
+      'Signalement indisponible pour ce contenu.';
+
+  @override
+  String get hc_securisation_contenu_e5195111 => 'Sécurisation du contenu';
+
+  @override
+  String get hc_verification_classifications_d_age_006eebfe =>
+      'Vérification des classifications d\'âge...';
+
+  @override
+  String get hc_voir_tout_7b7d86e8 => 'Voir tout';
+
+  @override
+  String get hc_signaler_un_probleme_13183c0f => 'Signaler un problème';
+
+  @override
+  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
+      'Si ce contenu n’est pas approprié et a été accessible malgré les restrictions, décris rapidement le problème.';
+
+  @override
+  String get hc_envoyer_e9ce243b => 'Envoyer';
+
+  @override
+  String get hc_profil_enfant_cree_39f4eb7d => 'Profil enfant créé';
+
+  @override
+  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
+      'Un profil enfant a été créé. Pour sécuriser l\'application ... recommandé de redémarrer l\'application.';
+
+  @override
+  String get hc_pseudo_4cf966c0 => 'Pseudo';
+
+  @override
+  String get hc_profil_enfant_2c8a01c0 => 'Profil enfant';
+
+  @override
+  String get hc_limite_d_age_5b170fc9 => 'Limite d\'âge';
+
+  @override
+  String get hc_code_pin_e79c48bd => 'Code PIN';
+
+  @override
+  String get hc_changer_code_pin_3b069731 => 'Changer le code PIN';
+
+  @override
+  String get hc_supprimer_code_pin_0dcf8a48 => 'Supprimer le code PIN';
+
+  @override
+  String get hc_supprimer_pin_51850c7b => 'Supprimer le PIN';
+
+  @override
+  String get hc_supprimer_1acfc1c7 => 'Supprimer';
+
+  @override
+  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
+      'Oblige un PIN et active le filtre PEGI.';
+
+  @override
+  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
+      'Voulez-vous activer cette source maintenant ?';
+
+  @override
+  String get hc_application_b291beb8 => 'Application';
+
+  @override
+  String get hc_version_1_0_0_347e553c => 'Version 1.0.0';
+
+  @override
+  String get hc_credits_293a6081 => 'Crédits';
+
+  @override
+  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
+      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
+
+  @override
+  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
+      'Ce produit utilise l\'API TMDB mais n\'est ni approuvé ni certifié par TMDB.';
+
+  @override
+  String get hc_verification_targets_d51632f8 => 'Cibles de vérification';
+
+  @override
+  String get hc_fade_must_eat_frame_5f1bfc77 => 'The Fade Must Eat The Frame';
+
+  @override
+  String get hc_invalid_xtream_streamid_eb04e9f9 =>
+      'Invalid Xtream streamId: ...';
+
+  @override
+  String get hc_series_xtream_missing_poster_065b5103 =>
+      'Series xtream:... missing poster';
+
+  @override
+  String get hc_movie_not_found_a7fe72d9 => 'Movie ... not found ...';
+
+  @override
+  String get hc_missing_poster_1c9ba558 => '... missing poster';
+
+  @override
+  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
+      'Invalid watchlist outbox payload.';
+
+  @override
+  String get hc_unknown_watchlist_operation_e9259c07 =>
+      'Unknown watchlist operation: ...';
+
+  @override
+  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
+      'Invalid playlist outbox payload.';
+
+  @override
+  String get hc_unknown_playlist_operation_c98cbd41 =>
+      'Unknown playlist operation: ...';
+
+  @override
+  String get hc_url_invalide_aa227a66 => 'URL invalide';
+
+  @override
+  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
+      'Legacy IV missing: cannot decrypt legacy ciphertext.';
+
+  @override
+  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'Rafraîchir\'';
+
+  @override
+  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'Menu\'';
+
+  @override
+  String get hc_retour_e5befb1f => 'Retour';
+
+  @override
+  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
+      'semanticLabel: \'Plus d\'actions\'';
+
+  @override
+  String get hc_plus_d_actions_ffe6be2a => 'Plus d\'actions';
+
+  @override
+  String get hc_semanticlabel_rechercher_3ae4e02c =>
+      'semanticLabel: \'Rechercher\'';
+
+  @override
+  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'Ajouter\'';
+
+  @override
+  String get hc_l10n_86d50bf0 => 'l10n.*';
+
+  @override
+  String get actionOk => 'OK';
+
+  @override
+  String get actionSignOut => 'Déconnexion';
+
+  @override
+  String get dialogSignOutBody => 'Êtes-vous sûr de vouloir vous déconnecter ?';
+
+  @override
+  String get settingsUnableToOpenLink => 'Impossible d’ouvrir le lien';
+
+  @override
+  String get settingsSyncDisabled => 'Désactivé';
+
+  @override
+  String get settingsSyncEveryHour => 'Toutes les heures';
+
+  @override
+  String get settingsSyncEvery2Hours => 'Toutes les 2 heures';
+
+  @override
+  String get settingsSyncEvery4Hours => 'Toutes les 4 heures';
+
+  @override
+  String get settingsSyncEvery6Hours => 'Toutes les 6 heures';
+
+  @override
+  String get settingsSyncEveryDay => 'Tous les jours';
+
+  @override
+  String get settingsSyncEvery2Days => 'Tous les 2 jours';
+
+  @override
+  String get settingsColorCustom => 'Personnalisé';
+
+  @override
+  String get settingsColorBlue => 'Bleu';
+
+  @override
+  String get settingsColorPink => 'Rose';
+
+  @override
+  String get settingsColorGreen => 'Vert';
+
+  @override
+  String get settingsColorPurple => 'Violet';
+
+  @override
+  String get settingsColorOrange => 'Orange';
+
+  @override
+  String get settingsColorTurquoise => 'Turquoise';
+
+  @override
+  String get settingsColorYellow => 'Jaune';
+
+  @override
+  String get settingsColorIndigo => 'Indigo';
+
+  @override
+  String get settingsCloudAccountTitle => 'Compte cloud';
+
+  @override
+  String get settingsAccountConnected => 'Connecté';
+
+  @override
+  String get settingsAccountLocalMode => 'Mode local';
+
+  @override
+  String get settingsAccountCloudUnavailable => 'Cloud indisponible';
+
+  @override
+  String get aboutTmdbDisclaimer =>
+      'Ce produit utilise l\'API TMDB mais n\'est ni approuvé ni certifié par TMDB.';
+
+  @override
+  String get aboutCreditsSectionTitle => 'Crédits';
 }

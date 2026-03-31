@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/router/router.dart';
-import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart'
@@ -19,6 +18,7 @@ import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart'
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 
 Future<bool> _guardParental(
   BuildContext context,
@@ -148,112 +148,23 @@ Future<void> navigateToMovieDetail(
     return;
   }
 
-  // Vérifier si un enrichissement est nécessaire en déclenchant le provider
-  final enrichmentAsync = ref.read(mdp.movieDetailEnrichmentProvider(args.id));
-  logger.debug(
-    '🔵 [NAV] movieDetailEnrichmentProvider lu, état: isLoading=${enrichmentAsync.isLoading}, hasValue=${enrichmentAsync.hasValue}, hasError=${enrichmentAsync.hasError}',
-    category: 'navigation',
-  );
-
-  // Si le provider est en chargement, afficher un overlay et attendre
-  if (enrichmentAsync.isLoading) {
-    logger.debug(
-      '🔵 [NAV] Provider en chargement, affichage overlay et attente enrichissement pour movie.id=${args.id}',
-      category: 'navigation',
-    );
-    // Afficher un overlay de chargement
-    if (!context.mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const OverlaySplash(),
-    );
-    // Attendre que l'enrichissement soit terminé (avec timeout pour éviter blocage infini)
-    try {
-      final result = await ref
-          .read(mdp.movieDetailEnrichmentProvider(args.id).future)
-          .timeout(
-            const Duration(seconds: 20),
-            onTimeout: () {
-              logger.log(
-                LogLevel.warn,
-                '🔵 [NAV] Timeout lors de l\'attente enrichissement pour movie.id=${args.id} (20s), navigation continue',
-                category: 'navigation',
-              );
-              return false; // Retourner false pour continuer la navigation
-            },
-          );
-      logger.debug(
-        '🔵 [NAV] Enrichissement terminé pour movie.id=${args.id}, needsEnrichment=$result',
-        category: 'navigation',
-      );
-    } catch (e, st) {
+  // Déclencher l'enrichissement en arrière-plan, sans overlay de pré-navigation.
+  // L'overlay (placeholder) est géré par la page détails elle-même.
+  unawaited(
+    ref
+        .read(mdp.movieDetailEnrichmentProvider(args.id).future)
+        .timeout(const Duration(seconds: 20))
+        .catchError((e, st) {
       logger.log(
         LogLevel.warn,
-        '🔵 [NAV] Erreur lors de l\'enrichissement pour movie.id=${args.id}: $e, navigation continue',
+        '🔵 [NAV] Enrichissement (background) movie.id=${args.id} a échoué: $e',
         category: 'navigation',
         error: e,
-        stackTrace: st,
+        stackTrace: st is StackTrace ? st : null,
       );
-      // En cas d'erreur, on continue quand même la navigation
-    } finally {
-      // Fermer l'overlay
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-    }
-  } else {
-    logger.debug(
-      '🔵 [NAV] Provider pas en chargement, traitement état pour movie.id=${args.id}',
-      category: 'navigation',
-    );
-    // Si pas en chargement, attendre quand même le résultat pour s'assurer
-    // que l'enrichissement est fait si nécessaire
-    await enrichmentAsync.when(
-      loading: () async {
-        logger.debug(
-          '🔵 [NAV] État loading dans when() pour movie.id=${args.id}',
-          category: 'navigation',
-        );
-        // Ne devrait pas arriver ici, mais au cas où
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => const OverlaySplash(),
-        );
-        try {
-          final result = await ref.read(
-            mdp.movieDetailEnrichmentProvider(args.id).future,
-          );
-          logger.debug(
-            '🔵 [NAV] Enrichissement terminé (dans when loading) pour movie.id=${args.id}, needsEnrichment=$result',
-            category: 'navigation',
-          );
-        } finally {
-          if (context.mounted) {
-            Navigator.of(context).pop();
-          }
-        }
-      },
-      error: (error, stackTrace) {
-        logger.log(
-          LogLevel.warn,
-          '🔵 [NAV] Erreur dans provider pour movie.id=${args.id}: $error',
-          category: 'navigation',
-          error: error,
-          stackTrace: stackTrace,
-        );
-        // En cas d'erreur, naviguer quand même
-      },
-      data: (needsEnrichment) {
-        logger.debug(
-          '🔵 [NAV] Données disponibles pour movie.id=${args.id}, needsEnrichment=$needsEnrichment',
-          category: 'navigation',
-        );
-        // Si un enrichissement était nécessaire, il a déjà été fait
-      },
-    );
-  }
+      return false;
+    }),
+  );
 
   // Naviguer vers la page de détails
   if (context.mounted) {
@@ -291,112 +202,23 @@ Future<void> navigateToTvDetail(
   if (!allowed) return;
   if (!context.mounted) return;
 
-  // Vérifier si un enrichissement est nécessaire en déclenchant le provider
-  final enrichmentAsync = ref.read(tvdp.tvDetailEnrichmentProvider(args.id));
-  logger.debug(
-    '🟢 [NAV] tvDetailEnrichmentProvider lu, état: isLoading=${enrichmentAsync.isLoading}, hasValue=${enrichmentAsync.hasValue}, hasError=${enrichmentAsync.hasError}',
-    category: 'navigation',
-  );
-
-  // Si le provider est en chargement, afficher un overlay et attendre
-  if (enrichmentAsync.isLoading) {
-    logger.debug(
-      '🟢 [NAV] Provider en chargement, affichage overlay et attente enrichissement pour tv.id=${args.id}',
-      category: 'navigation',
-    );
-    // Afficher un overlay de chargement
-    if (!context.mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const OverlaySplash(),
-    );
-    // Attendre que l'enrichissement soit terminé (avec timeout pour éviter blocage infini)
-    try {
-      final result = await ref
-          .read(tvdp.tvDetailEnrichmentProvider(args.id).future)
-          .timeout(
-            const Duration(seconds: 20),
-            onTimeout: () {
-              logger.log(
-                LogLevel.warn,
-                '🟢 [NAV] Timeout lors de l\'attente enrichissement pour tv.id=${args.id} (20s), navigation continue',
-                category: 'navigation',
-              );
-              return false; // Retourner false pour continuer la navigation
-            },
-          );
-      logger.debug(
-        '🟢 [NAV] Enrichissement terminé pour tv.id=${args.id}, needsEnrichment=$result',
-        category: 'navigation',
-      );
-    } catch (e, st) {
+  // Déclencher l'enrichissement en arrière-plan, sans overlay de pré-navigation.
+  // L'overlay (placeholder) est géré par la page détails elle-même.
+  unawaited(
+    ref
+        .read(tvdp.tvDetailEnrichmentProvider(args.id).future)
+        .timeout(const Duration(seconds: 20))
+        .catchError((e, st) {
       logger.log(
         LogLevel.warn,
-        '🟢 [NAV] Erreur lors de l\'enrichissement pour tv.id=${args.id}: $e, navigation continue',
+        '🟢 [NAV] Enrichissement (background) tv.id=${args.id} a échoué: $e',
         category: 'navigation',
         error: e,
-        stackTrace: st,
+        stackTrace: st is StackTrace ? st : null,
       );
-      // En cas d'erreur, on continue quand même la navigation
-    } finally {
-      // Fermer l'overlay
-      if (context.mounted) {
-        Navigator.of(context).pop();
-      }
-    }
-  } else {
-    logger.debug(
-      '🟢 [NAV] Provider pas en chargement, traitement état pour tv.id=${args.id}',
-      category: 'navigation',
-    );
-    // Si pas en chargement, attendre quand même le résultat pour s'assurer
-    // que l'enrichissement est fait si nécessaire
-    await enrichmentAsync.when(
-      loading: () async {
-        logger.debug(
-          '🟢 [NAV] État loading dans when() pour tv.id=${args.id}',
-          category: 'navigation',
-        );
-        // Ne devrait pas arriver ici, mais au cas où
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => const OverlaySplash(),
-        );
-        try {
-          final result = await ref.read(
-            tvdp.tvDetailEnrichmentProvider(args.id).future,
-          );
-          logger.debug(
-            '🟢 [NAV] Enrichissement terminé (dans when loading) pour tv.id=${args.id}, needsEnrichment=$result',
-            category: 'navigation',
-          );
-        } finally {
-          if (context.mounted) {
-            Navigator.of(context).pop();
-          }
-        }
-      },
-      error: (error, stackTrace) {
-        logger.log(
-          LogLevel.warn,
-          '🟢 [NAV] Erreur dans provider pour tv.id=${args.id}: $error',
-          category: 'navigation',
-          error: error,
-          stackTrace: stackTrace,
-        );
-        // En cas d'erreur, naviguer quand même
-      },
-      data: (needsEnrichment) {
-        logger.debug(
-          '🟢 [NAV] Données disponibles pour tv.id=${args.id}, needsEnrichment=$needsEnrichment',
-          category: 'navigation',
-        );
-        // Si un enrichissement était nécessaire, il a déjà été fait
-      },
-    );
-  }
+      return false;
+    }),
+  );
 
   // Naviguer vers la page de détails
   if (context.mounted) {

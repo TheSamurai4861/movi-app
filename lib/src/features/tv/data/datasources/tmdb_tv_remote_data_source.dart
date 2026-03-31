@@ -71,6 +71,7 @@ class TmdbTvRemoteDataSource {
       if (lang.isEmpty || lang == 'en') return 'null,en';
       return '$lang,en,null';
     }
+    final preferredImageLang = (language ?? '').split('-').first.toLowerCase();
 
     final json = await _client.getJson(
       'tv/$id',
@@ -107,6 +108,7 @@ class TmdbTvRemoteDataSource {
     }
 
     json['images'] = jsonImages;
+    json['__movi_preferred_image_lang'] = preferredImageLang;
     return TmdbTvDetailDto.fromJson(json);
   }
 
@@ -129,6 +131,7 @@ class TmdbTvRemoteDataSource {
       if (lang.isEmpty || lang == 'en') return 'null,en';
       return '$lang,en,null';
     }
+    final preferredImageLang = (language ?? '').split('-').first.toLowerCase();
 
     logger.debug(
       '📺 [REMOTE] Appel _client.getJson() pour tv/$id avec append_to_response...',
@@ -146,6 +149,7 @@ class TmdbTvRemoteDataSource {
       cancelToken: cancelToken,
       retries: retries,
     );
+    json['__movi_preferred_image_lang'] = preferredImageLang;
     final getJsonDuration = DateTime.now().difference(getJsonStartTime);
     logger.debug(
       '📺 [REMOTE] _client.getJson() réussi pour tv/$id en ${getJsonDuration.inMilliseconds}ms',

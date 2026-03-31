@@ -1,0 +1,710 @@
+{
+  "welcomeTitle": "ようこそ！",
+  "welcomeSubtitle": "好みを入力して Movi をカスタマイズしましょう。",
+  "labelUsername": "ニックネーム",
+  "labelPreferredLanguage": "優先言語",
+  "actionContinue": "続ける",
+  "hintUsername": "ニックネーム",
+  "errorFillFields": "入力内容を確認してください。",
+  "homeWatchNow": "視聴",
+  "welcomeSourceTitle": "ようこそ！",
+  "welcomeSourceSubtitle": "ソースを追加して Movi の体験をカスタマイズしましょう。",
+  "welcomeSourceAdd": "ソースを追加",
+  "searchTitle": "検索",
+  "searchHint": "検索語を入力",
+  "clear": "クリア",
+  "moviesTitle": "映画",
+  "seriesTitle": "番組",
+  "noResults": "結果がありません",
+  "historyTitle": "履歴",
+  "historyEmpty": "最近の検索はありません",
+  "delete": "削除",
+  "resultsCount": "（{count} 件）",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorUnknown": "不明なエラー",
+  "errorConnectionFailed": "接続に失敗しました: {error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorConnectionGeneric": "接続に失敗しました",
+  "validationRequired": "必須",
+  "validationInvalidUrl": "無効な URL",
+  "snackbarSourceAddedBackground": "IPTV ソースを追加しました。バックグラウンドで同期中…",
+  "snackbarSourceAddedSynced": "IPTV ソースを追加し、同期しました",
+  "navHome": "ホーム",
+  "navSearch": "検索",
+  "navLibrary": "ライブラリ",
+  "navSettings": "設定",
+  "settingsTitle": "設定",
+  "settingsLanguageLabel": "アプリの言語",
+  "settingsGeneralTitle": "一般設定",
+  "settingsDarkModeTitle": "ダークモード",
+  "settingsDarkModeSubtitle": "目に優しいテーマを有効にします。",
+  "settingsNotificationsTitle": "通知",
+  "settingsNotificationsSubtitle": "新着情報を通知します。",
+  "settingsAccountTitle": "アカウント",
+  "settingsProfileInfoTitle": "プロフィール情報",
+  "settingsProfileInfoSubtitle": "名前、アバター、設定",
+  "settingsAboutTitle": "このアプリについて",
+  "settingsLegalMentionsTitle": "法的情報",
+  "settingsPrivacyPolicyTitle": "プライバシーポリシー",
+  "actionCancel": "キャンセル",
+  "actionConfirm": "確認",
+  "actionRetry": "再試行",
+  "settingsHelpDiagnosticsSection": "ヘルプと診断",
+  "settingsExportErrorLogs": "エラーログを書き出し",
+  "diagnosticsExportTitle": "エラーログを書き出し",
+  "diagnosticsExportDescription": "診断には最新の WARN/ERROR ログと（有効時）ハッシュ化されたアカウント/プロフィール ID のみが含まれます。キー/トークンは含まれないはずです。",
+  "diagnosticsIncludeHashedIdsTitle": "アカウント/プロフィール ID（ハッシュ）を含める",
+  "diagnosticsIncludeHashedIdsSubtitle": "生の ID を公開せずに不具合の関連付けに役立ちます。",
+  "diagnosticsCopiedClipboard": "診断情報をクリップボードにコピーしました。",
+  "diagnosticsSavedFile": "診断情報を保存しました: {fileName}",
+  "@diagnosticsSavedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticsActionCopy": "コピー",
+  "diagnosticsActionSave": "保存",
+  "actionChangeVersion": "バージョンを変更",
+  "semanticsBack": "戻る",
+  "semanticsMoreActions": "その他の操作",
+  "snackbarLoadingPlaylists": "プレイリストを読み込み中…",
+  "snackbarNoPlaylistsAvailableCreateOne": "利用可能なプレイリストがありません。作成してください。",
+  "errorAddToPlaylist": "プレイリストに追加できませんでした: {error}",
+  "@errorAddToPlaylist": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorAlreadyInPlaylist": "このメディアは既にこのプレイリストにあります",
+  "errorLoadingPlaylists": "プレイリストの読み込み中にエラー: {message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorReportUnavailableForContent": "このコンテンツでは報告機能を利用できません。",
+  "snackbarLoadingEpisodes": "エピソードを読み込み中…",
+  "snackbarEpisodeUnavailableInPlaylist": "このエピソードはプレイリストで利用できません",
+  "snackbarGenericError": "エラー: {error}",
+  "@snackbarGenericError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarLoading": "読み込み中…",
+  "snackbarNoVersionAvailable": "利用可能なバージョンがありません",
+  "snackbarVersionSaved": "バージョンを保存しました",
+  "playbackVariantFallbackLabel": "バージョン {index}",
+  "@playbackVariantFallbackLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "actionReadMore": "もっと見る",
+  "actionShowLess": "折りたたむ",
+  "actionViewPage": "ページを見る",
+  "semanticsSeeSagaPage": "サーガのページを見る",
+  "libraryTypeSaga": "サーガ",
+  "libraryTypeInProgress": "視聴中",
+  "libraryTypeFavoriteMovies": "お気に入りの映画",
+  "libraryTypeFavoriteSeries": "お気に入りの番組",
+  "libraryTypeHistory": "履歴",
+  "libraryTypePlaylist": "プレイリスト",
+  "libraryTypeArtist": "アーティスト",
+  "libraryItemCount": "{count} 件",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackbarPlaylistRenamed": "プレイリスト名を「{name}」に変更しました",
+  "@snackbarPlaylistRenamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarPlaylistDeleted": "プレイリストを削除しました",
+  "dialogConfirmDeletePlaylist": "「{title}」を削除しますか？",
+  "@dialogConfirmDeletePlaylist": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNoResultsForQuery": "「{query}」の結果がありません",
+  "@libraryNoResultsForQuery": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "errorGenericWithMessage": "エラー: {error}",
+  "@errorGenericWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarMediaAlreadyInPlaylist": "このメディアは既にプレイリストにあります",
+  "snackbarAddedToPlaylist": "プレイリストに追加しました",
+  "addMediaTitle": "メディアを追加",
+  "searchMinCharsHint": "検索には 3 文字以上入力してください",
+  "badgeAdded": "追加済み",
+  "snackbarNotAvailableOnSource": "このソースでは利用できません",
+  "errorLoadingTitle": "読み込みエラー",
+  "errorLoadingWithMessage": "読み込みエラー: {error}",
+  "@errorLoadingWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingPlaylistsWithMessage": "プレイリストの読み込み中にエラー: {error}",
+  "@errorLoadingPlaylistsWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryClearFilterSemanticLabel": "フィルターをクリア",
+  "homeErrorSwipeToRetry": "エラーが発生しました。下にスワイプして再試行してください。",
+  "homeContinueWatching": "続きを見る",
+  "homeNoIptvSources": "有効な IPTV ソースがありません。設定からソースを追加するとカテゴリが表示されます。",
+  "homeNoTrends": "トレンドのコンテンツがありません",
+  "actionRefreshMetadata": "メタデータを更新",
+  "actionChangeMetadata": "メタデータを変更",
+  "actionAddToList": "リストに追加",
+  "metadataRefreshed": "メタデータを更新しました",
+  "errorRefreshingMetadata": "メタデータ更新中にエラーが発生しました",
+  "actionMarkSeen": "視聴済みにする",
+  "actionMarkUnseen": "未視聴にする",
+  "actionReportProblem": "問題を報告",
+  "featureComingSoon": "近日公開",
+  "subtitlesMenuTitle": "字幕",
+  "audioMenuTitle": "音声",
+  "videoFitModeMenuTitle": "表示モード",
+  "videoFitModeContain": "元の比率",
+  "videoFitModeCover": "画面に合わせる",
+  "actionDisable": "無効",
+  "defaultTrackLabel": "トラック {id}",
+  "@defaultTrackLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "controlRewind10": "10 秒",
+  "controlRewind30": "30 秒",
+  "controlForward10": "+10 秒",
+  "controlForward30": "+30 秒",
+  "actionNextEpisode": "次のエピソード",
+  "actionRestart": "最初から",
+  "errorSeriesDataUnavailable": "番組データを読み込めません",
+  "errorNextEpisodeFailed": "次のエピソードを特定できません",
+  "actionLoadMore": "さらに読み込む",
+  "iptvServerUrlLabel": "サーバー URL",
+  "iptvServerUrlHint": "Xtream サーバー URL",
+  "iptvPasswordLabel": "パスワード",
+  "iptvPasswordHint": "Xtream パスワード",
+  "actionConnect": "接続",
+  "settingsRefreshIptvPlaylistsTitle": "IPTV プレイリストを更新",
+  "activeSourceTitle": "有効なソース",
+  "statusActive": "有効",
+  "statusNoActiveSource": "有効なソースがありません",
+  "overlayPreparingHome": "ホームを準備中…",
+  "overlayLoadingMoviesAndSeries": "映画とドラマを読み込み中…",
+  "overlayLoadingCategories": "カテゴリを読み込み中…",
+  "bootstrapRefreshing": "IPTV リストを更新中…",
+  "bootstrapEnriching": "メタデータを準備中…",
+  "errorPrepareHome": "ホームを準備できません",
+  "overlayOpeningHome": "ホームを開いています…",
+  "overlayRefreshingIptvLists": "IPTV リストを更新中…",
+  "overlayPreparingMetadata": "メタデータを準備中…",
+  "errorHomeLoadTimeout": "ホームの読み込みがタイムアウトしました",
+  "faqLabel": "FAQ",
+  "iptvUsernameLabel": "ユーザー名",
+  "iptvUsernameHint": "Xtream ユーザー名",
+  "actionBack": "戻る",
+  "actionSeeAll": "すべて表示",
+  "actionExpand": "展開",
+  "actionCollapse": "折りたたむ",
+  "providerSearchPlaceholder": "{provider} で検索…",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "actionClearHistory": "履歴を消去",
+  "castTitle": "キャスト",
+  "recommendationsTitle": "おすすめ",
+  "libraryHeader": "あなたのライブラリ",
+  "libraryDataInfo": "データ/ドメインが実装されると表示されます。",
+  "libraryEmpty": "映画・番組・人物を「いいね」するとここに表示されます。",
+  "serie": "番組",
+  "recherche": "検索",
+  "notYetAvailable": "まだ利用できません",
+  "createPlaylistTitle": "プレイリストを作成",
+  "playlistName": "プレイリスト名",
+  "addMedia": "メディアを追加",
+  "renamePlaylist": "名前を変更",
+  "deletePlaylist": "削除",
+  "pinPlaylist": "ピン留め",
+  "unpinPlaylist": "ピン留め解除",
+  "playlistPinned": "プレイリストをピン留めしました",
+  "playlistUnpinned": "プレイリストのピン留めを解除しました",
+  "playlistDeleted": "プレイリストを削除しました",
+  "playlistCreatedSuccess": "プレイリスト「{name}」を作成しました",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "プレイリスト作成中にエラー: {error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "追加済み",
+  "pinRecoveryLink": "PIN コードを復元",
+  "pinRecoveryTitle": "PIN コードを復元",
+  "pinRecoveryDescription": "保護されたプロフィールの PIN コードを取得します。",
+  "pinRecoveryComingSoon": "この機能は近日公開です。",
+  "pinRecoveryCodeLabel": "復元コード",
+  "pinRecoveryCodeHint": "8 桁",
+  "pinRecoveryVerifyButton": "確認",
+  "pinRecoveryCodeInvalid": "8 桁のコードを入力してください",
+  "pinRecoveryCodeExpired": "復元コードの有効期限が切れています",
+  "pinRecoveryTooManyAttempts": "試行回数が多すぎます。しばらくしてから再試行してください。",
+  "pinRecoveryUnknownError": "予期しないエラーが発生しました",
+  "pinRecoveryNewPinLabel": "新しい PIN",
+  "pinRecoveryNewPinHint": "4〜6 桁",
+  "pinRecoveryConfirmPinLabel": "PIN を確認",
+  "pinRecoveryConfirmPinHint": "PIN を再入力",
+  "pinRecoveryResetButton": "PIN を更新",
+  "pinRecoveryPinInvalid": "4〜6 桁の PIN を入力してください",
+  "pinRecoveryPinMismatch": "PIN が一致しません",
+  "pinRecoveryResetSuccess": "PIN を更新しました",
+  "settingsAccountsSection": "アカウント",
+  "settingsIptvSection": "IPTV 設定",
+  "settingsSourcesManagement": "ソース管理",
+  "settingsSyncFrequency": "更新頻度",
+  "settingsAppSection": "アプリ設定",
+  "settingsAccentColor": "アクセントカラー",
+  "settingsPlaybackSection": "再生設定",
+  "settingsPreferredAudioLanguage": "優先言語",
+  "settingsPreferredSubtitleLanguage": "優先字幕",
+  "libraryPlaylistsFilter": "プレイリスト",
+  "librarySagasFilter": "サーガ",
+  "libraryArtistsFilter": "アーティスト",
+  "librarySearchPlaceholder": "ライブラリ内を検索…",
+  "libraryInProgress": "視聴中",
+  "libraryFavoriteMovies": "お気に入りの映画",
+  "libraryFavoriteSeries": "お気に入りの番組",
+  "libraryWatchHistory": "視聴履歴",
+  "libraryItemCountPlural": "{count} 件",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchPeopleTitle": "人物",
+  "searchSagasTitle": "サーガ",
+  "searchByProvidersTitle": "配信元",
+  "searchByGenresTitle": "ジャンル",
+  "personRoleActor": "俳優",
+  "personRoleDirector": "監督",
+  "personRoleCreator": "クリエイター",
+  "tvDistribution": "キャスト",
+  "tvSeasonLabel": "シーズン {number}",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tvNoEpisodesAvailable": "利用可能なエピソードがありません",
+  "tvResumeSeasonEpisode": "続きから S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaViewPage": "ページを見る",
+  "sagaStartNow": "今すぐ開始",
+  "sagaContinue": "続ける",
+  "sagaMovieCount": "{count} 本",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaMoviesList": "映画一覧",
+  "personMoviesCount": "{movies} 本 - {shows} 本",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
+    }
+  },
+  "personPlayRandomly": "ランダム再生",
+  "personMoviesList": "映画一覧",
+  "personSeriesList": "番組一覧",
+  "playlistPlayRandomly": "ランダム再生",
+  "playlistAddButton": "追加",
+  "playlistSortButton": "並べ替え",
+  "playlistSortByTitle": "並べ替え",
+  "playlistSortByTitleOption": "タイトル",
+  "playlistSortRecentAdditions": "追加順（新しい）",
+  "playlistSortOldestFirst": "追加順（古い）",
+  "playlistSortNewestFirst": "追加順（新しい）",
+  "playlistEmptyMessage": "このプレイリストには項目がありません",
+  "playlistItemCount": "{count} 件",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistItemCountPlural": "{count} 件",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSeasonSingular": "シーズン",
+  "playlistSeasonPlural": "シーズン",
+  "playlistRenameTitle": "プレイリスト名を変更",
+  "playlistNamePlaceholder": "プレイリスト名",
+  "playlistRenamedSuccess": "プレイリスト名を「{name}」に変更しました",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteTitle": "削除",
+  "playlistDeleteConfirm": "「{title}」を削除しますか？",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeletedSuccess": "プレイリストを削除しました",
+  "playlistItemRemovedSuccess": "項目を削除しました",
+  "playlistRemoveItemConfirm": "「{title}」をプレイリストから削除しますか？",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryLoadFailed": "カテゴリを読み込めませんでした。",
+  "categoryEmpty": "このカテゴリに項目がありません。",
+  "categoryLoadingMore": "さらに読み込み中…",
+  "movieNoPlaylistsAvailable": "利用可能なプレイリストがありません",
+  "playlistAddedTo": "「{title}」に追加しました",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWithMessage": "エラー: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNotAvailableInPlaylist": "この映画はプレイリストで利用できません",
+  "errorPlaybackFailed": "再生に失敗しました: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNoMedia": "表示できるメディアがありません",
+  "personNoData": "表示できる人物がいません。",
+  "personGenericError": "人物情報の読み込み中にエラーが発生しました。",
+  "personBiographyTitle": "略歴",
+  "authOtpTitle": "サインイン",
+  "authOtpSubtitle": "メールアドレスと送信された 8 桁のコードを入力してください。",
+  "authOtpEmailLabel": "メール",
+  "authOtpEmailHint": "your@email",
+  "authOtpEmailHelp": "8 桁のコードを送信します。必要に応じて迷惑メールも確認してください。",
+  "authOtpCodeLabel": "確認コード",
+  "authOtpCodeHint": "8 桁のコード",
+  "authOtpCodeHelp": "メールで受け取った 8 桁のコードを入力してください。",
+  "authOtpPrimarySend": "コードを送信",
+  "authOtpPrimarySubmit": "サインイン",
+  "authOtpResend": "コードを再送",
+  "authOtpResendDisabled": "{seconds} 秒後に再送",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "メールを変更",
+  "resumePlayback": "再生を再開",
+  "settingsCloudSyncSection": "クラウド同期",
+  "settingsCloudSyncAuto": "自動同期",
+  "settingsCloudSyncNow": "今すぐ同期",
+  "settingsCloudSyncInProgress": "同期中…",
+  "settingsCloudSyncNever": "しない",
+  "settingsCloudSyncError": "直近のエラー: {error}",
+  "@settingsCloudSyncError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notFoundWithEntity": "{entity} が見つかりません",
+  "@notFoundWithEntity": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      }
+    }
+  },
+  "notFoundWithEntityAndError": "{entity} が見つかりません: {error}",
+  "@notFoundWithEntityAndError": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "entityProvider": "配信元",
+  "entityGenre": "ジャンル",
+  "entityPlaylist": "プレイリスト",
+  "entitySource": "ソース",
+  "entityMovie": "映画",
+  "entitySeries": "番組",
+  "entityPerson": "人物",
+  "entitySaga": "サーガ",
+  "entityVideo": "動画",
+  "entityRoute": "ルート",
+  "errorTimeoutLoading": "読み込みがタイムアウトしました",
+  "parentalContentRestricted": "制限されたコンテンツ",
+  "parentalContentRestrictedDefault": "このコンテンツはこのプロフィールのペアレンタルコントロールでブロックされています。",
+  "parentalReasonTooYoung": "このコンテンツはプロフィールの上限より高い年齢が必要です。",
+  "parentalReasonUnknownRating": "このコンテンツの年齢レーティングがありません。",
+  "parentalReasonInvalidTmdbId": "このコンテンツはペアレンタルコントロールで評価できません。",
+  "parentalUnlockButton": "解除",
+  "@navHome": {
+    "description": "Sidebar navigation label: Home tab"
+  },
+  "@navSearch": {
+    "description": "Sidebar navigation label: Search tab"
+  },
+  "@navLibrary": {
+    "description": "Sidebar navigation label: Library tab"
+  },
+  "@navSettings": {
+    "description": "Sidebar navigation label: Settings tab"
+  },
+  "hc_arb_dir_4de4827b": "arb-dir",
+  "hc_template_arb_file_eeae5194": "template-arb-file",
+  "hc_output_localization_file_ed018380": "output-localization-file",
+  "hc_output_class_f1ae6b52": "output-class",
+  "hc_applocalizations_878fdc50": "AppLocalizations",
+  "hc_untranslated_messages_file_fa6a22b7": "untranslated-messages-file",
+  "hc_chargement_episodes_en_cours_33fc4ace": "エピソードを読み込み中…",
+  "hc_aucune_playlist_disponible_creez_en_une_f6b75c90": "利用可能なプレイリストがありません。作成してください。",
+  "hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3": "プレイリストの読み込み中にエラー: $e",
+  "hc_impossible_douvrir_lien_90d0dcaa": "リンクを開けません",
+  "hc_qualite_preferee_776dbeea": "優先品質",
+  "hc_annuler_49ba3292": "キャンセル",
+  "hc_deconnexion_903dca17": "サインアウト",
+  "hc_erreur_lors_deconnexion_placeholder_f5a211b4": "サインアウト中にエラー: $e",
+  "hc_choisir_b030d590": "選択",
+  "hc_avantages_08d7f47c": "特典",
+  "hc_signalement_envoye_merci_d302e576": "報告を送信しました。ありがとうございます。",
+  "hc_plus_tard_1f42ab3b": "後で",
+  "hc_redemarrer_maintenant_053e8e68": "今すぐ再起動",
+  "hc_utiliser_cette_source_c6c8bbc5": "このソースを使用しますか？",
+  "hc_utiliser_fb5e43ce": "使用する",
+  "hc_source_ajout_e_e41b01d9": "ソースを追加しました",
+  "hc_title_0a57b7eb": "title: '...'",
+  "hc_labeltext_469a28db": "labelText: '...'",
+  "hc_hinttext_6fd1d945": "hintText: '...'",
+  "hc_tooltip_db0de3fe": "tooltip: '...'",
+  "hc_parametres_verrouilles_3a9b1b51": "ロックされた設定",
+  "hc_compte_cloud_2812b31e": "クラウドアカウント",
+  "hc_se_connecter_fedf2439": "サインイン",
+  "hc_propos_5345add5": "このアプリについて",
+  "hc_politique_confidentialite_42b0e51e": "プライバシーポリシー",
+  "hc_conditions_dutilisation_9074eac7": "利用規約",
+  "hc_sources_sauvegardees_9f1382e5": "保存済みソース",
+  "hc_rafraichir_be30b7d1": "更新",
+  "hc_activer_une_source_749ced38": "ソースを有効化",
+  "hc_nom_source_9a3e4156": "ソース名",
+  "hc_mon_iptv_b239352c": "マイ IPTV",
+  "hc_username_84c29015": "ユーザー名",
+  "hc_password_8be3c943": "パスワード",
+  "hc_server_url_1d5d1eff": "サーバー URL",
+  "hc_verification_pin_e17c8fe0": "PIN の確認",
+  "hc_definir_un_pin_f9c2178d": "PIN を設定",
+  "hc_pin_3adadd31": "PIN",
+  "hc_message_9ff08507": "message: '...'",
+  "hc_subscription_offer_not_found_placeholder_d07ac9d3": "サブスクリプションのオファーが見つかりません: $offerId.",
+  "hc_subscription_purchase_was_cancelled_by_user_443e1dab": "サブスクリプション購入はユーザーによりキャンセルされました。",
+  "hc_store_operation_timed_out_placeholder_6c3f9df2": "ストア操作がタイムアウトしました: $operation.",
+  "hc_erreur_http_lors_handshake_02db57b2": "ハンドシェイク中の HTTP エラー",
+  "hc_reponse_non_json_serveur_xtream_e896b8df": "Xtream サーバーから JSON ではない応答",
+  "hc_reponse_invalide_serveur_xtream_afc0955f": "Xtream サーバーから無効な応答",
+  "hc_rg_exe_af0d2be6": "rg.exe",
+  "hc_alertdialog_5a747a86": "AlertDialog",
+  "hc_cupertinoalertdialog_3ed27f52": "CupertinoAlertDialog",
+  "hc_pas_disponible_sur_cette_source_fa6e19a7": "このソースでは利用できません",
+  "hc_source_supprimee_4bfaa0a1": "ソースを削除しました",
+  "hc_source_modifiee_335ef502": "ソースを更新しました",
+  "hc_definir_code_pin_53a0bd07": "PIN コードを設定",
+  "hc_marquer_comme_non_vu_9cf9d3f8": "未視聴にする",
+  "hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661": "サインアウトしますか？",
+  "hc_movi_premium_requis_pour_synchronisation_cloud_15b551df": "クラウド同期には Movi Premium が必要です。",
+  "hc_auto_c614ba7c": "自動",
+  "hc_organiser_838a7e57": "並べ替え",
+  "hc_modifier_f260e757": "編集",
+  "hc_ajouter_87c57ed1": "追加",
+  "hc_source_active_e571305e": "有効なソース",
+  "hc_autres_sources_e32592a6": "その他のソース",
+  "hc_signalement_indisponible_pour_ce_contenu_d9ad88b7": "このコンテンツでは報告機能を利用できません。",
+  "hc_securisation_contenu_e5195111": "コンテンツを保護中",
+  "hc_verification_classifications_d_age_006eebfe": "年齢レーティングを確認中…",
+  "hc_voir_tout_7b7d86e8": "すべて表示",
+  "hc_signaler_un_probleme_13183c0f": "問題を報告",
+  "hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436": "不適切なコンテンツが制限にもかかわらず表示された場合、問題を簡単に説明してください。",
+  "hc_envoyer_e9ce243b": "送信",
+  "hc_profil_enfant_cree_39f4eb7d": "子どもプロフィールを作成しました",
+  "hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a": "子どもプロフィールを作成しました。アプリの保護と年齢レーティングの事前読み込みのため、アプリの再起動をおすすめします。",
+  "hc_pseudo_4cf966c0": "ニックネーム",
+  "hc_profil_enfant_2c8a01c0": "子どもプロフィール",
+  "hc_limite_d_age_5b170fc9": "年齢上限",
+  "hc_code_pin_e79c48bd": "PIN コード",
+  "hc_changer_code_pin_3b069731": "PIN コードを変更",
+  "hc_supprimer_code_pin_0dcf8a48": "PIN コードを削除",
+  "hc_supprimer_pin_51850c7b": "PIN を削除",
+  "hc_supprimer_1acfc1c7": "削除",
+  "hc_oblige_un_pin_active_filtre_pegi_8447ac9b": "PIN が必須になり、PEGI フィルターが有効になります。",
+  "hc_voulez_vous_activer_cette_source_maintenant_f2593894": "このソースを今すぐ有効にしますか？",
+  "hc_application_b291beb8": "アプリ",
+  "hc_version_1_0_0_347e553c": "バージョン 1.0.0",
+  "hc_credits_293a6081": "クレジット",
+  "hc_this_product_uses_tmdb_api_but_is_not_0033d77f": "本製品は TMDB API を使用していますが、TMDB によって承認または認定されていません。",
+  "hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a": "本製品は TMDB API を使用していますが、TMDB によって承認または認定されていません。",
+  "hc_verification_targets_d51632f8": "検証対象",
+  "hc_fade_must_eat_frame_5f1bfc77": "フェードはフレームに溶け込む必要があります",
+  "hc_invalid_xtream_streamid_eb04e9f9": "無効な Xtream streamId: ...",
+  "hc_series_xtream_missing_poster_065b5103": "Series xtream:... missing poster",
+  "hc_movie_not_found_a7fe72d9": "Movie ... not found ...",
+  "hc_missing_poster_1c9ba558": "... missing poster",
+  "hc_invalid_watchlist_outbox_payload_327ac6c3": "Invalid watchlist outbox payload.",
+  "hc_unknown_watchlist_operation_e9259c07": "Unknown watchlist operation: ...",
+  "hc_invalid_playlist_outbox_payload_2d76e64f": "Invalid playlist outbox payload.",
+  "hc_unknown_playlist_operation_c98cbd41": "Unknown playlist operation: ...",
+  "hc_url_invalide_aa227a66": "無効な URL",
+  "hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3": "Missing legacy IV: cannot decrypt legacy ciphertext.",
+  "hc_tooltip_rafraichir_a22b17e3": "tooltip: '更新'",
+  "hc_tooltip_menu_d8fa6679": "tooltip: 'メニュー'",
+  "hc_retour_e5befb1f": "戻る",
+  "hc_semanticlabel_plus_d_actions_1bd19eb6": "semanticLabel: 'その他の操作'",
+  "hc_plus_d_actions_ffe6be2a": "その他の操作",
+  "hc_semanticlabel_rechercher_3ae4e02c": "semanticLabel: '検索'",
+  "hc_semanticlabel_ajouter_ac362a68": "semanticLabel: '追加'",
+  "hc_l10n_86d50bf0": "l10n.*",
+  "actionOk": "OK",
+  "actionSignOut": "ログアウト",
+  "dialogSignOutBody": "ログアウトしますか？",
+  "settingsUnableToOpenLink": "リンクを開けませんでした",
+  "settingsSyncDisabled": "無効",
+  "settingsSyncEveryHour": "1時間ごと",
+  "settingsSyncEvery2Hours": "2時間ごと",
+  "settingsSyncEvery4Hours": "4時間ごと",
+  "settingsSyncEvery6Hours": "6時間ごと",
+  "settingsSyncEveryDay": "毎日",
+  "settingsSyncEvery2Days": "2日ごと",
+  "settingsColorCustom": "カスタム",
+  "settingsColorBlue": "青",
+  "settingsColorPink": "ピンク",
+  "settingsColorGreen": "緑",
+  "settingsColorPurple": "紫",
+  "settingsColorOrange": "オレンジ",
+  "settingsColorTurquoise": "ターコイズ",
+  "settingsColorYellow": "黄",
+  "settingsColorIndigo": "インディゴ",
+  "settingsCloudAccountTitle": "クラウドアカウント",
+  "settingsAccountConnected": "接続済み",
+  "settingsAccountLocalMode": "ローカルモード",
+  "settingsAccountCloudUnavailable": "クラウド利用不可",
+  "aboutTmdbDisclaimer": "この製品はTMDB APIを使用していますが、TMDBによって承認または認定されたものではありません。",
+  "aboutCreditsSectionTitle": "クレジット"
+}

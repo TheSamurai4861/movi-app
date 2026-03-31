@@ -52,6 +52,7 @@ class TmdbMovieRemoteDataSource {
     CancelToken? cancelToken,
     int retries = 1,
   }) async {
+    final preferredImageLang = (language ?? '').split('-').first.toLowerCase();
     final json = await _client.getJson(
       'movie/$id',
       language: language,
@@ -93,6 +94,7 @@ class TmdbMovieRemoteDataSource {
     }
 
     json['images'] = jsonImages;
+    json['__movi_preferred_image_lang'] = preferredImageLang;
     return TmdbMovieDetailDto.fromJson(json);
   }
 
@@ -111,6 +113,7 @@ class TmdbMovieRemoteDataSource {
     String? language,
     CancelToken? cancelToken,
   }) async {
+    final preferredImageLang = (language ?? '').split('-').first.toLowerCase();
     final json = await _client.getJson(
       'movie/$id',
       query: const {'append_to_response': 'credits,recommendations'},
@@ -151,6 +154,7 @@ class TmdbMovieRemoteDataSource {
     }
 
     json['images'] = jsonImages;
+    json['__movi_preferred_image_lang'] = preferredImageLang;
     return TmdbMovieDetailDto.fromJson(json);
   }
 

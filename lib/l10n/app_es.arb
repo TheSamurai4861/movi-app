@@ -22,14 +22,18 @@
   "resultsCount": "({count} resultados)",
   "@resultsCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "errorUnknown": "Error desconocido",
   "errorConnectionFailed": "Conexión fallida: {error}",
   "@errorConnectionFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "errorConnectionGeneric": "Conexión fallida",
@@ -56,8 +60,7 @@
   "settingsPrivacyPolicyTitle": "Política de privacidad",
   "actionCancel": "Cancelar",
   "actionConfirm": "Confirmar",
-  "actionRetry": "Reintentar"
-  ,
+  "actionRetry": "Reintentar",
   "settingsHelpDiagnosticsSection": "Ayuda y diagnósticos",
   "settingsExportErrorLogs": "Exportar registros de errores",
   "diagnosticsExportTitle": "Exportar registros de errores",
@@ -83,14 +86,18 @@
   "errorAddToPlaylist": "Error al añadir a la lista: {error}",
   "@errorAddToPlaylist": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "errorAlreadyInPlaylist": "Este contenido ya está en esta lista",
-  "errorLoadingPlaylists": "Error al cargar las listas: {error}",
+  "errorLoadingPlaylists": "Error al cargar las listas de reproducción: {message}",
   "@errorLoadingPlaylists": {
     "placeholders": {
-      "error": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
   "errorReportUnavailableForContent": "El reporte no está disponible para este contenido.",
@@ -99,7 +106,9 @@
   "snackbarGenericError": "Error: {error}",
   "@snackbarGenericError": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "snackbarLoading": "Cargando…",
@@ -108,7 +117,9 @@
   "playbackVariantFallbackLabel": "Versión {index}",
   "@playbackVariantFallbackLabel": {
     "placeholders": {
-      "index": { "type": "int" }
+      "index": {
+        "type": "int"
+      }
     }
   },
   "actionReadMore": "Leer más",
@@ -122,35 +133,45 @@
   "libraryTypeHistory": "Historial",
   "libraryTypePlaylist": "Lista",
   "libraryTypeArtist": "Artista",
-  "libraryItemCount": "{count,plural, one{# elemento} other{# elementos}}",
+  "libraryItemCount": "{count} elemento",
   "@libraryItemCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "snackbarPlaylistRenamed": "Lista renombrada a \"{name}\"",
   "@snackbarPlaylistRenamed": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "snackbarPlaylistDeleted": "Lista eliminada",
   "dialogConfirmDeletePlaylist": "¿Seguro que quieres eliminar \"{title}\"?",
   "@dialogConfirmDeletePlaylist": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "libraryNoResultsForQuery": "Sin resultados para \"{query}\"",
   "@libraryNoResultsForQuery": {
     "placeholders": {
-      "query": { "type": "String" }
+      "query": {
+        "type": "String"
+      }
     }
   },
   "errorGenericWithMessage": "Error: {error}",
   "@errorGenericWithMessage": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "snackbarMediaAlreadyInPlaylist": "Este contenido ya está en la lista",
@@ -159,26 +180,28 @@
   "searchMinCharsHint": "Escribe al menos 3 caracteres para buscar",
   "badgeAdded": "Añadido",
   "snackbarNotAvailableOnSource": "No disponible en esta fuente",
-  "snackbarLoading": "Cargando…",
   "errorLoadingTitle": "Error de carga",
   "errorLoadingWithMessage": "Error: {error}",
   "@errorLoadingWithMessage": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "errorLoadingPlaylistsWithMessage": "Error al cargar: {error}",
   "@errorLoadingPlaylistsWithMessage": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "libraryClearFilterSemanticLabel": "Quitar filtro",
   "homeErrorSwipeToRetry": "Se produjo un error. Desliza hacia abajo para reintentar.",
   "homeContinueWatching": "Continuar viendo",
   "homeNoIptvSources": "No hay fuente IPTV activa. Añade una fuente en Ajustes para ver tus categorías.",
-  "homeNoTrends": "No hay contenido en tendencia disponible"
-  ,
+  "homeNoTrends": "No hay contenido en tendencia disponible",
   "actionRefreshMetadata": "Actualizar metadatos",
   "actionChangeMetadata": "Cambiar metadatos",
   "actionAddToList": "Añadir a una lista",
@@ -195,7 +218,13 @@
   "videoFitModeCover": "Llenar pantalla",
   "actionDisable": "Desactivar",
   "defaultTrackLabel": "Pista {id}",
-  "@defaultTrackLabel": {"placeholders": {"id": {"type": "String"}}},
+  "@defaultTrackLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "controlRewind10": "10 s",
   "controlRewind30": "30 s",
   "controlForward10": "+ 10 s",
@@ -215,6 +244,8 @@
   "statusActive": "Activo",
   "statusNoActiveSource": "Sin fuente activa",
   "overlayPreparingHome": "Preparando inicio…",
+  "overlayLoadingMoviesAndSeries": "Cargando películas y series…",
+  "overlayLoadingCategories": "Cargando categorías…",
   "bootstrapRefreshing": "Actualizando listas IPTV…",
   "bootstrapEnriching": "Preparando metadatos…",
   "errorPrepareHome": "No se pudo preparar la página de inicio",
@@ -309,16 +340,12 @@
   "libraryFavoriteMovies": "Películas favoritas",
   "libraryFavoriteSeries": "Series favoritas",
   "libraryWatchHistory": "Historial de visualización",
-  "libraryItemCount": "{count} elemento",
-  "@libraryItemCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "libraryItemCountPlural": "{count} elementos",
   "@libraryItemCountPlural": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "searchPeopleTitle": "Personas",
@@ -332,15 +359,21 @@
   "tvSeasonLabel": "Temporada {number}",
   "@tvSeasonLabel": {
     "placeholders": {
-      "number": { "type": "int" }
+      "number": {
+        "type": "int"
+      }
     }
   },
   "tvNoEpisodesAvailable": "No hay episodios disponibles",
   "tvResumeSeasonEpisode": "Continuar T{season} E{episode}",
   "@tvResumeSeasonEpisode": {
     "placeholders": {
-      "season": { "type": "int" },
-      "episode": { "type": "int" }
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
     }
   },
   "sagaViewPage": "Ver página",
@@ -349,15 +382,21 @@
   "sagaMovieCount": "{count} películas",
   "@sagaMovieCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "sagaMoviesList": "Lista de películas",
   "personMoviesCount": "{movies} películas - {shows} series",
   "@personMoviesCount": {
     "placeholders": {
-      "movies": { "type": "int" },
-      "shows": { "type": "int" }
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
     }
   },
   "personPlayRandomly": "Reproducir aleatoriamente",
@@ -375,13 +414,17 @@
   "playlistItemCount": "{count} elemento",
   "@playlistItemCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "playlistItemCountPlural": "{count} elementos",
   "@playlistItemCountPlural": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "playlistSeasonSingular": "temporada",
@@ -391,14 +434,18 @@
   "playlistRenamedSuccess": "Lista renombrada a \"{name}\"",
   "@playlistRenamedSuccess": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "playlistDeleteTitle": "Eliminar",
   "playlistDeleteConfirm": "¿Estás seguro de que quieres eliminar \"{title}\"?",
   "@playlistDeleteConfirm": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "playlistDeletedSuccess": "Lista eliminada",
@@ -406,41 +453,41 @@
   "playlistRemoveItemConfirm": "¿Eliminar \"{title}\" de la lista?",
   "@playlistRemoveItemConfirm": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "categoryLoadFailed": "Error al cargar la categoría.",
   "categoryEmpty": "No hay elementos en esta categoría.",
-  "categoryLoadingMore": "Cargando más…"
-  ,
+  "categoryLoadingMore": "Cargando más…",
   "movieNoPlaylistsAvailable": "No hay listas de reproducción disponibles",
   "playlistAddedTo": "Añadido a \"{title}\"",
   "@playlistAddedTo": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "errorWithMessage": "Error: {message}",
   "@errorWithMessage": {
     "placeholders": {
-      "message": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
   "movieNotAvailableInPlaylist": "Película no disponible en la lista de reproducción",
-  "errorLoadingPlaylists": "Error al cargar las listas de reproducción: {message}",
-  "@errorLoadingPlaylists": {
-    "placeholders": {
-      "message": { "type": "String" }
-    }
-  },
   "errorPlaybackFailed": "Error al reproducir la película: {message}",
   "@errorPlaybackFailed": {
     "placeholders": {
-      "message": { "type": "String" }
+      "message": {
+        "type": "String"
+      }
     }
   },
-  "movieNoMedia": "No hay contenido para mostrar"
-  ,
+  "movieNoMedia": "No hay contenido para mostrar",
   "personNoData": "No hay persona para mostrar.",
   "personGenericError": "Se produjo un error al cargar esta persona.",
   "personBiographyTitle": "Biografía",
@@ -511,5 +558,141 @@
   "parentalReasonTooYoung": "Este contenido requiere una edad superior al límite de este perfil.",
   "parentalReasonUnknownRating": "La clasificación por edades de este contenido no está disponible.",
   "parentalReasonInvalidTmdbId": "Este contenido no puede ser evaluado para el control parental.",
-  "parentalUnlockButton": "Desbloquear"
+  "parentalUnlockButton": "Desbloquear",
+  "hc_arb_dir_4de4827b": "arb-dir",
+  "hc_template_arb_file_eeae5194": "template-arb-file",
+  "hc_output_localization_file_ed018380": "output-localization-file",
+  "hc_output_class_f1ae6b52": "output-class",
+  "hc_applocalizations_878fdc50": "AppLocalizations",
+  "hc_untranslated_messages_file_fa6a22b7": "untranslated-messages-file",
+  "hc_chargement_episodes_en_cours_33fc4ace": "Cargando episodios…",
+  "hc_aucune_playlist_disponible_creez_en_une_f6b75c90": "No hay ninguna lista disponible. Crea una.",
+  "hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3": "Error al cargar las listas: $e",
+  "hc_impossible_douvrir_lien_90d0dcaa": "No se puede abrir el enlace",
+  "hc_qualite_preferee_776dbeea": "Calidad preferida",
+  "hc_annuler_49ba3292": "Cancel",
+  "hc_deconnexion_903dca17": "Cerrar sesión",
+  "hc_erreur_lors_deconnexion_placeholder_f5a211b4": "Error al cerrar sesión: $e",
+  "hc_choisir_b030d590": "Choose",
+  "hc_avantages_08d7f47c": "Benefits",
+  "hc_signalement_envoye_merci_d302e576": "Informe enviado. Gracias.",
+  "hc_plus_tard_1f42ab3b": "Más tarde",
+  "hc_redemarrer_maintenant_053e8e68": "Reiniciar ahora",
+  "hc_utiliser_cette_source_c6c8bbc5": "¿Usar esta fuente?",
+  "hc_utiliser_fb5e43ce": "Use",
+  "hc_source_ajout_e_e41b01d9": "Fuente añadida",
+  "hc_title_0a57b7eb": "title: '...'",
+  "hc_labeltext_469a28db": "labelText: '...'",
+  "hc_hinttext_6fd1d945": "hintText: '...'",
+  "hc_tooltip_db0de3fe": "tooltip: '...'",
+  "hc_parametres_verrouilles_3a9b1b51": "Ajustes bloqueados",
+  "hc_compte_cloud_2812b31e": "Cuenta en la nube",
+  "hc_se_connecter_fedf2439": "Iniciar sesión",
+  "hc_propos_5345add5": "Acerca de",
+  "hc_politique_confidentialite_42b0e51e": "Política de privacidad",
+  "hc_conditions_dutilisation_9074eac7": "Términos de uso",
+  "hc_sources_sauvegardees_9f1382e5": "Fuentes guardadas",
+  "hc_rafraichir_be30b7d1": "Actualizar",
+  "hc_activer_une_source_749ced38": "Activar una fuente",
+  "hc_nom_source_9a3e4156": "Nombre de la fuente",
+  "hc_mon_iptv_b239352c": "Mi IPTV",
+  "hc_username_84c29015": "Usuario",
+  "hc_password_8be3c943": "Contraseña",
+  "hc_server_url_1d5d1eff": "URL del servidor",
+  "hc_verification_pin_e17c8fe0": "Verificación de PIN",
+  "hc_definir_un_pin_f9c2178d": "Definir un PIN",
+  "hc_pin_3adadd31": "PIN",
+  "hc_message_9ff08507": "message: '...'",
+  "hc_subscription_offer_not_found_placeholder_d07ac9d3": "Subscription offer not found: $offerId.",
+  "hc_subscription_purchase_was_cancelled_by_user_443e1dab": "The subscription purchase was cancelled by the user.",
+  "hc_store_operation_timed_out_placeholder_6c3f9df2": "The store operation timed out: $operation.",
+  "hc_erreur_http_lors_handshake_02db57b2": "HTTP error during handshake",
+  "hc_reponse_non_json_serveur_xtream_e896b8df": "Non-JSON response from Xtream server",
+  "hc_reponse_invalide_serveur_xtream_afc0955f": "Invalid response from Xtream server",
+  "hc_rg_exe_af0d2be6": "rg.exe",
+  "hc_alertdialog_5a747a86": "AlertDialog",
+  "hc_cupertinoalertdialog_3ed27f52": "CupertinoAlertDialog",
+  "hc_pas_disponible_sur_cette_source_fa6e19a7": "No disponible en esta fuente",
+  "hc_source_supprimee_4bfaa0a1": "Fuente eliminada",
+  "hc_source_modifiee_335ef502": "Fuente actualizada",
+  "hc_definir_code_pin_53a0bd07": "Definir código PIN",
+  "hc_marquer_comme_non_vu_9cf9d3f8": "Marcar como no visto",
+  "hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661": "¿Seguro que quieres cerrar sesión?",
+  "hc_movi_premium_requis_pour_synchronisation_cloud_15b551df": "Se requiere Movi Premium para la sincronización en la nube.",
+  "hc_auto_c614ba7c": "Auto",
+  "hc_organiser_838a7e57": "Organizar",
+  "hc_modifier_f260e757": "Editar",
+  "hc_ajouter_87c57ed1": "Añadir",
+  "hc_source_active_e571305e": "Fuente activa",
+  "hc_autres_sources_e32592a6": "Otras fuentes",
+  "hc_signalement_indisponible_pour_ce_contenu_d9ad88b7": "Los reportes no están disponibles para este contenido.",
+  "hc_securisation_contenu_e5195111": "Protegiendo el contenido",
+  "hc_verification_classifications_d_age_006eebfe": "Comprobando clasificaciones de edad…",
+  "hc_voir_tout_7b7d86e8": "Ver todo",
+  "hc_signaler_un_probleme_13183c0f": "Informar de un problema",
+  "hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436": "Si este contenido no es apropiado y fue accesible pese a las restricciones, describe brevemente el problema.",
+  "hc_envoyer_e9ce243b": "Enviar",
+  "hc_profil_enfant_cree_39f4eb7d": "Perfil infantil creado",
+  "hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a": "Se creó un perfil infantil. Para proteger la app y precargar las clasificaciones por edad, se recomienda reiniciar la app.",
+  "hc_pseudo_4cf966c0": "Apodo",
+  "hc_profil_enfant_2c8a01c0": "Perfil infantil",
+  "hc_limite_d_age_5b170fc9": "Límite de edad",
+  "hc_code_pin_e79c48bd": "Código PIN",
+  "hc_changer_code_pin_3b069731": "Cambiar código PIN",
+  "hc_supprimer_code_pin_0dcf8a48": "Eliminar código PIN",
+  "hc_supprimer_pin_51850c7b": "Eliminar PIN",
+  "hc_supprimer_1acfc1c7": "Eliminar",
+  "hc_oblige_un_pin_active_filtre_pegi_8447ac9b": "Requiere un PIN y activa el filtro PEGI.",
+  "hc_voulez_vous_activer_cette_source_maintenant_f2593894": "¿Quieres activar esta fuente ahora?",
+  "hc_application_b291beb8": "Aplicación",
+  "hc_version_1_0_0_347e553c": "Version 1.0.0",
+  "hc_credits_293a6081": "Créditos",
+  "hc_this_product_uses_tmdb_api_but_is_not_0033d77f": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+  "hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a": "Este producto utiliza la API de TMDB, pero no está respaldado ni certificado por TMDB.",
+  "hc_verification_targets_d51632f8": "Verification targets",
+  "hc_fade_must_eat_frame_5f1bfc77": "The fade must eat the frame",
+  "hc_invalid_xtream_streamid_eb04e9f9": "Invalid Xtream streamId: ...",
+  "hc_series_xtream_missing_poster_065b5103": "Series xtream:... missing poster",
+  "hc_movie_not_found_a7fe72d9": "Movie ... not found ...",
+  "hc_missing_poster_1c9ba558": "... missing poster",
+  "hc_invalid_watchlist_outbox_payload_327ac6c3": "Invalid watchlist outbox payload.",
+  "hc_unknown_watchlist_operation_e9259c07": "Unknown watchlist operation: ...",
+  "hc_invalid_playlist_outbox_payload_2d76e64f": "Invalid playlist outbox payload.",
+  "hc_unknown_playlist_operation_c98cbd41": "Unknown playlist operation: ...",
+  "hc_url_invalide_aa227a66": "URL no válida",
+  "hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3": "Falta el IV heredado: no se puede descifrar el texto cifrado heredado.",
+  "hc_tooltip_rafraichir_a22b17e3": "tooltip: 'Actualizar'",
+  "hc_tooltip_menu_d8fa6679": "tooltip: 'Menu'",
+  "hc_retour_e5befb1f": "Atrás",
+  "hc_semanticlabel_plus_d_actions_1bd19eb6": "semanticLabel: 'Más acciones'",
+  "hc_plus_d_actions_ffe6be2a": "Más acciones",
+  "hc_semanticlabel_rechercher_3ae4e02c": "semanticLabel: 'Buscar'",
+  "hc_semanticlabel_ajouter_ac362a68": "semanticLabel: 'Añadir'",
+  "hc_l10n_86d50bf0": "l10n.*",
+  "actionOk": "OK",
+  "actionSignOut": "Cerrar sesión",
+  "dialogSignOutBody": "¿Seguro que quieres cerrar sesión?",
+  "settingsUnableToOpenLink": "No se pudo abrir el enlace",
+  "settingsSyncDisabled": "Desactivado",
+  "settingsSyncEveryHour": "Cada hora",
+  "settingsSyncEvery2Hours": "Cada 2 horas",
+  "settingsSyncEvery4Hours": "Cada 4 horas",
+  "settingsSyncEvery6Hours": "Cada 6 horas",
+  "settingsSyncEveryDay": "Cada día",
+  "settingsSyncEvery2Days": "Cada 2 días",
+  "settingsColorCustom": "Personalizado",
+  "settingsColorBlue": "Azul",
+  "settingsColorPink": "Rosa",
+  "settingsColorGreen": "Verde",
+  "settingsColorPurple": "Morado",
+  "settingsColorOrange": "Naranja",
+  "settingsColorTurquoise": "Turquesa",
+  "settingsColorYellow": "Amarillo",
+  "settingsColorIndigo": "Índigo",
+  "settingsCloudAccountTitle": "Cuenta en la nube",
+  "settingsAccountConnected": "Conectado",
+  "settingsAccountLocalMode": "Modo local",
+  "settingsAccountCloudUnavailable": "Nube no disponible",
+  "aboutTmdbDisclaimer": "Este producto utiliza la API de TMDB, pero no está respaldado ni certificado por TMDB.",
+  "aboutCreditsSectionTitle": "Créditos"
 }

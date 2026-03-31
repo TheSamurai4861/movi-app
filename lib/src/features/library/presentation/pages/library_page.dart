@@ -679,6 +679,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isLargeScreen = _isLargeScreen(context);
+    final screenType = _screenType(context);
     final horizontalPadding = _horizontalPadding(context);
 
     final filter = ref.watch(libraryFilterProvider);
@@ -825,12 +826,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
           const SizedBox(height: 12),
 
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: const LibraryPremiumBanner(),
-          ),
-
-          const SizedBox(height: 20),
+          if (screenType != ScreenType.mobile) ...[
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: const LibraryPremiumBanner(),
+            ),
+            const SizedBox(height: 20),
+          ],
 
           Expanded(
             child: SyncableRefreshIndicator(

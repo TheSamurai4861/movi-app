@@ -112,16 +112,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      await tester.scrollUntilVisible(
-        find.text('À propos'),
-        300,
-        scrollable: find.byType(Scrollable).first,
-      );
-
-      expect(find.text('Lecture'), findsNothing);
-      expect(find.text('Langue audio'), findsNothing);
-      expect(find.text('Sous-titres'), findsNothing);
-      expect(find.text('Qualité préférée'), findsNothing);
+      final l10n =
+          AppLocalizations.of(tester.element(find.byType(SettingsPage)))!;
+      expect(find.text(l10n.settingsPlaybackSection), findsNothing);
+      expect(find.text(l10n.settingsPreferredAudioLanguage), findsNothing);
+      expect(find.text(l10n.settingsPreferredSubtitleLanguage), findsNothing);
+      expect(find.text(l10n.hc_qualite_preferee_776dbeea), findsNothing);
     },
   );
 }

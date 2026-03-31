@@ -5,14 +5,21 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_ar.dart';
 import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_it.dart';
+import 'app_localizations_ja.dart';
+import 'app_localizations_ko.dart';
 import 'app_localizations_nl.dart';
 import 'app_localizations_pl.dart';
 import 'app_localizations_pt.dart';
+import 'app_localizations_ru.dart';
+import 'app_localizations_tr.dart';
+import 'app_localizations_uk.dart';
+import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -100,14 +107,22 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
+    Locale('ar'),
     Locale('de'),
     Locale('en'),
     Locale('es'),
     Locale('fr'),
     Locale('it'),
+    Locale('ja'),
+    Locale('ko'),
     Locale('nl'),
     Locale('pl'),
     Locale('pt'),
+    Locale('ru'),
+    Locale('tr'),
+    Locale('uk'),
+    Locale('zh'),
+    Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
   ];
 
   /// No description provided for @welcomeTitle.
@@ -949,6 +964,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preparing home…'**
   String get overlayPreparingHome;
+
+  /// No description provided for @overlayLoadingMoviesAndSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading movies & shows…'**
+  String get overlayLoadingMoviesAndSeries;
+
+  /// No description provided for @overlayLoadingCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading categories…'**
+  String get overlayLoadingCategories;
 
   /// No description provided for @bootstrapRefreshing.
   ///
@@ -1945,6 +1972,822 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock'**
   String get parentalUnlockButton;
+
+  /// No description provided for @hc_arb_dir_4de4827b.
+  ///
+  /// In en, this message translates to:
+  /// **'arb-dir'**
+  String get hc_arb_dir_4de4827b;
+
+  /// No description provided for @hc_template_arb_file_eeae5194.
+  ///
+  /// In en, this message translates to:
+  /// **'template-arb-file'**
+  String get hc_template_arb_file_eeae5194;
+
+  /// No description provided for @hc_output_localization_file_ed018380.
+  ///
+  /// In en, this message translates to:
+  /// **'output-localization-file'**
+  String get hc_output_localization_file_ed018380;
+
+  /// No description provided for @hc_output_class_f1ae6b52.
+  ///
+  /// In en, this message translates to:
+  /// **'output-class'**
+  String get hc_output_class_f1ae6b52;
+
+  /// No description provided for @hc_applocalizations_878fdc50.
+  ///
+  /// In en, this message translates to:
+  /// **'AppLocalizations'**
+  String get hc_applocalizations_878fdc50;
+
+  /// No description provided for @hc_untranslated_messages_file_fa6a22b7.
+  ///
+  /// In en, this message translates to:
+  /// **'untranslated-messages-file'**
+  String get hc_untranslated_messages_file_fa6a22b7;
+
+  /// No description provided for @hc_chargement_episodes_en_cours_33fc4ace.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading episodes…'**
+  String get hc_chargement_episodes_en_cours_33fc4ace;
+
+  /// No description provided for @hc_aucune_playlist_disponible_creez_en_une_f6b75c90.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlist available. Create one.'**
+  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90;
+
+  /// No description provided for @hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3.
+  ///
+  /// In en, this message translates to:
+  /// **'Error while loading playlists: \$e'**
+  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3;
+
+  /// No description provided for @hc_impossible_douvrir_lien_90d0dcaa.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open the link'**
+  String get hc_impossible_douvrir_lien_90d0dcaa;
+
+  /// No description provided for @hc_qualite_preferee_776dbeea.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred quality'**
+  String get hc_qualite_preferee_776dbeea;
+
+  /// No description provided for @hc_annuler_49ba3292.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get hc_annuler_49ba3292;
+
+  /// No description provided for @hc_deconnexion_903dca17.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get hc_deconnexion_903dca17;
+
+  /// No description provided for @hc_erreur_lors_deconnexion_placeholder_f5a211b4.
+  ///
+  /// In en, this message translates to:
+  /// **'Error while signing out: \$e'**
+  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4;
+
+  /// No description provided for @hc_choisir_b030d590.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose'**
+  String get hc_choisir_b030d590;
+
+  /// No description provided for @hc_avantages_08d7f47c.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefits'**
+  String get hc_avantages_08d7f47c;
+
+  /// No description provided for @hc_signalement_envoye_merci_d302e576.
+  ///
+  /// In en, this message translates to:
+  /// **'Report sent. Thank you.'**
+  String get hc_signalement_envoye_merci_d302e576;
+
+  /// No description provided for @hc_plus_tard_1f42ab3b.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get hc_plus_tard_1f42ab3b;
+
+  /// No description provided for @hc_redemarrer_maintenant_053e8e68.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart now'**
+  String get hc_redemarrer_maintenant_053e8e68;
+
+  /// No description provided for @hc_utiliser_cette_source_c6c8bbc5.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this source?'**
+  String get hc_utiliser_cette_source_c6c8bbc5;
+
+  /// No description provided for @hc_utiliser_fb5e43ce.
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get hc_utiliser_fb5e43ce;
+
+  /// No description provided for @hc_source_ajout_e_e41b01d9.
+  ///
+  /// In en, this message translates to:
+  /// **'Source added'**
+  String get hc_source_ajout_e_e41b01d9;
+
+  /// No description provided for @hc_title_0a57b7eb.
+  ///
+  /// In en, this message translates to:
+  /// **'title: \'...\''**
+  String get hc_title_0a57b7eb;
+
+  /// No description provided for @hc_labeltext_469a28db.
+  ///
+  /// In en, this message translates to:
+  /// **'labelText: \'...\''**
+  String get hc_labeltext_469a28db;
+
+  /// No description provided for @hc_hinttext_6fd1d945.
+  ///
+  /// In en, this message translates to:
+  /// **'hintText: \'...\''**
+  String get hc_hinttext_6fd1d945;
+
+  /// No description provided for @hc_tooltip_db0de3fe.
+  ///
+  /// In en, this message translates to:
+  /// **'tooltip: \'...\''**
+  String get hc_tooltip_db0de3fe;
+
+  /// No description provided for @hc_parametres_verrouilles_3a9b1b51.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked settings'**
+  String get hc_parametres_verrouilles_3a9b1b51;
+
+  /// No description provided for @hc_compte_cloud_2812b31e.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud account'**
+  String get hc_compte_cloud_2812b31e;
+
+  /// No description provided for @hc_se_connecter_fedf2439.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get hc_se_connecter_fedf2439;
+
+  /// No description provided for @hc_propos_5345add5.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get hc_propos_5345add5;
+
+  /// No description provided for @hc_politique_confidentialite_42b0e51e.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get hc_politique_confidentialite_42b0e51e;
+
+  /// No description provided for @hc_conditions_dutilisation_9074eac7.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of use'**
+  String get hc_conditions_dutilisation_9074eac7;
+
+  /// No description provided for @hc_sources_sauvegardees_9f1382e5.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved sources'**
+  String get hc_sources_sauvegardees_9f1382e5;
+
+  /// No description provided for @hc_rafraichir_be30b7d1.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get hc_rafraichir_be30b7d1;
+
+  /// No description provided for @hc_activer_une_source_749ced38.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate a source'**
+  String get hc_activer_une_source_749ced38;
+
+  /// No description provided for @hc_nom_source_9a3e4156.
+  ///
+  /// In en, this message translates to:
+  /// **'Source name'**
+  String get hc_nom_source_9a3e4156;
+
+  /// No description provided for @hc_mon_iptv_b239352c.
+  ///
+  /// In en, this message translates to:
+  /// **'My IPTV'**
+  String get hc_mon_iptv_b239352c;
+
+  /// No description provided for @hc_username_84c29015.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get hc_username_84c29015;
+
+  /// No description provided for @hc_password_8be3c943.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get hc_password_8be3c943;
+
+  /// No description provided for @hc_server_url_1d5d1eff.
+  ///
+  /// In en, this message translates to:
+  /// **'Server URL'**
+  String get hc_server_url_1d5d1eff;
+
+  /// No description provided for @hc_verification_pin_e17c8fe0.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN verification'**
+  String get hc_verification_pin_e17c8fe0;
+
+  /// No description provided for @hc_definir_un_pin_f9c2178d.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a PIN'**
+  String get hc_definir_un_pin_f9c2178d;
+
+  /// No description provided for @hc_pin_3adadd31.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN'**
+  String get hc_pin_3adadd31;
+
+  /// No description provided for @hc_message_9ff08507.
+  ///
+  /// In en, this message translates to:
+  /// **'message: \'...\''**
+  String get hc_message_9ff08507;
+
+  /// No description provided for @hc_subscription_offer_not_found_placeholder_d07ac9d3.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription offer not found: \$offerId.'**
+  String get hc_subscription_offer_not_found_placeholder_d07ac9d3;
+
+  /// No description provided for @hc_subscription_purchase_was_cancelled_by_user_443e1dab.
+  ///
+  /// In en, this message translates to:
+  /// **'The subscription purchase was cancelled by the user.'**
+  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab;
+
+  /// No description provided for @hc_store_operation_timed_out_placeholder_6c3f9df2.
+  ///
+  /// In en, this message translates to:
+  /// **'The store operation timed out: \$operation.'**
+  String get hc_store_operation_timed_out_placeholder_6c3f9df2;
+
+  /// No description provided for @hc_erreur_http_lors_handshake_02db57b2.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP error during handshake'**
+  String get hc_erreur_http_lors_handshake_02db57b2;
+
+  /// No description provided for @hc_reponse_non_json_serveur_xtream_e896b8df.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-JSON response from Xtream server'**
+  String get hc_reponse_non_json_serveur_xtream_e896b8df;
+
+  /// No description provided for @hc_reponse_invalide_serveur_xtream_afc0955f.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid response from Xtream server'**
+  String get hc_reponse_invalide_serveur_xtream_afc0955f;
+
+  /// No description provided for @hc_rg_exe_af0d2be6.
+  ///
+  /// In en, this message translates to:
+  /// **'rg.exe'**
+  String get hc_rg_exe_af0d2be6;
+
+  /// No description provided for @hc_alertdialog_5a747a86.
+  ///
+  /// In en, this message translates to:
+  /// **'AlertDialog'**
+  String get hc_alertdialog_5a747a86;
+
+  /// No description provided for @hc_cupertinoalertdialog_3ed27f52.
+  ///
+  /// In en, this message translates to:
+  /// **'CupertinoAlertDialog'**
+  String get hc_cupertinoalertdialog_3ed27f52;
+
+  /// No description provided for @hc_pas_disponible_sur_cette_source_fa6e19a7.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this source'**
+  String get hc_pas_disponible_sur_cette_source_fa6e19a7;
+
+  /// No description provided for @hc_source_supprimee_4bfaa0a1.
+  ///
+  /// In en, this message translates to:
+  /// **'Source removed'**
+  String get hc_source_supprimee_4bfaa0a1;
+
+  /// No description provided for @hc_source_modifiee_335ef502.
+  ///
+  /// In en, this message translates to:
+  /// **'Source updated'**
+  String get hc_source_modifiee_335ef502;
+
+  /// No description provided for @hc_definir_code_pin_53a0bd07.
+  ///
+  /// In en, this message translates to:
+  /// **'Set PIN code'**
+  String get hc_definir_code_pin_53a0bd07;
+
+  /// No description provided for @hc_marquer_comme_non_vu_9cf9d3f8.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unwatched'**
+  String get hc_marquer_comme_non_vu_9cf9d3f8;
+
+  /// No description provided for @hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to sign out?'**
+  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661;
+
+  /// No description provided for @hc_movi_premium_requis_pour_synchronisation_cloud_15b551df.
+  ///
+  /// In en, this message translates to:
+  /// **'Movi Premium is required for cloud sync.'**
+  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df;
+
+  /// No description provided for @hc_auto_c614ba7c.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get hc_auto_c614ba7c;
+
+  /// No description provided for @hc_organiser_838a7e57.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize'**
+  String get hc_organiser_838a7e57;
+
+  /// No description provided for @hc_modifier_f260e757.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get hc_modifier_f260e757;
+
+  /// No description provided for @hc_ajouter_87c57ed1.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get hc_ajouter_87c57ed1;
+
+  /// No description provided for @hc_source_active_e571305e.
+  ///
+  /// In en, this message translates to:
+  /// **'Active source'**
+  String get hc_source_active_e571305e;
+
+  /// No description provided for @hc_autres_sources_e32592a6.
+  ///
+  /// In en, this message translates to:
+  /// **'Other sources'**
+  String get hc_autres_sources_e32592a6;
+
+  /// No description provided for @hc_signalement_indisponible_pour_ce_contenu_d9ad88b7.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting is unavailable for this content.'**
+  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7;
+
+  /// No description provided for @hc_securisation_contenu_e5195111.
+  ///
+  /// In en, this message translates to:
+  /// **'Securing content'**
+  String get hc_securisation_contenu_e5195111;
+
+  /// No description provided for @hc_verification_classifications_d_age_006eebfe.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking age ratings…'**
+  String get hc_verification_classifications_d_age_006eebfe;
+
+  /// No description provided for @hc_voir_tout_7b7d86e8.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get hc_voir_tout_7b7d86e8;
+
+  /// No description provided for @hc_signaler_un_probleme_13183c0f.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a problem'**
+  String get hc_signaler_un_probleme_13183c0f;
+
+  /// No description provided for @hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436.
+  ///
+  /// In en, this message translates to:
+  /// **'If this content is not appropriate and was accessible despite restrictions, briefly describe the issue.'**
+  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436;
+
+  /// No description provided for @hc_envoyer_e9ce243b.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get hc_envoyer_e9ce243b;
+
+  /// No description provided for @hc_profil_enfant_cree_39f4eb7d.
+  ///
+  /// In en, this message translates to:
+  /// **'Child profile created'**
+  String get hc_profil_enfant_cree_39f4eb7d;
+
+  /// No description provided for @hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a.
+  ///
+  /// In en, this message translates to:
+  /// **'A child profile was created. To secure the app and preload age ratings, restarting the app is recommended.'**
+  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a;
+
+  /// No description provided for @hc_pseudo_4cf966c0.
+  ///
+  /// In en, this message translates to:
+  /// **'Nickname'**
+  String get hc_pseudo_4cf966c0;
+
+  /// No description provided for @hc_profil_enfant_2c8a01c0.
+  ///
+  /// In en, this message translates to:
+  /// **'Child profile'**
+  String get hc_profil_enfant_2c8a01c0;
+
+  /// No description provided for @hc_limite_d_age_5b170fc9.
+  ///
+  /// In en, this message translates to:
+  /// **'Age limit'**
+  String get hc_limite_d_age_5b170fc9;
+
+  /// No description provided for @hc_code_pin_e79c48bd.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN code'**
+  String get hc_code_pin_e79c48bd;
+
+  /// No description provided for @hc_changer_code_pin_3b069731.
+  ///
+  /// In en, this message translates to:
+  /// **'Change PIN code'**
+  String get hc_changer_code_pin_3b069731;
+
+  /// No description provided for @hc_supprimer_code_pin_0dcf8a48.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove PIN code'**
+  String get hc_supprimer_code_pin_0dcf8a48;
+
+  /// No description provided for @hc_supprimer_pin_51850c7b.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove PIN'**
+  String get hc_supprimer_pin_51850c7b;
+
+  /// No description provided for @hc_supprimer_1acfc1c7.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get hc_supprimer_1acfc1c7;
+
+  /// No description provided for @hc_oblige_un_pin_active_filtre_pegi_8447ac9b.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires a PIN and enables the PEGI filter.'**
+  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b;
+
+  /// No description provided for @hc_voulez_vous_activer_cette_source_maintenant_f2593894.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to activate this source now?'**
+  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894;
+
+  /// No description provided for @hc_application_b291beb8.
+  ///
+  /// In en, this message translates to:
+  /// **'App'**
+  String get hc_application_b291beb8;
+
+  /// No description provided for @hc_version_1_0_0_347e553c.
+  ///
+  /// In en, this message translates to:
+  /// **'Version 1.0.0'**
+  String get hc_version_1_0_0_347e553c;
+
+  /// No description provided for @hc_credits_293a6081.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get hc_credits_293a6081;
+
+  /// No description provided for @hc_this_product_uses_tmdb_api_but_is_not_0033d77f.
+  ///
+  /// In en, this message translates to:
+  /// **'This product uses the TMDB API but is not endorsed or certified by TMDB.'**
+  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f;
+
+  /// No description provided for @hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a.
+  ///
+  /// In en, this message translates to:
+  /// **'This product uses the TMDB API but is not endorsed or certified by TMDB.'**
+  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a;
+
+  /// No description provided for @hc_verification_targets_d51632f8.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification targets'**
+  String get hc_verification_targets_d51632f8;
+
+  /// No description provided for @hc_fade_must_eat_frame_5f1bfc77.
+  ///
+  /// In en, this message translates to:
+  /// **'The fade must eat the frame'**
+  String get hc_fade_must_eat_frame_5f1bfc77;
+
+  /// No description provided for @hc_invalid_xtream_streamid_eb04e9f9.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid Xtream streamId: ...'**
+  String get hc_invalid_xtream_streamid_eb04e9f9;
+
+  /// No description provided for @hc_series_xtream_missing_poster_065b5103.
+  ///
+  /// In en, this message translates to:
+  /// **'Series xtream:... missing poster'**
+  String get hc_series_xtream_missing_poster_065b5103;
+
+  /// No description provided for @hc_movie_not_found_a7fe72d9.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie ... not found ...'**
+  String get hc_movie_not_found_a7fe72d9;
+
+  /// No description provided for @hc_missing_poster_1c9ba558.
+  ///
+  /// In en, this message translates to:
+  /// **'... missing poster'**
+  String get hc_missing_poster_1c9ba558;
+
+  /// No description provided for @hc_invalid_watchlist_outbox_payload_327ac6c3.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid watchlist outbox payload.'**
+  String get hc_invalid_watchlist_outbox_payload_327ac6c3;
+
+  /// No description provided for @hc_unknown_watchlist_operation_e9259c07.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown watchlist operation: ...'**
+  String get hc_unknown_watchlist_operation_e9259c07;
+
+  /// No description provided for @hc_invalid_playlist_outbox_payload_2d76e64f.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid playlist outbox payload.'**
+  String get hc_invalid_playlist_outbox_payload_2d76e64f;
+
+  /// No description provided for @hc_unknown_playlist_operation_c98cbd41.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown playlist operation: ...'**
+  String get hc_unknown_playlist_operation_c98cbd41;
+
+  /// No description provided for @hc_url_invalide_aa227a66.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid URL'**
+  String get hc_url_invalide_aa227a66;
+
+  /// No description provided for @hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing legacy IV: cannot decrypt legacy ciphertext.'**
+  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3;
+
+  /// No description provided for @hc_tooltip_rafraichir_a22b17e3.
+  ///
+  /// In en, this message translates to:
+  /// **'tooltip: \'Refresh\''**
+  String get hc_tooltip_rafraichir_a22b17e3;
+
+  /// No description provided for @hc_tooltip_menu_d8fa6679.
+  ///
+  /// In en, this message translates to:
+  /// **'tooltip: \'Menu\''**
+  String get hc_tooltip_menu_d8fa6679;
+
+  /// No description provided for @hc_retour_e5befb1f.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get hc_retour_e5befb1f;
+
+  /// No description provided for @hc_semanticlabel_plus_d_actions_1bd19eb6.
+  ///
+  /// In en, this message translates to:
+  /// **'semanticLabel: \'More actions\''**
+  String get hc_semanticlabel_plus_d_actions_1bd19eb6;
+
+  /// No description provided for @hc_plus_d_actions_ffe6be2a.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get hc_plus_d_actions_ffe6be2a;
+
+  /// No description provided for @hc_semanticlabel_rechercher_3ae4e02c.
+  ///
+  /// In en, this message translates to:
+  /// **'semanticLabel: \'Search\''**
+  String get hc_semanticlabel_rechercher_3ae4e02c;
+
+  /// No description provided for @hc_semanticlabel_ajouter_ac362a68.
+  ///
+  /// In en, this message translates to:
+  /// **'semanticLabel: \'Add\''**
+  String get hc_semanticlabel_ajouter_ac362a68;
+
+  /// No description provided for @hc_l10n_86d50bf0.
+  ///
+  /// In en, this message translates to:
+  /// **'l10n.*'**
+  String get hc_l10n_86d50bf0;
+
+  /// No description provided for @actionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get actionOk;
+
+  /// No description provided for @actionSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get actionSignOut;
+
+  /// No description provided for @dialogSignOutBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to sign out?'**
+  String get dialogSignOutBody;
+
+  /// No description provided for @settingsUnableToOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to open the link'**
+  String get settingsUnableToOpenLink;
+
+  /// No description provided for @settingsSyncDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get settingsSyncDisabled;
+
+  /// No description provided for @settingsSyncEveryHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Every hour'**
+  String get settingsSyncEveryHour;
+
+  /// No description provided for @settingsSyncEvery2Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 2 hours'**
+  String get settingsSyncEvery2Hours;
+
+  /// No description provided for @settingsSyncEvery4Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 4 hours'**
+  String get settingsSyncEvery4Hours;
+
+  /// No description provided for @settingsSyncEvery6Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 6 hours'**
+  String get settingsSyncEvery6Hours;
+
+  /// No description provided for @settingsSyncEveryDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get settingsSyncEveryDay;
+
+  /// No description provided for @settingsSyncEvery2Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Every 2 days'**
+  String get settingsSyncEvery2Days;
+
+  /// No description provided for @settingsColorCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get settingsColorCustom;
+
+  /// No description provided for @settingsColorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get settingsColorBlue;
+
+  /// No description provided for @settingsColorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get settingsColorPink;
+
+  /// No description provided for @settingsColorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get settingsColorGreen;
+
+  /// No description provided for @settingsColorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get settingsColorPurple;
+
+  /// No description provided for @settingsColorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get settingsColorOrange;
+
+  /// No description provided for @settingsColorTurquoise.
+  ///
+  /// In en, this message translates to:
+  /// **'Turquoise'**
+  String get settingsColorTurquoise;
+
+  /// No description provided for @settingsColorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get settingsColorYellow;
+
+  /// No description provided for @settingsColorIndigo.
+  ///
+  /// In en, this message translates to:
+  /// **'Indigo'**
+  String get settingsColorIndigo;
+
+  /// No description provided for @settingsCloudAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud account'**
+  String get settingsCloudAccountTitle;
+
+  /// No description provided for @settingsAccountConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get settingsAccountConnected;
+
+  /// No description provided for @settingsAccountLocalMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Local mode'**
+  String get settingsAccountLocalMode;
+
+  /// No description provided for @settingsAccountCloudUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud unavailable'**
+  String get settingsAccountCloudUnavailable;
+
+  /// No description provided for @aboutTmdbDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'This product uses the TMDB API but is not endorsed or certified by TMDB.'**
+  String get aboutTmdbDisclaimer;
+
+  /// No description provided for @aboutCreditsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits'**
+  String get aboutCreditsSectionTitle;
 }
 
 class _AppLocalizationsDelegate
@@ -1958,14 +2801,21 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) => <String>[
+    'ar',
     'de',
     'en',
     'es',
     'fr',
     'it',
+    'ja',
+    'ko',
     'nl',
     'pl',
     'pt',
+    'ru',
+    'tr',
+    'uk',
+    'zh',
   ].contains(locale.languageCode);
 
   @override
@@ -1973,8 +2823,22 @@ class _AppLocalizationsDelegate
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when language+script codes are specified.
+  switch (locale.languageCode) {
+    case 'zh':
+      {
+        switch (locale.scriptCode) {
+          case 'Hans':
+            return AppLocalizationsZhHans();
+        }
+        break;
+      }
+  }
+
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'ar':
+      return AppLocalizationsAr();
     case 'de':
       return AppLocalizationsDe();
     case 'en':
@@ -1985,12 +2849,24 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsFr();
     case 'it':
       return AppLocalizationsIt();
+    case 'ja':
+      return AppLocalizationsJa();
+    case 'ko':
+      return AppLocalizationsKo();
     case 'nl':
       return AppLocalizationsNl();
     case 'pl':
       return AppLocalizationsPl();
     case 'pt':
       return AppLocalizationsPt();
+    case 'ru':
+      return AppLocalizationsRu();
+    case 'tr':
+      return AppLocalizationsTr();
+    case 'uk':
+      return AppLocalizationsUk();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(

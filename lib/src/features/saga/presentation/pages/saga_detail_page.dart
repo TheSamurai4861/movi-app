@@ -94,7 +94,9 @@ class SagaDetailPage extends ConsumerWidget {
           top: true,
           bottom: true,
           child: sagaDetailAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => OverlaySplash(
+              message: AppLocalizations.of(context)!.overlayPreparingMetadata,
+            ),
             error: (error, stack) => Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

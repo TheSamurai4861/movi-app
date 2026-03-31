@@ -41,6 +41,8 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/player/application/usecases/auto_enter_picture_in_picture.dart';
 import 'dart:io';
+import 'package:movi/src/shared/presentation/router/content_route_args.dart';
+import 'package:movi/src/core/router/app_route_names.dart';
 
 /// Page de lecture vidéo avec contrôles personnalisés
 class VideoPlayerPage extends ConsumerStatefulWidget {
@@ -917,29 +919,33 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
     final videoSource = _currentVideoSource ?? widget.videoSource;
 
-    // Si la vidéo est en lecture et que le PiP est supporté, entrer en PiP au lieu de fermer.
-    //
-    // Sur iOS, on privilégie un retour "fermer le player" car l'auto-PiP à l'appui
-    // sur retour est souvent perçu comme un bouton qui ne fait rien (selon device/OS).
-    if (defaultTargetPlatform != TargetPlatform.iOS &&
-        _isPlaying &&
-        _isPipSupported &&
-        !_isPipActive) {
-      // Pour PiP, on doit attendre avant de naviguer
-      try {
-        final pipRepo = ref.read(pictureInPictureRepositoryProvider);
-        final autoEnterUseCase = AutoEnterPictureInPicture(pipRepo);
-        await autoEnterUseCase.call(_isPlaying);
-        // Ne pas fermer le player, laisser le PiP actif
-        return;
-      } catch (_) {
-        // En cas d'erreur, continuer avec la fermeture normale
-      }
-    }
-
-    // Naviguer immédiatement sans attendre
+    // Robustesse: le bouton retour DOIT toujours ramener à l'écran précédent (détails).
+    // On ne déclenche pas le PiP sur "retour" (trop surprenant / donne l'impression
+    // que le retour ne marche pas). Le PiP reste géré via lifecycle (background).
     if (context.mounted) {
-      context.pop();
+      final router = GoRouter.of(context);
+      if (router.canPop()) {
+        context.pop();
+      } else {
+        // Fallback rare: si le player a été ouvert sans stack (deep link / restore),
+        // on renvoie vers la page détails associée.
+        final type = videoSource?.contentType;
+        final id =
+            (videoSource?.tmdbId != null && (videoSource?.tmdbId ?? 0) > 0)
+                ? videoSource!.tmdbId.toString()
+                : (videoSource?.contentId?.trim().isNotEmpty ?? false)
+                    ? videoSource!.contentId!.trim()
+                    : null;
+
+        if (type == ContentType.movie && id != null) {
+          context.go(AppRouteNames.movie, extra: ContentRouteArgs.movie(id));
+        } else if (type == ContentType.series && id != null) {
+          context.go(AppRouteNames.tv, extra: ContentRouteArgs.series(id));
+        } else {
+          // Dernier recours: retour Home.
+          context.go(AppRouteNames.home);
+        }
+      }
     }
 
     // Déclencher toutes les opérations en parallèle en arrière-plan

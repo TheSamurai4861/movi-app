@@ -12,6 +12,7 @@ class TvShow extends Equatable {
     this.tmdbId,
     required this.title,
     required this.synopsis,
+    this.logo,
     required this.poster,
     this.posterBackground,
     this.backdrop,
@@ -30,6 +31,7 @@ class TvShow extends Equatable {
   final int? tmdbId;
   final MediaTitle title;
   final Synopsis synopsis;
+  final Uri? logo;
   final Uri poster;
   final Uri? posterBackground;
   final Uri? backdrop;
@@ -49,6 +51,7 @@ class TvShow extends Equatable {
     tmdbId,
     title,
     synopsis,
+    logo,
     poster,
     posterBackground,
     backdrop,

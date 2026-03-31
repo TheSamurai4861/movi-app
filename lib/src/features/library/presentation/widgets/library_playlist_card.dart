@@ -107,29 +107,29 @@ class LibraryPlaylistCard extends ConsumerWidget {
     }
   }
 
-  String _typeLabel(AppLocalizations l10n) {
-    if (isSaga) return l10n.libraryTypeSaga;
+  String _typeLabel(AppLocalizations? l10n) {
+    if (isSaga) return l10n?.libraryTypeSaga ?? 'Saga';
     switch (type) {
       case LibraryPlaylistType.inProgress:
-        return l10n.libraryTypeInProgress;
+        return l10n?.libraryTypeInProgress ?? 'En cours';
       case LibraryPlaylistType.favoriteMovies:
-        return l10n.libraryTypeFavoriteMovies;
+        return l10n?.libraryTypeFavoriteMovies ?? 'Films favoris';
       case LibraryPlaylistType.favoriteSeries:
-        return l10n.libraryTypeFavoriteSeries;
+        return l10n?.libraryTypeFavoriteSeries ?? 'Séries favorites';
       case LibraryPlaylistType.watchHistory:
-        return l10n.libraryTypeHistory;
+        return l10n?.libraryTypeHistory ?? 'Historique';
       case LibraryPlaylistType.userPlaylist:
-        return l10n.libraryTypePlaylist;
+        return l10n?.libraryTypePlaylist ?? 'Playlist';
       case LibraryPlaylistType.actor:
-        return l10n.libraryTypeArtist;
+        return l10n?.libraryTypeArtist ?? 'Artiste';
     }
   }
 
-  String _secondaryText(AppLocalizations l10n) {
+  String _secondaryText(AppLocalizations? l10n) {
     final typeLabel = _typeLabel(l10n);
     final showCount = showItemCount && type != LibraryPlaylistType.actor;
     if (!showCount) return typeLabel;
-    final countLabel = l10n.libraryItemCount(itemCount);
+    final countLabel = l10n?.libraryItemCount(itemCount) ?? '$itemCount';
     return '$typeLabel - $countLabel';
   }
 
@@ -189,7 +189,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = Localizations.of<AppLocalizations>(context, AppLocalizations);
     if (layout == LibraryPlaylistCardLayout.vertical) {
       return MoviFocusableAction(
         onPressed: onTap,

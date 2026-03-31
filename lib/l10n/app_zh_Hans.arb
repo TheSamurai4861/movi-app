@@ -1,0 +1,710 @@
+{
+  "welcomeTitle": "欢迎！",
+  "welcomeSubtitle": "填写偏好设置以个性化 Movi。",
+  "labelUsername": "昵称",
+  "labelPreferredLanguage": "首选语言",
+  "actionContinue": "继续",
+  "hintUsername": "你的昵称",
+  "errorFillFields": "请正确填写字段。",
+  "homeWatchNow": "观看",
+  "welcomeSourceTitle": "欢迎！",
+  "welcomeSourceSubtitle": "添加一个源来个性化你在 Movi 的体验。",
+  "welcomeSourceAdd": "添加源",
+  "searchTitle": "搜索",
+  "searchHint": "输入搜索内容",
+  "clear": "清除",
+  "moviesTitle": "电影",
+  "seriesTitle": "剧集",
+  "noResults": "无结果",
+  "historyTitle": "历史记录",
+  "historyEmpty": "没有最近搜索",
+  "delete": "删除",
+  "resultsCount": "（{count} 个结果）",
+  "@resultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorUnknown": "未知错误",
+  "errorConnectionFailed": "连接失败：{error}",
+  "@errorConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorConnectionGeneric": "连接失败",
+  "validationRequired": "必填",
+  "validationInvalidUrl": "无效的 URL",
+  "snackbarSourceAddedBackground": "已添加 IPTV 源。正在后台同步…",
+  "snackbarSourceAddedSynced": "已添加并同步 IPTV 源",
+  "navHome": "首页",
+  "navSearch": "搜索",
+  "navLibrary": "资料库",
+  "navSettings": "设置",
+  "settingsTitle": "设置",
+  "settingsLanguageLabel": "应用语言",
+  "settingsGeneralTitle": "通用偏好",
+  "settingsDarkModeTitle": "深色模式",
+  "settingsDarkModeSubtitle": "启用适合夜间使用的主题。",
+  "settingsNotificationsTitle": "通知",
+  "settingsNotificationsSubtitle": "获取新内容发布通知。",
+  "settingsAccountTitle": "账户",
+  "settingsProfileInfoTitle": "个人资料信息",
+  "settingsProfileInfoSubtitle": "姓名、头像、偏好",
+  "settingsAboutTitle": "关于",
+  "settingsLegalMentionsTitle": "法律声明",
+  "settingsPrivacyPolicyTitle": "隐私政策",
+  "actionCancel": "取消",
+  "actionConfirm": "确认",
+  "actionRetry": "重试",
+  "settingsHelpDiagnosticsSection": "帮助与诊断",
+  "settingsExportErrorLogs": "导出错误日志",
+  "diagnosticsExportTitle": "导出错误日志",
+  "diagnosticsExportDescription": "诊断仅包含最近的 WARN/ERROR 日志以及（如启用）已哈希的账户/资料标识符。不应出现任何 key/token。",
+  "diagnosticsIncludeHashedIdsTitle": "包含账户/资料标识符（已哈希）",
+  "diagnosticsIncludeHashedIdsSubtitle": "有助于关联问题而不暴露原始 ID。",
+  "diagnosticsCopiedClipboard": "诊断信息已复制到剪贴板。",
+  "diagnosticsSavedFile": "诊断已保存：{fileName}",
+  "@diagnosticsSavedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticsActionCopy": "复制",
+  "diagnosticsActionSave": "保存",
+  "actionChangeVersion": "更改版本",
+  "semanticsBack": "返回",
+  "semanticsMoreActions": "更多操作",
+  "snackbarLoadingPlaylists": "正在加载播放列表…",
+  "snackbarNoPlaylistsAvailableCreateOne": "没有可用的播放列表。创建一个吧。",
+  "errorAddToPlaylist": "添加到播放列表失败：{error}",
+  "@errorAddToPlaylist": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorAlreadyInPlaylist": "该媒体已在此播放列表中",
+  "errorLoadingPlaylists": "加载播放列表失败：{message}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "errorReportUnavailableForContent": "此内容无法使用举报功能。",
+  "snackbarLoadingEpisodes": "正在加载剧集…",
+  "snackbarEpisodeUnavailableInPlaylist": "该集在播放列表中不可用",
+  "snackbarGenericError": "错误：{error}",
+  "@snackbarGenericError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarLoading": "正在加载…",
+  "snackbarNoVersionAvailable": "没有可用版本",
+  "snackbarVersionSaved": "版本已保存",
+  "playbackVariantFallbackLabel": "版本 {index}",
+  "@playbackVariantFallbackLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "actionReadMore": "展开",
+  "actionShowLess": "收起",
+  "actionViewPage": "查看页面",
+  "semanticsSeeSagaPage": "查看系列页面",
+  "libraryTypeSaga": "系列",
+  "libraryTypeInProgress": "进行中",
+  "libraryTypeFavoriteMovies": "喜欢的电影",
+  "libraryTypeFavoriteSeries": "喜欢的剧集",
+  "libraryTypeHistory": "历史记录",
+  "libraryTypePlaylist": "播放列表",
+  "libraryTypeArtist": "艺人",
+  "libraryItemCount": "{count} 个项目",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "snackbarPlaylistRenamed": "播放列表已重命名为“{name}”",
+  "@snackbarPlaylistRenamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarPlaylistDeleted": "播放列表已删除",
+  "dialogConfirmDeletePlaylist": "确定要删除“{title}”吗？",
+  "@dialogConfirmDeletePlaylist": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryNoResultsForQuery": "“{query}”无结果",
+  "@libraryNoResultsForQuery": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "errorGenericWithMessage": "错误：{error}",
+  "@errorGenericWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "snackbarMediaAlreadyInPlaylist": "该媒体已在播放列表中",
+  "snackbarAddedToPlaylist": "已添加到播放列表",
+  "addMediaTitle": "添加媒体",
+  "searchMinCharsHint": "请输入至少 3 个字符进行搜索",
+  "badgeAdded": "已添加",
+  "snackbarNotAvailableOnSource": "此源不可用",
+  "errorLoadingTitle": "加载错误",
+  "errorLoadingWithMessage": "加载错误：{error}",
+  "@errorLoadingWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadingPlaylistsWithMessage": "加载播放列表失败：{error}",
+  "@errorLoadingPlaylistsWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryClearFilterSemanticLabel": "清除筛选",
+  "homeErrorSwipeToRetry": "发生错误。下拉以重试。",
+  "homeContinueWatching": "继续观看",
+  "homeNoIptvSources": "没有激活的 IPTV 源。请在设置中添加源以查看分类。",
+  "homeNoTrends": "没有可用的热门内容",
+  "actionRefreshMetadata": "刷新元数据",
+  "actionChangeMetadata": "更改元数据",
+  "actionAddToList": "添加到列表",
+  "metadataRefreshed": "元数据已刷新",
+  "errorRefreshingMetadata": "刷新元数据失败",
+  "actionMarkSeen": "标记为已看",
+  "actionMarkUnseen": "标记为未看",
+  "actionReportProblem": "举报问题",
+  "featureComingSoon": "功能即将推出",
+  "subtitlesMenuTitle": "字幕",
+  "audioMenuTitle": "音频",
+  "videoFitModeMenuTitle": "显示模式",
+  "videoFitModeContain": "原始比例",
+  "videoFitModeCover": "填充屏幕",
+  "actionDisable": "禁用",
+  "defaultTrackLabel": "音轨 {id}",
+  "@defaultTrackLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "controlRewind10": "10 秒",
+  "controlRewind30": "30 秒",
+  "controlForward10": "+10 秒",
+  "controlForward30": "+30 秒",
+  "actionNextEpisode": "下一集",
+  "actionRestart": "重新开始",
+  "errorSeriesDataUnavailable": "无法加载剧集数据",
+  "errorNextEpisodeFailed": "无法确定下一集",
+  "actionLoadMore": "加载更多",
+  "iptvServerUrlLabel": "服务器 URL",
+  "iptvServerUrlHint": "Xtream 服务器 URL",
+  "iptvPasswordLabel": "密码",
+  "iptvPasswordHint": "Xtream 密码",
+  "actionConnect": "连接",
+  "settingsRefreshIptvPlaylistsTitle": "刷新 IPTV 播放列表",
+  "activeSourceTitle": "活动源",
+  "statusActive": "已激活",
+  "statusNoActiveSource": "无活动源",
+  "overlayPreparingHome": "正在准备首页…",
+  "overlayLoadingMoviesAndSeries": "正在加载电影和剧集…",
+  "overlayLoadingCategories": "正在加载分类…",
+  "bootstrapRefreshing": "正在刷新 IPTV 列表…",
+  "bootstrapEnriching": "正在准备元数据…",
+  "errorPrepareHome": "无法准备首页",
+  "overlayOpeningHome": "正在打开首页…",
+  "overlayRefreshingIptvLists": "正在刷新 IPTV 列表…",
+  "overlayPreparingMetadata": "正在准备元数据…",
+  "errorHomeLoadTimeout": "首页加载超时",
+  "faqLabel": "常见问题",
+  "iptvUsernameLabel": "用户名",
+  "iptvUsernameHint": "Xtream 用户名",
+  "actionBack": "返回",
+  "actionSeeAll": "查看全部",
+  "actionExpand": "展开",
+  "actionCollapse": "收起",
+  "providerSearchPlaceholder": "在 {provider} 中搜索…",
+  "@providerSearchPlaceholder": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "actionClearHistory": "清除历史记录",
+  "castTitle": "演员表",
+  "recommendationsTitle": "推荐",
+  "libraryHeader": "你的资料库",
+  "libraryDataInfo": "当实现 data/domain 后将显示数据。",
+  "libraryEmpty": "点赞电影、剧集或演员后，它们会出现在这里。",
+  "serie": "剧集",
+  "recherche": "搜索",
+  "notYetAvailable": "尚不可用",
+  "createPlaylistTitle": "创建播放列表",
+  "playlistName": "播放列表名称",
+  "addMedia": "添加媒体",
+  "renamePlaylist": "重命名",
+  "deletePlaylist": "删除",
+  "pinPlaylist": "置顶",
+  "unpinPlaylist": "取消置顶",
+  "playlistPinned": "播放列表已置顶",
+  "playlistUnpinned": "播放列表已取消置顶",
+  "playlistDeleted": "播放列表已删除",
+  "playlistCreatedSuccess": "已创建播放列表“{name}”",
+  "@playlistCreatedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistCreateError": "创建播放列表失败：{error}",
+  "@playlistCreateError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addedToPlaylist": "已添加",
+  "pinRecoveryLink": "找回 PIN 码",
+  "pinRecoveryTitle": "找回 PIN 码",
+  "pinRecoveryDescription": "找回受保护资料的 PIN 码。",
+  "pinRecoveryComingSoon": "该功能即将推出。",
+  "pinRecoveryCodeLabel": "找回码",
+  "pinRecoveryCodeHint": "8 位数字",
+  "pinRecoveryVerifyButton": "验证",
+  "pinRecoveryCodeInvalid": "请输入 8 位数字代码",
+  "pinRecoveryCodeExpired": "找回码已过期",
+  "pinRecoveryTooManyAttempts": "尝试次数过多。请稍后再试。",
+  "pinRecoveryUnknownError": "发生了意外错误",
+  "pinRecoveryNewPinLabel": "新 PIN",
+  "pinRecoveryNewPinHint": "4-6 位数字",
+  "pinRecoveryConfirmPinLabel": "确认 PIN",
+  "pinRecoveryConfirmPinHint": "再次输入 PIN",
+  "pinRecoveryResetButton": "更新 PIN",
+  "pinRecoveryPinInvalid": "请输入 4 到 6 位数字的 PIN",
+  "pinRecoveryPinMismatch": "两次输入的 PIN 不一致",
+  "pinRecoveryResetSuccess": "PIN 已更新",
+  "settingsAccountsSection": "账户",
+  "settingsIptvSection": "IPTV 设置",
+  "settingsSourcesManagement": "源管理",
+  "settingsSyncFrequency": "更新频率",
+  "settingsAppSection": "应用设置",
+  "settingsAccentColor": "强调色",
+  "settingsPlaybackSection": "播放设置",
+  "settingsPreferredAudioLanguage": "首选语言",
+  "settingsPreferredSubtitleLanguage": "首选字幕",
+  "libraryPlaylistsFilter": "播放列表",
+  "librarySagasFilter": "系列",
+  "libraryArtistsFilter": "艺人",
+  "librarySearchPlaceholder": "在我的资料库中搜索…",
+  "libraryInProgress": "进行中",
+  "libraryFavoriteMovies": "喜欢的电影",
+  "libraryFavoriteSeries": "喜欢的剧集",
+  "libraryWatchHistory": "观看历史",
+  "libraryItemCountPlural": "{count} 个项目",
+  "@libraryItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchPeopleTitle": "人物",
+  "searchSagasTitle": "系列",
+  "searchByProvidersTitle": "按平台",
+  "searchByGenresTitle": "按类型",
+  "personRoleActor": "演员",
+  "personRoleDirector": "导演",
+  "personRoleCreator": "创作者",
+  "tvDistribution": "演员表",
+  "tvSeasonLabel": "第 {number} 季",
+  "@tvSeasonLabel": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "tvNoEpisodesAvailable": "没有可用的剧集",
+  "tvResumeSeasonEpisode": "继续播放 S{season} E{episode}",
+  "@tvResumeSeasonEpisode": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaViewPage": "查看页面",
+  "sagaStartNow": "立即开始",
+  "sagaContinue": "继续",
+  "sagaMovieCount": "{count} 部电影",
+  "@sagaMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sagaMoviesList": "电影列表",
+  "personMoviesCount": "{movies} 部电影 - {shows} 部剧集",
+  "@personMoviesCount": {
+    "placeholders": {
+      "movies": {
+        "type": "int"
+      },
+      "shows": {
+        "type": "int"
+      }
+    }
+  },
+  "personPlayRandomly": "随机播放",
+  "personMoviesList": "电影列表",
+  "personSeriesList": "剧集列表",
+  "playlistPlayRandomly": "随机播放",
+  "playlistAddButton": "添加",
+  "playlistSortButton": "排序",
+  "playlistSortByTitle": "排序方式",
+  "playlistSortByTitleOption": "标题",
+  "playlistSortRecentAdditions": "最近添加",
+  "playlistSortOldestFirst": "最早添加",
+  "playlistSortNewestFirst": "最新添加",
+  "playlistEmptyMessage": "该播放列表为空",
+  "playlistItemCount": "{count} 个项目",
+  "@playlistItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistItemCountPlural": "{count} 个项目",
+  "@playlistItemCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSeasonSingular": "季",
+  "playlistSeasonPlural": "季",
+  "playlistRenameTitle": "重命名播放列表",
+  "playlistNamePlaceholder": "播放列表名称",
+  "playlistRenamedSuccess": "播放列表已重命名为“{name}”",
+  "@playlistRenamedSuccess": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteTitle": "删除",
+  "playlistDeleteConfirm": "确定要删除“{title}”吗？",
+  "@playlistDeleteConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeletedSuccess": "播放列表已删除",
+  "playlistItemRemovedSuccess": "项目已移除",
+  "playlistRemoveItemConfirm": "从播放列表中移除“{title}”？",
+  "@playlistRemoveItemConfirm": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "categoryLoadFailed": "无法加载分类。",
+  "categoryEmpty": "该分类为空。",
+  "categoryLoadingMore": "正在加载更多…",
+  "movieNoPlaylistsAvailable": "没有可用的播放列表",
+  "playlistAddedTo": "已添加到“{title}”",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWithMessage": "错误：{message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNotAvailableInPlaylist": "该电影在播放列表中不可用",
+  "errorPlaybackFailed": "播放失败：{message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNoMedia": "没有可显示的媒体",
+  "personNoData": "没有可显示的人物。",
+  "personGenericError": "加载该人物时发生错误。",
+  "personBiographyTitle": "简介",
+  "authOtpTitle": "登录",
+  "authOtpSubtitle": "请输入邮箱和我们发送给你的 8 位验证码。",
+  "authOtpEmailLabel": "邮箱",
+  "authOtpEmailHint": "your@email",
+  "authOtpEmailHelp": "我们将发送 8 位验证码。如有需要请检查垃圾邮件。",
+  "authOtpCodeLabel": "验证码",
+  "authOtpCodeHint": "8 位验证码",
+  "authOtpCodeHelp": "请输入通过邮件收到的 8 位验证码。",
+  "authOtpPrimarySend": "发送验证码",
+  "authOtpPrimarySubmit": "登录",
+  "authOtpResend": "重新发送验证码",
+  "authOtpResendDisabled": "{seconds} 秒后可重发",
+  "@authOtpResendDisabled": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpChangeEmail": "更换邮箱",
+  "resumePlayback": "继续播放",
+  "settingsCloudSyncSection": "云同步",
+  "settingsCloudSyncAuto": "自动同步",
+  "settingsCloudSyncNow": "立即同步",
+  "settingsCloudSyncInProgress": "正在同步…",
+  "settingsCloudSyncNever": "从不",
+  "settingsCloudSyncError": "上次错误：{error}",
+  "@settingsCloudSyncError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "notFoundWithEntity": "未找到{entity}",
+  "@notFoundWithEntity": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      }
+    }
+  },
+  "notFoundWithEntityAndError": "未找到{entity}：{error}",
+  "@notFoundWithEntityAndError": {
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "entityProvider": "平台",
+  "entityGenre": "类型",
+  "entityPlaylist": "播放列表",
+  "entitySource": "源",
+  "entityMovie": "电影",
+  "entitySeries": "剧集",
+  "entityPerson": "人物",
+  "entitySaga": "系列",
+  "entityVideo": "视频",
+  "entityRoute": "路由",
+  "errorTimeoutLoading": "加载超时",
+  "parentalContentRestricted": "受限内容",
+  "parentalContentRestrictedDefault": "此内容已被该资料的家长控制阻止。",
+  "parentalReasonTooYoung": "此内容所需年龄高于该资料限制。",
+  "parentalReasonUnknownRating": "该内容的年龄分级不可用。",
+  "parentalReasonInvalidTmdbId": "该内容无法进行家长控制评估。",
+  "parentalUnlockButton": "解锁",
+  "@navHome": {
+    "description": "Sidebar navigation label: Home tab"
+  },
+  "@navSearch": {
+    "description": "Sidebar navigation label: Search tab"
+  },
+  "@navLibrary": {
+    "description": "Sidebar navigation label: Library tab"
+  },
+  "@navSettings": {
+    "description": "Sidebar navigation label: Settings tab"
+  },
+  "hc_arb_dir_4de4827b": "arb-dir",
+  "hc_template_arb_file_eeae5194": "template-arb-file",
+  "hc_output_localization_file_ed018380": "output-localization-file",
+  "hc_output_class_f1ae6b52": "output-class",
+  "hc_applocalizations_878fdc50": "AppLocalizations",
+  "hc_untranslated_messages_file_fa6a22b7": "untranslated-messages-file",
+  "hc_chargement_episodes_en_cours_33fc4ace": "正在加载剧集…",
+  "hc_aucune_playlist_disponible_creez_en_une_f6b75c90": "没有可用的播放列表。创建一个吧。",
+  "hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3": "加载播放列表失败：$e",
+  "hc_impossible_douvrir_lien_90d0dcaa": "无法打开链接",
+  "hc_qualite_preferee_776dbeea": "首选画质",
+  "hc_annuler_49ba3292": "取消",
+  "hc_deconnexion_903dca17": "退出登录",
+  "hc_erreur_lors_deconnexion_placeholder_f5a211b4": "退出登录失败：$e",
+  "hc_choisir_b030d590": "选择",
+  "hc_avantages_08d7f47c": "权益",
+  "hc_signalement_envoye_merci_d302e576": "举报已发送。谢谢。",
+  "hc_plus_tard_1f42ab3b": "稍后",
+  "hc_redemarrer_maintenant_053e8e68": "立即重启",
+  "hc_utiliser_cette_source_c6c8bbc5": "使用此源？",
+  "hc_utiliser_fb5e43ce": "使用",
+  "hc_source_ajout_e_e41b01d9": "源已添加",
+  "hc_title_0a57b7eb": "title: '...'",
+  "hc_labeltext_469a28db": "labelText: '...'",
+  "hc_hinttext_6fd1d945": "hintText: '...'",
+  "hc_tooltip_db0de3fe": "tooltip: '...'",
+  "hc_parametres_verrouilles_3a9b1b51": "已锁定的设置",
+  "hc_compte_cloud_2812b31e": "云账户",
+  "hc_se_connecter_fedf2439": "登录",
+  "hc_propos_5345add5": "关于",
+  "hc_politique_confidentialite_42b0e51e": "隐私政策",
+  "hc_conditions_dutilisation_9074eac7": "使用条款",
+  "hc_sources_sauvegardees_9f1382e5": "已保存的源",
+  "hc_rafraichir_be30b7d1": "刷新",
+  "hc_activer_une_source_749ced38": "启用源",
+  "hc_nom_source_9a3e4156": "源名称",
+  "hc_mon_iptv_b239352c": "我的 IPTV",
+  "hc_username_84c29015": "用户名",
+  "hc_password_8be3c943": "密码",
+  "hc_server_url_1d5d1eff": "服务器 URL",
+  "hc_verification_pin_e17c8fe0": "PIN 验证",
+  "hc_definir_un_pin_f9c2178d": "设置 PIN",
+  "hc_pin_3adadd31": "PIN",
+  "hc_message_9ff08507": "message: '...'",
+  "hc_subscription_offer_not_found_placeholder_d07ac9d3": "未找到订阅商品：$offerId.",
+  "hc_subscription_purchase_was_cancelled_by_user_443e1dab": "订阅购买已被用户取消。",
+  "hc_store_operation_timed_out_placeholder_6c3f9df2": "商店操作超时：$operation.",
+  "hc_erreur_http_lors_handshake_02db57b2": "握手期间发生 HTTP 错误",
+  "hc_reponse_non_json_serveur_xtream_e896b8df": "Xtream 服务器返回非 JSON 响应",
+  "hc_reponse_invalide_serveur_xtream_afc0955f": "Xtream 服务器返回无效响应",
+  "hc_rg_exe_af0d2be6": "rg.exe",
+  "hc_alertdialog_5a747a86": "AlertDialog",
+  "hc_cupertinoalertdialog_3ed27f52": "CupertinoAlertDialog",
+  "hc_pas_disponible_sur_cette_source_fa6e19a7": "此源不可用",
+  "hc_source_supprimee_4bfaa0a1": "源已移除",
+  "hc_source_modifiee_335ef502": "源已更新",
+  "hc_definir_code_pin_53a0bd07": "设置 PIN 码",
+  "hc_marquer_comme_non_vu_9cf9d3f8": "标记为未看",
+  "hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661": "确定要退出登录吗？",
+  "hc_movi_premium_requis_pour_synchronisation_cloud_15b551df": "云同步需要 Movi Premium。",
+  "hc_auto_c614ba7c": "自动",
+  "hc_organiser_838a7e57": "整理",
+  "hc_modifier_f260e757": "编辑",
+  "hc_ajouter_87c57ed1": "添加",
+  "hc_source_active_e571305e": "活动源",
+  "hc_autres_sources_e32592a6": "其他源",
+  "hc_signalement_indisponible_pour_ce_contenu_d9ad88b7": "此内容无法使用举报功能。",
+  "hc_securisation_contenu_e5195111": "正在保护内容",
+  "hc_verification_classifications_d_age_006eebfe": "正在检查年龄分级…",
+  "hc_voir_tout_7b7d86e8": "查看全部",
+  "hc_signaler_un_probleme_13183c0f": "举报问题",
+  "hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436": "如果内容不适宜且在限制下仍可访问，请简要描述问题。",
+  "hc_envoyer_e9ce243b": "发送",
+  "hc_profil_enfant_cree_39f4eb7d": "已创建儿童资料",
+  "hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a": "已创建儿童资料。为保护应用并预加载年龄分级，建议重启应用。",
+  "hc_pseudo_4cf966c0": "昵称",
+  "hc_profil_enfant_2c8a01c0": "儿童资料",
+  "hc_limite_d_age_5b170fc9": "年龄限制",
+  "hc_code_pin_e79c48bd": "PIN 码",
+  "hc_changer_code_pin_3b069731": "更改 PIN 码",
+  "hc_supprimer_code_pin_0dcf8a48": "移除 PIN 码",
+  "hc_supprimer_pin_51850c7b": "移除 PIN",
+  "hc_supprimer_1acfc1c7": "删除",
+  "hc_oblige_un_pin_active_filtre_pegi_8447ac9b": "需要 PIN 并启用 PEGI 过滤器。",
+  "hc_voulez_vous_activer_cette_source_maintenant_f2593894": "现在启用此源吗？",
+  "hc_application_b291beb8": "应用",
+  "hc_version_1_0_0_347e553c": "版本 1.0.0",
+  "hc_credits_293a6081": "致谢",
+  "hc_this_product_uses_tmdb_api_but_is_not_0033d77f": "本产品使用 TMDB API，但未获得 TMDB 的认可或认证。",
+  "hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a": "本产品使用 TMDB API，但未获得 TMDB 的认可或认证。",
+  "hc_verification_targets_d51632f8": "验证目标",
+  "hc_fade_must_eat_frame_5f1bfc77": "渐变必须与画面自然融合",
+  "hc_invalid_xtream_streamid_eb04e9f9": "无效的 Xtream streamId：...",
+  "hc_series_xtream_missing_poster_065b5103": "Series xtream:... missing poster",
+  "hc_movie_not_found_a7fe72d9": "Movie ... not found ...",
+  "hc_missing_poster_1c9ba558": "... missing poster",
+  "hc_invalid_watchlist_outbox_payload_327ac6c3": "Invalid watchlist outbox payload.",
+  "hc_unknown_watchlist_operation_e9259c07": "Unknown watchlist operation: ...",
+  "hc_invalid_playlist_outbox_payload_2d76e64f": "Invalid playlist outbox payload.",
+  "hc_unknown_playlist_operation_c98cbd41": "Unknown playlist operation: ...",
+  "hc_url_invalide_aa227a66": "无效的 URL",
+  "hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3": "Missing legacy IV: cannot decrypt legacy ciphertext.",
+  "hc_tooltip_rafraichir_a22b17e3": "tooltip: '刷新'",
+  "hc_tooltip_menu_d8fa6679": "tooltip: '菜单'",
+  "hc_retour_e5befb1f": "返回",
+  "hc_semanticlabel_plus_d_actions_1bd19eb6": "semanticLabel: '更多操作'",
+  "hc_plus_d_actions_ffe6be2a": "更多操作",
+  "hc_semanticlabel_rechercher_3ae4e02c": "semanticLabel: '搜索'",
+  "hc_semanticlabel_ajouter_ac362a68": "semanticLabel: '添加'",
+  "hc_l10n_86d50bf0": "l10n.*",
+  "actionOk": "确定",
+  "actionSignOut": "退出登录",
+  "dialogSignOutBody": "确定要退出登录吗？",
+  "settingsUnableToOpenLink": "无法打开链接",
+  "settingsSyncDisabled": "已停用",
+  "settingsSyncEveryHour": "每小时",
+  "settingsSyncEvery2Hours": "每 2 小时",
+  "settingsSyncEvery4Hours": "每 4 小时",
+  "settingsSyncEvery6Hours": "每 6 小时",
+  "settingsSyncEveryDay": "每天",
+  "settingsSyncEvery2Days": "每 2 天",
+  "settingsColorCustom": "自定义",
+  "settingsColorBlue": "蓝色",
+  "settingsColorPink": "粉色",
+  "settingsColorGreen": "绿色",
+  "settingsColorPurple": "紫色",
+  "settingsColorOrange": "橙色",
+  "settingsColorTurquoise": "青绿色",
+  "settingsColorYellow": "黄色",
+  "settingsColorIndigo": "靛蓝",
+  "settingsCloudAccountTitle": "云账户",
+  "settingsAccountConnected": "已连接",
+  "settingsAccountLocalMode": "本地模式",
+  "settingsAccountCloudUnavailable": "云不可用",
+  "aboutTmdbDisclaimer": "本产品使用 TMDB API，但未获得 TMDB 的认可或认证。",
+  "aboutCreditsSectionTitle": "致谢"
+}

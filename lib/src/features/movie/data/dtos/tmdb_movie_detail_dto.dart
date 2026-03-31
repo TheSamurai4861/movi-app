@@ -26,6 +26,12 @@ class TmdbMovieDetailDto {
     final logos = images?['logos'] is List
         ? (images!['logos'] as List).cast<dynamic>()
         : const <dynamic>[];
+    final preferredLang =
+        (json['__movi_preferred_image_lang']?.toString() ?? '')
+            .split('-')
+            .first
+            .toLowerCase()
+            .trim();
     final credits = json['credits'] is Map
         ? (json['credits'] as Map).cast<String, dynamic>()
         : null;
@@ -69,7 +75,7 @@ class TmdbMovieDetailDto {
           _stringOr(json['poster_background']) ??
           _selectPosterBackground(images),
       backdropPath: _stringOr(json['backdrop_path']),
-      logoPath: _selectLogo(logos),
+      logoPath: _selectLogo(logos, preferredLang: preferredLang),
       releaseDate: _stringOr(json['release_date']),
       runtime: _asInt(json['runtime']),
       voteAverage: _asDouble(json['vote_average']),
@@ -192,47 +198,45 @@ class TmdbMovieDetailDto {
     return null;
   }
 
-  static String? _selectLogo(List<dynamic> logos) {
+  static String? _selectLogo(
+    List<dynamic> logos, {
+    required String preferredLang,
+  }) {
     if (logos.isEmpty) return null;
     final list = logos
         .whereType<Map>()
         .map((e) => e.cast<String, dynamic>())
+        .where((m) => (_stringOr(m['file_path']) ?? '').trim().isNotEmpty)
         .toList(growable: false);
 
-    String? path(Map<String, dynamic> m) => _stringOr(m['file_path']);
-    num score(Map<String, dynamic> m) =>
-        (m['vote_average'] is num) ? (m['vote_average'] as num) : 0;
+    if (list.isEmpty) return null;
 
-    int byScore(Map<String, dynamic> a, Map<String, dynamic> b) =>
-        score(b).compareTo(score(a));
+    // Règle stricte : n'utiliser que des PNG (le CDN TMDB peut ne pas servir les SVG).
+    final pngOnly = list
+        .where((m) => (_stringOr(m['file_path']) ?? '').toLowerCase().endsWith('.png'))
+        .toList(growable: false);
+    if (pngOnly.isEmpty) return null;
 
-    List<Map<String, dynamic>> filterByLang(String code) {
-      final lower = code.toLowerCase();
-      return list
-          .where((m) => _stringOr(m['iso_639_1'])?.toLowerCase() == lower)
-          .toList()
-        ..sort(byScore);
+    int score(Map<String, dynamic> m) {
+      final vote = (m['vote_average'] as num?)?.toDouble() ?? 0.0;
+      final lang = _stringOr(m['iso_639_1'])?.toLowerCase();
+      const formatBonus = 0;
+
+      int langBonus = 0;
+      if (preferredLang.isNotEmpty && lang == preferredLang) {
+        langBonus = 300;
+      } else if (lang == 'en') {
+        langBonus = 200;
+      } else if (lang == null || lang.isEmpty) {
+        langBonus = 150;
+      }
+
+      return langBonus + formatBonus + (vote * 10).round();
     }
 
-    final fr = filterByLang('fr');
-    if (fr.isNotEmpty) return path(fr.first);
-
-    final en = filterByLang('en');
-    if (en.isNotEmpty) return path(en.first);
-
-    final noLang =
-        list
-            .where(
-              (m) =>
-                  m['iso_639_1'] == null ||
-                  (_stringOr(m['iso_639_1']) ?? '').isEmpty,
-            )
-            .toList()
-          ..sort(byScore);
-    if (noLang.isNotEmpty) return path(noLang.first);
-
-    final sorted = list.toList()..sort(byScore);
-    return path(sorted.first);
+    final sorted = pngOnly.toList(growable: true)
+      ..sort((a, b) => score(b).compareTo(score(a)));
+    return _stringOr(sorted.first['file_path']);
   }
 }
 

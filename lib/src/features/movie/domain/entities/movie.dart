@@ -15,6 +15,7 @@ class Movie extends Equatable {
     required this.synopsis,
     required this.duration,
     required this.poster,
+    this.logo,
     this.backdrop,
     required this.releaseDate,
     this.rating,
@@ -33,6 +34,7 @@ class Movie extends Equatable {
   final Synopsis synopsis;
   final Duration duration;
   final Uri poster;
+  final Uri? logo;
   final Uri? backdrop;
   final DateTime releaseDate;
   final ContentRating? rating;
@@ -52,6 +54,7 @@ class Movie extends Equatable {
     synopsis,
     duration,
     poster,
+    logo,
     backdrop,
     releaseDate,
     rating,

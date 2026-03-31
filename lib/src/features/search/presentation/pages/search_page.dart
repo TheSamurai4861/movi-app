@@ -196,6 +196,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         (_focusNode.hasFocus ||
             _historySectionHasFocus ||
             _historyVisibilityLock);
+    final showWatchProviders =
+        ref
+            .watch(
+              canAccessPremiumFeatureProvider(
+                PremiumFeature.extendedDiscoveryDetails,
+              ),
+            )
+            .maybeWhen(data: (value) => value, orElse: () => false);
     final resultsListPadding = EdgeInsets.symmetric(
       horizontal: horizontalPadding,
     );
@@ -325,19 +333,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             )
                           : const SizedBox.shrink(),
                     ),
-                    if (ref
-                        .watch(
-                          canAccessPremiumFeatureProvider(
-                            PremiumFeature.extendedDiscoveryDetails,
-                          ),
-                        )
-                        .maybeWhen(data: (value) => value, orElse: () => false))
+                    if (showWatchProviders)
                       WatchProvidersGrid(
                         horizontalPadding: horizontalPadding,
                         maxContentWidth: gridMaxWidth,
                         firstItemFocusNode: _firstProviderFocusNode,
                       ),
-                    const SizedBox(height: 32),
+                    if (showWatchProviders) const SizedBox(height: 32),
                     GenresGrid(
                       horizontalPadding: horizontalPadding,
                       maxContentWidth: gridMaxWidth,
