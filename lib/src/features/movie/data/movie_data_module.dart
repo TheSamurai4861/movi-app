@@ -1,7 +1,6 @@
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network_executor.dart';
-import 'package:movi/src/core/parental/domain/services/movie_metadata_resolver.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
@@ -13,7 +12,6 @@ import 'package:movi/src/features/movie/data/datasources/movie_local_data_source
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/data/repositories/movie_repository_impl.dart';
 import 'package:movi/src/features/movie/data/services/iptv_availability_service_impl.dart';
-import 'package:movi/src/features/movie/data/services/movie_metadata_resolver_adapter.dart';
 import 'package:movi/src/features/movie/data/services/movie_playback_variant_resolver_impl.dart';
 import 'package:movi/src/features/movie/data/services/movie_streaming_service_impl.dart';
 import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
@@ -41,7 +39,7 @@ class MovieDataModule {
   static void register() {
     _registerDataSources();
     _registerRepositories();
-    _registerParentalResolvers();
+    _registerPlaybackDependencies();
     _registerMovieServices();
     _registerMovieUseCases();
   }
@@ -75,18 +73,7 @@ class MovieDataModule {
     }
   }
 
-  static void _registerParentalResolvers() {
-    if (!sl.isRegistered<MovieMetadataResolver>()) {
-      sl.registerLazySingleton<MovieMetadataResolver>(
-        () => MovieMetadataResolverAdapter(
-          repository: sl<MovieRepository>(),
-          logger: sl<AppLogger>(),
-        ),
-      );
-    }
-  }
-
-  static void _registerMovieServices() {
+  static void _registerPlaybackDependencies() {
     if (!sl.isRegistered<XtreamStreamUrlBuilder>()) {
       sl.registerLazySingleton<XtreamStreamUrlBuilder>(
         () => XtreamStreamUrlBuilderImpl(
@@ -97,6 +84,14 @@ class MovieDataModule {
       );
     }
 
+    if (!sl.isRegistered<PlaybackSelectionService>()) {
+      sl.registerLazySingleton<PlaybackSelectionService>(
+        () => PlaybackSelectionService(),
+      );
+    }
+  }
+
+  static void _registerMovieServices() {
     if (!sl.isRegistered<MovieVariantMatcher>()) {
       sl.registerLazySingleton<MovieVariantMatcher>(
         () => const MovieVariantMatcher(),

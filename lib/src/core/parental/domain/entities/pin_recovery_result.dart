@@ -9,6 +9,11 @@ enum PinRecoveryStatus {
   unknown,
 }
 
+/// Résultat du flux de récupération du PIN.
+///
+/// [resetToken] est un jeton opaque émis par le backend de récupération après
+/// une vérification réussie du code. Il doit être retransmis tel quel à l'étape
+/// de reset et ne doit jamais être interprété comme un identifiant métier.
 @immutable
 class PinRecoveryResult {
   const PinRecoveryResult._(this.status, {this.resetToken});

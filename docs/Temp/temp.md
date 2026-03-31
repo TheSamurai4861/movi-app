@@ -1,109 +1,222 @@
-## 1. Analyse rapide
+1. **Analyse rapide**
 
-Pour **vraiment finaliser** P0.1, je n’ai pas besoin de tout le projet. J’ai surtout besoin des **implémentations concrètes qui remplaceront les dépendances interdites de `core`**, plus du **wiring DI** qui les enregistrera.
-À partir de l’arborescence, les zones critiques sont bien :
+La roadmap doit rester alignée avec l’architecture actuelle : Movi est déjà structuré par responsabilités métier, avec une auth non bloquante, une sync cloud amorcée tôt via `LibraryCloudSyncBootstrapper`, et une préférence de sync déjà persistée. Cela rend très naturel un premium centré sur les **entitlements cloud** plutôt que sur un blocage global de l’app.   
 
-* `features/iptv` pour la source des candidats contenu
-* `features/movie` pour le resolver film
-* `features/tv` pour le resolver série
-* `core/di` pour brancher les nouveaux ports
-* possiblement `shared` si le projet a déjà un service générique de résolution TMDB réutilisable 
+La bonne direction, conforme à `rules.md`, est donc de créer un **module métier d’abonnement** séparé, puis de brancher progressivement les fonctions cloud existantes dessus, sans injecter de logique premium directement dans l’UI ni dans `FeatureFlags`. `rules.md` insiste justement sur la séparation métier / technique, la responsabilité unique, l’inversion de dépendance et l’explicitation de la complexité.   
 
-## 2. Règles de `rules.md` appliquées
+---
 
-* dépendre d’abstractions, pas d’implémentations concrètes
-* garder le métier interne protégé des détails externes
-* réduire le couplage
-* réutiliser les patterns existants avant d’inventer une nouvelle abstraction 
+2. **Règles de `rules.md` appliquées**
 
-## 3. Modifications proposées
+* **Le métier au centre, détails techniques à l’extérieur** : le SDK d’achat ne doit pas fuiter dans Library, Settings ou Player. 
+* **1 module = 1 rôle clair / 1 classe = 1 responsabilité** : éviter une grosse classe unique qui achète, restaure, cache, valide et pilote l’UI.  
+* **Dépendre d’abstractions** : les features dépendent d’un contrat `SubscriptionRepository`, pas d’une implémentation store/vendor. 
+* **Rendre la complexité explicite** : distinguer préférence utilisateur, entitlement premium, auth et état effectif. 
+* **Testabilité** : chaque étape doit introduire une surface testable isolée avant de brancher l’UI. 
 
-### Ce qu’il me faut au minimum
+---
 
-#### 1) IPTV — pour finaliser `ContentCandidateRepository`
+3. **Modifications proposées**
 
-J’ai besoin de ces dossiers/fichiers :
+### Roadmap en 5 étapes
 
-* `lib/src/features/iptv/domain/entities/`
-* `lib/src/features/iptv/application/`
-* `lib/src/features/iptv/data/`
-* `lib/src/core/storage/repositories/iptv_local_repository.dart`
+#### Étape 1 — Cadrer le modèle métier d’abonnement
 
-Pourquoi :
+Objectif : définir **ce qui est premium**, **pourquoi**, et **comment cela se traduit en droits d’accès**.
 
-* comprendre la vraie forme de `xtream_playlist_item.dart`
-* voir si la meilleure source des candidats est `IptvLocalRepository`, un reader applicatif, ou un mapper déjà existant
-* éviter de reconstruire une normalisation IPTV qui existe déjà ailleurs
+À produire :
 
-#### 2) Movie — pour finaliser `MovieMetadataResolver`
+* la liste finale gratuit vs premium
+* un vocabulaire métier stable :
 
-J’ai besoin de :
+  * `PremiumFeature`
+  * `SubscriptionStatus`
+  * `SubscriptionEntitlement`
+  * `BillingAvailability`
+* la règle explicite d’accès, par exemple :
 
-* `lib/src/features/movie/data/datasources/`
-* `lib/src/features/movie/data/repositories/`
-* `lib/src/features/movie/domain/`
-* idéalement `lib/src/features/movie/data/movie_data_module.dart`
+  * `canUseCloudSync`
+  * `canRestoreCloudLibrary`
+  * `canUseAdvancedCloudFeatures`
 
-Pourquoi :
+Décisions à figer :
 
-* voir l’API exacte de `tmdb_movie_remote_data_source.dart`
-* savoir s’il existe déjà un repository/service plus propre que la datasource brute
-* enregistrer l’adaptateur concret au bon endroit 
+* premium v1 = sync cloud et restauration multi-appareils
+* gratuit = lecture, bibliothèque locale, playlists locales, watchlist locale, contrôle parental local
+* pas de blocage global de l’app
 
-#### 3) TV — pour finaliser `SeriesMetadataResolver`
+Critère de sortie :
 
-J’ai besoin de :
+* on a un contrat métier simple, lisible, sans dépendance au SDK de paiement
 
-* `lib/src/features/tv/data/datasources/`
-* `lib/src/features/tv/data/repositories/`
-* `lib/src/features/tv/domain/`
-* idéalement `lib/src/features/tv/data/tv_data_module.dart`
+#### Étape 2 — Introduire le module transverse `core/subscription`
 
-Pourquoi :
+Objectif : créer une base d’architecture propre avant tout branchement produit.
 
-* même logique que pour Movie
-* éviter que l’adaptateur série dépende lui aussi d’un détail mal choisi 
+À prévoir :
 
-#### 4) DI / composition root — indispensable
+* `domain/`
 
-J’ai besoin de :
+  * entités/statuts d’abonnement
+  * interface `SubscriptionRepository`
+* `application/`
 
-* `lib/src/core/di/injector.dart`
-* si séparés, les modules :
+  * `GetCurrentSubscription`
+  * `PurchaseSubscription`
+  * `RestoreSubscription`
+  * `CanAccessPremiumFeature`
+* `presentation/`
 
-  * `lib/src/features/movie/data/movie_data_module.dart`
-  * `lib/src/features/tv/data/tv_data_module.dart`
-  * `lib/src/features/iptv/data/iptv_data_module.dart`
+  * providers Riverpod
+  * état d’UI d’achat/restauration
+* `data/`
 
-Pourquoi :
+  * cache local d’état d’entitlement
+  * implémentation provider/store plus tard
 
-* brancher les nouveaux ports :
+Règle clé :
 
-  * `ParentalContentCandidateRepository`
-  * `MovieMetadataResolver`
-  * `SeriesMetadataResolver`
-  * `ContentRatingWarmupGateway`
-* éviter les fallback no-op et finaliser la vraie intégration
+* ne pas mettre l’abonnement dans `FeatureFlags`, car ce sont des toggles d’environnement, pas des droits utilisateur dynamiques. L’état d’abonnement doit rester un **état métier utilisateur** distinct. 
 
-### Ce qui serait très utile en plus
+Critère de sortie :
 
-#### 5) Shared — probablement réutilisable
+* le projet compile avec un module d’abonnement vide mais bien structuré et injectable
 
-Vu l’arborescence, il y a possiblement déjà des briques utiles ici :
+#### Étape 3 — Brancher le provider d’achat multi-plateformes
 
-* `lib/src/shared/domain/services/`
-* `lib/src/shared/data/services/`
+Objectif : intégrer la couche technique d’achat sans contaminer le reste du code.
 
-En particulier, je regarderais en priorité :
+À faire :
 
-* `tmdb_id_resolver_service.dart`
-* `iptv_content_resolver.dart`
-* `iptv_content_resolver_impl.dart`
-* `xtream_lookup_service.dart`
-* `similarity_service.dart`
+* choisir l’adapter multi-plateformes retenu
+* implémenter `SubscriptionRepository`
+* gérer :
 
-Pourquoi :
+  * chargement des offres
+  * achat
+  * restauration
+  * rafraîchissement de l’état premium
+  * fallback “billing indisponible” selon plateforme
+* prévoir les différences de plateformes dans l’infrastructure uniquement
 
-* il est possible que le bon resolver concret ne soit **pas** les datasources Movie/TV directement
-* si un service partagé résout déjà un titre IPTV vers un TMDB ID, ce sera plus propre de l’adapter vers les ports du parental que de dupliquer la logique 
+Point d’attention :
 
+* sur desktop non supporté pour achat natif, ne pas casser l’app ; exposer proprement un état “achat indisponible ici” mais conserver la lecture/restauration si possible
+
+Critère de sortie :
+
+* depuis une API métier unique, on peut :
+
+  * lire le statut d’abonnement
+  * acheter
+  * restaurer
+  * détecter les erreurs techniques vs utilisateur
+
+#### Étape 4 — Connecter les entitlements aux fonctionnalités existantes
+
+Objectif : faire respecter le premium là où il a de la valeur, sans multiplier les `if` dans toute l’UI.
+
+Cibles prioritaires :
+
+* `LibraryCloudSyncBootstrapper`
+* `library_cloud_sync_providers`
+* `CloudSyncPreferences`
+* éventuels flux de sync plus larges si tu veux les inclure ensuite
+
+Règle à rendre explicite :
+
+* `effectiveCloudSyncEnabled = userWantsCloudSync && isAuthenticated && hasPremiumEntitlement`
+
+Pourquoi c’est important :
+
+* aujourd’hui, la sync cloud est bootstrappée tôt et la préférence `autoSyncEnabled` existe déjà ; il faut éviter que la perte d’abonnement corrompe la préférence utilisateur ou laisse tourner une sync non autorisée.  
+
+Ce qu’il faut éviter :
+
+* désactiver brutalement les données locales
+* bloquer la bibliothèque locale
+* éparpiller des contrôles premium dans chaque widget
+
+Critère de sortie :
+
+* les fonctions cloud premium sont bien protégées, mais l’expérience gratuite locale reste intacte
+
+#### Étape 5 — Finaliser le parcours UX, la robustesse et les tests
+
+Objectif : rendre le système compréhensible, fiable et maintenable.
+
+À couvrir :
+
+* entrée “Movi Premium” dans Settings
+* écran d’offre
+* achat
+* restauration
+* messages d’état clairs :
+
+  * achat réussi
+  * restauration réussie
+  * aucun achat trouvé
+  * billing indisponible
+  * réseau indisponible
+  * compte requis
+* localisations associées
+* logs utiles mais non bruyants
+* tests unitaires, providers et scénarios de régression
+
+Critère de sortie :
+
+* l’utilisateur comprend ce qui est premium
+* l’achat et la restauration fonctionnent
+* une expiration ou une perte réseau ne casse pas le fonctionnement local
+
+---
+
+4. **Code ou diff**
+
+Pas de code à ce stade.
+
+La suite logique serait un **plan de dossiers/fichiers précis** pour l’étape 2, en restant strictement dans la structure existante.
+
+---
+
+5. **Vérifications / tests**
+
+Tests à prévoir dès la roadmap :
+
+* **Domaine**
+
+  * premium actif / expiré / inconnu
+  * accès autorisé ou refusé selon `PremiumFeature`
+  * calcul correct de `effectiveCloudSyncEnabled`
+
+* **Application**
+
+  * achat réussi
+  * restauration réussie
+  * plateforme non supportée
+  * utilisateur non authentifié
+  * entitlement absent malgré préférence activée
+
+* **Présentation / providers**
+
+  * la sync cloud ne démarre pas sans entitlement
+  * elle repart correctement après activation premium
+  * l’UI affiche les bons messages d’erreur
+
+* **Régression**
+
+  * l’app continue à fonctionner entièrement en local sans abonnement
+  * la lecture n’est jamais bloquée par erreur
+  * les données locales ne sont pas perdues à l’expiration du premium
+
+---
+
+6. **Risques ou hypothèses**
+
+* **Risque principal** : traiter l’abonnement comme un simple détail UI. Ce serait contraire à `rules.md` et fragile à long terme. 
+* **Risque d’architecture** : créer une god class du type `SubscriptionManager`. `rules.md` demande explicitement de découper les responsabilités. 
+* **Risque produit** : rendre payantes des fonctions cœur comme la lecture ou la bibliothèque locale nuirait à l’équilibre freemium.
+* **Hypothèse retenue** : premium v1 = fonctionnalités cloud synchronisées, pas blocage de la consommation locale.
+* **Hypothèse technique** : certaines plateformes auront peut-être une gestion d’achat plus limitée que mobile/web ; la roadmap suppose un design où cette contrainte reste confinée à la couche infrastructure.
+
+Je peux maintenant te préparer l’**étape 2 détaillée dossier par dossier**, toujours sans code.

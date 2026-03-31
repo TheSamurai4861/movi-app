@@ -1,7 +1,6 @@
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network_executor.dart';
-import 'package:movi/src/core/parental/domain/services/series_metadata_resolver.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
@@ -16,7 +15,6 @@ import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source
 import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
 import 'package:movi/src/features/tv/data/repositories/tv_repository_impl.dart';
 import 'package:movi/src/features/tv/data/services/episode_playback_variant_resolver_impl.dart';
-import 'package:movi/src/features/tv/data/services/series_metadata_resolver_adapter.dart';
 import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
 import 'package:movi/src/features/tv/domain/usecases/ensure_tv_enrichment.dart';
@@ -29,7 +27,6 @@ class TvDataModule {
   static void register() {
     _registerDataSources();
     _registerRepositories();
-    _registerParentalResolvers();
     _registerEnrichmentDependencies();
     _registerPlaybackDependencies();
     _registerUseCases();
@@ -62,17 +59,6 @@ class TvDataModule {
           sl<TvLocalDataSource>(),
           sl<ContinueWatchingLocalRepository>(),
           sl<AppStateController>(),
-        ),
-      );
-    }
-  }
-
-  static void _registerParentalResolvers() {
-    if (!sl.isRegistered<SeriesMetadataResolver>()) {
-      sl.registerLazySingleton<SeriesMetadataResolver>(
-        () => SeriesMetadataResolverAdapter(
-          repository: sl<TvRepository>(),
-          logger: sl<AppLogger>(),
         ),
       );
     }

@@ -1,5 +1,6 @@
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/parental/domain/repositories/parental_content_candidate_repository.dart';
 import 'package:movi/src/core/performance/domain/performance_tuning.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
@@ -26,7 +27,6 @@ import 'package:movi/src/features/iptv/data/repositories/iptv_repository_impl.da
 import 'package:movi/src/features/iptv/data/repositories/stalker_repository_impl.dart';
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
 import 'package:movi/src/features/iptv/domain/repositories/stalker_repository.dart';
-import 'package:movi/src/core/network/network.dart';
 
 class IptvDataModule {
   static void register() {
@@ -123,9 +123,6 @@ class IptvDataModule {
         () => IptvContentCandidateRepositoryAdapter(
           iptvLocalRepository: sl<IptvLocalRepository>(),
           mapper: sl<IptvParentalContentCandidateMapper>(),
-          activeSourceIdsProvider: sl.isRegistered<AppStateController>()
-              ? () => sl<AppStateController>().preferredIptvSourceIds
-              : null,
         ),
       );
     }

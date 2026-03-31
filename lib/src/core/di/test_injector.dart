@@ -21,22 +21,53 @@ Future<TestInjectorScope> initTestDependencies({
   SecretStore? secretStore,
   LocaleCodeProvider? localeProvider,
   bool registerFeatureModules = false,
+  bool allowAuthStubFallback = false,
+  bool allowInMemoryStorageFallback = false,
 }) async {
   GetIt.I.pushNewScope();
 
-  if (appConfig != null) {
-    GetIt.I.registerSingleton<AppConfig>(appConfig);
+  final resolvedAppConfig = _resolveTestAppConfig(
+    appConfig: appConfig,
+    allowAuthStubFallback: allowAuthStubFallback,
+    allowInMemoryStorageFallback: allowInMemoryStorageFallback,
+  );
+
+  if (resolvedAppConfig != null) {
+    GetIt.I.registerSingleton<AppConfig>(resolvedAppConfig);
   }
   if (secretStore != null) {
     GetIt.I.registerSingleton<SecretStore>(secretStore);
   }
 
   await initDependencies(
-    appConfig: appConfig,
+    appConfig: resolvedAppConfig,
     secretStore: secretStore,
     localeProvider: localeProvider,
     registerFeatureModules: registerFeatureModules,
   );
 
   return TestInjectorScope._(() => GetIt.I.popScope());
+}
+
+AppConfig? _resolveTestAppConfig({
+  required AppConfig? appConfig,
+  required bool allowAuthStubFallback,
+  required bool allowInMemoryStorageFallback,
+}) {
+  if (appConfig == null) {
+    if (allowAuthStubFallback || allowInMemoryStorageFallback) {
+      throw ArgumentError(
+        'initTestDependencies requires an AppConfig when explicit fallback '
+        'flags are enabled.',
+      );
+    }
+    return null;
+  }
+
+  return appConfig.copyWith(
+    featureFlags: appConfig.featureFlags.copyWith(
+      allowAuthStubFallback: allowAuthStubFallback,
+      allowInMemoryStorageFallback: allowInMemoryStorageFallback,
+    ),
+  );
 }

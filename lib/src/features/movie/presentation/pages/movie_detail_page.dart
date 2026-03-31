@@ -626,10 +626,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
         children: [
           playButton,
-          if (manualChoiceButton != null) ...[
-            const SizedBox(width: 12),
-            manualChoiceButton,
-          ],
+          // if (manualChoiceButton != null) ...[
+          //   const SizedBox(width: 12),
+          //   manualChoiceButton,
+          // ],
           const SizedBox(width: 16),
           SizedBox(
             width: 40,
@@ -1136,18 +1136,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       }
 
       var source = decision.selectedVariant?.videoSource;
-      if (decision.requiresManualSelection) {
-        if (!mounted || !context.mounted) return;
-        final selectedVariant = await MoviePlaybackVariantSheet.show(
-          context,
-          movieTitle: title,
-          variants: decision.rankedVariants,
-        );
-        if (selectedVariant == null || !mounted || !context.mounted) {
-          return;
-        }
-        source = selectedVariant.videoSource;
+      if (!mounted || !context.mounted) return;
+      final selectedVariant = await MoviePlaybackVariantSheet.show(
+        context,
+        movieTitle: title,
+        variants: decision.rankedVariants,
+      );
+      if (selectedVariant == null || !mounted || !context.mounted) {
+        return;
       }
+      source = selectedVariant.videoSource;
 
       if (source == null) {
         diagnostics.completed(

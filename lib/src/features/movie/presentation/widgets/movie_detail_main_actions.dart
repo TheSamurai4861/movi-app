@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -8,6 +9,7 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
 class MovieDetailMainActions extends ConsumerWidget {
   const MovieDetailMainActions({
@@ -29,11 +31,27 @@ class MovieDetailMainActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
+    final localizations = AppLocalizations.of(context)!;
     final historyAsync = ref.watch(
       hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
     );
     final isFavoriteAsync = ref.watch(movieIsFavoriteProvider(movieId));
+
+    final playLabel = historyAsync.maybeWhen(
+      data: (history) => history == null
+          ? localizations.homeWatchNow
+          : localizations.homeContinueWatching,
+      orElse: () => localizations.homeWatchNow,
+    );
+
+    Future<void> toggleFavorite() async {
+      final repository = ref.read(movieRepositoryProvider);
+      final isFavorite = await ref.read(
+        movieIsFavoriteProvider(movieId).future,
+      );
+      await repository.setWatchlist(MovieId(movieId), saved: !isFavorite);
+      ref.invalidate(movieIsFavoriteProvider(movieId));
+    }
 
     return Column(
       children: [
@@ -77,43 +95,28 @@ class MovieDetailMainActions extends ConsumerWidget {
           child: Row(
             children: [
               Expanded(
-                child: MoviPrimaryButton(
-                  label: historyAsync.when(
-                    data: (entry) => entry != null
-                        ? AppLocalizations.of(context)!.resumePlayback
-                        : AppLocalizations.of(context)!.homeWatchNow,
-                    loading: () => AppLocalizations.of(context)!.homeWatchNow,
-                    error: (_, __) =>
-                        AppLocalizations.of(context)!.homeWatchNow,
+                child: Semantics(
+                  label: '$playLabel $mediaTitle',
+                  button: true,
+                  child: MoviPrimaryButton(
+                    label: playLabel,
+                    assetIcon: AppAssets.iconPlay,
+                    onPressed: onPlay,
                   ),
-                  assetIcon: AppAssets.iconPlay,
-                  buttonStyle: FilledButton.styleFrom(
-                    backgroundColor: cs.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(32),
-                    ),
-                  ),
-                  onPressed: onPlay,
                 ),
               ),
               const SizedBox(width: 16),
-              SizedBox(
-                width: 40,
-                height: 40,
-                child: isFavoriteAsync.when(
-                  data: (isFavorite) => MoviFavoriteButton(
-                    isFavorite: isFavorite,
-                    onPressed: () async {
-                      await ref
-                          .read(movieToggleFavoriteProvider.notifier)
-                          .toggle(movieId);
-                    },
-                  ),
-                  loading: () =>
-                      MoviFavoriteButton(isFavorite: false, onPressed: () {}),
-                  error: (_, __) =>
-                      MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+              isFavoriteAsync.when(
+                data: (isFavorite) => MoviFavoriteButton(
+                  isFavorite: isFavorite,
+                  onPressed: () {
+                    toggleFavorite();
+                  },
                 ),
+                loading: () =>
+                    MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+                error: (_, __) =>
+                    MoviFavoriteButton(isFavorite: false, onPressed: () {}),
               ),
             ],
           ),

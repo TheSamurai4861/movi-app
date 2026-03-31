@@ -18,6 +18,43 @@ class PlaybackSelectionService {
       );
     }
 
+    final rankedVariants = _rankVariants(
+      variants: variants,
+      preferences: preferences,
+    );
+
+    if (rankedVariants.length == 1) {
+      return PlaybackSelectionDecision(
+        disposition: PlaybackSelectionDisposition.autoPlay,
+        reason: PlaybackSelectionReason.singlePlayableVariant,
+        rankedVariants: rankedVariants,
+        selectedVariant: rankedVariants.first,
+      );
+    }
+
+    // Auto-selection is intentionally disabled when multiple playback variants
+    // are available. Even if persisted preferences exist, the user must choose
+    // the variant manually for movie and episode flows.
+    if (context.allowManualSelection) {
+      return PlaybackSelectionDecision(
+        disposition: PlaybackSelectionDisposition.manualSelection,
+        reason: PlaybackSelectionReason.ambiguousVariants,
+        rankedVariants: rankedVariants,
+      );
+    }
+
+    return PlaybackSelectionDecision(
+      disposition: PlaybackSelectionDisposition.autoPlay,
+      reason: PlaybackSelectionReason.deterministicFallback,
+      rankedVariants: rankedVariants,
+      selectedVariant: rankedVariants.first,
+    );
+  }
+
+  List<PlaybackVariant> _rankVariants({
+    required List<PlaybackVariant> variants,
+    required PlaybackSelectionPreferences preferences,
+  }) {
     final ranked =
         variants
             .map(
@@ -32,109 +69,20 @@ class PlaybackSelectionService {
             .toList(growable: false)
           ..sort((left, right) => left.ranking.compareTo(right.ranking));
 
-    final rankedVariants = ranked
-        .map((entry) => entry.variant)
-        .toList(growable: false);
-
-    if (rankedVariants.length == 1) {
-      return PlaybackSelectionDecision(
-        disposition: PlaybackSelectionDisposition.autoPlay,
-        reason: PlaybackSelectionReason.singlePlayableVariant,
-        rankedVariants: rankedVariants,
-        selectedVariant: rankedVariants.first,
-      );
-    }
-
-    final first = ranked.first;
-    final second = ranked[1];
-    final isAmbiguous = first.ranking.hasSamePriorityAs(second.ranking);
-
-    if (isAmbiguous && context.allowManualSelection) {
-      return PlaybackSelectionDecision(
-        disposition: PlaybackSelectionDisposition.manualSelection,
-        reason: PlaybackSelectionReason.ambiguousVariants,
-        rankedVariants: rankedVariants,
-      );
-    }
-
-    final topVariant = first.variant;
-    final hasExplicitTrackPreferences =
-        (preferences.preferredAudioLanguageCode?.isNotEmpty ?? false) ||
-        (preferences.preferredSubtitleLanguageCode?.isNotEmpty ?? false);
-    final satisfiesExplicitTrackPreferences = _matchesExplicitTrackPreferences(
-      topVariant,
-      preferences: preferences,
-    );
-    if (rankedVariants.length > 1 &&
-        hasExplicitTrackPreferences &&
-        !satisfiesExplicitTrackPreferences &&
-        context.allowManualSelection) {
-      return PlaybackSelectionDecision(
-        disposition: PlaybackSelectionDisposition.manualSelection,
-        reason: PlaybackSelectionReason.preferredVariantUnavailable,
-        rankedVariants: rankedVariants,
-      );
-    }
-
-    return PlaybackSelectionDecision(
-      disposition: PlaybackSelectionDisposition.autoPlay,
-      reason: _resolveReason(
-        first: first.ranking,
-        second: second.ranking,
-        preferences: preferences,
-      ),
-      rankedVariants: rankedVariants,
-      selectedVariant: topVariant,
-    );
-  }
-
-  bool _matchesExplicitTrackPreferences(
-    PlaybackVariant variant, {
-    required PlaybackSelectionPreferences preferences,
-  }) {
-    final preferredAudio = preferences.preferredAudioLanguageCode?.trim();
-    final preferredSubtitle = preferences.preferredSubtitleLanguageCode?.trim();
-
-    final audioMatches =
-        preferredAudio == null ||
-        preferredAudio.isEmpty ||
-        variant.audioLanguageCode == preferredAudio;
-    final subtitleMatches =
-        preferredSubtitle == null ||
-        preferredSubtitle.isEmpty ||
-        variant.subtitleLanguageCode == preferredSubtitle;
-
-    return audioMatches && subtitleMatches;
-  }
-
-  PlaybackSelectionReason _resolveReason({
-    required _PlaybackVariantRanking first,
-    required _PlaybackVariantRanking second,
-    required PlaybackSelectionPreferences preferences,
-  }) {
-    if (first.audioScore != second.audioScore) {
-      return PlaybackSelectionReason.preferredAudioLanguageMatch;
-    }
-    if (first.subtitleScore != second.subtitleScore) {
-      return PlaybackSelectionReason.preferredSubtitleLanguageMatch;
-    }
-    if (preferences.preferredQualityRank != null &&
-        first.qualityPreferenceScore != second.qualityPreferenceScore) {
-      return PlaybackSelectionReason.preferredQualityMatch;
-    }
-    return PlaybackSelectionReason.deterministicFallback;
+    return ranked.map((entry) => entry.variant).toList(growable: false);
   }
 }
 
-class _PlaybackVariantRanking {
+class _PlaybackVariantRanking implements Comparable<_PlaybackVariantRanking> {
   const _PlaybackVariantRanking({
-    required this.audioScore,
-    required this.subtitleScore,
-    required this.qualityPreferenceScore,
-    required this.qualityKnownScore,
-    required this.qualityRank,
-    required this.sourceLabel,
-    required this.variantId,
+    required this.preferredSourceOrder,
+    required this.preferredAudioOrder,
+    required this.preferredSubtitleOrder,
+    required this.preferredQualityOrder,
+    required this.qualityOrder,
+    required this.sourceLabelOrder,
+    required this.titleOrder,
+    required this.variantIdOrder,
   });
 
   factory _PlaybackVariantRanking.fromVariant(
@@ -142,99 +90,105 @@ class _PlaybackVariantRanking {
     required PlaybackSelectionPreferences preferences,
   }) {
     return _PlaybackVariantRanking(
-      audioScore: _matchScore(
-        preferredCode: preferences.preferredAudioLanguageCode,
-        variantCode: variant.audioLanguageCode,
+      preferredSourceOrder: _preferredSourceOrder(
+        variant.sourceId,
+        preferences.preferredSourceIds,
       ),
-      subtitleScore: _matchScore(
-        preferredCode: preferences.preferredSubtitleLanguageCode,
-        variantCode: variant.subtitleLanguageCode,
+      preferredAudioOrder: _preferredLanguageOrder(
+        preferredLanguageCode: preferences.preferredAudioLanguageCode,
+        variantLanguageCode: variant.audioLanguageCode,
       ),
-      qualityPreferenceScore: _qualityPreferenceScore(
+      preferredSubtitleOrder: _preferredLanguageOrder(
+        preferredLanguageCode: preferences.preferredSubtitleLanguageCode,
+        variantLanguageCode: variant.subtitleLanguageCode,
+      ),
+      preferredQualityOrder: _preferredQualityOrder(
         preferredQualityRank: preferences.preferredQualityRank,
         variantQualityRank: variant.qualityRank,
       ),
-      qualityKnownScore: variant.qualityRank == null ? 0 : 1,
-      qualityRank: variant.qualityRank ?? 0,
-      sourceLabel: variant.sourceLabel.toLowerCase(),
-      variantId: variant.id,
+      qualityOrder: -(variant.qualityRank ?? -1),
+      sourceLabelOrder: variant.sourceLabel.toLowerCase(),
+      titleOrder: variant.normalizedTitle.toLowerCase(),
+      variantIdOrder: variant.id,
     );
   }
 
-  final int audioScore;
-  final int subtitleScore;
-  final int qualityPreferenceScore;
-  final int qualityKnownScore;
-  final int qualityRank;
-  final String sourceLabel;
-  final String variantId;
+  final int preferredSourceOrder;
+  final int preferredAudioOrder;
+  final int preferredSubtitleOrder;
+  final int preferredQualityOrder;
+  final int qualityOrder;
+  final String sourceLabelOrder;
+  final String titleOrder;
+  final String variantIdOrder;
 
+  @override
   int compareTo(_PlaybackVariantRanking other) {
-    final comparableScores = <(int left, int right)>[
-      (audioScore, other.audioScore),
-      (subtitleScore, other.subtitleScore),
-      (qualityPreferenceScore, other.qualityPreferenceScore),
-      (qualityKnownScore, other.qualityKnownScore),
-      (qualityRank, other.qualityRank),
+    final comparisons = <int>[
+      preferredSourceOrder.compareTo(other.preferredSourceOrder),
+      preferredAudioOrder.compareTo(other.preferredAudioOrder),
+      preferredSubtitleOrder.compareTo(other.preferredSubtitleOrder),
+      preferredQualityOrder.compareTo(other.preferredQualityOrder),
+      qualityOrder.compareTo(other.qualityOrder),
+      sourceLabelOrder.compareTo(other.sourceLabelOrder),
+      titleOrder.compareTo(other.titleOrder),
+      variantIdOrder.compareTo(other.variantIdOrder),
     ];
 
-    for (final score in comparableScores) {
-      final delta = score.$2.compareTo(score.$1);
-      if (delta != 0) {
-        return delta;
+    for (final comparison in comparisons) {
+      if (comparison != 0) {
+        return comparison;
       }
     }
 
-    final sourceDelta = sourceLabel.compareTo(other.sourceLabel);
-    if (sourceDelta != 0) {
-      return sourceDelta;
-    }
-
-    return variantId.compareTo(other.variantId);
-  }
-
-  bool hasSamePriorityAs(_PlaybackVariantRanking other) {
-    return audioScore == other.audioScore &&
-        subtitleScore == other.subtitleScore &&
-        qualityPreferenceScore == other.qualityPreferenceScore &&
-        qualityKnownScore == other.qualityKnownScore &&
-        qualityRank == other.qualityRank;
-  }
-
-  static int _matchScore({
-    required String? preferredCode,
-    required String? variantCode,
-  }) {
-    if (preferredCode == null || preferredCode.isEmpty) {
-      return 0;
-    }
-    if (variantCode == preferredCode) {
-      return 2;
-    }
-    if (variantCode == null || variantCode.isEmpty) {
-      return 1;
-    }
     return 0;
   }
 
-  static int _qualityPreferenceScore({
-    required int? preferredQualityRank,
-    required int? variantQualityRank,
-  }) {
-    if (preferredQualityRank == null) {
-      return 0;
-    }
-    if (variantQualityRank == null) {
+  static int _preferredSourceOrder(
+    String sourceId,
+    Set<String> preferredSourceIds,
+  ) {
+    if (preferredSourceIds.isEmpty) {
       return 0;
     }
 
-    final delta = variantQualityRank - preferredQualityRank;
-    if (delta == 0) {
-      return 500;
+    return preferredSourceIds.contains(sourceId) ? 0 : 1;
+  }
+
+  static int _preferredLanguageOrder({
+    required String? preferredLanguageCode,
+    required String? variantLanguageCode,
+  }) {
+    final normalizedPreferred = _normalizeLanguageCode(preferredLanguageCode);
+    if (normalizedPreferred == null) {
+      return 0;
     }
-    if (delta < 0) {
-      return 400 - delta.abs();
+
+    final normalizedVariant = _normalizeLanguageCode(variantLanguageCode);
+    if (normalizedVariant == null) {
+      return 1;
     }
-    return 200 - delta;
+
+    return normalizedPreferred == normalizedVariant ? 0 : 1;
+  }
+
+  static int _preferredQualityOrder({
+    required int? preferredQualityRank,
+    required int? variantQualityRank,
+  }) {
+    if (preferredQualityRank == null || variantQualityRank == null) {
+      return 0;
+    }
+
+    return (preferredQualityRank - variantQualityRank).abs();
+  }
+
+  static String? _normalizeLanguageCode(String? languageCode) {
+    final normalized = languageCode?.trim().toLowerCase();
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+
+    return normalized;
   }
 }

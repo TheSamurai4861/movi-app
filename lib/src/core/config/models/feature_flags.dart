@@ -5,6 +5,8 @@ class FeatureFlags {
     this.enableTelemetry = false,
     this.enableDownloads = false,
     this.enableNewSearch = false,
+    this.allowAuthStubFallback = false,
+    this.allowInMemoryStorageFallback = false,
   });
 
   final bool useRemoteHome;
@@ -16,12 +18,26 @@ class FeatureFlags {
   final bool enableDownloads;
   final bool enableNewSearch;
 
+  /// Autorise explicitement le fallback vers [StubAuthRepository] quand
+  /// Supabase est configuré mais que le client n'est pas enregistré.
+  ///
+  /// Doit rester désactivé en exécution normale.
+  final bool allowAuthStubFallback;
+
+  /// Autorise explicitement le fallback vers une base SQLite en mémoire quand
+  /// l'initialisation de la base persistée échoue.
+  ///
+  /// Doit rester désactivé en exécution normale.
+  final bool allowInMemoryStorageFallback;
+
   FeatureFlags copyWith({
     bool? useRemoteHome,
     bool? disableHomeHero,
     bool? enableTelemetry,
     bool? enableDownloads,
     bool? enableNewSearch,
+    bool? allowAuthStubFallback,
+    bool? allowInMemoryStorageFallback,
   }) {
     return FeatureFlags(
       useRemoteHome: useRemoteHome ?? this.useRemoteHome,
@@ -29,6 +45,10 @@ class FeatureFlags {
       enableTelemetry: enableTelemetry ?? this.enableTelemetry,
       enableDownloads: enableDownloads ?? this.enableDownloads,
       enableNewSearch: enableNewSearch ?? this.enableNewSearch,
+      allowAuthStubFallback:
+          allowAuthStubFallback ?? this.allowAuthStubFallback,
+      allowInMemoryStorageFallback:
+          allowInMemoryStorageFallback ?? this.allowInMemoryStorageFallback,
     );
   }
 
@@ -45,7 +65,9 @@ class FeatureFlags {
         disableHomeHero == other.disableHomeHero &&
         enableTelemetry == other.enableTelemetry &&
         enableDownloads == other.enableDownloads &&
-        enableNewSearch == other.enableNewSearch;
+        enableNewSearch == other.enableNewSearch &&
+        allowAuthStubFallback == other.allowAuthStubFallback &&
+        allowInMemoryStorageFallback == other.allowInMemoryStorageFallback;
   }
 
   @override
@@ -55,6 +77,8 @@ class FeatureFlags {
     enableTelemetry,
     enableDownloads,
     enableNewSearch,
+    allowAuthStubFallback,
+    allowInMemoryStorageFallback,
   );
 }
 

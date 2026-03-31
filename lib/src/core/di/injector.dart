@@ -1,6 +1,3 @@
-// FILE #48
-// lib/src/core/di/di.dart
-
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -21,11 +18,15 @@ import 'package:movi/src/core/parental/data/datasources/pin_recovery_remote_data
 import 'package:movi/src/core/parental/data/datasources/tmdb_content_rating_remote_data_source.dart';
 import 'package:movi/src/core/parental/data/repositories/cached_content_rating_repository.dart';
 import 'package:movi/src/core/parental/data/repositories/pin_recovery_repository_impl.dart';
+import 'package:movi/src/core/parental/data/services/content_rating_repository_warmup_gateway.dart';
 import 'package:movi/src/core/parental/data/services/profile_pin_edge_service.dart';
 import 'package:movi/src/core/parental/domain/repositories/content_rating_repository.dart';
 import 'package:movi/src/core/parental/domain/repositories/pin_recovery_repository.dart';
 import 'package:movi/src/core/parental/domain/services/age_policy.dart';
+import 'package:movi/src/core/parental/domain/services/content_rating_warmup_gateway.dart';
+import 'package:movi/src/core/parental/domain/services/movie_metadata_resolver.dart';
 import 'package:movi/src/core/parental/domain/services/playlist_maturity_classifier.dart';
+import 'package:movi/src/core/parental/domain/services/series_metadata_resolver.dart';
 import 'package:movi/src/core/performance/performance_module.dart';
 import 'package:movi/src/core/profile/data/datasources/supabase_profile_datasource.dart';
 import 'package:movi/src/core/profile/data/repositories/fallback_profile_repository.dart';
@@ -43,25 +44,26 @@ import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 
 import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
 import 'package:movi/src/features/home/data/home_feed_data_module.dart';
-import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
+import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
-import 'package:movi/src/features/library/data/library_data_module.dart';
 import 'package:movi/src/features/library/application/services/cloud_sync_preferences.dart';
-import 'package:movi/src/features/movie/data/movie_data_module.dart';
+import 'package:movi/src/features/library/data/library_data_module.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/data/movie_data_module.dart';
 import 'package:movi/src/features/person/data/person_data_module.dart';
 import 'package:movi/src/features/playlist/data/playlist_data_module.dart';
 import 'package:movi/src/features/saga/data/saga_data_module.dart';
 import 'package:movi/src/features/search/data/search_data_module.dart';
 import 'package:movi/src/features/settings/data/settings_data_module.dart';
-import 'package:movi/src/features/tv/data/tv_data_module.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
+import 'package:movi/src/features/tv/data/tv_data_module.dart';
 
+import 'package:movi/src/shared/data/services/iptv_content_resolver_impl.dart';
+import 'package:movi/src/shared/data/services/parental_tmdb_metadata_resolvers.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/shared/data/services/iptv_content_resolver_impl.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/services/iptv_content_resolver.dart';
 import 'package:movi/src/shared/domain/services/playlist_tmdb_enrichment_service.dart';
@@ -71,10 +73,8 @@ import 'package:movi/src/shared/domain/services/tmdb_http_client.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/shared/domain/services/xtream_lookup.dart';
 
-/// Global service locator.
 final sl = GetIt.instance;
 
-/// Replace or register a singleton.
 void replace<T extends Object>(T instance) {
   if (sl.isRegistered<T>()) {
     sl.unregister<T>();
@@ -82,7 +82,6 @@ void replace<T extends Object>(T instance) {
   sl.registerSingleton<T>(instance);
 }
 
-/// Entry point for dependency initialization.
 Future<void> initDependencies({
   AppConfig? appConfig,
   SecretStore? secretStore,
@@ -102,30 +101,11 @@ Future<void> initDependencies({
 
   _registerTmdbInfrastructure();
   _registerSharedServices();
-
-  // IMPORTANT:
-  // AppStateController must be registered before Auth/Supabase modules.
   _registerState();
 
-  // --------------------------------------------------------------------------
-  // Supabase/Auth wiring (single client rule)
-  // --------------------------------------------------------------------------
-  //
-  // Goal:
-  // - Ensure the app uses the SAME SupabaseClient everywhere (auth + repositories),
-  //   via GetIt: sl<SupabaseClient>().
-  // - Ensure the URL/anonKey used by the app matches the project where your DB lives.
-  //
-  // SupabaseModule is responsible for:
-  // - validating config (fail-fast)
-  // - initializing Supabase (idempotent)
-  // - registering SupabaseClient singleton into GetIt
   await SupabaseModule.register(sl);
-
-  // Register Supabase-backed repositories in GetIt (needed by bootstrap/preload).
   _registerSupabaseRepositories();
 
-  // AuthModule should rely on sl<SupabaseClient>() (single client rule).
   AuthModule.register(sl);
   _registerProfileRepositories();
 
@@ -133,13 +113,8 @@ Future<void> initDependencies({
     _registerFeatureModules();
   }
 
-  // Optional fail-fast diagnostics (debug only): catch "GetIt not registered" early.
   _assertCriticalRegistrations();
 }
-
-/* -------------------------------------------------------------------------- */
-/* Config & base services                                                      */
-/* -------------------------------------------------------------------------- */
 
 Future<void> _registerConfig(AppConfig? config) async {
   if (config == null) return;
@@ -177,7 +152,6 @@ Future<void> _registerLocalePreferences() async {
   final locale = ui.PlatformDispatcher.instance.locale;
   final deviceCode = '${locale.languageCode}-${locale.countryCode ?? 'US'}';
 
-  // Vérifier si la langue de l'appareil est supportée, sinon fallback sur anglais
   final supportedLocales = const [
     'en',
     'en-US',
@@ -199,24 +173,20 @@ Future<void> _registerLocalePreferences() async {
     'pt-BR',
   ];
 
-  // Normaliser le code de langue de l'appareil
   final normalizedDeviceCode = deviceCode.toLowerCase();
   final deviceLangCode = locale.languageCode.toLowerCase();
 
-  // Vérifier si la langue complète est supportée, sinon vérifier juste le code langue
   String? supportedCode;
   if (supportedLocales.any((s) => s.toLowerCase() == normalizedDeviceCode)) {
     supportedCode = deviceCode;
   } else if (supportedLocales.any(
     (s) => s.toLowerCase().startsWith('$deviceLangCode-'),
   )) {
-    // Trouver le premier code supporté pour cette langue
     supportedCode = supportedLocales.firstWhere(
       (s) => s.toLowerCase().startsWith('$deviceLangCode-'),
       orElse: () => deviceLangCode,
     );
   } else {
-    // Fallback sur anglais si la langue n'est pas supportée
     supportedCode = 'en-US';
   }
 
@@ -269,10 +239,6 @@ Future<void> _registerCloudSyncPreferences() async {
   sl.registerSingleton<CloudSyncPreferences>(prefs);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Logging & network                                                           */
-/* -------------------------------------------------------------------------- */
-
 void _registerLoggingIfReady() {
   if (sl.isRegistered<AppConfig>()) {
     LoggingModule.register();
@@ -313,21 +279,12 @@ AuthTokenProvider? _buildTmdbTokenProvider(
 
 bool _isV3Key(String key) => !key.startsWith('eyJ') && key.length <= 64;
 
-/* -------------------------------------------------------------------------- */
-/* Supabase repositories (bootstrap critical)                                  */
-/* -------------------------------------------------------------------------- */
-
 void _registerSupabaseRepositories() {
-  // Ensure a single SupabaseClient exists (provided by SupabaseModule).
   if (!sl.isRegistered<SupabaseClient>()) {
-    // If SupabaseClient is not registered, it means SupabaseModule.register() was skipped
-    // (Supabase not configured). Don't use fallback as it would throw if Supabase not initialized.
     const config = SupabaseConfig.fromEnvironment;
     if (!config.isConfigured) {
-      // Supabase not configured, skip repository registration
       return;
     }
-    // If configured but not registered, this is a sequence error
     throw StateError(
       'SupabaseClient should be registered by SupabaseModule before calling _registerSupabaseRepositories',
     );
@@ -366,16 +323,10 @@ void _registerSupabaseRepositories() {
     );
   }
 
-  // IPTV local repo is also needed by bootstrap; if a module registers it later,
-  // bootstrap may run too early. Ensure it exists here (if StorageModule didn't).
   if (!sl.isRegistered<IptvLocalRepository>() &&
       sl.isRegistered<ContentCacheRepository>()) {
-    // NOTE: If your project registers IptvLocalRepository elsewhere with its own
-    // dependencies, remove this block and instead ensure the correct module runs
-    // before bootstrap. Keeping it here prevents "not registered" crashes.
-    //
-    // If you cannot construct it here safely, do NOT register a dummy.
-    // Prefer fail-fast: leave it unregistered and fix module ordering.
+    // Intentionally left blank.
+    // StorageModule should register the real local repository.
   }
 }
 
@@ -401,10 +352,6 @@ void _registerProfileRepositories() {
     );
   }
 }
-
-/* -------------------------------------------------------------------------- */
-/* Shared infrastructure                                                       */
-/* -------------------------------------------------------------------------- */
 
 void _registerTmdbInfrastructure() {
   if (!sl.isRegistered<TmdbImageResolver>()) {
@@ -442,10 +389,6 @@ void _registerSharedServices() {
     sl.registerLazySingleton<TmdbCacheStore>(() => sl<TmdbCacheDataSource>());
   }
 
-  // --------------------------------------------------------------------------
-  // Parental controls: TMDB min-age cache + policy
-  // --------------------------------------------------------------------------
-
   if (!sl.isRegistered<TmdbContentRatingRemoteDataSource>() &&
       sl.isRegistered<TmdbClient>()) {
     sl.registerLazySingleton<TmdbContentRatingRemoteDataSource>(
@@ -460,6 +403,15 @@ void _registerSharedServices() {
       () => CachedContentRatingRepository(
         sl<TmdbContentRatingRemoteDataSource>(),
         sl<ContentCacheRepository>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ContentRatingWarmupGateway>() &&
+      sl.isRegistered<ContentRatingRepository>()) {
+    sl.registerLazySingleton<ContentRatingWarmupGateway>(
+      () => ContentRatingRepositoryWarmupGateway(
+        sl<ContentRatingRepository>(),
       ),
     );
   }
@@ -584,10 +536,6 @@ void _registerSharedServices() {
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* State & feature modules                                                     */
-/* -------------------------------------------------------------------------- */
-
 void _registerState() {
   if (sl.isRegistered<AppStateController>()) return;
 
@@ -598,7 +546,6 @@ void _registerState() {
     );
   }
 
-  // Clear TMDB in-memory cache on locale change.
   sl<LocalePreferences>().languageStream.listen((_) {
     if (sl.isRegistered<TmdbCacheDataSource>()) {
       sl<TmdbCacheDataSource>().clearMemoryMemo();
@@ -612,9 +559,8 @@ void _registerFeatureModules() {
   TvDataModule.register();
   PersonDataModule.register();
   SagaDataModule.register();
-  SearchDataModule.register(); // Enregistre SimilarityService
+  SearchDataModule.register();
 
-  // Enregistrer TmdbIdResolverService après SearchDataModule (qui enregistre SimilarityService)
   if (!sl.isRegistered<TmdbIdResolverService>() &&
       sl.isRegistered<TmdbMovieRemoteDataSource>() &&
       sl.isRegistered<TmdbTvRemoteDataSource>() &&
@@ -632,16 +578,34 @@ void _registerFeatureModules() {
     );
   }
 
+  if (!sl.isRegistered<MovieMetadataResolver>() &&
+      sl.isRegistered<TmdbIdResolverService>() &&
+      sl.isRegistered<AppLogger>()) {
+    sl.registerLazySingleton<MovieMetadataResolver>(
+      () => SharedMovieMetadataResolverAdapter(
+        resolver: sl<TmdbIdResolverService>(),
+        logger: sl<AppLogger>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<SeriesMetadataResolver>() &&
+      sl.isRegistered<TmdbIdResolverService>() &&
+      sl.isRegistered<AppLogger>()) {
+    sl.registerLazySingleton<SeriesMetadataResolver>(
+      () => SharedSeriesMetadataResolverAdapter(
+        resolver: sl<TmdbIdResolverService>(),
+        logger: sl<AppLogger>(),
+      ),
+    );
+  }
+
   PlaylistDataModule.register();
   HomeFeedDataModule.register();
   LibraryDataModule.register();
   CategoryBrowserDataModule.register();
   SettingsDataModule.register();
 }
-
-/* -------------------------------------------------------------------------- */
-/* Diagnostics                                                                 */
-/* -------------------------------------------------------------------------- */
 
 void _assertCriticalRegistrations() {
   if (!kDebugMode) return;

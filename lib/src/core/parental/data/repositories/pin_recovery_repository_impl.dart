@@ -1,28 +1,47 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:movi/src/core/parental/data/datasources/pin_recovery_remote_data_source.dart';
 import 'package:movi/src/core/parental/data/services/profile_pin_edge_service.dart';
 import 'package:movi/src/core/parental/domain/entities/pin_recovery_result.dart';
 import 'package:movi/src/core/parental/domain/repositories/pin_recovery_repository.dart';
 
 class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
-  const PinRecoveryRepositoryImpl({
-    required SupabaseClient client,
-    required ProfilePinEdgeService profilePin,
-  }) : _client = client,
-       _profilePin = profilePin;
+  /// [profilePin] est conservé temporairement pour compatibilité avec le wiring
+  /// DI existant, mais le flux de recovery ne passe plus par `profile-pin`.
+  PinRecoveryRepositoryImpl({
+    PinRecoveryRemoteDataSource? remote,
+    SupabaseClient? client,
+    ProfilePinEdgeService? profilePin,
+  }) : _remote = _resolveRemote(remote: remote, client: client);
 
-  final SupabaseClient _client;
-  final ProfilePinEdgeService _profilePin;
+  final PinRecoveryRemoteDataSource _remote;
+
+  static PinRecoveryRemoteDataSource _resolveRemote({
+    PinRecoveryRemoteDataSource? remote,
+    SupabaseClient? client,
+  }) {
+    if (remote != null) {
+      return remote;
+    }
+    if (client != null) {
+      return PinRecoveryRemoteDataSource(client);
+    }
+
+    throw ArgumentError(
+      'PinRecoveryRepositoryImpl requires either a PinRecoveryRemoteDataSource '
+      'or a SupabaseClient.',
+    );
+  }
 
   @override
   Future<PinRecoveryResult> requestRecoveryCode({String? profileId}) async {
-    final email = _client.auth.currentUser?.email?.trim();
-    if (email == null || email.isEmpty) {
-      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
-    }
+    final normalizedProfileId = _normalizeOptional(profileId);
+
     try {
-      await _client.auth.signInWithOtp(email: email, shouldCreateUser: false);
-      return const PinRecoveryResult.success();
+      final response = await _remote.requestCode(
+        profileId: normalizedProfileId,
+      );
+      return _mapResponse(response);
     } catch (error) {
       return PinRecoveryResult.failure(_mapError(error));
     }
@@ -30,17 +49,14 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
 
   @override
   Future<PinRecoveryResult> verifyRecoveryCode(String code) async {
-    final email = _client.auth.currentUser?.email?.trim();
-    if (email == null || email.isEmpty) {
-      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    final normalizedCode = code.trim();
+    if (normalizedCode.isEmpty) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.invalid);
     }
+
     try {
-      await _client.auth.verifyOTP(
-        email: email,
-        token: code,
-        type: OtpType.email,
-      );
-      return const PinRecoveryResult.success();
+      final response = await _remote.verifyCode(normalizedCode);
+      return _mapResponse(response, requireResetTokenOnSuccess: true);
     } catch (error) {
       return PinRecoveryResult.failure(_mapError(error));
     }
@@ -51,16 +67,96 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
     required String resetToken,
     required String newPin,
   }) async {
-    final profileId = resetToken.trim();
-    if (profileId.isEmpty) {
-      return const PinRecoveryResult.failure(PinRecoveryStatus.unknown);
+    final normalizedResetToken = resetToken.trim();
+    final normalizedNewPin = newPin.trim();
+
+    if (normalizedResetToken.isEmpty || normalizedNewPin.isEmpty) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.invalid);
     }
+
     try {
-      await _profilePin.setPin(profileId: profileId, pin: newPin);
-      return const PinRecoveryResult.success();
+      final response = await _remote.resetPin(
+        resetToken: normalizedResetToken,
+        newPin: normalizedNewPin,
+      );
+      return _mapResponse(response);
     } catch (error) {
       return PinRecoveryResult.failure(_mapError(error));
     }
+  }
+
+  PinRecoveryResult _mapResponse(
+    PinRecoveryResponseDto response, {
+    bool requireResetTokenOnSuccess = false,
+  }) {
+    final status = _mapStatus(
+      status: response.status,
+      message: response.message,
+    );
+
+    if (status != PinRecoveryStatus.success) {
+      return PinRecoveryResult.failure(status);
+    }
+
+    final normalizedResetToken = _normalizeOptional(response.resetToken);
+    if (requireResetTokenOnSuccess && normalizedResetToken == null) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.unknown);
+    }
+
+    return PinRecoveryResult.success(resetToken: normalizedResetToken);
+  }
+
+  PinRecoveryStatus _mapStatus({required String status, String? message}) {
+    final normalizedStatus = status.trim().toLowerCase();
+    final normalizedMessage = message?.trim().toLowerCase() ?? '';
+
+    switch (normalizedStatus) {
+      case 'success':
+      case 'ok':
+      case 'code_sent':
+      case 'sent':
+      case 'verified':
+      case 'reset':
+      case 'reset_success':
+        return PinRecoveryStatus.success;
+      case 'invalid':
+      case 'invalid_code':
+      case 'invalid_token':
+        return PinRecoveryStatus.invalid;
+      case 'expired':
+      case 'expired_code':
+      case 'expired_token':
+        return PinRecoveryStatus.expired;
+      case 'too_many_attempts':
+      case 'too_many':
+      case 'rate_limited':
+      case 'rate_limit':
+        return PinRecoveryStatus.tooManyAttempts;
+      case 'not_available':
+      case 'unavailable':
+      case 'not_found':
+      case 'missing':
+        return PinRecoveryStatus.notAvailable;
+    }
+
+    if (normalizedMessage.contains('expired')) {
+      return PinRecoveryStatus.expired;
+    }
+    if (normalizedMessage.contains('invalid') ||
+        normalizedMessage.contains('token')) {
+      return PinRecoveryStatus.invalid;
+    }
+    if (normalizedMessage.contains('too many') ||
+        normalizedMessage.contains('rate')) {
+      return PinRecoveryStatus.tooManyAttempts;
+    }
+    if (normalizedMessage.contains('not found') ||
+        normalizedMessage.contains('missing') ||
+        normalizedMessage.contains('unavailable')) {
+      return PinRecoveryStatus.notAvailable;
+    }
+
+    return PinRecoveryStatus.unknown;
   }
 
   PinRecoveryStatus _mapError(Object error) {
@@ -74,9 +170,19 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
     if (message.contains('too many') || message.contains('rate')) {
       return PinRecoveryStatus.tooManyAttempts;
     }
-    if (message.contains('not found') || message.contains('missing')) {
+    if (message.contains('not found') ||
+        message.contains('missing') ||
+        message.contains('unavailable')) {
       return PinRecoveryStatus.notAvailable;
     }
     return PinRecoveryStatus.unknown;
+  }
+
+  String? _normalizeOptional(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
   }
 }
