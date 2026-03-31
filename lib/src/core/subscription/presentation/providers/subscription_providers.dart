@@ -135,6 +135,10 @@ final subscriptionOffersProvider = FutureProvider<List<SubscriptionOffer>>((
 
 final canAccessPremiumFeatureProvider =
     FutureProvider.family<bool, PremiumFeature>((ref, feature) {
+      if (_forcePremiumForTesting &&
+          (!kReleaseMode || _allowForcePremiumInRelease)) {
+        return Future<bool>.value(true);
+      }
       final canAccessPremiumFeature = ref.watch(
         canAccessPremiumFeatureUseCaseProvider,
       );
