@@ -29,7 +29,6 @@ import 'package:movi/src/features/player/presentation/providers/player_providers
 import 'package:movi/src/features/player/domain/value_objects/player_tracks.dart';
 import 'package:movi/src/features/player/domain/value_objects/track_info.dart';
 import 'package:movi/src/features/player/presentation/utils/track_label_formatter.dart';
-import 'package:movi/src/features/player/application/services/preferred_tracks_selector.dart';
 import 'package:movi/src/features/player/application/services/next_episode_service.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_brightness.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_volume.dart';
@@ -55,8 +54,6 @@ class VideoPlayerPage extends ConsumerStatefulWidget {
 
 class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  static const PreferredTracksSelector _preferredTracksSelector =
-      PreferredTracksSelector();
   late final ProviderSubscription<VideoPlayerRepository> _playerRepositorySub;
   late final ProviderSubscription<VideoController> _videoControllerSub;
   late final VideoPlayerRepository _playerRepository;
@@ -77,12 +74,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   TrackInfo? _currentSubtitleTrack;
   TrackInfo? _currentAudioTrack;
   final GlobalKey _controlsKey = GlobalKey();
-  bool _tracksInitialized = false;
   bool _resumePositionApplied = false;
-  final Set<String> _missingPreferredTrackWarnings = <String>{};
-  String? _lastPreferredTracksFingerprint;
-  bool _isApplyingPreferredTracks = false;
-  bool _pendingPreferredTracksApplication = false;
+  bool _initialTrackDefaultsApplied = false;
   VideoSource? _currentVideoSource;
   final List<StreamSubscription> _subscriptions = [];
   VideoFitMode _currentVideoFitMode = VideoFitMode.contain;
@@ -180,11 +173,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
   Future<void> _openGuarded(VideoSource source) async {
     final stopwatch = Stopwatch()..start();
-    _lastPreferredTracksFingerprint = null;
-    _pendingPreferredTracksApplication = false;
-    _isApplyingPreferredTracks = false;
-    _tracksInitialized = false;
-    _missingPreferredTrackWarnings.clear();
+    _initialTrackDefaultsApplied = false;
     final profile = ref.read(currentProfileProvider);
     final hasRestrictions =
         profile != null && (profile.isKid || profile.pegiLimit != null);
@@ -298,78 +287,38 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       }),
     );
 
-    // Écouter les changements de préférences audio et sous-titres
-    final prefs = ref.read(slProvider)<PlayerPreferences>();
-    _subscriptions.add(
-      prefs.preferredAudioLanguageStream.listen((_) async {
-        if (!mounted || !_tracksInitialized) return;
-        _missingPreferredTrackWarnings.remove('audio');
-        await _schedulePreferredTracksApplication(reason: 'audio_preference');
-      }),
-    );
-    _subscriptions.add(
-      prefs.preferredSubtitleLanguageStream.listen((_) async {
-        if (!mounted || !_tracksInitialized) return;
-        _missingPreferredTrackWarnings.remove('subtitle');
-        await _schedulePreferredTracksApplication(
-          reason: 'subtitle_preference',
-        );
-      }),
-    );
-
-    // Mettre à jour les pistes, appliquer les préférences et maintenir les sélections courantes
+    // Mettre à jour les pistes puis appliquer une fois les défauts (1er audio, ST off)
     _subscriptions.add(
       _playerRepository.tracksStream.listen((tracks) async {
         if (!mounted) return;
 
         _syncTrackStateFromPlayerTracks(tracks);
-        _missingPreferredTrackWarnings.clear();
-        _tracksInitialized = true;
-        await _schedulePreferredTracksApplication(reason: 'tracks_stream');
+        await _applyInitialDefaultTracksIfNeeded(reason: 'tracks_stream');
       }),
     );
   }
 
-  Future<void> _schedulePreferredTracksApplication({
-    required String reason,
-  }) async {
+  /// Une seule fois par ouverture de média : première piste audio, sous-titres désactivés.
+  Future<void> _applyInitialDefaultTracksIfNeeded({required String reason}) async {
     if (!mounted) return;
-    if (_isApplyingPreferredTracks) {
-      _pendingPreferredTracksApplication = true;
-      return;
-    }
-
-    do {
-      _pendingPreferredTracksApplication = false;
-      await _applyPreferredTracks(reason: reason);
-    } while (mounted && _pendingPreferredTracksApplication);
-  }
-
-  /// Applique les préférences de langue pour les pistes audio et sous-titres
-  Future<void> _applyPreferredTracks({required String reason}) async {
-    if (!mounted) return;
+    if (_initialTrackDefaultsApplied || _audioTracks.isEmpty) return;
 
     final stopwatch = Stopwatch()..start();
     try {
-      if (_audioTracks.isEmpty && _subtitleTracks.isEmpty) return;
+      final firstAudio = _audioTracks.first;
+      final needsAudio = _currentAudioTrack?.id != firstAudio.id;
+      final needsSubsOff = _subtitlesEnabled || _currentSubtitleTrack != null;
 
-      final prefs = ref.read(slProvider)<PlayerPreferences>();
-      final plan = _preferredTracksSelector.plan(
-        audioTracks: _audioTracks,
-        subtitleTracks: _subtitleTracks,
-        preferredAudioLanguageCode: prefs.preferredAudioLanguage,
-        preferredSubtitleLanguageCode: prefs.preferredSubtitleLanguage,
-        currentAudioTrackId: _currentAudioTrack?.id,
-        currentSubtitleTrackId: _currentSubtitleTrack?.id,
-        subtitlesEnabled: _subtitlesEnabled,
-        previousFingerprint: _lastPreferredTracksFingerprint,
-      );
-      if (!plan.shouldApply) {
-        _diagnostics.mark(
-          'player_apply_preferred_tracks',
-          event: 'skipped',
+      if (!needsAudio && !needsSubsOff) {
+        if (mounted) {
+          setState(() => _initialTrackDefaultsApplied = true);
+        }
+        _diagnostics.completed(
+          'player_apply_initial_track_defaults',
+          elapsed: stopwatch.elapsed,
           context: <String, Object?>{
             'reason': reason,
+            'event': 'already_default',
             'audioTracks': _audioTracks.length,
             'subtitleTracks': _subtitleTracks.length,
           },
@@ -377,32 +326,32 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         return;
       }
 
-      final selection = plan.selection;
-      _isApplyingPreferredTracks = true;
-
-      await _applyPreferredTrackSelection(
-        selection.audio,
-        availableTracks: _audioTracks,
-      );
-      await _applyPreferredTrackSelection(
-        selection.subtitle,
-        availableTracks: _subtitleTracks,
-      );
-      _lastPreferredTracksFingerprint = plan.fingerprint;
+      if (needsAudio) {
+        await _playerRepository.setAudioTrack(firstAudio.id);
+      }
+      if (needsSubsOff) {
+        await _playerRepository.setActiveSubtitleTrack(null);
+      }
+      if (!mounted) return;
+      setState(() {
+        _currentAudioTrack = firstAudio;
+        _currentSubtitleTrack = null;
+        _subtitlesEnabled = false;
+        _initialTrackDefaultsApplied = true;
+      });
       _diagnostics.completed(
-        'player_apply_preferred_tracks',
+        'player_apply_initial_track_defaults',
         elapsed: stopwatch.elapsed,
         context: <String, Object?>{
           'reason': reason,
+          'event': 'applied',
           'audioTracks': _audioTracks.length,
           'subtitleTracks': _subtitleTracks.length,
-          'audioStatus': selection.audio.status.name,
-          'subtitleStatus': selection.subtitle.status.name,
         },
       );
     } catch (e) {
       _diagnostics.failed(
-        'player_apply_preferred_tracks',
+        'player_apply_initial_track_defaults',
         elapsed: stopwatch.elapsed,
         error: e,
         context: <String, Object?>{
@@ -411,12 +360,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           'subtitleTracks': _subtitleTracks.length,
         },
       );
-      // Ignorer les erreurs si le player a été disposé
-      if (mounted) {
-        // Log l'erreur si nécessaire, mais ne pas la propager
-      }
-    } finally {
-      _isApplyingPreferredTracks = false;
     }
   }
 
@@ -466,84 +409,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     return tracks.firstWhere(
       (track) => track.id == activeTrackId,
       orElse: () => tracks.first,
-    );
-  }
-
-  Future<void> _applyPreferredTrackSelection(
-    PreferredTrackSelection selection, {
-    required List<TrackInfo> availableTracks,
-  }) async {
-    switch (selection.status) {
-      case PreferredTrackSelectionStatus.noPreference:
-      case PreferredTrackSelectionStatus.noTracksAvailable:
-        return;
-      case PreferredTrackSelectionStatus.matchFound:
-        if (selection.type == TrackType.audio) {
-          if (_currentAudioTrack?.id == selection.requestedTrack!.id) {
-            return;
-          }
-          await _playerRepository.setAudioTrack(selection.requestedTrack!.id);
-          if (mounted) {
-            setState(() {
-              _currentAudioTrack = selection.requestedTrack;
-            });
-          }
-        } else {
-          if (_currentSubtitleTrack?.id == selection.requestedTrack!.id &&
-              _subtitlesEnabled) {
-            return;
-          }
-          await _playerRepository.setActiveSubtitleTrack(
-            selection.requestedTrack!.id,
-          );
-          if (mounted) {
-            setState(() {
-              _currentSubtitleTrack = selection.requestedTrack;
-              _subtitlesEnabled = true;
-            });
-          }
-        }
-        return;
-      case PreferredTrackSelectionStatus.noMatchFound:
-        _logMissingPreferredTrack(selection, availableTracks: availableTracks);
-        return;
-      case PreferredTrackSelectionStatus.disableRequested:
-        if (!_subtitlesEnabled && _currentSubtitleTrack == null) {
-          return;
-        }
-        await _playerRepository.setActiveSubtitleTrack(null);
-        if (mounted) {
-          setState(() {
-            _currentSubtitleTrack = null;
-            _subtitlesEnabled = false;
-          });
-        }
-        return;
-    }
-  }
-
-  void _logMissingPreferredTrack(
-    PreferredTrackSelection selection, {
-    required List<TrackInfo> availableTracks,
-  }) {
-    if (!selection.hasPreference || availableTracks.isEmpty) {
-      return;
-    }
-    final warningKey = selection.type == TrackType.audio ? 'audio' : 'subtitle';
-    if (_missingPreferredTrackWarnings.contains(warningKey)) {
-      return;
-    }
-    _missingPreferredTrackWarnings.add(warningKey);
-
-    final logger = ref.read(slProvider)<AppLogger>();
-    final availableLabels = availableTracks
-        .map(TrackLabelFormatter.formatTrackLabel)
-        .where((label) => label.isNotEmpty)
-        .join(', ');
-    final trackKind = warningKey;
-    logger.warn(
-      'Preferred $trackKind track could not be applied for language=${selection.preferredLanguageCode}; availableTracks=[$availableLabels]',
-      category: 'player_tracks',
     );
   }
 
@@ -826,11 +691,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       setState(() {
         _currentVideoSource = nextVideoSource;
         _resumePositionApplied = false;
-        _tracksInitialized = false;
-        _lastPreferredTracksFingerprint = null;
-        _pendingPreferredTracksApplication = false;
-        _isApplyingPreferredTracks = false;
-        _missingPreferredTrackWarnings.clear();
+        _initialTrackDefaultsApplied = false;
         _position = Duration.zero;
         _duration = Duration.zero;
       });
@@ -851,6 +712,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     await showModalBottomSheet<TrackInfo?>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       isDismissible: true,
       enableDrag: true,
       builder: (context) => SubtitleTrackSelectionMenu(
@@ -909,6 +771,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     await showModalBottomSheet<TrackInfo?>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       isDismissible: true,
       enableDrag: true,
       builder: (context) => AudioTrackSelectionMenu(

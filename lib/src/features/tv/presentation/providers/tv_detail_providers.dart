@@ -25,6 +25,7 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/tv/domain/usecases/ensure_tv_enrichment.dart';
 import 'package:movi/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart';
+import 'package:movi/src/core/network/network.dart';
 
 /// Provider pour TvRepository avec userId actuel
 final tvRepositoryProvider = Provider<TvRepository>((ref) {
@@ -149,6 +150,7 @@ class TvDetailProgressiveController
       final repo = ref.read(tvRepositoryProvider);
       final iptvLocal = locator<IptvLocalRepository>();
       final id = SeriesId(_seriesId);
+      final seriesIdInt = int.tryParse(_seriesId);
 
       TvShow? detailLiteNullable;
       bool isSeriesAvailable = false;
@@ -489,12 +491,31 @@ class TvDetailProgressiveController
             }
           }
         } catch (e) {
+          // UX-friendly fallback: if TMDB returns 404, try to interpret the numeric id
+          // as an Xtream streamId and build a minimal detail from IPTV/local data.
+          if (e is NotFoundFailure && seriesIdInt != null) {
+            final fallback = await _tryBuildXtreamFallbackFromNumericId(
+              streamId: seriesIdInt,
+              iptvLocal: iptvLocal,
+              locator: locator,
+              logger: logger,
+              language: lang,
+            );
+            if (fallback != null) {
+              detailLiteNullable = fallback;
+              isSeriesAvailable = true;
+            }
+          }
+          if (detailLiteNullable != null) {
+            // Fallback succeeded, continue.
+          } else {
           logger.warn(
             'Failed to load TMDB show for id=$_seriesId: $e',
             category: 'tv_detail',
           );
           // Re-throw pour que l'erreur soit gérée par le catch global
           rethrow;
+          }
         }
       }
 
@@ -542,6 +563,89 @@ class TvDetailProgressiveController
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
+  }
+
+  Future<TvShow?> _tryBuildXtreamFallbackFromNumericId({
+    required int streamId,
+    required IptvLocalRepository iptvLocal,
+    required GetIt locator,
+    required AppLogger logger,
+    required String language,
+  }) async {
+    try {
+      final item = await _findXtreamSeriesByStreamId(
+        streamId: streamId,
+        iptvLocal: iptvLocal,
+      );
+      if (item == null) return null;
+
+      final images = locator<TmdbImageResolver>();
+      final poster = images.poster(item.posterUrl);
+      if (poster == null) return null;
+
+      // Ensure episodes exist (cache or API) and map them into seasons so the page
+      // can work without any TMDB seasons/episodes.
+      await _loadXtreamEpisodesForSeries(
+        streamId: streamId,
+        accountId: item.accountId,
+        iptvLocal: iptvLocal,
+        locator: locator,
+        logger: logger,
+      );
+      final allEpisodes = await iptvLocal.getAllEpisodesForSeries(
+        accountId: item.accountId,
+        seriesId: streamId,
+      );
+      final seasons = _mapXtreamEpisodesToSeasons(allEpisodes);
+
+      return TvShow(
+        id: SeriesId(_seriesId),
+        tmdbId: null,
+        title: MediaTitle(item.title),
+        synopsis: Synopsis(item.overview ?? ''),
+        poster: poster,
+        posterBackground: null,
+        backdrop: null,
+        firstAirDate:
+            item.releaseYear != null ? DateTime(item.releaseYear!, 1, 1) : null,
+        lastAirDate: null,
+        status: null,
+        rating: null,
+        voteAverage: item.rating,
+        genres: const [],
+        cast: const [],
+        creators: const [],
+        seasons: seasons,
+      );
+    } catch (e) {
+      logger.warn(
+        'Failed to build Xtream fallback for numeric seriesId=$streamId: $e',
+        category: 'tv_detail',
+      );
+      return null;
+    }
+  }
+
+  Future<XtreamPlaylistItem?> _findXtreamSeriesByStreamId({
+    required int streamId,
+    required IptvLocalRepository iptvLocal,
+  }) async {
+    final accounts = await iptvLocal.getAccounts();
+    for (final account in accounts) {
+      final playlists = await iptvLocal.getPlaylists(account.id);
+      for (final playlist in playlists) {
+        if (playlist.type != XtreamPlaylistType.series) continue;
+        final found = playlist.items
+            .where(
+              (item) =>
+                  item.streamId == streamId &&
+                  item.type == XtreamPlaylistItemType.series,
+            )
+            .firstOrNull;
+        if (found != null) return found;
+      }
+    }
+    return null;
   }
 
   Future<void> reloadSeasonEpisodes(int seasonNumber) async {

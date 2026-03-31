@@ -894,66 +894,85 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                   return LayoutBuilder(
                     builder: (context, constraints) {
-                      final width =
+                      final availableWidth =
                           constraints.maxWidth - (horizontalPadding * 2);
-                      const spacing = 8.0;
-                      const maxCardWidth = 300.0;
-                      final columns = (width / maxCardWidth).floor().clamp(
-                        1,
-                        8,
-                      );
-                      final gridMaxExtent =
-                          (width - (spacing * (columns - 1))) / columns;
+                      const gap = 24.0;
+                      const maxCardWidth = 240.0;
+                      const maxColumns = 8;
 
-                      return GridView.builder(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          0,
-                          horizontalPadding,
-                          100,
-                        ),
-                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: gridMaxExtent,
-                          mainAxisExtent: 276,
-                          crossAxisSpacing: spacing,
-                          mainAxisSpacing: 6,
-                        ),
-                        itemCount: playlists.length,
-                        itemBuilder: (context, index) {
-                          final playlist = playlists[index];
-                          return Focus(
-                            canRequestFocus: false,
-                            onKeyEvent: (_, event) =>
-                                _handlePlaylistGridDirection(
-                                  index,
-                                  columns,
-                                  event,
-                                ),
-                            child: LibraryPlaylistCard(
-                              title: playlist.title,
-                              itemCount: playlist.itemCount,
-                              type: playlist.type,
-                              isPinned: playlist.isPinned,
-                              photo: playlist.photo,
-                              layout: LibraryPlaylistCardLayout.vertical,
-                              showItemCount: !playlist.id.startsWith(
-                                LibraryConstants.sagaPrefix,
+                      final columns =
+                          ((availableWidth + gap) / (maxCardWidth + gap))
+                              .floor()
+                              .clamp(1, maxColumns);
+                      final gridWidth =
+                          (columns * maxCardWidth) + ((columns - 1) * gap);
+                      final cardWidth = maxCardWidth;
+
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: SizedBox(
+                          width: gridWidth.clamp(0.0, availableWidth),
+                          child: FocusTraversalGroup(
+                            child: GridView.builder(
+                              padding: EdgeInsets.fromLTRB(
+                                horizontalPadding,
+                                0,
+                                horizontalPadding,
+                                100,
                               ),
-                              focusNode: _playlistFocusNodes[index],
-                              onTap: () => _navigateToPlaylist(playlist),
-                              onLongPress:
-                                  playlist.type ==
-                                          LibraryPlaylistType.userPlaylist &&
-                                      playlist.playlistId != null
-                                  ? () => _showPlaylistMenu(
-                                      context,
-                                      ref,
-                                      playlist,
-                                    )
-                                  : null,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                mainAxisExtent: 276,
+                                crossAxisSpacing: gap,
+                                mainAxisSpacing: gap,
+                              ),
+                              itemCount: playlists.length,
+                              itemBuilder: (context, index) {
+                                final playlist = playlists[index];
+                                return SizedBox(
+                                  width: cardWidth,
+                                  child: Focus(
+                                    canRequestFocus: false,
+                                    onKeyEvent: (_, event) =>
+                                        _handlePlaylistGridDirection(
+                                      index,
+                                      columns,
+                                      event,
+                                    ),
+                                    child: LibraryPlaylistCard(
+                                      title: playlist.title,
+                                      itemCount: playlist.itemCount,
+                                      type: playlist.type,
+                                      isPinned: playlist.isPinned,
+                                      photo: playlist.photo,
+                                      layout: LibraryPlaylistCardLayout.vertical,
+                                      isSaga: playlist.id.startsWith(
+                                        LibraryConstants.sagaPrefix,
+                                      ),
+                                      showItemCount: !playlist.id.startsWith(
+                                        LibraryConstants.sagaPrefix,
+                                      ),
+                                      focusNode: _playlistFocusNodes[index],
+                                      onTap: () => _navigateToPlaylist(playlist),
+                                      onLongPress:
+                                          playlist.type ==
+                                                  LibraryPlaylistType
+                                                      .userPlaylist &&
+                                              playlist.playlistId != null
+                                          ? () => _showPlaylistMenu(
+                                              context,
+                                              ref,
+                                              playlist,
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       );
                     },
                   );

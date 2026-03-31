@@ -28,6 +28,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
     this.onTap,
     this.onLongPress,
     this.photo, // Photo de profil pour les artistes ou image hero pour les sagas
+    this.isSaga = false,
     this.showItemCount =
         true, // Par défaut afficher le compteur, sauf pour les sagas
     this.layout = LibraryPlaylistCardLayout.horizontal,
@@ -43,6 +44,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
   final VoidCallback? onLongPress;
   final Uri?
   photo; // Photo de profil pour les artistes ou image hero pour les sagas
+  final bool isSaga;
   final bool showItemCount; // Contrôle l'affichage du compteur d'éléments
   final LibraryPlaylistCardLayout layout;
   final FocusNode? focusNode;
@@ -105,6 +107,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
   }
 
   String _typeLabel() {
+    if (isSaga) return 'Saga';
     switch (type) {
       case LibraryPlaylistType.inProgress:
         return 'En cours';
@@ -122,14 +125,18 @@ class LibraryPlaylistCard extends ConsumerWidget {
   }
 
   String _secondaryText() {
-    final segments = <String>[_typeLabel()];
-    if (showItemCount && type != LibraryPlaylistType.actor) {
-      segments.add('$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}');
-    }
-    if (isPinned) {
-      segments.add('Épinglée');
-    }
-    return segments.join(' • ');
+    final typeLabel = _typeLabel();
+    final showCount = showItemCount && type != LibraryPlaylistType.actor;
+    if (!showCount) return typeLabel;
+    final countLabel = '$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}';
+    return '$typeLabel - $countLabel';
+  }
+
+  double _artworkSizeForVertical(double maxWidth) {
+    // Desktop: artwork smaller for better density and focus navigation.
+    // Keep it stable so the grid looks aligned.
+    final base = (maxWidth - 8).clamp(0.0, 220.0);
+    return base.clamp(0.0, 160.0);
   }
 
   Widget _buildArtwork(
@@ -191,7 +198,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
         builder: (context, state) {
           return LayoutBuilder(
             builder: (context, constraints) {
-              final imageSize = (constraints.maxWidth - 8).clamp(0.0, 220.0);
+              final imageSize = _artworkSizeForVertical(constraints.maxWidth);
               return MoviFocusFrame(
                 scale: state.focused ? 1.03 : 1,
                 borderRadius: BorderRadius.circular(20),

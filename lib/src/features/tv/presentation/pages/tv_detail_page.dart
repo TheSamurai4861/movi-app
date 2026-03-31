@@ -25,6 +25,8 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/core/network/network.dart';
+import 'package:movi/src/features/welcome/presentation/utils/error_presenter.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/core/storage/storage.dart';
@@ -438,35 +440,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Widget _buildAllowedDetail(BuildContext context, String mediaId) {
     final vmAsync = ref.watch(tvDetailProgressiveControllerProvider(mediaId));
 
-    // Gérer les erreurs et les états dans build() avec vérifications mounted
-    // Ne pas utiliser ref.listen() car il peut s'exécuter après le démontage
+    // IMPORTANT: pas d'auto-retry. L'utilisateur relance via “Réessayer”.
     vmAsync.whenOrNull(
-      error: (e, st) {
-        // Utiliser addPostFrameCallback pour éviter d'utiliser ref directement dans whenOrNull
-        if (mounted && _retryCount < _maxRetries) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            _retryCount++;
-            Future.delayed(const Duration(seconds: 2), () {
-              // Vérifier mounted AVANT d'utiliser ref
-              if (!mounted) return;
-              try {
-                ref.invalidate(tvDetailProgressiveControllerProvider(mediaId));
-                if (mounted) {
-                  _startAutoRefreshTimer();
-                }
-              } catch (e) {
-                // Ignorer les erreurs si le widget est démonté
-                if (mounted) {
-                  rethrow;
-                }
-              }
-            });
-          });
+      error: (_, __) {
+        if (mounted) {
+          _autoRefreshTimer?.cancel();
         }
       },
       data: (_) {
-        // Le chargement a réussi, annuler le timer et réinitialiser
         if (mounted) {
           _autoRefreshTimer?.cancel();
           _retryCount = 0;
@@ -531,10 +512,127 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   Widget _buildErrorScaffold(Object e) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final isWideLayout = _useDesktopDetailLayout(context);
+
+    final bool isNotFound = e is NotFoundFailure;
+    final String title = isNotFound
+        ? 'Infos de la série indisponibles'
+        : l10n.errorConnectionGeneric;
+    final String message = e is NetworkFailure
+        ? presentFailure(context, e)
+        : l10n.errorUnknown;
+
+    final maxContentWidth = isWideLayout ? 520.0 : double.infinity;
+    final buttonWidth = isWideLayout ? 360.0 : double.infinity;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Center(
-        child: Text('Erreur: $e', style: const TextStyle(color: Colors.white)),
+      backgroundColor: cs.surface,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxContentWidth),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                isNotFound
+                                    ? Icons.info_outline
+                                    : Icons.wifi_off_rounded,
+                                color: cs.onSurface.withValues(alpha: 0.9),
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            isNotFound
+                                ? 'Certaines informations (synopsis, casting, images) ne sont pas disponibles pour cette série.'
+                                : message,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: cs.onSurface.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: SizedBox(
+                      width: buttonWidth,
+                      child: MoviPrimaryButton(
+                        label: l10n.actionRetry,
+                        height: 48,
+                        expand: !isWideLayout,
+                        onPressed: () {
+                          ref.invalidate(
+                            tvDetailProgressiveControllerProvider(
+                              widget.seriesId,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: SizedBox(
+                      width: buttonWidth,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () => context.pop(),
+                        child: Text(l10n.actionBack),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (isNotFound)
+                    Center(
+                      child: SizedBox(
+                        width: buttonWidth,
+                        height: 48,
+                        child: TextButton(
+                          onPressed: () async {
+                            final tmdbId = int.tryParse(widget.seriesId);
+                            if (tmdbId == null) return;
+                            await ReportProblemSheet.show(
+                              context,
+                              ref,
+                              contentType: ContentType.series,
+                              tmdbId: tmdbId,
+                              contentTitle: mediaTitle,
+                            );
+                          },
+                          child: Text(l10n.actionReportProblem),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

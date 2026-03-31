@@ -28,39 +28,6 @@ class PersonDetailPage extends ConsumerStatefulWidget {
 }
 
 class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
-  Timer? _autoRefreshTimer;
-  int _retryCount = 0;
-  static const int _maxRetries = 3;
-  static const Duration _loadingTimeout = Duration(seconds: 15);
-
-  @override
-  void initState() {
-    super.initState();
-    _startAutoRefreshTimer();
-  }
-
-  @override
-  void dispose() {
-    _autoRefreshTimer?.cancel();
-    super.dispose();
-  }
-
-  void _startAutoRefreshTimer() {
-    _autoRefreshTimer?.cancel();
-    _autoRefreshTimer = Timer(_loadingTimeout, () {
-      final personId = _resolvePersonId(context);
-      if (mounted && personId != null && _retryCount < _maxRetries) {
-        final vmAsync = ref.read(personDetailControllerProvider(personId));
-        // Si toujours en chargement après le timeout, relancer
-        if (vmAsync.isLoading) {
-          _retryCount++;
-          ref.invalidate(personDetailControllerProvider(personId));
-          _startAutoRefreshTimer();
-        }
-      }
-    });
-  }
-
   String? _resolvePersonId(BuildContext context) {
     if (widget.personSummary != null) return widget.personSummary!.id.value;
     if (widget.personId != null && widget.personId!.trim().isNotEmpty) {
@@ -90,30 +57,6 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
 
     final vmAsync = ref.watch(personDetailControllerProvider(personId));
 
-    // Détecter les erreurs et relancer automatiquement
-    vmAsync.whenOrNull(
-      error: (e, st) {
-        if (mounted && _retryCount < _maxRetries) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              _retryCount++;
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  ref.invalidate(personDetailControllerProvider(personId));
-                  _startAutoRefreshTimer();
-                }
-              });
-            }
-          });
-        }
-      },
-      data: (_) {
-        // Le chargement a réussi, annuler le timer et réinitialiser
-        _autoRefreshTimer?.cancel();
-        _retryCount = 0;
-      },
-    );
-
     return vmAsync.when(
       loading: () => Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -139,7 +82,6 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                   final personId = _resolvePersonId(context);
                   if (personId == null) return;
                   ref.invalidate(personDetailControllerProvider(personId));
-                  _startAutoRefreshTimer();
                 },
               ),
             ],

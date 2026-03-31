@@ -583,9 +583,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
     );
     final isFavoriteAsync = ref.watch(mdp.movieIsFavoriteProvider(movieId));
-    final availabilityAsync = ref.watch(
-      mdp.movieAvailabilityOnIptvProvider(movieId),
-    );
 
     final primaryButton = MoviPrimaryButton(
       label: historyAsync.when(
@@ -614,27 +611,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final playButton = expandPrimary
         ? Expanded(child: primaryButton)
         : SizedBox(width: 320, child: primaryButton);
-    final canOpenVariants = availabilityAsync.maybeWhen(
-      data: (isAvailable) => isAvailable,
-      orElse: () => false,
-    );
-    // ignore: unused_local_variable
-    final manualChoiceButton = canOpenVariants
-        ? SizedBox(
-            height: expandPrimary ? 55 : 48,
-            child: OutlinedButton(
-              onPressed: () => _showMovieVariants(context, mediaTitle),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(32),
-                ),
-              ),
-              child: const Text('Versions'),
-            ),
-          )
-        : null;
+    // Bouton "Versions" retiré (sélection manuelle des variantes désactivée dans l'UI).
+    final Widget? manualChoiceButton = null;
 
     return SizedBox(
       height: expandPrimary ? 55 : 48,
@@ -1244,27 +1222,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         ),
       );
     }
-  }
-
-  Future<void> _showMovieVariants(BuildContext context, String title) async {
-    final decision = await _loadMoviePlaybackSelection(title);
-    if (!mounted || !context.mounted) return;
-    if (decision.isUnavailable || !decision.hasManualSelectionAvailable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucune autre version disponible')),
-      );
-      return;
-    }
-
-    final selectedVariant = await MoviePlaybackVariantSheet.show(
-      context,
-      movieTitle: title,
-      variants: decision.rankedVariants,
-    );
-    if (selectedVariant == null || !mounted || !context.mounted) {
-      return;
-    }
-    context.push(AppRouteNames.player, extra: selectedVariant.videoSource);
   }
 
   Future<PlaybackSelectionDecision> _loadMoviePlaybackSelection(
