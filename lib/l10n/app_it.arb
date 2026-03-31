@@ -58,6 +58,122 @@
   "actionConfirm": "Conferma",
   "actionRetry": "Riprova"
   ,
+  "settingsHelpDiagnosticsSection": "Aiuto e diagnostica",
+  "settingsExportErrorLogs": "Esporta log di errore",
+  "diagnosticsExportTitle": "Esporta log di errore",
+  "diagnosticsExportDescription": "La diagnostica include solo log WARN/ERROR recenti e identificativi account/profilo con hash (se abilitato). Non dovrebbero comparire chiavi/token.",
+  "diagnosticsIncludeHashedIdsTitle": "Includi identificativi account/profilo (hash)",
+  "diagnosticsIncludeHashedIdsSubtitle": "Aiuta a correlare un bug senza esporre l’ID originale.",
+  "diagnosticsCopiedClipboard": "Diagnostica copiata negli appunti.",
+  "diagnosticsSavedFile": "Diagnostica salvata: {fileName}",
+  "@diagnosticsSavedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticsActionCopy": "Copia",
+  "diagnosticsActionSave": "Salva",
+  "actionChangeVersion": "Cambia versione",
+  "semanticsBack": "Indietro",
+  "semanticsMoreActions": "Altre azioni",
+  "snackbarLoadingPlaylists": "Caricamento delle playlist…",
+  "snackbarNoPlaylistsAvailableCreateOne": "Nessuna playlist disponibile. Creane una.",
+  "errorAddToPlaylist": "Errore durante l’aggiunta alla playlist: {error}",
+  "@errorAddToPlaylist": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorAlreadyInPlaylist": "Questo contenuto è già presente in questa playlist",
+  "errorLoadingPlaylists": "Errore durante il caricamento delle playlist: {error}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorReportUnavailableForContent": "Segnalazione non disponibile per questo contenuto.",
+  "snackbarLoadingEpisodes": "Caricamento episodi…",
+  "snackbarEpisodeUnavailableInPlaylist": "Episodio non disponibile nella playlist",
+  "snackbarGenericError": "Errore: {error}",
+  "@snackbarGenericError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "snackbarLoading": "Caricamento…",
+  "snackbarNoVersionAvailable": "Nessuna versione disponibile",
+  "snackbarVersionSaved": "Versione salvata",
+  "playbackVariantFallbackLabel": "Versione {index}",
+  "@playbackVariantFallbackLabel": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "actionReadMore": "Leggi di più",
+  "actionShowLess": "Mostra meno",
+  "actionViewPage": "Vedi pagina",
+  "semanticsSeeSagaPage": "Vedi la pagina della saga",
+  "libraryTypeSaga": "Saga",
+  "libraryTypeInProgress": "In corso",
+  "libraryTypeFavoriteMovies": "Film preferiti",
+  "libraryTypeFavoriteSeries": "Serie preferite",
+  "libraryTypeHistory": "Cronologia",
+  "libraryTypePlaylist": "Playlist",
+  "libraryTypeArtist": "Artista",
+  "libraryItemCount": "{count,plural, one{# elemento} other{# elementi}}",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "snackbarPlaylistRenamed": "Playlist rinominata in \"{name}\"",
+  "@snackbarPlaylistRenamed": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "snackbarPlaylistDeleted": "Playlist eliminata",
+  "dialogConfirmDeletePlaylist": "Sei sicuro di voler eliminare \"{title}\"?",
+  "@dialogConfirmDeletePlaylist": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "libraryNoResultsForQuery": "Nessun risultato per \"{query}\"",
+  "@libraryNoResultsForQuery": {
+    "placeholders": {
+      "query": { "type": "String" }
+    }
+  },
+  "errorGenericWithMessage": "Errore: {error}",
+  "@errorGenericWithMessage": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "snackbarMediaAlreadyInPlaylist": "Questo contenuto è già nella playlist",
+  "snackbarAddedToPlaylist": "Aggiunto alla playlist",
+  "addMediaTitle": "Aggiungi media",
+  "searchMinCharsHint": "Digita almeno 3 caratteri per cercare",
+  "badgeAdded": "Aggiunto",
+  "snackbarNotAvailableOnSource": "Non disponibile su questa sorgente",
+  "snackbarLoading": "Caricamento…",
+  "errorLoadingTitle": "Errore di caricamento",
+  "errorLoadingWithMessage": "Errore: {error}",
+  "@errorLoadingWithMessage": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorLoadingPlaylistsWithMessage": "Errore durante il caricamento: {error}",
+  "@errorLoadingPlaylistsWithMessage": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "libraryClearFilterSemanticLabel": "Rimuovi filtro",
   "homeErrorSwipeToRetry": "Si è verificato un errore. Scorri verso il basso per riprovare.",
   "homeContinueWatching": "Continua a guardare",
   "homeNoIptvSources": "Nessuna sorgente IPTV attiva. Aggiungi una sorgente in Impostazioni per vedere le tue categorie.",

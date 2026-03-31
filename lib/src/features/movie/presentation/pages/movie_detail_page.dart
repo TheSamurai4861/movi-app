@@ -16,6 +16,7 @@ import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
+import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -58,6 +59,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   bool _isTransitioningFromLoading = true;
   String mediaTitle = '—';
   String yearText = '—';
+  bool _changeVersionFocused = false;
   String durationText = '—';
   String ratingText = '—';
   String overviewText = '';
@@ -402,18 +404,19 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }
 
   Widget _buildHeroTopBar({required bool isWideLayout}) {
+    final l10n = AppLocalizations.of(context)!;
     return MoviDetailHeroTopBar(
       isWideLayout: isWideLayout,
       horizontalPadding: _sectionHorizontalPadding(context),
       leading: MoviDetailHeroActionButton(
         iconAsset: AppAssets.iconBack,
-        semanticLabel: 'Retour',
+        semanticLabel: l10n.semanticsBack,
         onPressed: () => context.pop(),
         isWideLayout: isWideLayout,
       ),
       trailing: MoviDetailHeroActionButton(
         iconAsset: AppAssets.iconMore,
-        semanticLabel: 'Plus d actions',
+        semanticLabel: l10n.semanticsMoreActions,
         onPressed: _showMoreMenu,
         isWideLayout: isWideLayout,
         iconWidth: 25,
@@ -611,8 +614,49 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final playButton = expandPrimary
         ? Expanded(child: primaryButton)
         : SizedBox(width: 320, child: primaryButton);
-    // Bouton "Versions" retiré (sélection manuelle des variantes désactivée dans l'UI).
-    final Widget? manualChoiceButton = null;
+    final changeVersionButton = Semantics(
+      button: true,
+      label: AppLocalizations.of(context)!.actionChangeVersion,
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: () async {
+              await _chooseMovieVersionAndPlay(mediaTitle);
+            },
+            onFocusChange: (focused) {
+              if (_changeVersionFocused == focused) return;
+              setState(() => _changeVersionFocused = focused);
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: AnimatedScale(
+              scale: _changeVersionFocused ? 1.05 : 1,
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                decoration: BoxDecoration(
+                  color: _changeVersionFocused
+                      ? Colors.black.withValues(alpha: 0.45)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                alignment: Alignment.center,
+                child: const MoviAssetIcon(
+                  AppAssets.iconChange,
+                  width: 36,
+                  height: 36,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
 
     return SizedBox(
       height: expandPrimary ? 55 : 48,
@@ -620,11 +664,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
         children: [
           playButton,
-          if (manualChoiceButton != null) ...[
-            const SizedBox(width: 12),
-            manualChoiceButton,
-          ],
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
+          changeVersionButton,
+          const SizedBox(width: 12),
           SizedBox(
             width: 40,
             height: 40,
@@ -676,7 +718,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     try {
       final messenger = ScaffoldMessenger.maybeOf(context);
       messenger?.showSnackBar(
-        const SnackBar(content: Text('Chargement des playlists...')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.snackbarLoadingPlaylists),
+        ),
       );
 
       final playlists = await ref.read(libraryPlaylistsProvider.future);
@@ -715,8 +759,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
       if (availablePlaylists.isEmpty) {
         messenger?.showSnackBar(
-          const SnackBar(
-            content: Text('Aucune playlist disponible. Créez en une'),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.snackbarNoPlaylistsAvailableCreateOne,
+            ),
           ),
         );
         return;
@@ -773,9 +819,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               );
             }
           } catch (e, stackTrace) {
+            if (!mounted || !context.mounted) return;
             logger.log(
               LogLevel.error,
-              'Erreur lors de l\'ajout à la playlist: $e',
+              AppLocalizations.of(context)!.errorAddToPlaylist(e.toString()),
               error: e,
               stackTrace: stackTrace,
               category: 'movie_detail',
@@ -785,7 +832,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               String errorMessage;
               if (e is StateError &&
                   e.message.contains('déjà dans cette playlist')) {
-                errorMessage = 'Ce média est déjà dans cette playlist';
+                errorMessage =
+                    AppLocalizations.of(context)!.errorAlreadyInPlaylist;
               } else {
                 errorMessage = l10n.errorWithMessage(e.toString());
               }
@@ -806,7 +854,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du chargement des playlists: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.errorLoadingPlaylists(e.toString()),
+            ),
           ),
         );
       }
@@ -889,9 +939,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                     if (tmdbId == null || tmdbId <= 0) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
-                              'Signalement indisponible pour ce contenu.',
+                              AppLocalizations.of(context)!
+                                  .errorReportUnavailableForContent,
                             ),
                           ),
                         );
@@ -972,9 +1023,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                   if (tmdbId == null || tmdbId <= 0) {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Signalement indisponible pour ce contenu.',
+                            AppLocalizations.of(context)!
+                                .errorReportUnavailableForContent,
                           ),
                         ),
                       );
@@ -1151,7 +1203,36 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       var source = decision.selectedVariant?.videoSource;
       if (!mounted || !context.mounted) return;
 
+      // Si l'utilisateur a déjà choisi une "version" pour ce film, on la réapplique
+      // même lors d'une reprise, sans repasser par la bottom sheet.
+      try {
+        final userId = ref.read(currentUserIdProvider);
+        final repo = ref
+            .read(slProvider)<PlaybackVariantSelectionLocalRepository>();
+        final pinnedVariantId = await repo.getSelectedVariantId(
+          widget.movieId,
+          ContentType.movie,
+          userId: userId,
+        );
+        if (pinnedVariantId != null) {
+          for (final v in decision.rankedVariants) {
+            if (v.id == pinnedVariantId) {
+              source = v.videoSource;
+              break;
+            }
+          }
+        }
+      } catch (_) {
+        // Best-effort: ignore DB errors.
+      }
+
       if (decision.requiresManualSelection) {
+        // Si une variante mémorisée a été appliquée ci-dessus, on ne demande pas
+        // à nouveau la sélection.
+        if (source != null) {
+          // proceed
+        } else {
+        if (!mounted || !context.mounted) return;
         final selectedVariant = await MoviePlaybackVariantSheet.show(
           context,
           movieTitle: title,
@@ -1160,7 +1241,21 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         if (selectedVariant == null || !mounted || !context.mounted) {
           return;
         }
+        try {
+          final userId = ref.read(currentUserIdProvider);
+          final repo = ref
+              .read(slProvider)<PlaybackVariantSelectionLocalRepository>();
+          await repo.upsertSelectedVariantId(
+            contentId: widget.movieId,
+            contentType: ContentType.movie,
+            variantId: selectedVariant.id,
+            userId: userId,
+          );
+        } catch (_) {
+          // Best-effort persistence: ignore errors.
+        }
         source = selectedVariant.videoSource;
+        }
       }
 
       // ignore: dead_code, unnecessary_null_comparison
@@ -1222,6 +1317,45 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         ),
       );
     }
+  }
+
+  Future<void> _chooseMovieVersionAndPlay(String title) async {
+    final decision = await _loadMoviePlaybackSelection(title);
+    if (!mounted || !context.mounted) return;
+    if (decision.rankedVariants.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.movieNotAvailableInPlaylist,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final selectedVariant = await MoviePlaybackVariantSheet.show(
+      context,
+      movieTitle: title,
+      variants: decision.rankedVariants,
+    );
+    if (selectedVariant == null || !mounted || !context.mounted) return;
+
+    try {
+      final userId = ref.read(currentUserIdProvider);
+      final repo =
+          ref.read(slProvider)<PlaybackVariantSelectionLocalRepository>();
+      await repo.upsertSelectedVariantId(
+        contentId: widget.movieId,
+        contentType: ContentType.movie,
+        variantId: selectedVariant.id,
+        userId: userId,
+      );
+    } catch (_) {
+      // Best-effort persistence: ignore errors.
+    }
+
+    if (!mounted || !context.mounted) return;
+    context.push(AppRouteNames.player, extra: selectedVariant.videoSource);
   }
 
   Future<PlaybackSelectionDecision> _loadMoviePlaybackSelection(

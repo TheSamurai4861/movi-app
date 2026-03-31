@@ -164,6 +164,17 @@ final class LocalDatabaseSchema {
     ''');
 
     await db.execute('''
+      CREATE TABLE playback_variant_selection (
+        content_id TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        variant_id TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        user_id TEXT NOT NULL DEFAULT 'default',
+        PRIMARY KEY (content_id, content_type, user_id)
+      );
+    ''');
+
+    await db.execute('''
       CREATE TABLE playlists (
         playlist_id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -240,6 +251,9 @@ final class LocalDatabaseSchema {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_history_user_type_played ON history(user_id, content_type, last_played_at);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_playback_variant_selection_user_type_updated ON playback_variant_selection(user_id, content_type, updated_at);',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_continue_watching_user_type_updated ON continue_watching(user_id, content_type, updated_at);',

@@ -29,6 +29,7 @@ class AppAssets {
   static const String iconRewind = 'assets/icons/actions/rewind.svg';
   static const String iconResize = 'assets/icons/actions/resize.svg';
   static const String iconPlus = 'assets/icons/actions/plus.svg';
+  static const String iconChange = 'assets/icons/actions/change.svg';
 
   // Media icons
   static const String iconAudio = 'assets/icons/media/audio.svg';

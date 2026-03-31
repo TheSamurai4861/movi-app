@@ -281,7 +281,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
               height: 47,
               child: MoviFocusableAction(
                 onPressed: () => context.pop(),
-                semanticLabel: 'Retour',
+                semanticLabel: AppLocalizations.of(context)!.semanticsBack,
                 builder: (context, state) {
                   return MoviFocusFrame(
                     scale: state.focused ? 1.04 : 1,

@@ -18,6 +18,7 @@ class AppShellTvLayout extends StatelessWidget {
     required this.pageBuilders,
     required this.keepAliveIndices,
     required this.sidebarFocusNode,
+    this.scrollControllerForIndex,
     this.sidebarLogo,
   });
 
@@ -27,6 +28,9 @@ class AppShellTvLayout extends StatelessWidget {
   final List<SidebarDestination> destinations;
   final List<WidgetBuilder> pageBuilders;
   final Set<int> keepAliveIndices;
+
+  /// Optionnel : ScrollController primaire par onglet (pour scroll-to-top).
+  final ScrollController Function(int index)? scrollControllerForIndex;
 
   final FocusNode sidebarFocusNode;
   final Widget? sidebarLogo;
@@ -55,6 +59,7 @@ class AppShellTvLayout extends StatelessWidget {
                 child: ShellContentHost(
                   selectedIndex: selectedIndex,
                   pageBuilders: pageBuilders,
+                  scrollControllerForIndex: scrollControllerForIndex,
                   keepAliveIndices: keepAliveIndices,
                   showEphemeralSwitchLoading: true,
                   loadingLabel: null,

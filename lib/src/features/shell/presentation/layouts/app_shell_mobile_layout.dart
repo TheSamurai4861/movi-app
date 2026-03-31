@@ -45,6 +45,7 @@ class AppShellMobileLayout extends StatelessWidget {
     required this.onNavTap,
     required this.destinations,
     required this.pageBuilders,
+    this.scrollControllerForIndex,
   });
 
   final int selectedIndex;
@@ -55,6 +56,9 @@ class AppShellMobileLayout extends StatelessWidget {
 
   /// Pages du shell sous forme de builders (même ordre que destinations).
   final List<WidgetBuilder> pageBuilders;
+
+  /// Optionnel : ScrollController primaire par onglet (pour scroll-to-top).
+  final ScrollController Function(int index)? scrollControllerForIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +76,7 @@ class AppShellMobileLayout extends StatelessWidget {
               child: ShellContentHost(
                 selectedIndex: selectedIndex,
                 pageBuilders: pageBuilders,
+                scrollControllerForIndex: scrollControllerForIndex,
                 keepAliveIndices: keepAliveIndices,
                 showEphemeralSwitchLoading: true,
                 loadingLabel: null,

@@ -447,7 +447,15 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                ).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.errorGenericWithMessage(
+                        e.toString(),
+                      ),
+                    ),
+                  ),
+                );
               }
             },
             child: Row(
@@ -533,13 +541,25 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Playlist renommée en "$name"')),
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.snackbarPlaylistRenamed(name),
+                    ),
+                  ),
                 );
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                ).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.errorGenericWithMessage(
+                        e.toString(),
+                      ),
+                    ),
+                  ),
+                );
               }
             },
             child: Text(l10n.actionConfirm),
@@ -562,7 +582,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(l10n.deletePlaylist),
         content: Text(
-          'Êtes-vous sûr de vouloir supprimer "${playlist.title}" ?',
+          l10n.dialogConfirmDeletePlaylist(playlist.title),
         ),
         actions: [
           CupertinoDialogAction(
@@ -582,13 +602,25 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Playlist supprimée')),
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.snackbarPlaylistDeleted,
+                    ),
+                  ),
                 );
               } catch (e) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                ).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.errorGenericWithMessage(
+                        e.toString(),
+                      ),
+                    ),
+                  ),
+                );
               }
             },
             child: Text(l10n.deletePlaylist),
@@ -809,7 +841,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(
                   child: Text(
-                    'Erreur: $error',
+                    AppLocalizations.of(context)!.errorGenericWithMessage(
+                      error.toString(),
+                    ),
                     style: TextStyle(color: theme.colorScheme.error),
                     textAlign: TextAlign.center,
                   ),
@@ -823,7 +857,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Text(
-                            'Aucun résultat pour "$searchQuery"',
+                            AppLocalizations.of(context)!.libraryNoResultsForQuery(
+                              searchQuery,
+                            ),
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),

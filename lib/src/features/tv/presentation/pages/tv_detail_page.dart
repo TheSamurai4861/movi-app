@@ -73,6 +73,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   String overviewText = '';
   List<MoviPerson> cast = const [];
   List<SeasonViewModel> seasons = const [];
+  bool _changeVersionFocused = false;
   Timer? _autoRefreshTimer;
   Timer? _seasonsCheckTimer;
   int _retryCount = 0;
@@ -739,6 +740,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   Widget _buildHeroTopBar({required bool isWideLayout}) {
+    final l10n = AppLocalizations.of(context)!;
     return MoviDetailHeroTopBar(
       isWideLayout: isWideLayout,
       horizontalPadding: _sectionHorizontalPadding(context),
@@ -748,7 +750,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         child: MoviDetailHeroActionButton(
           focusNode: _backFocusNode,
           iconAsset: AppAssets.iconBack,
-          semanticLabel: 'Retour',
+          semanticLabel: l10n.semanticsBack,
           onPressed: () => context.pop(),
           isWideLayout: isWideLayout,
         ),
@@ -764,7 +766,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         child: MoviDetailHeroActionButton(
           focusNode: _moreFocusNode,
           iconAsset: AppAssets.iconMore,
-          semanticLabel: 'Plus d actions',
+          semanticLabel: l10n.semanticsMoreActions,
           onPressed: _showMoreMenu,
           isWideLayout: isWideLayout,
           iconWidth: 25,
@@ -994,7 +996,51 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         mainAxisSize: expandPrimary ? MainAxisSize.max : MainAxisSize.min,
         children: [
           playButton,
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
+          Semantics(
+            button: true,
+            label: AppLocalizations.of(context)!.actionChangeVersion,
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () async {
+                    await _chooseSeriesVersion(mediaTitle);
+                  },
+                  onFocusChange: (focused) {
+                    if (_changeVersionFocused == focused) return;
+                    setState(() => _changeVersionFocused = focused);
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: AnimatedScale(
+                    scale: _changeVersionFocused ? 1.05 : 1,
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      decoration: BoxDecoration(
+                        color: _changeVersionFocused
+                            ? Colors.black.withValues(alpha: 0.45)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      alignment: Alignment.center,
+                      child: const MoviAssetIcon(
+                        AppAssets.iconChange,
+                        width: 36,
+                        height: 36,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
           SizedBox(
             width: 40,
             height: 40,
@@ -1743,7 +1789,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     if (seasonsList.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chargement des épisodes en cours...')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.snackbarLoadingEpisodes),
+        ),
       );
       return;
     }
@@ -1755,7 +1803,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     if (firstSeason.isLoadingEpisodes || firstSeason.episodes.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Chargement des épisodes en cours...')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.snackbarLoadingEpisodes),
+        ),
       );
       return;
     }
@@ -1780,6 +1830,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final locator = ref.read(slProvider);
       final resolver = locator<EpisodePlaybackVariantResolver>();
       final logger = locator<AppLogger>();
+      final variantSelectionRepo =
+          locator<PlaybackVariantSelectionLocalRepository>();
       final vmAsync = ref.read(
         tvDetailProgressiveControllerProvider(widget.seriesId),
       );
@@ -1802,9 +1854,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('\u00c9pisode non disponible dans la playlist'),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.snackbarEpisodeUnavailableInPlaylist,
           ),
+        ),
         );
         return;
       }
@@ -1816,7 +1870,28 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final posterUri = vm?.poster;
 
       var selectedVariant = variants.first;
-      if (variants.length > 1) {
+      String? pinnedVariantId;
+      try {
+        pinnedVariantId = await variantSelectionRepo.getSelectedVariantId(
+          widget.seriesId,
+          ContentType.series,
+        );
+      } catch (_) {
+        // Best-effort: ignore DB errors.
+      }
+
+      if (pinnedVariantId != null) {
+        for (final v in variants) {
+          if (v.id == pinnedVariantId) {
+            selectedVariant = v;
+            break;
+          }
+        }
+      }
+
+      final pinnedVariantFound =
+          pinnedVariantId != null && selectedVariant.id == pinnedVariantId;
+      if (variants.length > 1 && !pinnedVariantFound) {
         final manual = await EpisodePlaybackVariantSheet.show(
           // ignore: use_build_context_synchronously
           context,
@@ -1825,6 +1900,15 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         );
         if (manual == null || !mounted || !context.mounted) return;
         selectedVariant = manual;
+        try {
+          await variantSelectionRepo.upsertSelectedVariantId(
+            contentId: widget.seriesId,
+            contentType: ContentType.series,
+            variantId: selectedVariant.id,
+          );
+        } catch (_) {
+          // Best-effort: ignore DB errors.
+        }
       }
 
       Duration? resumePosition;
@@ -1859,7 +1943,106 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.snackbarGenericError(e.toString()),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _chooseSeriesVersion(String mediaTitle) async {
+    try {
+      final locator = ref.read(slProvider);
+      final resolver = locator<EpisodePlaybackVariantResolver>();
+      final variantSelectionRepo =
+          locator<PlaybackVariantSelectionLocalRepository>();
+      final vmAsync = ref.read(
+        tvDetailProgressiveControllerProvider(widget.seriesId),
+      );
+      final vm = vmAsync.value;
+      if (vm == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.snackbarLoading)),
+        );
+        return;
+      }
+
+      // On choisit une référence stable (épisode de reprise si dispo, sinon S1E1).
+      final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
+      final historyEntry = await historyRepo.getEntry(
+        widget.seriesId,
+        ContentType.series,
+      );
+
+      int seasonNumber = 1;
+      int episodeNumber = 1;
+      if (historyEntry?.season != null && historyEntry?.episode != null) {
+        seasonNumber = historyEntry!.season!;
+        episodeNumber = historyEntry.episode!;
+      } else if (vm.seasons.isNotEmpty) {
+        final s = vm.seasons.first;
+        seasonNumber = s.seasonNumber;
+        if (s.episodes.isNotEmpty) {
+          episodeNumber = s.episodes.first.episodeNumber;
+        }
+      }
+
+      final seasonSnapshots = _buildEpisodePlaybackSeasonSnapshots(vm.seasons);
+      final variants = await resolver.resolveVariants(
+        seriesId: widget.seriesId,
+        seasonNumber: seasonNumber,
+        episodeNumber: episodeNumber,
+        seasonSnapshots: seasonSnapshots,
+        candidateSourceIds: ref
+            .read(asp.appStateControllerProvider)
+            .preferredIptvSourceIds,
+      );
+      if (!mounted) return;
+      if (variants.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.snackbarNoVersionAvailable,
+            ),
+          ),
+        );
+        return;
+      }
+
+      final episodeTitle =
+          '$mediaTitle - S${seasonNumber.toString().padLeft(2, '0')}E${episodeNumber.toString().padLeft(2, '0')}';
+      final manual = await EpisodePlaybackVariantSheet.show(
+        context,
+        episodeTitle: episodeTitle,
+        variants: variants,
+      );
+      if (manual == null || !mounted || !context.mounted) return;
+
+      await variantSelectionRepo.upsertSelectedVariantId(
+        contentId: widget.seriesId,
+        contentType: ContentType.series,
+        variantId: manual.id,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.snackbarVersionSaved),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.snackbarGenericError(e.toString()),
+          ),
+        ),
+      );
     }
   }
 
@@ -1941,7 +2124,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      ).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.snackbarGenericError(e.toString()),
+          ),
+        ),
+      );
     }
   }
 
@@ -1953,7 +2142,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     try {
       final messenger = ScaffoldMessenger.maybeOf(context);
       messenger?.showSnackBar(
-        const SnackBar(content: Text('Chargement des playlists...')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.snackbarLoadingPlaylists),
+        ),
       );
 
       final playlists = await ref.read(libraryPlaylistsProvider.future);
@@ -2334,7 +2525,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.snackbarGenericError(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -2368,7 +2565,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.snackbarGenericError(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }

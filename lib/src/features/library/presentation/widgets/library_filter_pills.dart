@@ -24,7 +24,8 @@ class LibraryFilterPills extends ConsumerWidget {
         if (activeFilter != null) ...[
           MoviFocusableAction(
             onPressed: () => onFilterChanged(null),
-            semanticLabel: 'Supprimer le filtre',
+            semanticLabel:
+                AppLocalizations.of(context)!.libraryClearFilterSemanticLabel,
             builder: (context, state) {
               return MoviFocusFrame(
                 scale: state.focused ? 1.04 : 1,

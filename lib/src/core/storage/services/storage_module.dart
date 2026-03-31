@@ -21,7 +21,7 @@ import 'package:movi/src/shared/domain/services/xtream_lookup.dart';
 /// In tests, prefer overriding repositories with in-memory fakes before calling
 /// [register] to avoid touching the on-disk SQLite database.
 class StorageModule {
-  static const int _databaseVersion = 18;
+  static const int _databaseVersion = 19;
 
   static Future<void> register({bool? allowInMemoryFallback}) async {
     final stopwatch = Stopwatch()..start();
@@ -205,6 +205,13 @@ class StorageModule {
         sl.isRegistered<Database>()) {
       sl.registerLazySingleton<IptvLocalRepository>(
         () => IptvLocalRepository(sl<Database>()),
+      );
+    }
+
+    if (!sl.isRegistered<PlaybackVariantSelectionLocalRepository>() &&
+        sl.isRegistered<Database>()) {
+      sl.registerLazySingleton<PlaybackVariantSelectionLocalRepository>(
+        () => PlaybackVariantSelectionLocalRepository(sl<Database>()),
       );
     }
 

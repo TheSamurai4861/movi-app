@@ -7,6 +7,7 @@ import 'package:movi/src/core/storage/database/sqlite_database_paths.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
 
 /// SQLite singleton (sqflite / sqflite_ffi) avec migrations.
+/// - Version 19 (mémorisation de la variante/“version” choisie par contenu)
 /// - Version 18 (ajout des profils locaux pour boot local-first)
 /// - Version 17 (normalisation IPTV: iptv_playlists_v2 + iptv_playlist_items_v2)
 /// - Version 11 (ajout colonne year à playlist_items pour stocker l'année des médias)
@@ -39,11 +40,11 @@ class LocalDatabase {
     final path = await LocalDatabasePaths.resolvePath();
 
     debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: opening database (version 18)',
+      '[DEBUG][Startup] LocalDatabase.instance: opening database (version 19)',
     );
     _instance = await openDatabase(
       path,
-      version: 18,
+      version: 19,
       onConfigure: (db) async {
         debugPrint('[DEBUG][Startup] LocalDatabase.instance: onConfigure');
         await LocalDatabaseMaintenance.onConfigure(db);

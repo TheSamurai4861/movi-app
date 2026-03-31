@@ -22,6 +22,7 @@ import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_preferences.dart';
+import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/movie/domain/usecases/build_movie_video_source.dart';
 import 'package:movi/src/features/movie/domain/usecases/resolve_movie_playback_selection.dart';
@@ -424,8 +425,15 @@ final moviePlaybackSelectionProvider =
       final userId = ref.watch(currentUserIdProvider);
       final appState = ref.read(appStateControllerProvider);
       final candidateSourceIds = appState.activeIptvSourceIds;
+      final variantSelectionRepo =
+          ref.watch(slProvider)<PlaybackVariantSelectionLocalRepository>();
+      final pinnedVariantId = await variantSelectionRepo.getSelectedVariantId(
+        args.movieId,
+        ContentType.movie,
+        userId: userId,
+      );
 
-      return await usecase(
+      final decision = await usecase(
         movieId: args.movieId,
         title: args.title,
         releaseYear: args.releaseYear,
@@ -444,6 +452,25 @@ final moviePlaybackSelectionProvider =
               ?.minimumQualityRank,
         ),
         context: const PlaybackSelectionContext(contentType: ContentType.movie),
+      );
+
+      if (pinnedVariantId == null || decision.rankedVariants.isEmpty) {
+        return decision;
+      }
+      PlaybackVariant? match;
+      for (final v in decision.rankedVariants) {
+        if (v.id == pinnedVariantId) {
+          match = v;
+          break;
+        }
+      }
+      if (match == null) return decision;
+
+      return PlaybackSelectionDecision(
+        disposition: PlaybackSelectionDisposition.autoPlay,
+        reason: PlaybackSelectionReason.deterministicFallback,
+        rankedVariants: decision.rankedVariants,
+        selectedVariant: match,
       );
     });
 

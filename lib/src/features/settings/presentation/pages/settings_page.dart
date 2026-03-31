@@ -51,6 +51,7 @@ import 'package:movi/src/features/shell/presentation/providers/shell_providers.d
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/movi_premium_settings_tile.dart';
 import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
+import 'package:movi/src/features/settings/presentation/widgets/export_diagnostics_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// SettingsPage (content-only): pas de Scaffold ici.
@@ -1532,6 +1533,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     _buildSettingItem(
                       title: 'À propos',
                       onTap: () => context.push(AppRoutePaths.about),
+                    ),
+                  ]),
+
+                  const SizedBox(height: _sectionGap),
+
+                  // --- Aide & diagnostic
+                  Text(
+                    l10n.settingsHelpDiagnosticsSection,
+                    style:
+                        Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                  ),
+                  const SizedBox(height: _sectionTitleGap),
+                  _buildSettingsGroup([
+                    _buildSettingItem(
+                      title: l10n.settingsExportErrorLogs,
+                      onTap: () => _guard(
+                        () => ExportDiagnosticsSheet.show(context, ref),
+                      ),
                     ),
                   ]),
 

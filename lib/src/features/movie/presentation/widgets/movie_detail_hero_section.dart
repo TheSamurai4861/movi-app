@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_detail_hero.dart';
 import 'package:movi/src/core/widgets/movi_hero_gradients.dart';
@@ -67,6 +68,7 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final overlaySpec = MoviHeroOverlaySpec.detailMobile.copyWith(
       topHeightRatio: 100 / widget.height,
       bottomHeightRatio: widget.overlayHeight / widget.height,
@@ -93,7 +95,7 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
             child: MoviDetailHeroActionButton(
               focusNode: _backFocusNode,
               iconAsset: AppAssets.iconBack,
-              semanticLabel: 'Retour',
+              semanticLabel: l10n.semanticsBack,
               onPressed: widget.onBack,
               isWideLayout: true,
               padding: buttonPadding,
@@ -110,7 +112,7 @@ class _MovieDetailHeroSectionState extends State<MovieDetailHeroSection> {
             child: MoviDetailHeroActionButton(
               focusNode: _moreFocusNode,
               iconAsset: AppAssets.iconMore,
-              semanticLabel: 'Plus d actions',
+              semanticLabel: l10n.semanticsMoreActions,
               onPressed: widget.onMore,
               isWideLayout: true,
               iconWidth: 25,

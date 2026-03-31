@@ -61,8 +61,10 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
     if (_addedMediaIds.contains(reference.id)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ce média est déjà dans la playlist'),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.snackbarMediaAlreadyInPlaylist,
+            ),
             duration: Duration(seconds: 2),
           ),
         );
@@ -89,8 +91,8 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ajouté à la playlist'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.snackbarAddedToPlaylist),
             duration: Duration(seconds: 2),
           ),
         );
@@ -99,7 +101,13 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorGenericWithMessage(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -126,6 +134,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(searchControllerProvider);
     final ctrl = ref.read(searchControllerProvider.notifier);
 
@@ -141,7 +150,7 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
                 children: [
                   Expanded(
                     child: Text(
-                      'Ajouter des médias',
+                      l10n.addMediaTitle,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
@@ -228,10 +237,11 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
   }
 
   Widget _buildResults(BuildContext context, SearchState state) {
+    final l10n = AppLocalizations.of(context)!;
     if (state.query.trim().length < 3) {
       return Center(
         child: Text(
-          'Tapez au moins 3 caractères pour rechercher',
+          l10n.searchMinCharsHint,
           style:
               Theme.of(
                 context,
@@ -362,9 +372,9 @@ class _MediaCardWithBadge extends StatelessWidget {
                 color: Colors.green,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Ajouté',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.badgeAdded,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

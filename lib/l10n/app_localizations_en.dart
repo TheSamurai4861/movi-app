@@ -159,6 +159,196 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionRetry => 'Retry';
 
   @override
+  String get settingsHelpDiagnosticsSection => 'Help & diagnostics';
+
+  @override
+  String get settingsExportErrorLogs => 'Export error logs';
+
+  @override
+  String get diagnosticsExportTitle => 'Export error logs';
+
+  @override
+  String get diagnosticsExportDescription =>
+      'The diagnostic only includes recent WARN/ERROR logs and hashed account/profile identifiers (if enabled). No key/token should appear.';
+
+  @override
+  String get diagnosticsIncludeHashedIdsTitle =>
+      'Include account/profile identifiers (hashed)';
+
+  @override
+  String get diagnosticsIncludeHashedIdsSubtitle =>
+      'Helps correlate a bug without exposing the raw ID.';
+
+  @override
+  String get diagnosticsCopiedClipboard => 'Diagnostic copied to clipboard.';
+
+  @override
+  String diagnosticsSavedFile(String fileName) {
+    return 'Diagnostic saved: $fileName';
+  }
+
+  @override
+  String get diagnosticsActionCopy => 'Copy';
+
+  @override
+  String get diagnosticsActionSave => 'Save';
+
+  @override
+  String get actionChangeVersion => 'Change version';
+
+  @override
+  String get semanticsBack => 'Back';
+
+  @override
+  String get semanticsMoreActions => 'More actions';
+
+  @override
+  String get snackbarLoadingPlaylists => 'Loading playlists…';
+
+  @override
+  String get snackbarNoPlaylistsAvailableCreateOne =>
+      'No playlist available. Create one.';
+
+  @override
+  String errorAddToPlaylist(String error) {
+    return 'Error adding to playlist: $error';
+  }
+
+  @override
+  String get errorAlreadyInPlaylist => 'This media is already in this playlist';
+
+  @override
+  String errorLoadingPlaylists(String message) {
+    return 'Error loading playlists: $message';
+  }
+
+  @override
+  String get errorReportUnavailableForContent =>
+      'Reporting is unavailable for this content.';
+
+  @override
+  String get snackbarLoadingEpisodes => 'Episodes are loading…';
+
+  @override
+  String get snackbarEpisodeUnavailableInPlaylist =>
+      'Episode unavailable in playlist';
+
+  @override
+  String snackbarGenericError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get snackbarLoading => 'Loading…';
+
+  @override
+  String get snackbarNoVersionAvailable => 'No version available';
+
+  @override
+  String get snackbarVersionSaved => 'Version saved';
+
+  @override
+  String playbackVariantFallbackLabel(int index) {
+    return 'Version $index';
+  }
+
+  @override
+  String get actionReadMore => 'Read more';
+
+  @override
+  String get actionShowLess => 'Show less';
+
+  @override
+  String get actionViewPage => 'View page';
+
+  @override
+  String get semanticsSeeSagaPage => 'See saga page';
+
+  @override
+  String get libraryTypeSaga => 'Saga';
+
+  @override
+  String get libraryTypeInProgress => 'In progress';
+
+  @override
+  String get libraryTypeFavoriteMovies => 'Favorite movies';
+
+  @override
+  String get libraryTypeFavoriteSeries => 'Favorite shows';
+
+  @override
+  String get libraryTypeHistory => 'History';
+
+  @override
+  String get libraryTypePlaylist => 'Playlist';
+
+  @override
+  String get libraryTypeArtist => 'Artist';
+
+  @override
+  String libraryItemCount(int count) {
+    return '$count item';
+  }
+
+  @override
+  String snackbarPlaylistRenamed(String name) {
+    return 'Playlist renamed to \"$name\"';
+  }
+
+  @override
+  String get snackbarPlaylistDeleted => 'Playlist deleted';
+
+  @override
+  String dialogConfirmDeletePlaylist(String title) {
+    return 'Are you sure you want to delete \"$title\"?';
+  }
+
+  @override
+  String libraryNoResultsForQuery(String query) {
+    return 'No results for \"$query\"';
+  }
+
+  @override
+  String errorGenericWithMessage(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get snackbarMediaAlreadyInPlaylist =>
+      'This media is already in the playlist';
+
+  @override
+  String get snackbarAddedToPlaylist => 'Added to the playlist';
+
+  @override
+  String get addMediaTitle => 'Add media';
+
+  @override
+  String get searchMinCharsHint => 'Type at least 3 characters to search';
+
+  @override
+  String get badgeAdded => 'Added';
+
+  @override
+  String get snackbarNotAvailableOnSource => 'Not available on this source';
+
+  @override
+  String get errorLoadingTitle => 'Loading error';
+
+  @override
+  String errorLoadingWithMessage(String error) {
+    return 'Loading error: $error';
+  }
+
+  @override
+  String errorLoadingPlaylistsWithMessage(String error) {
+    return 'Error loading playlists: $error';
+  }
+
+  @override
+  String get libraryClearFilterSemanticLabel => 'Clear filter';
+
+  @override
   String get homeErrorSwipeToRetry => 'An error occurred. Swipe down to retry.';
 
   @override
@@ -508,11 +698,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryWatchHistory => 'Watch History';
 
   @override
-  String libraryItemCount(int count) {
-    return '$count item';
-  }
-
-  @override
   String libraryItemCountPlural(int count) {
     return '$count items';
   }
@@ -683,11 +868,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get movieNotAvailableInPlaylist =>
       'Movie not available in the playlist';
-
-  @override
-  String errorLoadingPlaylists(String message) {
-    return 'Error loading playlists: $message';
-  }
 
   @override
   String errorPlaybackFailed(String message) {

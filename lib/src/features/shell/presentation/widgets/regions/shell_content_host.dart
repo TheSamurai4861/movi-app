@@ -18,6 +18,7 @@ class ShellContentHost extends StatefulWidget {
     super.key,
     required this.selectedIndex,
     required this.pageBuilders,
+    this.scrollControllerForIndex,
     this.keepAliveIndices = const {0, 1}, // par défaut : Home + Search
     this.showEphemeralSwitchLoading = true,
     this.loadingLabel,
@@ -28,6 +29,12 @@ class ShellContentHost extends StatefulWidget {
 
   /// Builders des pages, dans le même ordre que les destinations du Shell.
   final List<WidgetBuilder> pageBuilders;
+
+  /// Optionnel : fournit un ScrollController "primaire" par index d'onglet.
+  ///
+  /// Permet au parent (Shell) de déclencher un scroll-to-top sur re-sélection
+  /// de l'onglet courant, sans avoir à coupler chaque page à un contrat spécifique.
+  final ScrollController Function(int index)? scrollControllerForIndex;
 
   /// Indices des onglets qui doivent conserver leur état (keep alive).
   final Set<int> keepAliveIndices;
@@ -162,7 +169,30 @@ class _ShellContentHostState extends State<ShellContentHost> {
   Widget _getKeepAlivePage(int index) {
     return _keepAliveCache.putIfAbsent(
       index,
-      () => Builder(builder: widget.pageBuilders[index]),
+      () => _wrapWithPrimaryScrollController(
+        index,
+        Builder(builder: widget.pageBuilders[index]),
+      ),
+    );
+  }
+
+  Widget _wrapWithPrimaryScrollController(int index, Widget child) {
+    final controller = widget.scrollControllerForIndex?.call(index);
+    if (controller == null) return child;
+    // Sur desktop, l'héritage du PrimaryScrollController n'est pas activé
+    // par défaut. On l'active explicitement pour Windows/macOS/Linux afin que
+    // ListView/CustomScrollView "sans controller" utilisent bien ce controller.
+    return PrimaryScrollController(
+      controller: controller,
+      automaticallyInheritForPlatforms: const <TargetPlatform>{
+        TargetPlatform.android,
+        TargetPlatform.iOS,
+        TargetPlatform.fuchsia,
+        TargetPlatform.linux,
+        TargetPlatform.macOS,
+        TargetPlatform.windows,
+      },
+      child: child,
     );
   }
 
@@ -201,7 +231,10 @@ class _ShellContentHostState extends State<ShellContentHost> {
         container: effectiveContainer,
         child: KeyedSubtree(
           key: ValueKey('ephemeral-$selected-$_ephemeralGeneration'),
-          child: Builder(builder: widget.pageBuilders[selected]),
+          child: _wrapWithPrimaryScrollController(
+            selected,
+            Builder(builder: widget.pageBuilders[selected]),
+          ),
         ),
       );
     }

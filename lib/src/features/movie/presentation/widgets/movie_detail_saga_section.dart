@@ -60,7 +60,8 @@ class MovieDetailSagaSection extends ConsumerWidget {
                       ref,
                       sagaId: sagaLink.id.value,
                     ),
-                    semanticLabel: 'Voir la page de la saga',
+                    semanticLabel:
+                        AppLocalizations.of(context)!.semanticsSeeSagaPage,
                     builder: (context, state) {
                       return MoviFocusFrame(
                         scale: state.focused ? 1.03 : 1,
@@ -75,7 +76,7 @@ class MovieDetailSagaSection extends ConsumerWidget {
                               ).colorScheme.primary.withValues(alpha: 0.12)
                             : Colors.transparent,
                         child: Text(
-                          'Voir la page',
+                          AppLocalizations.of(context)!.actionViewPage,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,

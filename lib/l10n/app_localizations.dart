@@ -398,6 +398,324 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get actionRetry;
 
+  /// No description provided for @settingsHelpDiagnosticsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Help & diagnostics'**
+  String get settingsHelpDiagnosticsSection;
+
+  /// No description provided for @settingsExportErrorLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Export error logs'**
+  String get settingsExportErrorLogs;
+
+  /// No description provided for @diagnosticsExportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export error logs'**
+  String get diagnosticsExportTitle;
+
+  /// No description provided for @diagnosticsExportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The diagnostic only includes recent WARN/ERROR logs and hashed account/profile identifiers (if enabled). No key/token should appear.'**
+  String get diagnosticsExportDescription;
+
+  /// No description provided for @diagnosticsIncludeHashedIdsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Include account/profile identifiers (hashed)'**
+  String get diagnosticsIncludeHashedIdsTitle;
+
+  /// No description provided for @diagnosticsIncludeHashedIdsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps correlate a bug without exposing the raw ID.'**
+  String get diagnosticsIncludeHashedIdsSubtitle;
+
+  /// No description provided for @diagnosticsCopiedClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic copied to clipboard.'**
+  String get diagnosticsCopiedClipboard;
+
+  /// No description provided for @diagnosticsSavedFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic saved: {fileName}'**
+  String diagnosticsSavedFile(String fileName);
+
+  /// No description provided for @diagnosticsActionCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get diagnosticsActionCopy;
+
+  /// No description provided for @diagnosticsActionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get diagnosticsActionSave;
+
+  /// No description provided for @actionChangeVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Change version'**
+  String get actionChangeVersion;
+
+  /// No description provided for @semanticsBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get semanticsBack;
+
+  /// No description provided for @semanticsMoreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get semanticsMoreActions;
+
+  /// No description provided for @snackbarLoadingPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading playlists…'**
+  String get snackbarLoadingPlaylists;
+
+  /// No description provided for @snackbarNoPlaylistsAvailableCreateOne.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlist available. Create one.'**
+  String get snackbarNoPlaylistsAvailableCreateOne;
+
+  /// No description provided for @errorAddToPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Error adding to playlist: {error}'**
+  String errorAddToPlaylist(String error);
+
+  /// No description provided for @errorAlreadyInPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'This media is already in this playlist'**
+  String get errorAlreadyInPlaylist;
+
+  /// No description provided for @errorLoadingPlaylists.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading playlists: {message}'**
+  String errorLoadingPlaylists(String message);
+
+  /// No description provided for @errorReportUnavailableForContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Reporting is unavailable for this content.'**
+  String get errorReportUnavailableForContent;
+
+  /// No description provided for @snackbarLoadingEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'Episodes are loading…'**
+  String get snackbarLoadingEpisodes;
+
+  /// No description provided for @snackbarEpisodeUnavailableInPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode unavailable in playlist'**
+  String get snackbarEpisodeUnavailableInPlaylist;
+
+  /// No description provided for @snackbarGenericError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String snackbarGenericError(String error);
+
+  /// No description provided for @snackbarLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get snackbarLoading;
+
+  /// No description provided for @snackbarNoVersionAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No version available'**
+  String get snackbarNoVersionAvailable;
+
+  /// No description provided for @snackbarVersionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Version saved'**
+  String get snackbarVersionSaved;
+
+  /// No description provided for @playbackVariantFallbackLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {index}'**
+  String playbackVariantFallbackLabel(int index);
+
+  /// No description provided for @actionReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get actionReadMore;
+
+  /// No description provided for @actionShowLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get actionShowLess;
+
+  /// No description provided for @actionViewPage.
+  ///
+  /// In en, this message translates to:
+  /// **'View page'**
+  String get actionViewPage;
+
+  /// No description provided for @semanticsSeeSagaPage.
+  ///
+  /// In en, this message translates to:
+  /// **'See saga page'**
+  String get semanticsSeeSagaPage;
+
+  /// No description provided for @libraryTypeSaga.
+  ///
+  /// In en, this message translates to:
+  /// **'Saga'**
+  String get libraryTypeSaga;
+
+  /// No description provided for @libraryTypeInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get libraryTypeInProgress;
+
+  /// No description provided for @libraryTypeFavoriteMovies.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite movies'**
+  String get libraryTypeFavoriteMovies;
+
+  /// No description provided for @libraryTypeFavoriteSeries.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite shows'**
+  String get libraryTypeFavoriteSeries;
+
+  /// No description provided for @libraryTypeHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get libraryTypeHistory;
+
+  /// No description provided for @libraryTypePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist'**
+  String get libraryTypePlaylist;
+
+  /// No description provided for @libraryTypeArtist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get libraryTypeArtist;
+
+  /// No description provided for @libraryItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} item'**
+  String libraryItemCount(int count);
+
+  /// No description provided for @snackbarPlaylistRenamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist renamed to \"{name}\"'**
+  String snackbarPlaylistRenamed(String name);
+
+  /// No description provided for @snackbarPlaylistDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist deleted'**
+  String get snackbarPlaylistDeleted;
+
+  /// No description provided for @dialogConfirmDeletePlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{title}\"?'**
+  String dialogConfirmDeletePlaylist(String title);
+
+  /// No description provided for @libraryNoResultsForQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'No results for \"{query}\"'**
+  String libraryNoResultsForQuery(String query);
+
+  /// No description provided for @errorGenericWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String errorGenericWithMessage(String error);
+
+  /// No description provided for @snackbarMediaAlreadyInPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'This media is already in the playlist'**
+  String get snackbarMediaAlreadyInPlaylist;
+
+  /// No description provided for @snackbarAddedToPlaylist.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to the playlist'**
+  String get snackbarAddedToPlaylist;
+
+  /// No description provided for @addMediaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add media'**
+  String get addMediaTitle;
+
+  /// No description provided for @searchMinCharsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type at least 3 characters to search'**
+  String get searchMinCharsHint;
+
+  /// No description provided for @badgeAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added'**
+  String get badgeAdded;
+
+  /// No description provided for @snackbarNotAvailableOnSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available on this source'**
+  String get snackbarNotAvailableOnSource;
+
+  /// No description provided for @errorLoadingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading error'**
+  String get errorLoadingTitle;
+
+  /// No description provided for @errorLoadingWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading error: {error}'**
+  String errorLoadingWithMessage(String error);
+
+  /// No description provided for @errorLoadingPlaylistsWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading playlists: {error}'**
+  String errorLoadingPlaylistsWithMessage(String error);
+
+  /// No description provided for @libraryClearFilterSemanticLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear filter'**
+  String get libraryClearFilterSemanticLabel;
+
   /// No description provided for @homeErrorSwipeToRetry.
   ///
   /// In en, this message translates to:
@@ -1070,12 +1388,6 @@ abstract class AppLocalizations {
   /// **'Watch History'**
   String get libraryWatchHistory;
 
-  /// No description provided for @libraryItemCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} item'**
-  String libraryItemCount(int count);
-
   /// No description provided for @libraryItemCountPlural.
   ///
   /// In en, this message translates to:
@@ -1369,12 +1681,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Movie not available in the playlist'**
   String get movieNotAvailableInPlaylist;
-
-  /// No description provided for @errorLoadingPlaylists.
-  ///
-  /// In en, this message translates to:
-  /// **'Error loading playlists: {message}'**
-  String errorLoadingPlaylists(String message);
 
   /// No description provided for @errorPlaybackFailed.
   ///

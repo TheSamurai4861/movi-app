@@ -209,6 +209,21 @@ final class LocalDatabaseMigrations {
         'CREATE INDEX IF NOT EXISTS idx_local_profiles_account_created ON local_profiles(account_id, created_at);',
       );
     }
+    if (oldVersion < 19) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS playback_variant_selection (
+          content_id TEXT NOT NULL,
+          content_type TEXT NOT NULL,
+          variant_id TEXT NOT NULL,
+          updated_at INTEGER NOT NULL,
+          user_id TEXT NOT NULL DEFAULT 'default',
+          PRIMARY KEY (content_id, content_type, user_id)
+        );
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_playback_variant_selection_user_type_updated ON playback_variant_selection(user_id, content_type, updated_at);',
+      );
+    }
     if (oldVersion < 9) {
       await db.execute('''
         CREATE TABLE iptv_episodes (

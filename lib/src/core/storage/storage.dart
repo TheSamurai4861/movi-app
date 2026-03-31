@@ -9,6 +9,7 @@ export 'repositories/playlist_local_repository.dart';
 export 'repositories/watchlist_local_repository.dart';
 export 'repositories/continue_watching_local_repository.dart';
 export 'repositories/history_local_repository.dart';
+export 'repositories/playback_variant_selection_local_repository.dart';
 export 'repositories/sync_outbox_repository.dart';
 export 'services/cache_policy.dart';
 export 'storage_failures.dart';

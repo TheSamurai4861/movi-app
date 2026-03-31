@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 
@@ -32,6 +33,7 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final titleStyle = theme.textTheme.titleLarge;
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -53,7 +55,7 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final variant = variants[index];
-                final label = _buildVariantTitle(variant, index);
+                final label = _buildVariantTitle(variant, index, l10n);
                 return MoviFocusableAction(
                   autofocus: index == 0,
                   semanticLabel: label,
@@ -93,7 +95,11 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
     );
   }
 
-  String _buildVariantTitle(PlaybackVariant variant, int index) {
+  String _buildVariantTitle(
+    PlaybackVariant variant,
+    int index,
+    AppLocalizations l10n,
+  ) {
     final rawTitle = variant.rawTitle.trim();
     if (rawTitle.isNotEmpty) {
       return rawTitle;
@@ -104,7 +110,7 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
       return sourceLabel;
     }
 
-    return 'Version ${index + 1}';
+    return l10n.playbackVariantFallbackLabel(index + 1);
   }
 }
 

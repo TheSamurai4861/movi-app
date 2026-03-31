@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 class MovieDetailSynopsisSection extends StatefulWidget {
   const MovieDetailSynopsisSection({super.key, required this.text});
@@ -15,6 +16,7 @@ class _MovieDetailSynopsisSectionState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = MediaQuery.of(context).size.width;
@@ -75,7 +77,7 @@ class _MovieDetailSynopsisSectionState
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _expanded ? 'Réduire' : 'Lire plus',
+                        _expanded ? l10n.actionShowLess : l10n.actionReadMore,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,

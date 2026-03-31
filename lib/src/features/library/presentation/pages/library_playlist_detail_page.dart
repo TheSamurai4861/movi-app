@@ -337,7 +337,15 @@ class _LibraryPlaylistDetailPageState
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                  ).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.errorGenericWithMessage(e.toString()),
+                      ),
+                    ),
+                  );
                 }
               }
             },
@@ -391,7 +399,15 @@ class _LibraryPlaylistDetailPageState
                 if (context.mounted) {
                   ScaffoldMessenger.of(
                     context,
-                  ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+                  ).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.errorGenericWithMessage(e.toString()),
+                      ),
+                    ),
+                  );
                 }
               }
             },
@@ -419,7 +435,11 @@ class _LibraryPlaylistDetailPageState
     if (!context.mounted) return;
     if (!resolution.isAvailable || resolution.resolvedContentId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pas disponible sur cette source')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.snackbarNotAvailableOnSource,
+          ),
+        ),
       );
       return;
     }
@@ -478,7 +498,9 @@ class _LibraryPlaylistDetailPageState
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Erreur: $error',
+                          AppLocalizations.of(
+                            context,
+                          )!.errorGenericWithMessage(error.toString()),
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
@@ -585,7 +607,7 @@ class _LibraryPlaylistDetailPageState
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Erreur de chargement',
+                          AppLocalizations.of(context)!.errorLoadingTitle,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(color: Colors.white),
                           textAlign: TextAlign.center,
@@ -1027,7 +1049,13 @@ class _LibraryPlaylistDetailPageState
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorGenericWithMessage(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -1132,14 +1160,22 @@ class _LibraryPlaylistDetailPageState
         loading: () {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Chargement des playlists...')),
+              SnackBar(
+                content: Text(AppLocalizations.of(context)!.snackbarLoading),
+              ),
             );
           }
         },
         error: (error, stackTrace) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Erreur lors du chargement: $error')),
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(context)!.errorLoadingWithMessage(
+                    error.toString(),
+                  ),
+                ),
+              ),
             );
           }
         },
@@ -1260,7 +1296,9 @@ class _LibraryPlaylistDetailPageState
                         // Logger l'erreur pour le debug
                         logger.log(
                           LogLevel.error,
-                          'Erreur lors de l\'ajout à la playlist: $e',
+                          AppLocalizations.of(context)!.errorAddToPlaylist(
+                            e.toString(),
+                          ),
                           error: e,
                           stackTrace: stackTrace,
                           category: 'library_playlist_detail',
@@ -1271,8 +1309,9 @@ class _LibraryPlaylistDetailPageState
                           String errorMessage;
                           if (e is StateError &&
                               e.message.contains('déjà dans cette playlist')) {
-                            errorMessage =
-                                'Ce média est déjà dans cette playlist';
+                            errorMessage = AppLocalizations.of(
+                              context,
+                            )!.snackbarMediaAlreadyInPlaylist;
                           } else {
                             errorMessage = AppLocalizations.of(
                               context,
@@ -1304,7 +1343,11 @@ class _LibraryPlaylistDetailPageState
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du chargement des playlists: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.errorLoadingPlaylistsWithMessage(
+                e.toString(),
+              ),
+            ),
           ),
         );
       }
@@ -1467,7 +1510,13 @@ class _LibraryPlaylistDetailPageState
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+        ).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorGenericWithMessage(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }

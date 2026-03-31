@@ -23,6 +23,7 @@ class AppShellLargeLayout extends StatelessWidget {
     required this.pageBuilders,
     required this.keepAliveIndices,
     required this.sidebarFocusNode,
+    this.scrollControllerForIndex,
     this.sidebarLogo,
   });
 
@@ -34,6 +35,9 @@ class AppShellLargeLayout extends StatelessWidget {
 
   /// Pages du shell (Home/Search/Library/Settings) sous forme de builders.
   final List<WidgetBuilder> pageBuilders;
+
+  /// Optionnel : ScrollController primaire par onglet (pour scroll-to-top).
+  final ScrollController Function(int index)? scrollControllerForIndex;
 
   /// Indices keepAlive (Home + Search).
   final Set<int> keepAliveIndices;
@@ -65,6 +69,7 @@ class AppShellLargeLayout extends StatelessWidget {
               child: ShellContentHost(
                 selectedIndex: selectedIndex,
                 pageBuilders: pageBuilders,
+                scrollControllerForIndex: scrollControllerForIndex,
                 keepAliveIndices: keepAliveIndices,
                 showEphemeralSwitchLoading: true,
                 loadingLabel: null,

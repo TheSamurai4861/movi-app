@@ -58,6 +58,122 @@
   "actionConfirm": "Bevestigen",
   "actionRetry": "Opnieuw proberen"
   ,
+  "settingsHelpDiagnosticsSection": "Hulp en diagnostiek",
+  "settingsExportErrorLogs": "Foutlogboeken exporteren",
+  "diagnosticsExportTitle": "Foutlogboeken exporteren",
+  "diagnosticsExportDescription": "De diagnose bevat alleen recente WARN/ERROR-logs en gehashte account-/profiel-id’s (indien ingeschakeld). Er mogen geen sleutels/tokens verschijnen.",
+  "diagnosticsIncludeHashedIdsTitle": "Account-/profiel-id’s opnemen (gehasht)",
+  "diagnosticsIncludeHashedIdsSubtitle": "Helpt een bug te correleren zonder de ruwe ID bloot te geven.",
+  "diagnosticsCopiedClipboard": "Diagnose gekopieerd naar het klembord.",
+  "diagnosticsSavedFile": "Diagnose opgeslagen: {fileName}",
+  "@diagnosticsSavedFile": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticsActionCopy": "Kopiëren",
+  "diagnosticsActionSave": "Opslaan",
+  "actionChangeVersion": "Versie wijzigen",
+  "semanticsBack": "Terug",
+  "semanticsMoreActions": "Meer acties",
+  "snackbarLoadingPlaylists": "Playlists laden…",
+  "snackbarNoPlaylistsAvailableCreateOne": "Geen playlist beschikbaar. Maak er één.",
+  "errorAddToPlaylist": "Fout bij toevoegen aan playlist: {error}",
+  "@errorAddToPlaylist": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorAlreadyInPlaylist": "Deze media staat al in deze playlist",
+  "errorLoadingPlaylists": "Fout bij laden van playlists: {error}",
+  "@errorLoadingPlaylists": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorReportUnavailableForContent": "Melden is niet beschikbaar voor deze inhoud.",
+  "snackbarLoadingEpisodes": "Afleveringen laden…",
+  "snackbarEpisodeUnavailableInPlaylist": "Aflevering niet beschikbaar in playlist",
+  "snackbarGenericError": "Fout: {error}",
+  "@snackbarGenericError": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "snackbarLoading": "Laden…",
+  "snackbarNoVersionAvailable": "Geen versie beschikbaar",
+  "snackbarVersionSaved": "Versie opgeslagen",
+  "playbackVariantFallbackLabel": "Versie {index}",
+  "@playbackVariantFallbackLabel": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
+  "actionReadMore": "Meer lezen",
+  "actionShowLess": "Minder tonen",
+  "actionViewPage": "Pagina bekijken",
+  "semanticsSeeSagaPage": "Sagapagina bekijken",
+  "libraryTypeSaga": "Saga",
+  "libraryTypeInProgress": "Bezig",
+  "libraryTypeFavoriteMovies": "Favoriete films",
+  "libraryTypeFavoriteSeries": "Favoriete series",
+  "libraryTypeHistory": "Geschiedenis",
+  "libraryTypePlaylist": "Playlist",
+  "libraryTypeArtist": "Artiest",
+  "libraryItemCount": "{count,plural, one{# item} other{# items}}",
+  "@libraryItemCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "snackbarPlaylistRenamed": "Playlist hernoemd naar \"{name}\"",
+  "@snackbarPlaylistRenamed": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "snackbarPlaylistDeleted": "Playlist verwijderd",
+  "dialogConfirmDeletePlaylist": "Weet je zeker dat je \"{title}\" wilt verwijderen?",
+  "@dialogConfirmDeletePlaylist": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "libraryNoResultsForQuery": "Geen resultaten voor \"{query}\"",
+  "@libraryNoResultsForQuery": {
+    "placeholders": {
+      "query": { "type": "String" }
+    }
+  },
+  "errorGenericWithMessage": "Fout: {error}",
+  "@errorGenericWithMessage": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "snackbarMediaAlreadyInPlaylist": "Deze media staat al in de playlist",
+  "snackbarAddedToPlaylist": "Toegevoegd aan de playlist",
+  "addMediaTitle": "Media toevoegen",
+  "searchMinCharsHint": "Typ minstens 3 tekens om te zoeken",
+  "badgeAdded": "Toegevoegd",
+  "snackbarNotAvailableOnSource": "Niet beschikbaar op deze bron",
+  "snackbarLoading": "Laden…",
+  "errorLoadingTitle": "Laadfout",
+  "errorLoadingWithMessage": "Fout: {error}",
+  "@errorLoadingWithMessage": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "errorLoadingPlaylistsWithMessage": "Fout bij laden: {error}",
+  "@errorLoadingPlaylistsWithMessage": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "libraryClearFilterSemanticLabel": "Filter verwijderen",
   "homeErrorSwipeToRetry": "Er is een fout opgetreden. Veeg omlaag om opnieuw te proberen.",
   "homeContinueWatching": "Verder kijken",
   "homeNoIptvSources": "Geen IPTV-bron actief. Voeg een bron toe in Instellingen om je categorieën te zien.",

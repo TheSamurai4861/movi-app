@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -106,29 +107,29 @@ class LibraryPlaylistCard extends ConsumerWidget {
     }
   }
 
-  String _typeLabel() {
-    if (isSaga) return 'Saga';
+  String _typeLabel(AppLocalizations l10n) {
+    if (isSaga) return l10n.libraryTypeSaga;
     switch (type) {
       case LibraryPlaylistType.inProgress:
-        return 'En cours';
+        return l10n.libraryTypeInProgress;
       case LibraryPlaylistType.favoriteMovies:
-        return 'Films favoris';
+        return l10n.libraryTypeFavoriteMovies;
       case LibraryPlaylistType.favoriteSeries:
-        return 'Séries favorites';
+        return l10n.libraryTypeFavoriteSeries;
       case LibraryPlaylistType.watchHistory:
-        return 'Historique';
+        return l10n.libraryTypeHistory;
       case LibraryPlaylistType.userPlaylist:
-        return 'Playlist';
+        return l10n.libraryTypePlaylist;
       case LibraryPlaylistType.actor:
-        return 'Artiste';
+        return l10n.libraryTypeArtist;
     }
   }
 
-  String _secondaryText() {
-    final typeLabel = _typeLabel();
+  String _secondaryText(AppLocalizations l10n) {
+    final typeLabel = _typeLabel(l10n);
     final showCount = showItemCount && type != LibraryPlaylistType.actor;
     if (!showCount) return typeLabel;
-    final countLabel = '$itemCount ${itemCount == 1 ? 'élément' : 'éléments'}';
+    final countLabel = l10n.libraryItemCount(itemCount);
     return '$typeLabel - $countLabel';
   }
 
@@ -188,6 +189,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
+    final l10n = AppLocalizations.of(context)!;
     if (layout == LibraryPlaylistCardLayout.vertical) {
       return MoviFocusableAction(
         onPressed: onTap,
@@ -263,7 +265,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _secondaryText(),
+                      _secondaryText(l10n),
                       textAlign: TextAlign.center,
                       style:
                           Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -335,7 +337,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _secondaryText(),
+                        _secondaryText(l10n),
                         style:
                             Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontSize: 14,

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Shell
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
+import 'package:movi/src/features/shell/presentation/navigation/shell_scroll_to_top_controller.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_shortcuts.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_large_layout.dart';
@@ -61,6 +62,8 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     debugLabel: 'ShellSidebarScope',
   );
   late final ShellFocusCoordinator _shellFocusCoordinator;
+  late final ShellScrollToTopController _scrollToTopController =
+      ShellScrollToTopController();
 
   @override
   void initState() {
@@ -73,6 +76,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   void dispose() {
     _shellFocusCoordinator.detachSidebar(_sidebarFocusNode);
     _sidebarFocusNode.dispose();
+    _scrollToTopController.dispose();
     super.dispose();
   }
 
@@ -129,6 +133,9 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     final focusCoordinator = ref.read(shellFocusCoordinatorProvider);
     void handleNavTap(int index) {
       if (index == selectedIndex) {
+        // Re-tap onglet actif => remonter en haut.
+        // (Si la page n'a pas de scroll primaire, c'est un no-op.)
+        _scrollToTopController.scrollToTop(index);
         focusCoordinator.focusTabEntry(selectedTab);
         return;
       }
@@ -172,6 +179,8 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
                       pageBuilders: pageBuilders,
                       keepAliveIndices: keepAliveIndices,
                       sidebarFocusNode: _sidebarFocusNode,
+                      scrollControllerForIndex:
+                          _scrollToTopController.controllerForIndex,
                       sidebarLogo: widget.sidebarLogo,
                     )
                   : AppShellLargeLayout(
@@ -181,13 +190,17 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
                       pageBuilders: pageBuilders,
                       keepAliveIndices: keepAliveIndices,
                       sidebarFocusNode: _sidebarFocusNode,
+                      scrollControllerForIndex:
+                          _scrollToTopController.controllerForIndex,
                       sidebarLogo: widget.sidebarLogo,
                     ))
             : AppShellMobileLayout(
                 selectedIndex: selectedIndex,
-                onNavTap: (i) => shellSelectIndex(ref, i),
+                onNavTap: handleNavTap,
                 destinations: sidebarDestinations,
                 pageBuilders: pageBuilders,
+                scrollControllerForIndex:
+                    _scrollToTopController.controllerForIndex,
               ),
       ),
     );
