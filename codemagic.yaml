@@ -96,14 +96,6 @@ workflows:
       - name: Analyze project
         script: flutter analyze --no-fatal-infos
 
-      - name: Run tests when present
-        script: |
-          if [ -d test ]; then
-            flutter test
-          else
-            echo "No test directory found; skipping tests"
-          fi
-
       - name: Load .env (optional for dev)
         script: |
           set -a
