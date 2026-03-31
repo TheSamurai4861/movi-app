@@ -1411,23 +1411,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                   const SizedBox(height: _sectionGap),
 
-                  Text(
-                    'Lecture',
-                    style:
-                        Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: _sectionTitleGap),
-                  _buildPlaybackSettingsSection(context),
+                  // Text(
+                  //   'Lecture',
+                  //   style:
+                  //       Theme.of(context).textTheme.titleLarge?.copyWith(
+                  //         color: Colors.white,
+                  //         fontWeight: FontWeight.w600,
+                  //       ) ??
+                  //       const TextStyle(
+                  //         fontSize: 20,
+                  //         fontWeight: FontWeight.w600,
+                  //         color: Colors.white,
+                  //       ),
+                  // ),
+                  // const SizedBox(height: _sectionTitleGap),
+                  // _buildPlaybackSettingsSection(context),
 
-                  const SizedBox(height: _sectionGap),
+                  // const SizedBox(height: _sectionGap),
 
                   // --- App settings
                   Text(
