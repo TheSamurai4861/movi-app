@@ -1475,6 +1475,95 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Cloud nicht verfügbar';
 
   @override
+  String get settingsSubtitlesTitle => 'Untertitel';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Textgröße';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Textfarbe';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Schriftart';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'System';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Schnelleinstellungen';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Vorschau';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'Dies ist eine Untertitelvorschau.\nPasse die Lesbarkeit in Echtzeit an.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Hintergrund';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Hintergrund-Deckkraft';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Schatten';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Aus';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'Weich';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Stark';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'Feine Größe';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Skalierung';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Auf Standard zurücksetzen';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Erweiterter Untertitelstil (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'Hintergrund, Deckkraft, Schatten-Presets und feine Größe sind mit Movi Premium verfügbar.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Mit Premium freischalten';
+
+  @override
+  String get settingsSyncSectionTitle => 'Audio/Untertitel-Synchronisierung';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Untertitelverzögerung';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Audioverzögerung';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'Auf diesem Backend oder dieser Plattform nicht unterstützt.';
+
+  @override
+  String get settingsSyncResetOffsets =>
+      'Synchronisierungs-Offsets zurücksetzen';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'Dieses Produkt nutzt die TMDB-API, wird jedoch nicht von TMDB unterstützt oder zertifiziert.';
 

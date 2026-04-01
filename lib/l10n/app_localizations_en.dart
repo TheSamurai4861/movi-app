@@ -1457,6 +1457,94 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Cloud unavailable';
 
   @override
+  String get settingsSubtitlesTitle => 'Subtitles';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Text size';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Text color';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Font';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'System';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Quick settings';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Preview';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'This is a subtitles preview.\nFine tune readability in real time.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Background';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Background opacity';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Shadow';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Off';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'Soft';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Strong';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'Fine size';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Scale';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Reset to defaults';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Advanced subtitle style (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'Background, opacity, shadow presets and fine size are available with Movi Premium.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Unlock with Premium';
+
+  @override
+  String get settingsSyncSectionTitle => 'Audio/Subtitles sync';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Subtitle offset';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Audio offset';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'Not supported on this backend or platform.';
+
+  @override
+  String get settingsSyncResetOffsets => 'Reset sync offsets';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'This product uses the TMDB API but is not endorsed or certified by TMDB.';
 

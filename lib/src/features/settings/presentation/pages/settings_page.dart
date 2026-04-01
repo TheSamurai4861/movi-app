@@ -1392,6 +1392,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   const SizedBox(height: _sectionTitleGap),
                   _buildSettingsGroup([
                     _buildSettingItem(
+                      title: l10n.settingsSubtitlesTitle,
+                      onTap: () => _guard(
+                        () => context.push(AppRoutePaths.settingsSubtitles),
+                      ),
+                    ),
+                    _buildSettingItem(
                       title: l10n.settingsLanguageLabel,
                       trailing: Builder(
                         builder: (context) {

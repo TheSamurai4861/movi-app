@@ -52,6 +52,20 @@ final videoControllerProvider = Provider.autoDispose<VideoController>((ref) {
   return controller;
 });
 
+final subtitleOffsetSupportProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  final repo = ref.watch(videoPlayerRepositoryProvider);
+  return repo.supportsSubtitleOffset();
+});
+
+final audioOffsetSupportProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
+  final repo = ref.watch(videoPlayerRepositoryProvider);
+  return repo.supportsAudioOffset();
+});
+
 final xtreamStreamUrlBuilderProvider = Provider<XtreamStreamUrlBuilder>((ref) {
   final locator = ref.watch(slProvider);
   final iptvLocal = locator<IptvLocalRepository>();

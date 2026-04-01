@@ -10,6 +10,8 @@ import 'package:movi/src/features/player/data/repositories/stream_url_probe.dart
 
 /// Implémentation du VideoPlayerRepository avec media_kit
 class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
+  static const int _maxOffsetMs = 5000;
+
   MediaKitVideoPlayerRepository({
     Player? player,
     AppLogger? logger,
@@ -119,6 +121,40 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
       orElse: () => tracks.first,
     );
     await _player.setAudioTrack(track);
+  }
+
+  @override
+  Future<bool> supportsSubtitleOffset() async {
+    final supported = _supportsMpvPropertyControl();
+    _logger?.debug('[PlayerSync] supports subtitle offset=$supported');
+    return supported;
+  }
+
+  @override
+  Future<bool> supportsAudioOffset() async {
+    final supported = _supportsMpvPropertyControl();
+    _logger?.debug('[PlayerSync] supports audio offset=$supported');
+    return supported;
+  }
+
+  @override
+  Future<void> setSubtitleOffsetMs(int offsetMs) async {
+    await _setOffsetProperty(
+      property: 'sub-delay',
+      offsetMs: offsetMs,
+      logKey: 'subtitle',
+      kind: PlayerOffsetKind.subtitle,
+    );
+  }
+
+  @override
+  Future<void> setAudioOffsetMs(int offsetMs) async {
+    await _setOffsetProperty(
+      property: 'audio-delay',
+      offsetMs: offsetMs,
+      logKey: 'audio',
+      kind: PlayerOffsetKind.audio,
+    );
   }
 
   @override
@@ -233,6 +269,34 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
         }
       }),
     );
+  }
+
+  Future<void> _setOffsetProperty({
+    required String property,
+    required int offsetMs,
+    required String logKey,
+    required PlayerOffsetKind kind,
+  }) async {
+    final platform = _player.platform;
+    if (platform is! NativePlayer) {
+      _logger?.warn(
+        '[PlayerSync] unsupported offset kind=$kind platform=${platform.runtimeType}',
+      );
+      throw PlayerOffsetUnsupportedException(
+        kind: kind,
+        reason: 'platform=${platform.runtimeType}',
+      );
+    }
+
+    final clampedMs = offsetMs.clamp(-_maxOffsetMs, _maxOffsetMs);
+    final seconds = (clampedMs / 1000).toStringAsFixed(3);
+    await platform.setProperty(property, seconds);
+    _logger?.debug('[Player] set $logKey offset ms=$clampedMs sec=$seconds');
+  }
+
+  bool _supportsMpvPropertyControl() {
+    final platform = _player.platform;
+    return platform is NativePlayer;
   }
 
   Map<String, String>? _buildStreamHeaders(String url) {

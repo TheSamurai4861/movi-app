@@ -2777,6 +2777,174 @@ abstract class AppLocalizations {
   /// **'Cloud unavailable'**
   String get settingsAccountCloudUnavailable;
 
+  /// No description provided for @settingsSubtitlesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get settingsSubtitlesTitle;
+
+  /// No description provided for @settingsSubtitlesSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get settingsSubtitlesSizeTitle;
+
+  /// No description provided for @settingsSubtitlesColorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text color'**
+  String get settingsSubtitlesColorTitle;
+
+  /// No description provided for @settingsSubtitlesFontTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Font'**
+  String get settingsSubtitlesFontTitle;
+
+  /// No description provided for @settingsSubtitlesSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get settingsSubtitlesSizeSmall;
+
+  /// No description provided for @settingsSubtitlesSizeMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'M'**
+  String get settingsSubtitlesSizeMedium;
+
+  /// No description provided for @settingsSubtitlesSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'L'**
+  String get settingsSubtitlesSizeLarge;
+
+  /// No description provided for @settingsSubtitlesFontSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get settingsSubtitlesFontSystem;
+
+  /// No description provided for @settingsSubtitlesQuickSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick settings'**
+  String get settingsSubtitlesQuickSettingsTitle;
+
+  /// No description provided for @settingsSubtitlesPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get settingsSubtitlesPreviewTitle;
+
+  /// No description provided for @settingsSubtitlesPreviewSample.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a subtitles preview.\nFine tune readability in real time.'**
+  String get settingsSubtitlesPreviewSample;
+
+  /// No description provided for @settingsSubtitlesBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background'**
+  String get settingsSubtitlesBackgroundTitle;
+
+  /// No description provided for @settingsSubtitlesBackgroundOpacityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Background opacity'**
+  String get settingsSubtitlesBackgroundOpacityLabel;
+
+  /// No description provided for @settingsSubtitlesShadowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shadow'**
+  String get settingsSubtitlesShadowTitle;
+
+  /// No description provided for @settingsSubtitlesShadowOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsSubtitlesShadowOff;
+
+  /// No description provided for @settingsSubtitlesShadowSoft.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft'**
+  String get settingsSubtitlesShadowSoft;
+
+  /// No description provided for @settingsSubtitlesShadowStrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong'**
+  String get settingsSubtitlesShadowStrong;
+
+  /// No description provided for @settingsSubtitlesFineSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine size'**
+  String get settingsSubtitlesFineSizeTitle;
+
+  /// No description provided for @settingsSubtitlesFineSizeValueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get settingsSubtitlesFineSizeValueLabel;
+
+  /// No description provided for @settingsSubtitlesResetDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get settingsSubtitlesResetDefaults;
+
+  /// No description provided for @settingsSubtitlesPremiumLockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced subtitle style (Premium)'**
+  String get settingsSubtitlesPremiumLockedTitle;
+
+  /// No description provided for @settingsSubtitlesPremiumLockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Background, opacity, shadow presets and fine size are available with Movi Premium.'**
+  String get settingsSubtitlesPremiumLockedBody;
+
+  /// No description provided for @settingsSubtitlesPremiumLockedAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with Premium'**
+  String get settingsSubtitlesPremiumLockedAction;
+
+  /// No description provided for @settingsSyncSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio/Subtitles sync'**
+  String get settingsSyncSectionTitle;
+
+  /// No description provided for @settingsSubtitleOffsetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle offset'**
+  String get settingsSubtitleOffsetTitle;
+
+  /// No description provided for @settingsAudioOffsetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio offset'**
+  String get settingsAudioOffsetTitle;
+
+  /// No description provided for @settingsOffsetUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not supported on this backend or platform.'**
+  String get settingsOffsetUnsupported;
+
+  /// No description provided for @settingsSyncResetOffsets.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset sync offsets'**
+  String get settingsSyncResetOffsets;
+
   /// No description provided for @aboutTmdbDisclaimer.
   ///
   /// In en, this message translates to:

@@ -38,6 +38,7 @@ class AppRoutePaths {
   static const pinRecovery = '/pin/recovery';
 
   static const settings = '/settings';
+  static const settingsSubtitles = '/settings/subtitles';
   static const about = '/settings/about';
   static const iptvConnect = '/settings/iptv/connect';
   static const iptvSources = '/settings/iptv/sources';

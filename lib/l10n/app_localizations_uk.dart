@@ -1467,6 +1467,94 @@ class AppLocalizationsUk extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Хмара недоступна';
 
   @override
+  String get settingsSubtitlesTitle => 'Субтитри';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Розмір тексту';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Колір тексту';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Шрифт';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'Системний';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Швидкі налаштування';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Попередній перегляд';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'Це попередній перегляд субтитрів.\nНалаштуйте читабельність у реальному часі.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Тло';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Непрозорість тла';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Тінь';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Вимкнено';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'М’яка';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Сильна';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'Точний розмір';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Масштаб';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Скинути до типових';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Розширений стиль субтитрів (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'Тло, непрозорість, пресети тіні та точний розмір доступні в Movi Premium.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Розблокувати з Premium';
+
+  @override
+  String get settingsSyncSectionTitle => 'Синхронізація аудіо/субтитрів';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Зсув субтитрів';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Зсув аудіо';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'Не підтримується цим backend або платформою.';
+
+  @override
+  String get settingsSyncResetOffsets => 'Скинути зсуви синхронізації';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'Цей продукт використовує API TMDB, але не схвалений і не сертифікований TMDB.';
 

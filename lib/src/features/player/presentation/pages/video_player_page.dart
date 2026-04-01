@@ -18,7 +18,9 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/preferences/playback_sync_offset_preferences.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
+import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_remote_providers.dart';
@@ -43,6 +45,7 @@ import 'package:movi/src/features/player/application/usecases/auto_enter_picture
 import 'dart:io';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/router/app_route_paths.dart';
 
 /// Page de lecture vidéo avec contrôles personnalisés
 class VideoPlayerPage extends ConsumerStatefulWidget {
@@ -58,6 +61,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final ProviderSubscription<VideoPlayerRepository> _playerRepositorySub;
   late final ProviderSubscription<VideoController> _videoControllerSub;
+  late final ProviderSubscription<PlaybackSyncOffsets> _syncOffsetsSub;
   late final VideoPlayerRepository _playerRepository;
   late final VideoController _videoController;
   late final PerformanceDiagnosticLogger _diagnostics;
@@ -98,6 +102,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   // PiP state
   bool _isPipSupported = false;
   bool _isPipActive = false;
+  bool _supportsSubtitleOffset = false;
+  bool _supportsAudioOffset = false;
+  int _subtitleOffsetMs = 0;
+  int _audioOffsetMs = 0;
 
   @override
   void initState() {
@@ -128,6 +136,13 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       (previous, next) => _videoController = next,
       fireImmediately: true,
     );
+    _syncOffsetsSub = ref.listenManual<PlaybackSyncOffsets>(
+      asp.currentProfilePlaybackSyncOffsetsProvider,
+      (previous, next) {
+        unawaited(_applyPlaybackSyncOffsets(next, reason: 'profile_offsets'));
+      },
+      fireImmediately: true,
+    );
 
     // Animation d'opacité pour les contrôles
     _controlsAnimationController = AnimationController(
@@ -142,6 +157,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     );
 
     _setupListeners();
+    unawaited(_initializeOffsetCapabilities());
     _showControlsWithAnimation();
     _startHideControlsTimer();
     _diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
@@ -218,6 +234,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     if (!mounted) return;
     try {
       await _playerRepository.open(source);
+      await _applyPlaybackSyncOffsets(
+        ref.read(asp.currentProfilePlaybackSyncOffsetsProvider),
+        reason: 'open_source',
+      );
       _diagnostics.completed(
         'player_open_source',
         elapsed: stopwatch.elapsed,
@@ -241,6 +261,109 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       );
       rethrow;
     }
+  }
+
+  Future<void> _initializeOffsetCapabilities() async {
+    final supportsSubtitle = await _playerRepository.supportsSubtitleOffset();
+    final supportsAudio = await _playerRepository.supportsAudioOffset();
+    _diagnostics.mark(
+      'player_sync_offset_capabilities',
+      context: <String, Object?>{
+        'supportsSubtitle': supportsSubtitle,
+        'supportsAudio': supportsAudio,
+      },
+    );
+    if (!mounted) return;
+    setState(() {
+      _supportsSubtitleOffset = supportsSubtitle;
+      _supportsAudioOffset = supportsAudio;
+    });
+  }
+
+  Future<void> _applyPlaybackSyncOffsets(
+    PlaybackSyncOffsets offsets, {
+    required String reason,
+  }) async {
+    var appliedSubtitle = _subtitleOffsetMs;
+    var appliedAudio = _audioOffsetMs;
+    var supportsSubtitle = _supportsSubtitleOffset;
+    var supportsAudio = _supportsAudioOffset;
+
+    if (supportsSubtitle) {
+      try {
+        await _playerRepository.setSubtitleOffsetMs(offsets.subtitleOffsetMs);
+        appliedSubtitle = offsets.subtitleOffsetMs;
+      } on PlayerOffsetUnsupportedException catch (error) {
+        supportsSubtitle = false;
+        appliedSubtitle = 0;
+        _diagnostics.mark(
+          'player_sync_offset_fallback',
+          context: <String, Object?>{
+            'kind': error.kind.name,
+            'reason': error.reason,
+            'requestedMs': offsets.subtitleOffsetMs,
+          },
+        );
+      } catch (error, stackTrace) {
+        _diagnostics.failed(
+          'player_apply_subtitle_offset',
+          elapsed: Duration.zero,
+          error: error,
+          stackTrace: stackTrace,
+          context: <String, Object?>{
+            'requestedMs': offsets.subtitleOffsetMs,
+            'reason': reason,
+          },
+        );
+      }
+    }
+
+    if (supportsAudio) {
+      try {
+        await _playerRepository.setAudioOffsetMs(offsets.audioOffsetMs);
+        appliedAudio = offsets.audioOffsetMs;
+      } on PlayerOffsetUnsupportedException catch (error) {
+        supportsAudio = false;
+        appliedAudio = 0;
+        _diagnostics.mark(
+          'player_sync_offset_fallback',
+          context: <String, Object?>{
+            'kind': error.kind.name,
+            'reason': error.reason,
+            'requestedMs': offsets.audioOffsetMs,
+          },
+        );
+      } catch (error, stackTrace) {
+        _diagnostics.failed(
+          'player_apply_audio_offset',
+          elapsed: Duration.zero,
+          error: error,
+          stackTrace: stackTrace,
+          context: <String, Object?>{
+            'requestedMs': offsets.audioOffsetMs,
+            'reason': reason,
+          },
+        );
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _supportsSubtitleOffset = supportsSubtitle;
+      _supportsAudioOffset = supportsAudio;
+      _subtitleOffsetMs = appliedSubtitle;
+      _audioOffsetMs = appliedAudio;
+    });
+    _diagnostics.mark(
+      'player_apply_sync_offsets',
+      context: <String, Object?>{
+        'reason': reason,
+        'supportsSubtitle': supportsSubtitle,
+        'supportsAudio': supportsAudio,
+        'subtitleOffsetMs': appliedSubtitle,
+        'audioOffsetMs': appliedAudio,
+      },
+    );
   }
 
   void _setupListeners() {
@@ -301,7 +424,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   /// Une seule fois par ouverture de média : première piste audio, sous-titres désactivés.
-  Future<void> _applyInitialDefaultTracksIfNeeded({required String reason}) async {
+  Future<void> _applyInitialDefaultTracksIfNeeded({
+    required String reason,
+  }) async {
     if (!mounted) return;
     if (_initialTrackDefaultsApplied || _audioTracks.isEmpty) return;
 
@@ -720,6 +845,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       builder: (context) => SubtitleTrackSelectionMenu(
         tracks: _subtitleTracks,
         currentTrack: _currentSubtitleTrack,
+        initialSubtitleAppearance: ref.read(
+          asp.currentProfileSubtitleAppearanceProvider,
+        ),
+        subtitleAppearanceStream: ref
+            .read(asp.subtitleAppearancePreferencesProvider)
+            .watchForProfile(ref.read(currentProfileProvider)?.id),
         onTrackSelected: (track) async {
           try {
             await _playerRepository.setActiveSubtitleTrack(track.id);
@@ -742,6 +873,31 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
               _subtitlesEnabled = false;
             });
           }
+        },
+        onSubtitleSizeChanged: (preset) async {
+          await ref
+              .read(asp.subtitleAppearanceControllerProvider)
+              .setSizePreset(preset);
+        },
+        onSubtitleColorChanged: (hexColor) async {
+          await ref
+              .read(asp.subtitleAppearanceControllerProvider)
+              .setTextColorHex(hexColor);
+        },
+        onOpenSubtitleSettings: () {
+          Navigator.of(context).pop();
+          if (!mounted) return;
+          unawaited(this.context.push(AppRoutePaths.settingsSubtitles));
+        },
+        supportsSubtitleOffset: _supportsSubtitleOffset,
+        subtitleOffsetMs: _subtitleOffsetMs,
+        onSubtitleOffsetPresetSelected: (offsetMs) async {
+          await ref
+              .read(asp.playbackSyncOffsetControllerProvider)
+              .setSubtitleOffsetMs(
+                offsetMs,
+                source: 'player_sheet_subtitle_preset',
+              );
         },
       ),
     );
@@ -779,6 +935,13 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       builder: (context) => AudioTrackSelectionMenu(
         tracks: _audioTracks,
         currentTrack: _currentAudioTrack,
+        supportsAudioOffset: _supportsAudioOffset,
+        audioOffsetMs: _audioOffsetMs,
+        onAudioOffsetPresetSelected: (offsetMs) async {
+          await ref
+              .read(asp.playbackSyncOffsetControllerProvider)
+              .setAudioOffsetMs(offsetMs, source: 'player_sheet_audio_preset');
+        },
         onTrackSelected: (track) async {
           try {
             await _playerRepository.setAudioTrack(track.id);
@@ -913,7 +1076,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     }
   }
 
-
   Future<void> _onBack(BuildContext context) async {
     // Sauvegarder l'historique et synchroniser en parallèle sans bloquer la navigation
     // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
@@ -932,10 +1094,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         final type = videoSource?.contentType;
         final id =
             (videoSource?.tmdbId != null && (videoSource?.tmdbId ?? 0) > 0)
-                ? videoSource!.tmdbId.toString()
-                : (videoSource?.contentId?.trim().isNotEmpty ?? false)
-                    ? videoSource!.contentId!.trim()
-                    : null;
+            ? videoSource!.tmdbId.toString()
+            : (videoSource?.contentId?.trim().isNotEmpty ?? false)
+            ? videoSource!.contentId!.trim()
+            : null;
 
         if (type == ContentType.movie && id != null) {
           context.go(AppRouteNames.movie, extra: ContentRouteArgs.movie(id));
@@ -1041,6 +1203,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     // Relâcher nos subscriptions manuelles (déclenche l'autoDispose des providers).
     _videoControllerSub.close();
     _playerRepositorySub.close();
+    _syncOffsetsSub.close();
 
     // Restaurer uniquement le mode vertical pour le reste de l'app
     SystemChrome.setPreferredOrientations([
@@ -1090,6 +1253,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         _currentVideoSource ??
         widget.videoSource ??
         (GoRouterState.of(context).extra as VideoSource?);
+    final subtitleAppearance = ref.watch(
+      asp.currentProfileSubtitleAppearanceProvider,
+    );
 
     return PopScope(
       canPop: false,
@@ -1160,106 +1326,118 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
             child: Stack(
               fit: StackFit.expand,
               children: [
-              // Vidéo (sans contrôles natifs)
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final videoWidget = Video(
-                    controller: _videoController,
-                    controls: NoVideoControls,
-                  );
-
-                  if (_currentVideoFitMode == VideoFitMode.contain) {
-                    // Pour contain, on centre la vidéo et on la laisse prendre sa taille naturelle
-                    // Le Video widget gère déjà son aspect ratio
-                    return Center(child: videoWidget);
-                  } else {
-                    // Pour cover, on utilise Transform.scale pour remplir l'écran
-                    // On calcule un facteur d'échelle basé sur les dimensions de l'écran
-                    // pour garantir que la vidéo couvre tout l'écran
-                    final screenWidth = constraints.maxWidth;
-                    final screenHeight = constraints.maxHeight;
-                    final screenAspectRatio = screenWidth / screenHeight;
-
-                    // Calculer un facteur d'échelle qui garantit la couverture
-                    // En supposant que la vidéo a un aspect ratio standard (16:9 = 1.78)
-                    // Si l'écran est plus large que 16:9, on doit agrandir verticalement
-                    // Si l'écran est plus étroit que 16:9, on doit agrandir horizontalement
-                    final standardVideoAspectRatio = 16 / 9; // ~1.78
-                    double scale;
-                    if (screenAspectRatio > standardVideoAspectRatio) {
-                      // Écran plus large : agrandir verticalement
-                      scale =
-                          screenHeight /
-                          (screenWidth / standardVideoAspectRatio);
-                    } else {
-                      // Écran plus étroit : agrandir horizontalement
-                      scale =
-                          screenWidth /
-                          (screenHeight * standardVideoAspectRatio);
-                    }
-                    // Utiliser un facteur minimum de 1.2 et maximum de 3.0
-                    final finalScale = scale.clamp(1.2, 3.0);
-
-                    return ClipRect(
-                      child: Center(
-                        child: Transform.scale(
-                          scale: finalScale,
-                          child: videoWidget,
-                        ),
-                      ),
+                // Vidéo (sans contrôles natifs)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final videoWidget = Video(
+                      controller: _videoController,
+                      controls: NoVideoControls,
+                      subtitleViewConfiguration:
+                          _buildSubtitleViewConfiguration(subtitleAppearance),
                     );
-                  }
-                },
-              ),
 
-              // Indicateur de chargement
-              if (_isBuffering)
-                const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
+                    if (_currentVideoFitMode == VideoFitMode.contain) {
+                      // Pour contain, on centre la vidéo et on la laisse prendre sa taille naturelle
+                      // Le Video widget gère déjà son aspect ratio
+                      return Center(child: videoWidget);
+                    } else {
+                      // Pour cover, on utilise Transform.scale pour remplir l'écran
+                      // On calcule un facteur d'échelle basé sur les dimensions de l'écran
+                      // pour garantir que la vidéo couvre tout l'écran
+                      final screenWidth = constraints.maxWidth;
+                      final screenHeight = constraints.maxHeight;
+                      final screenAspectRatio = screenWidth / screenHeight;
+
+                      // Calculer un facteur d'échelle qui garantit la couverture
+                      // En supposant que la vidéo a un aspect ratio standard (16:9 = 1.78)
+                      // Si l'écran est plus large que 16:9, on doit agrandir verticalement
+                      // Si l'écran est plus étroit que 16:9, on doit agrandir horizontalement
+                      final standardVideoAspectRatio = 16 / 9; // ~1.78
+                      double scale;
+                      if (screenAspectRatio > standardVideoAspectRatio) {
+                        // Écran plus large : agrandir verticalement
+                        scale =
+                            screenHeight /
+                            (screenWidth / standardVideoAspectRatio);
+                      } else {
+                        // Écran plus étroit : agrandir horizontalement
+                        scale =
+                            screenWidth /
+                            (screenHeight * standardVideoAspectRatio);
+                      }
+                      // Utiliser un facteur minimum de 1.2 et maximum de 3.0
+                      final finalScale = scale.clamp(1.2, 3.0);
+
+                      return ClipRect(
+                        child: Center(
+                          child: Transform.scale(
+                            scale: finalScale,
+                            child: videoWidget,
+                          ),
+                        ),
+                      );
+                    }
+                  },
                 ),
 
-              // Contrôles avec animation d'opacité
-              if (_showControls)
-                FadeTransition(
-                  opacity: _controlsOpacityAnimation,
-                  child: VideoPlayerControls(
-                    key: _controlsKey,
-                    title: videoSource?.title ?? '',
-                    subtitle: videoSource?.subtitle,
-                    isPlaying: _isPlaying,
-                    position: _position,
-                    duration: _duration,
-                    hasSubtitles: _hasSubtitles,
-                    subtitlesEnabled: _subtitlesEnabled,
-                    onBack: () => _onBack(context),
-                    onPlayPause: _togglePlayPause,
-                    onSeekForward10: () => _seekForward(10),
-                    onSeekForward30: () => _seekForward(30),
-                    onSeekBackward10: () => _seekBackward(10),
-                    onSeekBackward30: () => _seekBackward(30),
-                    onSeek: _onSeek,
-                    onToggleSubtitles: _showSubtitleMenu,
-                    onAudio: _showAudioMenu,
-                    onChromecast: null,
-                    onVideoFitMode: _showVideoFitModeMenu,
-                    formatDuration: _formatDuration,
-                    hasAudioTracks: _audioTracks.isNotEmpty,
-                    onRestart: _restart,
-                    onNextEpisode:
-                        videoSource?.contentType == ContentType.series
-                        ? _goToNextEpisode
-                        : null,
-                    isSeries: videoSource?.contentType == ContentType.series,
-                    onPictureInPicture: null,
-                    isPipSupported: false,
-                    isPipActive: false,
+                // Indicateur de chargement
+                if (_isBuffering)
+                  const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
                   ),
-                ),
-            ],
+
+                // Contrôles avec animation d'opacité
+                if (_showControls)
+                  FadeTransition(
+                    opacity: _controlsOpacityAnimation,
+                    child: VideoPlayerControls(
+                      key: _controlsKey,
+                      title: videoSource?.title ?? '',
+                      subtitle: videoSource?.subtitle,
+                      isPlaying: _isPlaying,
+                      position: _position,
+                      duration: _duration,
+                      hasSubtitles: _hasSubtitles,
+                      subtitlesEnabled: _subtitlesEnabled,
+                      onBack: () => _onBack(context),
+                      onPlayPause: _togglePlayPause,
+                      onSeekForward10: () => _seekForward(10),
+                      onSeekForward30: () => _seekForward(30),
+                      onSeekBackward10: () => _seekBackward(10),
+                      onSeekBackward30: () => _seekBackward(30),
+                      onSeek: _onSeek,
+                      onToggleSubtitles: _showSubtitleMenu,
+                      onAudio: _showAudioMenu,
+                      onChromecast: null,
+                      onVideoFitMode: _showVideoFitModeMenu,
+                      formatDuration: _formatDuration,
+                      hasAudioTracks: _audioTracks.isNotEmpty,
+                      onRestart: _restart,
+                      onNextEpisode:
+                          videoSource?.contentType == ContentType.series
+                          ? _goToNextEpisode
+                          : null,
+                      isSeries: videoSource?.contentType == ContentType.series,
+                      onPictureInPicture: null,
+                      isPipSupported: false,
+                      isPipActive: false,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
-        ),
       ),
+    );
+  }
+
+  SubtitleViewConfiguration _buildSubtitleViewConfiguration(
+    SubtitleAppearancePrefs prefs,
+  ) {
+    return SubtitleViewConfiguration(
+      style: prefs.toTextStyle(),
+      textAlign: TextAlign.center,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
     );
   }
 }

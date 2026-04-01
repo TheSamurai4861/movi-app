@@ -143,6 +143,8 @@ Future<void> _registerPreferences() async {
   await _registerSelectedIptvSourcePreferences();
   await _registerIptvSyncPreferences();
   await _registerPlayerPreferences();
+  await _registerPlaybackSyncOffsetPreferences();
+  await _registerSubtitleAppearancePreferences();
   await _registerAccentColorPreferences();
 }
 
@@ -222,6 +224,20 @@ Future<void> _registerPlayerPreferences() async {
 
   final prefs = await PlayerPreferences.create();
   sl.registerSingleton<PlayerPreferences>(prefs);
+}
+
+Future<void> _registerPlaybackSyncOffsetPreferences() async {
+  if (sl.isRegistered<PlaybackSyncOffsetPreferences>()) return;
+
+  final prefs = await PlaybackSyncOffsetPreferences.create();
+  sl.registerSingleton<PlaybackSyncOffsetPreferences>(prefs);
+}
+
+Future<void> _registerSubtitleAppearancePreferences() async {
+  if (sl.isRegistered<SubtitleAppearancePreferences>()) return;
+
+  final prefs = await SubtitleAppearancePreferences.create();
+  sl.registerSingleton<SubtitleAppearancePreferences>(prefs);
 }
 
 Future<void> _registerAccentColorPreferences() async {
@@ -410,9 +426,7 @@ void _registerSharedServices() {
   if (!sl.isRegistered<ContentRatingWarmupGateway>() &&
       sl.isRegistered<ContentRatingRepository>()) {
     sl.registerLazySingleton<ContentRatingWarmupGateway>(
-      () => ContentRatingRepositoryWarmupGateway(
-        sl<ContentRatingRepository>(),
-      ),
+      () => ContentRatingRepositoryWarmupGateway(sl<ContentRatingRepository>()),
     );
   }
 

@@ -1461,6 +1461,94 @@ class AppLocalizationsPl extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Chmura niedostępna';
 
   @override
+  String get settingsSubtitlesTitle => 'Napisy';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Rozmiar tekstu';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Kolor tekstu';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Czcionka';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'Systemowa';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Szybkie ustawienia';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Podgląd';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'To jest podgląd napisów.\nDopasuj czytelność w czasie rzeczywistym.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Tło';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Przezroczystość tła';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Cień';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Wyłączony';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'Miękki';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Mocny';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'Precyzyjny rozmiar';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Skala';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Przywróć domyślne';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Zaawansowany styl napisów (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'Tło, przezroczystość, presety cienia i precyzyjny rozmiar są dostępne w Movi Premium.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Odblokuj Premium';
+
+  @override
+  String get settingsSyncSectionTitle => 'Synchronizacja audio/napisów';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Przesunięcie napisów';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Przesunięcie audio';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'Nieobsługiwane przez ten backend lub platformę.';
+
+  @override
+  String get settingsSyncResetOffsets => 'Resetuj przesunięcia synchronizacji';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'Ten produkt korzysta z API TMDB, ale nie jest wspierany ani certyfikowany przez TMDB.';
 

@@ -1455,6 +1455,93 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'السحابة غير متاحة';
 
   @override
+  String get settingsSubtitlesTitle => 'الترجمة';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'حجم النص';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'لون النص';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'الخط';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'النظام';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'إعدادات سريعة';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'معاينة';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'هذه معاينة للترجمة.\nاضبط سهولة القراءة مباشرة.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'الخلفية';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'شفافية الخلفية';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'الظل';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'إيقاف';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'خفيف';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'قوي';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'حجم دقيق';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'المقياس';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'إعادة الضبط الافتراضي';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle => 'نمط ترجمة متقدم (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'الخلفية والشفافية وإعدادات الظل والحجم الدقيق متاحة مع Movi Premium.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'افتحها مع Premium';
+
+  @override
+  String get settingsSyncSectionTitle => 'مزامنة الصوت/الترجمة';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'إزاحة الترجمة';
+
+  @override
+  String get settingsAudioOffsetTitle => 'إزاحة الصوت';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'غير مدعوم في هذا الـ backend أو المنصة.';
+
+  @override
+  String get settingsSyncResetOffsets => 'إعادة ضبط إزاحات المزامنة';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'يستخدم هذا المنتج واجهة برمجة تطبيقات TMDB لكنه غير معتمد أو مُصدَّق من TMDB.';
 

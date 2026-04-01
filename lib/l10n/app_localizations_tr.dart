@@ -1460,6 +1460,94 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Bulut kullanılamıyor';
 
   @override
+  String get settingsSubtitlesTitle => 'Altyazılar';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Metin boyutu';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Metin rengi';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Yazı tipi';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'Sistem';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Hızlı ayarlar';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Önizleme';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'Bu bir altyazı önizlemesidir.\nOkunabilirliği anlık olarak ayarlayın.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Arka plan';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Arka plan opaklığı';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Gölge';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Kapalı';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'Yumuşak';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Güçlü';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'İnce boyut';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Ölçek';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Varsayılana sıfırla';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Gelişmiş altyazı stili (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'Arka plan, opaklık, gölge önayarları ve ince boyut Movi Premium ile kullanılabilir.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Premium ile aç';
+
+  @override
+  String get settingsSyncSectionTitle => 'Ses/altyazı senkronu';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Altyazı gecikmesi';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Ses gecikmesi';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'Bu backend veya platformda desteklenmiyor.';
+
+  @override
+  String get settingsSyncResetOffsets => 'Senkron gecikmelerini sıfırla';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'Bu ürün TMDB API\'sini kullanır ancak TMDB tarafından desteklenmez veya sertifikalandırılmaz.';
 

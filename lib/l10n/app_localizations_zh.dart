@@ -1428,6 +1428,91 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAccountCloudUnavailable => '云不可用';
 
   @override
+  String get settingsSubtitlesTitle => '字幕';
+
+  @override
+  String get settingsSubtitlesSizeTitle => '文本大小';
+
+  @override
+  String get settingsSubtitlesColorTitle => '文本颜色';
+
+  @override
+  String get settingsSubtitlesFontTitle => '字体';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => '系统';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => '快速设置';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => '预览';
+
+  @override
+  String get settingsSubtitlesPreviewSample => '这是字幕预览。\n可实时调整可读性。';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => '背景';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => '背景不透明度';
+
+  @override
+  String get settingsSubtitlesShadowTitle => '阴影';
+
+  @override
+  String get settingsSubtitlesShadowOff => '关闭';
+
+  @override
+  String get settingsSubtitlesShadowSoft => '柔和';
+
+  @override
+  String get settingsSubtitlesShadowStrong => '强';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => '精细大小';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => '缩放';
+
+  @override
+  String get settingsSubtitlesResetDefaults => '恢复默认';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle => '高级字幕样式（Premium）';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      '背景、透明度、阴影预设和精细大小仅在 Movi Premium 中可用。';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => '使用 Premium 解锁';
+
+  @override
+  String get settingsSyncSectionTitle => '音频/字幕同步';
+
+  @override
+  String get settingsSubtitleOffsetTitle => '字幕偏移';
+
+  @override
+  String get settingsAudioOffsetTitle => '音频偏移';
+
+  @override
+  String get settingsOffsetUnsupported => '此后端或平台不支持该功能。';
+
+  @override
+  String get settingsSyncResetOffsets => '重置同步偏移';
+
+  @override
   String get aboutTmdbDisclaimer => '本产品使用 TMDB API，但未获得 TMDB 的认可或认证。';
 
   @override
@@ -2856,6 +2941,91 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get settingsAccountCloudUnavailable => '云不可用';
+
+  @override
+  String get settingsSubtitlesTitle => '字幕';
+
+  @override
+  String get settingsSubtitlesSizeTitle => '文本大小';
+
+  @override
+  String get settingsSubtitlesColorTitle => '文本颜色';
+
+  @override
+  String get settingsSubtitlesFontTitle => '字体';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => '系统';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => '快速设置';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => '预览';
+
+  @override
+  String get settingsSubtitlesPreviewSample => '这是字幕预览。\n可实时调整可读性。';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => '背景';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => '背景不透明度';
+
+  @override
+  String get settingsSubtitlesShadowTitle => '阴影';
+
+  @override
+  String get settingsSubtitlesShadowOff => '关闭';
+
+  @override
+  String get settingsSubtitlesShadowSoft => '柔和';
+
+  @override
+  String get settingsSubtitlesShadowStrong => '强';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => '精细大小';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => '缩放';
+
+  @override
+  String get settingsSubtitlesResetDefaults => '恢复默认';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle => '高级字幕样式（Premium）';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      '背景、透明度、阴影预设和精细大小仅在 Movi Premium 中可用。';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => '使用 Premium 解锁';
+
+  @override
+  String get settingsSyncSectionTitle => '音频/字幕同步';
+
+  @override
+  String get settingsSubtitleOffsetTitle => '字幕偏移';
+
+  @override
+  String get settingsAudioOffsetTitle => '音频偏移';
+
+  @override
+  String get settingsOffsetUnsupported => '此后端或平台不支持该功能。';
+
+  @override
+  String get settingsSyncResetOffsets => '重置同步偏移';
 
   @override
   String get aboutTmdbDisclaimer => '本产品使用 TMDB API，但未获得 TMDB 的认可或认证。';

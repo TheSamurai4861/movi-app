@@ -29,6 +29,7 @@ class AppRouteIds {
   static const pinRecovery = 'pin_recovery';
 
   static const settings = 'settings';
+  static const settingsSubtitles = 'settings_subtitles';
   static const about = 'about';
   static const iptvConnect = 'iptv_connect';
   static const iptvSources = 'iptv_sources';

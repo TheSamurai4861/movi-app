@@ -1435,6 +1435,92 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'クラウド利用不可';
 
   @override
+  String get settingsSubtitlesTitle => '字幕';
+
+  @override
+  String get settingsSubtitlesSizeTitle => '文字サイズ';
+
+  @override
+  String get settingsSubtitlesColorTitle => '文字色';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'フォント';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'システム';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'クイック設定';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'プレビュー';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'これは字幕のプレビューです。\n読みやすさをリアルタイムで調整できます。';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => '背景';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => '背景の不透明度';
+
+  @override
+  String get settingsSubtitlesShadowTitle => '影';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'オフ';
+
+  @override
+  String get settingsSubtitlesShadowSoft => '弱';
+
+  @override
+  String get settingsSubtitlesShadowStrong => '強';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => '細かなサイズ';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => '倍率';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'デフォルトに戻す';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle => '高度な字幕スタイル（Premium）';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      '背景、不透明度、影プリセット、細かなサイズは Movi Premium で利用できます。';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Premiumで解除';
+
+  @override
+  String get settingsSyncSectionTitle => '音声/字幕の同期';
+
+  @override
+  String get settingsSubtitleOffsetTitle => '字幕オフセット';
+
+  @override
+  String get settingsAudioOffsetTitle => '音声オフセット';
+
+  @override
+  String get settingsOffsetUnsupported => 'このバックエンドまたはプラットフォームでは未対応です。';
+
+  @override
+  String get settingsSyncResetOffsets => '同期オフセットをリセット';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'この製品はTMDB APIを使用していますが、TMDBによって承認または認定されたものではありません。';
 

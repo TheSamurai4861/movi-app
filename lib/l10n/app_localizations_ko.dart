@@ -1435,6 +1435,91 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAccountCloudUnavailable => '클라우드를 사용할 수 없음';
 
   @override
+  String get settingsSubtitlesTitle => '자막';
+
+  @override
+  String get settingsSubtitlesSizeTitle => '텍스트 크기';
+
+  @override
+  String get settingsSubtitlesColorTitle => '텍스트 색상';
+
+  @override
+  String get settingsSubtitlesFontTitle => '글꼴';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => '시스템';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => '빠른 설정';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => '미리보기';
+
+  @override
+  String get settingsSubtitlesPreviewSample => '자막 미리보기입니다.\n가독성을 실시간으로 조정하세요.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => '배경';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => '배경 불투명도';
+
+  @override
+  String get settingsSubtitlesShadowTitle => '그림자';
+
+  @override
+  String get settingsSubtitlesShadowOff => '끔';
+
+  @override
+  String get settingsSubtitlesShadowSoft => '약하게';
+
+  @override
+  String get settingsSubtitlesShadowStrong => '강하게';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => '세밀한 크기';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => '배율';
+
+  @override
+  String get settingsSubtitlesResetDefaults => '기본값으로 재설정';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle => '고급 자막 스타일 (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      '배경, 불투명도, 그림자 프리셋 및 세밀한 크기는 Movi Premium에서 사용할 수 있습니다.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Premium으로 잠금 해제';
+
+  @override
+  String get settingsSyncSectionTitle => '오디오/자막 동기화';
+
+  @override
+  String get settingsSubtitleOffsetTitle => '자막 오프셋';
+
+  @override
+  String get settingsAudioOffsetTitle => '오디오 오프셋';
+
+  @override
+  String get settingsOffsetUnsupported => '이 백엔드 또는 플랫폼에서는 지원되지 않습니다.';
+
+  @override
+  String get settingsSyncResetOffsets => '동기화 오프셋 초기화';
+
+  @override
   String get aboutTmdbDisclaimer =>
       '이 제품은 TMDB API를 사용하지만 TMDB의 승인 또는 인증을 받지 않았습니다.';
 

@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
+import 'package:movi/src/core/preferences/playback_sync_offset_preferences.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
+import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
 import 'package:movi/src/core/state/app_state.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
@@ -187,6 +191,187 @@ final currentPreferredPlaybackQualityProvider =
         asyncQuality,
         prefs.preferredPlaybackQuality,
       );
+    });
+
+final subtitleAppearancePreferencesProvider =
+    Provider<SubtitleAppearancePreferences>((ref) {
+      final locator = ref.watch(slProvider);
+      return locator<SubtitleAppearancePreferences>();
+    });
+
+final currentProfileSubtitleAppearanceStreamProvider =
+    StreamProvider<SubtitleAppearancePrefs>((ref) {
+      final prefs = ref.watch(subtitleAppearancePreferencesProvider);
+      final profileId = ref.watch(selectedProfileIdProvider);
+      return prefs.watchForProfile(profileId);
+    });
+
+final currentProfileSubtitleAppearanceProvider =
+    Provider<SubtitleAppearancePrefs>((ref) {
+      final asyncValue = ref.watch(
+        currentProfileSubtitleAppearanceStreamProvider,
+      );
+      return _valueOr<SubtitleAppearancePrefs>(
+        asyncValue,
+        SubtitleAppearancePrefs.defaults,
+      );
+    });
+
+class SubtitleAppearanceController {
+  SubtitleAppearanceController(this._ref);
+
+  final Ref _ref;
+
+  Future<void> setSizePreset(SubtitleSizePreset preset) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(sizePreset: preset));
+  }
+
+  Future<void> setTextColorHex(String hex) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(textColorHex: hex));
+  }
+
+  Future<void> setFontFamilyKey(String fontFamilyKey) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(fontFamilyKey: fontFamilyKey));
+  }
+
+  Future<void> setBackgroundColorHex(String hex) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(backgroundColorHex: hex));
+  }
+
+  Future<void> setBackgroundOpacity(double opacity) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(backgroundOpacity: opacity));
+  }
+
+  Future<void> setShadowPreset(SubtitleShadowPreset shadowPreset) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(shadowPreset: shadowPreset));
+  }
+
+  Future<void> setFontScale(double fontScale) async {
+    final current = _readCurrent();
+    await _persist(current.copyWith(fontScale: fontScale));
+  }
+
+  Future<void> resetToDefaults() async {
+    await _persist(SubtitleAppearancePrefs.defaults);
+  }
+
+  SubtitleAppearancePrefs _readCurrent() {
+    return _ref.read(currentProfileSubtitleAppearanceProvider);
+  }
+
+  Future<void> _persist(SubtitleAppearancePrefs prefs) async {
+    final storage = _ref.read(subtitleAppearancePreferencesProvider);
+    final profileId = _ref.read(selectedProfileIdProvider);
+    await storage.setForProfile(profileId, prefs);
+  }
+}
+
+final subtitleAppearanceControllerProvider =
+    Provider<SubtitleAppearanceController>((ref) {
+      return SubtitleAppearanceController(ref);
+    });
+
+final playbackSyncOffsetPreferencesProvider =
+    Provider<PlaybackSyncOffsetPreferences>((ref) {
+      final locator = ref.watch(slProvider);
+      return locator<PlaybackSyncOffsetPreferences>();
+    });
+
+final currentProfilePlaybackSyncOffsetsStreamProvider =
+    StreamProvider<PlaybackSyncOffsets>((ref) {
+      final prefs = ref.watch(playbackSyncOffsetPreferencesProvider);
+      final profileId = ref.watch(selectedProfileIdProvider);
+      return prefs.watchForProfile(profileId);
+    });
+
+final currentProfilePlaybackSyncOffsetsProvider = Provider<PlaybackSyncOffsets>(
+  (ref) {
+    final asyncValue = ref.watch(
+      currentProfilePlaybackSyncOffsetsStreamProvider,
+    );
+    return _valueOr<PlaybackSyncOffsets>(
+      asyncValue,
+      PlaybackSyncOffsets.defaults,
+    );
+  },
+);
+
+class PlaybackSyncOffsetController {
+  PlaybackSyncOffsetController(this._ref);
+
+  final Ref _ref;
+
+  static const List<int> quickPresetValuesMs = <int>[-500, -250, 0, 250, 500];
+
+  Future<void> setSubtitleOffsetMs(
+    int offsetMs, {
+    String source = 'unknown',
+  }) async {
+    final current = await _readPersistedCurrent();
+    final next = current.copyWith(subtitleOffsetMs: offsetMs);
+    _log('set_subtitle', source: source, offsets: next);
+    await _persist(next);
+  }
+
+  Future<void> setAudioOffsetMs(
+    int offsetMs, {
+    String source = 'unknown',
+  }) async {
+    final current = await _readPersistedCurrent();
+    final next = current.copyWith(audioOffsetMs: offsetMs);
+    _log('set_audio', source: source, offsets: next);
+    await _persist(next);
+  }
+
+  Future<void> applyPresetMs(int offsetMs, {String source = 'unknown'}) async {
+    final current = await _readPersistedCurrent();
+    final next = current.copyWith(
+      subtitleOffsetMs: offsetMs,
+      audioOffsetMs: offsetMs,
+    );
+    _log('apply_preset', source: source, offsets: next);
+    await _persist(next);
+  }
+
+  Future<void> resetOffsets({String source = 'unknown'}) async {
+    _log('reset', source: source, offsets: PlaybackSyncOffsets.defaults);
+    await _persist(PlaybackSyncOffsets.defaults);
+  }
+
+  Future<void> _persist(PlaybackSyncOffsets offsets) async {
+    final storage = _ref.read(playbackSyncOffsetPreferencesProvider);
+    final profileId = _ref.read(selectedProfileIdProvider);
+    await storage.setForProfile(profileId, offsets);
+  }
+
+  Future<PlaybackSyncOffsets> _readPersistedCurrent() async {
+    final storage = _ref.read(playbackSyncOffsetPreferencesProvider);
+    final profileId = _ref.read(selectedProfileIdProvider);
+    return storage.getForProfile(profileId);
+  }
+
+  void _log(
+    String action, {
+    required String source,
+    required PlaybackSyncOffsets offsets,
+  }) {
+    final locator = _ref.read(slProvider);
+    if (!locator.isRegistered<AppLogger>()) return;
+    locator<AppLogger>().debug(
+      '[PlayerSyncPrefs] action=$action source=$source profile=${_ref.read(selectedProfileIdProvider) ?? "__default__"} subtitleMs=${offsets.subtitleOffsetMs} audioMs=${offsets.audioOffsetMs}',
+    );
+  }
+}
+
+final playbackSyncOffsetControllerProvider =
+    Provider<PlaybackSyncOffsetController>((ref) {
+      return PlaybackSyncOffsetController(ref);
     });
 
 final selectedIptvSourcePreferencesProvider =

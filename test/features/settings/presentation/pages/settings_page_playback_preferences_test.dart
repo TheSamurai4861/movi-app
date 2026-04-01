@@ -121,6 +121,7 @@ void main() {
       expect(find.text(l10n.hc_qualite_preferee_776dbeea), findsNothing);
       expect(find.text(l10n.settingsRefreshIptvPlaylistsTitle), findsNothing);
       expect(find.text(l10n.settingsSourcesManagement), findsOneWidget);
+      expect(find.text(l10n.settingsSubtitlesTitle), findsOneWidget);
       expect(find.text(l10n.settingsSyncFrequency), findsOneWidget);
     },
   );

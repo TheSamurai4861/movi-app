@@ -1470,6 +1470,94 @@ class AppLocalizationsPt extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Nuvem indisponível';
 
   @override
+  String get settingsSubtitlesTitle => 'Legendas';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Tamanho do texto';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Cor do texto';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Fonte';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'Sistema';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Configurações rápidas';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Pré-visualização';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'Esta é uma prévia das legendas.\nAjuste a legibilidade em tempo real.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Fundo';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Opacidade do fundo';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Sombra';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Desligada';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'Suave';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Forte';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'Tamanho fino';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Escala';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Restaurar padrão';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Estilo avançado de legendas (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'Fundo, opacidade, presets de sombra e tamanho fino estão disponíveis com Movi Premium.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Desbloquear com Premium';
+
+  @override
+  String get settingsSyncSectionTitle => 'Sincronização áudio/legendas';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Deslocamento das legendas';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Deslocamento de áudio';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'Não suportado neste backend ou plataforma.';
+
+  @override
+  String get settingsSyncResetOffsets => 'Repor deslocamentos de sincronização';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'Este produto usa a API do TMDB, mas não é endossado nem certificado pelo TMDB.';
 

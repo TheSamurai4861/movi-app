@@ -30,6 +30,7 @@ class AppAssets {
   static const String iconResize = 'assets/icons/actions/resize.svg';
   static const String iconPlus = 'assets/icons/actions/plus.svg';
   static const String iconChange = 'assets/icons/actions/change.svg';
+  static const String iconSettings = navSettings;
 
   // Media icons
   static const String iconAudio = 'assets/icons/media/audio.svg';

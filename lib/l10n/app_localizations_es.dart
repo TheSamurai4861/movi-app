@@ -1468,6 +1468,94 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsAccountCloudUnavailable => 'Nube no disponible';
 
   @override
+  String get settingsSubtitlesTitle => 'Subtítulos';
+
+  @override
+  String get settingsSubtitlesSizeTitle => 'Tamaño del texto';
+
+  @override
+  String get settingsSubtitlesColorTitle => 'Color del texto';
+
+  @override
+  String get settingsSubtitlesFontTitle => 'Fuente';
+
+  @override
+  String get settingsSubtitlesSizeSmall => 'S';
+
+  @override
+  String get settingsSubtitlesSizeMedium => 'M';
+
+  @override
+  String get settingsSubtitlesSizeLarge => 'L';
+
+  @override
+  String get settingsSubtitlesFontSystem => 'Sistema';
+
+  @override
+  String get settingsSubtitlesQuickSettingsTitle => 'Ajustes rápidos';
+
+  @override
+  String get settingsSubtitlesPreviewTitle => 'Vista previa';
+
+  @override
+  String get settingsSubtitlesPreviewSample =>
+      'Esta es una vista previa de subtítulos.\nAjusta la legibilidad en tiempo real.';
+
+  @override
+  String get settingsSubtitlesBackgroundTitle => 'Fondo';
+
+  @override
+  String get settingsSubtitlesBackgroundOpacityLabel => 'Opacidad del fondo';
+
+  @override
+  String get settingsSubtitlesShadowTitle => 'Sombra';
+
+  @override
+  String get settingsSubtitlesShadowOff => 'Desactivada';
+
+  @override
+  String get settingsSubtitlesShadowSoft => 'Suave';
+
+  @override
+  String get settingsSubtitlesShadowStrong => 'Fuerte';
+
+  @override
+  String get settingsSubtitlesFineSizeTitle => 'Tamaño fino';
+
+  @override
+  String get settingsSubtitlesFineSizeValueLabel => 'Escala';
+
+  @override
+  String get settingsSubtitlesResetDefaults => 'Restablecer valores';
+
+  @override
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'Estilo avanzado de subtítulos (Premium)';
+
+  @override
+  String get settingsSubtitlesPremiumLockedBody =>
+      'El fondo, la opacidad, los presets de sombra y el tamaño fino están disponibles con Movi Premium.';
+
+  @override
+  String get settingsSubtitlesPremiumLockedAction => 'Desbloquear con Premium';
+
+  @override
+  String get settingsSyncSectionTitle => 'Sincronización audio/subtítulos';
+
+  @override
+  String get settingsSubtitleOffsetTitle => 'Desfase de subtítulos';
+
+  @override
+  String get settingsAudioOffsetTitle => 'Desfase de audio';
+
+  @override
+  String get settingsOffsetUnsupported =>
+      'No compatible con este backend o plataforma.';
+
+  @override
+  String get settingsSyncResetOffsets => 'Restablecer desfases';
+
+  @override
   String get aboutTmdbDisclaimer =>
       'Este producto utiliza la API de TMDB, pero no está respaldado ni certificado por TMDB.';
 

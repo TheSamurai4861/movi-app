@@ -2,6 +2,23 @@ import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/player/domain/value_objects/player_active_tracks.dart';
 import 'package:movi/src/features/player/domain/value_objects/player_tracks.dart';
 
+enum PlayerOffsetKind { subtitle, audio }
+
+class PlayerOffsetUnsupportedException implements Exception {
+  const PlayerOffsetUnsupportedException({required this.kind, this.reason});
+
+  final PlayerOffsetKind kind;
+  final String? reason;
+
+  @override
+  String toString() {
+    final reasonPart = (reason == null || reason!.trim().isEmpty)
+        ? ''
+        : ' ($reason)';
+    return 'PlayerOffsetUnsupportedException(kind: $kind)$reasonPart';
+  }
+}
+
 /// Interface pour le contrôle du player vidéo
 abstract class VideoPlayerRepository {
   /// Ouvre une source vidéo
@@ -36,6 +53,18 @@ abstract class VideoPlayerRepository {
 
   /// Sélectionne une piste audio
   Future<void> setAudioTrack(int? trackId);
+
+  /// Indique si le backend actif supporte le décalage des sous-titres.
+  Future<bool> supportsSubtitleOffset();
+
+  /// Indique si le backend actif supporte le décalage audio.
+  Future<bool> supportsAudioOffset();
+
+  /// Applique un décalage des sous-titres en millisecondes.
+  Future<void> setSubtitleOffsetMs(int offsetMs);
+
+  /// Applique un décalage audio en millisecondes.
+  Future<void> setAudioOffsetMs(int offsetMs);
 
   /// Renvoie les pistes audio/sous-titres disponibles et les pistes actives
   Future<PlayerActiveTracks> getActiveTracks();

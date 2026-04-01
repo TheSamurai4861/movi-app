@@ -41,6 +41,7 @@ import 'package:movi/src/features/settings/presentation/pages/iptv_source_edit_p
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_organize_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_select_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_sources_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/settings_subtitles_page.dart';
 import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/welcome_source_page.dart';
@@ -293,6 +294,12 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
       path: AppRoutePaths.about,
       name: AppRouteIds.about,
       pageBuilder: (context, state) => const MaterialPage(child: AboutPage()),
+    ),
+    GoRoute(
+      path: AppRoutePaths.settingsSubtitles,
+      name: AppRouteIds.settingsSubtitles,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: SettingsSubtitlesPage()),
     ),
     GoRoute(
       path: AppRoutePaths.iptvConnect,
