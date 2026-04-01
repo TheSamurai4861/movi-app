@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -37,6 +39,29 @@ class ComprehensiveCloudSyncService {
 
   static const String _prefsTable = 'user_preferences';
 
+  static Map<String, dynamic>? _coercePreferencesMap(Object? raw) {
+    if (raw == null) return null;
+    if (raw is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(raw);
+    }
+    if (raw is Map) {
+      return Map<String, dynamic>.from(
+        raw.map((k, v) => MapEntry(k.toString(), v)),
+      );
+    }
+    if (raw is String) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return null;
+      try {
+        final decoded = jsonDecode(trimmed);
+        return _coercePreferencesMap(decoded);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   /// Synchronise tous les éléments : bibliothèque, profils, sources IPTV, préférences.
   Future<void> syncAll({
     required SupabaseClient client,
@@ -64,6 +89,11 @@ class ComprehensiveCloudSyncService {
 
     // 4. Synchroniser les préférences utilisateur
     await _syncUserPreferences(client: client, shouldCancel: shouldCancel);
+  }
+
+  /// Push uniquement les préférences utilisateur (ex. après choix de source IPTV).
+  Future<void> pushUserPreferences({required SupabaseClient client}) async {
+    await _syncUserPreferences(client: client, shouldCancel: () => false);
   }
 
   /// Synchronise les profils depuis Supabase (pull).
@@ -182,6 +212,22 @@ class ComprehensiveCloudSyncService {
     if (uid == null || uid.isEmpty) return;
 
     try {
+      Map<String, dynamic> existingPrefs = const {};
+      try {
+        final row = await client
+            .from(_prefsTable)
+            .select('preferences')
+            .eq('account_id', uid)
+            .maybeSingle()
+            .timeout(const Duration(seconds: 5));
+        final parsed = _coercePreferencesMap(row?['preferences']);
+        if (parsed != null) {
+          existingPrefs = parsed;
+        }
+      } catch (_) {
+        // Ignorer : on repart d'une map vide si la ligne n'existe pas ou erreur réseau.
+      }
+
       final prefs = <String, dynamic>{};
 
       // Accent color
@@ -220,10 +266,14 @@ class ComprehensiveCloudSyncService {
         }
       }
 
-      // Selected IPTV source
+      // Selected IPTV source (ne pas envoyer null : évite d'effacer la valeur distante
+      // lors d'un merge ; si absent du patch, on garde la clé déjà en base).
       if (_sl.isRegistered<SelectedIptvSourcePreferences>()) {
         final selectedIptvPrefs = _sl<SelectedIptvSourcePreferences>();
-        prefs['selected_iptv_source_id'] = selectedIptvPrefs.selectedSourceId;
+        final iptvId = selectedIptvPrefs.selectedSourceId?.trim();
+        if (iptvId != null && iptvId.isNotEmpty) {
+          prefs['selected_iptv_source_id'] = iptvId;
+        }
       }
 
       // IPTV sync interval
@@ -236,14 +286,17 @@ class ComprehensiveCloudSyncService {
         }
       }
 
-      if (prefs.isEmpty) return;
+      final merged = Map<String, dynamic>.from(existingPrefs);
+      merged.addAll(prefs);
+
+      if (merged.isEmpty) return;
 
       // Upsert dans Supabase (une seule ligne par utilisateur)
       await client
           .from(_prefsTable)
           .upsert({
             'account_id': uid,
-            'preferences': prefs,
+            'preferences': merged,
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           }, onConflict: 'account_id')
           .timeout(const Duration(seconds: 5));
@@ -259,9 +312,14 @@ class ComprehensiveCloudSyncService {
   }
 
   /// Pull les préférences utilisateur depuis Supabase et les applique localement.
+  ///
+  /// Si [knownIptvAccountIds] est fourni (IDs de comptes IPTV locaux actuels), on
+  /// peut restaurer ou réparer `selected_iptv_source_id` lorsque le stockage local
+  /// est vide ou pointe vers un id obsolète (réimport, autre appareil, etc.).
   Future<void> pullUserPreferences({
     required SupabaseClient client,
     bool Function()? shouldCancel,
+    Set<String>? knownIptvAccountIds,
   }) async {
     final uid = client.auth.currentSession?.user.id.trim();
     if (uid == null || uid.isEmpty) return;
@@ -276,7 +334,7 @@ class ComprehensiveCloudSyncService {
 
       if (response == null) return;
 
-      final prefs = response['preferences'] as Map<String, dynamic>?;
+      final prefs = _coercePreferencesMap(response['preferences']);
       if (prefs == null || prefs.isEmpty) return;
 
       // Accent color
@@ -339,11 +397,24 @@ class ComprehensiveCloudSyncService {
       // Selected IPTV source
       if (_sl.isRegistered<SelectedIptvSourcePreferences>()) {
         final selectedIptvPrefs = _sl<SelectedIptvSourcePreferences>();
-        if (selectedIptvPrefs.selectedSourceId == null) {
-          final selectedIptvSourceId = prefs['selected_iptv_source_id']
-              ?.toString();
-          if (selectedIptvSourceId != null && selectedIptvSourceId.isNotEmpty) {
-            await selectedIptvPrefs.setSelectedSourceId(selectedIptvSourceId);
+        final cloudRaw = prefs['selected_iptv_source_id']?.toString();
+        final cloudId = cloudRaw?.trim();
+        final current = selectedIptvPrefs.selectedSourceId?.trim();
+
+        if (cloudId != null && cloudId.isNotEmpty) {
+          if (knownIptvAccountIds == null) {
+            if (current == null || current.isEmpty) {
+              await selectedIptvPrefs.setSelectedSourceId(cloudId);
+            }
+          } else if (knownIptvAccountIds.contains(cloudId)) {
+            final missingLocal = current == null || current.isEmpty;
+            final staleLocal =
+                current != null &&
+                current.isNotEmpty &&
+                !knownIptvAccountIds.contains(current);
+            if (missingLocal || staleLocal) {
+              await selectedIptvPrefs.setSelectedSourceId(cloudId);
+            }
           }
         }
       }

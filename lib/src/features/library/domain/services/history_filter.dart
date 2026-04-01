@@ -41,6 +41,7 @@ class HistoryFilter {
       title: MediaTitle(e.title),
       type: e.type,
       poster: e.poster,
+      librarySortTime: e.lastPlayedAt,
     );
   }
 

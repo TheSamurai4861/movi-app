@@ -20,7 +20,9 @@ import 'package:movi/src/core/startup/app_launch_criteria.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
+import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
@@ -41,6 +43,15 @@ typedef HomePreloadRunner =
 
 enum AppLaunchStatus { idle, running, success, failure }
 
+enum AppLaunchErrorCode {
+  invalidTransition,
+  iptvEmptyData,
+  iptvNetworkTimeout,
+  iptvProviderError,
+  homePreloadInvalidState,
+  libraryPreloadTimeout,
+}
+
 enum AppLaunchPhase {
   init,
   startup,
@@ -49,7 +60,7 @@ enum AppLaunchPhase {
   sources,
   localAccounts,
   sourceSelection,
-  preloadMinimalHome,
+  preloadCompleteHome,
   done,
 }
 
@@ -62,6 +73,8 @@ class AppLaunchState {
     this.completedAt,
     this.destination,
     this.criteria = AppLaunchCriteria.empty,
+    this.recoveryMessage,
+    this.runId,
   });
 
   final AppLaunchStatus status;
@@ -71,6 +84,8 @@ class AppLaunchState {
   final DateTime? completedAt;
   final BootstrapDestination? destination;
   final AppLaunchCriteria criteria;
+  final String? recoveryMessage;
+  final String? runId;
 
   static const _sentinel = Object();
 
@@ -82,6 +97,8 @@ class AppLaunchState {
     Object? completedAt = _sentinel,
     Object? destination = _sentinel,
     AppLaunchCriteria? criteria,
+    Object? recoveryMessage = _sentinel,
+    Object? runId = _sentinel,
   }) {
     return AppLaunchState(
       status: status ?? this.status,
@@ -99,6 +116,10 @@ class AppLaunchState {
           ? this.destination
           : destination as BootstrapDestination?,
       criteria: criteria ?? this.criteria,
+      recoveryMessage: identical(recoveryMessage, _sentinel)
+          ? this.recoveryMessage
+          : recoveryMessage as String?,
+      runId: identical(runId, _sentinel) ? this.runId : runId as String?,
     );
   }
 }
@@ -140,6 +161,8 @@ class AppLaunchMeta {
     this.selectedProfileId,
     this.selectedSourceId,
     this.iptvCatalogReady = false,
+    this.homePreloaded = false,
+    this.libraryReady = false,
   });
 
   final String? accountId;
@@ -149,6 +172,8 @@ class AppLaunchMeta {
   final String? selectedProfileId;
   final String? selectedSourceId;
   final bool iptvCatalogReady;
+  final bool homePreloaded;
+  final bool libraryReady;
 
   AppLaunchMeta copyWith({
     String? accountId,
@@ -158,6 +183,8 @@ class AppLaunchMeta {
     String? selectedProfileId,
     String? selectedSourceId,
     bool? iptvCatalogReady,
+    bool? homePreloaded,
+    bool? libraryReady,
   }) {
     return AppLaunchMeta(
       accountId: accountId ?? this.accountId,
@@ -167,6 +194,8 @@ class AppLaunchMeta {
       selectedProfileId: selectedProfileId ?? this.selectedProfileId,
       selectedSourceId: selectedSourceId ?? this.selectedSourceId,
       iptvCatalogReady: iptvCatalogReady ?? this.iptvCatalogReady,
+      homePreloaded: homePreloaded ?? this.homePreloaded,
+      libraryReady: libraryReady ?? this.libraryReady,
     );
   }
 }
@@ -195,8 +224,52 @@ class _IptvPreloadResult {
   final bool refreshed;
 }
 
+class _LaunchStepException implements Exception {
+  const _LaunchStepException(this.code, this.message);
+
+  final AppLaunchErrorCode code;
+  final String message;
+
+  @override
+  String toString() =>
+      'LaunchStepException(code: ${code.name}, message: $message)';
+}
+
 class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   AppLaunchOrchestrator();
+
+  static const Map<AppLaunchPhase, Set<AppLaunchPhase>>
+  _allowedPhaseTransitions = <AppLaunchPhase, Set<AppLaunchPhase>>{
+    AppLaunchPhase.init: <AppLaunchPhase>{AppLaunchPhase.startup},
+    AppLaunchPhase.startup: <AppLaunchPhase>{
+      AppLaunchPhase.auth,
+      AppLaunchPhase.done,
+    },
+    AppLaunchPhase.auth: <AppLaunchPhase>{
+      AppLaunchPhase.profiles,
+      AppLaunchPhase.done,
+    },
+    AppLaunchPhase.profiles: <AppLaunchPhase>{
+      AppLaunchPhase.localAccounts,
+      AppLaunchPhase.done,
+    },
+    AppLaunchPhase.localAccounts: <AppLaunchPhase>{
+      AppLaunchPhase.sources,
+      AppLaunchPhase.sourceSelection,
+      AppLaunchPhase.done,
+    },
+    AppLaunchPhase.sources: <AppLaunchPhase>{
+      AppLaunchPhase.localAccounts,
+      AppLaunchPhase.sourceSelection,
+      AppLaunchPhase.done,
+    },
+    AppLaunchPhase.sourceSelection: <AppLaunchPhase>{
+      AppLaunchPhase.preloadCompleteHome,
+      AppLaunchPhase.done,
+    },
+    AppLaunchPhase.preloadCompleteHome: <AppLaunchPhase>{AppLaunchPhase.done},
+    AppLaunchPhase.done: <AppLaunchPhase>{},
+  };
 
   late final AppStartupRunner _startupRunner;
   late final AuthRepository _authRepository;
@@ -210,6 +283,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   late final XtreamSyncService _xtreamSyncService;
   late final AppStateController _appStateController;
   late final AppEventBus _appEventBus;
+  late final HomeController _homeController;
   late final HomePreloadRunner _homePreload;
   late final AppLaunchStateRegistry _launchRegistry;
   late final IptvCredentialsEdgeService? _credentialsEdgeService;
@@ -237,7 +311,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _xtreamSyncService = sl<XtreamSyncService>();
     _appStateController = ref.read(appStateControllerProvider);
     _appEventBus = ref.read(appEventBusProvider);
-    _homePreload = ref.read(homeControllerProvider.notifier).load;
+    _homeController = ref.read(homeControllerProvider.notifier);
+    _homePreload = _homeController.load;
     _launchRegistry = sl<AppLaunchStateRegistry>();
     _credentialsEdgeService = sl.isRegistered<IptvCredentialsEdgeService>()
         ? sl<IptvCredentialsEdgeService>()
@@ -263,6 +338,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     if (current != null) return current;
 
     final startedAt = DateTime.now();
+    final runId = startedAt.microsecondsSinceEpoch.toString();
     _updateState(
       state.copyWith(
         status: AppLaunchStatus.running,
@@ -272,9 +348,16 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         completedAt: null,
         destination: null,
         criteria: AppLaunchCriteria.empty,
+        recoveryMessage: null,
+        runId: runId,
       ),
     );
-    _logPhase(AppLaunchPhase.init, AppLaunchStatus.running, stepName: 'start');
+    _logPhase(
+      AppLaunchPhase.init,
+      AppLaunchStatus.running,
+      stepName: 'start',
+      runId: runId,
+    );
 
     final future = _runInternal();
     _ongoing = future;
@@ -312,10 +395,13 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     void updateCriteria() {
       _updateState(
         state.copyWith(
-          criteria: AppLaunchCriteria.fromIds(
+          criteria: AppLaunchCriteria.fromLaunchContext(
             accountId: meta.accountId,
             selectedProfileId: meta.selectedProfileId,
             selectedSourceId: meta.selectedSourceId,
+            hasIptvCatalogReady: meta.iptvCatalogReady,
+            hasHomePreloaded: meta.homePreloaded,
+            hasLibraryReady: meta.libraryReady,
           ),
         ),
       );
@@ -347,16 +433,22 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           destination: destination,
         ),
       );
-      _logPhase(AppLaunchPhase.done, AppLaunchStatus.success, stepName: 'done');
+      _logPhase(
+        AppLaunchPhase.done,
+        AppLaunchStatus.success,
+        stepName: 'done',
+        runId: state.runId,
+      );
       return AppLaunchResult(destination: destination, meta: meta);
     }
 
     AppLaunchResult completeFailure(Object error, StackTrace st) {
+      final code = error is _LaunchStepException ? error.code.name : 'unknown';
       final failure = Failure.fromException(
         error,
         stackTrace: st,
         code: 'app_launch',
-        context: {'step': step, 'userId': meta.accountId},
+        context: {'step': step, 'userId': meta.accountId, 'errorCode': code},
       );
 
       final launchFailure = AppLaunchFailure(
@@ -369,7 +461,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       unawaited(
         LoggingService.log(
           '[Preload][ERROR] step=$step uid=${meta.accountId ?? 'null'} '
-          'type=${error.runtimeType} msg=$error',
+          'type=${error.runtimeType} code=$code msg=$error',
         ),
       );
 
@@ -385,6 +477,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         AppLaunchPhase.done,
         AppLaunchStatus.failure,
         stepName: 'failed',
+        runId: state.runId,
       );
 
       return AppLaunchResult(
@@ -526,10 +619,69 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         ...localAccounts.map((a) => a.id),
         ...localStalkerAccounts.map((a) => a.id),
       };
-      final preferred = _selectedIptvSourcePreferences.selectedSourceId;
+
+      final accountIdForCloud = meta.accountId?.trim();
+      final supabaseClient = ref.read(supabaseClientProvider);
+
+      if (accountIdForCloud != null &&
+          accountIdForCloud.isNotEmpty &&
+          validIds.length > 1 &&
+          supabaseClient != null) {
+        try {
+          await ref
+              .read(comprehensiveCloudSyncServiceProvider)
+              .pullUserPreferences(
+                client: supabaseClient,
+                shouldCancel: () => false,
+                knownIptvAccountIds: validIds,
+              );
+          await logStep('user prefs pulled from cloud (iptv selection)');
+        } catch (e, st) {
+          if (kDebugMode) {
+            debugPrint(
+              '[Bootstrap] pullUserPreferences before iptv selection: $e\n$st',
+            );
+          }
+          await logStep('pullUserPreferences failed (ignored)');
+        }
+      }
+
+      await _selectedIptvSourcePreferences.rereadFromStorage();
+      String? preferred = _selectedIptvSourcePreferences.selectedSourceId;
+
+      if (validIds.length > 1 &&
+          (preferred == null ||
+              preferred.trim().isEmpty ||
+              !validIds.contains(preferred.trim())) &&
+          supabaseClient != null &&
+          accountIdForCloud != null &&
+          accountIdForCloud.isNotEmpty) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        try {
+          await ref
+              .read(comprehensiveCloudSyncServiceProvider)
+              .pullUserPreferences(
+                client: supabaseClient,
+                shouldCancel: () => false,
+                knownIptvAccountIds: validIds,
+              );
+          await logStep('user prefs pulled from cloud (iptv selection retry)');
+        } catch (e, st) {
+          if (kDebugMode) {
+            debugPrint(
+              '[Bootstrap] pullUserPreferences retry before iptv selection: $e\n$st',
+            );
+          }
+          await logStep('pullUserPreferences retry failed (ignored)');
+        }
+        await _selectedIptvSourcePreferences.rereadFromStorage();
+        preferred = _selectedIptvSourcePreferences.selectedSourceId;
+      }
+
+      final preferredFinal = preferred;
       if (kDebugMode) {
         debugPrint(
-          '[BOOTSTRAP] Preferred source present=${preferred != null} '
+          '[BOOTSTRAP] Preferred source present=${preferredFinal != null} '
           'validIds=${validIds.length}',
         );
       }
@@ -538,7 +690,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         final onlyId = validIds.first;
         meta = meta.copyWith(selectedSourceId: onlyId);
         updateCriteria();
-        if (preferred != onlyId) {
+        if (preferredFinal != onlyId) {
           await _selectedIptvSourcePreferences.setSelectedSourceId(onlyId);
           _appStateController.setActiveIptvSources({onlyId});
           await logStep('single source selected -> $onlyId');
@@ -546,51 +698,47 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           _appStateController.setActiveIptvSources({onlyId});
           await logStep('single source already selected -> $onlyId');
         }
-      } else if (preferred != null && validIds.contains(preferred.trim())) {
-        final trimmed = preferred.trim();
+      } else if (preferredFinal != null &&
+          validIds.contains(preferredFinal.trim())) {
+        final trimmed = preferredFinal.trim();
         meta = meta.copyWith(selectedSourceId: trimmed);
         updateCriteria();
         _appStateController.setActiveIptvSources({trimmed});
         await logStep('selected source restored -> $trimmed');
       } else {
-        await _selectedIptvSourcePreferences.clear();
+        final stale = preferredFinal?.trim();
+        if (stale != null && stale.isNotEmpty && !validIds.contains(stale)) {
+          await _selectedIptvSourcePreferences.clear();
+        }
         destination = BootstrapDestination.chooseSource;
         await logStep('multiple sources + no valid selection -> chooseSource');
         return completeSuccess(destination);
       }
 
-      step = 'preload_minimal_home';
-      _setPhase(AppLaunchPhase.preloadMinimalHome, stepName: step);
+      step = 'preload_complete_home';
+      _setPhase(AppLaunchPhase.preloadCompleteHome, stepName: step);
+      final iptvPreload = await _ensureIptvCatalogReadyForLaunch();
+      meta = meta.copyWith(iptvCatalogReady: iptvPreload.catalogReady);
+      updateCriteria();
+      await logStep('iptv catalog ready for launch');
 
-      // TOUJOURS attendre le chargement complet du catalogue IPTV
-      // pour garantir l'affichage des tendances et playlists au lancement
-      await _homePreload(
-            awaitIptv: true, // Toujours attendre le chargement IPTV
-            reason: 'preload',
-            force: true,
-            cooldown: Duration.zero,
-          )
-          .timeout(
-            const Duration(seconds: 45),
-            onTimeout: () {
-              debugPrint('[Preload] Home load timeout after 45s (continuing)');
-            },
-          )
-          .catchError((e, st) {
-            if (kDebugMode) {
-              debugPrint('[Bootstrap] home.load failed (ignored): $e\n$st');
-            }
-            return null;
-          });
-
-      // Attendre un délai supplémentaire pour garantir que toutes les données
-      // sont complètement chargées et disponibles dans le state
-      await Future.delayed(const Duration(seconds: 2));
-
+      await _runWithRetry<void>(
+        attempts: 2,
+        initialDelay: const Duration(milliseconds: 200),
+        actionName: 'home_preload',
+        action: (_) => _preloadHomeForLaunch(),
+      );
+      meta = meta.copyWith(homePreloaded: true);
+      updateCriteria();
       await logStep('home preload done');
 
+      await _ensureLibraryReadyForLaunch();
+      meta = meta.copyWith(libraryReady: true);
+      updateCriteria();
+      await logStep('library preload done');
+
       destination = BootstrapDestination.home;
-      await logStep('minimal done -> home');
+      await logStep('complete preload done -> home');
       final result = completeSuccess(destination);
 
       _startIptvBackgroundSync(meta);
@@ -600,23 +748,183 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     }
   }
 
+  Future<_IptvPreloadResult> _ensureIptvCatalogReadyForLaunch() async {
+    return _runWithRetry<_IptvPreloadResult>(
+      attempts: 3,
+      initialDelay: const Duration(milliseconds: 300),
+      actionName: 'iptv_preload',
+      action: (attempt) async {
+        final result =
+            await _ensureIptvCatalogReady(
+              reason: 'launch_attempt_$attempt',
+            ).timeout(
+              const Duration(seconds: 20),
+              onTimeout: () {
+                throw const _LaunchStepException(
+                  AppLaunchErrorCode.iptvNetworkTimeout,
+                  'IPTV catalog preload timed out',
+                );
+              },
+            );
+        if (!result.catalogReady) {
+          throw const _LaunchStepException(
+            AppLaunchErrorCode.iptvEmptyData,
+            'IPTV catalog is empty after refresh',
+          );
+        }
+        return result;
+      },
+    );
+  }
+
+  Future<void> _preloadHomeForLaunch() async {
+    if (!_homeController.bootstrapPreloadInFlight) {
+      await _homePreload(
+        awaitIptv: true,
+        reason: 'preload',
+        force: true,
+        cooldown: Duration.zero,
+      );
+    }
+    await _homeController.waitForBootstrapPreloadCompletion().timeout(
+      const Duration(seconds: 20),
+      onTimeout: () {
+        throw const _LaunchStepException(
+          AppLaunchErrorCode.homePreloadInvalidState,
+          'Timed out while waiting for bootstrap preload completion',
+        );
+      },
+    );
+
+    var homeState = ref.read(homeControllerProvider);
+    if (homeState.isLoading && _homeController.bootstrapPreloadInFlight) {
+      await _homeController.waitForBootstrapPreloadCompletion().timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          throw const _LaunchStepException(
+            AppLaunchErrorCode.homePreloadInvalidState,
+            'Home preload remained inflight beyond timeout',
+          );
+        },
+      );
+      homeState = ref.read(homeControllerProvider);
+    }
+    if (homeState.isLoading) {
+      throw const _LaunchStepException(
+        AppLaunchErrorCode.homePreloadInvalidState,
+        'Home preload still loading after awaited preload',
+      );
+    }
+    if (homeState.error != null && homeState.error!.trim().isNotEmpty) {
+      throw _LaunchStepException(
+        AppLaunchErrorCode.homePreloadInvalidState,
+        'Home preload failed: ${homeState.error}',
+      );
+    }
+    final hasActiveSources = _appStateController.activeIptvSourceIds.isNotEmpty;
+    if (hasActiveSources && homeState.iptvLists.isEmpty) {
+      throw const _LaunchStepException(
+        AppLaunchErrorCode.homePreloadInvalidState,
+        'Home preload finished without IPTV sections',
+      );
+    }
+  }
+
+  Future<void> _ensureLibraryReadyForLaunch() async {
+    try {
+      await ref
+          .read(homeInProgressProvider.future)
+          .timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      throw const _LaunchStepException(
+        AppLaunchErrorCode.libraryPreloadTimeout,
+        'Library preload timed out',
+      );
+    } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('not registered') || msg.contains('bad state')) {
+        await LoggingService.log(
+          '[Preload][WARN] library preload skipped: dependency unavailable',
+        );
+        return;
+      }
+      throw _LaunchStepException(
+        AppLaunchErrorCode.libraryPreloadTimeout,
+        'Library preload failed: $e',
+      );
+    }
+  }
+
+  Future<T> _runWithRetry<T>({
+    required int attempts,
+    required Duration initialDelay,
+    required String actionName,
+    required Future<T> Function(int attempt) action,
+  }) async {
+    Object? lastError;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        _setRecoveryMessage(
+          attempt == 1 ? null : 'Recovery: $actionName ($attempt/$attempts)',
+        );
+        final result = await action(attempt);
+        _setRecoveryMessage(null);
+        return result;
+      } catch (e) {
+        lastError = e;
+        if (attempt >= attempts) break;
+        final delayMs = initialDelay.inMilliseconds * attempt * attempt;
+        await Future<void>.delayed(Duration(milliseconds: delayMs));
+      }
+    }
+    _setRecoveryMessage(null);
+    if (lastError is _LaunchStepException) {
+      throw lastError;
+    }
+    throw _LaunchStepException(
+      AppLaunchErrorCode.iptvProviderError,
+      'Retry policy exhausted for $actionName: $lastError',
+    );
+  }
+
   void _setPhase(AppLaunchPhase phase, {String? stepName}) {
+    _assertValidTransition(from: state.phase, to: phase);
     _updateState(state.copyWith(phase: phase));
-    _logPhase(phase, state.status, stepName: stepName);
+    _logPhase(phase, state.status, stepName: stepName, runId: state.runId);
   }
 
   void _logPhase(
     AppLaunchPhase phase,
     AppLaunchStatus status, {
     String? stepName,
+    String? runId,
   }) {
     final ts = DateTime.now().toIso8601String();
     final step = stepName ?? phase.name;
+    final runIdPart = runId == null ? '' : ' runId=$runId';
     unawaited(
       LoggingService.log(
-        '[Launch] ts=$ts phase=${phase.name} status=${status.name} step=$step',
+        '[Launch] ts=$ts phase=${phase.name} status=${status.name} step=$step$runIdPart',
       ),
     );
+  }
+
+  void _assertValidTransition({
+    required AppLaunchPhase from,
+    required AppLaunchPhase to,
+  }) {
+    if (from == to) return;
+    final allowed = _allowedPhaseTransitions[from];
+    final valid = allowed != null && allowed.contains(to);
+    if (valid) return;
+    throw _LaunchStepException(
+      AppLaunchErrorCode.invalidTransition,
+      'Invalid transition from ${from.name} to ${to.name}',
+    );
+  }
+
+  void _setRecoveryMessage(String? message) {
+    _updateState(state.copyWith(recoveryMessage: message));
   }
 
   void _logIptvSyncDecision({
@@ -626,9 +934,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   }) {
     final ts = DateTime.now().toIso8601String();
     final extra = detail == null ? '' : ' detail=$detail';
+    final runId = state.runId == null ? '' : ' runId=${state.runId}';
     unawaited(
       LoggingService.log(
-        '[IptvSync] ts=$ts reason=$reason action=$action$extra',
+        '[IptvSync] ts=$ts reason=$reason action=$action$extra$runId',
       ),
     );
   }

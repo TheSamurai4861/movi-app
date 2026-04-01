@@ -484,6 +484,9 @@ class _MemorySelectedIptvSourcePreferences implements SelectedIptvSourcePreferen
   }
 
   @override
+  Future<void> rereadFromStorage() async {}
+
+  @override
   Future<void> clear() => setSelectedSourceId(null);
 
   @override

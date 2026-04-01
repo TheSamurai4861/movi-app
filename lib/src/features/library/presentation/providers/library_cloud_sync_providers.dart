@@ -409,3 +409,35 @@ final libraryCloudSyncControllerProvider =
     NotifierProvider<LibraryCloudSyncController, LibraryCloudSyncState>(
       LibraryCloudSyncController.new,
     );
+
+/// Pousse les préférences utilisateur (dont `selected_iptv_source_id`) vers Supabase
+/// lorsqu'une session existe. N'interrompt pas l'UI en cas d'échec.
+Future<void> pushUserPreferencesIfSignedIn(
+  WidgetRef ref, {
+  String logContext = 'pushUserPreferencesIfSignedIn',
+  int maxAttempts = 3,
+}) async {
+  Object? lastError;
+  StackTrace? lastStack;
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      final client = ref.read(supabaseClientProvider);
+      if (client == null || client.auth.currentSession == null) return;
+      await ref
+          .read(comprehensiveCloudSyncServiceProvider)
+          .pushUserPreferences(client: client);
+      return;
+    } catch (e, st) {
+      lastError = e;
+      lastStack = st;
+      if (attempt >= maxAttempts) break;
+      await Future<void>.delayed(Duration(milliseconds: 200 * attempt));
+    }
+  }
+  assert(() {
+    debugPrint(
+      '[$logContext] failed after $maxAttempts attempts: $lastError\n$lastStack',
+    );
+    return true;
+  }());
+}

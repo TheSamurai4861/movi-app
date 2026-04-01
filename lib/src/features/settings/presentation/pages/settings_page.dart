@@ -15,7 +15,6 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/application/services/local_data_cleanup_service.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
@@ -35,14 +34,10 @@ import 'package:movi/src/core/profile/presentation/ui/dialogs/create_profile_dia
 import 'package:movi/src/core/profile/presentation/ui/dialogs/manage_profile_dialog.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/router.dart';
-import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
-import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
-import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
-    as hp;
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
@@ -50,7 +45,6 @@ import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
-import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/movi_premium_settings_tile.dart';
 import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
 import 'package:movi/src/features/settings/presentation/widgets/export_diagnostics_sheet.dart';
@@ -73,7 +67,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     'https://thesamurai4861.github.io/movi-terms/',
   );
 
-  bool _refreshingIptv = false;
   bool _unlocking = false;
   bool _wasUnlockedForSettings = false;
   String? _unlockedProfileId;
@@ -140,7 +133,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 initialItem: pickedIndex,
               ),
               onSelectedItemChanged: (i) => pickedIndex = i,
-              children: [for (final (_, label) in items) Center(child: Text(label))],
+              children: [
+                for (final (_, label) in items) Center(child: Text(label)),
+              ],
             ),
           ),
         ],
@@ -758,125 +753,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  // -------------------- IPTV --------------------
-
-  Future<void> _refreshIptv() async {
-    if (_refreshingIptv) return;
-
-    var active = ref.read(asp.appStateControllerProvider).activeIptvSourceIds;
-
-    if (active.isEmpty) {
-      final locator = ref.read(slProvider);
-      final iptvLocal = locator<IptvLocalRepository>();
-      final accounts = await iptvLocal.getAccounts();
-
-      if (accounts.isNotEmpty) {
-        final ids = accounts.map((a) => a.id).toSet();
-        ref.read(asp.appStateControllerProvider).setActiveIptvSources(ids);
-        active = ids;
-      }
-
-      if (active.isEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.homeNoIptvSources),
-          ),
-        );
-        return;
-      }
-    }
-
-    if (!mounted) return;
-    setState(() => _refreshingIptv = true);
-
-    final refresh = ref.read(refreshXtreamCatalogProvider);
-    final logger = ref.read(slProvider)<AppLogger>();
-
-    int ok = 0;
-    int ko = 0;
-    final errors = <String>[];
-
-    for (final id in active) {
-      final res = await refresh(id);
-      res.fold(
-        ok: (_) => ok += 1,
-        err: (f) {
-          ko += 1;
-          errors.add(f.message);
-          logger.error('IPTV refresh failed for $id: ${f.message}');
-        },
-      );
-    }
-
-    unawaited(ref.read(hp.homeControllerProvider.notifier).refresh());
-    ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
-
-    if (mounted) {
-      final accent = ref.read(asp.currentAccentColorProvider);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Playlists IPTV rafraîchies ($ok/${active.length})${ko > 0 ? ' | erreurs: $ko' : ''}',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF1C1C1E),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
-        ),
-      );
-
-      if (ko > 0 && errors.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    errors.first,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: accent.withValues(alpha: 0.25),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-
-    if (!mounted) return;
-    setState(() => _refreshingIptv = false);
-    _lockSessionIfUnlocked();
-  }
-
   // -------------------- UI parts --------------------
 
   KeyEventResult _handleSettingsHorizontalBoundary(KeyEvent event) {
@@ -1075,7 +951,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       accountValue = AppLocalizations.of(context)!.settingsAccountLocalMode;
       accountValueColor = Colors.white70;
     } else {
-      accountValue = AppLocalizations.of(context)!.settingsAccountCloudUnavailable;
+      accountValue = AppLocalizations.of(
+        context,
+      )!.settingsAccountCloudUnavailable;
       accountValueColor = theme.colorScheme.error;
     }
 
@@ -1253,11 +1131,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   Future<void> _onSelectProfile(Profile profile) async {
     final currentSelectedId = ref.read(selectedProfileIdProvider);
-    final isChangingProfile = currentSelectedId != null &&
+    final isChangingProfile =
+        currentSelectedId != null &&
         currentSelectedId.isNotEmpty &&
         currentSelectedId != profile.id;
     if (isChangingProfile) {
-      final hasPremium = await _ensurePremiumFeature(PremiumFeature.localProfiles);
+      final hasPremium = await _ensurePremiumFeature(
+        PremiumFeature.localProfiles,
+      );
       if (!hasPremium) return;
     }
 
@@ -1347,7 +1228,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             if (!mounted) return;
             ScaffoldMessenger.of(navigatorContext).showSnackBar(
               SnackBar(
-                content: Text('${l10n.hc_erreur_lors_deconnexion_placeholder_f5a211b4}: $e'),
+                content: Text(
+                  '${l10n.hc_erreur_lors_deconnexion_placeholder_f5a211b4}: $e',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -1488,22 +1371,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         ),
                       ),
                     ),
-                    _buildSettingItem(
-                      title: l10n.settingsRefreshIptvPlaylistsTitle,
-                      trailing: _refreshingIptv
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: currentAccentColor,
-                              ),
-                            )
-                          : null,
-                      onTap: _refreshingIptv
-                          ? null
-                          : () => _guard(_refreshIptv),
-                    ),
                   ]),
 
                   const SizedBox(height: _sectionGap),
@@ -1528,14 +1395,21 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       title: l10n.settingsLanguageLabel,
                       trailing: Builder(
                         builder: (context) {
-                          final localePrefs =
-                              ref.read(slProvider)<LocalePreferences>();
+                          final localePrefs = ref.read(
+                            slProvider,
+                          )<LocalePreferences>();
                           final items = _availableLanguages();
                           final selected = items
-                              .where((e) => _isCurrentLanguage(currentLangCode, e.$1))
+                              .where(
+                                (e) =>
+                                    _isCurrentLanguage(currentLangCode, e.$1),
+                              )
                               .map((e) => e.$1)
                               .cast<String?>()
-                              .firstWhere((_) => true, orElse: () => items.first.$1);
+                              .firstWhere(
+                                (_) => true,
+                                orElse: () => items.first.$1,
+                              );
 
                           final platform = Theme.of(context).platform;
                           final isCupertinoPlatform =
@@ -1557,7 +1431,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: ref.read(asp.currentAccentColorProvider),
+                                  color: ref.read(
+                                    asp.currentAccentColorProvider,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1576,7 +1452,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               ),
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final screenW = MediaQuery.sizeOf(context).width;
+                                  final screenW = MediaQuery.sizeOf(
+                                    context,
+                                  ).width;
                                   final maxW = math.min(220.0, screenW * 0.45);
 
                                   return ConstrainedBox(
@@ -1621,7 +1499,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         onChanged: (value) {
                                           if (value == null) return;
                                           _guard(() async {
-                                            await localePrefs.setLanguageCode(value);
+                                            await localePrefs.setLanguageCode(
+                                              value,
+                                            );
                                           });
                                         },
                                       ),
@@ -1770,7 +1650,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     if (!hasCloudSyncPremium)
                       Text(
                         l10n.hc_movi_premium_requis_pour_synchronisation_cloud_15b551df,
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                     if (cloudSync.lastError != null &&
                         cloudSync.lastError!.trim().isNotEmpty)

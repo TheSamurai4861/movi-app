@@ -18,7 +18,8 @@ class SplashBootstrapPage extends ConsumerWidget {
     if (error == null) {
       final l10n = AppLocalizations.of(context)!;
       final stage = ref.watch(homeBootstrapProgressStageProvider);
-      final message = launchState.phase == AppLaunchPhase.preloadMinimalHome
+      final recoveryMessage = launchState.recoveryMessage;
+      final message = launchState.phase == AppLaunchPhase.preloadCompleteHome
           ? switch (stage) {
               HomeBootstrapProgressStage.loadingMoviesAndSeries =>
                 l10n.overlayLoadingMoviesAndSeries,
@@ -28,11 +29,10 @@ class SplashBootstrapPage extends ConsumerWidget {
               null => l10n.overlayPreparingHome,
             }
           : l10n.overlayPreparingHome;
-      return Scaffold(
-        body: OverlaySplash(
-          message: message,
-        ),
-      );
+      final displayMessage = recoveryMessage == null
+          ? message
+          : '$message · $recoveryMessage';
+      return Scaffold(body: OverlaySplash(message: displayMessage));
     }
 
     final l10n = AppLocalizations.of(context)!;

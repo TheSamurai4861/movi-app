@@ -16,17 +16,21 @@ void main() {
     await sl.reset();
   });
 
-  testWidgets('shows progress message during preloadMinimalHome', (tester) async {
+  testWidgets('shows progress message during preloadCompleteHome', (
+    tester,
+  ) async {
     // Arrange: launch state says we're in preload.
     final launchState = const AppLaunchState(
       status: AppLaunchStatus.running,
-      phase: AppLaunchPhase.preloadMinimalHome,
+      phase: AppLaunchPhase.preloadCompleteHome,
       error: null,
     );
 
     final container = ProviderContainer(
       overrides: [
-        appLaunchOrchestratorProvider.overrideWith(() => _FakeLaunchOrchestrator(launchState)),
+        appLaunchOrchestratorProvider.overrideWith(
+          () => _FakeLaunchOrchestrator(launchState),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -50,7 +54,83 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
 
     // Assert: should show the translated message.
-    expect(find.text('Loading categories…'), findsOneWidget);
+    final context = tester.element(find.byType(SplashBootstrapPage));
+    final l10n = AppLocalizations.of(context)!;
+    expect(find.textContaining(l10n.overlayLoadingCategories), findsOneWidget);
+  });
+
+  testWidgets('shows recovery message suffix when retrying', (tester) async {
+    final launchState = const AppLaunchState(
+      status: AppLaunchStatus.running,
+      phase: AppLaunchPhase.preloadCompleteHome,
+      error: null,
+      recoveryMessage: 'Recovery: iptv_preload (2/3)',
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        appLaunchOrchestratorProvider.overrideWith(
+          () => _FakeLaunchOrchestrator(launchState),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container
+        .read(homeBootstrapProgressStageProvider.notifier)
+        .set(HomeBootstrapProgressStage.loadingCategories);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SplashBootstrapPage(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.textContaining('Recovery: iptv_preload (2/3)'), findsOneWidget);
+  });
+
+  testWidgets('keeps overlay visible while preload is still running', (
+    tester,
+  ) async {
+    final launchState = const AppLaunchState(
+      status: AppLaunchStatus.running,
+      phase: AppLaunchPhase.preloadCompleteHome,
+      error: null,
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        appLaunchOrchestratorProvider.overrideWith(
+          () => _FakeLaunchOrchestrator(launchState),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    container
+        .read(homeBootstrapProgressStageProvider.notifier)
+        .set(HomeBootstrapProgressStage.loadingCategories);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SplashBootstrapPage(),
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.byType(SplashBootstrapPage), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.textContaining('Recovery:'), findsNothing);
   });
 }
 
@@ -61,4 +141,3 @@ class _FakeLaunchOrchestrator extends AppLaunchOrchestrator {
   @override
   AppLaunchState build() => _state;
 }
-

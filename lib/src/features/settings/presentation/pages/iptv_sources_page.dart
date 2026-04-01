@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
@@ -20,8 +22,10 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
+import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
+import 'package:movi/src/features/settings/presentation/services/iptv_source_remote_delete_service.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
 class IptvSourcesPage extends ConsumerStatefulWidget {
@@ -91,6 +95,30 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     return account.isActive();
   }
 
+  Future<RemoteIptvDeleteStatus> _deleteRemoteSourceBestEffort({
+    required String localSourceId,
+  }) async {
+    final locator = ref.read(slProvider);
+    if (!locator.isRegistered<SupabaseIptvSourcesRepository>()) {
+      return RemoteIptvDeleteStatus.skippedRepositoryUnavailable;
+    }
+
+    final service = IptvSourceRemoteDeleteService(
+      loadSources: ({required accountId}) => locator
+          .get<SupabaseIptvSourcesRepository>()
+          .getSources(accountId: accountId),
+      deleteSource: ({required id, required accountId}) => locator
+          .get<SupabaseIptvSourcesRepository>()
+          .deleteSource(id: id, accountId: accountId),
+    );
+
+    final userId = ref.read(authUserIdProvider);
+    return service.deleteByLocalIdBestEffort(
+      localId: localSourceId,
+      userId: userId,
+    );
+  }
+
   Future<void> _confirmAndDelete(
     AnyIptvAccount account,
     List<AnyIptvAccount> accounts,
@@ -150,6 +178,26 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       } else {
         await selectedPrefs.clear();
       }
+    }
+
+    final remoteDeleteStatus = await _deleteRemoteSourceBestEffort(
+      localSourceId: account.id,
+    );
+    if (remoteDeleteStatus == RemoteIptvDeleteStatus.failed && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Source supprimée localement, mais suppression cloud impossible.',
+          ),
+        ),
+      );
+    }
+    if (kDebugMode &&
+        remoteDeleteStatus != RemoteIptvDeleteStatus.deleted &&
+        remoteDeleteStatus != RemoteIptvDeleteStatus.skippedNotFound) {
+      debugPrint(
+        '[IptvSourcesPage] remote delete status=$remoteDeleteStatus sourceId=${account.id}',
+      );
     }
 
     ref.invalidate(allIptvAccountsProvider);

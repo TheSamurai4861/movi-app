@@ -471,6 +471,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final int? id = _tmdbIdOf(current);
     if (current == null || id == null) return;
     final bool isInitialHeroWarmup = _initialHeroWarmupPending;
+    // Ne reporter que le précache image (léger) au 2e passage ; l'hydratation TMDB
+    // du slide courant doit toujours pouvoir tourner au premier frame sinon le
+    // premier hero reste souvent sans métadonnées (cache froid).
     _initialHeroWarmupPending = false;
     final bool heroVisible = _canRunBackgroundWork;
     _diagnostics.mark(
@@ -509,22 +512,20 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     }
     _lastPrefetchAt = DateTime.now();
 
-    // Préparer meta courante (cache→affichage)
+    // Préparer meta courante (cache→affichage), puis hydratation réseau dédiée.
     _metaFutures[id] = _loadMetaWithRetry(
       current,
       workToken: workToken,
-      allowHydration: !isInitialHeroWarmup,
     );
     _logHeroDebug(
       'meta_future_assigned',
       context: <String, Object?>{
         'currentId': id,
-        'allowHydration': !isInitialHeroWarmup,
         'workToken': workToken,
       },
     );
+    _hydrateMetaIfNeeded(current, workToken: workToken);
     if (!isInitialHeroWarmup) {
-      _hydrateMetaIfNeeded(current, workToken: workToken);
       _precacheBgFor(current, isNext: false, workToken: workToken);
     }
     // Préparer meta suivante pour une transition fluide
@@ -642,7 +643,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
           : await _safeGetTvDetail(id);
       isTvData = data != null ? !preferTvFirst : preferTvFirst;
     }
-    // Si le cache est vide, on retourne null (l'hydratation sera gérée par _loadMetaWithRetry)
+    // Si le cache est vide, on retourne null (l'hydratation réseau : _hydrateMetaIfNeeded)
     if (data == null) return null;
 
     final Map<String, dynamic> images =
@@ -762,8 +763,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     );
   }
 
-  /// Charge les métadonnées depuis le cache et déclenche une hydratation
-  /// asynchrone si nécessaire.
+  /// Charge les métadonnées depuis le cache uniquement (pas d’I/O réseau).
+  ///
+  /// L’hydratation TMDB est déclenchée par [_hydrateMetaIfNeeded] depuis
+  /// [_prepareCurrentMetaNow] pour tous les slides, y compris le premier.
   ///
   /// La future ne doit pas rester bloquée à attendre le réseau: le carousel
   /// affiche immédiatement son état minimal et se ré-enrichit quand l'I/O
@@ -771,7 +774,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   Future<_HeroMeta?> _loadMetaWithRetry(
     ContentReference item, {
     required int workToken,
-    required bool allowHydration,
   }) async {
     if (!_canRunBackgroundWork) {
       return null;
@@ -793,16 +795,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       return null;
     }
     if (meta != null) return meta;
-
-    // Cache vide : déclencher l'hydratation si pas déjà en cours.
-    // On ne poll pas ici pour éviter de garder des futures en attente et
-    // d'augmenter la pression réseau pendant la rotation du hero.
-    if (allowHydration &&
-        !_hydratedIds.contains(id) &&
-        !_fullyHydratedIds.contains(id) &&
-        !_hydratingIds.contains(id)) {
-      unawaited(_hydrateMetaIfNeeded(item, workToken: workToken));
-    }
 
     return null;
   }

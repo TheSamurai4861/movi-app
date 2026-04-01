@@ -141,6 +141,7 @@ class TvShowSummary extends Equatable {
     this.backdrop,
     this.seasonCount,
     this.status,
+    this.addedAt,
   });
 
   final SeriesId id;
@@ -150,6 +151,7 @@ class TvShowSummary extends Equatable {
   final Uri? backdrop;
   final int? seasonCount;
   final SeriesStatus? status;
+  final DateTime? addedAt;
 
   @override
   List<Object?> get props => [
@@ -160,6 +162,7 @@ class TvShowSummary extends Equatable {
     backdrop,
     seasonCount,
     status,
+    addedAt,
   ];
 }
 

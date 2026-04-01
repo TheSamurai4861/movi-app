@@ -1,3 +1,5 @@
+import 'package:movi/src/shared/domain/services/tmdb_image_selector_service.dart';
+
 class TmdbTvDetailDto {
   TmdbTvDetailDto({
     required this.id,
@@ -17,6 +19,7 @@ class TmdbTvDetailDto {
     required this.seasons,
     required this.recommendations,
     required this.isFullPayload,
+    this.logoPngExhausted = false,
   });
 
   factory TmdbTvDetailDto.fromJson(Map<String, dynamic> json) {
@@ -35,7 +38,11 @@ class TmdbTvDetailDto {
             .first
             .toLowerCase()
             .trim();
-    final logoPath = _selectLogo(logos, preferredLang: preferredLang);
+    final logoPath = TmdbImageSelectorService.selectLogoPath(
+      logos,
+      preferredLang: preferredLang.isEmpty ? null : preferredLang,
+    );
+    final logoPngExhausted = json['__movi_logo_png_exhausted'] == true;
     final credits = json['credits'] as Map<String, dynamic>?;
     final cast = (credits?['cast'] as List<dynamic>? ?? const [])
         .map((item) => TmdbTvCastDto.fromJson(item as Map<String, dynamic>))
@@ -91,6 +98,7 @@ class TmdbTvDetailDto {
           .toList(),
       recommendations: recommendations,
       isFullPayload: isFull,
+      logoPngExhausted: logoPngExhausted,
     );
   }
 
@@ -111,6 +119,35 @@ class TmdbTvDetailDto {
   final List<TmdbTvSeasonDto> seasons;
   final List<TmdbTvSummaryDto> recommendations;
   final bool isFullPayload;
+
+  /// Après un fetch TMDB complet : aucun logo PNG exploitable (évite refetch en boucle).
+  final bool logoPngExhausted;
+
+  TmdbTvDetailDto copyWith({
+    String? logoPath,
+    bool? logoPngExhausted,
+  }) {
+    return TmdbTvDetailDto(
+      id: id,
+      name: name,
+      overview: overview,
+      posterPath: posterPath,
+      posterBackground: posterBackground,
+      backdropPath: backdropPath,
+      logoPath: logoPath ?? this.logoPath,
+      firstAirDate: firstAirDate,
+      lastAirDate: lastAirDate,
+      status: status,
+      voteAverage: voteAverage,
+      genres: genres,
+      cast: cast,
+      creators: creators,
+      seasons: seasons,
+      recommendations: recommendations,
+      isFullPayload: isFullPayload,
+      logoPngExhausted: logoPngExhausted ?? this.logoPngExhausted,
+    );
+  }
 
   Map<String, dynamic> toCache() => {
     'id': id,
@@ -144,6 +181,7 @@ class TmdbTvDetailDto {
     'recommendations': {
       'results': recommendations.map((r) => r.toJson()).toList(),
     },
+    '__movi_logo_png_exhausted': logoPngExhausted,
   };
 
   factory TmdbTvDetailDto.fromCache(Map<String, dynamic> json) =>
@@ -191,53 +229,6 @@ String? _selectPosterBackground(Map<String, dynamic>? images) {
   }
 
   return null;
-}
-
-String? _selectLogo(List<dynamic> logos, {required String preferredLang}) {
-  if (logos.isEmpty) return null;
-
-  final list = logos
-      .whereType<Map>()
-      .map((e) => e.cast<String, dynamic>())
-      .where((m) => (m['file_path']?.toString().trim().isNotEmpty ?? false))
-      .toList(growable: false);
-  if (list.isEmpty) return null;
-
-  // Règle stricte : n'utiliser que des PNG (le CDN TMDB peut ne pas servir les SVG).
-  final pngOnly = list
-      .where(
-        (m) => (m['file_path']?.toString().toLowerCase().trim().endsWith('.png') ??
-            false),
-      )
-      .toList(growable: false);
-  if (pngOnly.isEmpty) return null;
-
-  int score(Map<String, dynamic> m) {
-    final vote = (m['vote_average'] as num?)?.toDouble() ?? 0.0;
-    final lang = m['iso_639_1']?.toString().toLowerCase();
-
-    // Format bonus inutile ici (pngOnly), on garde juste un léger bonus neutre.
-    const formatBonus = 0;
-
-    // Bonus langue: app -> en -> neutre -> autre.
-    int langBonus = 0;
-    if (preferredLang.isNotEmpty && lang == preferredLang) {
-      langBonus = 300;
-    } else if (lang == 'en') {
-      langBonus = 200;
-    } else if (lang == null || lang.isEmpty) {
-      langBonus = 150;
-    } else {
-      langBonus = 0;
-    }
-
-    // Vote contributes but should not override language choice.
-    return langBonus + formatBonus + (vote * 10).round();
-  }
-
-  final sorted = pngOnly.toList(growable: true)
-    ..sort((a, b) => score(b).compareTo(score(a)));
-  return sorted.first['file_path']?.toString();
 }
 
 class TmdbTvCastDto {

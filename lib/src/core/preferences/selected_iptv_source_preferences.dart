@@ -69,6 +69,17 @@ class SelectedIptvSourcePreferences {
     }
   }
 
+  /// Re-synchronise la mémoire avec le stockage (utile au boot après pull cloud).
+  Future<void> rereadFromStorage() async {
+    final raw = await _storage.read(key: _storageKey);
+    final normalized = _normalize(raw);
+    if (normalized == _selectedSourceId) return;
+    _selectedSourceId = normalized;
+    if (!_controller.isClosed) {
+      _controller.add(_selectedSourceId);
+    }
+  }
+
   Future<void> clear() => setSelectedSourceId(null);
 
   Future<void> dispose() async {

@@ -302,11 +302,26 @@ class LibraryPlaylistHero extends StatelessWidget {
           color: Colors.white,
         );
       case LibraryPlaylistType.favoriteMovies:
-        return const Icon(Icons.local_movies, color: Colors.white, size: 64);
+        return const MoviAssetIcon(
+          AppAssets.iconMovie,
+          width: 64,
+          height: 64,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.favoriteSeries:
-        return const Icon(Icons.tv, color: Colors.white, size: 64);
+        return const MoviAssetIcon(
+          AppAssets.iconSeries,
+          width: 64,
+          height: 64,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.watchHistory:
-        return const Icon(Icons.history, color: Colors.white, size: 64);
+        return const MoviAssetIcon(
+          AppAssets.iconForward,
+          width: 64,
+          height: 64,
+          color: Colors.white,
+        );
       case LibraryPlaylistType.userPlaylist:
         return const MoviAssetIcon(
           AppAssets.navLibrary,

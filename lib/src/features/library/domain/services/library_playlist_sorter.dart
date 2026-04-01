@@ -41,6 +41,14 @@ class LibraryPlaylistSorter {
             final dateB = itemB.addedAt ?? DateTime(1970);
             return dateB.compareTo(dateA);
           });
+        } else if (sorted.any((r) => r.librarySortTime != null)) {
+          sorted.sort((a, b) {
+            final dateA =
+                a.librarySortTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final dateB =
+                b.librarySortTime ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return dateB.compareTo(dateA);
+          });
         }
         return sorted;
       case LibraryPlaylistSortType.yearAscending:

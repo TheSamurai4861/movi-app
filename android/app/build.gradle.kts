@@ -177,6 +177,26 @@ afterEvaluate {
         }
     }
 
+    fun registerDefaultFlutterAabAliasTask(
+        taskName: String,
+        sourceAabRelativePath: String,
+        targetAabRelativePath: String,
+    ) = tasks.register(taskName) {
+        doLast {
+            val outputsDir = layout.buildDirectory.dir("outputs").get().asFile
+            val sourceAab = outputsDir.resolve(sourceAabRelativePath)
+            val targetAab = outputsDir.resolve(targetAabRelativePath)
+
+            if (sourceAab.isFile) {
+                targetAab.parentFile.mkdirs()
+                sourceAab.copyTo(targetAab, overwrite = true)
+                logger.lifecycle(
+                    "Copied ${sourceAab.name} to ${targetAab.name} for default flutter build compatibility.",
+                )
+            }
+        }
+    }
+
     val ensureDefaultDebugApk = registerDefaultFlutterApkAliasTask(
         taskName = "ensureDefaultDebugApk",
         sourceApkName = "app-dev-debug.apk",
@@ -188,11 +208,21 @@ afterEvaluate {
         targetApkName = "app-release.apk",
     )
 
+    val ensureDefaultReleaseAab = registerDefaultFlutterAabAliasTask(
+        taskName = "ensureDefaultReleaseAab",
+        sourceAabRelativePath = "bundle/devRelease/app-dev-release.aab",
+        targetAabRelativePath = "bundle/release/app-release.aab",
+    )
+
     tasks.matching { it.name == "assembleDebug" }.configureEach {
         finalizedBy(ensureDefaultDebugApk)
     }
 
     tasks.matching { it.name == "assembleRelease" }.configureEach {
         finalizedBy(ensureDefaultReleaseApk)
+    }
+
+    tasks.matching { it.name == "bundleRelease" }.configureEach {
+        finalizedBy(ensureDefaultReleaseAab)
     }
 }

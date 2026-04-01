@@ -66,6 +66,9 @@ class _MemorySelectedIptvSourcePreferences
   }
 
   @override
+  Future<void> rereadFromStorage() async {}
+
+  @override
   Future<void> clear() => setSelectedSourceId(null);
 
   @override

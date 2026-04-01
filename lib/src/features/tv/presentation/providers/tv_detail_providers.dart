@@ -19,6 +19,7 @@ import 'package:movi/src/features/iptv/data/datasources/xtream_remote_data_sourc
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
@@ -37,6 +38,7 @@ final tvRepositoryProvider = Provider<TvRepository>((ref) {
     ref.watch(slProvider)<TvLocalDataSource>(),
     ref.watch(slProvider)<ContinueWatchingLocalRepository>(),
     ref.watch(slProvider)<AppStateController>(),
+    ref.watch(slProvider)<TmdbCacheDataSource>(),
     userId: userId,
   );
 });

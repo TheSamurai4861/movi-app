@@ -79,12 +79,13 @@ class _LibraryPlaylistDetailPageState
       ) async {
         final repository = ref.watch(libraryRepositoryProvider);
 
+        late final List<ContentReference> built;
         switch (playlist.type) {
           case LibraryPlaylistType.inProgress:
-            return await repository.getHistoryInProgress();
+            built = await repository.getHistoryInProgress();
           case LibraryPlaylistType.favoriteMovies:
             final movies = await repository.getLikedMovies();
-            return movies
+            built = movies
                 .map(
                   (m) => ContentReference(
                     id: m.id.value,
@@ -92,18 +93,20 @@ class _LibraryPlaylistDetailPageState
                     type: ContentType.movie,
                     poster: m.poster,
                     year: m.releaseYear,
+                    librarySortTime: m.addedAt,
                   ),
                 )
                 .toList();
           case LibraryPlaylistType.favoriteSeries:
             final series = await repository.getLikedShows();
-            return series
+            built = series
                 .map(
                   (s) => ContentReference(
                     id: s.id.value,
                     title: s.title,
                     type: ContentType.series,
                     poster: s.poster,
+                    librarySortTime: s.addedAt,
                   ),
                 )
                 .toList();
@@ -111,7 +114,7 @@ class _LibraryPlaylistDetailPageState
             final completed = await repository.getHistoryCompleted();
             final inProgress = await repository.getHistoryInProgress();
             final seenKeys = <String>{};
-            return [...completed, ...inProgress]
+            built = [...completed, ...inProgress]
                 .where((item) {
                   final key = '${item.type.name}:${item.id}';
                   return seenKeys.add(key);
@@ -119,8 +122,10 @@ class _LibraryPlaylistDetailPageState
                 .toList(growable: false);
           case LibraryPlaylistType.userPlaylist:
           case LibraryPlaylistType.actor:
-            return [];
+            built = [];
         }
+
+        return enrichContentReferencesWithYears(ref, built);
       });
 
   void _showSortMenu(BuildContext context, WidgetRef ref) {
@@ -651,6 +656,7 @@ class _LibraryPlaylistDetailPageState
                   );
 
                   return ListView.separated(
+                    key: ValueKey(_sortType?.name ?? 'default'),
                     padding: EdgeInsets.symmetric(horizontal: pagePadding),
                     itemCount: sortedItems.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -746,82 +752,100 @@ class _LibraryPlaylistDetailPageState
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Backdrop paysage (180x100)
+                // Backdrop paysage (180x100) + badge durée/saisons en stack (flou)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: backdropAsync.when(
-                    loading: () => Container(
-                      width: 180,
-                      height: 100,
-                      color: const Color(0xFF222222),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ),
-                    error: (_, __) => Container(
-                      width: 180,
-                      height: 100,
-                      color: const Color(0xFF222222),
-                      child: const Icon(
-                        Icons.broken_image,
-                        color: Colors.white54,
-                        size: 32,
-                      ),
-                    ),
-                    data: (backdropUri) {
-                      if (backdropUri != null) {
-                        return Image.network(
-                          backdropUri.toString(),
-                          width: 180,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              width: 180,
-                              height: 100,
+                  child: SizedBox(
+                    width: 180,
+                    height: 100,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Positioned.fill(
+                          child: backdropAsync.when(
+                            loading: () => Container(
                               color: const Color(0xFF222222),
-                              child: Center(
+                              child: const Center(
                                 child: CircularProgressIndicator(
-                                  value:
-                                      loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                      : null,
                                   strokeWidth: 2,
                                   color: Colors.white54,
                                 ),
                               ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 180,
-                              height: 100,
+                            ),
+                            error: (_, __) => Container(
                               color: const Color(0xFF222222),
                               child: const Icon(
                                 Icons.broken_image,
                                 color: Colors.white54,
                                 size: 32,
                               ),
-                            );
-                          },
-                        );
-                      }
-                      return Container(
-                        width: 180,
-                        height: 100,
-                        color: const Color(0xFF222222),
-                        child: const Icon(
-                          Icons.movie,
-                          color: Colors.white54,
-                          size: 32,
+                            ),
+                            data: (backdropUri) {
+                              if (backdropUri != null) {
+                                return Image.network(
+                                  backdropUri.toString(),
+                                  width: 180,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      color: const Color(0xFF222222),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          value: loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                      .cumulativeBytesLoaded /
+                                                  loadingProgress
+                                                      .expectedTotalBytes!
+                                              : null,
+                                          strokeWidth: 2,
+                                          color: Colors.white54,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: const Color(0xFF222222),
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        color: Colors.white54,
+                                        size: 32,
+                                      ),
+                                    );
+                                  },
+                                );
+                              }
+                              return Container(
+                                color: const Color(0xFF222222),
+                                child: const Icon(
+                                  Icons.movie,
+                                  color: Colors.white54,
+                                  size: 32,
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      );
-                    },
+                        if (secondaryLabel != null)
+                          Positioned(
+                            right: 8,
+                            bottom: 8,
+                            child: MoviPill(
+                              secondaryLabel,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              color: Colors.black.withValues(alpha: 0.45),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -915,17 +939,6 @@ class _LibraryPlaylistDetailPageState
                             if (displayReference.rating != null)
                               MoviPill(
                                 displayReference.rating!.toStringAsFixed(1),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                              ),
-                            if (displayReference.rating != null &&
-                                secondaryLabel != null)
-                              const SizedBox(width: 8),
-                            if (secondaryLabel != null)
-                              MoviPill(
-                                secondaryLabel,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 4,

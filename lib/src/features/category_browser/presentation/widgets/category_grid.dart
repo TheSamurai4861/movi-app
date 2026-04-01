@@ -196,7 +196,7 @@ class _CategoryGridState extends ConsumerState<CategoryGrid> {
               width: gridWidth,
               child: GridView.builder(
                 controller: _scrollController,
-                clipBehavior: Clip.none,
+                clipBehavior: Clip.hardEdge,
                 padding: EdgeInsets.zero,
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: crossAxisCount,

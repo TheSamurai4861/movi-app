@@ -55,7 +55,11 @@ final homeHeroIndexProvider = NotifierProvider<HomeHeroIndexController, int>(
   HomeHeroIndexController.new,
 );
 
-enum HomeBootstrapProgressStage { loadingMoviesAndSeries, loadingCategories, openingHome }
+enum HomeBootstrapProgressStage {
+  loadingMoviesAndSeries,
+  loadingCategories,
+  openingHome,
+}
 
 /// Progression affichable pendant le bootstrap (écran `/bootstrap`).
 class HomeBootstrapProgressController
@@ -67,9 +71,10 @@ class HomeBootstrapProgressController
 }
 
 final homeBootstrapProgressStageProvider =
-    NotifierProvider<HomeBootstrapProgressController, HomeBootstrapProgressStage?>(
-      HomeBootstrapProgressController.new,
-    );
+    NotifierProvider<
+      HomeBootstrapProgressController,
+      HomeBootstrapProgressStage?
+    >(HomeBootstrapProgressController.new);
 
 enum HomeIptvMediaFilter { all, movies, series }
 
@@ -158,10 +163,37 @@ class HomeController extends Notifier<HomeState> {
   _HomeRefreshRequest? _queuedRefresh;
   bool _profileListenerAttached = false;
   bool _cwListenerAttached = false;
+  bool _bootstrapPreloadInFlight = false;
+  Completer<void>? _bootstrapPreloadCompleted;
   DateTime? _lastRefreshAt;
   String _lastRefreshReason = 'unknown';
 
   static const Duration _defaultRefreshCooldown = Duration(seconds: 10);
+
+  bool get bootstrapPreloadInFlight => _bootstrapPreloadInFlight;
+
+  Future<void> waitForBootstrapPreloadCompletion() {
+    final completer = _bootstrapPreloadCompleted;
+    if (!_bootstrapPreloadInFlight || completer == null) {
+      return Future<void>.value();
+    }
+    return completer.future;
+  }
+
+  void _beginBootstrapPreloadCycle() {
+    _bootstrapPreloadInFlight = true;
+    _bootstrapPreloadCompleted ??= Completer<void>();
+  }
+
+  void _endBootstrapPreloadCycle() {
+    _bootstrapPreloadInFlight = false;
+    ref.read(homeBootstrapProgressStageProvider.notifier).set(null);
+    final completer = _bootstrapPreloadCompleted;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+    _bootstrapPreloadCompleted = null;
+  }
 
   /// Builds hero for kid profiles by paginating through trending and filtering by age.
   /// Returns up to 8 movies and 8 series that are age-appropriate.
@@ -345,6 +377,16 @@ class HomeController extends Notifier<HomeState> {
       _eventSub = bus.stream.listen((event) {
         if (event.type == AppEventType.iptvSynced ||
             event.type == AppEventType.librarySynced) {
+          if (_bootstrapPreloadInFlight) {
+            _logRefreshDecision(
+              reason: event.type == AppEventType.iptvSynced
+                  ? 'iptvSynced'
+                  : 'librarySynced',
+              action: 'skip',
+              detail: 'bootstrap_preload_inflight',
+            );
+            return;
+          }
           final reason = event.type == AppEventType.iptvSynced
               ? 'iptvSynced'
               : 'librarySynced';
@@ -371,11 +413,14 @@ class HomeController extends Notifier<HomeState> {
                     previous.isKid != next.isKid ||
                     previous.pegiLimit != next.pegiLimit));
         if (shouldReload) {
-          if (_shouldSkipProfileChangeDuringBootstrap()) {
+          if (_bootstrapPreloadInFlight ||
+              _shouldSkipProfileChangeDuringBootstrap()) {
             _logRefreshDecision(
               reason: 'profileChange',
               action: 'skip',
-              detail: 'preload_inflight',
+              detail: _bootstrapPreloadInFlight
+                  ? 'bootstrap_preload_inflight'
+                  : 'preload_inflight',
             );
             return;
           }
@@ -411,6 +456,7 @@ class HomeController extends Notifier<HomeState> {
     final startedAt = DateTime.now();
     final now = startedAt;
     final effectiveCooldown = cooldown ?? _defaultRefreshCooldown;
+    final bool isBootstrapPreload = reason == 'preload';
     _logHomeLoadCycle(
       action: 'start',
       reason: reason,
@@ -437,6 +483,32 @@ class HomeController extends Notifier<HomeState> {
     }
 
     if (state.isLoading) {
+      // Keep bootstrap preload as highest-priority queued refresh and expose
+      // an inflight cycle so the orchestrator can deterministically await it.
+      if (isBootstrapPreload) {
+        _beginBootstrapPreloadCycle();
+      }
+
+      final existingQueued = _queuedRefresh;
+      final hasQueuedBootstrap = existingQueued?.reason == 'preload';
+      if (hasQueuedBootstrap && !isBootstrapPreload) {
+        _logRefreshDecision(
+          reason: reason,
+          action: 'skip',
+          detail: 'bootstrap_preload_already_queued',
+        );
+        _logHomeLoadCycle(
+          action: 'end',
+          reason: reason,
+          force: force,
+          cooldown: effectiveCooldown,
+          result: 'skip',
+          duration: DateTime.now().difference(startedAt),
+          detail: 'bootstrap_preload_already_queued',
+        );
+        return;
+      }
+
       _queuedRefresh = _HomeRefreshRequest(
         awaitIptv: awaitIptv,
         reason: reason,
@@ -463,165 +535,191 @@ class HomeController extends Notifier<HomeState> {
     // Toujours “safe”: ne jamais throw (le bootstrap ne doit pas exploser sur Home).
     state = state.copyWith(isLoading: true, error: null);
 
-    final bool isBootstrapPreload = reason == 'preload';
     if (isBootstrapPreload) {
+      _beginBootstrapPreloadCycle();
       ref
           .read(homeBootstrapProgressStageProvider.notifier)
           .set(HomeBootstrapProgressStage.loadingMoviesAndSeries);
     }
+    try {
+      final tuning = ref.read(performanceTuningProvider);
+      final profile = ref.read(currentProfileProvider);
+      final bool isKid = profile?.isKid == true;
+      final bool hasRestrictions =
+          profile != null && (profile.isKid || profile.pegiLimit != null);
+      // Fetch more items per playlist when restricted so we can "fill" sections
+      // after filtering without showing an almost empty row.
+      final int iptvFetchLimit = hasRestrictions
+          ? HomeLayoutConstants.iptvSectionMaxLimit * 12
+          : HomeLayoutConstants.iptvSectionMaxLimit;
 
-    final tuning = ref.read(performanceTuningProvider);
-    final profile = ref.read(currentProfileProvider);
-    final bool isKid = profile?.isKid == true;
-    final bool hasRestrictions =
-        profile != null && (profile.isKid || profile.pegiLimit != null);
-    // Fetch more items per playlist when restricted so we can "fill" sections
-    // after filtering without showing an almost empty row.
-    final int iptvFetchLimit = hasRestrictions
-        ? HomeLayoutConstants.iptvSectionMaxLimit * 12
-        : HomeLayoutConstants.iptvSectionMaxLimit;
+      // Debug: on peut couper le Hero (et ses appels TMDB) via feature flag
+      // pour isoler un crash lié au carrousel/enrichissement.
+      final bool disableHero = ref.read(featureFlagsProvider).home.disableHero;
 
-    // Debug: on peut couper le Hero (et ses appels TMDB) via feature flag
-    // pour isoler un crash lié au carrousel/enrichissement.
-    final bool disableHero = ref.read(featureFlagsProvider).home.disableHero;
+      List<ContentReference> hero = const <ContentReference>[];
+      Map<String, List<ContentReference>> iptv =
+          const <String, List<ContentReference>>{};
+      String? error;
 
-    List<ContentReference> hero = const <ContentReference>[];
-    Map<String, List<ContentReference>> iptv =
-        const <String, List<ContentReference>>{};
-    String? error;
+      // 1) Première passe: hero + iptv
+      Object? heroResult;
+      Object? iptvResult;
 
-    // 1) Première passe: hero + iptv
-    Object? heroResult;
-    Object? iptvResult;
+      // Bootstrap preload must stay blocking to avoid rendering Home with partial data.
+      final isBlockingBootstrapPreload = reason == 'preload' || awaitIptv;
+      // For restricted profiles, Home content must be filtered; do not defer IPTV.
+      // For kid profiles, the hero is built from allowed IPTV movies, so do not defer either.
+      final bool deferIptv =
+          !hasRestrictions &&
+          tuning.isLowResources &&
+          !isBlockingBootstrapPreload;
 
-    // For restricted profiles, Home content must be filtered; do not defer IPTV.
-    // For kid profiles, the hero is built from allowed IPTV movies, so do not defer either.
-    final bool deferIptv =
-        !hasRestrictions && tuning.isLowResources && !awaitIptv;
+      // Charger hero et IPTV en parallèle (chacun reste "safe").
+      final futures = <Future<void>>[];
+      var heroDone = disableHero;
+      var iptvDone = deferIptv;
 
-    // Charger hero et IPTV en parallèle (chacun reste "safe").
-    final futures = <Future<void>>[];
-    var heroDone = disableHero;
-    var iptvDone = deferIptv;
-
-    void updateBootstrapStage() {
-      if (!isBootstrapPreload) return;
-      if (!heroDone) {
+      void updateBootstrapStage() {
+        if (!isBootstrapPreload) return;
+        if (!heroDone) {
+          ref
+              .read(homeBootstrapProgressStageProvider.notifier)
+              .set(HomeBootstrapProgressStage.loadingMoviesAndSeries);
+          return;
+        }
+        if (!iptvDone) {
+          ref
+              .read(homeBootstrapProgressStageProvider.notifier)
+              .set(HomeBootstrapProgressStage.loadingCategories);
+          return;
+        }
         ref
             .read(homeBootstrapProgressStageProvider.notifier)
-            .set(HomeBootstrapProgressStage.loadingMoviesAndSeries);
-        return;
+            .set(HomeBootstrapProgressStage.openingHome);
       }
-      if (!iptvDone) {
-        ref
-            .read(homeBootstrapProgressStageProvider.notifier)
-            .set(HomeBootstrapProgressStage.loadingCategories);
-        return;
-      }
-      ref
-          .read(homeBootstrapProgressStageProvider.notifier)
-          .set(HomeBootstrapProgressStage.openingHome);
-    }
 
-    updateBootstrapStage();
+      updateBootstrapStage();
 
-    // Load trending hero for all profiles (including kids, but kids will filter by age)
-    if (!disableHero) {
-      futures.add(
-        Future<void>(() async {
-          try {
-            heroResult = await _loadHero!.call();
-          } catch (e) {
-            error ??= e.toString();
-            heroResult = null;
-          } finally {
-            heroDone = true;
-            updateBootstrapStage();
-          }
-        }),
-      );
-    }
-
-    if (!deferIptv) {
-      futures.add(
-        Future<void>(() async {
-          try {
-            iptvResult = await _loadIptv!.call(
-              itemLimitPerPlaylist: iptvFetchLimit,
-            );
-          } catch (e) {
-            error ??= e.toString();
-            iptvResult = null;
-          } finally {
-            iptvDone = true;
-            updateBootstrapStage();
-          }
-        }),
-      );
-    }
-
-    if (futures.isNotEmpty) {
-      await Future.wait(futures);
-    }
-
-    // Interprétation des résultats (Result.fold), mais sans dépendre d’un type précis
-    // si jamais une exception a été catch.
-    if (heroResult != null) {
-      try {
-        // ignore: avoid_dynamic_calls
-        (heroResult as dynamic).fold(
-          ok: (value) => hero = (value as List<ContentReference>),
-          err: (failure) => error ??= (failure as dynamic).message as String?,
+      // Load trending hero for all profiles (including kids, but kids will filter by age)
+      if (!disableHero) {
+        futures.add(
+          Future<void>(() async {
+            try {
+              heroResult = await _loadHero!.call();
+            } catch (e) {
+              error ??= e.toString();
+              heroResult = null;
+            } finally {
+              heroDone = true;
+              updateBootstrapStage();
+            }
+          }),
         );
-      } catch (e) {
-        error ??= e.toString();
       }
-    }
 
-    if (iptvResult != null) {
-      try {
-        // ignore: avoid_dynamic_calls
-        (iptvResult as dynamic).fold(
-          ok: (value) => iptv = (value as Map<String, List<ContentReference>>),
-          err: (failure) => error ??= (failure as dynamic).message as String?,
+      if (!deferIptv) {
+        futures.add(
+          Future<void>(() async {
+            try {
+              iptvResult = await _loadIptv!.call(
+                itemLimitPerPlaylist: iptvFetchLimit,
+              );
+            } catch (e) {
+              error ??= e.toString();
+              iptvResult = null;
+            } finally {
+              iptvDone = true;
+              updateBootstrapStage();
+            }
+          }),
         );
-      } catch (e) {
-        error ??= e.toString();
       }
-    }
 
-    if (hasRestrictions) {
-      final policy = ref.read(parental.agePolicyProvider);
-      final classifier = ref.read(
-        slProvider,
-      )<parental.PlaylistMaturityClassifier>();
-      final effectivePegi =
-          parental.PegiRating.tryParse(profile.pegiLimit) ??
-          (profile.isKid ? parental.PegiRating.pegi12 : null);
+      if (futures.isNotEmpty) {
+        await Future.wait(futures);
+      }
 
-      // Filtrer uniquement par titre de playlist (ex: horreur) pour les profils enfants
-      // Les items individuels ne sont plus filtrés ici, la protection se fait à la navigation
-      if (effectivePegi != null && iptv.isNotEmpty) {
-        final filtered = <String, List<ContentReference>>{};
-        for (final entry in iptv.entries) {
-          final required = classifier.requiredPegiForPlaylistTitle(entry.key);
-          if (required != null && effectivePegi.value < required) {
-            continue;
+      // Interprétation des résultats (Result.fold), mais sans dépendre d’un type précis
+      // si jamais une exception a été catch.
+      if (heroResult != null) {
+        try {
+          // ignore: avoid_dynamic_calls
+          (heroResult as dynamic).fold(
+            ok: (value) => hero = (value as List<ContentReference>),
+            err: (failure) => error ??= (failure as dynamic).message as String?,
+          );
+        } catch (e) {
+          error ??= e.toString();
+        }
+      }
+
+      if (iptvResult != null) {
+        try {
+          // ignore: avoid_dynamic_calls
+          (iptvResult as dynamic).fold(
+            ok: (value) =>
+                iptv = (value as Map<String, List<ContentReference>>),
+            err: (failure) => error ??= (failure as dynamic).message as String?,
+          );
+        } catch (e) {
+          error ??= e.toString();
+        }
+      }
+
+      if (hasRestrictions) {
+        final policy = ref.read(parental.agePolicyProvider);
+        final classifier = ref.read(
+          slProvider,
+        )<parental.PlaylistMaturityClassifier>();
+        final effectivePegi =
+            parental.PegiRating.tryParse(profile.pegiLimit) ??
+            (profile.isKid ? parental.PegiRating.pegi12 : null);
+
+        // Filtrer uniquement par titre de playlist (ex: horreur) pour les profils enfants
+        // Les items individuels ne sont plus filtrés ici, la protection se fait à la navigation
+        if (effectivePegi != null && iptv.isNotEmpty) {
+          final filtered = <String, List<ContentReference>>{};
+          for (final entry in iptv.entries) {
+            final required = classifier.requiredPegiForPlaylistTitle(entry.key);
+            if (required != null && effectivePegi.value < required) {
+              continue;
+            }
+            // Limiter le nombre d'items affichés mais ne pas filtrer par âge
+            final limited = entry.value
+                .take(HomeLayoutConstants.iptvSectionMaxLimit)
+                .toList(growable: false);
+            if (limited.isNotEmpty) {
+              filtered[entry.key] = limited;
+            }
           }
-          // Limiter le nombre d'items affichés mais ne pas filtrer par âge
-          final limited = entry.value
-              .take(HomeLayoutConstants.iptvSectionMaxLimit)
-              .toList(growable: false);
-          if (limited.isNotEmpty) {
-            filtered[entry.key] = limited;
+          iptv = filtered;
+        }
+
+        // Hero filtering: for adult restricted profiles we filter Trending hero;
+        // for kid profiles we paginate through trending and filter by age.
+        if (isKid) {
+          try {
+            hero = await _buildKidHeroFromTrending(hero, profile, policy);
+          } catch (_) {
+            // Best-effort: fallback to simple filtering if pagination fails
+            try {
+              hero = await policy.filterAllowed(hero, profile);
+            } catch (_) {
+              // Don't block home if rating lookups fail
+            }
+          }
+        } else {
+          try {
+            hero = await policy.filterAllowed(hero, profile);
+          } catch (_) {
+            // Best-effort: don't block home if rating lookups fail.
           }
         }
-        iptv = filtered;
-      }
-
-      // Hero filtering: for adult restricted profiles we filter Trending hero;
-      // for kid profiles we paginate through trending and filter by age.
-      if (isKid) {
+      } else if (isKid && profile != null) {
+        // Safety: a kid profile should always have restrictions, but if it's
+        // misconfigured (no isKid/pegiLimit), still filter trending by age.
+        final policy = ref.read(parental.agePolicyProvider);
         try {
           hero = await _buildKidHeroFromTrending(hero, profile, policy);
         } catch (_) {
@@ -632,90 +730,70 @@ class HomeController extends Notifier<HomeState> {
             // Don't block home if rating lookups fail
           }
         }
-      } else {
-        try {
-          hero = await policy.filterAllowed(hero, profile);
-        } catch (_) {
-          // Best-effort: don't block home if rating lookups fail.
-        }
       }
-    } else if (isKid && profile != null) {
-      // Safety: a kid profile should always have restrictions, but if it's
-      // misconfigured (no isKid/pegiLimit), still filter trending by age.
-      final policy = ref.read(parental.agePolicyProvider);
-      try {
-        hero = await _buildKidHeroFromTrending(hero, profile, policy);
-      } catch (_) {
-        // Best-effort: fallback to simple filtering if pagination fails
-        try {
-          hero = await policy.filterAllowed(hero, profile);
-        } catch (_) {
-          // Don't block home if rating lookups fail
-        }
-      }
-    }
 
-    state = state.copyWith(
-      hero: hero,
-      iptvLists: iptv,
-      isLoading: deferIptv,
-      isHeroEmpty: disableHero ? true : hero.isEmpty,
-      error: error,
-    );
-
-    if (!deferIptv) {
-      _drainQueuedRefresh();
-    }
-
-    if (deferIptv) {
-      unawaited(
-        _loadIptv!
-            .call(itemLimitPerPlaylist: iptvFetchLimit)
-            .then((result) {
-              Map<String, List<ContentReference>> iptvValue =
-                  const <String, List<ContentReference>>{};
-              String? iptvError;
-
-              try {
-                // ignore: avoid_dynamic_calls
-                (result as dynamic).fold(
-                  ok: (value) => iptvValue =
-                      (value as Map<String, List<ContentReference>>),
-                  err: (failure) =>
-                      iptvError ??= (failure as dynamic).message as String?,
-                );
-              } catch (e) {
-                iptvError ??= e.toString();
-              }
-
-              state = state.copyWith(
-                iptvLists: iptvValue,
-                isLoading: false,
-                error: iptvError ?? state.error,
-              );
-
-              _drainQueuedRefresh();
-            })
-            .catchError((e) {
-              state = state.copyWith(isLoading: false, error: e.toString());
-
-              _drainQueuedRefresh();
-            }),
+      state = state.copyWith(
+        hero: hero,
+        iptvLists: iptv,
+        isLoading: deferIptv,
+        isHeroEmpty: disableHero ? true : hero.isEmpty,
+        error: error,
       );
-    }
 
-    _logHomeLoadCycle(
-      action: 'end',
-      reason: reason,
-      force: force,
-      cooldown: effectiveCooldown,
-      result: error == null ? 'ok' : 'err',
-      duration: DateTime.now().difference(startedAt),
-      detail: error == null ? null : 'error',
-    );
+      if (!deferIptv) {
+        _drainQueuedRefresh();
+      }
 
-    if (isBootstrapPreload) {
-      ref.read(homeBootstrapProgressStageProvider.notifier).set(null);
+      if (deferIptv) {
+        unawaited(
+          _loadIptv!
+              .call(itemLimitPerPlaylist: iptvFetchLimit)
+              .then((result) {
+                Map<String, List<ContentReference>> iptvValue =
+                    const <String, List<ContentReference>>{};
+                String? iptvError;
+
+                try {
+                  // ignore: avoid_dynamic_calls
+                  (result as dynamic).fold(
+                    ok: (value) => iptvValue =
+                        (value as Map<String, List<ContentReference>>),
+                    err: (failure) =>
+                        iptvError ??= (failure as dynamic).message as String?,
+                  );
+                } catch (e) {
+                  iptvError ??= e.toString();
+                }
+
+                state = state.copyWith(
+                  iptvLists: iptvValue,
+                  isLoading: false,
+                  error: iptvError ?? state.error,
+                );
+
+                _drainQueuedRefresh();
+              })
+              .catchError((e) {
+                state = state.copyWith(isLoading: false, error: e.toString());
+
+                _drainQueuedRefresh();
+              }),
+        );
+      }
+
+      _logHomeLoadCycle(
+        action: 'end',
+        reason: reason,
+        force: force,
+        cooldown: effectiveCooldown,
+        result: error == null ? 'ok' : 'err',
+        duration: DateTime.now().difference(startedAt),
+        detail: error == null ? null : 'error',
+      );
+    } finally {
+      if (isBootstrapPreload) {
+        _endBootstrapPreloadCycle();
+      }
     }
   }
 

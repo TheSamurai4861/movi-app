@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
@@ -134,6 +137,20 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
                           ref
                               .read(appEventBusProvider)
                               .emit(const AppEvent(AppEventType.iptvSynced));
+
+                          try {
+                            await pushUserPreferencesIfSignedIn(
+                              ref,
+                              logContext: 'WelcomeSourceSelectPage',
+                            ).timeout(const Duration(seconds: 18));
+                          } on TimeoutException {
+                            assert(() {
+                              debugPrint(
+                                '[WelcomeSourceSelectPage] pushUserPreferences timeout',
+                              );
+                              return true;
+                            }());
+                          } catch (_) {}
 
                           await Future.delayed(
                             const Duration(milliseconds: 100),

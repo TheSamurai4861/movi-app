@@ -68,6 +68,14 @@ class SupabaseLibraryRepository implements LibraryRepository {
     'https://via.placeholder.com/300x450?text=No+Poster',
   );
 
+  static DateTime? _parseCreatedAt(Map<String, dynamic> map) {
+    final v = map['created_at'];
+    if (v == null) return null;
+    if (v is DateTime) return v;
+    if (v is String) return DateTime.tryParse(v);
+    return null;
+  }
+
   @override
   Future<List<MovieSummary>> getLikedMovies() async {
     try {
@@ -85,6 +93,7 @@ class SupabaseLibraryRepository implements LibraryRepository {
           tmdbId: _tryParseInt(map['media_id']),
           title: MediaTitle(map['media_id'] as String),
           poster: _placeholderPoster,
+          addedAt: _parseCreatedAt(map),
         );
       }).toList();
     } catch (error, stackTrace) {
@@ -109,6 +118,7 @@ class SupabaseLibraryRepository implements LibraryRepository {
           tmdbId: _tryParseInt(map['media_id']),
           title: MediaTitle(map['media_id'] as String),
           poster: _placeholderPoster,
+          addedAt: _parseCreatedAt(map),
         );
       }).toList();
     } catch (error, stackTrace) {

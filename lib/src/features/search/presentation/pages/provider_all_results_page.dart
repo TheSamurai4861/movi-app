@@ -9,7 +9,6 @@ import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:go_router/go_router.dart';
@@ -325,11 +324,6 @@ class _ProviderAllResultsPageState
     final itemsCount = widget.type == MoviMediaType.movie
         ? _movies.length
         : _shows.length;
-    const backButtonFramePadding = 8.0;
-    const backButtonSize = 35.0;
-    final headerStartPadding = _pageHorizontalPadding - backButtonFramePadding;
-    final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
-
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -337,55 +331,10 @@ class _ProviderAllResultsPageState
         bottom: false,
         child: Column(
           children: [
-            // Header avec bouton retour et titre centré
-            Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(
-                headerStartPadding,
-                16,
-                _pageHorizontalPadding,
-                16,
-              ),
-              child: Row(
-                children: [
-                  MoviFocusableAction(
-                    onPressed: () => context.pop(),
-                    semanticLabel: 'Retour',
-                    builder: (context, state) {
-                      return MoviFocusFrame(
-                        scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.all(backButtonFramePadding),
-                        borderRadius: BorderRadius.circular(999),
-                        backgroundColor: state.focused
-                            ? Colors.white.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        child: SizedBox(
-                          width: backButtonSize,
-                          height: backButtonSize,
-                          child: const MoviAssetIcon(
-                            AppAssets.iconBack,
-                            color: Colors.white,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: trailingHeaderSpacerWidth),
-                ],
-              ),
+            MoviSubpageBackTitleHeader(
+              title: title,
+              onBack: () => context.pop(),
+              pageHorizontalPadding: _pageHorizontalPadding,
             ),
             const SizedBox(height: 16),
             // Grille avec pagination au scroll

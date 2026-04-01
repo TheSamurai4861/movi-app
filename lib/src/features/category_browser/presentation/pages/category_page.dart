@@ -30,7 +30,7 @@ class CategoryPage extends ConsumerWidget {
         child: Column(
           children: [
             CategoryHeader(title: title),
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
             Expanded(
               child: SyncableRefreshIndicator(
                 onRefresh: () async {

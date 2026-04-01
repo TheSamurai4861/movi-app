@@ -355,6 +355,22 @@ final libraryFilterProvider =
       LibraryFilterController.new,
     );
 
+/// Complète les années TMDB manquantes (films / séries), sans faire échouer la liste.
+Future<List<ContentReference>> enrichContentReferencesWithYears(
+  Ref ref,
+  List<ContentReference> references,
+) async {
+  if (references.isEmpty) return references;
+  try {
+    final service = ref.read(slProvider)<ContentEnrichmentService>();
+    return await Future.wait(
+      references.map((reference) async => service.enrichYear(reference)),
+    );
+  } catch (_) {
+    return references;
+  }
+}
+
 /// Provider pour charger les items d'une playlist spécifique (avec positions)
 final playlistItemsProvider = FutureProvider.family<List<PlaylistItem>, String>((
   ref,
@@ -414,24 +430,7 @@ final playlistContentReferencesProvider =
           }
 
           final references = items.map((item) => item.reference).toList();
-
-          // Enrichir avec les années depuis TMDB pour les items sans année
-          try {
-            final enrichedReferences = await Future.wait(
-              references.map((reference) async {
-                final service = ref.read(
-                  slProvider,
-                )<ContentEnrichmentService>();
-                return service.enrichYear(reference);
-              }),
-            );
-
-            return enrichedReferences;
-          } catch (e) {
-            // Si l'enrichissement échoue, retourner les références non enrichies
-            // plutôt que de faire échouer tout le provider
-            return references;
-          }
+          return enrichContentReferencesWithYears(ref, references);
         },
       );
     });

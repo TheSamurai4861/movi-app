@@ -16,9 +16,12 @@ class _TrackSelectionSheetLayout {
     final mediaQuery = MediaQuery.of(context);
     final size = mediaQuery.size;
     final isMobile = size.shortestSide < 600;
+    final safeTop = mediaQuery.padding.top;
+    final safeBottom = mediaQuery.padding.bottom;
+    final availableHeight = size.height - safeTop - safeBottom;
 
-    // Mobile: sheet can grow up to 3/4 of screen height.
-    final maxSheetHeight = isMobile ? size.height * 0.75 : double.infinity;
+    // Keep a bounded sheet height to prevent vertical overflow on small screens.
+    final maxSheetHeight = isMobile ? availableHeight * 0.82 : availableHeight;
 
     // Desktop: cap list height to ~4 visible items, then scroll.
     const tileHeight = 56.0; // Typical ListTile height (1 line).
@@ -32,10 +35,7 @@ class _TrackSelectionSheetLayout {
 }
 
 class _TrackSelectionSheetScaffold extends StatelessWidget {
-  const _TrackSelectionSheetScaffold({
-    required this.title,
-    required this.list,
-  });
+  const _TrackSelectionSheetScaffold({required this.title, required this.list});
 
   final String title;
   final Widget list;
@@ -43,17 +43,26 @@ class _TrackSelectionSheetScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final layout = _TrackSelectionSheetLayout.fromContext(context);
+    final listSection = layout.maxListHeight.isFinite
+        ? Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: layout.maxListHeight),
+              child: list,
+            ),
+          )
+        : list;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: layout.maxSheetHeight),
+    return SizedBox(
+      height: layout.maxSheetHeight,
       child: Container(
         decoration: const BoxDecoration(
           color: Color(0xFF1F1F1F),
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
+          top: false,
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
                 padding: const EdgeInsets.all(20),
@@ -76,10 +85,7 @@ class _TrackSelectionSheetScaffold extends StatelessWidget {
                 ),
               ),
               const Divider(color: Color(0xFF3A3A3A), height: 1),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: layout.maxListHeight),
-                child: list,
-              ),
+              Expanded(child: listSection),
             ],
           ),
         ),
@@ -108,7 +114,6 @@ class SubtitleTrackSelectionMenu extends StatelessWidget {
     return _TrackSelectionSheetScaffold(
       title: AppLocalizations.of(context)!.subtitlesMenuTitle,
       list: ListView.builder(
-        shrinkWrap: true,
         itemCount: tracks.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
@@ -201,7 +206,6 @@ class AudioTrackSelectionMenu extends StatelessWidget {
     return _TrackSelectionSheetScaffold(
       title: AppLocalizations.of(context)!.audioMenuTitle,
       list: ListView.builder(
-        shrinkWrap: true,
         itemCount: tracks.length,
         itemBuilder: (context, index) {
           final track = tracks[index];

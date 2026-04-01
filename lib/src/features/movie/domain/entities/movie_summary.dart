@@ -11,6 +11,7 @@ class MovieSummary extends Equatable {
     required this.poster,
     this.backdrop,
     this.releaseYear,
+    this.addedAt,
     this.tags = const [],
   });
 
@@ -20,6 +21,7 @@ class MovieSummary extends Equatable {
   final Uri poster;
   final Uri? backdrop;
   final int? releaseYear;
+  final DateTime? addedAt;
   final List<String> tags;
 
   @override
@@ -30,6 +32,7 @@ class MovieSummary extends Equatable {
     poster,
     backdrop,
     releaseYear,
+    addedAt,
     tags,
   ];
 }

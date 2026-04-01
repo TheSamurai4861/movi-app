@@ -306,13 +306,17 @@ class LibraryPlaylistCard extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                _buildArtwork(
-                  context,
-                  accentColor,
+                SizedBox(
                   width: 75,
                   height: 75,
-                  borderRadius: 16,
-                  isFocused: state.focused,
+                  child: _buildArtwork(
+                    context,
+                    accentColor,
+                    width: 75,
+                    height: 75,
+                    borderRadius: 16,
+                    isFocused: state.focused,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

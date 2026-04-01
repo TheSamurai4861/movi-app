@@ -13,6 +13,7 @@ import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/launch_redirect_guard.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+import 'package:movi/src/core/startup/app_launch_criteria.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/welcome/domain/enum.dart';
 
@@ -85,6 +86,73 @@ void main() {
       expect(find.text('Reconnect Auth'), findsOneWidget);
       expect(find.text('Home'), findsNothing);
       expect(find.text('Bootstrap'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'keeps critical routes on bootstrap when destination home is not really ready',
+    (tester) async {
+      final localePreferences = _MemoryLocalePreferences();
+      final authRepository = _FakeAuthRepository.authenticated();
+      final logger = _MemoryLogger();
+      final launchRegistry = AppLaunchStateRegistry(
+        initial: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          destination: BootstrapDestination.home,
+          criteria: AppLaunchCriteria(
+            hasSession: true,
+            hasSelectedProfile: true,
+            hasSelectedSource: true,
+            hasIptvCatalogReady: true,
+            hasHomePreloaded: true,
+            hasLibraryReady: false,
+          ),
+        ),
+      );
+
+      sl.registerSingleton<LocalePreferences>(localePreferences);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      addTearDown(authRepository.dispose);
+      addTearDown(localePreferences.dispose);
+
+      final appStateController = container.read(appStateControllerProvider);
+      final guard = LaunchRedirectGuard(
+        logger: logger,
+        appStateController: appStateController,
+        authRepository: authRepository,
+        launchRegistry: launchRegistry,
+      );
+      addTearDown(guard.dispose);
+
+      final router = GoRouter(
+        initialLocation: AppRoutePaths.bootstrap,
+        refreshListenable: guard,
+        redirect: guard.handle,
+        routes: [
+          GoRoute(
+            path: AppRoutePaths.launch,
+            builder: (context, state) => const Text('Launch'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.home,
+            builder: (context, state) => const Text('Home'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.bootstrap,
+            builder: (context, state) => const Text('Bootstrap'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bootstrap'), findsOneWidget);
+      expect(find.text('Home'), findsNothing);
     },
   );
 }

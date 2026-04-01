@@ -39,6 +39,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             id: MovieId(e.contentId),
             title: MediaTitle(e.title),
             poster: e.poster!,
+            addedAt: e.addedAt,
           ),
         )
         .toList(growable: false);
@@ -57,6 +58,7 @@ class LibraryRepositoryImpl implements LibraryRepository {
             id: SeriesId(e.contentId),
             title: MediaTitle(e.title),
             poster: e.poster!,
+            addedAt: e.addedAt,
           ),
         )
         .toList(growable: false);

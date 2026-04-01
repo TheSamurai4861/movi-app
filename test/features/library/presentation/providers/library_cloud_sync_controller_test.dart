@@ -269,6 +269,7 @@ class _SpyComprehensiveCloudSyncService extends ComprehensiveCloudSyncService {
   Future<void> pullUserPreferences({
     required SupabaseClient client,
     bool Function()? shouldCancel,
+    Set<String>? knownIptvAccountIds,
   }) async {
     pullUserPreferencesCalls += 1;
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
@@ -90,6 +93,18 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
           .read(appEventBusProvider)
           .emit(const AppEvent(AppEventType.iptvSynced));
       await ref.read(hp.homeControllerProvider.notifier).refresh();
+
+      try {
+        await pushUserPreferencesIfSignedIn(
+          ref,
+          logContext: 'IptvSourceSelectPage',
+        ).timeout(const Duration(seconds: 18));
+      } on TimeoutException {
+        assert(() {
+          debugPrint('[IptvSourceSelectPage] pushUserPreferences timeout');
+          return true;
+        }());
+      } catch (_) {}
 
       if (!mounted) return;
       context.pop(true);

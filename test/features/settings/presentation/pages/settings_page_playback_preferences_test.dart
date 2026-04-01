@@ -112,12 +112,16 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      final l10n =
-          AppLocalizations.of(tester.element(find.byType(SettingsPage)))!;
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(SettingsPage)),
+      )!;
       expect(find.text(l10n.settingsPlaybackSection), findsNothing);
       expect(find.text(l10n.settingsPreferredAudioLanguage), findsNothing);
       expect(find.text(l10n.settingsPreferredSubtitleLanguage), findsNothing);
       expect(find.text(l10n.hc_qualite_preferee_776dbeea), findsNothing);
+      expect(find.text(l10n.settingsRefreshIptvPlaylistsTitle), findsNothing);
+      expect(find.text(l10n.settingsSourcesManagement), findsOneWidget);
+      expect(find.text(l10n.settingsSyncFrequency), findsOneWidget);
     },
   );
 }
@@ -368,6 +372,9 @@ class _MemorySelectedIptvSourcePreferences
         : sourceId?.trim();
     _controller.add(selectedSourceId);
   }
+
+  @override
+  Future<void> rereadFromStorage() async {}
 
   @override
   Future<void> clear() => setSelectedSourceId(null);

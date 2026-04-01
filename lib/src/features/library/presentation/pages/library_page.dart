@@ -674,6 +674,14 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     };
   }
 
+  /// Dégage le dernier élément au-dessus de la barre de navigation flottante du shell mobile.
+  double _libraryScrollBottomPadding(BuildContext context) {
+    if (_isLargeScreen(context)) {
+      return 100;
+    }
+    return MoviBottomNavBar.height + moviNavBarBottomOffset(context) + 16;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -857,7 +865,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     if (searchQuery.isNotEmpty) {
                       return Center(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            24,
+                            horizontalPadding,
+                            24 + _libraryScrollBottomPadding(context),
+                          ),
                           child: Text(
                             AppLocalizations.of(context)!.libraryNoResultsForQuery(
                               searchQuery,
@@ -872,8 +885,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     }
 
                     return ListView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        _libraryScrollBottomPadding(context),
                       ),
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
@@ -895,8 +911,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
                   if (!isLargeScreen) {
                     return ListView.separated(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        0,
+                        horizontalPadding,
+                        _libraryScrollBottomPadding(context),
                       ),
                       itemCount: playlists.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -956,7 +975,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                 horizontalPadding,
                                 0,
                                 horizontalPadding,
-                                100,
+                                _libraryScrollBottomPadding(context),
                               ),
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(

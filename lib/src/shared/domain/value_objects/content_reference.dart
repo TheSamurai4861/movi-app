@@ -14,6 +14,7 @@ class ContentReference extends Equatable {
     this.poster,
     this.year,
     this.rating,
+    this.librarySortTime,
   });
 
   final String id;
@@ -22,6 +23,9 @@ class ContentReference extends Equatable {
   final Uri? poster;
   final int? year;
   final double? rating;
+
+  /// Horodatage pour le tri « récemment ajouté » (favoris, historique, etc.).
+  final DateTime? librarySortTime;
 
   bool get hasPoster => poster != null;
 
@@ -38,6 +42,7 @@ class ContentReference extends Equatable {
     Optional<Uri?>? poster,
     Optional<int?>? year,
     Optional<double?>? rating,
+    Optional<DateTime?>? librarySortTime,
   }) {
     return ContentReference(
       id: id ?? this.id,
@@ -46,6 +51,9 @@ class ContentReference extends Equatable {
       poster: poster == null ? this.poster : poster.value,
       year: year == null ? this.year : year.value,
       rating: rating == null ? this.rating : rating.value,
+      librarySortTime: librarySortTime == null
+          ? this.librarySortTime
+          : librarySortTime.value,
     );
   }
 
@@ -57,11 +65,13 @@ class ContentReference extends Equatable {
       'type: $type, '
       'poster: ${poster?.toString() ?? "-"}, '
       'year: ${year ?? "-"}, '
-      'rating: ${rating ?? "-"}'
+      'rating: ${rating ?? "-"}, '
+      'librarySortTime: ${librarySortTime ?? "-"}'
       ')';
 
   @override
-  List<Object?> get props => <Object?>[id, title, type, poster, year, rating];
+  List<Object?> get props =>
+      <Object?>[id, title, type, poster, year, rating, librarySortTime];
 }
 
 /// Wrapper permettant de distinguer

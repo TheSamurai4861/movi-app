@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -1662,10 +1661,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     color: Colors.white.withValues(alpha: 0.08),
                     child: IconButton(
                       padding: const EdgeInsets.all(10),
-                      icon: Transform.rotate(
-                        angle: _episodeSortOrder == EpisodeSortOrder.descending
-                            ? math.pi
-                            : 0,
+                      icon: Transform.flip(
+                        flipX:
+                            _episodeSortOrder == EpisodeSortOrder.descending,
                         child: const MoviAssetIcon(
                           AppAssets.iconSort,
                           width: 24,

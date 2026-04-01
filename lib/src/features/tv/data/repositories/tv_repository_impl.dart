@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
@@ -20,6 +21,8 @@ import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
 import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/domain/services/tmdb_image_selector_service.dart';
 
 /// Implémentation du repository TV.
 /// Stratégie:
@@ -28,13 +31,22 @@ import 'package:movi/src/core/di/di.dart';
 /// - **Cache local** (TvLocalDataSource) pour show/season si disponible
 /// - Mapping strict, images via [TmdbImageResolver]
 class TvRepositoryImpl implements TvRepository {
+  /// Prédicat « cache tv_detail suffisant pour éviter un nouveau fetchShowFull ».
+  ///
+  /// Le cast / recommandations ne prouvent pas que les logos TMDB ont été résolus.
+  @visibleForTesting
+  static bool cacheSatisfiesFullShowLoad(TmdbTvDetailDto cached) {
+    return cached.logoPath != null || cached.logoPngExhausted;
+  }
+
   TvRepositoryImpl(
     this._remote,
     this._images,
     this._watchlist,
     this._local,
     this._continueWatching,
-    this._appState, {
+    this._appState,
+    this._tmdbCache, {
     String? userId,
   }) : _userId = userId ?? 'default';
 
@@ -44,6 +56,7 @@ class TvRepositoryImpl implements TvRepository {
   final TvLocalDataSource _local;
   final ContinueWatchingLocalRepository _continueWatching;
   final AppStateController _appState;
+  final TmdbCacheDataSource _tmdbCache;
   final String _userId;
 
   // Concurrence bornée pour le chargement des saisons (évite de spam TMDB)
@@ -241,6 +254,34 @@ class TvRepositoryImpl implements TvRepository {
 
   // --------- Chargement & cache ---------
 
+  /// Réutilise le cache TMDB du hero (clé `tmdb_tv_detail_*`) si la fiche n’a pas de logo.
+  Future<TmdbTvDetailDto?> _tryMergeLogoFromHeroCache(
+    int showId,
+    TmdbTvDetailDto cached,
+  ) async {
+    if (cached.logoPath != null || cached.logoPngExhausted) return null;
+    try {
+      final heroJson = await _tmdbCache.getTvDetail(
+        showId,
+        language: _languageCode,
+      );
+      if (heroJson == null) return null;
+      final images = heroJson['images'];
+      if (images is! Map) return null;
+      final logosRaw = images['logos'];
+      if (logosRaw is! List || logosRaw.isEmpty) return null;
+      final pref = _languageCode.split('-').first.toLowerCase().trim();
+      final path = TmdbImageSelectorService.selectLogoPath(
+        logosRaw,
+        preferredLang: pref.isEmpty ? null : pref,
+      );
+      if (path == null) return null;
+      return cached.copyWith(logoPath: path);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<TmdbTvDetailDto> _loadShowDtoFull(int showId) async {
     final logger = sl<AppLogger>();
     logger.debug(
@@ -254,7 +295,7 @@ class TvRepositoryImpl implements TvRepository {
       category: 'tv_repository',
     );
     final cacheStartTime = DateTime.now();
-    final cached = await _local.getShowDetail(showId);
+    TmdbTvDetailDto? cached = await _local.getShowDetail(showId);
     final cacheDuration = DateTime.now().difference(cacheStartTime);
     logger.debug(
       '📺 [REPO] Cache local vérifié pour showId=$showId en ${cacheDuration.inMilliseconds}ms (cached=${cached != null})',
@@ -262,12 +303,13 @@ class TvRepositoryImpl implements TvRepository {
     );
 
     if (cached != null) {
-      // Détection FULL sans getter: présence de champs append_to_response
-      final bool hasFull =
-          (cached.logoPath != null) ||
-          cached.cast.isNotEmpty ||
-          cached.recommendations.isNotEmpty;
-      if (hasFull) {
+      final merged = await _tryMergeLogoFromHeroCache(showId, cached);
+      if (merged != null) {
+        await _local.saveShowDetail(merged);
+        cached = merged;
+      }
+
+      if (TvRepositoryImpl.cacheSatisfiesFullShowLoad(cached)) {
         logger.debug(
           '📺 [REPO] Cache FULL trouvé pour showId=$showId, retour immédiat',
           category: 'tv_repository',
@@ -328,7 +370,10 @@ class TvRepositoryImpl implements TvRepository {
         category: 'tv_repository',
       );
       final saveStartTime = DateTime.now();
-      await _local.saveShowDetail(remote);
+      final toPersist = remote.logoPath == null
+          ? remote.copyWith(logoPngExhausted: true)
+          : remote;
+      await _local.saveShowDetail(toPersist);
       final saveDuration = DateTime.now().difference(saveStartTime);
       logger.debug(
         '📺 [REPO] Cache sauvegardé pour showId=$showId en ${saveDuration.inMilliseconds}ms',
@@ -338,7 +383,7 @@ class TvRepositoryImpl implements TvRepository {
         '📺 [REPO] _loadShowDtoFull() terminé pour showId=$showId',
         category: 'tv_repository',
       );
-      return remote;
+      return toPersist;
     } on TimeoutException catch (e, st) {
       logger.log(
         LogLevel.warn,

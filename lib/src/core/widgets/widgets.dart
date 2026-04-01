@@ -10,6 +10,7 @@ export 'movi_pill.dart';
 export 'movi_placeholder_card.dart';
 export 'movi_primary_button.dart';
 export 'movi_see_all_card.dart';
+export 'movi_subpage_back_title_header.dart';
 export 'movi_tv_action_menu.dart';
 export 'movi_responsive_logo.dart';
 export 'overlay_splash.dart';

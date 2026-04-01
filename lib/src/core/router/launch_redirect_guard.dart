@@ -107,6 +107,11 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (launchState.status == AppLaunchStatus.success) {
+      if (launchState.destination == BootstrapDestination.home &&
+          !launchState.criteria.isHomeReady &&
+          isStartupRoute) {
+        return onBootstrap ? null : AppRoutePaths.bootstrap;
+      }
       if (!isStartupRoute) {
         return null;
       }

@@ -34,10 +34,13 @@ import 'package:movi/src/features/iptv/domain/entities/stalker_catalog_snapshot.
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_catalog_snapshot.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
+import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
 import 'package:movi/src/features/iptv/domain/repositories/stalker_repository.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/stalker_endpoint.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/features/welcome/domain/enum.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
@@ -109,6 +112,25 @@ void main() {
           createdAt: DateTime(2026, 1, 1),
         ),
       );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
 
       final result = await harness.run();
 
@@ -130,8 +152,193 @@ void main() {
         harness.container.read(appStateControllerProvider).activeIptvSourceIds,
         {accountId},
       );
+      expect(
+        harness.container
+            .read(appLaunchOrchestratorProvider)
+            .criteria
+            .isHomeReady,
+        isTrue,
+      );
     },
   );
+
+  test('fails launch when IPTV catalog is not ready before home', () async {
+    final harness = await _LaunchHarness.create();
+    addTearDown(harness.dispose);
+
+    await harness.localProfiles.createProfile(
+      name: 'Offline Profile',
+      color: 0xFF2160AB,
+    );
+    const accountId = 'local_xtream_account_without_playlist';
+    await harness.iptvLocal.saveAccount(
+      XtreamAccount(
+        id: accountId,
+        alias: 'Offline Source',
+        endpoint: XtreamEndpoint.parse('http://example.com'),
+        username: 'demo',
+        status: XtreamAccountStatus.pending,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+
+    final result = await harness.run();
+
+    expect(result.isSuccess, isFalse);
+    expect(result.failure, isNotNull);
+    expect(result.failure!.failure.message.toLowerCase(), contains('catalog'));
+  });
+
+  test('run is idempotent when called concurrently', () async {
+    final harness = await _LaunchHarness.create();
+    addTearDown(harness.dispose);
+
+    await harness.localProfiles.createProfile(
+      name: 'Offline Profile',
+      color: 0xFF2160AB,
+    );
+    const accountId = 'local_xtream_account_concurrent';
+    await harness.iptvLocal.saveAccount(
+      XtreamAccount(
+        id: accountId,
+        alias: 'Offline Source',
+        endpoint: XtreamEndpoint.parse('http://example.com'),
+        username: 'demo',
+        status: XtreamAccountStatus.pending,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+    await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+      XtreamPlaylist(
+        id: 'pl_movies',
+        accountId: accountId,
+        title: 'Films',
+        type: XtreamPlaylistType.movies,
+        items: const <XtreamPlaylistItem>[
+          XtreamPlaylistItem(
+            accountId: accountId,
+            categoryId: 'cat_movies',
+            categoryName: 'Films',
+            streamId: 1001,
+            title: 'Film local',
+            type: XtreamPlaylistItemType.movie,
+            tmdbId: 550,
+          ),
+        ],
+      ),
+    ]);
+
+    final orchestrator = harness.container.read(
+      appLaunchOrchestratorProvider.notifier,
+    );
+    final futureA = orchestrator.run();
+    final futureB = orchestrator.run();
+    expect(identical(futureA, futureB), isTrue);
+
+    final results = await Future.wait([futureA, futureB]);
+    expect(results.first.isSuccess, isTrue);
+    expect(results.last.isSuccess, isTrue);
+    expect(harness.homeController.loadCalls, 1);
+  });
+
+  test(
+    'succeeds when bootstrap preload is already inflight before preload step',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_inflight';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      harness.homeController.simulateExternalBootstrapPreload(
+        delay: const Duration(milliseconds: 40),
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(harness.homeController.bootstrapPreloadExecutions, 1);
+      expect(harness.homeController.preloadLoadCalls, 0);
+    },
+  );
+
+  test('retries home preload on transient invalid state', () async {
+    final harness = await _LaunchHarness.create();
+    addTearDown(harness.dispose);
+
+    await harness.localProfiles.createProfile(
+      name: 'Offline Profile',
+      color: 0xFF2160AB,
+    );
+    const accountId = 'local_xtream_account_retry_home_preload';
+    await harness.iptvLocal.saveAccount(
+      XtreamAccount(
+        id: accountId,
+        alias: 'Offline Source',
+        endpoint: XtreamEndpoint.parse('http://example.com'),
+        username: 'demo',
+        status: XtreamAccountStatus.pending,
+        createdAt: DateTime(2026, 1, 1),
+      ),
+    );
+    await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+      XtreamPlaylist(
+        id: 'pl_movies',
+        accountId: accountId,
+        title: 'Films',
+        type: XtreamPlaylistType.movies,
+        items: const <XtreamPlaylistItem>[
+          XtreamPlaylistItem(
+            accountId: accountId,
+            categoryId: 'cat_movies',
+            categoryName: 'Films',
+            streamId: 1001,
+            title: 'Film local',
+            type: XtreamPlaylistItemType.movie,
+            tmdbId: 550,
+          ),
+        ],
+      ),
+    ]);
+
+    harness.homeController.transientPreloadFailures = 1;
+    final result = await harness.run();
+
+    expect(result.isSuccess, isTrue);
+    expect(harness.homeController.preloadLoadCalls, greaterThanOrEqualTo(2));
+  });
 }
 
 class _LaunchHarness {
@@ -249,6 +456,11 @@ class _LaunchHarness {
 
 class _FakeHomeController extends HomeController {
   int loadCalls = 0;
+  int preloadLoadCalls = 0;
+  int bootstrapPreloadExecutions = 0;
+  int transientPreloadFailures = 0;
+  bool _externalBootstrapPreloadInFlight = false;
+  Completer<void>? _externalBootstrapPreloadCompleter;
 
   @override
   HomeState build() => const HomeState();
@@ -260,7 +472,75 @@ class _FakeHomeController extends HomeController {
     bool force = false,
     Duration? cooldown,
   }) async {
+    if (reason == 'preload') {
+      preloadLoadCalls += 1;
+      bootstrapPreloadExecutions += 1;
+      if (transientPreloadFailures > 0) {
+        transientPreloadFailures -= 1;
+        loadCalls += 1;
+        state = const HomeState(
+          isLoading: false,
+          isHeroEmpty: false,
+          error: 'transient preload state',
+        );
+        return;
+      }
+    }
     loadCalls += 1;
+    state = HomeState(
+      iptvLists: <String, List<ContentReference>>{
+        'Nouveautes': <ContentReference>[
+          ContentReference(
+            id: '1',
+            title: MediaTitle('Film test'),
+            type: ContentType.movie,
+          ),
+        ],
+      },
+      isLoading: false,
+      isHeroEmpty: false,
+    );
+  }
+
+  @override
+  bool get bootstrapPreloadInFlight =>
+      _externalBootstrapPreloadInFlight || super.bootstrapPreloadInFlight;
+
+  @override
+  Future<void> waitForBootstrapPreloadCompletion() async {
+    if (_externalBootstrapPreloadInFlight) {
+      await _externalBootstrapPreloadCompleter?.future;
+      state = HomeState(
+        iptvLists: <String, List<ContentReference>>{
+          'Nouveautes': <ContentReference>[
+            ContentReference(
+              id: '1',
+              title: MediaTitle('Film test'),
+              type: ContentType.movie,
+            ),
+          ],
+        },
+        isLoading: false,
+        isHeroEmpty: false,
+      );
+    }
+    await super.waitForBootstrapPreloadCompletion();
+  }
+
+  void simulateExternalBootstrapPreload({Duration delay = Duration.zero}) {
+    if (_externalBootstrapPreloadInFlight) return;
+    _externalBootstrapPreloadInFlight = true;
+    bootstrapPreloadExecutions += 1;
+    _externalBootstrapPreloadCompleter = Completer<void>();
+    unawaited(
+      Future<void>.delayed(delay, () {
+        _externalBootstrapPreloadInFlight = false;
+        final completer = _externalBootstrapPreloadCompleter;
+        if (completer != null && !completer.isCompleted) {
+          completer.complete();
+        }
+      }),
+    );
   }
 }
 
@@ -468,6 +748,9 @@ class _MemorySelectedIptvSourcePreferences
         : sourceId?.trim();
     _controller.add(_selectedSourceId);
   }
+
+  @override
+  Future<void> rereadFromStorage() async {}
 
   @override
   Future<void> clear() => setSelectedSourceId(null);
