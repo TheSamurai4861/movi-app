@@ -58,6 +58,12 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
       episode: episode,
       userId: resolvedUserId,
     );
+    assert(() {
+      debugPrint(
+        '[HybridPlaybackHistoryRepository] local_persist_ok contentId=$contentId userId=$resolvedUserId type=${type.name}',
+      );
+      return true;
+    }());
 
     // 2. Synchroniser avec Supabase en arrière-plan (fire-and-forget)
     if (remote != null) {
@@ -135,7 +141,7 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
       // Log en debug uniquement, pas de crash utilisateur
       assert(() {
         debugPrint(
-          '[HybridPlaybackHistoryRepository] Supabase sync failed: $error',
+          '[HybridPlaybackHistoryRepository] remote_sync_failed_non_blocking error=$error',
         );
         return true;
       }());

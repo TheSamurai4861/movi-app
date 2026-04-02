@@ -42,7 +42,6 @@ import 'package:movi/src/core/profile/presentation/providers/current_profile_pro
 import 'package:movi/src/core/parental/presentation/utils/parental_reason_localizer.dart';
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/reporting/presentation/widgets/report_problem_sheet.dart';
-import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 
 class MovieDetailPage extends ConsumerStatefulWidget {
@@ -441,10 +440,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }) {
     final titleStyle =
         Theme.of(context).textTheme.displaySmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              height: 1.05,
-            ) ??
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          height: 1.05,
+        ) ??
         const TextStyle(
           fontSize: 42,
           fontWeight: FontWeight.w700,
@@ -633,19 +632,14 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     required bool expandPrimary,
   }) {
     final cs = Theme.of(context).colorScheme;
-    final hasContinueWatchingPremium = ref
-        .watch(
-          canAccessPremiumFeatureProvider(PremiumFeature.localContinueWatching),
-        )
-        .maybeWhen(data: (value) => value, orElse: () => false);
-    final historyAsync = ref.watch(
-      hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
+    final resumePositionAsync = ref.watch(
+      mdp.movieResumePositionProvider(movieId),
     );
     final isFavoriteAsync = ref.watch(mdp.movieIsFavoriteProvider(movieId));
 
     final primaryButton = MoviPrimaryButton(
-      label: historyAsync.when(
-        data: (entry) => (entry != null && hasContinueWatchingPremium)
+      label: resumePositionAsync.when(
+        data: (resumePosition) => resumePosition != null
             ? AppLocalizations.of(context)!.resumePlayback
             : AppLocalizations.of(context)!.homeWatchNow,
         loading: () => AppLocalizations.of(context)!.homeWatchNow,
@@ -657,13 +651,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
       ),
       onPressed: () async {
-        final entry = historyAsync.asData?.value;
-        final isResumeAttempt = entry != null;
-        _playMovie(
-          context,
-          mediaTitle,
-          startFromBeginning: isResumeAttempt && !hasContinueWatchingPremium,
-        );
+        _playMovie(context, mediaTitle, startFromBeginning: false);
       },
     );
 
@@ -825,7 +813,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         messenger?.showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!.snackbarNoPlaylistsAvailableCreateOne,
+              AppLocalizations.of(
+                context,
+              )!.snackbarNoPlaylistsAvailableCreateOne,
             ),
           ),
         );
@@ -896,8 +886,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
               String errorMessage;
               if (e is StateError &&
                   e.message.contains('déjà dans cette playlist')) {
-                errorMessage =
-                    AppLocalizations.of(context)!.errorAlreadyInPlaylist;
+                errorMessage = AppLocalizations.of(
+                  context,
+                )!.errorAlreadyInPlaylist;
               } else {
                 errorMessage = l10n.errorWithMessage(e.toString());
               }
@@ -1005,8 +996,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              AppLocalizations.of(context)!
-                                  .errorReportUnavailableForContent,
+                              AppLocalizations.of(
+                                context,
+                              )!.errorReportUnavailableForContent,
                             ),
                           ),
                         );
@@ -1089,8 +1081,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            AppLocalizations.of(context)!
-                                .errorReportUnavailableForContent,
+                            AppLocalizations.of(
+                              context,
+                            )!.errorReportUnavailableForContent,
                           ),
                         ),
                       );
@@ -1271,8 +1264,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       // même lors d'une reprise, sans repasser par la bottom sheet.
       try {
         final userId = ref.read(currentUserIdProvider);
-        final repo = ref
-            .read(slProvider)<PlaybackVariantSelectionLocalRepository>();
+        final repo = ref.read(
+          slProvider,
+        )<PlaybackVariantSelectionLocalRepository>();
         final pinnedVariantId = await repo.getSelectedVariantId(
           widget.movieId,
           ContentType.movie,
@@ -1296,29 +1290,30 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         if (source != null) {
           // proceed
         } else {
-        if (!mounted || !context.mounted) return;
-        final selectedVariant = await MoviePlaybackVariantSheet.show(
-          context,
-          movieTitle: title,
-          variants: decision.rankedVariants,
-        );
-        if (selectedVariant == null || !mounted || !context.mounted) {
-          return;
-        }
-        try {
-          final userId = ref.read(currentUserIdProvider);
-          final repo = ref
-              .read(slProvider)<PlaybackVariantSelectionLocalRepository>();
-          await repo.upsertSelectedVariantId(
-            contentId: widget.movieId,
-            contentType: ContentType.movie,
-            variantId: selectedVariant.id,
-            userId: userId,
+          if (!mounted || !context.mounted) return;
+          final selectedVariant = await MoviePlaybackVariantSheet.show(
+            context,
+            movieTitle: title,
+            variants: decision.rankedVariants,
           );
-        } catch (_) {
-          // Best-effort persistence: ignore errors.
-        }
-        source = selectedVariant.videoSource;
+          if (selectedVariant == null || !mounted || !context.mounted) {
+            return;
+          }
+          try {
+            final userId = ref.read(currentUserIdProvider);
+            final repo = ref.read(
+              slProvider,
+            )<PlaybackVariantSelectionLocalRepository>();
+            await repo.upsertSelectedVariantId(
+              contentId: widget.movieId,
+              contentType: ContentType.movie,
+              variantId: selectedVariant.id,
+              userId: userId,
+            );
+          } catch (_) {
+            // Best-effort persistence: ignore errors.
+          }
+          source = selectedVariant.videoSource;
         }
       }
 
@@ -1406,8 +1401,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
     try {
       final userId = ref.read(currentUserIdProvider);
-      final repo =
-          ref.read(slProvider)<PlaybackVariantSelectionLocalRepository>();
+      final repo = ref.read(
+        slProvider,
+      )<PlaybackVariantSelectionLocalRepository>();
       await repo.upsertSelectedVariantId(
         contentId: widget.movieId,
         contentType: ContentType.movie,

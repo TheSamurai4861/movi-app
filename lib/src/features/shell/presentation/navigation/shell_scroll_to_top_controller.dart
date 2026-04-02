@@ -15,11 +15,15 @@ class ShellScrollToTopController {
   Future<void> scrollToTop(int index) async {
     final c = _controllers[index];
     if (c == null || !c.hasClients) return;
-    await c.animateTo(
-      0,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutCubic,
-    );
+    if (c.offset <= 0) return;
+    try {
+      // Defensive behavior: avoid long-lived scroll activities that may keep
+      // dispatching notifications while the target subtree is being disposed.
+      c.jumpTo(0);
+    } catch (_) {
+      // Best-effort: the controller can become invalid during route/layout
+      // transitions. In that case we silently ignore.
+    }
   }
 
   void dispose() {
@@ -29,4 +33,3 @@ class ShellScrollToTopController {
     _controllers.clear();
   }
 }
-

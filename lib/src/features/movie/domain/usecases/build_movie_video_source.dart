@@ -2,6 +2,7 @@ import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/movie/domain/services/movie_streaming_service.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
+import 'package:movi/src/features/library/domain/services/resume_eligibility.dart';
 
 class BuildMovieVideoSource {
   const BuildMovieVideoSource(this._streaming, this._history);
@@ -30,7 +31,10 @@ class BuildMovieVideoSource {
         ContentType.movie,
         userId: userId,
       );
-      final resume = entry?.lastPosition;
+      final resume = normalizeResumePosition(
+        position: entry?.lastPosition,
+        duration: entry?.duration,
+      );
       return VideoSource(
         url: source.url,
         title: source.title,

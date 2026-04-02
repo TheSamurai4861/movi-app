@@ -263,7 +263,6 @@ class MoviEnsureVisibleOnFocus extends StatefulWidget {
 }
 
 class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
-  static const Duration _scrollDuration = Duration(milliseconds: 220);
   static const Curve _scrollCurve = Curves.easeOutCubic;
 
   void _scrollScrollable(ScrollableState scrollable, RenderObject target) {
@@ -276,21 +275,26 @@ class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
             ? position.minScrollExtent
             : position.maxScrollExtent;
         if (targetOffset != position.pixels) {
-          position.animateTo(
-            targetOffset,
-            duration: _scrollDuration,
-            curve: _scrollCurve,
-          );
+          try {
+            // Avoid long-lived driven scroll activity during subtree transitions.
+            position.jumpTo(targetOffset);
+          } catch (_) {
+            // Best effort: focus can move while the scrollable is detaching.
+          }
         }
         return;
       }
 
-      position.ensureVisible(
-        target,
-        duration: _scrollDuration,
-        curve: _scrollCurve,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
-      );
+      try {
+        position.ensureVisible(
+          target,
+          duration: Duration.zero,
+          curve: _scrollCurve,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
+      } catch (_) {
+        // Best effort: ignore transient detach races.
+      }
       return;
     }
 
@@ -299,13 +303,17 @@ class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
     );
     final verticalTarget = verticalTargetContext?.findRenderObject() ?? target;
 
-    position.ensureVisible(
-      verticalTarget,
-      duration: _scrollDuration,
-      curve: _scrollCurve,
-      alignment: 0.5,
-      alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
-    );
+    try {
+      position.ensureVisible(
+        verticalTarget,
+        duration: Duration.zero,
+        curve: _scrollCurve,
+        alignment: 0.5,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+      );
+    } catch (_) {
+      // Best effort: ignore transient detach races.
+    }
   }
 
   void _ensureVisible() {

@@ -1,5 +1,6 @@
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
+import 'package:movi/src/features/library/domain/services/resume_eligibility.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/movie/domain/services/movie_playback_variant_resolver.dart';
 import 'package:movi/src/features/player/application/services/playback_selection_service.dart';
@@ -139,7 +140,21 @@ class ResolveMoviePlaybackSelection {
         ContentType.movie,
         userId: userId,
       );
-      return entry?.lastPosition;
+      final normalized = normalizeResumePosition(
+        position: entry?.lastPosition,
+        duration: entry?.duration,
+      );
+      _diagnostics.mark(
+        'movie_resume_eligibility',
+        context: <String, Object?>{
+          'movieId': movieId,
+          'hasEntry': entry != null,
+          'positionMs': entry?.lastPosition?.inMilliseconds,
+          'durationMs': entry?.duration?.inMilliseconds,
+          'eligible': normalized != null,
+        },
+      );
+      return normalized;
     } catch (_) {
       return null;
     }

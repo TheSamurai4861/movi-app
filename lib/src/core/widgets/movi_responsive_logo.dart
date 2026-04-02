@@ -108,7 +108,11 @@ class _MoviResponsiveLogoState extends State<MoviResponsiveLogo> {
     final stream = _stream;
     final listener = _listener;
     if (stream != null && listener != null) {
-      stream.removeListener(listener);
+      try {
+        stream.removeListener(listener);
+      } catch (_) {
+        // Defensive: stream may already be disposed by engine internals.
+      }
     }
     _stream = null;
     _listener = null;
@@ -132,10 +136,26 @@ class _MoviResponsiveLogoState extends State<MoviResponsiveLogo> {
         if (w > 0 && h > 0 && mounted) {
           setState(() => _ratio = w / h);
         }
-        stream.removeListener(listener);
+        try {
+          stream.removeListener(listener);
+        } catch (_) {
+          // Defensive: stream may be disposed before callback cleanup.
+        }
+        if (identical(_stream, stream) && identical(_listener, listener)) {
+          _stream = null;
+          _listener = null;
+        }
       },
       onError: (_, __) {
-        stream.removeListener(listener);
+        try {
+          stream.removeListener(listener);
+        } catch (_) {
+          // Defensive: stream may be disposed before callback cleanup.
+        }
+        if (identical(_stream, stream) && identical(_listener, listener)) {
+          _stream = null;
+          _listener = null;
+        }
       },
     );
 
@@ -209,4 +229,3 @@ class _MoviResponsiveLogoState extends State<MoviResponsiveLogo> {
     return widget.tallMaxHeight;
   }
 }
-

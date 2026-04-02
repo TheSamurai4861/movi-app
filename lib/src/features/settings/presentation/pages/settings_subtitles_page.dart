@@ -72,6 +72,14 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _SectionCard(
+                  title: l10n.settingsSubtitlesPreviewTitle,
+                  child: _SubtitlePreview(prefs: previewPrefs),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _SectionCard(
                   title: l10n.settingsSubtitlesSizeTitle,
                   child: Wrap(
                     spacing: 12,
@@ -93,6 +101,73 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                                   ? FontWeight.w700
                                   : FontWeight.w400,
                             ),
+                          );
+                        })
+                        .toList(growable: false),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _SectionCard(
+                  title: l10n.settingsSubtitlesColorTitle,
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: SubtitleAppearancePrefs.subtitleColorChoices
+                        .map((choice) {
+                          final selected = prefs.textColorHex == choice.hex;
+                          final color = _hexToColor(choice.hex);
+                          return GestureDetector(
+                            onTap: () => controller.setTextColorHex(choice.hex),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: selected
+                                      ? accentColor
+                                      : Colors.white24,
+                                  width: selected ? 3 : 1,
+                                ),
+                              ),
+                            ),
+                          );
+                        })
+                        .toList(growable: false),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _SectionCard(
+                  title: l10n.settingsSubtitlesFontTitle,
+                  child: Column(
+                    children: SubtitleAppearancePrefs.subtitleFontChoices
+                        .map((choice) {
+                          final selected = prefs.fontFamilyKey == choice.key;
+                          return ListTile(
+                            onTap: () =>
+                                controller.setFontFamilyKey(choice.key),
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              _fontLabel(l10n, choice.key),
+                              style: TextStyle(
+                                fontFamily: choice.fontFamily,
+                                color: selected ? Colors.white : Colors.white70,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                            trailing: selected
+                                ? Icon(Icons.check, color: accentColor)
+                                : null,
                           );
                         })
                         .toList(growable: false),
@@ -224,82 +299,10 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SectionCard(
-                  title: l10n.settingsSubtitlesColorTitle,
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: SubtitleAppearancePrefs.subtitleColorChoices
-                        .map((choice) {
-                          final selected = prefs.textColorHex == choice.hex;
-                          final color = _hexToColor(choice.hex);
-                          return GestureDetector(
-                            onTap: () => controller.setTextColorHex(choice.hex),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 160),
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: selected
-                                      ? accentColor
-                                      : Colors.white24,
-                                  width: selected ? 3 : 1,
-                                ),
-                              ),
-                            ),
-                          );
-                        })
-                        .toList(growable: false),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SectionCard(
-                  title: l10n.settingsSubtitlesFontTitle,
-                  child: Column(
-                    children: SubtitleAppearancePrefs.subtitleFontChoices
-                        .map((choice) {
-                          final selected = prefs.fontFamilyKey == choice.key;
-                          return ListTile(
-                            onTap: () =>
-                                controller.setFontFamilyKey(choice.key),
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              _fontLabel(l10n, choice.key),
-                              style: TextStyle(
-                                fontFamily: choice.fontFamily,
-                                color: selected ? Colors.white : Colors.white70,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
-                              ),
-                            ),
-                            trailing: selected
-                                ? Icon(Icons.check, color: accentColor)
-                                : null,
-                          );
-                        })
-                        .toList(growable: false),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: PremiumFeatureGate(
                   feature: PremiumFeature.advancedSubtitleStyling,
                   unlockedBuilder: (_) => Column(
                     children: [
-                      _SectionCard(
-                        title: l10n.settingsSubtitlesPreviewTitle,
-                        child: _SubtitlePreview(prefs: previewPrefs),
-                      ),
-                      const SizedBox(height: 16),
                       _SectionCard(
                         title: l10n.settingsSubtitlesBackgroundTitle,
                         child: Column(

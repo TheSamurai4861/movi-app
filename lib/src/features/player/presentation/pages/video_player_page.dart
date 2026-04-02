@@ -24,6 +24,8 @@ import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_remote_providers.dart';
+import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart'
+    as mdp;
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -35,6 +37,8 @@ import 'package:movi/src/features/player/application/services/next_episode_servi
 import 'package:movi/src/features/player/application/usecases/adjust_brightness.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_volume.dart';
 import 'package:movi/src/features/player/application/usecases/reset_brightness.dart';
+import 'package:movi/src/features/player/domain/repositories/system_control_repository.dart';
+import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -46,6 +50,36 @@ import 'dart:io';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+
+bool shouldAcceptProgressWrite({
+  required Duration? previousPosition,
+  required Duration candidatePosition,
+  Duration minBackwardTolerance = const Duration(seconds: 15),
+}) {
+  if (candidatePosition <= Duration.zero) return false;
+  if (previousPosition == null || previousPosition <= Duration.zero) {
+    return true;
+  }
+  // Reject stale/low writes that move progress significantly backwards.
+  return candidatePosition + minBackwardTolerance >= previousPosition;
+}
+
+bool shouldPersistOnDispose({required bool skipDisposePersist}) {
+  return !skipDisposePersist;
+}
+
+/// Tant que la durée rapportée par le backend est plus courte que la reprise
+/// demandée, on attend une valeur suivante. Sinon un premier [duration] trop
+/// court ferait un seek partiel puis [resumeApplied] bloquerait la vraie reprise.
+bool shouldDeferResumeUntilDurationCoversResume({
+  required Duration reportedDuration,
+  required Duration resumePosition,
+  Duration safetyMargin = const Duration(seconds: 1),
+}) {
+  if (resumePosition <= Duration.zero) return false;
+  if (reportedDuration <= Duration.zero) return true;
+  return reportedDuration < resumePosition + safetyMargin;
+}
 
 /// Page de lecture vidéo avec contrôles personnalisés
 class VideoPlayerPage extends ConsumerStatefulWidget {
@@ -62,9 +96,15 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   late final ProviderSubscription<VideoPlayerRepository> _playerRepositorySub;
   late final ProviderSubscription<VideoController> _videoControllerSub;
   late final ProviderSubscription<PlaybackSyncOffsets> _syncOffsetsSub;
+  late final ProviderSubscription<PlaybackHistoryRepository>
+  _historyRepositorySub;
+  late final ProviderSubscription<String> _currentUserIdSub;
   late final VideoPlayerRepository _playerRepository;
   late final VideoController _videoController;
   late final PerformanceDiagnosticLogger _diagnostics;
+  late final SystemControlRepository _systemControlRepository;
+  late PlaybackHistoryRepository _historyRepository;
+  String _currentUserId = 'default';
   Timer? _hideControlsTimer;
   late final AnimationController _controlsAnimationController;
   late final Animation<double> _controlsOpacityAnimation;
@@ -106,6 +146,11 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   bool _supportsAudioOffset = false;
   int _subtitleOffsetMs = 0;
   int _audioOffsetMs = 0;
+  double? _lastSubtitleBottomPaddingLogged;
+  Timer? _progressPersistTimer;
+  bool _isPersistingProgress = false;
+  bool _skipDisposePersist = false;
+  static const Duration _progressPersistInterval = Duration(seconds: 20);
 
   @override
   void initState() {
@@ -143,6 +188,16 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       },
       fireImmediately: true,
     );
+    _historyRepositorySub = ref.listenManual<PlaybackHistoryRepository>(
+      hybridPlaybackHistoryRepositoryProvider,
+      (previous, next) => _historyRepository = next,
+      fireImmediately: true,
+    );
+    _currentUserIdSub = ref.listenManual<String>(
+      currentUserIdProvider,
+      (previous, next) => _currentUserId = next,
+      fireImmediately: true,
+    );
 
     // Animation d'opacité pour les contrôles
     _controlsAnimationController = AnimationController(
@@ -156,11 +211,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       ),
     );
 
+    _diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
+    _systemControlRepository = ref.read(systemControlRepositoryProvider);
     _setupListeners();
     unawaited(_initializeOffsetCapabilities());
     _showControlsWithAnimation();
     _startHideControlsTimer();
-    _diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
 
     // Initialiser le VideoSource actuel
     _currentVideoSource = widget.videoSource;
@@ -369,8 +425,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   void _setupListeners() {
     _subscriptions.add(
       _playerRepository.playingStream.listen((playing) {
+        final wasPlaying = _isPlaying;
         if (mounted) {
           setState(() => _isPlaying = playing);
+        }
+        if (!wasPlaying && playing) {
+          _startProgressPersistTimer();
+        } else if (wasPlaying && !playing) {
+          _stopProgressPersistTimer();
+          unawaited(() async {
+            await _persistPlaybackProgress(reason: 'pause');
+          }());
         }
       }),
     );
@@ -390,14 +455,76 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
           // Appliquer la position de reprise une seule fois quand la durée est disponible
           if (!_resumePositionApplied) {
-            // Utiliser la position de reprise du VideoSource actuel si disponible
-            if (_currentVideoSource?.resumePosition != null &&
-                _currentVideoSource!.resumePosition! < duration) {
+            final resumePosition = _currentVideoSource?.resumePosition;
+            if (resumePosition == null || resumePosition <= Duration.zero) {
               _resumePositionApplied = true;
-              _playerRepository.seekTo(_currentVideoSource!.resumePosition!);
+              _diagnostics.mark(
+                'player_resume_apply',
+                context: <String, Object?>{
+                  'result': 'skip_no_resume',
+                  'durationMs': duration.inMilliseconds,
+                },
+              );
+              return;
+            }
+
+            // Duration can be unstable on the first frames. We only finalize
+            // resume once we have a seekable target > 0.
+            const safety = Duration(seconds: 1);
+            if (shouldDeferResumeUntilDurationCoversResume(
+              reportedDuration: duration,
+              resumePosition: resumePosition,
+              safetyMargin: safety,
+            )) {
+              _diagnostics.mark(
+                'player_resume_apply',
+                context: <String, Object?>{
+                  'result': 'wait_duration_not_ready_for_resume',
+                  'durationMs': duration.inMilliseconds,
+                  'resumeMs': resumePosition.inMilliseconds,
+                },
+              );
+              return;
+            }
+
+            final maxSeek = duration > safety
+                ? duration - safety
+                : Duration.zero;
+            if (maxSeek <= Duration.zero) {
+              _diagnostics.mark(
+                'player_resume_apply',
+                context: <String, Object?>{
+                  'result': 'wait_duration_unstable',
+                  'durationMs': duration.inMilliseconds,
+                  'resumeMs': resumePosition.inMilliseconds,
+                },
+              );
+              return;
+            }
+
+            final target = resumePosition <= maxSeek ? resumePosition : maxSeek;
+            if (target > Duration.zero) {
+              _resumePositionApplied = true;
+              _playerRepository.seekTo(target);
+              _diagnostics.mark(
+                'player_resume_apply',
+                context: <String, Object?>{
+                  'result': 'applied',
+                  'requestedMs': resumePosition.inMilliseconds,
+                  'appliedMs': target.inMilliseconds,
+                  'durationMs': duration.inMilliseconds,
+                },
+              );
             } else {
-              // Si pas de position de reprise, commencer depuis le début
               _resumePositionApplied = true;
+              _diagnostics.mark(
+                'player_resume_apply',
+                context: <String, Object?>{
+                  'result': 'skip_target_zero',
+                  'requestedMs': resumePosition.inMilliseconds,
+                  'durationMs': duration.inMilliseconds,
+                },
+              );
             }
           }
         }
@@ -421,6 +548,118 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         await _applyInitialDefaultTracksIfNeeded(reason: 'tracks_stream');
       }),
     );
+  }
+
+  void _startProgressPersistTimer() {
+    _progressPersistTimer?.cancel();
+    _progressPersistTimer = Timer.periodic(_progressPersistInterval, (_) {
+      unawaited(() async {
+        await _persistPlaybackProgress(reason: 'periodic');
+      }());
+    });
+  }
+
+  void _stopProgressPersistTimer() {
+    _progressPersistTimer?.cancel();
+    _progressPersistTimer = null;
+  }
+
+  Future<bool> _persistPlaybackProgress({
+    required String reason,
+    bool invalidateProviders = false,
+  }) async {
+    if (_isPersistingProgress) return false;
+    final videoSource = _currentVideoSource ?? widget.videoSource;
+    if (videoSource?.contentId == null ||
+        videoSource?.contentType == null ||
+        _duration <= Duration.zero) {
+      return false;
+    }
+
+    _isPersistingProgress = true;
+    try {
+      final existingEntry = await _historyRepository.getEntry(
+        videoSource!.contentId!,
+        videoSource.contentType!,
+        season: videoSource.season,
+        episode: videoSource.episode,
+        userId: _currentUserId,
+      );
+      final previousPosition = existingEntry?.lastPosition;
+      final candidatePosition = _position;
+      final accepted = shouldAcceptProgressWrite(
+        previousPosition: previousPosition,
+        candidatePosition: candidatePosition,
+      );
+      _diagnostics.mark(
+        'player_progress_write_decision',
+        context: <String, Object?>{
+          'decision': accepted ? 'accepted' : 'rejected_low_or_stale',
+          'player_progress_source': reason,
+          'player_progress_previous_ms': previousPosition?.inMilliseconds,
+          'player_progress_candidate_ms': candidatePosition.inMilliseconds,
+          'contentId': videoSource.contentId,
+          'contentType': videoSource.contentType?.name,
+        },
+      );
+      if (!accepted) {
+        return true;
+      }
+
+      await _historyRepository.upsertPlay(
+        contentId: videoSource.contentId!,
+        type: videoSource.contentType!,
+        title: videoSource.title ?? '',
+        poster: videoSource.poster,
+        position: candidatePosition,
+        duration: _duration,
+        season: videoSource.season,
+        episode: videoSource.episode,
+        userId: _currentUserId,
+      );
+      _diagnostics.mark(
+        'player_progress_persist',
+        context: <String, Object?>{
+          'reason': reason,
+          'contentId': videoSource.contentId,
+          'contentType': videoSource.contentType?.name,
+          'positionMs': candidatePosition.inMilliseconds,
+          'durationMs': _duration.inMilliseconds,
+        },
+      );
+
+      if (invalidateProviders && mounted) {
+        ref.invalidate(homeInProgressProvider);
+        ref.invalidate(libraryPlaylistsProvider);
+
+        final contentType = videoSource.contentType;
+        final contentId = videoSource.contentId?.trim();
+        if (contentType == ContentType.movie &&
+            contentId != null &&
+            contentId.isNotEmpty) {
+          ref.invalidate(mdp.movieResumePositionProvider(contentId));
+          _diagnostics.mark(
+            'movie_resume_provider_invalidated',
+            context: <String, Object?>{'reason': reason, 'movieId': contentId},
+          );
+        }
+      }
+      return true;
+    } catch (error, stackTrace) {
+      _diagnostics.failed(
+        'player_progress_persist',
+        elapsed: Duration.zero,
+        error: error,
+        stackTrace: stackTrace,
+        context: <String, Object?>{
+          'reason': reason,
+          'contentId': videoSource?.contentId,
+        },
+      );
+      return false;
+    } finally {
+      _isPersistingProgress = false;
+    }
   }
 
   /// Une seule fois par ouverture de média : première piste audio, sous-titres désactivés.
@@ -588,12 +827,11 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _isBrightnessControl = _gestureStartX! < screenWidth / 2;
 
     // Récupérer les valeurs initiales
-    final systemControlRepo = ref.read(systemControlRepositoryProvider);
     if (_isBrightnessControl) {
-      _initialBrightness = await systemControlRepo.getBrightness();
+      _initialBrightness = await _systemControlRepository.getBrightness();
       _lastAppliedBrightness = _initialBrightness;
     } else {
-      _initialVolume = await systemControlRepo.getVolume();
+      _initialVolume = await _systemControlRepository.getVolume();
       _lastAppliedVolume = _initialVolume;
     }
 
@@ -630,8 +868,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         return; // Ignorer les changements trop petits
       }
 
-      final systemControlRepo = ref.read(systemControlRepositoryProvider);
-      final adjustBrightness = AdjustBrightness(systemControlRepo);
+      final adjustBrightness = AdjustBrightness(_systemControlRepository);
       await adjustBrightness.call(deltaToApply);
       _lastAppliedBrightness = targetValue;
     } else {
@@ -642,8 +879,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         return; // Ignorer les changements trop petits
       }
 
-      final systemControlRepo = ref.read(systemControlRepositoryProvider);
-      final adjustVolume = AdjustVolume(systemControlRepo);
+      final adjustVolume = AdjustVolume(_systemControlRepository);
       await adjustVolume.call(deltaToApply);
       _lastAppliedVolume = targetValue;
     }
@@ -845,12 +1081,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       builder: (context) => SubtitleTrackSelectionMenu(
         tracks: _subtitleTracks,
         currentTrack: _currentSubtitleTrack,
-        initialSubtitleAppearance: ref.read(
-          asp.currentProfileSubtitleAppearanceProvider,
-        ),
-        subtitleAppearanceStream: ref
-            .read(asp.subtitleAppearancePreferencesProvider)
-            .watchForProfile(ref.read(currentProfileProvider)?.id),
         onTrackSelected: (track) async {
           try {
             await _playerRepository.setActiveSubtitleTrack(track.id);
@@ -874,30 +1104,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
             });
           }
         },
-        onSubtitleSizeChanged: (preset) async {
-          await ref
-              .read(asp.subtitleAppearanceControllerProvider)
-              .setSizePreset(preset);
-        },
-        onSubtitleColorChanged: (hexColor) async {
-          await ref
-              .read(asp.subtitleAppearanceControllerProvider)
-              .setTextColorHex(hexColor);
-        },
         onOpenSubtitleSettings: () {
           Navigator.of(context).pop();
           if (!mounted) return;
           unawaited(this.context.push(AppRoutePaths.settingsSubtitles));
-        },
-        supportsSubtitleOffset: _supportsSubtitleOffset,
-        subtitleOffsetMs: _subtitleOffsetMs,
-        onSubtitleOffsetPresetSelected: (offsetMs) async {
-          await ref
-              .read(asp.playbackSyncOffsetControllerProvider)
-              .setSubtitleOffsetMs(
-                offsetMs,
-                source: 'player_sheet_subtitle_preset',
-              );
         },
       ),
     );
@@ -935,13 +1145,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       builder: (context) => AudioTrackSelectionMenu(
         tracks: _audioTracks,
         currentTrack: _currentAudioTrack,
-        supportsAudioOffset: _supportsAudioOffset,
-        audioOffsetMs: _audioOffsetMs,
-        onAudioOffsetPresetSelected: (offsetMs) async {
-          await ref
-              .read(asp.playbackSyncOffsetControllerProvider)
-              .setAudioOffsetMs(offsetMs, source: 'player_sheet_audio_preset');
-        },
         onTrackSelected: (track) async {
           try {
             await _playerRepository.setAudioTrack(track.id);
@@ -1000,12 +1203,19 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
+      unawaited(() async {
+        await _persistPlaybackProgress(reason: 'lifecycle_${state.name}');
+      }());
       // Quand l'app passe en background, entrer automatiquement en PiP si la vidéo est en lecture
       if (_isPlaying && !_isPipActive && _isPipSupported) {
         final pipRepo = ref.read(pictureInPictureRepositoryProvider);
         final autoEnterUseCase = AutoEnterPictureInPicture(pipRepo);
         unawaited(autoEnterUseCase.call(_isPlaying));
       }
+    } else if (state == AppLifecycleState.detached) {
+      unawaited(() async {
+        await _persistPlaybackProgress(reason: 'lifecycle_detached');
+      }());
     }
   }
 
@@ -1081,9 +1291,15 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     // Utiliser le VideoSource actuel (peut être mis à jour lors du changement d'épisode)
     final videoSource = _currentVideoSource ?? widget.videoSource;
 
-    // Robustesse: le bouton retour DOIT toujours ramener à l'écran précédent (détails).
-    // On ne déclenche pas le PiP sur "retour" (trop surprenant / donne l'impression
-    // que le retour ne marche pas). Le PiP reste géré via lifecycle (background).
+    final handled = await _persistPlaybackProgress(
+      reason: 'back',
+      invalidateProviders: true,
+    );
+    if (handled) {
+      _skipDisposePersist = true;
+    }
+
+    // Robustesse: le bouton retour DOIT toujours ramener à l'écran précédent.
     if (context.mounted) {
       final router = GoRouter.of(context);
       if (router.canPop()) {
@@ -1110,36 +1326,6 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       }
     }
 
-    // Déclencher toutes les opérations en parallèle en arrière-plan
-    if (videoSource?.contentId != null &&
-        videoSource?.contentType != null &&
-        _duration > Duration.zero) {
-      // Sauvegarder l'historique en arrière-plan
-      unawaited(() async {
-        try {
-          // Utiliser le repository hybride (local + Supabase si disponible)
-          final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
-          await historyRepo.upsertPlay(
-            contentId: videoSource!.contentId!,
-            type: videoSource.contentType!,
-            title: videoSource.title ?? '',
-            poster: videoSource.poster,
-            position: _position,
-            duration: _duration,
-            season: videoSource.season,
-            episode: videoSource.episode,
-            userId: ref.read(currentUserIdProvider),
-          );
-
-          // Invalider les providers pour rafraîchir la liste
-          ref.invalidate(homeInProgressProvider);
-          ref.invalidate(libraryPlaylistsProvider);
-        } catch (_) {
-          // Ignorer les erreurs
-        }
-      }());
-    }
-
     // Mettre en pause en arrière-plan
     unawaited(() async {
       try {
@@ -1153,41 +1339,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _stopProgressPersistTimer();
     // Best-effort: éviter une lecture qui continue en arrière-plan.
     try {
       unawaited(_playerRepository.pause());
     } catch (_) {}
 
-    // Sauvegarder l'historique de l'épisode actuel avant de fermer
-    // (au cas où l'app se ferme sans passer par _onBack)
-    // C'est l'épisode qu'on regarde actuellement qui sera sauvegardé
-    // et qui sera repris lors de la prochaine ouverture
-    final videoSource = _currentVideoSource ?? widget.videoSource;
-    if (videoSource?.contentId != null &&
-        videoSource?.contentType != null &&
-        _duration > Duration.zero) {
-      try {
-        // Utiliser le repository hybride (local + Supabase si disponible)
-        final historyRepo = ref.read(hybridPlaybackHistoryRepositoryProvider);
-        // Fire-and-forget : on ne peut pas attendre dans dispose()
-        historyRepo
-            .upsertPlay(
-              contentId: videoSource!.contentId!,
-              type: videoSource.contentType!,
-              title: videoSource.title ?? '',
-              poster: videoSource.poster,
-              position: _position,
-              duration: _duration,
-              season: videoSource.season,
-              episode: videoSource.episode,
-              userId: ref.read(currentUserIdProvider),
-            )
-            .catchError((_) {
-              // Ignorer les erreurs silencieusement
-            });
-      } catch (_) {
-        // Ignorer les erreurs
-      }
+    // Sauvegarde best-effort si la fermeture contourne _onBack.
+    if (shouldPersistOnDispose(skipDisposePersist: _skipDisposePersist)) {
+      unawaited(() async {
+        await _persistPlaybackProgress(reason: 'dispose');
+      }());
     }
 
     _hideControlsTimer?.cancel();
@@ -1204,6 +1366,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _videoControllerSub.close();
     _playerRepositorySub.close();
     _syncOffsetsSub.close();
+    _historyRepositorySub.close();
+    _currentUserIdSub.close();
 
     // Restaurer uniquement le mode vertical pour le reste de l'app
     SystemChrome.setPreferredOrientations([
@@ -1213,8 +1377,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
     // Libérer le contrôle de la luminosité pour permettre les modifications système
     try {
-      final systemControlRepo = ref.read(systemControlRepositoryProvider);
-      final resetBrightness = ResetBrightness(systemControlRepo);
+      final resetBrightness = ResetBrightness(_systemControlRepository);
       unawaited(resetBrightness.call());
     } catch (_) {
       // Ignorer les erreurs silencieusement
@@ -1434,10 +1597,23 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   SubtitleViewConfiguration _buildSubtitleViewConfiguration(
     SubtitleAppearancePrefs prefs,
   ) {
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final bottomPadding = (_showControls ? 96.0 : 64.0) + safeBottom;
+    if (_lastSubtitleBottomPaddingLogged != bottomPadding) {
+      _lastSubtitleBottomPaddingLogged = bottomPadding;
+      _diagnostics.mark(
+        'player_subtitle_view_configuration',
+        context: <String, Object?>{
+          'bottomPadding': bottomPadding,
+          'showControls': _showControls,
+          'safeBottom': safeBottom,
+        },
+      );
+    }
     return SubtitleViewConfiguration(
       style: prefs.toTextStyle(),
       textAlign: TextAlign.center,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding),
     );
   }
 }

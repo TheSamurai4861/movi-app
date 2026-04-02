@@ -14,6 +14,7 @@ import 'package:movi/src/features/movie/presentation/pages/movie_detail_page.dar
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart'
     as mdp;
 import 'package:movi/src/features/movie/presentation/widgets/movie_playback_variant_sheet.dart';
+import 'package:movi/src/core/storage/repositories/history_local_repository.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
@@ -27,7 +28,7 @@ void main() {
   });
 
   testWidgets(
-    'Watch launches directly when playback selection is unambiguous',
+    'Resume playback label is shown and keeps resume position from history',
     (tester) async {
       tester.view.physicalSize = const Size(1600, 1200);
       tester.view.devicePixelRatio = 1;
@@ -50,8 +51,18 @@ void main() {
             (ref, args) async => PlaybackSelectionDecision(
               disposition: PlaybackSelectionDisposition.autoPlay,
               reason: PlaybackSelectionReason.singlePlayableVariant,
-              rankedVariants: <PlaybackVariant>[_variant('Salon', '1')],
-              selectedVariant: _variant('Salon', '1'),
+              rankedVariants: <PlaybackVariant>[
+                _variant(
+                  'Salon',
+                  '1',
+                  resumePosition: const Duration(minutes: 12),
+                ),
+              ],
+              selectedVariant: _variant(
+                'Salon',
+                '1',
+                resumePosition: const Duration(minutes: 12),
+              ),
             ),
           ),
           mdp.movieAvailabilityOnIptvProvider.overrideWith(
@@ -60,7 +71,17 @@ void main() {
           mdp.movieIsFavoriteProvider.overrideWith(
             (ref, movieId) async => false,
           ),
-          hp.mediaHistoryProvider.overrideWith((ref, args) async => null),
+          hp.mediaHistoryProvider.overrideWith(
+            (ref, args) async => HistoryEntry(
+              contentId: '603',
+              type: ContentType.movie,
+              title: 'The Matrix',
+              lastPlayedAt: DateTime(2026, 1, 1),
+              playCount: 1,
+              lastPosition: Duration(minutes: 12),
+              duration: Duration(hours: 2),
+            ),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -82,18 +103,81 @@ void main() {
         ),
       );
 
-      // MovieDetailPage can show OverlaySplash with a periodic timer (elapsed seconds),
-      // so it never "settles". Pump a short duration instead.
       await tester.pump(const Duration(milliseconds: 200));
 
       await tester.tap(find.text('Watch'));
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byType(MoviePlaybackVariantSheet), findsNothing);
       expect(pushedSources, hasLength(1));
-      expect(pushedSources.single.url, 'https://video.example/1.mp4');
+      expect(pushedSources.single.resumePosition, const Duration(minutes: 12));
     },
   );
+
+  testWidgets('Watch launches directly when playback selection is unambiguous', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final logger = _SilentLogger();
+    sl.registerSingleton<AppLogger>(logger);
+    sl.registerSingleton<PerformanceDiagnosticLogger>(
+      PerformanceDiagnosticLogger(logger),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        currentProfileProvider.overrideWithValue(null),
+        mdp.movieDetailControllerProvider.overrideWith(
+          (ref, movieId) async => _movieViewModel(),
+        ),
+        mdp.moviePlaybackSelectionProvider.overrideWith(
+          (ref, args) async => PlaybackSelectionDecision(
+            disposition: PlaybackSelectionDisposition.autoPlay,
+            reason: PlaybackSelectionReason.singlePlayableVariant,
+            rankedVariants: <PlaybackVariant>[_variant('Salon', '1')],
+            selectedVariant: _variant('Salon', '1'),
+          ),
+        ),
+        mdp.movieAvailabilityOnIptvProvider.overrideWith(
+          (ref, movieId) async => true,
+        ),
+        mdp.movieIsFavoriteProvider.overrideWith((ref, movieId) async => false),
+        hp.mediaHistoryProvider.overrideWith((ref, args) async => null),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final pushedSources = <VideoSource>[];
+    final router = _buildRouter(
+      onPlayerOpened: (source) => pushedSources.add(source),
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+
+    // MovieDetailPage can show OverlaySplash with a periodic timer (elapsed seconds),
+    // so it never "settles". Pump a short duration instead.
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await tester.tap(find.text('Watch'));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(find.byType(MoviePlaybackVariantSheet), findsNothing);
+    expect(pushedSources, hasLength(1));
+    expect(pushedSources.single.url, 'https://video.example/1.mp4');
+  });
 
   testWidgets('Watch opens the selector when several ranked variants remain', (
     tester,
@@ -170,11 +254,15 @@ void main() {
     expect(find.text('The.Matrix.1999.2160p.VOSTFR'), findsOneWidget);
 
     final variantKey = find.byKey(const Key('movie_variant_1'));
-    await tester.ensureVisible(variantKey);
+    await tester.scrollUntilVisible(
+      variantKey,
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(variantKey, warnIfMissed: false);
-    // After selection, the sheet closes and we should navigate to /player.
-    // Once on /player, the tree should settle normally.
-    await tester.pumpAndSettle(const Duration(milliseconds: 100));
+    for (var i = 0; i < 20 && pushedSources.isEmpty; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
 
     expect(pushedSources, hasLength(1));
     expect(pushedSources.single.url, 'https://video.example/2.mp4');
@@ -325,7 +413,10 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byKey(const Key('movie_change_version_button')), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie_change_version_button')),
+        findsOneWidget,
+      );
       expect(selectionCalls, 0);
 
       await tester.tap(find.byKey(const Key('movie_change_version_button')));
@@ -388,7 +479,9 @@ void main() {
     );
 
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.pump(const Duration(milliseconds: 100)); // flush delayed UI timers
+    await tester.pump(
+      const Duration(milliseconds: 100),
+    ); // flush delayed UI timers
     expect(find.text('Watch'), findsOneWidget);
     expect(find.byKey(const Key('movie_change_version_button')), findsNothing);
   });
@@ -435,6 +528,7 @@ MovieDetailViewModel _movieViewModel() {
 PlaybackVariant _variant(
   String sourceLabel,
   String id, {
+  Duration? resumePosition,
   String? rawTitle,
   String? qualityLabel,
   String? audioLanguageLabel,
@@ -450,6 +544,7 @@ PlaybackVariant _variant(
       title: 'The Matrix',
       contentId: '603',
       contentType: ContentType.movie,
+      resumePosition: resumePosition,
     ),
     contentType: ContentType.movie,
     rawTitle: rawTitle ?? 'The.Matrix.1999',

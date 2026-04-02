@@ -32,6 +32,7 @@ import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_unseen.dar
 import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.dart';
 import 'package:movi/src/features/movie/domain/usecases/ensure_movie_enrichment.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
+import 'package:movi/src/features/library/domain/services/resume_eligibility.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
 
@@ -103,6 +104,25 @@ final movieAvailabilityOnIptvProvider = FutureProvider.family<bool, String>((
   final useCase = ref.watch(getMovieAvailabilityOnIptvUseCaseProvider);
   final appState = ref.read(appStateControllerProvider);
   return useCase(movieId, candidateSourceIds: appState.activeIptvSourceIds);
+});
+
+/// Position de reprise alignée avec la définition métier "En cours".
+/// On n'affiche "Reprendre" que si la progression est dans la plage
+/// [inProgressMinThreshold, inProgressMaxThreshold[.
+final movieResumePositionProvider = FutureProvider.family<Duration?, String>((
+  ref,
+  movieId,
+) async {
+  final userId = ref.watch(currentUserIdProvider);
+  final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
+  final entry = await historyRepo.getEntry(
+    movieId,
+    ContentType.movie,
+    userId: userId,
+  );
+  final resume = entry?.lastPosition;
+  final duration = entry?.duration;
+  return normalizeResumePosition(position: resume, duration: duration);
 });
 
 final markMovieAsSeenUseCaseProvider = Provider<MarkMovieAsSeen>(
@@ -425,8 +445,9 @@ final moviePlaybackSelectionProvider =
       final userId = ref.watch(currentUserIdProvider);
       final appState = ref.read(appStateControllerProvider);
       final candidateSourceIds = appState.activeIptvSourceIds;
-      final variantSelectionRepo =
-          ref.watch(slProvider)<PlaybackVariantSelectionLocalRepository>();
+      final variantSelectionRepo = ref.watch(
+        slProvider,
+      )<PlaybackVariantSelectionLocalRepository>();
       final pinnedVariantId = await variantSelectionRepo.getSelectedVariantId(
         args.movieId,
         ContentType.movie,

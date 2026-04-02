@@ -42,6 +42,7 @@ void main() {
           type: ContentType.movie,
           title: 'The Matrix',
           lastPosition: Duration(minutes: 12),
+          duration: Duration(minutes: 120),
         ),
       ),
       logger,
@@ -66,6 +67,167 @@ void main() {
       const Duration(minutes: 12),
     );
   });
+
+  test(
+    'rejects resume position when progress is below in-progress threshold',
+    () async {
+      final logger = _MemoryLogger();
+      final usecase = ResolveMoviePlaybackSelection(
+        _FakeMoviePlaybackVariantResolver(
+          variants: <PlaybackVariant>[
+            PlaybackVariant(
+              id: 'xtream-a:101',
+              sourceId: 'xtream-a',
+              sourceLabel: 'Salon',
+              videoSource: const VideoSource(
+                url: 'https://provider.example/movie/101.mp4',
+                title: 'The Matrix',
+                contentId: '603',
+                contentType: ContentType.movie,
+              ),
+              contentType: ContentType.movie,
+              rawTitle: 'The.Matrix.1999.1080p',
+              normalizedTitle: 'The Matrix',
+              qualityLabel: 'Full HD',
+              qualityRank: 3,
+            ),
+          ],
+        ),
+        const PlaybackSelectionService(),
+        _FakePlaybackHistoryRepository(
+          entry: const PlaybackHistoryEntry(
+            contentId: '603',
+            type: ContentType.movie,
+            title: 'The Matrix',
+            lastPosition: Duration(seconds: 8),
+            duration: Duration(minutes: 120),
+          ),
+        ),
+        logger,
+        PerformanceDiagnosticLogger(logger),
+      );
+
+      final decision = await usecase(
+        movieId: '603',
+        title: 'The Matrix',
+        releaseYear: 1999,
+        userId: 'user-a',
+        candidateSourceIds: const <String>{'xtream-a'},
+        preferences: const PlaybackSelectionPreferences(
+          preferredSourceIds: <String>{'xtream-a'},
+        ),
+        context: const PlaybackSelectionContext(contentType: ContentType.movie),
+      );
+
+      expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
+      expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+    },
+  );
+
+  test('rejects resume position when duration is invalid', () async {
+    final logger = _MemoryLogger();
+    final usecase = ResolveMoviePlaybackSelection(
+      _FakeMoviePlaybackVariantResolver(variants: _defaultVariants()),
+      const PlaybackSelectionService(),
+      _FakePlaybackHistoryRepository(
+        entry: const PlaybackHistoryEntry(
+          contentId: '603',
+          type: ContentType.movie,
+          title: 'The Matrix',
+          lastPosition: Duration(minutes: 20),
+          duration: Duration.zero,
+        ),
+      ),
+      logger,
+      PerformanceDiagnosticLogger(logger),
+    );
+
+    final decision = await _resolveDefault(usecase);
+    expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+  });
+
+  test('rejects resume position when position is null', () async {
+    final logger = _MemoryLogger();
+    final usecase = ResolveMoviePlaybackSelection(
+      _FakeMoviePlaybackVariantResolver(variants: _defaultVariants()),
+      const PlaybackSelectionService(),
+      _FakePlaybackHistoryRepository(
+        entry: const PlaybackHistoryEntry(
+          contentId: '603',
+          type: ContentType.movie,
+          title: 'The Matrix',
+          duration: Duration(minutes: 120),
+        ),
+      ),
+      logger,
+      PerformanceDiagnosticLogger(logger),
+    );
+
+    final decision = await _resolveDefault(usecase);
+    expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+  });
+
+  test(
+    'rejects resume position when progress is above max threshold',
+    () async {
+      final logger = _MemoryLogger();
+      final usecase = ResolveMoviePlaybackSelection(
+        _FakeMoviePlaybackVariantResolver(variants: _defaultVariants()),
+        const PlaybackSelectionService(),
+        _FakePlaybackHistoryRepository(
+          entry: const PlaybackHistoryEntry(
+            contentId: '603',
+            type: ContentType.movie,
+            title: 'The Matrix',
+            lastPosition: Duration(minutes: 115),
+            duration: Duration(minutes: 120),
+          ),
+        ),
+        logger,
+        PerformanceDiagnosticLogger(logger),
+      );
+
+      final decision = await _resolveDefault(usecase);
+      expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+    },
+  );
+}
+
+Future<PlaybackSelectionDecision> _resolveDefault(
+  ResolveMoviePlaybackSelection usecase,
+) {
+  return usecase(
+    movieId: '603',
+    title: 'The Matrix',
+    releaseYear: 1999,
+    userId: 'user-a',
+    candidateSourceIds: const <String>{'xtream-a'},
+    preferences: const PlaybackSelectionPreferences(
+      preferredSourceIds: <String>{'xtream-a'},
+    ),
+    context: const PlaybackSelectionContext(contentType: ContentType.movie),
+  );
+}
+
+List<PlaybackVariant> _defaultVariants() {
+  return <PlaybackVariant>[
+    PlaybackVariant(
+      id: 'xtream-a:101',
+      sourceId: 'xtream-a',
+      sourceLabel: 'Salon',
+      videoSource: const VideoSource(
+        url: 'https://provider.example/movie/101.mp4',
+        title: 'The Matrix',
+        contentId: '603',
+        contentType: ContentType.movie,
+      ),
+      contentType: ContentType.movie,
+      rawTitle: 'The.Matrix.1999.1080p',
+      normalizedTitle: 'The Matrix',
+      qualityLabel: 'Full HD',
+      qualityRank: 3,
+    ),
+  ];
 }
 
 class _FakeMoviePlaybackVariantResolver
