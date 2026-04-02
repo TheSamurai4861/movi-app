@@ -6,6 +6,9 @@ analyzer:
     - build/**
     - .dart_tool/**
     - output/**
+    # Fixtures intentionnellement "invalides" (canary) pour prouver les règles d'architecture.
+    # Ne doivent pas impacter `flutter analyze` (gate CI).
+    - tool/arch_lint_canary/**
 
 linter:
   rules:
