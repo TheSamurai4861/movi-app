@@ -21,6 +21,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/playback_sync_offset_preferences.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
 import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
+import 'package:movi/src/core/widgets/subtitle_playback_layout.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_remote_providers.dart';
@@ -1597,8 +1598,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   SubtitleViewConfiguration _buildSubtitleViewConfiguration(
     SubtitleAppearancePrefs prefs,
   ) {
-    final safeBottom = MediaQuery.paddingOf(context).bottom;
-    final bottomPadding = (_showControls ? 96.0 : 64.0) + safeBottom;
+    final bottomPadding = SubtitlePlaybackLayout.bottomPadding(
+      context,
+      showPlayerControls: _showControls,
+    );
     if (_lastSubtitleBottomPaddingLogged != bottomPadding) {
       _lastSubtitleBottomPaddingLogged = bottomPadding;
       _diagnostics.mark(
@@ -1606,7 +1609,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         context: <String, Object?>{
           'bottomPadding': bottomPadding,
           'showControls': _showControls,
-          'safeBottom': safeBottom,
+          'safeBottom': MediaQuery.paddingOf(context).bottom,
         },
       );
     }

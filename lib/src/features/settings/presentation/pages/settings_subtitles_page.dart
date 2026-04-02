@@ -8,6 +8,7 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/widgets/premium_feature_gate.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/subtitle_playback_layout.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
 import 'package:movi/src/features/player/presentation/providers/player_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
@@ -581,23 +582,59 @@ class _SubtitlePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 120),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF101010),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Text(
-          l10n.settingsSubtitlesPreviewSample,
-          textAlign: TextAlign.center,
-          style: prefs.toTextStyle(),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : 320.0;
+        final videoHeight = width * 9 / 16;
+        final bottomPad = SubtitlePlaybackLayout.bottomPadding(
+          context,
+          showPlayerControls: true,
+          includeDisplaySafeBottom: false,
+        );
+        final scale = SubtitlePlaybackLayout.previewFontScale(
+          context,
+          videoHeight,
+        );
+        final previewStyle = prefs.toTextStyle().copyWith(
+          fontSize: prefs.toFontSize() * scale,
+        );
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF101010),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ColoredBox(
+                color: Colors.black,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: bottomPad,
+                      child: Text(
+                        l10n.settingsSubtitlesPreviewSample,
+                        textAlign: TextAlign.center,
+                        style: previewStyle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
