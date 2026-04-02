@@ -31,6 +31,45 @@ Format retenu :
 - **Exceptions / derogations** : `PH0-WVR-XXX`
 - **Evidences** : `PH0-EVD-XXX`
 
+## Convention d'identifiants pour la phase 1
+
+Format retenu (aligné même logique que phase 0) :
+
+- **Lots de phase** : `PH1-LOT-XXX`
+- **Decisions** : `PH1-DEC-XXX`
+- **Exceptions / derogations** : `PH1-WVR-XXX`
+- **Evidences** : `PH1-EVD-XXX`
+
+### Registre initial des lots phase 1
+
+| Lot ID | Source de besoin | Objet | Statut initial | Notes |
+|--------|------------------|-------|----------------|-------|
+| `PH1-LOT-001` | Phase 1 / travail obligatoire #1 | Registre de risques systeme sous controle | ouvert | `docs/risk/system_risk_register.md` + gate C1 (mitigation/containment/rollback/detectabilite) |
+| `PH1-LOT-002` | Phase 1 / travail obligatoire #2 | Inventaire secrets/tokens/PII/donnees sensibles | ouvert | `docs/security/secret_inventory.md` |
+| `PH1-LOT-003` | Phase 1 / travail obligatoire #3 | Matrice privileges / acces externes / dependances critiques | ouvert | `docs/security/privilege_matrix.md` |
+| `PH1-LOT-004` | Phase 1 / travail obligatoire #4 | Failure modes par domaine (startup/auth/network/storage/player/IPTV/parental) | ouvert | `docs/risk/failure_modes.md` |
+| `PH1-LOT-005` | Phase 1 / travail obligatoire #5 | Hazard analysis + etats sûrs (fail-safe / fail-closed) | ouvert | `docs/risk/hazard_analysis.md` |
+| `PH1-LOT-006` | Phase 1 / travail obligatoire #6 | Kill switches / feature flags requis | ouvert | (sera relie au registre de risques + docs ops/runbooks) |
+
+## Convention d'identifiants pour la phase 2
+
+Format retenu :
+
+- **Lots de phase** : `PH2-LOT-XXX`
+- **Decisions** : `PH2-DEC-XXX`
+- **Exceptions / derogations** : `PH2-WVR-XXX`
+- **Evidences** : `PH2-EVD-XXX`
+
+### Registre initial des lots phase 2
+
+| Lot ID | Source de besoin | Objet | Statut initial | Notes |
+|--------|------------------|-------|----------------|-------|
+| `PH2-LOT-001` | Phase 2 / Jalon M1 | Règles d’import autorisées/interdites par couche + frontières feature + locator UI | ouvert | `docs/architecture/dependency_rules.md` ; prépare M2 (contrôles CI) |
+| `PH2-LOT-002` | Phase 2 / Jalon M2 | Contrôle automatique imports interdits (local + CI) + rapport violations | ouvert | `tool/arch_lint.dart` + rapport baseline + step Codemagic |
+| `PH2-LOT-003` | Phase 2 / Jalon M3 | Preuve canary (R1..R5) + mur anti-réintroduction (baseline) en CI | ouvert | fixtures `tool/arch_lint_canary` + mode `--baseline` + step CI canary |
+| `PH2-LOT-004` | Phase 2 / Jalon M4 | Rapport initial des violations restantes (baseline) | ouvert | `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` + rapport brut `arch_violations_2026-04-02.md` |
+| `PH2-LOT-005` | Phase 2 / Jalon M5 | Classement violations (criticité + coût) | ouvert | Section M5 dans `phase2_violation_inventory_2026-04-02.md` (backlog prêt à traiter) |
+
 ### Registre initial des lots phase 0
 
 | Lot ID | Source de besoin | Objet | Statut initial | Notes |
@@ -56,6 +95,233 @@ Format retenu :
 - Toute evidence importante doit etre referencee depuis ce journal ou depuis `docs/quality/validation_evidence_index.md`.
 
 ## Entrees du journal
+
+## Entree `LOG-2026-04-02-034`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH1-LOT-001`
+- **Type** : phase 1 — registre de risques systeme
+- **Source de besoin** : plan Phase 1 (Qualification sécurité/données/risques) + `docs/rules_nasa.md` §8 + §27
+- **Composants produits / modifies** :
+  - `docs/risk/system_risk_register.md`
+- **Criticite du changement** : `C2` (cadre de controle)
+- **Classe principale** : `L2` (mais traite des risques `C1/L1`)
+- **Decision / resultat** :
+  - registre normalise (schema + table) ;
+  - couverture explicite des domaines Phase 1 (startup/auth/network/storage/player/IPTV/parental) ;
+  - checklist C1 et liste initiale de kill switches/flags (a qualifier).
+- **Risques identifies** :
+  - presence de risques `C1/L1` a qualifier dans les lots `PH1-LOT-004/005/006`.
+- **Rollback / mitigation** :
+  - documents additifs ; rollback = revert ; usage = no evidence, no merge.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH1-EVD-001`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 1 en cours).
+
+## Entree `LOG-2026-04-02-035`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH1-LOT-002`
+- **Type** : phase 1 — secrets / PII / threat model
+- **Source de besoin** : `docs/rules_nasa.md` §12–§13 + criteres d'arret Phase 1
+- **Composants produits / modifies** :
+  - `docs/security/secret_inventory.md`
+  - `docs/security/threat_model.md`
+  - `.env` (constat : fichier present avec valeurs)
+- **Criticite du changement** : `C1`
+- **Classe principale** : `L1`
+- **Decision / resultat** :
+  - inventaire secrets/PII sans valeurs versionne ;
+  - menace "secret en clair" identifiee (decision immediate requise).
+- **Risques identifies** :
+  - fuite potentielle via `.env` versionne.
+- **Rollback / mitigation** :
+  - retrait du fichier versionne + rotation si compromis + injection via mecanisme approuve.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH1-EVD-002` et `PH1-EVD-006`.
+- **Derogation** : aucune (si acceptation necessaire, produire `PH1-WVR-XXX`).
+- **Statut** : ouvert (decision immediate requise).
+
+## Entree `LOG-2026-04-02-036`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH1-LOT-003`
+- **Type** : phase 1 — privileges / dependances critiques
+- **Source de besoin** : `docs/rules_nasa.md` §12 + moindre privilege
+- **Composants produits / modifies** :
+  - `docs/security/privilege_matrix.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2`
+- **Decision / resultat** :
+  - dependances critiques listées (Supabase, TMDB, Sentry, proxy) ;
+  - modes degradés attendus definis a niveau minimum.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH1-EVD-003`.
+- **Derogation** : aucune.
+- **Statut** : ouvert.
+
+## Entree `LOG-2026-04-02-037`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH1-LOT-004`
+- **Type** : phase 1 — failure modes
+- **Source de besoin** : plan Phase 1 / travail obligatoire #4 + `docs/rules_nasa.md` §11 + §21
+- **Composants produits / modifies** :
+  - `docs/risk/failure_modes.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2` (inclut cas `L1`)
+- **Decision / resultat** :
+  - modes d’echec documentes par domaine + detectabilite + containment/rollback minimum.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH1-EVD-004`.
+- **Derogation** : aucune.
+- **Statut** : ouvert.
+
+## Entree `LOG-2026-04-02-038`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH1-LOT-005`
+- **Type** : phase 1 — hazard analysis / etats sûrs
+- **Source de besoin** : plan Phase 1 / travail obligatoire #5 + `docs/rules_nasa.md` §8–§9
+- **Composants produits / modifies** :
+  - `docs/risk/hazard_analysis.md`
+- **Criticite du changement** : `C1`
+- **Classe principale** : `L1`
+- **Decision / resultat** :
+  - hazards conservatoires identifies ;
+  - etats sûrs attendus definis (L1 fail-closed).
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH1-EVD-005`.
+- **Derogation** : aucune.
+- **Statut** : ouvert.
+
+## Entree `LOG-2026-04-02-039`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH2-LOT-001`
+- **Type** : phase 2 — règles d’import / mur de dépendances (Jalon M1)
+- **Source de besoin** : `movi_nasa_refactor_plan_v3.md` Phase 2 (travaux obligatoires #1) + `docs/rules_nasa.md` §5 + §27
+- **Composants produits / modifies** :
+  - `docs/architecture/dependency_rules.md`
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/traceability/change_logbook.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2`
+- **Decision / resultat** :
+  - règles testables `ARCH-R1..R5` définies (4 familles + locator UI) ;
+  - conventions de couches et frontières features documentées ;
+  - préparation de l’automatisation (M2) : output attendu (ID règle, rapport, exit code non-zero).
+- **Risques identifies** :
+  - règles trop vagues/non discriminantes => stop avant M2 et renforcement conventions (naming/paths).
+- **Rollback / mitigation** :
+  - documents additifs ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH2-EVD-001`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 2 en cours).
+
+## Entree `LOG-2026-04-02-040`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH2-LOT-002`
+- **Type** : phase 2 — contrôle automatique des imports interdits (Jalon M2)
+- **Source de besoin** : Phase 2 (travaux obligatoires #2–#4) + `docs/rules_nasa.md` §17 + §27
+- **Composants produits / modifies** :
+  - `tool/arch_lint.dart`
+  - `docs/architecture/dependency_rules.md` (section exécution locale)
+  - `docs/architecture/reports/arch_violations_baseline.md`
+  - `codemagic.yaml` (step architecture wall dans `ci-quality-proof`)
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/traceability/change_logbook.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2`
+- **Decision / resultat** :
+  - script local `arch_lint` : scanne `lib/`, applique `ARCH-R1..R5`, génère rapport et échoue si violation ;
+  - preuve minimale via `--canary` (self-check) ;
+  - intégration CI : étape bloquante + archivage logs/rapport.
+- **Risques identifies** :
+  - forte dette existante (nombreuses violations) : la gate sert de **mur anti-réintroduction**, pas de “cleanup” immédiat.
+- **Rollback / mitigation** :
+  - documents/outillage additifs ; rollback = revert ; possibilité d’ajuster allow/denylist si faux positifs.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH2-EVD-002`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 2 en cours).
+
+## Entree `LOG-2026-04-02-041`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH2-LOT-003`
+- **Type** : phase 2 — interdictions CI explicites + canary (Jalon M3)
+- **Source de besoin** : Phase 2 (travaux obligatoires #3–#4) + `docs/rules_nasa.md` §27
+- **Composants produits / modifies** :
+  - `tool/arch_lint_canary/**` (fixtures)
+  - `tool/arch_lint.dart` (modes `--canary-fixtures`, `--expect-all-rules`, `--baseline`)
+  - `docs/architecture/reports/arch_canary_report.md`
+  - `codemagic.yaml` (step canary + mur baseline)
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/traceability/change_logbook.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2`
+- **Decision / resultat** :
+  - preuve canary : les règles `ARCH-R1..R5` déclenchent chacune sur des fixtures minimales ;
+  - politique mur : CI échoue uniquement sur **nouvelles** violations vs baseline (anti-réintroduction) ;
+  - artefacts CI : rapport delta + rapport canary archivés.
+- **Risques identifies** :
+  - si la baseline n’est pas tenue à jour lors des refactors, risque de faux positifs sur “nouveaux” écarts.
+- **Rollback / mitigation** :
+  - ajuster fingerprints si besoin ; sinon rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH2-EVD-003`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 2 en cours).
+
+## Entree `LOG-2026-04-02-042`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH2-LOT-004`
+- **Type** : phase 2 — rapport initial violations restantes (Jalon M4)
+- **Source de besoin** : Phase 2 (travaux obligatoires #5) + critères d’arrêt (mesure graphe) + `docs/rules_nasa.md` §25/§27
+- **Composants produits / modifies** :
+  - `docs/architecture/reports/arch_violations_2026-04-02.md` (rapport brut daté)
+  - `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` (rapport opposable + mapping V1–V4)
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/traceability/change_logbook.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2`
+- **Decision / resultat** :
+  - baseline violations produite, datée et archivée ;
+  - mapping familles Phase 0 (V1–V4) vers règles Phase 2 (ARCH-R*) documenté ;
+  - rapport comparable dans le temps (daté, reproductible via commande).
+- **Rollback / mitigation** :
+  - documents additifs ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH2-EVD-004`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 2 en cours).
+
+## Entree `LOG-2026-04-02-043`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH2-LOT-005`
+- **Type** : phase 2 — classement violations (criticité + coût) (Jalon M5)
+- **Source de besoin** : Phase 2 (travaux obligatoires #6) + `docs/rules_nasa.md` §25/§27
+- **Composants produits / modifies** :
+  - `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` (section \"Priorisation (M5)\")
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/traceability/change_logbook.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2` (inclut identification explicite des zones `L1`)
+- **Decision / resultat** :
+  - backlog priorisé produit : `C/L` + coût `S/M/L` + dépendances ;
+  - violations touchant zones `L1` identifiées et promues.
+- **Rollback / mitigation** :
+  - document additif ; rollback = revert ; révision possible à mesure que le refactor progresse.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH2-EVD-005`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 2 en cours).
 
 ## Entree `LOG-2026-04-02-001`
 

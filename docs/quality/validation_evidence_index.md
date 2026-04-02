@@ -144,3 +144,33 @@ Alignement `rules_nasa.md` §25 / §27 : les lignes ci-dessous ne sont **pas** d
 ---
 
 *Document produit dans le cadre de la roadmap phase 0 — étape **5.4**.*
+
+---
+
+## Phase 1 — Qualification sécurité / données / risques (preuves)
+
+### Tableau des preuves — Phase 1 (chemins relatifs à la racine du dépôt)
+
+| ID | Sujet | Document / preuve | Résultat constaté |
+|---|---|---|---|
+| **PH1-EVD-001** | Registre risques système (M1) | `docs/risk/system_risk_register.md` | Registre normalisé (C/L, owner, mitigation/containment/rollback/détectabilité) + couverture domaines Phase 1 + checklist C1 |
+| **PH1-EVD-002** | Inventaire secrets / PII | `docs/security/secret_inventory.md` | **Alerte** : `.env` contient des valeurs (stop/decision requise) + inventaire sans valeurs |
+| **PH1-EVD-003** | Matrice privilèges / dépendances | `docs/security/privilege_matrix.md` | Dépendances critiques listées + modes dégradés attendus |
+| **PH1-EVD-004** | Failure modes | `docs/risk/failure_modes.md` | Modes d’échec + détectabilité + containment/rollback par domaine |
+| **PH1-EVD-005** | Hazard analysis | `docs/risk/hazard_analysis.md` | Hazards conservatoires + états sûrs attendus (L1 fail-closed) |
+| **PH1-EVD-006** | Threat model | `docs/security/threat_model.md` | Menaces clés + contrôles attendus + détectabilité |
+
+---
+
+## Phase 2 — Mur de dépendances (preuves)
+
+### Tableau des preuves — Phase 2 (chemins relatifs à la racine du dépôt)
+
+| ID | Sujet | Document / preuve | Résultat constaté |
+|---|---|---|---|
+| **PH2-EVD-001** | Règles d’import par couche (M1) | `docs/architecture/dependency_rules.md` | Règles testables `ARCH-R1..R5` (4 familles + locator UI) + patterns + exemples |
+| **PH2-EVD-002** | Contrôle automatique (M2) + baseline violations | `tool/arch_lint.dart` + `docs/architecture/reports/arch_violations_baseline.md` + `codemagic.yaml` | Script local + preuve `--canary` + rapport baseline ; step CI bloquant et artefacts (`ci_proofs/arch_violations.md`) |
+| **PH2-EVD-003** | Canary par famille + mur anti-réintroduction (M3) | `tool/arch_lint_canary/**` + `docs/architecture/reports/arch_canary_report.md` + `codemagic.yaml` | Canary déclenche `ARCH-R1..R5` ; CI exécute canary + mur `--baseline` (delta) et archive rapports |
+| **PH2-EVD-004** | Rapport initial violations restantes (M4) | `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` + `docs/architecture/reports/arch_violations_2026-04-02.md` | Rapport baseline daté + mapping V1–V4 ; preuve de mesure comparable dans le temps |
+| **PH2-EVD-005** | Priorisation (M5) criticité + coût | `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` | Section \"Priorisation (M5)\" : backlog C/L + coût S/M/L + focus L1 |
+

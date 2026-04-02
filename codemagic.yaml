@@ -33,8 +33,24 @@ workflows:
             echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
           fi
 
+      - name: Architecture wall (proof, blocking)
+        script: |
+          set -euxo pipefail
+          dart run tool/arch_lint.dart --baseline docs/architecture/reports/arch_violations_baseline.md --out ci_proofs/arch_violations_delta.md 2>&1 | tee ci_proofs/arch_lint.log
+
+      - name: Architecture canary suite (proof)
+        script: |
+          set -euxo pipefail
+          dart run tool/arch_lint.dart \
+            --scope tool/arch_lint_canary \
+            --canary-fixtures \
+            --expect-all-rules \
+            --out ci_proofs/arch_canary_report.md 2>&1 | tee ci_proofs/arch_canary.log
+
     artifacts:
       - ci_proofs/*.log
+      - ci_proofs/arch_violations_delta.md
+      - ci_proofs/arch_canary_report.md
       - ci_proofs/metadata.txt
 
   ios-dev-ipa:
