@@ -15,6 +15,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/logging/operation_context.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
@@ -1231,6 +1232,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     String title, {
     bool startFromBeginning = false,
   }) async {
+    return runWithOperationId(() async {
     final logger = ref.read(slProvider)<AppLogger>();
     final diagnostics = ref.read(slProvider)<PerformanceDiagnosticLogger>();
     final stopwatch = Stopwatch()..start();
@@ -1304,11 +1306,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             final repo = ref.read(
               slProvider,
             )<PlaybackVariantSelectionLocalRepository>();
-            await repo.upsertSelectedVariantId(
+            unawaited(
+              repo.upsertSelectedVariantId(
               contentId: widget.movieId,
               contentType: ContentType.movie,
               variantId: selectedVariant.id,
               userId: userId,
+            ),
             );
           } catch (_) {
             // Best-effort persistence: ignore errors.
@@ -1376,9 +1380,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         ),
       );
     }
+    }, prefix: 'play');
   }
 
   Future<void> _chooseMovieVersionAndPlay(String title) async {
+    return runWithOperationId(() async {
     final decision = await _loadMoviePlaybackSelection(title);
     if (!mounted || !context.mounted) return;
     if (decision.rankedVariants.isEmpty) {
@@ -1404,11 +1410,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       final repo = ref.read(
         slProvider,
       )<PlaybackVariantSelectionLocalRepository>();
-      await repo.upsertSelectedVariantId(
+      unawaited(
+        repo.upsertSelectedVariantId(
         contentId: widget.movieId,
         contentType: ContentType.movie,
         variantId: selectedVariant.id,
         userId: userId,
+      ),
       );
     } catch (_) {
       // Best-effort persistence: ignore errors.
@@ -1416,6 +1424,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
     if (!mounted || !context.mounted) return;
     context.push(AppRouteNames.player, extra: selectedVariant.videoSource);
+    }, prefix: 'play');
   }
 
   Future<PlaybackSelectionDecision> _loadMoviePlaybackSelection(

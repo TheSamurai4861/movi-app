@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:movi/src/core/logging/adapters/console_logger.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/logging/operation_context.dart';
 import 'package:movi/src/core/logging/sanitizer/message_sanitizer.dart';
 
 class FileLogger extends AppLogger implements LoggerLifecycle {
@@ -231,10 +232,12 @@ class FileLogger extends AppLogger implements LoggerLifecycle {
 
     final ts = DateTime.now().toIso8601String();
     final tag = level.name.toUpperCase();
+    final opId = currentOperationId();
+    final op = (opId == null || opId.isEmpty) ? '' : ' operationId=$opId';
     final cat = (category == null || category.isEmpty)
         ? ''
         : '[${_sanitizer.sanitize(category)}] ';
-    final base = '[$ts][$tag] $cat${_sanitizer.sanitize(message)}';
+    final base = '[$ts][$tag]$op $cat${_sanitizer.sanitize(message)}';
 
     _printConsole(base);
     if (error != null) _printConsole(' -> ${_sanitizer.sanitize('$error')}');

@@ -27,21 +27,4 @@ class SubtitlePlaybackLayout {
     final base = showPlayerControls ? 72.0 : 52.0;
     return base + safeBottom;
   }
-
-  /// Facteur pour rapprocher la taille du texte de l’aperçu de celle vue en
-  /// lecture plein écran (même [fontSize] logique, cadre plus petit).
-  static double previewFontScale(
-    BuildContext context,
-    double previewVideoHeight,
-  ) {
-    final size = MediaQuery.sizeOf(context);
-    final padding = MediaQuery.paddingOf(context);
-    final estimatedFullscreenVideoH = (size.height - padding.vertical).clamp(
-      240.0,
-      double.infinity,
-    );
-    if (previewVideoHeight <= 1) return 1.0;
-    final ratio = previewVideoHeight / estimatedFullscreenVideoH;
-    return ratio.clamp(0.42, 1.0);
-  }
 }

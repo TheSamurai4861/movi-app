@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/logging/operation_context.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
 // ignore: unnecessary_import
@@ -16,12 +18,13 @@ import 'package:movi/src/features/iptv/application/services/xtream_sync_service.
 
 final appStartupProvider = FutureProvider<void>((ref) async {
   final sw = Stopwatch()..start();
-  debugPrint('[DEBUG][Startup] appStartupProvider: START');
+  return runWithOperationId(() async {
+    debugPrint('[DEBUG][Startup] appStartupProvider: START');
 
-  WidgetsFlutterBinding.ensureInitialized();
-  debugPrint(
-    '[DEBUG][Startup] appStartupProvider: WidgetsFlutterBinding.ensureInitialized DONE (${sw.elapsedMilliseconds}ms)',
-  );
+    WidgetsFlutterBinding.ensureInitialized();
+    debugPrint(
+      '[DEBUG][Startup] appStartupProvider: WidgetsFlutterBinding.ensureInitialized DONE (${sw.elapsedMilliseconds}ms)',
+    );
 
   final loader = EnvironmentLoader();
   registerEnvironmentLoader(loader);
@@ -89,13 +92,21 @@ final appStartupProvider = FutureProvider<void>((ref) async {
     debugPrint('[Startup] Supabase not ready: $e\n$st');
   }
 
-  // --- Logging ---------------------------------------------------------------
-  LoggingModule.register();
+    // --- Logging ---------------------------------------------------------------
+    LoggingModule.register();
+    final logger = sl<AppLogger>();
+    logger.info(
+      'feature=startup action=bootstrap result=progress message="logging_ready"',
+      category: 'startup',
+    );
 
-  // --- IPTV background sync --------------------------------------------------
-  debugPrint('[DEBUG][Startup] appStartupProvider: XtreamSyncService setup');
-  final syncService = sl<XtreamSyncService>();
-  final iptvSyncPrefs = sl<IptvSyncPreferences>();
+    // --- IPTV background sync --------------------------------------------------
+    logger.info(
+      'feature=startup action=xtream_sync_setup result=progress',
+      category: 'startup',
+    );
+    final syncService = sl<XtreamSyncService>();
+    final iptvSyncPrefs = sl<IptvSyncPreferences>();
 
   // S'assurer que l'intervalle est appliqué depuis les préférences
   syncService.setInterval(iptvSyncPrefs.syncInterval);
@@ -121,8 +132,10 @@ final appStartupProvider = FutureProvider<void>((ref) async {
     syncService.stop();
   });
 
-  sw.stop();
-  debugPrint(
-    '[DEBUG][Startup] appStartupProvider: COMPLETE (total: ${sw.elapsedMilliseconds}ms)',
-  );
+    sw.stop();
+    logger.info(
+      'feature=startup action=bootstrap result=success durationMs=${sw.elapsedMilliseconds}',
+      category: 'startup',
+    );
+  }, prefix: 'startup');
 });

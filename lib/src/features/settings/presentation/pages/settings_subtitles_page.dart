@@ -7,6 +7,7 @@ import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
 import 'package:movi/src/core/subscription/presentation/widgets/premium_feature_gate.dart';
+import 'package:movi/src/core/playback/media_kit_subtitle_text_scale.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/widgets/subtitle_playback_layout.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
@@ -62,9 +63,11 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SettingsContentWidth(
-          child: ListView(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.only(bottom: 32),
-            children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               MoviSubpageBackTitleHeader(
                 title: l10n.settingsSubtitlesTitle,
                 onBack: () => context.pop(),
@@ -450,6 +453,7 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
               ),
             ],
           ),
+          ),
         ),
       ),
     );
@@ -579,31 +583,34 @@ class _SubtitlePreview extends StatelessWidget {
 
   final SubtitleAppearancePrefs prefs;
 
+  /// Padding du `Container` autour du cadre 16:9 (les tests reproduisent ce retrait).
+  static const double _outerPadding = 12.0;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+        final parentWidth = constraints.maxWidth.isFinite &&
+                constraints.maxWidth > 0
             ? constraints.maxWidth
             : 320.0;
-        final videoHeight = width * 9 / 16;
+        final innerWidth =
+            (parentWidth - 2 * _outerPadding).clamp(0.0, double.infinity);
+        final innerHeight = innerWidth * 9 / 16;
+        final mediaKitScale = MediaKitSubtitleTextScale.linearFactor(
+          layoutWidth: innerWidth,
+          layoutHeight: innerHeight,
+        );
         final bottomPad = SubtitlePlaybackLayout.bottomPadding(
           context,
           showPlayerControls: true,
           includeDisplaySafeBottom: false,
         );
-        final scale = SubtitlePlaybackLayout.previewFontScale(
-          context,
-          videoHeight,
-        );
-        final previewStyle = prefs.toTextStyle().copyWith(
-          fontSize: prefs.toFontSize() * scale,
-        );
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(_outerPadding),
           decoration: BoxDecoration(
             color: const Color(0xFF101010),
             borderRadius: BorderRadius.circular(14),
@@ -625,7 +632,8 @@ class _SubtitlePreview extends StatelessWidget {
                       child: Text(
                         l10n.settingsSubtitlesPreviewSample,
                         textAlign: TextAlign.center,
-                        style: previewStyle,
+                        style: prefs.toTextStyle(),
+                        textScaler: TextScaler.linear(mediaKitScale),
                       ),
                     ),
                   ],

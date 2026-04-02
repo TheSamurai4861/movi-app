@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/logging/operation_context.dart';
 import 'package:movi/src/core/logging/sanitizer/message_sanitizer.dart';
 
 typedef ConsolePrinter = void Function(String message);
@@ -21,10 +22,12 @@ class ConsoleLogger extends AppLogger {
   }) {
     final ts = DateTime.now().toIso8601String();
     final tag = level.name.toUpperCase();
+    final opId = currentOperationId();
+    final op = (opId == null || opId.isEmpty) ? '' : ' operationId=$opId';
     final cat = (category == null || category.isEmpty)
         ? ''
         : '[${_sanitizer.sanitize(category)}] ';
-    final base = '[$ts][$tag] $cat${_sanitizer.sanitize(message)}';
+    final base = '[$ts][$tag]$op $cat${_sanitizer.sanitize(message)}';
     _printer(base);
     if (error != null) {
       _printer(' -> ${_sanitizer.sanitize('$error')}');

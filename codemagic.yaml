@@ -1,4 +1,42 @@
 workflows:
+  ci-quality-proof:
+    name: CI Quality Proof (no secrets)
+    max_build_duration: 30
+    environment:
+      flutter: stable
+    scripts:
+      - name: Prepare proof folder
+        script: |
+          set -euxo pipefail
+          rm -rf ci_proofs
+          mkdir -p ci_proofs
+          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
+          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
+          echo "workflow=ci-quality-proof" | tee -a ci_proofs/metadata.txt
+
+      - name: Install dependencies (proof)
+        script: |
+          set -euxo pipefail
+          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
+
+      - name: Static analysis (blocking, proof)
+        script: |
+          set -euxo pipefail
+          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
+
+      - name: Tests (proof)
+        script: |
+          set -euxo pipefail
+          if [ -d test ]; then
+            flutter test 2>&1 | tee ci_proofs/flutter_test.log
+          else
+            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
+          fi
+
+    artifacts:
+      - ci_proofs/*.log
+      - ci_proofs/metadata.txt
+
   ios-dev-ipa:
     name: iOS Dev IPA (unsigned)
     max_build_duration: 60
@@ -8,22 +46,37 @@ workflows:
       groups:
         - api
     scripts:
+      - name: Prepare proof folder
+        script: |
+          set -euxo pipefail
+          rm -rf ci_proofs
+          mkdir -p ci_proofs
+          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
+          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
+          echo "workflow=ios-dev-ipa" | tee -a ci_proofs/metadata.txt
+
       - name: Install dependencies
-        script: flutter pub get
+        script: |
+          set -euxo pipefail
+          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
 
       - name: Analyze project
-        script: flutter analyze --no-fatal-infos
+        script: |
+          set -euxo pipefail
+          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
 
       - name: Run tests when present
         script: |
+          set -euxo pipefail
           if [ -d test ]; then
-            flutter test
+            flutter test 2>&1 | tee ci_proofs/flutter_test.log
           else
-            echo "No test directory found; skipping tests"
+            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
           fi
 
       - name: Load .env (optional for dev)
         script: |
+          set -euxo pipefail
           set -a
           if [ -f .env ]; then
             echo "Loading .env for dev convenience"
@@ -35,6 +88,7 @@ workflows:
 
       - name: Check API vars (dev)
         script: |
+          set -euxo pipefail
           echo "==== DEV vars check ===="
           echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
           echo "SUPABASE_URL length: ${#SUPABASE_URL}"
@@ -58,6 +112,7 @@ workflows:
 
       - name: Build unsigned IPA (archive, APP_ENV=dev)
         script: |
+          set -euxo pipefail
           echo "Building iOS Dev IPA..."
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
@@ -78,6 +133,8 @@ workflows:
           (cd "$OUTDIR" && zip -r "Runner-unsigned-dev.ipa" "Payload")
 
     artifacts:
+      - ci_proofs/*.log
+      - ci_proofs/metadata.txt
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
 
@@ -90,14 +147,28 @@ workflows:
       groups:
         - api
     scripts:
+      - name: Prepare proof folder
+        script: |
+          set -euxo pipefail
+          rm -rf ci_proofs
+          mkdir -p ci_proofs
+          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
+          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
+          echo "workflow=ios-dev-ipa-premium" | tee -a ci_proofs/metadata.txt
+
       - name: Install dependencies
-        script: flutter pub get
+        script: |
+          set -euxo pipefail
+          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
 
       - name: Analyze project
-        script: flutter analyze --no-fatal-infos
+        script: |
+          set -euxo pipefail
+          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
 
       - name: Load .env (optional for dev)
         script: |
+          set -euxo pipefail
           set -a
           if [ -f .env ]; then
             echo "Loading .env for dev convenience"
@@ -109,6 +180,7 @@ workflows:
 
       - name: Check API vars (dev)
         script: |
+          set -euxo pipefail
           echo "==== DEV vars check ===="
           echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
           echo "SUPABASE_URL length: ${#SUPABASE_URL}"
@@ -132,6 +204,7 @@ workflows:
 
       - name: Build unsigned IPA (archive, APP_ENV=dev, FORCE_PREMIUM)
         script: |
+          set -euxo pipefail
           echo "Building iOS Dev IPA (Premium forced)..."
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
@@ -154,6 +227,8 @@ workflows:
           (cd "$OUTDIR" && zip -r "Runner-unsigned-dev-premium.ipa" "Payload")
 
     artifacts:
+      - ci_proofs/*.log
+      - ci_proofs/metadata.txt
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
 
@@ -166,22 +241,37 @@ workflows:
       groups:
         - api
     scripts:
+      - name: Prepare proof folder
+        script: |
+          set -euxo pipefail
+          rm -rf ci_proofs
+          mkdir -p ci_proofs
+          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
+          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
+          echo "workflow=ios-prod-store" | tee -a ci_proofs/metadata.txt
+
       - name: Install dependencies
-        script: flutter pub get
+        script: |
+          set -euxo pipefail
+          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
 
       - name: Analyze project
-        script: flutter analyze --no-fatal-infos
+        script: |
+          set -euxo pipefail
+          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
 
       - name: Run tests when present
         script: |
+          set -euxo pipefail
           if [ -d test ]; then
-            flutter test
+            flutter test 2>&1 | tee ci_proofs/flutter_test.log
           else
-            echo "No test directory found; skipping tests"
+            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
           fi
 
       - name: Check API vars (required for prod)
         script: |
+          set -euxo pipefail
           echo "==== PROD vars check ===="
           echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
           echo "SUPABASE_URL length: ${#SUPABASE_URL}"
@@ -205,6 +295,7 @@ workflows:
 
       - name: Build unsigned IPA (archive, APP_ENV=prod)
         script: |
+          set -euxo pipefail
           echo "Building iOS Prod IPA..."
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
@@ -225,6 +316,8 @@ workflows:
           (cd "$OUTDIR" && zip -r "Runner-unsigned-prod.ipa" "Payload")
 
     artifacts:
+      - ci_proofs/*.log
+      - ci_proofs/metadata.txt
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
 
@@ -236,22 +329,37 @@ workflows:
       groups:
         - api
     scripts:
+      - name: Prepare proof folder
+        script: |
+          set -euxo pipefail
+          rm -rf ci_proofs
+          mkdir -p ci_proofs
+          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
+          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
+          echo "workflow=android-closed-test" | tee -a ci_proofs/metadata.txt
+
       - name: Install dependencies
-        script: flutter pub get
+        script: |
+          set -euxo pipefail
+          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
 
       - name: Analyze project
-        script: flutter analyze --no-fatal-infos
+        script: |
+          set -euxo pipefail
+          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
 
       - name: Run tests when present
         script: |
+          set -euxo pipefail
           if [ -d test ]; then
-            flutter test
+            flutter test 2>&1 | tee ci_proofs/flutter_test.log
           else
-            echo "No test directory found; skipping tests"
+            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
           fi
 
       - name: Check API vars (required)
         script: |
+          set -euxo pipefail
           echo "==== ANDROID CLOSED TEST vars check ===="
           echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
           echo "SUPABASE_URL length: ${#SUPABASE_URL}"
@@ -273,6 +381,7 @@ workflows:
 
       - name: Build AAB (release, APP_ENV=prod, FORCE_PREMIUM)
         script: |
+          set -euxo pipefail
           echo "Building Android AAB for Closed Testing..."
           flutter build appbundle --release \
             --target=lib/main.dart \
@@ -285,4 +394,6 @@ workflows:
             --dart-define=ALLOW_FORCE_PREMIUM_IN_RELEASE=true
 
     artifacts:
+      - ci_proofs/*.log
+      - ci_proofs/metadata.txt
       - build/app/outputs/bundle/release/*.aab

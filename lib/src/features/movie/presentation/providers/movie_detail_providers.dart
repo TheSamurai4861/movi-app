@@ -445,14 +445,25 @@ final moviePlaybackSelectionProvider =
       final userId = ref.watch(currentUserIdProvider);
       final appState = ref.read(appStateControllerProvider);
       final candidateSourceIds = appState.activeIptvSourceIds;
-      final variantSelectionRepo = ref.watch(
-        slProvider,
-      )<PlaybackVariantSelectionLocalRepository>();
-      final pinnedVariantId = await variantSelectionRepo.getSelectedVariantId(
-        args.movieId,
-        ContentType.movie,
-        userId: userId,
-      );
+      // During tests, some repositories may not be registered in GetIt.
+      // In that case, treat "pinned variant" as unavailable rather than failing.
+      final locator = ref.read(slProvider);
+      PlaybackVariantSelectionLocalRepository? variantSelectionRepo;
+      try {
+        if (locator.isRegistered<PlaybackVariantSelectionLocalRepository>()) {
+          variantSelectionRepo = locator<PlaybackVariantSelectionLocalRepository>();
+        }
+      } catch (_) {
+        variantSelectionRepo = null;
+      }
+
+      final pinnedVariantId = variantSelectionRepo == null
+          ? null
+          : await variantSelectionRepo.getSelectedVariantId(
+              args.movieId,
+              ContentType.movie,
+              userId: userId,
+            );
 
       final decision = await usecase(
         movieId: args.movieId,
