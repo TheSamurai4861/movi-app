@@ -470,17 +470,16 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       _playerRepository.durationStream.listen((duration) {
         if (mounted && duration != Duration.zero) {
           setState(() => _duration = duration);
+          final orchestrator = _resumeOrchestrator;
+          if (orchestrator == null || _resumePositionApplied) return;
+          unawaited(() async {
+            await orchestrator.onDuration(duration);
+            if (!mounted) return;
+            if (orchestrator.isDone && !_resumePositionApplied) {
+              setState(() => _resumePositionApplied = true);
+            }
+          }());
         }
-
-        final orchestrator = _resumeOrchestrator;
-        if (orchestrator == null || _resumePositionApplied) return;
-        unawaited(() async {
-          await orchestrator.onDuration(duration);
-          if (!mounted) return;
-          if (orchestrator.isDone && !_resumePositionApplied) {
-            setState(() => _resumePositionApplied = true);
-          }
-        }());
       }),
     );
 
