@@ -110,11 +110,11 @@ Empêcher toute aggravation de l’architecture **avant** de corriger l’exista
 - impossibilité de mesurer l’évolution du graphe de dépendances.
 
 ## Checklist “fin de phase” (à cocher avant clôture)
-- [ ] `docs/architecture/dependency_rules.md` publié et revu
-- [ ] contrôle architecture exécuté localement et en CI (bloquant)
-- [ ] 4 familles d’interdictions + “locator in UI” démontrées (preuve canary)
-- [ ] rapport baseline des violations produit et archivé
-- [ ] violations classées par criticité + coût
-- [ ] entrées ajoutées dans `docs/traceability/change_logbook.md`
-- [ ] preuves référencées dans `docs/quality/validation_evidence_index.md`
+- [x] `docs/architecture/dependency_rules.md` publié et revu
+- [x] contrôle architecture exécuté localement et en CI (bloquant)
+- [x] 4 familles d’interdictions + “locator in UI” démontrées (preuve canary)
+- [x] rapport baseline des violations produit et archivé
+- [x] violations classées par criticité + coût
+- [x] entrées ajoutées dans `docs/traceability/change_logbook.md`
+- [x] preuves référencées dans `docs/quality/validation_evidence_index.md`
 

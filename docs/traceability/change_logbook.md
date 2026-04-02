@@ -1264,3 +1264,30 @@ Format retenu :
   - section “Réserve R4” dans `docs/quality/validation_evidence_index.md` + artefacts R4.
 - **Derogation** : aucune.
 - **Statut** : cloture sous-etape `R4` ; verdict Phase 0 peut passer à **Ready** pour Phase 1.
+
+## Entree `LOG-2026-04-02-044`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH2-LOT-003` (clôture — preuve CI `ci-quality-proof`)
+- **Type** : preuve CI exportée — mur d’architecture (baseline) + canary
+- **Source de besoin** : `docs/rules_nasa.md` §20 (pipeline) + §25 (artefacts de preuve) + §27 (quality gates) ; roadmap Phase 2 (M3)
+- **Composants produits / modifies** :
+  - `analysis_options.yaml` (exclusion fixtures canary de `flutter analyze`)
+  - `docs/Refactor/phase_2_arch_wall/artifacts/ci_quality_proof_2026-04-02/manifest.md`
+  - `docs/Refactor/phase_2_arch_wall/artifacts/ci_quality_proof_2026-04-02/ci_proofs/*`
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/traceability/change_logbook.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2`
+- **Decision / resultat** :
+  - workflow `ci-quality-proof` exécuté sur `main` ;
+  - artefacts exportés et archivés dans le dépôt pour audit (logs + rapports) ;
+  - preuve de fonctionnement : delta baseline + rapport canary déclenchant `ARCH-R1..R5`.
+- **Risques identifies** :
+  - la preuve CI reste dépendante d’un outillage externe ; obligation d’archiver à chaque release “preuve” (discipline §25).
+- **Rollback / mitigation** :
+  - changement additif (fichiers de preuve) ; en cas de volumétrie excessive, compresser/archiver hors dépôt en conservant le manifest et les hashes.
+- **Preuves / validation** :
+  - voir entrée Phase 2 dans `docs/quality/validation_evidence_index.md` + manifest `ci_quality_proof_2026-04-02`.
+- **Derogation** : aucune.
+- **Statut** : preuve CI Phase 2 **archivée** ; gate “mur anti-réintroduction” démontrée.

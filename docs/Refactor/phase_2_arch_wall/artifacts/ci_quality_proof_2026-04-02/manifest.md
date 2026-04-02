@@ -6,9 +6,10 @@ Archive audit-able des artefacts exportés depuis Codemagic pour démontrer la *
 
 ## Métadonnées (à compléter)
 - **Date (UTC)** : `2026-04-02`
-- **Branche** : `<à compléter>`
-- **Commit** : `<à compléter>`
+- **Branche** : `main`
+- **Commit** : `d81c2bac23c6f68bd14d7cee6ce7aa931fffe5e7`
 - **Workflow** : `ci-quality-proof`
+- **Build ID** : `69ce40d6a3d6429948fed242`
 - **Run URL** : `<à compléter>`
 
 ## Fichiers attendus (ci_proofs)
