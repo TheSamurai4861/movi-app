@@ -46,6 +46,7 @@ void main() {
             type: ContentType.series,
             title: 'One Piece',
             lastPosition: Duration(minutes: 7),
+            duration: Duration(minutes: 24),
             season: 2,
             episode: 15,
           ),

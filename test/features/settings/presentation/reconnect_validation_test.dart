@@ -95,6 +95,9 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   AuthSession? get currentSession => _session;
 
+  @override
+  Future<AuthSession?> refreshSession() async => _session;
+
   void setAuthenticated() {
     _session = const AuthSession(userId: 'cloud-user');
     _controller.add(

@@ -175,3 +175,38 @@ Alignement `rules_nasa.md` §25 / §27 : les lignes ci-dessous ne sont **pas** d
 | **PH2-EVD-005** | Priorisation (M5) criticité + coût | `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` | Section \"Priorisation (M5)\" : backlog C/L + coût S/M/L + focus L1 |
 | **PH2-EVD-006** | Preuve CI archivée (export `ci_proofs/*`) | `docs/Refactor/phase_2_arch_wall/artifacts/ci_quality_proof_2026-04-02/manifest.md` + `docs/Refactor/phase_2_arch_wall/artifacts/ci_quality_proof_2026-04-02/ci_proofs/*` | Exécution `ci-quality-proof` : `flutter analyze` + `flutter test` + `arch_lint --baseline` + canary `--expect-all-rules` (rapports exportés) |
 
+---
+
+## Phase 3 — Inventaire des flux critiques & invariants (preuves)
+
+### Tableau des preuves — Phase 3 (chemins relatifs à la racine du dépôt)
+
+| ID | Sujet | Document / preuve | Résultat constaté |
+|---|---|---|---|
+| **PH3-EVD-001** | Fiches flux + exigences + traçabilité REQ→FLOW→INV→TST (M1/M2/M5) | `docs/traceability/requirements_traceability.md` | Livrable versionné : conventions `PH3-*`, 9 flux minimaux, invariants `PH3-INV-*`, scénarios `PH3-TST-*`, catalogue `PH3-REQ-*` + table de traçabilité complète |
+| **PH3-EVD-002** | Matrice invariants (C/L, données, observabilité) (M3) | `docs/traceability/invariant_matrix.md` | Livrable versionné : invariants `PH3-INV-001..034` classés `C/L` avec signaux de rupture, mode dégradé, état sûr, observabilité minimale |
+| **PH3-EVD-003** | Matrice de vérification invariants→tests→preuves (M4) | `docs/traceability/verification_matrix.md` | Livrable versionné : chaque `PH3-INV-*` relié à `PH3-TST-*` + type (unit/integration) + preuve attendue (CI/artefacts) ; scénarios négatifs L1/C1 rappelés |
+| **PH3-EVD-004** | Gate “pré-Phase 4” (checklist GO/NO-GO + STOP + preuves) (M6) | `docs/traceability/pre_phase4_gate_checklist.md` | Livrable versionné : checklist PR Phase 4+ (traçabilité/tests/observabilité/rollback) + critères STOP + format de preuves attendues et indexation |
+
+**Note** : les `PH3-TST-*` sont **définis** (type + preuve attendue) mais **non implémentés/exécutés** dans cette phase ; la collecte de preuves d’exécution se fera au fil des lots Phase 4+, sous le gate `TRACE-PH3-GATE-P4-001`.
+
+---
+
+## Phase 4 — Refondation noyau critique (preuves)
+
+### Tableau des preuves — Phase 4 (chemins relatifs à la racine du dépôt)
+
+| ID | Sujet | Document / preuve | Résultat constaté |
+|---|---|---|---|
+| **PH4-EVD-001** | `core/startup` contracts + orchestrator + SafeMode (M1) | `lib/src/core/startup/domain/startup_contracts.dart` + `lib/src/core/startup/domain/app_startup_orchestrator.dart` + `lib/src/core/startup/infrastructure/startup_adapters.dart` + `lib/src/core/startup/app_startup_provider.dart` + `lib/src/core/startup/app_startup_gate.dart` | Contrats explicités ; effets de bord encapsulés en adapters ; transition `Ready` vs `SafeMode` matérialisée côté UI |
+| **PH4-EVD-002** | Tests non-régression `core/startup` (nominal + dégradé + timeouts) | `test/core/startup/app_startup_orchestrator_test.dart` + `test/core/startup/app_startup_gate_safe_mode_test.dart` | Tests présents et verts en exécution locale (inclut dégradé + timeout) ; preuve CI à archiver si requis |
+| **PH4-EVD-003** | Mesure architecture (delta/imports interdits) | `docs/architecture/reports/arch_violations_2026-04-02.md` | Rapport généré par `tool/arch_lint.dart --baseline` (doit servir de base de comparaison “avant/après” au fil des lots Phase 4) |
+| **PH4-EVD-004** | SafeMode prod minimal + observabilité corrélable (opId) | `lib/src/core/startup/app_startup_gate.dart` + `lib/src/core/startup/infrastructure/startup_adapters.dart` | SafeMode n’expose pas de détails techniques en prod ; logs startup incluent `opId` quand disponible ; sanity check Supabase sans UID |
+| **PH4-EVD-005** | `core/auth` transitions explicites + fail-closed (M2) | `lib/src/core/auth/application/auth_orchestrator.dart` + `lib/src/core/auth/domain/repositories/auth_repository.dart` + `lib/src/core/auth/data/repositories/supabase_auth_repository.dart` + `lib/src/core/auth/presentation/providers/auth_providers.dart` | Bootstrap session explicite (unknown→auth/unauth) ; refresh timeout ; signOut + cleanup best-effort ; pas de fuite SDK vers domaine |
+| **PH4-EVD-006** | Tests non-régression `core/auth` (nominal + dégradé) | `test/core/auth/auth_orchestrator_test.dart` | Tests verts : fail-closed sur refresh erreur/timeout + cleanup logout |
+| **PH4-EVD-007** | `core/auth` conformité max — télémétrie corrélable + reason codes stables + policy bornée | `lib/src/core/auth/application/ports/auth_telemetry_port.dart` + `lib/src/core/auth/infrastructure/auth_telemetry_adapters.dart` + `lib/src/core/auth/application/auth_orchestrator.dart` + `lib/src/core/auth/presentation/providers/auth_providers.dart` | Événements auth structurés (`feature/auth`, `action`, `result`, `reasonCode`) ; `opId` utilisé si présent ; détails techniques limités au debug ; refresh borné (aucune boucle) |
+| **PH4-EVD-008** | Preuve “no secrets/PII” — tests de non-fuite télémétrie auth | `test/core/auth/auth_orchestrator_test.dart` | Test automatique vérifie absence de patterns secrets/PII (`token`, `otp`, `password`, email) dans la télémétrie injectée |
+| **PH4-EVD-009** | Reprise média — MR‑M1 (décision/normalisation unifiée + reason codes stables) | `lib/src/shared/domain/services/media_resume_decision.dart` + `lib/src/features/library/domain/services/resume_eligibility.dart` + `lib/src/features/movie/domain/usecases/resolve_movie_playback_selection.dart` + `lib/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart` | Décision déterministe `apply/skip` + clamp ; TV et movie alignés ; reason codes stables loggés côté diagnostics |
+| **PH4-EVD-010** | Reprise média — MR‑M2 (orchestrateur seek + anti-boucle + timeout) | `lib/src/features/player/application/services/player_resume_orchestrator.dart` + `lib/src/features/player/presentation/pages/video_player_page.dart` | Seek appliqué au plus une fois ; attente bornée ; événements `player_resume_apply` observables |
+| **PH4-EVD-011** | Reprise média — MR‑M3 (persistance robuste + sanitization write-path + no-leak) | `lib/src/shared/domain/services/playback_progress_sanitizer.dart` + `lib/src/features/player/presentation/pages/video_player_page.dart` + `lib/src/features/library/data/repositories/hybrid_playback_history_repository.dart` + `lib/src/features/library/data/repositories/playback_history_repository_impl.dart` | Clamp position≤durée ; drop invalid ; backpressure ; log debug sans `userId`/email |
+| **PH4-EVD-012** | Tests reprise média (MR‑M1..M4) + no‑leak | `test/shared/domain/services/media_resume_decision_test.dart` + `test/features/player/application/services/player_resume_orchestrator_test.dart` + `test/shared/domain/services/playback_progress_sanitizer_test.dart` + `test/features/library/data/repositories/hybrid_playback_history_repository_no_leak_test.dart` + `test/features/player/application/services/player_resume_orchestrator_interruptions_test.dart` | Couverture cas limites, timeout, anti-boucle, interruptions ; preuves no‑leak sur logs persist (debug) |

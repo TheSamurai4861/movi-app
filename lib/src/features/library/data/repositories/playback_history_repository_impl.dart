@@ -1,6 +1,7 @@
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
+import 'package:movi/src/shared/domain/services/playback_progress_sanitizer.dart';
 
 class PlaybackHistoryRepositoryImpl implements PlaybackHistoryRepository {
   const PlaybackHistoryRepositoryImpl(this._local);
@@ -20,14 +21,15 @@ class PlaybackHistoryRepositoryImpl implements PlaybackHistoryRepository {
     int? episode,
     String? userId,
   }) {
+    final sanitized = sanitizePlaybackProgress(position: position, duration: duration);
     return _local.upsertPlay(
       contentId: contentId,
       type: type,
       title: title,
       poster: poster,
       playedAt: playedAt,
-      position: position,
-      duration: duration,
+      position: sanitized.position,
+      duration: sanitized.duration,
       season: season,
       episode: episode,
       userId: userId ?? 'default',

@@ -35,6 +35,7 @@ import 'package:movi/src/features/player/domain/value_objects/player_tracks.dart
 import 'package:movi/src/features/player/domain/value_objects/track_info.dart';
 import 'package:movi/src/features/player/presentation/utils/track_label_formatter.dart';
 import 'package:movi/src/features/player/application/services/next_episode_service.dart';
+import 'package:movi/src/features/player/application/services/player_resume_orchestrator.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_brightness.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_volume.dart';
 import 'package:movi/src/features/player/application/usecases/reset_brightness.dart';
@@ -51,6 +52,7 @@ import 'dart:io';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/shared/domain/services/playback_progress_sanitizer.dart';
 
 bool shouldAcceptProgressWrite({
   required Duration? previousPosition,
@@ -122,6 +124,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   TrackInfo? _currentAudioTrack;
   final GlobalKey _controlsKey = GlobalKey();
   bool _resumePositionApplied = false;
+  PlayerResumeOrchestrator? _resumeOrchestrator;
   bool _initialTrackDefaultsApplied = false;
   VideoSource? _currentVideoSource;
   final List<StreamSubscription> _subscriptions = [];
@@ -249,6 +252,20 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   Future<void> _openGuarded(VideoSource source) async {
     final stopwatch = Stopwatch()..start();
     _initialTrackDefaultsApplied = false;
+    _resumePositionApplied = false;
+    _resumeOrchestrator = PlayerResumeOrchestrator(
+      requestedResume: source.resumePosition,
+      seekTo: (pos) => _playerRepository.seekTo(pos),
+      telemetry: (result, ctx) {
+        _diagnostics.mark(
+          'player_resume_apply',
+          context: <String, Object?>{
+            'result': result,
+            ...ctx,
+          },
+        );
+      },
+    );
     final profile = ref.read(currentProfileProvider);
     final hasRestrictions =
         profile != null && (profile.isKid || profile.pegiLimit != null);
@@ -453,82 +470,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       _playerRepository.durationStream.listen((duration) {
         if (mounted && duration != Duration.zero) {
           setState(() => _duration = duration);
-
-          // Appliquer la position de reprise une seule fois quand la durée est disponible
-          if (!_resumePositionApplied) {
-            final resumePosition = _currentVideoSource?.resumePosition;
-            if (resumePosition == null || resumePosition <= Duration.zero) {
-              _resumePositionApplied = true;
-              _diagnostics.mark(
-                'player_resume_apply',
-                context: <String, Object?>{
-                  'result': 'skip_no_resume',
-                  'durationMs': duration.inMilliseconds,
-                },
-              );
-              return;
-            }
-
-            // Duration can be unstable on the first frames. We only finalize
-            // resume once we have a seekable target > 0.
-            const safety = Duration(seconds: 1);
-            if (shouldDeferResumeUntilDurationCoversResume(
-              reportedDuration: duration,
-              resumePosition: resumePosition,
-              safetyMargin: safety,
-            )) {
-              _diagnostics.mark(
-                'player_resume_apply',
-                context: <String, Object?>{
-                  'result': 'wait_duration_not_ready_for_resume',
-                  'durationMs': duration.inMilliseconds,
-                  'resumeMs': resumePosition.inMilliseconds,
-                },
-              );
-              return;
-            }
-
-            final maxSeek = duration > safety
-                ? duration - safety
-                : Duration.zero;
-            if (maxSeek <= Duration.zero) {
-              _diagnostics.mark(
-                'player_resume_apply',
-                context: <String, Object?>{
-                  'result': 'wait_duration_unstable',
-                  'durationMs': duration.inMilliseconds,
-                  'resumeMs': resumePosition.inMilliseconds,
-                },
-              );
-              return;
-            }
-
-            final target = resumePosition <= maxSeek ? resumePosition : maxSeek;
-            if (target > Duration.zero) {
-              _resumePositionApplied = true;
-              _playerRepository.seekTo(target);
-              _diagnostics.mark(
-                'player_resume_apply',
-                context: <String, Object?>{
-                  'result': 'applied',
-                  'requestedMs': resumePosition.inMilliseconds,
-                  'appliedMs': target.inMilliseconds,
-                  'durationMs': duration.inMilliseconds,
-                },
-              );
-            } else {
-              _resumePositionApplied = true;
-              _diagnostics.mark(
-                'player_resume_apply',
-                context: <String, Object?>{
-                  'result': 'skip_target_zero',
-                  'requestedMs': resumePosition.inMilliseconds,
-                  'durationMs': duration.inMilliseconds,
-                },
-              );
-            }
-          }
         }
+
+        final orchestrator = _resumeOrchestrator;
+        if (orchestrator == null || _resumePositionApplied) return;
+        unawaited(() async {
+          await orchestrator.onDuration(duration);
+          if (!mounted) return;
+          if (orchestrator.isDone && !_resumePositionApplied) {
+            setState(() => _resumePositionApplied = true);
+          }
+        }());
       }),
     );
 
@@ -607,13 +559,31 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         return true;
       }
 
+      final sanitized = sanitizePlaybackProgress(
+        position: candidatePosition,
+        duration: _duration,
+      );
+      if (sanitized.position == null) {
+        _diagnostics.mark(
+          'player_progress_persist',
+          context: <String, Object?>{
+            'reason': reason,
+            'result': 'skip_invalid_position',
+            'sanitizeReason': sanitized.reasonCode,
+            'contentId': videoSource.contentId,
+            'contentType': videoSource.contentType?.name,
+          },
+        );
+        return true;
+      }
+
       await _historyRepository.upsertPlay(
         contentId: videoSource.contentId!,
         type: videoSource.contentType!,
         title: videoSource.title ?? '',
         poster: videoSource.poster,
-        position: candidatePosition,
-        duration: _duration,
+        position: sanitized.position,
+        duration: sanitized.duration,
         season: videoSource.season,
         episode: videoSource.episode,
         userId: _currentUserId,
@@ -622,10 +592,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         'player_progress_persist',
         context: <String, Object?>{
           'reason': reason,
+          'result': 'persisted',
+          'sanitizeReason': sanitized.reasonCode,
           'contentId': videoSource.contentId,
           'contentType': videoSource.contentType?.name,
-          'positionMs': candidatePosition.inMilliseconds,
-          'durationMs': _duration.inMilliseconds,
+          'positionMs': sanitized.position?.inMilliseconds,
+          'durationMs': sanitized.duration?.inMilliseconds,
         },
       );
 
@@ -635,6 +607,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
         final contentType = videoSource.contentType;
         final contentId = videoSource.contentId?.trim();
+        if (contentType != null && contentId != null && contentId.isNotEmpty) {
+          // Used by TV/movie detail pages to decide "Regarder" vs "Reprendre".
+          ref.invalidate(
+            mediaHistoryProvider((contentId: contentId, type: contentType)),
+          );
+        }
         if (contentType == ContentType.movie &&
             contentId != null &&
             contentId.isNotEmpty) {

@@ -10,6 +10,15 @@ abstract class AuthRepository {
   /// Current session if any.
   AuthSession? get currentSession;
 
+  /// Attempts to refresh/validate the current session.
+  ///
+  /// Must be fail-safe: implementations should throw, never return a session
+  /// that isn't backed by the underlying provider.
+  ///
+  /// In offline/timeout scenarios, callers should treat failures as
+  /// `unauthenticated` (fail-closed for L1).
+  Future<AuthSession?> refreshSession();
+
   /// Sign in with email and password.
   Future<void> signInWithPassword({
     required String email,

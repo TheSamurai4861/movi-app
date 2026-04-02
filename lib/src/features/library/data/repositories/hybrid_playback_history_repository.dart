@@ -4,6 +4,7 @@ import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/library/data/repositories/supabase_playback_history_repository.dart';
+import 'package:movi/src/shared/domain/services/playback_progress_sanitizer.dart';
 
 /// Repository hybride qui écrit en local ET sur Supabase (si disponible).
 ///
@@ -45,6 +46,7 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
     final resolvedUserId = (userId == null || userId.trim().isEmpty)
         ? defaultUserId
         : userId.trim();
+    final sanitized = sanitizePlaybackProgress(position: position, duration: duration);
     // 1. Écrire en local d'abord (priorité absolue)
     await local.upsertPlay(
       contentId: contentId,
@@ -52,15 +54,15 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
       title: title,
       poster: poster,
       playedAt: playedAt,
-      position: position,
-      duration: duration,
+      position: sanitized.position,
+      duration: sanitized.duration,
       season: season,
       episode: episode,
       userId: resolvedUserId,
     );
     assert(() {
       debugPrint(
-        '[HybridPlaybackHistoryRepository] local_persist_ok contentId=$contentId userId=$resolvedUserId type=${type.name}',
+        '[HybridPlaybackHistoryRepository] local_persist_ok contentId=$contentId type=${type.name} sanitize=${sanitized.reasonCode}',
       );
       return true;
     }());
@@ -74,8 +76,8 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
           title: title,
           poster: poster,
           playedAt: playedAt,
-          position: position,
-          duration: duration,
+          position: sanitized.position,
+          duration: sanitized.duration,
           season: season,
           episode: episode,
         ),

@@ -60,6 +60,15 @@ Format retenu :
 - **Exceptions / derogations** : `PH2-WVR-XXX`
 - **Evidences** : `PH2-EVD-XXX`
 
+## Convention d'identifiants pour la phase 3
+
+Format retenu :
+
+- **Lots de phase** : `PH3-LOT-XXX`
+- **Decisions** : `PH3-DEC-XXX`
+- **Exceptions / derogations** : `PH3-WVR-XXX`
+- **Evidences** : `PH3-EVD-XXX`
+
 ### Registre initial des lots phase 2
 
 | Lot ID | Source de besoin | Objet | Statut initial | Notes |
@@ -69,6 +78,17 @@ Format retenu :
 | `PH2-LOT-003` | Phase 2 / Jalon M3 | Preuve canary (R1..R5) + mur anti-réintroduction (baseline) en CI | ouvert | fixtures `tool/arch_lint_canary` + mode `--baseline` + step CI canary |
 | `PH2-LOT-004` | Phase 2 / Jalon M4 | Rapport initial des violations restantes (baseline) | ouvert | `docs/architecture/reports/phase2_violation_inventory_2026-04-02.md` + rapport brut `arch_violations_2026-04-02.md` |
 | `PH2-LOT-005` | Phase 2 / Jalon M5 | Classement violations (criticité + coût) | ouvert | Section M5 dans `phase2_violation_inventory_2026-04-02.md` (backlog prêt à traiter) |
+
+## Convention d'identifiants pour la phase 3 (lots)
+
+| Lot ID | Source de besoin | Objet | Statut initial | Notes |
+|--------|------------------|-------|----------------|-------|
+| `PH3-LOT-001` | Phase 3 / Jalon M1 | Conventions d’IDs + gabarit “fiche flux critique” | ouvert | `docs/traceability/requirements_traceability.md` (section conventions + gabarit) |
+| `PH3-LOT-002` | Phase 3 / Jalon M2 | Fiches flux critiques `PH3-FLOW-001..009` + invariants `PH3-INV-*` + tests `PH3-TST-*` | ouvert | `docs/traceability/requirements_traceability.md` (fiches flux) |
+| `PH3-LOT-003` | Phase 3 / Jalon M3 | Matrice invariants (C/L, signaux de rupture, safe states, observabilité) | ouvert | `docs/traceability/invariant_matrix.md` |
+| `PH3-LOT-004` | Phase 3 / Jalon M4 | Matrice de vérification invariants → tests → preuves attendues | ouvert | `docs/traceability/verification_matrix.md` |
+| `PH3-LOT-005` | Phase 3 / Jalon M5 | Requirements traceability `PH3-REQ → PH3-FLOW → PH3-INV → PH3-TST` + liens Phase 1 | ouvert | `docs/traceability/requirements_traceability.md` (catalogue + table) |
+| `PH3-LOT-006` | Phase 3 / Jalon M6 | Gate de démarrage Phase 4 (checklist GO/NO-GO + STOP + preuves) | ouvert | `docs/traceability/pre_phase4_gate_checklist.md` |
 
 ### Registre initial des lots phase 0
 
@@ -1291,3 +1311,321 @@ Format retenu :
   - voir entrée Phase 2 dans `docs/quality/validation_evidence_index.md` + manifest `ci_quality_proof_2026-04-02`.
 - **Derogation** : aucune.
 - **Statut** : preuve CI Phase 2 **archivée** ; gate “mur anti-réintroduction” démontrée.
+
+## Entree `LOG-2026-04-02-045`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH3-LOT-001` (Phase 3 / Jalon M1)
+- **Type** : phase 3 — conventions d’IDs + gabarits (traçabilité)
+- **Source de besoin** : roadmap Phase 3 (M1) + `docs/rules_nasa.md` §6 + §27
+- **Composants produits / modifies** :
+  - `docs/traceability/requirements_traceability.md`
+- **Criticite du changement** : `C2` (cadre documentaire de contrôle)
+- **Classe principale** : `L2` (mais s’applique aux flux/invariants `L1/C1`)
+- **Decision / resultat** :
+  - schéma d’IDs `PH3-REQ/FLOW/INV/TST` défini et stable ;
+  - gabarit unique “fiche flux critique” prêt pour M2 ;
+  - règle de lien minimal `REQ→FLOW→INV→TST` formalisée.
+- **Risques identifies** :
+  - dérive des IDs / renumérotation : interdite ; tout changement doit être additif et traçable.
+- **Rollback / mitigation** :
+  - changements additifs ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH3-EVD-001`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (prêt pour revue).
+
+## Entree `LOG-2026-04-02-046`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH3-LOT-002` (Phase 3 / Jalon M2)
+- **Type** : phase 3 — fiches flux critiques (modélisation) + invariants + tests requis
+- **Source de besoin** : roadmap Phase 3 (M2) + `docs/rules_nasa.md` §9 + §11 + §14 + §15 + §27
+- **Composants produits / modifies** :
+  - `docs/traceability/requirements_traceability.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2` (contient des flux `L1`)
+- **Decision / resultat** :
+  - 9 flux minimaux (`PH3-FLOW-001..009`) documentés : préconditions, états/transitions, erreurs, safe states, observabilité minimale ;
+  - invariants `PH3-INV-001..034` listés par flux ;
+  - scénarios `PH3-TST-*` définis (type + preuve attendue) pour actionnabilité Phase 4+.
+- **Risques identifies** :
+  - tout comportement implicite/non observé sur flux L1 est présumé risqué (à traiter avant refactor C1/C2).
+- **Rollback / mitigation** :
+  - livrables documentaires ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH3-EVD-001`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (prêt pour revue).
+
+## Entree `LOG-2026-04-02-047`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH3-LOT-003` (Phase 3 / Jalon M3)
+- **Type** : phase 3 — matrice invariants + classification C/L
+- **Source de besoin** : roadmap Phase 3 (M3) + `docs/rules_nasa.md` §3 + §6 + §8–§9 + §14 + §27
+- **Composants produits / modifies** :
+  - `docs/traceability/invariant_matrix.md`
+- **Criticite du changement** : `C2` (cadre de contrôle)
+- **Classe principale** : `L2` (couvre invariants `L1/C1`)
+- **Decision / resultat** :
+  - invariants `PH3-INV-001..034` classifiés `C/L` ;
+  - signaux de rupture, mode dégradé, état sûr, observabilité minimale documentés ;
+  - pointeurs de vérification `PH3-TST-*` consolidés.
+- **Risques identifies** :
+  - classification trop faible sur cas fail-open (auth/parental/secrets) est interdite sans justification.
+- **Rollback / mitigation** :
+  - livrable documentaire ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH3-EVD-002`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (prêt pour revue).
+
+## Entree `LOG-2026-04-02-048`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH3-LOT-004` (Phase 3 / Jalon M4)
+- **Type** : phase 3 — matrice de vérification (invariants → tests → preuves attendues)
+- **Source de besoin** : roadmap Phase 3 (M4) + `docs/rules_nasa.md` §6 + §15 + §25 + §27
+- **Composants produits / modifies** :
+  - `docs/traceability/verification_matrix.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2` (couvre des invariants `L1/C1`)
+- **Decision / resultat** :
+  - chaque invariant `PH3-INV-*` relié à au moins une vérification `PH3-TST-*` ;
+  - type de test défini (unit/integration) + preuve attendue (log CI / artefact) ;
+  - rappel des scénarios négatifs obligatoires L1/C1 (fail-closed) et des exigences “no secrets/PII”.
+- **Risques identifies** :
+  - si un invariant C1 n’a pas de stratégie de preuve, le refactor Phase 4+ doit être stoppé (§27).
+- **Rollback / mitigation** :
+  - livrable documentaire ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH3-EVD-003`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (prêt pour revue).
+
+## Entree `LOG-2026-04-02-049`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH3-LOT-005` (Phase 3 / Jalon M5)
+- **Type** : phase 3 — requirements traceability (audit complet)
+- **Source de besoin** : roadmap Phase 3 (M5) + `docs/rules_nasa.md` §6 + §25 + §27
+- **Composants produits / modifies** :
+  - `docs/traceability/requirements_traceability.md`
+- **Criticite du changement** : `C2`
+- **Classe principale** : `L2` (couvre flux `L1`)
+- **Decision / resultat** :
+  - catalogue `PH3-REQ-*` défini (assertable) ;
+  - table de traçabilité complète `PH3-REQ → PH3-FLOW → PH3-INV → PH3-TST` ;
+  - liens Phase 1 (hazards/failure modes) ajoutés pour les cas L1/C1.
+- **Risques identifies** :
+  - exigences critiques sans test prévu => stop Phase 4+ ou dérogation §26.
+- **Rollback / mitigation** :
+  - livrable documentaire ; rollback = revert.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH3-EVD-001`.
+- **Derogation** : aucune.
+- **Statut** : ouvert (prêt pour revue).
+
+## Entree `LOG-2026-04-02-050`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH3-LOT-006` (Phase 3 / Jalon M6)
+- **Type** : phase 3 — gate de démarrage Phase 4 (précondition refactor)
+- **Source de besoin** : roadmap Phase 3 (M6) + `docs/rules_nasa.md` §8 + §25 + §27
+- **Composants produits / modifies** :
+  - `docs/traceability/pre_phase4_gate_checklist.md`
+  - `docs/traceability/verification_matrix.md` (correction mineure de format)
+- **Criticite du changement** : `C1` (règle de gouvernance / arrêt)
+- **Classe principale** : `L1` (s’applique aux flux L1/C1)
+- **Decision / resultat** :
+  - checklist GO/NO-GO pour PR/lot Phase 4+ (traçabilité, tests, observabilité, rollback) ;
+  - critères STOP explicites (C1 non couvert, pas d’état sûr L1, pas de rollback C1/C2, preuves non conformes) ;
+  - snippet PR prêt à copier-coller ; mapping aux règles `docs/rules_nasa.md` inclus.
+- **Risques identifies** :
+  - démarrage refactor sans preuve => risque de régression majeure ; gate obligatoire.
+- **Rollback / mitigation** :
+  - gate documentaire ; rollback = revert ; enforcement = revue + discipline PR.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH3-EVD-004`.
+- **Derogation** : toute exception doit passer par §26 (WVR) avant merge.
+- **Statut** : ouvert (prêt pour revue).
+
+## Package de revue — Phase 3 (sans verdict)
+
+Références minimales à relire en revue indépendante (réf. `docs/rules_nasa.md` §16) :
+
+- `docs/traceability/requirements_traceability.md`
+- `docs/traceability/invariant_matrix.md`
+- `docs/traceability/verification_matrix.md`
+- `docs/traceability/pre_phase4_gate_checklist.md`
+
+---
+
+## Entree `LOG-2026-04-02-051`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH4-LOT-001` (Phase 4 / Jalon M1 — `core/startup`)
+- **Type** : phase 4 — stabilisation orchestration de démarrage (contracts/adapters/orchestrator + SafeMode)
+- **Source de besoin** : `movi_nasa_refactor_plan_v3.md` §14 (Phase 4) + `docs/roadmap/phase_4_refondation_noyau_critique.md` (Jalon M1) + gate `TRACE-PH3-GATE-P4-001`
+- **Composants produits / modifies** :
+  - `lib/src/core/startup/domain/startup_contracts.dart`
+  - `lib/src/core/startup/domain/app_startup_orchestrator.dart`
+  - `lib/src/core/startup/infrastructure/startup_adapters.dart`
+  - `lib/src/core/startup/app_startup_provider.dart`
+  - `lib/src/core/startup/app_startup_gate.dart`
+  - `test/core/startup/app_startup_orchestrator_test.dart`
+  - `test/core/startup/app_startup_gate_safe_mode_test.dart`
+- **Criticite du changement** : `C1` (démarrage / noyau L1)
+- **Classe principale** : `L1`
+- **Decision / resultat** :
+  - “contracts first” : modèle d’état et codes d’échec explicités (startup) ;
+  - “side effects encapsulated” : accès config/DI/logging/sync déplacés en adapters ;
+  - chemin dégradé SafeMode matérialisé (app reste vivante et actionnable).
+- **Risques identifies** :
+  - régression startup : atténuée par tests unitaires orchestrator + widget test SafeMode ;
+  - dérive observabilité : logs structurés et code/phase émis via ports.
+- **Rollback / mitigation** :
+  - rollback par revert des fichiers `core/startup` ; SafeMode sert de containment (pas de crash loop).
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH4-EVD-001..003` ;
+  - `flutter test` vert ; `flutter analyze` vert (exécution locale).
+- **Derogation** : aucune.
+- **Statut** : ouvert (Phase 4 en cours).
+
+## Entree `LOG-2026-04-02-052`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH4-LOT-002` (Phase 4 / `core/startup` — corrections conformité NASA)
+- **Type** : phase 4 — durcissement SafeMode (prod minimal), observabilité corrélable, watchdog timeouts
+- **Source de besoin** : `docs/rules_nasa.md` §11–§15 + §25 + §27 ; réserves de validation `core/startup` (L1) ; roadmap Phase 4 (M1).
+- **Composants produits / modifies** :
+  - `lib/src/core/startup/app_startup_gate.dart`
+  - `lib/src/core/startup/app_startup_provider.dart`
+  - `lib/src/core/startup/domain/app_startup_orchestrator.dart`
+  - `lib/src/core/startup/domain/startup_contracts.dart`
+  - `lib/src/core/startup/infrastructure/startup_adapters.dart`
+  - `test/core/startup/app_startup_orchestrator_test.dart`
+  - `test/core/startup/app_startup_gate_safe_mode_test.dart`
+- **Criticite du changement** : `C1`
+- **Classe principale** : `L1`
+- **Decision / resultat** :
+  - SafeMode prod : diagnostics réduits à un reason code stable (détails seulement en debug / `FORCE_STARTUP_DETAILS`) ;
+  - observabilité : logs startup corrélables via `operationId` (Zone) et sanity check Supabase sans UID ;
+  - watchdog : timeouts sur `registerConfig` et `initDependencies` avec bascule SafeMode + codes dédiés.
+- **Risques identifies** :
+  - hang démarrage : mitigé par watchdog/timeout ;
+  - fuite d’information : mitigée par SafeMode prod minimal et suppression UID dans sanity check.
+- **Rollback / mitigation** :
+  - rollback par revert ; en runtime SafeMode sert de containment (pas de crash loop).
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH4-EVD-004` (et mise à jour `PH4-EVD-002`) ;
+  - `flutter test` vert ; `flutter analyze` vert (local).
+- **Derogation** : aucune.
+- **Statut** : ouvert.
+
+## Entree `LOG-2026-04-02-053`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH4-LOT-003` (Phase 4 / Jalon M2 — `core/auth`)
+- **Type** : phase 4 — stabilisation auth/session (transitions explicites, adapters, orchestrator, tests)
+- **Source de besoin** : `docs/roadmap/phase_4_refondation_noyau_critique.md` (Jalon M2) + `docs/rules_nasa.md` §5/§11/§15/§25/§27
+- **Composants produits / modifies** :
+  - `lib/src/core/auth/domain/repositories/auth_repository.dart` (ajout `refreshSession`)
+  - `lib/src/core/auth/domain/entities/auth_failures.dart`
+  - `lib/src/core/auth/application/ports/local_cleanup_port.dart`
+  - `lib/src/core/auth/application/auth_orchestrator.dart`
+  - `lib/src/core/auth/data/repositories/supabase_auth_repository.dart` (timeouts)
+  - `lib/src/core/auth/data/repositories/stub_auth_repository.dart` (refresh no-op)
+  - `lib/src/core/auth/presentation/providers/auth_providers.dart` (bootstrapSession + signOut cleanup)
+  - `test/core/auth/auth_orchestrator_test.dart`
+- **Criticite du changement** : `C1`
+- **Classe principale** : `L1`
+- **Decision / resultat** :
+  - transitions d’état explicitement résolues via `bootstrapSession()` (fail-closed si incertitude) ;
+  - appels SDK confinés au data (Supabase) + timeouts bornés ;
+  - logout déclenche un cleanup local best-effort (ne bloque pas la déconnexion) ;
+  - tests de non-régression ajoutés (nominal + dégradé).
+- **Risques identifies** :
+  - refresh offline/timeout → évité par fail-closed (pas de “session OK” sans preuve) ;
+  - fuite d’implémentation → réduite par ports/orchestrator ; SDK reste côté data.
+- **Rollback / mitigation** :
+  - rollback par revert des fichiers `core/auth` ; fallback local-first conservé (`AuthGate` laisse passer l’app même unauthenticated).
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH4-EVD-005..006` ;
+  - `flutter test` vert ; `flutter analyze` vert (local).
+- **Derogation** : aucune.
+- **Statut** : ouvert.
+
+## Entree `LOG-2026-04-02-054`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH4-LOT-004` (Phase 4 / `core/auth` — conformité max)
+- **Type** : phase 4 — durcissement observabilité & surface d’erreur (auth)
+- **Source de besoin** : plan “CoreAuth-MaxCompliance” + `docs/rules_nasa.md` §11–§15 + §25 + §27
+- **Composants produits / modifies** :
+  - `lib/src/core/auth/application/ports/auth_telemetry_port.dart`
+  - `lib/src/core/auth/infrastructure/auth_telemetry_adapters.dart`
+  - `lib/src/core/auth/application/auth_orchestrator.dart`
+  - `lib/src/core/auth/presentation/providers/auth_providers.dart`
+  - `test/core/auth/auth_orchestrator_test.dart`
+  - `docs/quality/validation_evidence_index.md`
+- **Criticite du changement** : `C1`
+- **Classe principale** : `L1`
+- **Decision / resultat** :
+  - télémétrie auth structurée (action/result/reasonCode) corrélable via `operationId` si présent ;
+  - reason codes `AuthFailureCode` utilisés comme diagnostic stable en prod (détails seulement en debug) ;
+  - policy refresh explicite et bornée (pas de boucle/retry infini) ; fail-closed conservé ;
+  - preuve automatisée “no secrets/PII” via test (patterns interdits).
+- **Risques identifies** :
+  - fuite de secrets/PII via logs : atténuée par port de télémétrie + tests de non-fuite ;
+  - boucle refresh : atténuée par bornage explicite côté orchestrator.
+- **Rollback / mitigation** :
+  - rollback par revert des fichiers `core/auth` ajoutés/modifiés dans ce lot ;
+  - en cas d’observabilité trop verbeuse, adapter l’implémentation `AuthTelemetryPort` sans toucher au domaine.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH4-EVD-007` et `PH4-EVD-008`.
+- **Derogation** : aucune.
+- **Statut** : ouvert.
+
+## Entree `LOG-2026-04-02-055`
+
+- **Date** : `2026-04-02`
+- **Lot ID** : `PH4-LOT-005` (Phase 4 / reprise média — MR‑M1..MR‑M4)
+- **Type** : phase 4 — durcissement reprise lecture (décision, seek, persistance, interruptions)
+- **Source de besoin** : roadmap `docs/roadmap/phase_4_media_resume_robuste.md` (MR‑M1..MR‑M5) + `docs/rules_nasa.md` §11/§14/§15/§21/§25/§27
+- **Composants produits / modifies** :
+  - `lib/src/shared/domain/services/media_resume_decision.dart`
+  - `lib/src/features/player/application/services/player_resume_orchestrator.dart`
+  - `lib/src/shared/domain/services/playback_progress_sanitizer.dart`
+  - `lib/src/features/player/presentation/pages/video_player_page.dart`
+  - `lib/src/features/library/data/repositories/hybrid_playback_history_repository.dart`
+  - `lib/src/features/library/data/repositories/playback_history_repository_impl.dart`
+  - `lib/src/features/movie/domain/usecases/resolve_movie_playback_selection.dart`
+  - `lib/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart`
+  - `test/shared/domain/services/media_resume_decision_test.dart`
+  - `test/features/player/application/services/player_resume_orchestrator_test.dart`
+  - `test/shared/domain/services/playback_progress_sanitizer_test.dart`
+  - `test/features/library/data/repositories/hybrid_playback_history_repository_no_leak_test.dart`
+  - `test/features/player/application/services/player_resume_orchestrator_interruptions_test.dart`
+  - `docs/Refactor/phase_4_media_resume/artifacts/mr_m4_manual_repro_steps_2026-04-02.md`
+  - `docs/quality/validation_evidence_index.md`
+  - `docs/adr/ADR-PH4-001_media_resume_orchestrators.md`
+- **Criticite du changement** : `C2` (parcours lecture / UX critique) — peut être traité comme `C1` si anomalies runtime (boucle/hang) détectées.
+- **Classe principale** : `L2` (parcours critique) avec exigences renforcées inspirées `L1` (anti-hang, no-leak, observabilité).
+- **Decision / resultat** :
+  - MR‑M1 : décision de reprise déterministe et unifiée (movie/TV) + reason codes stables ;
+  - MR‑M2 : orchestrateur de reprise (seek) borné et anti-boucle ; événements `player_resume_apply` ;
+  - MR‑M3 : sanitization write-path (clamp/drop invalid) + persistance robuste ; debug log sans `userId`/email ;
+  - MR‑M4 : tests “interruption” au minimum + script manuel versionné.
+- **Risques identifies** :
+  - reprise incorrecte / boucle seek : mitigée par orchestrateur (idempotence + timeout) + tests ;
+  - corruption d’historique / valeurs incohérentes : mitigée par sanitizer write-path ;
+  - fuite PII en logs : mitigée par réduction des logs persist + test “no leak”.
+- **Rollback / mitigation** :
+  - rollback par revert des services/orchestrateurs ajoutés + retour au comportement précédent ;
+  - containment : désactiver la reprise (fallback start at 0) si anomalies C1/C2 observées.
+- **Preuves / validation** :
+  - `docs/quality/validation_evidence_index.md` : `PH4-EVD-009..012`.
+- **Derogation** : aucune.
+- **Statut** : ouvert.

@@ -1,7 +1,7 @@
 # Architecture violations report
 
 - Scope: `lib/`
-- Generated (UTC): `2026-04-02T09:41:21.191932Z`
+- Generated (UTC): `2026-04-02T10:53:50.270442Z`
 - Mode: `enforce`
 - Violations: **442**
 

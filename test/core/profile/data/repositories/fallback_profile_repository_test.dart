@@ -177,6 +177,9 @@ class _FakeAuthRepository implements AuthRepository {
   AuthSession? get currentSession => _session;
 
   @override
+  Future<AuthSession?> refreshSession() async => _session;
+
+  @override
   Future<void> signInWithOtp({
     required String email,
     bool shouldCreateUser = true,

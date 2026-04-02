@@ -1,6 +1,5 @@
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
-import 'package:movi/src/features/library/domain/services/resume_eligibility.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/movie/domain/services/movie_playback_variant_resolver.dart';
 import 'package:movi/src/features/player/application/services/playback_selection_service.dart';
@@ -9,6 +8,7 @@ import 'package:movi/src/features/player/domain/entities/playback_selection_pref
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
 
 class ResolveMoviePlaybackSelection {
   const ResolveMoviePlaybackSelection(
@@ -140,10 +140,11 @@ class ResolveMoviePlaybackSelection {
         ContentType.movie,
         userId: userId,
       );
-      final normalized = normalizeResumePosition(
+      final decision = decideResume(
         position: entry?.lastPosition,
         duration: entry?.duration,
       );
+      final normalized = decision.positionOrNull;
       _diagnostics.mark(
         'movie_resume_eligibility',
         context: <String, Object?>{
@@ -152,6 +153,7 @@ class ResolveMoviePlaybackSelection {
           'positionMs': entry?.lastPosition?.inMilliseconds,
           'durationMs': entry?.duration?.inMilliseconds,
           'eligible': normalized != null,
+          'reasonCode': decision.reasonCode.name,
         },
       );
       return normalized;

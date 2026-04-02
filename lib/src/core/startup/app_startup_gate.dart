@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
+import 'package:movi/src/core/startup/domain/startup_contracts.dart';
 import 'package:movi/src/core/theme/app_theme.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/widgets/movi_remote_navigation.dart';
@@ -75,7 +76,23 @@ class AppStartupGate extends ConsumerWidget {
     }
 
     // --- Success state ------------------------------------------------------
-    debugPrint('[Startup] success, navigate to Home');
+    final result = state.asData?.value;
+    if (result != null && result.kind == StartupOutcomeKind.safeMode) {
+      debugPrint('[Startup] safeMode, keep app alive with reduced UX');
+      // SafeMode must stay actionable in production with minimal diagnostics.
+      final showDetails = !kReleaseMode || forceStartupDetails;
+      return _buildStartupMaterialApp(
+        _StartupSafeModeScreen(
+          failure: result.failure,
+          showDetails: showDetails,
+          onRetry: () {
+            ref.invalidate(app_startup_provider.appStartupProvider);
+          },
+        ),
+      );
+    }
+
+    debugPrint('[Startup] ready, navigate to Home');
     return child;
   }
 }
@@ -148,6 +165,44 @@ class _StartupErrorScreen extends StatelessWidget {
         onRetry: onRetry,
         details: displayDetails,
         showDetails: showDetails,
+      ),
+    );
+  }
+}
+
+/// Screen displayed when startup completes in SafeMode (fail-safe degraded path).
+///
+/// This must stay minimal and actionable.
+class _StartupSafeModeScreen extends StatelessWidget {
+  const _StartupSafeModeScreen({
+    required this.failure,
+    required this.onRetry,
+    required this.showDetails,
+  });
+
+  final StartupFailure? failure;
+  final VoidCallback onRetry;
+  final bool showDetails;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final safeReason = failure == null ? 'STARTUP_SAFE_MODE' : failure!.code.name;
+
+    final details = showDetails
+        ? (failure == null
+              ? 'SafeMode: unknown failure'
+              : 'SafeMode: code=${failure!.code.name} phase=${failure!.phase.name}\n'
+                    '${failure!.message}')
+        : 'SafeMode: $safeReason';
+
+    return Scaffold(
+      body: LaunchErrorPanel(
+        message: l10n.errorPrepareHome,
+        retryLabel: l10n.actionRetry,
+        onRetry: onRetry,
+        details: details,
+        showDetails: true,
       ),
     );
   }

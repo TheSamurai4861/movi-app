@@ -170,6 +170,9 @@ class _FakeAuthRepository implements AuthRepository {
   AuthSession? get currentSession => session;
 
   @override
+  Future<AuthSession?> refreshSession() async => session;
+
+  @override
   Stream<AuthSnapshot> get onAuthStateChange => Stream<AuthSnapshot>.value(
     session == null
         ? AuthSnapshot.unauthenticated

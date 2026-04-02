@@ -19,6 +19,7 @@ import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
+import 'package:movi/src/core/startup/domain/startup_contracts.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_migrations.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
@@ -411,7 +412,9 @@ class _LaunchHarness {
 
     final container = ProviderContainer(
       overrides: [
-        app_startup_provider.appStartupProvider.overrideWith((ref) async {}),
+        app_startup_provider.appStartupProvider.overrideWith(
+          (ref) async => StartupResult.ready(durationMs: 0),
+        ),
         homeControllerProvider.overrideWith(() => homeController),
       ],
     );
@@ -555,6 +558,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   AuthSession? get currentSession => _session;
+
+  @override
+  Future<AuthSession?> refreshSession() async => _session;
 
   @override
   Future<void> signInWithPassword({

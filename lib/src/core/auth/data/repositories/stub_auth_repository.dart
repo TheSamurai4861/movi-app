@@ -19,6 +19,11 @@ class StubAuthRepository implements AuthRepository {
   AuthSession? get currentSession => null;
 
   @override
+  Future<AuthSession?> refreshSession() async {
+    return null;
+  }
+
+  @override
   Future<void> signInWithPassword({
     required String email,
     required String password,

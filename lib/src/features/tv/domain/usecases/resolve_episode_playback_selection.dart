@@ -9,6 +9,7 @@ import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
 import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
 
 class ResolveEpisodePlaybackSelection {
   const ResolveEpisodePlaybackSelection(
@@ -159,7 +160,24 @@ class ResolveEpisodePlaybackSelection {
         episode: episodeNumber,
         userId: userId,
       );
-      return entry?.lastPosition;
+      final decision = decideResume(
+        position: entry?.lastPosition,
+        duration: entry?.duration,
+      );
+      _diagnostics.mark(
+        'episode_resume_eligibility',
+        context: <String, Object?>{
+          'seriesId': seriesId,
+          'seasonNumber': seasonNumber,
+          'episodeNumber': episodeNumber,
+          'hasEntry': entry != null,
+          'positionMs': entry?.lastPosition?.inMilliseconds,
+          'durationMs': entry?.duration?.inMilliseconds,
+          'eligible': decision.positionOrNull != null,
+          'reasonCode': decision.reasonCode.name,
+        },
+      );
+      return decision.positionOrNull;
     } catch (_) {
       return null;
     }
