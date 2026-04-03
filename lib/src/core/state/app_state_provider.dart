@@ -223,37 +223,37 @@ class SubtitleAppearanceController {
   final Ref _ref;
 
   Future<void> setSizePreset(SubtitleSizePreset preset) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(sizePreset: preset));
   }
 
   Future<void> setTextColorHex(String hex) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(textColorHex: hex));
   }
 
   Future<void> setFontFamilyKey(String fontFamilyKey) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(fontFamilyKey: fontFamilyKey));
   }
 
   Future<void> setBackgroundColorHex(String hex) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(backgroundColorHex: hex));
   }
 
   Future<void> setBackgroundOpacity(double opacity) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(backgroundOpacity: opacity));
   }
 
   Future<void> setShadowPreset(SubtitleShadowPreset shadowPreset) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(shadowPreset: shadowPreset));
   }
 
   Future<void> setFontScale(double fontScale) async {
-    final current = _readCurrent();
+    final current = await _readPersistedCurrent();
     await _persist(current.copyWith(fontScale: fontScale));
   }
 
@@ -261,8 +261,10 @@ class SubtitleAppearanceController {
     await _persist(SubtitleAppearancePrefs.defaults);
   }
 
-  SubtitleAppearancePrefs _readCurrent() {
-    return _ref.read(currentProfileSubtitleAppearanceProvider);
+  Future<SubtitleAppearancePrefs> _readPersistedCurrent() async {
+    final storage = _ref.read(subtitleAppearancePreferencesProvider);
+    final profileId = _ref.read(selectedProfileIdProvider);
+    return storage.getForProfile(profileId);
   }
 
   Future<void> _persist(SubtitleAppearancePrefs prefs) async {

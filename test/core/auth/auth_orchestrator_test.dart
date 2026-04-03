@@ -26,11 +26,18 @@ final class _TelemetryFake implements AuthTelemetryPort {
 }
 
 final class _AuthRepoFake implements AuthRepository {
-  _AuthRepoFake({this.session, this.refreshDelay, this.refreshThrows});
+  _AuthRepoFake({
+    this.session,
+    this.refreshDelay,
+    this.refreshThrows,
+    this.returnNullOnRefresh = false,
+  });
 
   AuthSession? session;
   Duration? refreshDelay;
   Object? refreshThrows;
+  bool returnNullOnRefresh;
+  int signOutCalls = 0;
 
   @override
   Stream<AuthSnapshot> get onAuthStateChange =>
@@ -45,6 +52,7 @@ final class _AuthRepoFake implements AuthRepository {
     if (d != null) await Future<void>.delayed(d);
     final t = refreshThrows;
     if (t != null) throw t;
+    if (returnNullOnRefresh) return null;
     return session;
   }
 
@@ -55,71 +63,101 @@ final class _AuthRepoFake implements AuthRepository {
   }) async {}
 
   @override
-  Future<void> signInWithOtp({required String email, bool shouldCreateUser = true}) async {}
+  Future<void> signInWithOtp({
+    required String email,
+    bool shouldCreateUser = true,
+  }) async {}
 
   @override
-  Future<bool> verifyOtp({required String email, required String token}) async =>
-      false;
+  Future<bool> verifyOtp({
+    required String email,
+    required String token,
+  }) async => false;
 
   @override
-  Future<void> signOut() async {}
+  Future<void> signOut() async {
+    signOutCalls += 1;
+    session = null;
+  }
 }
 
 final class _CleanupFake implements LocalCleanupPort {
   _CleanupFake({this.throwOnCleanup});
-  int calls = 0;
+  int fullCleanupCalls = 0;
+  int sensitiveCleanupCalls = 0;
   final Object? throwOnCleanup;
 
   @override
+  Future<void> clearSensitiveSessionState() async {
+    sensitiveCleanupCalls += 1;
+    final t = throwOnCleanup;
+    if (t != null) throw t;
+  }
+
+  @override
   Future<void> clearAllLocalData() async {
-    calls += 1;
+    fullCleanupCalls += 1;
     final t = throwOnCleanup;
     if (t != null) throw t;
   }
 }
 
 void main() {
-  test('bootstrapSession returns unauthenticated when no current session', () async {
-    final repo = _AuthRepoFake(session: null);
-    final telemetry = _TelemetryFake();
-    final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+  test(
+    'bootstrapSession returns unauthenticated when no current session',
+    () async {
+      final repo = _AuthRepoFake(session: null);
+      final telemetry = _TelemetryFake();
+      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
 
-    final snap = await orch.bootstrapSession();
-    expect(snap.status, AuthStatus.unauthenticated);
-    expect(
-      telemetry.events.join('\n'),
-      contains('action=bootstrap_session'),
-    );
-  });
+      final result = await orch.bootstrapSession();
+      expect(result.snapshot.status, AuthStatus.unauthenticated);
+      expect(result.outcome, AuthBootstrapOutcome.reauthRequired);
+      expect(result.cause, AuthFailureCode.invalidSession);
+      expect(telemetry.events.join('\n'), contains('action=bootstrap_session'));
+    },
+  );
 
-  test('bootstrapSession returns authenticated when refresh succeeds', () async {
-    final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
-    final telemetry = _TelemetryFake();
-    final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+  test(
+    'bootstrapSession returns authenticated when refresh succeeds',
+    () async {
+      final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
+      final telemetry = _TelemetryFake();
+      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
 
-    final snap = await orch.bootstrapSession();
-    expect(snap.status, AuthStatus.authenticated);
-    expect(snap.userId, 'u1');
-    expect(telemetry.events.join('\n'), contains('action=refresh_session result=success'));
-  });
+      final result = await orch.bootstrapSession();
+      expect(result.snapshot.status, AuthStatus.authenticated);
+      expect(result.snapshot.userId, 'u1');
+      expect(result.outcome, AuthBootstrapOutcome.authenticated);
+      expect(
+        telemetry.events.join('\n'),
+        contains('action=refresh_session result=success'),
+      );
+    },
+  );
 
-  test('bootstrapSession is fail-closed when refresh throws', () async {
-    final repo = _AuthRepoFake(
-      session: const AuthSession(userId: 'u1'),
-      refreshThrows: StateError('offline'),
-    );
-    final telemetry = _TelemetryFake();
-    final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+  test(
+    'bootstrapSession degrades retryably when refresh fails offline',
+    () async {
+      final repo = _AuthRepoFake(
+        session: const AuthSession(userId: 'u1'),
+        refreshThrows: StateError('offline'),
+      );
+      final telemetry = _TelemetryFake();
+      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
 
-    final snap = await orch.bootstrapSession();
-    expect(snap.status, AuthStatus.unauthenticated);
-    expect(
-      telemetry.events.join('\n'),
-      contains('reasonCode=${AuthFailureCode.refreshFailed.name}'),
-    );
-  });
+      final result = await orch.bootstrapSession();
+      expect(result.snapshot.status, AuthStatus.unauthenticated);
+      expect(result.outcome, AuthBootstrapOutcome.degradedRetryable);
+      expect(result.cause, AuthFailureCode.offline);
+      expect(
+        telemetry.events.join('\n'),
+        contains('reasonCode=${AuthFailureCode.offline.name}'),
+      );
+    },
+  );
 
-  test('bootstrapSession is fail-closed when refresh times out', () async {
+  test('bootstrapSession degrades retryably when refresh times out', () async {
     final repo = _AuthRepoFake(
       session: const AuthSession(userId: 'u1'),
       refreshDelay: const Duration(milliseconds: 50),
@@ -131,13 +169,45 @@ void main() {
       refreshTimeout: const Duration(milliseconds: 1),
     );
 
-    final snap = await orch.bootstrapSession();
-    expect(snap.status, AuthStatus.unauthenticated);
+    final result = await orch.bootstrapSession();
+    expect(result.snapshot.status, AuthStatus.unauthenticated);
+    expect(result.outcome, AuthBootstrapOutcome.degradedRetryable);
+    expect(result.cause, AuthFailureCode.timeout);
     expect(
       telemetry.events.join('\n'),
       contains('reasonCode=${AuthFailureCode.timeout.name}'),
     );
   });
+
+  test(
+    'bootstrapSession clears sensitive session state on invalid session',
+    () async {
+      final repo = _AuthRepoFake(
+        session: const AuthSession(userId: 'u1'),
+        returnNullOnRefresh: true,
+      );
+      final telemetry = _TelemetryFake();
+      final cleanup = _CleanupFake();
+      final orch = AuthOrchestrator(
+        repository: repo,
+        cleanupPort: cleanup,
+        telemetry: telemetry,
+      );
+
+      final result = await orch.bootstrapSession();
+
+      expect(result.snapshot.status, AuthStatus.unauthenticated);
+      expect(result.outcome, AuthBootstrapOutcome.reauthRequired);
+      expect(result.cause, AuthFailureCode.invalidSession);
+      expect(repo.signOutCalls, 1);
+      expect(cleanup.sensitiveCleanupCalls, 1);
+      expect(cleanup.fullCleanupCalls, 0);
+      expect(
+        telemetry.events.join('\n'),
+        contains('action=sensitive_cleanup result=success'),
+      );
+    },
+  );
 
   test('signOutAndCleanup runs cleanup best-effort', () async {
     final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
@@ -151,25 +221,34 @@ void main() {
 
     final failure = await orch.signOutAndCleanup();
     expect(failure, isNull);
-    expect(cleanup.calls, 1);
-    expect(telemetry.events.join('\n'), contains('action=local_cleanup result=success'));
-  });
-
-  test('signOutAndCleanup returns cleanup failure when cleanup fails', () async {
-    final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
-    final telemetry = _TelemetryFake();
-    final cleanup = _CleanupFake(throwOnCleanup: StateError('disk error'));
-    final orch = AuthOrchestrator(
-      repository: repo,
-      cleanupPort: cleanup,
-      telemetry: telemetry,
+    expect(cleanup.fullCleanupCalls, 1);
+    expect(
+      telemetry.events.join('\n'),
+      contains('action=local_cleanup result=success'),
     );
-
-    final failure = await orch.signOutAndCleanup();
-    expect(failure, isNotNull);
-    expect(failure!.code, AuthFailureCode.unknown);
-    expect(telemetry.events.join('\n'), contains('action=local_cleanup result=failure'));
   });
+
+  test(
+    'signOutAndCleanup returns cleanup failure when cleanup fails',
+    () async {
+      final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
+      final telemetry = _TelemetryFake();
+      final cleanup = _CleanupFake(throwOnCleanup: StateError('disk error'));
+      final orch = AuthOrchestrator(
+        repository: repo,
+        cleanupPort: cleanup,
+        telemetry: telemetry,
+      );
+
+      final failure = await orch.signOutAndCleanup();
+      expect(failure, isNotNull);
+      expect(failure!.code, AuthFailureCode.unknown);
+      expect(
+        telemetry.events.join('\n'),
+        contains('action=local_cleanup result=failure'),
+      );
+    },
+  );
 
   test('auth telemetry does not leak secrets/PII (basic patterns)', () async {
     final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
@@ -194,4 +273,3 @@ void main() {
     }
   });
 }
-

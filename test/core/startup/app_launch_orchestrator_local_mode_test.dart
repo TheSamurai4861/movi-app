@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/di/di.dart';
@@ -20,6 +22,7 @@ import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
+import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_migrations.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
@@ -69,6 +72,269 @@ void main() {
       expect(result.destination, BootstrapDestination.welcomeUser);
       expect(result.meta.accountId, isNull);
       expect(result.meta.profilesCount, 0);
+    },
+  );
+
+  test(
+    'returns auth when cloud auth is enabled and no validated session exists',
+    () async {
+      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_signed_out';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.auth);
+      expect(result.meta.accountId, isNull);
+      expect(harness.authRepository.refreshCalls, 0);
+      expect(harness.homeController.loadCalls, 0);
+    },
+  );
+
+  test(
+    'continues local-first when cloud auth refresh fails transiently',
+    () async {
+      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+      harness.authRepository.refreshThrows = StateError('refresh failed');
+
+      await harness.localProfiles.createProfile(
+        name: 'Cloud Profile',
+        color: 0xFF2160AB,
+        accountId: 'cloud-user',
+      );
+      const accountId = 'cloud_xtream_account_refresh_failed';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Cloud Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.meta.accountId, isNull);
+      expect(harness.authRepository.refreshCalls, 1);
+      expect(harness.homeController.loadCalls, 1);
+      expect(
+        harness.container.read(appLaunchOrchestratorProvider).recovery?.kind,
+        AppLaunchRecoveryKind.degradedRetryable,
+      );
+      expect(
+        harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
+        AuthFailureCode.refreshFailed,
+      );
+    },
+  );
+
+  test(
+    'routes invalid cloud sessions to explicit auth reauthentication',
+    () async {
+      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+      harness.authRepository.returnNullOnRefresh = true;
+
+      await harness.localProfiles.createProfile(
+        name: 'Cloud Profile',
+        color: 0xFF2160AB,
+        accountId: 'cloud-user',
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.auth);
+      expect(result.meta.accountId, isNull);
+      expect(harness.authRepository.refreshCalls, 1);
+      expect(harness.authRepository.signOutCalls, 1);
+      expect(
+        harness.container.read(appLaunchOrchestratorProvider).recovery?.kind,
+        AppLaunchRecoveryKind.reauthRequired,
+      );
+      expect(
+        harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
+        AuthFailureCode.invalidSession,
+      );
+    },
+  );
+
+  test(
+    'continues local-first in degraded retryable mode after auth timeout',
+    () async {
+      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+      harness.authRepository.refreshThrows = TimeoutException(
+        'auth refresh timeout',
+      );
+
+      await harness.localProfiles.createProfile(
+        name: 'Offline Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_timeout';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.meta.accountId, isNull);
+      expect(
+        harness.container.read(appLaunchOrchestratorProvider).recovery?.kind,
+        AppLaunchRecoveryKind.degradedRetryable,
+      );
+      expect(
+        harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
+        AuthFailureCode.timeout,
+      );
+    },
+  );
+
+  test(
+    'validates the session before entering the authenticated launch path',
+    () async {
+      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+
+      final created = await harness.localProfiles.createProfile(
+        name: 'Cloud Profile',
+        color: 0xFF2160AB,
+        accountId: 'cloud-user',
+      );
+      const accountId = 'cloud_xtream_account_validated';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Cloud Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+      expect(result.meta.accountId, 'cloud-user');
+      expect(result.meta.selectedProfileId, created.id);
+      expect(harness.authRepository.refreshCalls, 1);
     },
   );
 
@@ -353,6 +619,7 @@ class _LaunchHarness {
     required this.localePreferences,
     required this.authRepository,
     required this.homeController,
+    this.supabaseClient,
   });
 
   final Database db;
@@ -364,8 +631,9 @@ class _LaunchHarness {
   final _MemoryLocalePreferences localePreferences;
   final _FakeAuthRepository authRepository;
   final _FakeHomeController homeController;
+  final SupabaseClient? supabaseClient;
 
-  static Future<_LaunchHarness> create() async {
+  static Future<_LaunchHarness> create({bool cloudAuthEnabled = false}) async {
     await sl.reset();
 
     final db = await openDatabase(
@@ -390,6 +658,10 @@ class _LaunchHarness {
     final refreshXtreamCatalog = _FakeRefreshXtreamCatalog();
     final refreshStalkerCatalog = _FakeRefreshStalkerCatalog();
     final homeController = _FakeHomeController();
+    final supabaseClient = cloudAuthEnabled
+        ? SupabaseClient('https://example.supabase.co', 'anon-key')
+        : null;
+    supabaseClient?.auth.stopAutoRefresh();
 
     sl.registerSingleton<Database>(db);
     sl.registerSingleton<AppLogger>(logger);
@@ -416,6 +688,8 @@ class _LaunchHarness {
           (ref) async => StartupResult.ready(durationMs: 0),
         ),
         homeControllerProvider.overrideWith(() => homeController),
+        if (supabaseClient != null)
+          supabaseClientProvider.overrideWithValue(supabaseClient),
       ],
     );
 
@@ -439,6 +713,7 @@ class _LaunchHarness {
       localePreferences: localePreferences,
       authRepository: authRepository,
       homeController: homeController,
+      supabaseClient: supabaseClient,
     );
   }
 
@@ -552,6 +827,11 @@ class _FakeAuthRepository implements AuthRepository {
       StreamController<AuthSnapshot>.broadcast();
 
   AuthSession? _session;
+  int refreshCalls = 0;
+  int signOutCalls = 0;
+  Object? refreshThrows;
+  Duration? refreshDelay;
+  bool returnNullOnRefresh = false;
 
   @override
   Stream<AuthSnapshot> get onAuthStateChange => _controller.stream;
@@ -559,8 +839,22 @@ class _FakeAuthRepository implements AuthRepository {
   @override
   AuthSession? get currentSession => _session;
 
+  set session(AuthSession? value) {
+    _session = value;
+  }
+
   @override
-  Future<AuthSession?> refreshSession() async => _session;
+  Future<AuthSession?> refreshSession() async {
+    refreshCalls += 1;
+    final delay = refreshDelay;
+    if (delay != null) {
+      await Future<void>.delayed(delay);
+    }
+    final failure = refreshThrows;
+    if (failure != null) throw failure;
+    if (returnNullOnRefresh) return null;
+    return _session;
+  }
 
   @override
   Future<void> signInWithPassword({
@@ -590,6 +884,7 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> signOut() async {
+    signOutCalls += 1;
     _session = null;
     _controller.add(AuthSnapshot.unauthenticated);
   }

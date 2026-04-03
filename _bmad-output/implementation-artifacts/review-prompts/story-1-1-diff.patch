@@ -1,0 +1,575 @@
+diff --git a/lib/src/core/logging/sanitizer/message_sanitizer.dart b/lib/src/core/logging/sanitizer/message_sanitizer.dart
+index 2cbeb1a..e697bc8 100644
+--- a/lib/src/core/logging/sanitizer/message_sanitizer.dart
++++ b/lib/src/core/logging/sanitizer/message_sanitizer.dart
+@@ -94,10 +94,13 @@ class MessageSanitizer {
+       final keyPattern = RegExp.escape(key);
+       // ignore: deprecated_member_use
+       final Pattern pattern = RegExp(
+-        '($keyPattern)\\s*[:=]\\s*([^;\\n]+)',
++        '($keyPattern)(\\s*[:=]\\s*)([^;\\n]+)',
+         caseSensitive: false,
+       );
+-      out = out.replaceAllMapped(pattern, (m) => '${m.group(1)}=****');
++      out = out.replaceAllMapped(
++        pattern,
++        (m) => '${m.group(1)}${m.group(2)}****',
++      );
+     }
+     return out;
+   }
+diff --git a/lib/src/core/startup/app_startup_gate.dart b/lib/src/core/startup/app_startup_gate.dart
+index bd5f50c..ec27279 100644
+--- a/lib/src/core/startup/app_startup_gate.dart
++++ b/lib/src/core/startup/app_startup_gate.dart
+@@ -187,14 +187,15 @@ class _StartupSafeModeScreen extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     final l10n = AppLocalizations.of(context)!;
+-    final safeReason = failure == null ? 'STARTUP_SAFE_MODE' : failure!.code.name;
++    final safeReason = failure?.reasonCode ?? 'startup_safe_mode';
+ 
+     final details = showDetails
+         ? (failure == null
+-              ? 'SafeMode: unknown failure'
+-              : 'SafeMode: code=${failure!.code.name} phase=${failure!.phase.name}\n'
++              ? 'SafeMode: reasonCode=$safeReason'
++              : 'SafeMode: reasonCode=${failure!.reasonCode} '
++                    'code=${failure!.code.name} phase=${failure!.phase.name}\n'
+                     '${failure!.message}')
+-        : 'SafeMode: $safeReason';
++        : 'SafeMode: reasonCode=$safeReason';
+ 
+     return Scaffold(
+       body: LaunchErrorPanel(
+diff --git a/lib/src/core/startup/domain/app_startup_orchestrator.dart b/lib/src/core/startup/domain/app_startup_orchestrator.dart
+index 33e445d..094aafd 100644
+--- a/lib/src/core/startup/domain/app_startup_orchestrator.dart
++++ b/lib/src/core/startup/domain/app_startup_orchestrator.dart
+@@ -45,7 +45,9 @@ final class AppStartupOrchestrator {
+     final sw = Stopwatch()..start();
+     var phase = StartupPhase.init;
+     try {
+-      _telemetry.info('feature=startup action=bootstrap result=progress phase=init');
++      _telemetry.info(
++        'feature=startup action=bootstrap result=progress phase=init',
++      );
+ 
+       phase = StartupPhase.loadFlavor;
+       final flavor = _flavorPort.loadFlavor();
+@@ -58,7 +60,8 @@ final class AppStartupOrchestrator {
+           .registerConfig(flavor: flavor, requireTmdbKey: _requireTmdbKey)
+           .timeout(
+             _configTimeout,
+-            onTimeout: () => throw const _StartupTimeout(StartupPhase.registerConfig),
++            onTimeout: () =>
++                throw const _StartupTimeout(StartupPhase.registerConfig),
+           );
+       _telemetry.info(
+         'feature=startup action=bootstrap result=progress phase=registerConfig',
+@@ -69,7 +72,8 @@ final class AppStartupOrchestrator {
+           .initDependencies(appConfig: config, localeProvider: localeProvider)
+           .timeout(
+             _dependenciesTimeout,
+-            onTimeout: () => throw const _StartupTimeout(StartupPhase.initDependencies),
++            onTimeout: () =>
++                throw const _StartupTimeout(StartupPhase.initDependencies),
+           );
+       _telemetry.info(
+         'feature=startup action=bootstrap result=progress phase=initDependencies',
+@@ -94,16 +98,22 @@ final class AppStartupOrchestrator {
+ 
+       phase = StartupPhase.done;
+       sw.stop();
+-      _loggingPort.logStartupSuccess(durationMs: sw.elapsedMilliseconds);
++      final result = StartupResult.ready(durationMs: sw.elapsedMilliseconds);
++      _loggingPort.logStartupSuccess(
++        durationMs: sw.elapsedMilliseconds,
++        reasonCode: result.reasonCode,
++      );
+       _telemetry.info(
+-        'feature=startup action=bootstrap result=success durationMs=${sw.elapsedMilliseconds}',
++        'feature=startup action=bootstrap result=success '
++        'reasonCode=${result.reasonCode} durationMs=${sw.elapsedMilliseconds}',
+       );
+-      return StartupResult.ready(durationMs: sw.elapsedMilliseconds);
++      return result;
+     } catch (e, st) {
+       sw.stop();
++      final code = _mapFailureCode(phase, e);
+ 
+       final failure = StartupFailure(
+-        code: _mapFailureCode(phase, e),
++        code: code,
+         phase: phase,
+         message: 'startup_failed phase=${phase.name} type=${e.runtimeType}',
+         original: e,
+@@ -111,7 +121,7 @@ final class AppStartupOrchestrator {
+ 
+       _telemetry.error(
+         'feature=startup action=bootstrap result=failure phase=${phase.name} '
+-        'code=${failure.code.name}',
++        'code=${failure.code.name} reasonCode=${failure.reasonCode}',
+         error: e,
+         stackTrace: st,
+       );
+@@ -121,10 +131,14 @@ final class AppStartupOrchestrator {
+         code: failure.code,
+         phase: failure.phase,
+         message: failure.message,
++        reasonCode: failure.reasonCode,
+       );
+ 
+       // SafeMode is our fail-safe path: keep the app alive and actionable.
+-      return StartupResult.safeMode(durationMs: sw.elapsedMilliseconds, failure: failure);
++      return StartupResult.safeMode(
++        durationMs: sw.elapsedMilliseconds,
++        failure: failure,
++      );
+     }
+   }
+ 
+@@ -151,11 +165,13 @@ final class AppStartupOrchestrator {
+         return StartupFailureCode.configInvalid;
+       case StartupPhase.initDependencies:
+         return StartupFailureCode.dependenciesInitFailed;
++      case StartupPhase.exposeAppState:
++        return StartupFailureCode.appStateExposureFailed;
++      case StartupPhase.loggingReady:
++        return StartupFailureCode.loggingInitFailed;
+       case StartupPhase.iptvSyncSetup:
+         return StartupFailureCode.iptvSyncSetupFailed;
+       case StartupPhase.init:
+-      case StartupPhase.exposeAppState:
+-      case StartupPhase.loggingReady:
+       case StartupPhase.done:
+         return StartupFailureCode.unknown;
+     }
+@@ -166,4 +182,3 @@ final class _StartupTimeout implements Exception {
+   const _StartupTimeout(this.phase);
+   final StartupPhase phase;
+ }
+-
+diff --git a/lib/src/core/startup/domain/startup_contracts.dart b/lib/src/core/startup/domain/startup_contracts.dart
+index 4c8dad0..73950b6 100644
+--- a/lib/src/core/startup/domain/startup_contracts.dart
++++ b/lib/src/core/startup/domain/startup_contracts.dart
+@@ -29,47 +29,79 @@ enum StartupFailureCode {
+   configTimeout,
+   dependenciesInitFailed,
+   dependenciesInitTimeout,
++  appStateExposureFailed,
++  loggingInitFailed,
+   iptvSyncSetupFailed,
+ }
+ 
++extension StartupFailureCodeReasonCode on StartupFailureCode {
++  String get reasonCode => switch (this) {
++    StartupFailureCode.unknown => 'startup_unknown_failure',
++    StartupFailureCode.flavorLoadFailed => 'startup_flavor_load_failed',
++    StartupFailureCode.configInvalid => 'startup_config_invalid',
++    StartupFailureCode.configTimeout => 'startup_config_timeout',
++    StartupFailureCode.dependenciesInitFailed =>
++      'startup_dependencies_init_failed',
++    StartupFailureCode.dependenciesInitTimeout =>
++      'startup_dependencies_init_timeout',
++    StartupFailureCode.appStateExposureFailed =>
++      'startup_app_state_exposure_failed',
++    StartupFailureCode.loggingInitFailed => 'startup_logging_init_failed',
++    StartupFailureCode.iptvSyncSetupFailed => 'startup_iptv_sync_setup_failed',
++  };
++}
++
+ final class StartupFailure {
+-  const StartupFailure({
++  StartupFailure({
+     required this.code,
+     required this.phase,
+     required this.message,
+     required this.original,
+-  });
++    String? reasonCode,
++  }) : reasonCode = reasonCode ?? code.reasonCode;
+ 
+   final StartupFailureCode code;
+   final StartupPhase phase;
+   final String message;
+   final Object original;
++  final String reasonCode;
+ }
+ 
+ final class StartupResult {
+   const StartupResult._({
+     required this.kind,
+     required this.durationMs,
++    required this.reasonCode,
+     this.failure,
+   });
+ 
+-  factory StartupResult.ready({required int durationMs}) {
+-    return StartupResult._(kind: StartupOutcomeKind.ready, durationMs: durationMs);
++  factory StartupResult.ready({
++    required int durationMs,
++    String reasonCode = 'startup_ready',
++  }) {
++    return StartupResult._(
++      kind: StartupOutcomeKind.ready,
++      durationMs: durationMs,
++      reasonCode: reasonCode,
++    );
+   }
+ 
+   factory StartupResult.safeMode({
+     required int durationMs,
+     required StartupFailure failure,
++    String? reasonCode,
+   }) {
+     return StartupResult._(
+       kind: StartupOutcomeKind.safeMode,
+       durationMs: durationMs,
++      reasonCode: reasonCode ?? failure.reasonCode,
+       failure: failure,
+     );
+   }
+ 
+   final StartupOutcomeKind kind;
+   final int durationMs;
++  final String reasonCode;
+ 
+   /// Present only when `kind == safeMode`.
+   final StartupFailure? failure;
+@@ -112,11 +144,12 @@ abstract interface class AppStateControllerPort {
+ abstract interface class LoggingPort {
+   void register();
+   void logStartupProgress(String message);
+-  void logStartupSuccess({required int durationMs});
++  void logStartupSuccess({required int durationMs, required String reasonCode});
+   void logStartupFailure({
+     required StartupFailureCode code,
+     required StartupPhase phase,
+     required String message,
++    required String reasonCode,
+   });
+ }
+ 
+@@ -125,4 +158,3 @@ abstract interface class IptvSyncPort {
+   void bindIntervalUpdates();
+   void stopOnDispose(void Function(void Function()) onDispose);
+ }
+-
+diff --git a/lib/src/core/startup/infrastructure/startup_adapters.dart b/lib/src/core/startup/infrastructure/startup_adapters.dart
+index 5a2f370..01ed24e 100644
+--- a/lib/src/core/startup/infrastructure/startup_adapters.dart
++++ b/lib/src/core/startup/infrastructure/startup_adapters.dart
+@@ -11,6 +11,7 @@ import 'package:movi/src/core/di/di.dart' as di;
+ import 'package:movi/src/core/logging/logger.dart';
+ import 'package:movi/src/core/logging/logging_module.dart';
+ import 'package:movi/src/core/logging/operation_context.dart';
++import 'package:movi/src/core/logging/sanitizer/message_sanitizer.dart';
+ import 'package:movi/src/core/preferences/locale_preferences.dart';
+ import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
+ import 'package:movi/src/core/startup/domain/startup_contracts.dart';
+@@ -18,24 +19,43 @@ import 'package:movi/src/core/state/app_state_controller.dart';
+ import 'package:movi/src/core/state/app_state_provider.dart';
+ import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
+ 
++typedef StartupTelemetryPrinter = void Function(String message);
++
+ final class DebugPrintTelemetryAdapter implements StartupTelemetryPort {
++  DebugPrintTelemetryAdapter({
++    StartupTelemetryPrinter? printer,
++    MessageSanitizer? sanitizer,
++  }) : _printer = printer ?? _defaultPrinter,
++       _sanitizer = sanitizer ?? MessageSanitizer();
++
++  final StartupTelemetryPrinter _printer;
++  final MessageSanitizer _sanitizer;
++
+   String _prefix() {
+     final op = currentOperationId();
+     return op == null ? '[Startup]' : '[Startup][op=$op]';
+   }
+ 
+   @override
+-  void info(String message) => debugPrint('${_prefix()} $message');
++  void info(String message) =>
++      _print('${_prefix()} ${_sanitizer.sanitize(message)}');
+ 
+   @override
+-  void warn(String message) => debugPrint('${_prefix()}[WARN] $message');
++  void warn(String message) =>
++      _print('${_prefix()}[WARN] ${_sanitizer.sanitize(message)}');
+ 
+   @override
+   void error(String message, {Object? error, StackTrace? stackTrace}) {
+-    debugPrint('${_prefix()}[ERROR] $message');
+-    if (error != null) debugPrint('${_prefix()}[ERROR] error=$error');
+-    if (stackTrace != null) debugPrint(stackTrace.toString());
++    _print('${_prefix()}[ERROR] ${_sanitizer.sanitize(message)}');
++    if (error != null) {
++      _print('${_prefix()}[ERROR] error=${_sanitizer.sanitize('$error')}');
++    }
++    if (stackTrace != null) _print(stackTrace.toString());
+   }
++
++  void _print(String message) => _printer(message);
++
++  static void _defaultPrinter(String message) => debugPrint(message);
+ }
+ 
+ final class FlavorAdapter implements FlavorPort {
+@@ -75,7 +95,8 @@ final class DependenciesAdapter implements DependenciesPort {
+   }
+ }
+ 
+-final class RiverpodAppStateControllerAdapter implements AppStateControllerPort {
++final class RiverpodAppStateControllerAdapter
++    implements AppStateControllerPort {
+   RiverpodAppStateControllerAdapter(this._ref);
+ 
+   final Ref _ref;
+@@ -112,10 +133,14 @@ final class GetItLoggingAdapter implements LoggingPort {
+   }
+ 
+   @override
+-  void logStartupSuccess({required int durationMs}) {
++  void logStartupSuccess({
++    required int durationMs,
++    required String reasonCode,
++  }) {
+     if (!di.sl.isRegistered<AppLogger>()) return;
+     di.sl<AppLogger>().info(
+-      'feature=startup action=bootstrap result=success durationMs=$durationMs',
++      'feature=startup action=bootstrap result=success '
++      'reasonCode=$reasonCode durationMs=$durationMs',
+       category: 'startup',
+     );
+   }
+@@ -125,19 +150,22 @@ final class GetItLoggingAdapter implements LoggingPort {
+     required StartupFailureCode code,
+     required StartupPhase phase,
+     required String message,
++    required String reasonCode,
+   }) {
+     // Prefer AppLogger if ready, otherwise fallback to telemetry.
+     if (di.sl.isRegistered<AppLogger>()) {
+       di.sl<AppLogger>().warn(
+         'feature=startup action=bootstrap result=failure '
+-        'code=${code.name} phase=${phase.name} message="$message"',
++        'code=${code.name} reasonCode=$reasonCode phase=${phase.name} '
++        'message="$message"',
+         category: 'startup',
+       );
+       return;
+     }
+     _telemetry.warn(
+       'feature=startup action=bootstrap result=failure '
+-      'code=${code.name} phase=${phase.name} message="$message"',
++      'code=${code.name} reasonCode=$reasonCode phase=${phase.name} '
++      'message="$message"',
+     );
+   }
+ 
+@@ -210,4 +238,3 @@ String defaultLocaleProviderFromGetIt() {
+   if (!di.sl.isRegistered<LocalePreferences>()) return 'en-US';
+   return di.sl<LocalePreferences>().languageCode;
+ }
+-
+diff --git a/test/core/startup/app_startup_gate_safe_mode_test.dart b/test/core/startup/app_startup_gate_safe_mode_test.dart
+index 7036751..e3c759e 100644
+--- a/test/core/startup/app_startup_gate_safe_mode_test.dart
++++ b/test/core/startup/app_startup_gate_safe_mode_test.dart
+@@ -36,7 +36,14 @@ void main() {
+ 
+     expect(find.text('OK'), findsNothing);
+     expect(find.textContaining('SafeMode'), findsOneWidget);
+-    // In tests, `kReleaseMode` is false, so details are shown.
++    expect(find.text('Retry'), findsOneWidget);
++    expect(
++      find.textContaining(
++        'reasonCode=startup_dependencies_init_failed',
++      ),
++      findsOneWidget,
++    );
++    // In tests, `kReleaseMode` is false, so detailed info is shown.
+     expect(find.textContaining('phase='), findsOneWidget);
+   });
+ }
+diff --git a/test/core/startup/app_startup_orchestrator_test.dart b/test/core/startup/app_startup_orchestrator_test.dart
+index f9570d6..e12a5e8 100644
+--- a/test/core/startup/app_startup_orchestrator_test.dart
++++ b/test/core/startup/app_startup_orchestrator_test.dart
+@@ -79,10 +79,15 @@ final class _AppStateControllerFake implements AppStateControllerPort {
+ }
+ 
+ final class _ExposeFake implements AppStateExposurePort {
++  _ExposeFake([this.throwOnExpose]);
++
++  final Object? throwOnExpose;
+   int calls = 0;
+ 
+   @override
+   void exposeAppStateController(Object controller) {
++    final t = throwOnExpose;
++    if (t != null) throw t;
+     calls += 1;
+   }
+ }
+@@ -103,8 +108,9 @@ final class _LoggingFake implements LoggingPort {
+     required StartupFailureCode code,
+     required StartupPhase phase,
+     required String message,
++    required String reasonCode,
+   }) {
+-    events.add('failure:${code.name}:${phase.name}');
++    events.add('failure:${code.name}:${phase.name}:$reasonCode');
+   }
+ 
+   @override
+@@ -113,8 +119,11 @@ final class _LoggingFake implements LoggingPort {
+   }
+ 
+   @override
+-  void logStartupSuccess({required int durationMs}) {
+-    events.add('success');
++  void logStartupSuccess({
++    required int durationMs,
++    required String reasonCode,
++  }) {
++    events.add('success:$reasonCode');
+   }
+ }
+ 
+@@ -168,9 +177,10 @@ void main() {
+     );
+ 
+     expect(result.kind, StartupOutcomeKind.ready);
++    expect(result.reasonCode, 'startup_ready');
+     expect(result.failure, isNull);
+     expect(exposure.calls, 1);
+-    expect(logging.events, contains('success'));
++    expect(logging.events, contains('success:startup_ready'));
+     expect(iptv.intervalSetup, isTrue);
+     expect(iptv.bound, isTrue);
+     expect(iptv.stopHooked, isTrue);
+@@ -202,6 +212,7 @@ void main() {
+     expect(result.kind, StartupOutcomeKind.safeMode);
+     expect(result.failure, isNotNull);
+     expect(result.failure!.code, StartupFailureCode.flavorLoadFailed);
++    expect(result.failure!.reasonCode, 'startup_flavor_load_failed');
+     expect(result.failure!.phase, StartupPhase.loadFlavor);
+   });
+ 
+@@ -231,6 +242,7 @@ void main() {
+     expect(result.kind, StartupOutcomeKind.safeMode);
+     expect(result.failure, isNotNull);
+     expect(result.failure!.code, StartupFailureCode.configInvalid);
++    expect(result.failure!.reasonCode, 'startup_config_invalid');
+     expect(result.failure!.phase, StartupPhase.registerConfig);
+   });
+ 
+@@ -260,6 +272,7 @@ void main() {
+     expect(result.kind, StartupOutcomeKind.safeMode);
+     expect(result.failure, isNotNull);
+     expect(result.failure!.code, StartupFailureCode.dependenciesInitFailed);
++    expect(result.failure!.reasonCode, 'startup_dependencies_init_failed');
+     expect(result.failure!.phase, StartupPhase.initDependencies);
+     // Should not proceed to sync setup if deps are broken.
+     expect(iptv.intervalSetup, isFalse);
+@@ -293,6 +306,7 @@ void main() {
+     expect(result.kind, StartupOutcomeKind.safeMode);
+     expect(result.failure, isNotNull);
+     expect(result.failure!.code, StartupFailureCode.iptvSyncSetupFailed);
++    expect(result.failure!.reasonCode, 'startup_iptv_sync_setup_failed');
+     expect(result.failure!.phase, StartupPhase.iptvSyncSetup);
+   });
+ 
+@@ -324,6 +338,7 @@ void main() {
+     expect(result.kind, StartupOutcomeKind.safeMode);
+     expect(result.failure, isNotNull);
+     expect(result.failure!.code, StartupFailureCode.configTimeout);
++    expect(result.failure!.reasonCode, 'startup_config_timeout');
+     expect(result.failure!.phase, StartupPhase.registerConfig);
+   });
+ 
+@@ -355,7 +370,80 @@ void main() {
+     expect(result.kind, StartupOutcomeKind.safeMode);
+     expect(result.failure, isNotNull);
+     expect(result.failure!.code, StartupFailureCode.dependenciesInitTimeout);
++    expect(result.failure!.reasonCode, 'startup_dependencies_init_timeout');
+     expect(result.failure!.phase, StartupPhase.initDependencies);
+   });
++
++  test('returns safeMode when app state exposure fails with typed reasonCode', () async {
++    final telemetry = _TelemetryFake();
++    final exposure = _ExposeFake(StateError('app state exposure broken'));
++    final logging = _LoggingFake();
++    final iptv = _IptvSyncFake();
++
++    final orchestrator = AppStartupOrchestrator(
++      telemetry: telemetry,
++      flavorPort: _FlavorFake(),
++      configPort: _ConfigFake(),
++      dependenciesPort: _DepsFake(),
++      appStateControllerPort: _AppStateControllerFake(),
++      appStateExposurePort: exposure,
++      loggingPort: logging,
++      iptvSyncPort: iptv,
++      requireTmdbKey: false,
++    );
++
++    final result = await orchestrator.run(
++      localeProvider: () => 'en-US',
++      onDispose: (_) {},
++    );
++
++    expect(result.kind, StartupOutcomeKind.safeMode);
++    expect(result.failure, isNotNull);
++    expect(result.failure!.code, StartupFailureCode.appStateExposureFailed);
++    expect(result.failure!.reasonCode, 'startup_app_state_exposure_failed');
++    expect(result.failure!.phase, StartupPhase.exposeAppState);
++    expect(
++      logging.events,
++      contains(
++        'failure:appStateExposureFailed:exposeAppState:startup_app_state_exposure_failed',
++      ),
++    );
++  });
++
++  test('returns safeMode when logging registration fails with typed reasonCode', () async {
++    final telemetry = _TelemetryFake();
++    final exposure = _ExposeFake();
++    final logging = _LoggingFake()..throwOnRegister = StateError('logging broken');
++    final iptv = _IptvSyncFake();
++
++    final orchestrator = AppStartupOrchestrator(
++      telemetry: telemetry,
++      flavorPort: _FlavorFake(),
++      configPort: _ConfigFake(),
++      dependenciesPort: _DepsFake(),
++      appStateControllerPort: _AppStateControllerFake(),
++      appStateExposurePort: exposure,
++      loggingPort: logging,
++      iptvSyncPort: iptv,
++      requireTmdbKey: false,
++    );
++
++    final result = await orchestrator.run(
++      localeProvider: () => 'en-US',
++      onDispose: (_) {},
++    );
++
++    expect(result.kind, StartupOutcomeKind.safeMode);
++    expect(result.failure, isNotNull);
++    expect(result.failure!.code, StartupFailureCode.loggingInitFailed);
++    expect(result.failure!.reasonCode, 'startup_logging_init_failed');
++    expect(result.failure!.phase, StartupPhase.loggingReady);
++    expect(
++      logging.events,
++      contains(
++        'failure:loggingInitFailed:loggingReady:startup_logging_init_failed',
++      ),
++    );
++  });
+ }
+ 

@@ -88,17 +88,24 @@ class MessageSanitizer {
   }
 
   String _maskKeyValuePairs(String input) {
-    var out = input;
-    for (final key in _sensitiveKeys) {
-      // ignore: deprecated_member_use
-      final keyPattern = RegExp.escape(key);
-      // ignore: deprecated_member_use
-      final Pattern pattern = RegExp(
-        '($keyPattern)\\s*[:=]\\s*([^;\\n]+)',
-        caseSensitive: false,
-      );
-      out = out.replaceAllMapped(pattern, (m) => '${m.group(1)}=****');
-    }
-    return out;
+    final sortedKeys = _sensitiveKeys.toList()
+      ..sort((a, b) => b.length.compareTo(a.length));
+    final keyPattern = sortedKeys.map(RegExp.escape).join('|');
+
+    // ignore: deprecated_member_use
+    final Pattern pattern = RegExp(
+      '\\b($keyPattern)(\\s*[:=]\\s*)([^;\\r\\n]*?)'
+      '(?=(?:\\s+\\b[\\w-]+\\b\\s*[:=])|[;\\r\\n]|\$)',
+      caseSensitive: false,
+    );
+
+    return input.replaceAllMapped(
+      pattern,
+      (m) => '${m.group(1)}${_normalizeSeparator(m.group(2)!)}****',
+    );
+  }
+
+  String _normalizeSeparator(String rawSeparator) {
+    return rawSeparator.contains(':') ? ': ' : '=';
   }
 }

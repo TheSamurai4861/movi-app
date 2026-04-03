@@ -20,7 +20,7 @@ final cloudSyncPreferencesProvider = FutureProvider<CloudSyncPreferences>((
 ) async {
   final locator = ref.watch(slProvider);
   final preferences = await CloudSyncPreferences.create(
-    storage: locator<SecureStorageRepository>(),
+    storage: locator<SecurePayloadStore>(),
   );
 
   ref.onDispose(() {

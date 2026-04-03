@@ -36,7 +36,14 @@ void main() {
 
     expect(find.text('OK'), findsNothing);
     expect(find.textContaining('SafeMode'), findsOneWidget);
-    // In tests, `kReleaseMode` is false, so details are shown.
+    expect(find.text('Retry'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'reasonCode=startup_dependencies_init_failed',
+      ),
+      findsOneWidget,
+    );
+    // In tests, `kReleaseMode` is false, so detailed info is shown.
     expect(find.textContaining('phase='), findsOneWidget);
   });
 }

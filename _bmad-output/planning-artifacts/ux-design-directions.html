@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Movi - Design Directions</title>
+  <style>
+    :root{--bg:#141414;--bg2:#282828;--surface:#1e1e1e;--surface2:#1c1c1c;--text:#fff;--muted:#a6a6a6;--accent:#2160ab;--accent2:#6ca7f0;--ok:#4fb27a;--warn:#da9c43;--danger:#d06464;--line:rgba(255,255,255,.08);--radius:24px;--font:"Montserrat","Segoe UI",sans-serif}
+    *{box-sizing:border-box}html,body{margin:0;background:radial-gradient(circle at top left,rgba(33,96,171,.22),transparent 22%),linear-gradient(180deg,#101216 0%,#141414 100%);color:var(--text);font-family:var(--font)}
+    body{padding:28px 20px 64px}.page{max-width:1450px;margin:0 auto}.hero,.direction,.compare{background:rgba(19,21,26,.92);border:1px solid var(--line);border-radius:32px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+    .hero{padding:28px;margin-bottom:20px}.hero h1{margin:14px 0 10px;font-size:40px;line-height:1.05}.hero p{margin:0;max-width:980px;color:var(--muted);line-height:1.6}
+    .eyebrow,.chip,.pill,.button{display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
+    .eyebrow,.chip,.pill{padding:7px 12px;font-size:12px;border:1px solid var(--line);background:rgba(255,255,255,.05)}
+    .eyebrow,.meta strong,.label{text-transform:uppercase;letter-spacing:.08em}.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:20px}
+    .meta div,.note{padding:16px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.05)}.meta strong,.note strong{display:block;margin-bottom:8px;font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.controls button{font:inherit;color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--line);padding:10px 14px;border-radius:999px;cursor:pointer}
+    .controls button.active,.controls button:hover{background:rgba(33,96,171,.22);border-color:rgba(108,167,240,.45)}
+    .list{display:grid;gap:20px}.direction{padding:24px}.direction.hidden{display:none}.head{display:grid;gap:12px;margin-bottom:18px}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip.primary{background:rgba(33,96,171,.2);border-color:rgba(108,167,240,.32)}
+    .head h2{margin:0;font-size:28px;line-height:1.1}.head p{margin:0;color:var(--muted);line-height:1.6;max-width:980px}
+    .grid{display:grid;grid-template-columns:290px 1fr;gap:18px}.notes{display:grid;gap:12px}.note ul{margin:0;padding-left:18px;color:var(--muted);line-height:1.55}
+    .preview{display:grid;grid-template-columns:330px 1fr;gap:16px}.screen{border:1px solid var(--line);border-radius:28px;padding:18px;background:linear-gradient(180deg,#17191e 0%,#111216 100%);overflow:hidden}
+    .screen.tv{padding:22px}.bar,.row,.rail,.cards,.panels,.focus{display:grid;gap:12px}.bar{grid-template-columns:auto 1fr auto;align-items:center;color:var(--muted);font-size:12px}
+    .brand{display:inline-flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.brand i{width:18px;height:18px;border-radius:6px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:inline-block;box-shadow:0 0 0 4px rgba(33,96,171,.18)}
+    .row{grid-template-columns:auto auto auto 1fr auto;align-items:center;margin-top:16px}.pill.primary{background:rgba(33,96,171,.2)}.hero-panel{margin-top:16px;padding:18px;border-radius:24px;background:linear-gradient(135deg,rgba(33,96,171,.24),rgba(33,96,171,.06));border:1px solid rgba(108,167,240,.2)}
+    .hero-panel h3{margin:8px 0 8px;font-size:26px;line-height:1.08;max-width:11ch}.hero-panel p{margin:0;color:rgba(255,255,255,.8);line-height:1.55}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .button{padding:11px 14px;font-size:13px;border:1px solid var(--line);background:rgba(255,255,255,.05)}.button.primary{background:linear-gradient(135deg,var(--accent),#2d73c6);border-color:rgba(108,167,240,.45)}
+    .label{color:var(--muted);font-size:12px;margin-top:16px}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}.tv .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card,.panel,.focus .item{padding:14px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid var(--line)}.card{min-height:112px;display:grid;align-content:end;background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 45%),linear-gradient(135deg,rgba(61,74,104,.8),rgba(27,31,39,.92))}
+    .card strong,.panel strong{display:block;font-size:13px;margin-bottom:6px}.card span,.panel span{color:var(--muted);font-size:12px;line-height:1.45}.panels{grid-template-columns:repeat(3,minmax(0,1fr))}.panel.ok{border-color:rgba(79,178,122,.4)}.panel.warn{border-color:rgba(218,156,67,.45)}.panel.danger{border-color:rgba(208,100,100,.45)}
+    .focus{grid-template-columns:220px 1fr}.focus .item.active{border:2px solid rgba(108,167,240,.9);box-shadow:0 0 0 6px rgba(33,96,171,.16);background:rgba(33,96,171,.18);color:#fff}
+    .dense .cards{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.dense .card{min-height:100px}.signal .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .compare{padding:24px;margin-top:24px}.compare h2{margin:0 0 10px}.compare p{margin:0;color:var(--muted);line-height:1.6}.matrix{display:grid;gap:10px;margin-top:16px}
+    .matrix .r{display:grid;grid-template-columns:220px repeat(6,minmax(0,1fr));gap:8px}.matrix .r div{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);font-size:13px;color:var(--muted);text-align:center}.matrix .r div:first-child{color:var(--text);text-align:left;background:rgba(255,255,255,.06)}
+    @media (max-width:1180px){.grid,.preview,.matrix .r{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <span class="eyebrow">Movi UX - Design Direction Mockups</span>
+      <h1>Six directions construites a partir du theme, des assets et des composants Movi.</h1>
+      <p>Le showcase garde les invariants deja decides: palette sombre premium, accent bleu `#2160AB`, composants proprietaires, priorite a la reprise, focus TV visible et etats critiques lisibles dans le flux.</p>
+      <div class="meta">
+        <div><strong>Fondation</strong> `#141414`, `#1E1E1E`, `#2160AB`, rayons 16-24, echelle 8/12/16/24/32</div>
+        <div><strong>Promesse</strong> ouvrir, comprendre, reprendre ou lancer sans doute</div>
+        <div><strong>Contraintes</strong> Android mobile + Android TV, brownfield, components Movi only</div>
+        <div><strong>Recommendation</strong> commencer par les directions 2, 5 et 1</div>
+      </div>
+    </section>
+
+    <div class="controls">
+      <button class="active" data-filter="all">Tout voir</button>
+      <button data-filter="calm">Calme premium</button>
+      <button data-filter="resume">Resume first</button>
+      <button data-filter="tv">TV first</button>
+      <button data-filter="dense">Dense browse</button>
+      <button data-filter="states">Etats critiques</button>
+    </div>
+
+    <section class="list">
+      <article class="direction" data-tags="calm premium">
+        <div class="head">
+          <div class="chips"><span class="chip primary">Direction 1</span><span class="chip">Spotlight Calm</span><span class="chip">Hero fort</span></div>
+          <h2>Cinematic spotlight avec respiration maximale.</h2>
+          <p>La plus premium et la plus calme. Le hero porte la priorite, les rails sont selectifs, la home semble plus luxueuse et plus sereine.</p>
+        </div>
+        <div class="grid">
+          <aside class="notes">
+            <div class="note"><strong>Bon pour</strong><ul><li>signature premium forte</li><li>action principale tres visible</li><li>detail et playback tres propres</li></ul></div>
+            <div class="note"><strong>Risque</strong><ul><li>moins efficace pour scanner beaucoup de contenu</li><li>le hero peut trop editorialiser</li></ul></div>
+          </aside>
+          <div class="preview">
+            <div class="screen">
+              <div class="bar"><span>20:24</span><span class="brand"><i></i>Movi</span><span>82%</span></div>
+              <div class="row"><span class="pill primary">Accueil</span><span class="pill">Recherche</span><span class="pill">Bibliotheque</span><span></span><span class="pill">Premium</span></div>
+              <div class="hero-panel"><span class="pill">Reprendre maintenant</span><h3>Blade Runner 2049</h3><p>Le contenu prioritaire domine avec une action simple et une ambiance tres cinema.</p><div class="actions"><span class="button primary">Reprendre</span><span class="button">Details</span></div></div>
+              <div class="label">Continue watching</div>
+              <div class="cards"><div class="card"><strong>Dune</strong><span>En cours</span></div><div class="card"><strong>Arrival</strong><span>Disponible</span></div><div class="card"><strong>Andor</strong><span>Episode 4</span></div></div>
+            </div>
+            <div class="screen tv">
+              <div class="bar"><span class="brand"><i></i>Movi TV</span><span></span><span class="pill">Tonight</span></div>
+              <div class="hero-panel"><span class="pill">Hero premium</span><h3>Open. Understand. Resume.</h3><p>Les rails continuent l'histoire sans concurrencer la priorite centrale.</p><div class="actions"><span class="button primary">Play</span><span class="button">Queue</span></div></div>
+              <div class="label">Recommended tonight</div>
+              <div class="cards"><div class="card"><strong>Severance</strong><span>Apple TV+</span></div><div class="card"><strong>Foundation</strong><span>Sci-fi</span></div><div class="card"><strong>Shogun</strong><span>FX</span></div><div class="card"><strong>Silo</strong><span>Resume ready</span></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction" data-tags="resume calm premium">
+        <div class="head">
+          <div class="chips"><span class="chip primary">Direction 2</span><span class="chip">Resume First</span><span class="chip">Action prioritaire</span></div>
+          <h2>La home est organisee autour de la reprise, pas autour du catalogue.</h2>
+          <p>La plus fidele a la promesse coeur. On repond d'abord a "qu'est-ce que je reprends maintenant ?" avec progression, appareil precedent et action primaire tres nette.</p>
+        </div>
+        <div class="grid">
+          <aside class="notes">
+            <div class="note"><strong>Bon pour</strong><ul><li>promesse produit la plus nette</li><li>cross-device resume</li><li>sentiment immediat d'efficacite</li></ul></div>
+            <div class="note"><strong>Risque</strong><ul><li>moins "catalogue prestige"</li><li>depend beaucoup de la qualite des donnees resume</li></ul></div>
+          </aside>
+          <div class="preview">
+            <div class="screen">
+              <div class="bar"><span>20:24</span><span class="brand"><i></i>Movi</span><span>Sync OK</span></div>
+              <div class="row"><span class="pill primary">Pour toi</span><span class="pill">Series</span><span class="pill">Films</span><span></span><span class="pill">TV salon</span></div>
+              <div class="hero-panel"><span class="pill">Resume from TV salon</span><h3>The Last of Us</h3><p>Episode 5 - reprise au bon timecode, progression synchronisee, doute elimine.</p><div class="actions"><span class="button primary">Continuer</span><span class="button">Changer d'episode</span></div></div>
+              <div class="label">Apres la reprise</div>
+              <div class="cards"><div class="card"><strong>Succession</strong><span>51 min restantes</span></div><div class="card"><strong>Silo</strong><span>3 episodes restants</span></div><div class="card"><strong>Arcane</strong><span>Nouveau</span></div></div>
+            </div>
+            <div class="screen tv">
+              <div class="bar"><span class="brand"><i></i>Movi TV</span><span></span><span class="pill">Reprise prioritaire</span></div>
+              <div class="hero-panel"><span class="pill">Continue watching</span><h3>Dune Part Two</h3><p>Une ligne, une action, un doute en moins. Les recommandations viennent ensuite.</p><div class="actions"><span class="button primary">Reprendre</span><span class="button">Recommencer</span><span class="button">Details</span></div></div>
+              <div class="cards"><div class="card"><strong>Furiosa</strong><span>Trending</span></div><div class="card"><strong>Alien</strong><span>Collection</span></div><div class="card"><strong>Shogun</strong><span>Episode ready</span></div><div class="card"><strong>Ripley</strong><span>New</span></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction signal" data-tags="states premium">
+        <div class="head">
+          <div class="chips"><span class="chip primary">Direction 3</span><span class="chip">Signal Layered</span><span class="chip">Statuts explicites</span></div>
+          <h2>Les etats critiques font partie de l'interface, pas d'une couche cachee.</h2>
+          <p>Premium, parental, sync, offline et erreurs recoverables sont visibles au bon endroit. C'est la direction la plus transparente et la plus robuste cote confiance systeme.</p>
+        </div>
+        <div class="grid">
+          <aside class="notes">
+            <div class="note"><strong>Bon pour</strong><ul><li>clarte des flux sensibles</li><li>UX robuste et transparente</li><li>meilleur support utilisateur</li></ul></div>
+            <div class="note"><strong>Risque</strong><ul><li>peut sembler plus "systeme"</li><li>demande une gouvernance tres stricte des signaux</li></ul></div>
+          </aside>
+          <div class="preview">
+            <div class="screen">
+              <div class="bar"><span>20:24</span><span class="brand"><i></i>Movi</span><span class="pill">Etat sain</span></div>
+              <div class="panels"><div class="panel ok"><strong>Premium actif</strong><span>Renouvellement le 14 avril</span></div><div class="panel warn"><strong>Sync en attente</strong><span>Reessai auto dans 5 s</span></div><div class="panel danger"><strong>Parental</strong><span>Code requis</span></div></div>
+              <div class="hero-panel"><span class="pill">Lecture recommandee</span><h3>Oppenheimer</h3><p>Toutes les conditions de lecture sont visibles avant l'action.</p><div class="actions"><span class="button primary">Lancer</span><span class="button">Voir le statut</span></div></div>
+              <div class="cards"><div class="card"><strong>Content warning</strong><span>Parental 13+</span></div><div class="card"><strong>Offline panel</strong><span>Recuperable</span></div></div>
+            </div>
+            <div class="screen tv">
+              <div class="bar"><span class="brand"><i></i>Movi TV</span><span></span><span class="pill">Status aware</span></div>
+              <div class="cards"><div class="card"><strong>Resume blocked</strong><span>Unlock</span></div><div class="card"><strong>Offline</strong><span>Available</span></div><div class="card"><strong>Plan required</strong><span>Upgrade</span></div><div class="card"><strong>Recovered</strong><span>Play now</span></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction dense" data-tags="dense">
+        <div class="head">
+          <div class="chips"><span class="chip primary">Direction 4</span><span class="chip">Library Pulse</span><span class="chip">Densite maitrisee</span></div>
+          <h2>Une home plus riche pour les utilisateurs qui scannent vite beaucoup d'options.</h2>
+          <p>La plus catalogue et la plus bibliotheque. Elle garde les tokens Movi mais pousse plus fort les grilles, categories et listes compactes.</p>
+        </div>
+        <div class="grid">
+          <aside class="notes">
+            <div class="note"><strong>Bon pour</strong><ul><li>usage bibliotheque intensif</li><li>decouverte rapide</li><li>richesse catalogue</li></ul></div>
+            <div class="note"><strong>Risque</strong><ul><li>moins premium si la densite deborde</li><li>resume moins central</li></ul></div>
+          </aside>
+          <div class="preview">
+            <div class="screen">
+              <div class="bar"><span>20:24</span><span class="brand"><i></i>Movi</span><span class="pill">Library</span></div>
+              <div class="row"><span class="pill primary">Series</span><span class="pill">Films</span><span class="pill">Genres</span><span></span><span class="pill">Providers</span></div>
+              <div class="cards"><div class="card"><strong>Drama</strong><span>126 titres</span></div><div class="card"><strong>Sci-fi</strong><span>78 titres</span></div><div class="card"><strong>Thriller</strong><span>54 titres</span></div><div class="card"><strong>Anime</strong><span>31 titres</span></div></div>
+              <div class="cards"><div class="card"><strong>Last added</strong><span>4 nouveaux</span></div><div class="card"><strong>Top rated</strong><span>12 favoris</span></div><div class="card"><strong>Providers</strong><span>8 services</span></div><div class="card"><strong>Collections</strong><span>9 sagas</span></div></div>
+            </div>
+            <div class="screen tv">
+              <div class="bar"><span class="brand"><i></i>Movi TV</span><span></span><span class="pill">Browse fast</span></div>
+              <div class="cards"><div class="card"><strong>Nolan</strong><span>8 titres</span></div><div class="card"><strong>Villeneuve</strong><span>6 titres</span></div><div class="card"><strong>Marvel</strong><span>29 titres</span></div><div class="card"><strong>Ghibli</strong><span>12 titres</span></div></div>
+              <div class="cards"><div class="card"><strong>Drama</strong><span>List</span></div><div class="card"><strong>Action</strong><span>List</span></div><div class="card"><strong>Family</strong><span>List</span></div><div class="card"><strong>Anime</strong><span>List</span></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction" data-tags="tv premium">
+        <div class="head">
+          <div class="chips"><span class="chip primary">Direction 5</span><span class="chip">Focus Frame</span><span class="chip">TV first</span></div>
+          <h2>La meilleure expression de la promesse Movi sur Android TV.</h2>
+          <p>Le focus devient une couche de navigation lisible, elegante et rassurante. C'est la direction la plus forte si la TV doit etre un vrai differentiant produit.</p>
+        </div>
+        <div class="grid">
+          <aside class="notes">
+            <div class="note"><strong>Bon pour</strong><ul><li>navigation telecommande stable</li><li>fatigue cognitive reduite</li><li>perception haut de gamme technique</li></ul></div>
+            <div class="note"><strong>Risque</strong><ul><li>implementation focus exigeante</li><li>ne pas recopier telle quelle sur mobile</li></ul></div>
+          </aside>
+          <div class="preview">
+            <div class="screen">
+              <div class="bar"><span>20:24</span><span class="brand"><i></i>Movi</span><span class="pill">Remote parity</span></div>
+              <div class="hero-panel"><span class="pill">TV-compatible patterns</span><h3>Mobile clair, TV encore plus net.</h3><p>Le mobile garde la famille visuelle sans singer la telecommande.</p><div class="actions"><span class="button primary">Resume</span><span class="button">Browse</span></div></div>
+              <div class="cards"><div class="card"><strong>Focus cue</strong><span>Shared token</span></div><div class="card"><strong>Action rail</strong><span>Predictable</span></div><div class="card"><strong>Context back</strong><span>Stable</span></div></div>
+            </div>
+            <div class="screen tv">
+              <div class="bar"><span class="brand"><i></i>Movi TV</span><span></span><span class="pill">Focus visible</span></div>
+              <div class="focus"><div><div class="item active">Accueil</div><div class="item">Continue watching</div><div class="item">Series</div><div class="item">Films</div><div class="item">Settings</div></div><div><div class="item active"><strong>Hero focus</strong><span>Resume Dune Part Two</span></div><div class="item"><strong>Rail focus</strong><span>Recommended tonight</span></div><div class="item"><strong>State panel</strong><span>Parental required</span></div></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="direction" data-tags="calm states premium">
+        <div class="head">
+          <div class="chips"><span class="chip primary">Direction 6</span><span class="chip">Editorial Balance</span><span class="chip">Hybride</span></div>
+          <h2>Le compromis le plus migrable entre hero premium, reprise visible et statuts discrets.</h2>
+          <p>La direction la plus facile a adopter progressivement dans le brownfield. Elle garde du caractere sans forcer un redesign trop brutal.</p>
+        </div>
+        <div class="grid">
+          <aside class="notes">
+            <div class="note"><strong>Bon pour</strong><ul><li>base generaliste solide</li><li>migration progressive</li><li>cohabitation avec l'existant</li></ul></div>
+            <div class="note"><strong>Risque</strong><ul><li>moins memorable qu'une direction plus tranchee</li><li>peut devenir moyenne si on ne verrouille pas les priorites</li></ul></div>
+          </aside>
+          <div class="preview">
+            <div class="screen">
+              <div class="bar"><span>20:24</span><span class="brand"><i></i>Movi</span><span class="pill">Balanced</span></div>
+              <div class="hero-panel"><span class="pill">Picked for tonight</span><h3>True Detective</h3><p>Hero plus compact, rail de reprise juste sous la ligne de flottaison.</p><div class="actions"><span class="button primary">Play</span><span class="button">Resume</span><span class="button">Details</span></div></div>
+              <div class="panels"><div class="panel ok"><strong>Resume</strong><span>03:18 restant</span></div><div class="panel warn"><strong>Download</strong><span>1 element en attente</span></div><div class="panel"><strong>Premium</strong><span>Inclus</span></div></div>
+            </div>
+            <div class="screen tv">
+              <div class="bar"><span class="brand"><i></i>Movi TV</span><span></span><span class="pill">Balanced direction</span></div>
+              <div class="hero-panel"><span class="pill">Now</span><h3>Simple, premium, explicit.</h3><p>Moins heroique que la 1, moins systeme que la 3, moins TV-specialisee que la 5.</p><div class="actions"><span class="button primary">Continue</span><span class="button">Queue</span></div></div>
+              <div class="panels"><div class="panel ok"><strong>Session</strong><span>Valid</span></div><div class="panel"><strong>Entitlement</strong><span>Included</span></div><div class="panel warn"><strong>Network</strong><span>Stable</span></div></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="compare">
+      <h2>Grille de comparaison rapide</h2>
+      <p>Lis chaque ligne comme un choix de priorite. Plus le niveau est fort, plus la direction pousse ce trait visuel ou comportemental.</p>
+      <div class="matrix">
+        <div class="r"><div>Critere</div><div>D1</div><div>D2</div><div>D3</div><div>D4</div><div>D5</div><div>D6</div></div>
+        <div class="r"><div>Resume immediat</div><div>Fort</div><div>Tres fort</div><div>Moyen</div><div>Moyen</div><div>Fort</div><div>Fort</div></div>
+        <div class="r"><div>Signature premium</div><div>Tres forte</div><div>Forte</div><div>Forte</div><div>Moyenne</div><div>Forte</div><div>Forte</div></div>
+        <div class="r"><div>Lisibilite etats critiques</div><div>Moyenne</div><div>Forte</div><div>Tres forte</div><div>Moyenne</div><div>Forte</div><div>Forte</div></div>
+        <div class="r"><div>TV directionnelle</div><div>Forte</div><div>Forte</div><div>Moyenne</div><div>Moyenne</div><div>Tres forte</div><div>Forte</div></div>
+        <div class="r"><div>Densite browse</div><div>Legere</div><div>Legere</div><div>Moyenne</div><div>Forte</div><div>Legere</div><div>Moyenne</div></div>
+        <div class="r"><div>Migration brownfield</div><div>Moyenne</div><div>Forte</div><div>Moyenne</div><div>Forte</div><div>Moyenne</div><div>Tres forte</div></div>
+      </div>
+    </section>
+  </div>
+  <script>
+    const buttons=[...document.querySelectorAll("[data-filter]")];
+    const items=[...document.querySelectorAll(".direction")];
+    buttons.forEach((button)=>button.addEventListener("click",()=>{
+      const filter=button.dataset.filter;
+      buttons.forEach((b)=>b.classList.toggle("active",b===button));
+      items.forEach((item)=>{
+        const tags=item.dataset.tags||"";
+        item.classList.toggle("hidden",filter!=="all"&&!tags.includes(filter));
+      });
+    }));
+  </script>
+</body>
+</html>

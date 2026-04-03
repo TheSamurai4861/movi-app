@@ -16,7 +16,7 @@ import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 
 class LibraryCloudSyncService {
   LibraryCloudSyncService({
-    required SecureStorageRepository secureStorage,
+    required SecurePayloadStore secureStorage,
     required SyncOutboxRepository outbox,
     required Database db,
     required PlaylistLocalRepository playlistLocal,

@@ -4,8 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 // Shell
+import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_scroll_to_top_controller.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_shortcuts.dart';
@@ -13,6 +16,7 @@ import 'package:movi/src/features/shell/presentation/providers/shell_providers.d
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_large_layout.dart';
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart';
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_tv_layout.dart';
+import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
 // Pages (adapte les imports si tes features ont des chemins différents)
 import 'package:movi/src/features/home/presentation/pages/home_page.dart';
@@ -122,6 +126,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedIndexProvider);
+    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
 
     final keepAliveIndices = ref.watch(keepAliveIndicesProvider);
     final sidebarDestinations = buildSidebarDestinations(context);
@@ -144,7 +149,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
 
     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
     // Pas de texte brut : pas de loadingLabel ici.
-    return Focus(
+    final shellBody = Focus(
       onKeyEvent: (_, event) {
         if (event is! KeyDownEvent) return KeyEventResult.ignored;
         if (_isTextInputFocused()) return KeyEventResult.ignored;
@@ -203,6 +208,31 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
                     _scrollToTopController.controllerForIndex,
               ),
       ),
+    );
+
+    if (!(launchRecovery?.isRetryable ?? false)) {
+      return shellBody;
+    }
+
+    return Stack(
+      children: [
+        Positioned.fill(child: shellBody),
+        Positioned(
+          top: 12,
+          left: 12,
+          right: 12,
+          child: SafeArea(
+            bottom: false,
+            child: LaunchRecoveryBanner(
+              message: launchRecovery!.message,
+              onRetry: () {
+                ref.read(appLaunchOrchestratorProvider.notifier).reset();
+                context.go(AppRouteNames.launch);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

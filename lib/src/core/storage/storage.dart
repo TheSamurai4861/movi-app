@@ -4,6 +4,7 @@
 // plus the cache policy and storage failures used by higher layers.
 export 'repositories/iptv_local_repository.dart';
 export 'repositories/content_cache_repository.dart';
+export 'repositories/secure_payload_store.dart';
 export 'repositories/secure_storage_repository.dart';
 export 'repositories/playlist_local_repository.dart';
 export 'repositories/watchlist_local_repository.dart';

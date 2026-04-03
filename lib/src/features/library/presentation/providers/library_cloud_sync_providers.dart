@@ -65,7 +65,7 @@ final libraryCloudSyncServiceProvider = Provider<LibraryCloudSyncService>((
 ) {
   final locator = ref.watch(slProvider);
   return LibraryCloudSyncService(
-    secureStorage: locator<SecureStorageRepository>(),
+    secureStorage: locator<SecurePayloadStore>(),
     outbox: locator<SyncOutboxRepository>(),
     db: locator<Database>(),
     playlistLocal: locator<PlaylistLocalRepository>(),

@@ -5,10 +5,13 @@ import 'package:movi/src/core/startup/domain/startup_contracts.dart';
 
 final class _TelemetryFake implements StartupTelemetryPort {
   final List<String> events = [];
+  Object? throwOnError;
 
   @override
   void error(String message, {Object? error, StackTrace? stackTrace}) {
     events.add('error:$message');
+    final t = throwOnError;
+    if (t != null) throw t;
   }
 
   @override
@@ -79,10 +82,15 @@ final class _AppStateControllerFake implements AppStateControllerPort {
 }
 
 final class _ExposeFake implements AppStateExposurePort {
+  _ExposeFake([this.throwOnExpose]);
+
+  final Object? throwOnExpose;
   int calls = 0;
 
   @override
   void exposeAppStateController(Object controller) {
+    final t = throwOnExpose;
+    if (t != null) throw t;
     calls += 1;
   }
 }
@@ -90,6 +98,7 @@ final class _ExposeFake implements AppStateExposurePort {
 final class _LoggingFake implements LoggingPort {
   final List<String> events = [];
   Object? throwOnRegister;
+  Object? throwOnFailure;
 
   @override
   void register() {
@@ -103,8 +112,11 @@ final class _LoggingFake implements LoggingPort {
     required StartupFailureCode code,
     required StartupPhase phase,
     required String message,
+    required String reasonCode,
   }) {
-    events.add('failure:${code.name}:${phase.name}');
+    events.add('failure:${code.name}:${phase.name}:$reasonCode');
+    final t = throwOnFailure;
+    if (t != null) throw t;
   }
 
   @override
@@ -113,8 +125,11 @@ final class _LoggingFake implements LoggingPort {
   }
 
   @override
-  void logStartupSuccess({required int durationMs}) {
-    events.add('success');
+  void logStartupSuccess({
+    required int durationMs,
+    required String reasonCode,
+  }) {
+    events.add('success:$reasonCode');
   }
 }
 
@@ -168,9 +183,10 @@ void main() {
     );
 
     expect(result.kind, StartupOutcomeKind.ready);
+    expect(result.reasonCode, 'startup_ready');
     expect(result.failure, isNull);
     expect(exposure.calls, 1);
-    expect(logging.events, contains('success'));
+    expect(logging.events, contains('success:startup_ready'));
     expect(iptv.intervalSetup, isTrue);
     expect(iptv.bound, isTrue);
     expect(iptv.stopHooked, isTrue);
@@ -202,6 +218,7 @@ void main() {
     expect(result.kind, StartupOutcomeKind.safeMode);
     expect(result.failure, isNotNull);
     expect(result.failure!.code, StartupFailureCode.flavorLoadFailed);
+    expect(result.failure!.reasonCode, 'startup_flavor_load_failed');
     expect(result.failure!.phase, StartupPhase.loadFlavor);
   });
 
@@ -231,6 +248,7 @@ void main() {
     expect(result.kind, StartupOutcomeKind.safeMode);
     expect(result.failure, isNotNull);
     expect(result.failure!.code, StartupFailureCode.configInvalid);
+    expect(result.failure!.reasonCode, 'startup_config_invalid');
     expect(result.failure!.phase, StartupPhase.registerConfig);
   });
 
@@ -260,6 +278,7 @@ void main() {
     expect(result.kind, StartupOutcomeKind.safeMode);
     expect(result.failure, isNotNull);
     expect(result.failure!.code, StartupFailureCode.dependenciesInitFailed);
+    expect(result.failure!.reasonCode, 'startup_dependencies_init_failed');
     expect(result.failure!.phase, StartupPhase.initDependencies);
     // Should not proceed to sync setup if deps are broken.
     expect(iptv.intervalSetup, isFalse);
@@ -293,6 +312,7 @@ void main() {
     expect(result.kind, StartupOutcomeKind.safeMode);
     expect(result.failure, isNotNull);
     expect(result.failure!.code, StartupFailureCode.iptvSyncSetupFailed);
+    expect(result.failure!.reasonCode, 'startup_iptv_sync_setup_failed');
     expect(result.failure!.phase, StartupPhase.iptvSyncSetup);
   });
 
@@ -324,6 +344,7 @@ void main() {
     expect(result.kind, StartupOutcomeKind.safeMode);
     expect(result.failure, isNotNull);
     expect(result.failure!.code, StartupFailureCode.configTimeout);
+    expect(result.failure!.reasonCode, 'startup_config_timeout');
     expect(result.failure!.phase, StartupPhase.registerConfig);
   });
 
@@ -355,7 +376,134 @@ void main() {
     expect(result.kind, StartupOutcomeKind.safeMode);
     expect(result.failure, isNotNull);
     expect(result.failure!.code, StartupFailureCode.dependenciesInitTimeout);
+    expect(result.failure!.reasonCode, 'startup_dependencies_init_timeout');
     expect(result.failure!.phase, StartupPhase.initDependencies);
   });
-}
 
+  test(
+    'returns safeMode when app state exposure fails with typed reasonCode',
+    () async {
+      final telemetry = _TelemetryFake();
+      final exposure = _ExposeFake(StateError('app state exposure broken'));
+      final logging = _LoggingFake();
+      final iptv = _IptvSyncFake();
+
+      final orchestrator = AppStartupOrchestrator(
+        telemetry: telemetry,
+        flavorPort: _FlavorFake(),
+        configPort: _ConfigFake(),
+        dependenciesPort: _DepsFake(),
+        appStateControllerPort: _AppStateControllerFake(),
+        appStateExposurePort: exposure,
+        loggingPort: logging,
+        iptvSyncPort: iptv,
+        requireTmdbKey: false,
+      );
+
+      final result = await orchestrator.run(
+        localeProvider: () => 'en-US',
+        onDispose: (_) {},
+      );
+
+      expect(result.kind, StartupOutcomeKind.safeMode);
+      expect(result.failure, isNotNull);
+      expect(result.failure!.code, StartupFailureCode.appStateExposureFailed);
+      expect(result.failure!.reasonCode, 'startup_app_state_exposure_failed');
+      expect(result.failure!.phase, StartupPhase.exposeAppState);
+      expect(
+        logging.events,
+        contains(
+          'failure:appStateExposureFailed:exposeAppState:startup_app_state_exposure_failed',
+        ),
+      );
+    },
+  );
+
+  test(
+    'returns safeMode when logging registration fails with typed reasonCode',
+    () async {
+      final telemetry = _TelemetryFake();
+      final exposure = _ExposeFake();
+      final logging = _LoggingFake()
+        ..throwOnRegister = StateError('logging broken');
+      final iptv = _IptvSyncFake();
+
+      final orchestrator = AppStartupOrchestrator(
+        telemetry: telemetry,
+        flavorPort: _FlavorFake(),
+        configPort: _ConfigFake(),
+        dependenciesPort: _DepsFake(),
+        appStateControllerPort: _AppStateControllerFake(),
+        appStateExposurePort: exposure,
+        loggingPort: logging,
+        iptvSyncPort: iptv,
+        requireTmdbKey: false,
+      );
+
+      final result = await orchestrator.run(
+        localeProvider: () => 'en-US',
+        onDispose: (_) {},
+      );
+
+      expect(result.kind, StartupOutcomeKind.safeMode);
+      expect(result.failure, isNotNull);
+      expect(result.failure!.code, StartupFailureCode.loggingInitFailed);
+      expect(result.failure!.reasonCode, 'startup_logging_init_failed');
+      expect(result.failure!.phase, StartupPhase.loggingReady);
+      expect(
+        logging.events,
+        contains(
+          'failure:loggingInitFailed:loggingReady:startup_logging_init_failed',
+        ),
+      );
+    },
+  );
+
+  test(
+    'returns safeMode even when telemetry and failure logging throw during recovery',
+    () async {
+      final telemetry = _TelemetryFake()
+        ..throwOnError = StateError('telemetry broken');
+      final exposure = _ExposeFake();
+      final logging = _LoggingFake()
+        ..throwOnFailure = StateError('failure logging broken');
+      final iptv = _IptvSyncFake();
+
+      final orchestrator = AppStartupOrchestrator(
+        telemetry: telemetry,
+        flavorPort: _FlavorFake(StateError('flavor broken')),
+        configPort: _ConfigFake(),
+        dependenciesPort: _DepsFake(),
+        appStateControllerPort: _AppStateControllerFake(),
+        appStateExposurePort: exposure,
+        loggingPort: logging,
+        iptvSyncPort: iptv,
+        requireTmdbKey: false,
+      );
+
+      final result = await orchestrator.run(
+        localeProvider: () => 'en-US',
+        onDispose: (_) {},
+      );
+
+      expect(result.kind, StartupOutcomeKind.safeMode);
+      expect(result.failure, isNotNull);
+      expect(result.failure!.code, StartupFailureCode.flavorLoadFailed);
+      expect(result.failure!.reasonCode, 'startup_flavor_load_failed');
+      expect(
+        logging.events,
+        contains(
+          'failure:flavorLoadFailed:loadFlavor:startup_flavor_load_failed',
+        ),
+      );
+      expect(
+        telemetry.events,
+        contains(
+          'error:feature=startup action=bootstrap result=failure '
+          'phase=loadFlavor code=flavorLoadFailed '
+          'reasonCode=startup_flavor_load_failed',
+        ),
+      );
+    },
+  );
+}

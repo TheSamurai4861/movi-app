@@ -4,14 +4,14 @@ import 'package:movi/src/core/storage/storage.dart';
 
 class CloudSyncPreferences {
   CloudSyncPreferences._({
-    required SecureStorageRepository storage,
+    required SecurePayloadStore storage,
     required bool autoSyncEnabled,
     required StreamController<bool> controller,
   }) : _storage = storage,
        _autoSyncEnabled = autoSyncEnabled,
        _controller = controller;
 
-  final SecureStorageRepository _storage;
+  final SecurePayloadStore _storage;
   final StreamController<bool> _controller;
 
   bool _autoSyncEnabled;
@@ -19,10 +19,9 @@ class CloudSyncPreferences {
   static const String _key = 'prefs.cloud_sync.auto_sync_enabled';
 
   static Future<CloudSyncPreferences> create({
-    required SecureStorageRepository storage,
+    required SecurePayloadStore storage,
   }) async {
-    final raw = await storage.get(_key);
-    final enabled = (raw?['value'] as bool?) ?? true;
+    final enabled = await _loadAutoSyncPreference(storage);
     return CloudSyncPreferences._(
       storage: storage,
       autoSyncEnabled: enabled,
@@ -72,6 +71,35 @@ class CloudSyncPreferences {
   Future<void> dispose() async {
     if (!_controller.isClosed) {
       await _controller.close();
+    }
+  }
+
+  static Future<bool> _loadAutoSyncPreference(
+    SecurePayloadStore storage,
+  ) async {
+    try {
+      final raw = await storage.get(_key);
+      if (raw == null) return true;
+
+      final value = raw['value'];
+      if (value is bool) {
+        return value;
+      }
+    } on StorageException {
+      // Drop corrupted persisted preferences and continue with a safe default.
+    }
+
+    await _safeRemoveInvalidPreference(storage);
+    return true;
+  }
+
+  static Future<void> _safeRemoveInvalidPreference(
+    SecurePayloadStore storage,
+  ) async {
+    try {
+      await storage.remove(_key);
+    } on StorageException {
+      // Keep the default in memory even if cleanup fails.
     }
   }
 }

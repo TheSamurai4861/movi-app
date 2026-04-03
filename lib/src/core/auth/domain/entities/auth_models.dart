@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
+
 /// Authentication status exposed to the app.
 enum AuthStatus { unknown, authenticated, unauthenticated }
 
@@ -62,4 +64,55 @@ class AuthSnapshot {
 
   @override
   String toString() => 'AuthSnapshot(status: $status, session: $session)';
+}
+
+enum AuthBootstrapOutcome { authenticated, reauthRequired, degradedRetryable }
+
+@immutable
+class AuthBootstrapResult {
+  const AuthBootstrapResult({
+    required this.snapshot,
+    required this.outcome,
+    this.cause,
+    this.reasonCode,
+    this.recoveryMessage,
+  });
+
+  final AuthSnapshot snapshot;
+  final AuthBootstrapOutcome outcome;
+  final AuthFailureCode? cause;
+  final String? reasonCode;
+  final String? recoveryMessage;
+
+  bool get isAuthenticated => snapshot.isAuthenticated;
+  bool get requiresReauthentication =>
+      outcome == AuthBootstrapOutcome.reauthRequired;
+  bool get isDegradedRetryable =>
+      outcome == AuthBootstrapOutcome.degradedRetryable;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other is AuthBootstrapResult &&
+            other.snapshot == snapshot &&
+            other.outcome == outcome &&
+            other.cause == cause &&
+            other.reasonCode == reasonCode &&
+            other.recoveryMessage == recoveryMessage);
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(snapshot, outcome, cause, reasonCode, recoveryMessage);
+
+  @override
+  String toString() {
+    return 'AuthBootstrapResult('
+        'snapshot: $snapshot, '
+        'outcome: $outcome, '
+        'cause: $cause, '
+        'reasonCode: $reasonCode, '
+        'recoveryMessage: $recoveryMessage'
+        ')';
+  }
 }

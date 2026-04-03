@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
@@ -51,8 +52,12 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
       // providers "local mode" (DI) tant que l'auth n'est pas faite.
       final client = ref.read(supabaseClientProvider);
       final authStatus = ref.read(supabaseAuthStatusProvider);
+      final launchRecovery = ref.read(appLaunchStateProvider).recovery;
+      final shouldSuppressEmailAuth = launchRecovery?.isRetryable ?? false;
       final shouldPrioritizeEmailAuth =
-          client != null && authStatus == SupabaseAuthStatus.unauthenticated;
+          client != null &&
+          authStatus == SupabaseAuthStatus.unauthenticated &&
+          !shouldSuppressEmailAuth;
       if (shouldPrioritizeEmailAuth) return;
 
       unawaited(ref.read(userSettingsControllerProvider.notifier).load());
@@ -101,9 +106,12 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     final l10n = AppLocalizations.of(context)!;
     final supabaseClient = ref.watch(supabaseClientProvider);
     final supabaseAuthStatus = ref.watch(supabaseAuthStatusProvider);
+    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
+    final shouldSuppressEmailAuth = launchRecovery?.isRetryable ?? false;
     final shouldPrioritizeEmailAuth =
         supabaseClient != null &&
-        supabaseAuthStatus == SupabaseAuthStatus.unauthenticated;
+        supabaseAuthStatus == SupabaseAuthStatus.unauthenticated &&
+        !shouldSuppressEmailAuth;
 
     // Robustesse: si on priorise l'auth, ne pas "watch" les providers de profil/settings
     // pour éviter de dépendre d'une DI complète avant la connexion.
@@ -113,15 +121,11 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
           unawaited(
-            context.push<bool>(
-              '${AppRoutePaths.authOtp}?return_to=previous',
-            ),
+            context.push<bool>('${AppRoutePaths.authOtp}?return_to=previous'),
           );
         });
       }
-      return Scaffold(
-        body: OverlaySplash(message: l10n.authOtpTitle),
-      );
+      return Scaffold(body: OverlaySplash(message: l10n.authOtpTitle));
     }
 
     final state = ref.watch(userSettingsControllerProvider);
@@ -148,6 +152,23 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
                     title: l10n.welcomeTitle,
                     subtitle: l10n.welcomeSubtitle,
                   ),
+                  if (launchRecovery?.isRetryable ?? false) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: LaunchRecoveryBanner(
+                        message: launchRecovery!.message,
+                        onRetry: () {
+                          ref
+                              .read(appLaunchOrchestratorProvider.notifier)
+                              .reset();
+                          context.go(AppRouteNames.launch);
+                        },
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.xl),
                   profilesAsync.when(
                     loading: () => const Padding(

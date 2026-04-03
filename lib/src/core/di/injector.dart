@@ -250,7 +250,7 @@ Future<void> _registerAccentColorPreferences() async {
 Future<void> _registerCloudSyncPreferences() async {
   if (sl.isRegistered<CloudSyncPreferences>()) return;
 
-  final storage = sl<SecureStorageRepository>();
+  final storage = sl<SecurePayloadStore>();
   final prefs = await CloudSyncPreferences.create(storage: storage);
   sl.registerSingleton<CloudSyncPreferences>(prefs);
 }
@@ -438,9 +438,9 @@ void _registerSharedServices() {
   }
 
   if (!sl.isRegistered<ParentalSessionService>() &&
-      sl.isRegistered<SecureStorageRepository>()) {
+      sl.isRegistered<SecurePayloadStore>()) {
     sl.registerLazySingleton<ParentalSessionService>(
-      () => ParentalSessionService(sl<SecureStorageRepository>()),
+      () => ParentalSessionService(sl<SecurePayloadStore>()),
     );
   }
 

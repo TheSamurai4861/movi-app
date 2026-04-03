@@ -45,7 +45,7 @@ class _ExportDiagnosticsSheetState extends ConsumerState<ExportDiagnosticsSheet>
 
   BuildDiagnosticBundle _buildUseCase(AppMetadata metadata) {
     final locator = ref.read(slProvider);
-    final secure = locator<SecureStorageRepository>();
+    final secure = locator<SecurePayloadStore>();
     return BuildDiagnosticBundle(
       metadata,
       const LogFileReader(),

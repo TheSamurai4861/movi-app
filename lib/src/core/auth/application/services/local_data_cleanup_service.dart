@@ -12,11 +12,9 @@ import 'package:movi/src/core/storage/repositories/secure_storage_repository.dar
 /// Le nettoyage est volontairement tolérant aux erreurs : une étape qui échoue
 /// ne doit pas bloquer la déconnexion.
 class LocalDataCleanupService {
-  LocalDataCleanupService({
-    required Database db,
-    required GetIt sl,
-  }) : _db = db,
-       _sl = sl;
+  LocalDataCleanupService({required Database db, required GetIt sl})
+    : _db = db,
+      _sl = sl;
 
   static const List<String> _secureStorageKeysToRemove = <String>[
     'selected_profile_id',
@@ -29,13 +27,27 @@ class LocalDataCleanupService {
     'iptv_sync_interval',
   ];
 
-  static const List<String> _cacheTypesToClear = <String>[
-    'search',
-    'settings',
+  static const List<String> _sensitiveSessionKeysToRemove = <String>[
+    'selected_profile_id',
+    'selected_iptv_source_id',
   ];
+
+  static const List<String> _cacheTypesToClear = <String>['search', 'settings'];
 
   final Database _db;
   final GetIt _sl;
+
+  /// Clears only auth/session-derived local state that can otherwise keep the
+  /// app in an unsafe or ambiguous recovery path after an invalid session.
+  ///
+  /// This intentionally preserves local-first assets such as profiles, IPTV
+  /// sources, playlists, and caches that remain valid offline.
+  Future<void> clearSensitiveSessionState() async {
+    _log('Starting sensitive session cleanup...');
+    await _clearSecureStorageKeys(_sensitiveSessionKeysToRemove);
+    await _clearSyncOutbox();
+    _log('Sensitive session cleanup completed');
+  }
 
   /// Supprime toutes les données locales de l'utilisateur.
   Future<void> clearAllLocalData() async {
@@ -68,9 +80,7 @@ class LocalDataCleanupService {
     try {
       return await iptvRepository.getAccounts();
     } catch (error, stackTrace) {
-      _log(
-        'Error loading IPTV accounts for cleanup: $error\n$stackTrace',
-      );
+      _log('Error loading IPTV accounts for cleanup: $error\n$stackTrace');
       return const <dynamic>[];
     }
   }
@@ -144,6 +154,10 @@ class LocalDataCleanupService {
   }
 
   Future<void> _clearSecureStorage() async {
+    await _clearSecureStorageKeys(_secureStorageKeysToRemove);
+  }
+
+  Future<void> _clearSecureStorageKeys(List<String> keys) async {
     final secureStorageRepository = _getOptional<SecureStorageRepository>();
     if (secureStorageRepository == null) {
       return;
@@ -152,7 +166,7 @@ class LocalDataCleanupService {
     await _runSafely(
       errorContext: 'clearing secure storage',
       action: () async {
-        for (final key in _secureStorageKeysToRemove) {
+        for (final key in keys) {
           try {
             await secureStorageRepository.remove(key);
           } catch (error) {

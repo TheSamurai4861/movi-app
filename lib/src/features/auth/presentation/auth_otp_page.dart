@@ -58,7 +58,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
         };
 
     // Réagir à l'auth globale : dès que l'utilisateur est authentifié,
-    // on le redirige vers l'écran Welcome (création / sélection de profil).
+    // on relance le flux de launch pour recalculer la destination réelle.
     ref.listen<AuthStatus>(authStatusProvider, (previous, next) {
       if (previous != AuthStatus.authenticated &&
           next == AuthStatus.authenticated &&
@@ -337,11 +337,6 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
       return;
     }
 
-    if (widget.returnOnSuccess) {
-      context.go(AppRoutePaths.bootstrap);
-      return;
-    }
-
-    context.go(AppRouteNames.welcome);
+    context.go(AppRoutePaths.launch);
   }
 }

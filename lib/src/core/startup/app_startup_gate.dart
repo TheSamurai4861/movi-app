@@ -187,14 +187,15 @@ class _StartupSafeModeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final safeReason = failure == null ? 'STARTUP_SAFE_MODE' : failure!.code.name;
+    final safeReason = failure?.reasonCode ?? 'startup_safe_mode';
 
     final details = showDetails
         ? (failure == null
-              ? 'SafeMode: unknown failure'
-              : 'SafeMode: code=${failure!.code.name} phase=${failure!.phase.name}\n'
+              ? 'SafeMode: reasonCode=$safeReason'
+              : 'SafeMode: reasonCode=${failure!.reasonCode} '
+                    'code=${failure!.code.name} phase=${failure!.phase.name}\n'
                     '${failure!.message}')
-        : 'SafeMode: $safeReason';
+        : 'SafeMode: reasonCode=$safeReason';
 
     return Scaffold(
       body: LaunchErrorPanel(
@@ -202,7 +203,7 @@ class _StartupSafeModeScreen extends StatelessWidget {
         retryLabel: l10n.actionRetry,
         onRetry: onRetry,
         details: details,
-        showDetails: true,
+        showDetails: showDetails,
       ),
     );
   }

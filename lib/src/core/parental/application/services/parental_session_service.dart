@@ -14,7 +14,7 @@ class ParentalSessionService {
     this.storageKeyPrefix = 'parental.unlock_session.',
   });
 
-  final SecureStorageRepository _storage;
+  final SecurePayloadStore _storage;
   final bool persistToSecureStorage;
   final String storageKeyPrefix;
 
@@ -40,7 +40,14 @@ class ParentalSessionService {
 
     if (!persistToSecureStorage) return null;
 
-    final payload = await _storage.get(_key(id));
+    Map<String, dynamic>? payload;
+    try {
+      payload = await _storage.get(_key(id));
+    } on StorageException catch (error) {
+      _debugStorageIssue('read_corrupted_or_unavailable', error);
+      await _safeRemove(id);
+      return null;
+    }
     if (payload == null) return null;
 
     try {
@@ -51,7 +58,8 @@ class ParentalSessionService {
       }
       _memory[id] = session;
       return session;
-    } catch (e) {
+    } catch (error) {
+      _debugStorageIssue('invalid_session_payload', error);
       await _safeRemove(id);
       return null;
     }
@@ -78,10 +86,8 @@ class ParentalSessionService {
     if (!persistToSecureStorage) return;
     try {
       await _storage.put(key: _key(id), payload: session.toJson());
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('[ParentalSessionService] persist unlock failed: $e');
-      }
+    } catch (error) {
+      _debugStorageIssue('persist_unlock_failed', error);
     }
   }
 
@@ -96,6 +102,13 @@ class ParentalSessionService {
   Future<void> _safeRemove(String profileId) async {
     try {
       await _storage.remove(_key(profileId));
-    } catch (_) {}
+    } catch (error) {
+      _debugStorageIssue('remove_failed', error);
+    }
+  }
+
+  void _debugStorageIssue(String action, Object error) {
+    if (!kDebugMode) return;
+    debugPrint('[ParentalSessionService] $action: $error');
   }
 }

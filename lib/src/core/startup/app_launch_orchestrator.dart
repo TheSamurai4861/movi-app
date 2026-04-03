@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
+import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
+import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
@@ -64,6 +66,25 @@ enum AppLaunchPhase {
   done,
 }
 
+enum AppLaunchRecoveryKind { reauthRequired, degradedRetryable }
+
+@immutable
+class AppLaunchRecovery {
+  const AppLaunchRecovery({
+    required this.kind,
+    required this.cause,
+    required this.reasonCode,
+    required this.message,
+  });
+
+  final AppLaunchRecoveryKind kind;
+  final AuthFailureCode cause;
+  final String reasonCode;
+  final String message;
+
+  bool get isRetryable => kind == AppLaunchRecoveryKind.degradedRetryable;
+}
+
 class AppLaunchState {
   const AppLaunchState({
     this.status = AppLaunchStatus.idle,
@@ -73,6 +94,7 @@ class AppLaunchState {
     this.completedAt,
     this.destination,
     this.criteria = AppLaunchCriteria.empty,
+    this.recovery,
     this.recoveryMessage,
     this.runId,
   });
@@ -84,6 +106,7 @@ class AppLaunchState {
   final DateTime? completedAt;
   final BootstrapDestination? destination;
   final AppLaunchCriteria criteria;
+  final AppLaunchRecovery? recovery;
   final String? recoveryMessage;
   final String? runId;
 
@@ -97,6 +120,7 @@ class AppLaunchState {
     Object? completedAt = _sentinel,
     Object? destination = _sentinel,
     AppLaunchCriteria? criteria,
+    Object? recovery = _sentinel,
     Object? recoveryMessage = _sentinel,
     Object? runId = _sentinel,
   }) {
@@ -116,6 +140,9 @@ class AppLaunchState {
           ? this.destination
           : destination as BootstrapDestination?,
       criteria: criteria ?? this.criteria,
+      recovery: identical(recovery, _sentinel)
+          ? this.recovery
+          : recovery as AppLaunchRecovery?,
       recoveryMessage: identical(recoveryMessage, _sentinel)
           ? this.recoveryMessage
           : recoveryMessage as String?,
@@ -272,7 +299,6 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   };
 
   late final AppStartupRunner _startupRunner;
-  late final AuthRepository _authRepository;
   late final ProfileRepository _profileRepository;
   late final SupabaseIptvSourcesRepository? _iptvSourcesRepository;
   late final SelectedProfilePreferences _selectedProfilePreferences;
@@ -298,7 +324,6 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     _startupRunner = () =>
         ref.read(app_startup_provider.appStartupProvider.future);
-    _authRepository = ref.read(authRepositoryProvider);
     _profileRepository = sl<ProfileRepository>();
     _iptvSourcesRepository = sl.isRegistered<SupabaseIptvSourcesRepository>()
         ? sl<SupabaseIptvSourcesRepository>()
@@ -348,6 +373,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         completedAt: null,
         destination: null,
         criteria: AppLaunchCriteria.empty,
+        recovery: null,
         recoveryMessage: null,
         runId: runId,
       ),
@@ -405,6 +431,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           ),
         ),
       );
+    }
+
+    void setRecovery(AppLaunchRecovery? recovery) {
+      _updateState(state.copyWith(recovery: recovery));
     }
 
     Future<void> logStep(String message) async {
@@ -495,13 +525,42 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
       step = 'auth_session';
       _setPhase(AppLaunchPhase.auth, stepName: step);
-      final session = _authRepository.currentSession;
-      if (session == null) {
-        await logStep('no session -> local mode');
-      } else {
+      final authResult = await ref
+          .read(authOrchestratorProvider)
+          .bootstrapSession();
+      final session = authResult.snapshot.session;
+      const supabaseConfig = SupabaseConfig.fromEnvironment;
+      final isCloudAuthEnabled =
+          supabaseConfig.isConfigured ||
+          ref.read(supabaseClientProvider) != null;
+      if (authResult.isAuthenticated && session != null) {
+        setRecovery(null);
         meta = meta.copyWith(accountId: session.userId);
         updateCriteria();
-        await logStep('session ok');
+        await logStep('session validated');
+      } else if (isCloudAuthEnabled && authResult.requiresReauthentication) {
+        final recovery = _buildAuthRecovery(authResult);
+        setRecovery(recovery);
+        await logStep(
+          'invalid session -> explicit reauth (${recovery?.reasonCode ?? 'none'})',
+        );
+        destination = BootstrapDestination.auth;
+        return completeSuccess(destination);
+      } else if (isCloudAuthEnabled && authResult.isDegradedRetryable) {
+        final recovery = _buildAuthRecovery(authResult);
+        setRecovery(recovery);
+        await logStep(
+          'session recovery degraded -> local-first continuation '
+          '(${recovery?.reasonCode ?? 'none'})',
+        );
+      } else if (isCloudAuthEnabled) {
+        setRecovery(_buildAuthRecovery(authResult));
+        await logStep('session unverifiable -> safe auth path');
+        destination = BootstrapDestination.auth;
+        return completeSuccess(destination);
+      } else {
+        setRecovery(null);
+        await logStep('no validated session -> local mode');
       }
 
       step = 'profiles_fetch';
@@ -920,6 +979,26 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     throw _LaunchStepException(
       AppLaunchErrorCode.invalidTransition,
       'Invalid transition from ${from.name} to ${to.name}',
+    );
+  }
+
+  AppLaunchRecovery? _buildAuthRecovery(AuthBootstrapResult authResult) {
+    final cause = authResult.cause;
+    final reasonCode = authResult.reasonCode;
+    final message = authResult.recoveryMessage;
+    if (cause == null || reasonCode == null || message == null) {
+      return null;
+    }
+
+    final kind = authResult.isDegradedRetryable
+        ? AppLaunchRecoveryKind.degradedRetryable
+        : AppLaunchRecoveryKind.reauthRequired;
+
+    return AppLaunchRecovery(
+      kind: kind,
+      cause: cause,
+      reasonCode: reasonCode,
+      message: message,
     );
   }
 

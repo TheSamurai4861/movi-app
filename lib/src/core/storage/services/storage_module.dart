@@ -142,6 +142,12 @@ class StorageModule {
         () => SecureStorageRepository(),
       );
     }
+    if (!sl.isRegistered<SecurePayloadStore>() &&
+        sl.isRegistered<SecureStorageRepository>()) {
+      sl.registerLazySingleton<SecurePayloadStore>(
+        () => sl<SecureStorageRepository>(),
+      );
+    }
 
     if (!sl.isRegistered<CredentialsVault>()) {
       sl.registerLazySingleton<CredentialsVault>(

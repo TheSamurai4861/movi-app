@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/di/di.dart';
@@ -23,6 +24,81 @@ void main() {
   tearDown(() async {
     await sl.reset();
   });
+
+  testWidgets(
+    'keeps home reachable when launch resolves to degraded retryable home',
+    (tester) async {
+      final localePreferences = _MemoryLocalePreferences();
+      final authRepository = _FakeAuthRepository.authenticated();
+      final logger = _MemoryLogger();
+      final launchRegistry = AppLaunchStateRegistry(
+        initial: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          destination: BootstrapDestination.home,
+          criteria: AppLaunchCriteria(
+            hasSession: false,
+            hasSelectedProfile: true,
+            hasSelectedSource: true,
+            hasIptvCatalogReady: true,
+            hasHomePreloaded: true,
+            hasLibraryReady: true,
+          ),
+          recovery: AppLaunchRecovery(
+            kind: AppLaunchRecoveryKind.degradedRetryable,
+            cause: AuthFailureCode.offline,
+            reasonCode: 'offline',
+            message:
+                'Connexion indisponible. Vous pouvez continuer en mode degrade et reessayer.',
+          ),
+        ),
+      );
+
+      sl.registerSingleton<LocalePreferences>(localePreferences);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      addTearDown(authRepository.dispose);
+      addTearDown(localePreferences.dispose);
+
+      final appStateController = container.read(appStateControllerProvider);
+      final guard = LaunchRedirectGuard(
+        logger: logger,
+        appStateController: appStateController,
+        authRepository: authRepository,
+        launchRegistry: launchRegistry,
+      );
+      addTearDown(guard.dispose);
+
+      final router = GoRouter(
+        initialLocation: AppRoutePaths.home,
+        refreshListenable: guard,
+        redirect: guard.handle,
+        routes: [
+          GoRoute(
+            path: AppRoutePaths.launch,
+            builder: (context, state) => const Text('Launch'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.home,
+            builder: (context, state) => const Text('Home'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.bootstrap,
+            builder: (context, state) => const Text('Bootstrap'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Launch'), findsNothing);
+      expect(find.text('Bootstrap'), findsNothing);
+    },
+  );
 
   testWidgets(
     'keeps /auth/otp?return_to=previous reachable even when launch state is already successful',
@@ -155,11 +231,213 @@ void main() {
       expect(find.text('Home'), findsNothing);
     },
   );
+
+  testWidgets(
+    'reruns launch when auth destination is stale but a session already exists',
+    (tester) async {
+      final localePreferences = _MemoryLocalePreferences();
+      final authRepository = _FakeAuthRepository.authenticated();
+      final logger = _MemoryLogger();
+      final launchRegistry = AppLaunchStateRegistry(
+        initial: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          destination: BootstrapDestination.auth,
+        ),
+      );
+
+      sl.registerSingleton<LocalePreferences>(localePreferences);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      addTearDown(authRepository.dispose);
+      addTearDown(localePreferences.dispose);
+
+      final appStateController = container.read(appStateControllerProvider);
+      final guard = LaunchRedirectGuard(
+        logger: logger,
+        appStateController: appStateController,
+        authRepository: authRepository,
+        launchRegistry: launchRegistry,
+      );
+      addTearDown(guard.dispose);
+
+      final router = GoRouter(
+        initialLocation: AppRoutePaths.home,
+        refreshListenable: guard,
+        redirect: guard.handle,
+        routes: [
+          GoRoute(
+            path: AppRoutePaths.launch,
+            builder: (context, state) => const Text('Launch'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.home,
+            builder: (context, state) => const Text('Home'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.bootstrap,
+            builder: (context, state) => const Text('Bootstrap'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.authOtp,
+            builder: (context, state) => const Text('Reconnect Auth'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Launch'), findsOneWidget);
+      expect(find.text('Reconnect Auth'), findsNothing);
+      expect(find.text('Home'), findsNothing);
+      expect(find.text('Bootstrap'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'redirects protected home route to auth when launch resolution is explicitly unauthenticated',
+    (tester) async {
+      final localePreferences = _MemoryLocalePreferences();
+      final authRepository = _FakeAuthRepository.unauthenticatedResolved();
+      final logger = _MemoryLogger();
+      final launchRegistry = AppLaunchStateRegistry(
+        initial: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          destination: BootstrapDestination.auth,
+        ),
+      );
+
+      sl.registerSingleton<LocalePreferences>(localePreferences);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      addTearDown(authRepository.dispose);
+      addTearDown(localePreferences.dispose);
+
+      final appStateController = container.read(appStateControllerProvider);
+      final guard = LaunchRedirectGuard(
+        logger: logger,
+        appStateController: appStateController,
+        authRepository: authRepository,
+        launchRegistry: launchRegistry,
+      );
+      addTearDown(guard.dispose);
+
+      final router = GoRouter(
+        initialLocation: AppRoutePaths.home,
+        refreshListenable: guard,
+        redirect: guard.handle,
+        routes: [
+          GoRoute(
+            path: AppRoutePaths.launch,
+            builder: (context, state) => const Text('Launch'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.home,
+            builder: (context, state) => const Text('Home'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.bootstrap,
+            builder: (context, state) => const Text('Bootstrap'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.authOtp,
+            builder: (context, state) => const Text('Reconnect Auth'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reconnect Auth'), findsOneWidget);
+      expect(find.text('Launch'), findsNothing);
+      expect(find.text('Home'), findsNothing);
+      expect(find.text('Bootstrap'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'redirects non-startup routes to auth when launch resolution is explicitly unauthenticated',
+    (tester) async {
+      final localePreferences = _MemoryLocalePreferences();
+      final authRepository = _FakeAuthRepository.unauthenticatedResolved();
+      final logger = _MemoryLogger();
+      final launchRegistry = AppLaunchStateRegistry(
+        initial: const AppLaunchState(
+          status: AppLaunchStatus.success,
+          destination: BootstrapDestination.auth,
+        ),
+      );
+
+      sl.registerSingleton<LocalePreferences>(localePreferences);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      addTearDown(authRepository.dispose);
+      addTearDown(localePreferences.dispose);
+
+      final appStateController = container.read(appStateControllerProvider);
+      final guard = LaunchRedirectGuard(
+        logger: logger,
+        appStateController: appStateController,
+        authRepository: authRepository,
+        launchRegistry: launchRegistry,
+      );
+      addTearDown(guard.dispose);
+
+      final router = GoRouter(
+        initialLocation: AppRoutePaths.player,
+        refreshListenable: guard,
+        redirect: guard.handle,
+        routes: [
+          GoRoute(
+            path: AppRoutePaths.launch,
+            builder: (context, state) => const Text('Launch'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.player,
+            builder: (context, state) => const Text('Player'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.bootstrap,
+            builder: (context, state) => const Text('Bootstrap'),
+          ),
+          GoRoute(
+            path: AppRoutePaths.authOtp,
+            builder: (context, state) => const Text('Reconnect Auth'),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(child: MaterialApp.router(routerConfig: router)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reconnect Auth'), findsOneWidget);
+      expect(find.text('Player'), findsNothing);
+      expect(find.text('Bootstrap'), findsNothing);
+    },
+  );
 }
 
 class _FakeAuthRepository implements AuthRepository {
   _FakeAuthRepository.authenticated()
     : _session = const AuthSession(userId: 'cloud-user');
+
+  _FakeAuthRepository.unauthenticatedResolved() : _session = null {
+    Future<void>.microtask(() {
+      if (!_controller.isClosed) {
+        _controller.add(AuthSnapshot.unauthenticated);
+      }
+    });
+  }
 
   final StreamController<AuthSnapshot> _controller =
       StreamController<AuthSnapshot>.broadcast();

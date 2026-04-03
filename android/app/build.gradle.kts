@@ -204,13 +204,13 @@ afterEvaluate {
     )
     val ensureDefaultReleaseApk = registerDefaultFlutterApkAliasTask(
         taskName = "ensureDefaultReleaseApk",
-        sourceApkName = "app-dev-release.apk",
+        sourceApkName = "app-prod-release.apk",
         targetApkName = "app-release.apk",
     )
 
     val ensureDefaultReleaseAab = registerDefaultFlutterAabAliasTask(
         taskName = "ensureDefaultReleaseAab",
-        sourceAabRelativePath = "bundle/devRelease/app-dev-release.aab",
+        sourceAabRelativePath = "bundle/prodRelease/app-prod-release.aab",
         targetAabRelativePath = "bundle/release/app-release.aab",
     )
 

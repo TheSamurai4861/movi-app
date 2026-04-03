@@ -11,6 +11,7 @@ import 'package:movi/src/core/di/di.dart' as di;
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/logging/operation_context.dart';
+import 'package:movi/src/core/logging/sanitizer/message_sanitizer.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
@@ -18,24 +19,45 @@ import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 
+typedef StartupTelemetryPrinter = void Function(String message);
+
 final class DebugPrintTelemetryAdapter implements StartupTelemetryPort {
+  DebugPrintTelemetryAdapter({
+    StartupTelemetryPrinter? printer,
+    MessageSanitizer? sanitizer,
+  }) : _printer = printer ?? _defaultPrinter,
+       _sanitizer = sanitizer ?? MessageSanitizer();
+
+  final StartupTelemetryPrinter _printer;
+  final MessageSanitizer _sanitizer;
+
   String _prefix() {
     final op = currentOperationId();
     return op == null ? '[Startup]' : '[Startup][op=$op]';
   }
 
   @override
-  void info(String message) => debugPrint('${_prefix()} $message');
+  void info(String message) =>
+      _print('${_prefix()} ${_sanitizer.sanitize(message)}');
 
   @override
-  void warn(String message) => debugPrint('${_prefix()}[WARN] $message');
+  void warn(String message) =>
+      _print('${_prefix()}[WARN] ${_sanitizer.sanitize(message)}');
 
   @override
   void error(String message, {Object? error, StackTrace? stackTrace}) {
-    debugPrint('${_prefix()}[ERROR] $message');
-    if (error != null) debugPrint('${_prefix()}[ERROR] error=$error');
-    if (stackTrace != null) debugPrint(stackTrace.toString());
+    _print('${_prefix()}[ERROR] ${_sanitizer.sanitize(message)}');
+    if (error != null) {
+      _print('${_prefix()}[ERROR] error=${_sanitizer.sanitize('$error')}');
+    }
+    if (stackTrace != null) {
+      _print('${_prefix()}[ERROR] stackTrace=redacted');
+    }
   }
+
+  void _print(String message) => _printer(message);
+
+  static void _defaultPrinter(String message) => debugPrint(message);
 }
 
 final class FlavorAdapter implements FlavorPort {
@@ -75,7 +97,8 @@ final class DependenciesAdapter implements DependenciesPort {
   }
 }
 
-final class RiverpodAppStateControllerAdapter implements AppStateControllerPort {
+final class RiverpodAppStateControllerAdapter
+    implements AppStateControllerPort {
   RiverpodAppStateControllerAdapter(this._ref);
 
   final Ref _ref;
@@ -112,10 +135,14 @@ final class GetItLoggingAdapter implements LoggingPort {
   }
 
   @override
-  void logStartupSuccess({required int durationMs}) {
+  void logStartupSuccess({
+    required int durationMs,
+    required String reasonCode,
+  }) {
     if (!di.sl.isRegistered<AppLogger>()) return;
     di.sl<AppLogger>().info(
-      'feature=startup action=bootstrap result=success durationMs=$durationMs',
+      'feature=startup action=bootstrap result=success '
+      'reasonCode=$reasonCode durationMs=$durationMs',
       category: 'startup',
     );
   }
@@ -125,20 +152,23 @@ final class GetItLoggingAdapter implements LoggingPort {
     required StartupFailureCode code,
     required StartupPhase phase,
     required String message,
+    required String reasonCode,
   }) {
-    // Prefer AppLogger if ready, otherwise fallback to telemetry.
-    if (di.sl.isRegistered<AppLogger>()) {
-      di.sl<AppLogger>().warn(
+    final failureEvent =
         'feature=startup action=bootstrap result=failure '
-        'code=${code.name} phase=${phase.name} message="$message"',
-        category: 'startup',
-      );
-      return;
+        'code=${code.name} reasonCode=$reasonCode phase=${phase.name} '
+        'message="$message"';
+
+    // Prefer AppLogger if ready, otherwise fallback to telemetry.
+    try {
+      if (di.sl.isRegistered<AppLogger>()) {
+        di.sl<AppLogger>().warn(failureEvent, category: 'startup');
+        return;
+      }
+    } catch (_) {
+      // Fall through to telemetry when the logger is registered but unusable.
     }
-    _telemetry.warn(
-      'feature=startup action=bootstrap result=failure '
-      'code=${code.name} phase=${phase.name} message="$message"',
-    );
+    _telemetry.warn(failureEvent);
   }
 
   /// Optional extra signal used by the legacy flow (kept as best-effort).
@@ -210,4 +240,3 @@ String defaultLocaleProviderFromGetIt() {
   if (!di.sl.isRegistered<LocalePreferences>()) return 'en-US';
   return di.sl<LocalePreferences>().languageCode;
 }
-

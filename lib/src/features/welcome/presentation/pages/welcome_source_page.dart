@@ -14,12 +14,14 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
+import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_faq_row.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
@@ -346,6 +348,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
     final l10n = AppLocalizations.of(context)!;
     final connectState = ref.watch(iptvConnectControllerProvider);
     final accentColor = ref.watch(asp.currentAccentColorProvider);
+    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
 
     final isBusy = _loadingSources || connectState.isLoading;
 
@@ -366,6 +369,18 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
                     title: l10n.welcomeSourceTitle,
                     subtitle: l10n.welcomeSourceSubtitle,
                   ),
+                  if (launchRecovery?.isRetryable ?? false) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    LaunchRecoveryBanner(
+                      message: launchRecovery!.message,
+                      onRetry: () {
+                        ref
+                            .read(appLaunchOrchestratorProvider.notifier)
+                            .reset();
+                        context.go(AppRouteNames.launch);
+                      },
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.lg),
 
                   // ---------------- Sources Supabase ----------------

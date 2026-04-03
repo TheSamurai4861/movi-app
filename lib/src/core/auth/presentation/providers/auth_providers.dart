@@ -12,6 +12,7 @@ import 'package:movi/src/core/auth/application/services/local_data_cleanup_servi
 import 'package:movi/src/core/auth/application/ports/auth_telemetry_port.dart';
 import 'package:movi/src/core/auth/infrastructure/auth_telemetry_adapters.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final sl = ref.watch(slProvider);
@@ -27,9 +28,12 @@ final authOrchestratorProvider = Provider<AuthOrchestrator>((ref) {
   final LocalCleanupPort? cleanupPort = cleanupService == null
       ? null
       : _LocalCleanupAdapter(cleanupService);
-  final AppLogger? logger =
-      sl.isRegistered<AppLogger>() ? sl<AppLogger>() : null;
-  final AuthTelemetryPort telemetry = AuthLoggerTelemetryAdapter(logger: logger);
+  final AppLogger? logger = sl.isRegistered<AppLogger>()
+      ? sl<AppLogger>()
+      : null;
+  final AuthTelemetryPort telemetry = AuthLoggerTelemetryAdapter(
+    logger: logger,
+  );
 
   return AuthOrchestrator(
     repository: repo,
@@ -41,6 +45,10 @@ final authOrchestratorProvider = Provider<AuthOrchestrator>((ref) {
 final class _LocalCleanupAdapter implements LocalCleanupPort {
   _LocalCleanupAdapter(this._service);
   final LocalDataCleanupService _service;
+
+  @override
+  Future<void> clearSensitiveSessionState() =>
+      _service.clearSensitiveSessionState();
 
   @override
   Future<void> clearAllLocalData() => _service.clearAllLocalData();
@@ -89,8 +97,12 @@ class AuthController extends Notifier<AuthControllerState> {
 
   @override
   AuthControllerState build() {
+    final sl = ref.watch(slProvider);
     final repo = ref.watch(authRepositoryProvider);
     final orchestrator = ref.watch(authOrchestratorProvider);
+    final launchRegistry = sl.isRegistered<AppLaunchStateRegistry>()
+        ? sl<AppLaunchStateRegistry>()
+        : null;
 
     // If the repo changes (hot reload / DI replacement), resubscribe safely.
     if (!identical(_repo, repo)) {
@@ -112,11 +124,19 @@ class AuthController extends Notifier<AuthControllerState> {
     // Bootstrapping: explicit unknown -> authenticated/unauthenticated.
     if (!_bootstrapped) {
       _bootstrapped = true;
-      state = AuthControllerState.unknown;
-      unawaited(() async {
-        final snapshot = await orchestrator.bootstrapSession();
-        _onAuthSnapshot(snapshot);
-      }());
+      final launchSnapshot = _snapshotFromResolvedLaunch(
+        launchRegistry?.state,
+        repo,
+      );
+      if (launchSnapshot != null) {
+        _onAuthSnapshot(launchSnapshot);
+      } else {
+        state = AuthControllerState.unknown;
+        unawaited(() async {
+          final result = await orchestrator.bootstrapSession();
+          _onAuthSnapshot(result.snapshot);
+        }());
+      }
     }
 
     return state;
@@ -127,6 +147,26 @@ class AuthController extends Notifier<AuthControllerState> {
       status: snapshot.status,
       userId: snapshot.userId,
     );
+  }
+
+  AuthSnapshot? _snapshotFromResolvedLaunch(
+    AppLaunchState? launchState,
+    AuthRepository repo,
+  ) {
+    if (launchState == null || launchState.status != AppLaunchStatus.success) {
+      return null;
+    }
+
+    if (!launchState.criteria.hasSession) {
+      return AuthSnapshot.unauthenticated;
+    }
+
+    final session = repo.currentSession;
+    if (session == null) {
+      return null;
+    }
+
+    return AuthSnapshot(status: AuthStatus.authenticated, session: session);
   }
 
   Future<void> signOut() async {

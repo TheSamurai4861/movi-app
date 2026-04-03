@@ -107,15 +107,26 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (launchState.status == AppLaunchStatus.success) {
+      final hasStaleAuthDestination =
+          launchState.destination == BootstrapDestination.auth &&
+          _isAuthenticated == true;
+      if (hasStaleAuthDestination) {
+        return onLaunch ? null : AppRoutePaths.launch;
+      }
+
+      final target = _mapDestination(launchState.destination);
       if (launchState.destination == BootstrapDestination.home &&
-          !launchState.criteria.isHomeReady &&
-          isStartupRoute) {
+          !launchState.criteria.isHomeReady) {
         return onBootstrap ? null : AppRoutePaths.bootstrap;
+      }
+      if (target != null &&
+          launchState.destination != BootstrapDestination.home &&
+          current != target) {
+        return target;
       }
       if (!isStartupRoute) {
         return null;
       }
-      final target = _mapDestination(launchState.destination);
       if (target != null && current != target) {
         return target;
       }

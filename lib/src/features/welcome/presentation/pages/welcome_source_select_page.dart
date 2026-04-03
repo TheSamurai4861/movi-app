@@ -9,6 +9,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
+import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
@@ -18,6 +19,7 @@ import 'package:movi/src/features/library/presentation/providers/library_cloud_s
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
+import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 
 class WelcomeSourceSelectPage extends ConsumerWidget {
   const WelcomeSourceSelectPage({super.key});
@@ -63,6 +65,7 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final asyncAccounts = ref.watch(allIptvAccountsProvider);
+    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
 
     final locator = ref.watch(slProvider);
     final selectedPrefs = locator<SelectedIptvSourcePreferences>();
@@ -85,6 +88,21 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
                   title: l10n.activeSourceTitle,
                   onBack: () => _handleBack(context),
                 ),
+                if (launchRecovery?.isRetryable ?? false) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: LaunchRecoveryBanner(
+                      message: launchRecovery!.message,
+                      onRetry: () {
+                        ref
+                            .read(appLaunchOrchestratorProvider.notifier)
+                            .reset();
+                        context.go(AppRouteNames.launch);
+                      },
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Expanded(
                   child: asyncAccounts.when(

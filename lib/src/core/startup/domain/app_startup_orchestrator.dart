@@ -45,7 +45,9 @@ final class AppStartupOrchestrator {
     final sw = Stopwatch()..start();
     var phase = StartupPhase.init;
     try {
-      _telemetry.info('feature=startup action=bootstrap result=progress phase=init');
+      _telemetry.info(
+        'feature=startup action=bootstrap result=progress phase=init',
+      );
 
       phase = StartupPhase.loadFlavor;
       final flavor = _flavorPort.loadFlavor();
@@ -58,7 +60,8 @@ final class AppStartupOrchestrator {
           .registerConfig(flavor: flavor, requireTmdbKey: _requireTmdbKey)
           .timeout(
             _configTimeout,
-            onTimeout: () => throw const _StartupTimeout(StartupPhase.registerConfig),
+            onTimeout: () =>
+                throw const _StartupTimeout(StartupPhase.registerConfig),
           );
       _telemetry.info(
         'feature=startup action=bootstrap result=progress phase=registerConfig',
@@ -69,7 +72,8 @@ final class AppStartupOrchestrator {
           .initDependencies(appConfig: config, localeProvider: localeProvider)
           .timeout(
             _dependenciesTimeout,
-            onTimeout: () => throw const _StartupTimeout(StartupPhase.initDependencies),
+            onTimeout: () =>
+                throw const _StartupTimeout(StartupPhase.initDependencies),
           );
       _telemetry.info(
         'feature=startup action=bootstrap result=progress phase=initDependencies',
@@ -94,37 +98,34 @@ final class AppStartupOrchestrator {
 
       phase = StartupPhase.done;
       sw.stop();
-      _loggingPort.logStartupSuccess(durationMs: sw.elapsedMilliseconds);
-      _telemetry.info(
-        'feature=startup action=bootstrap result=success durationMs=${sw.elapsedMilliseconds}',
+      final result = StartupResult.ready(durationMs: sw.elapsedMilliseconds);
+      _loggingPort.logStartupSuccess(
+        durationMs: sw.elapsedMilliseconds,
+        reasonCode: result.reasonCode,
       );
-      return StartupResult.ready(durationMs: sw.elapsedMilliseconds);
+      _telemetry.info(
+        'feature=startup action=bootstrap result=success '
+        'reasonCode=${result.reasonCode} durationMs=${sw.elapsedMilliseconds}',
+      );
+      return result;
     } catch (e, st) {
       sw.stop();
+      final code = _mapFailureCode(phase, e);
 
       final failure = StartupFailure(
-        code: _mapFailureCode(phase, e),
+        code: code,
         phase: phase,
         message: 'startup_failed phase=${phase.name} type=${e.runtimeType}',
         original: e,
       );
 
-      _telemetry.error(
-        'feature=startup action=bootstrap result=failure phase=${phase.name} '
-        'code=${failure.code.name}',
-        error: e,
-        stackTrace: st,
-      );
-
-      // Logging port may or may not be ready; it must be safe to call.
-      _loggingPort.logStartupFailure(
-        code: failure.code,
-        phase: failure.phase,
-        message: failure.message,
-      );
+      _reportFailureBestEffort(failure: failure, error: e, stackTrace: st);
 
       // SafeMode is our fail-safe path: keep the app alive and actionable.
-      return StartupResult.safeMode(durationMs: sw.elapsedMilliseconds, failure: failure);
+      return StartupResult.safeMode(
+        durationMs: sw.elapsedMilliseconds,
+        failure: failure,
+      );
     }
   }
 
@@ -151,13 +152,44 @@ final class AppStartupOrchestrator {
         return StartupFailureCode.configInvalid;
       case StartupPhase.initDependencies:
         return StartupFailureCode.dependenciesInitFailed;
+      case StartupPhase.exposeAppState:
+        return StartupFailureCode.appStateExposureFailed;
+      case StartupPhase.loggingReady:
+        return StartupFailureCode.loggingInitFailed;
       case StartupPhase.iptvSyncSetup:
         return StartupFailureCode.iptvSyncSetupFailed;
       case StartupPhase.init:
-      case StartupPhase.exposeAppState:
-      case StartupPhase.loggingReady:
       case StartupPhase.done:
         return StartupFailureCode.unknown;
+    }
+  }
+
+  void _reportFailureBestEffort({
+    required StartupFailure failure,
+    required Object error,
+    required StackTrace stackTrace,
+  }) {
+    try {
+      _telemetry.error(
+        'feature=startup action=bootstrap result=failure '
+        'phase=${failure.phase.name} code=${failure.code.name} '
+        'reasonCode=${failure.reasonCode}',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } catch (_) {
+      // Observability failures must never prevent the SafeMode fallback.
+    }
+
+    try {
+      _loggingPort.logStartupFailure(
+        code: failure.code,
+        phase: failure.phase,
+        message: failure.message,
+        reasonCode: failure.reasonCode,
+      );
+    } catch (_) {
+      // Startup logging is best-effort after bootstrap failure.
     }
   }
 }
@@ -166,4 +198,3 @@ final class _StartupTimeout implements Exception {
   const _StartupTimeout(this.phase);
   final StartupPhase phase;
 }
-
