@@ -24,7 +24,12 @@ import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.da
 /// Startup page that waits for IPTV playlists to be fully loaded
 /// before redirecting to home.
 class WelcomeSourceLoadingPage extends ConsumerStatefulWidget {
-  const WelcomeSourceLoadingPage({super.key});
+  const WelcomeSourceLoadingPage({
+    super.key,
+    this.forceCatalogReload = false,
+  });
+
+  final bool forceCatalogReload;
 
   @override
   ConsumerState<WelcomeSourceLoadingPage> createState() =>
@@ -82,13 +87,19 @@ class _WelcomeSourceLoadingPageState
       final xtreamIds = xtreamAccounts.map((a) => a.id).toSet();
       final stalkerIds = stalkerAccounts.map((a) => a.id).toSet();
 
-      final hasAnyItems = await iptvLocal.hasAnyPlaylistItems(
-        accountIds: activeSources,
-      );
+      var mustRefreshCatalog = widget.forceCatalogReload;
+      if (!mustRefreshCatalog) {
+        final hasAnyItems = await iptvLocal.hasAnyPlaylistItems(
+          accountIds: activeSources,
+        );
+        mustRefreshCatalog = !hasAnyItems;
+      }
 
-      if (!hasAnyItems) {
+      if (mustRefreshCatalog) {
         setState(() {
-          _statusMessage = 'Téléchargement des playlists...';
+          _statusMessage = widget.forceCatalogReload
+              ? 'Chargement complet de la source...'
+              : 'Téléchargement des playlists...';
         });
 
         final refreshXtream = locator<RefreshXtreamCatalog>();

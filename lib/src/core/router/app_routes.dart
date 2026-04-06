@@ -123,8 +123,15 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
     GoRoute(
       path: AppRoutePaths.welcomeSourceLoading,
       name: AppRouteIds.welcomeSourceLoading,
-      pageBuilder: (context, state) =>
-          const MaterialPage(child: WelcomeSourceLoadingPage()),
+      pageBuilder: (context, state) {
+        final forceCatalogReload =
+            state.uri.queryParameters['force_reload'] == '1';
+        return MaterialPage(
+          child: WelcomeSourceLoadingPage(
+            forceCatalogReload: forceCatalogReload,
+          ),
+        );
+      },
     ),
 
     GoRoute(

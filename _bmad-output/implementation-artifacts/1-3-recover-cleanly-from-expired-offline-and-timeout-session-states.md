@@ -55,6 +55,19 @@ afin de pouvoir continuer en securite ou me reauthentifier sans boucle de redire
   - [x] Etendre `test/core/router/launch_redirect_guard_reconnect_test.dart` pour prouver l'absence de redirect loop et la non-exposition de routes critiques pendant la recovery.
   - [x] Etendre `test/features/welcome/presentation/splash_bootstrap_page_progress_test.dart` ou un test voisin pour verrouiller le message de recovery et le retry explicite.
 
+### Review Findings
+
+- [ ] [Review][Decision] Definir la politique quand `Supabase` est configure mais qu'aucune session locale n'existe [lib/src/core/auth/application/auth_orchestrator.dart:41] — le diff traite `currentSession == null` comme `invalidSession` puis force `BootstrapDestination.auth`, ce qui change le comportement pour les fresh installs, les sign-outs volontaires et certains parcours `local-first`. La correction depend du contrat produit souhaite entre `reauth` immediate et entree non authentifiee actionnable.
+- [ ] [Review][Decision] Definir le scope du cleanup `invalidSession` pour les sources IPTV hydratees depuis le cloud [lib/src/core/auth/application/services/local_data_cleanup_service.dart:45] — le cleanup sensible preserve les comptes IPTV locaux et le vault, alors que le bootstrap hydrate des sources Supabase dans ce stockage local. Corriger le bleed inter-compte impose de choisir entre purge ciblée des donnees hydratees, isolation par compte, ou purge plus large des actifs IPTV.
+- [ ] [Review][Decision] Confirmer si la recovery retryable doit rester visible hors `SplashBootstrapPage` [lib/src/core/startup/presentation/widgets/launch_recovery_banner.dart:3] — la story borne la presentation de recovery a `SplashBootstrapPage`, mais le diff ajoute `LaunchRecoveryBanner` dans le shell et plusieurs ecrans welcome. Le bon correctif depend de l'intention UX finale.
+- [ ] [Review][Patch] Les erreurs d'invalidation de session levees pendant `refreshSession()` sont degradees en `refreshFailed` retryable au lieu de forcer une reauth fail-closed [lib/src/core/auth/application/auth_orchestrator.dart:142]
+- [ ] [Review][Patch] La recovery `invalidSession` peut retourner vers la reauth avec une session stale toujours en memoire quand `signOut()` echoue [lib/src/core/auth/application/auth_orchestrator.dart:200]
+- [ ] [Review][Patch] Le chemin `currentSession == null` marque `invalidSession` sans lancer le cleanup sensible requis [lib/src/core/auth/application/auth_orchestrator.dart:41]
+- [ ] [Review][Patch] La recovery auth retryable continue quand meme vers `getProfiles()` et peut rebloquer le lancement sur un second aller-retour cloud [lib/src/core/startup/app_launch_orchestrator.dart:568]
+- [ ] [Review][Patch] `WelcomeSourcePage` relance automatiquement `Supabase` au montage pendant une recovery degradee alors que le retry doit rester explicite [lib/src/features/welcome/presentation/pages/welcome_source_page.dart:70]
+- [ ] [Review][Patch] La telemetry `sensitive_cleanup=success` peut etre emise alors que des suppressions partielles ont deja echoue en interne [lib/src/core/auth/application/services/local_data_cleanup_service.dart:160]
+- [ ] [Review][Patch] Les messages de recovery et le CTA `Reessayer` contournent la couche de localisation et figent du texte francais dans le domaine/UI [lib/src/core/auth/application/auth_orchestrator.dart:179]
+
 ## Dev Notes
 
 ### Portee et limites de la story

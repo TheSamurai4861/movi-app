@@ -110,6 +110,12 @@ class AppConfig {
         featureFlags.useRemoteHome == other.featureFlags.useRemoteHome &&
         featureFlags.disableHomeHero == other.featureFlags.disableHomeHero &&
         featureFlags.enableTelemetry == other.featureFlags.enableTelemetry &&
+        featureFlags.enableEntryJourneyTelemetryV2 ==
+            other.featureFlags.enableEntryJourneyTelemetryV2 &&
+        featureFlags.enableEntryJourneyStateModelV2 ==
+            other.featureFlags.enableEntryJourneyStateModelV2 &&
+        featureFlags.enableEntryJourneyRoutingV2 ==
+            other.featureFlags.enableEntryJourneyRoutingV2 &&
         featureFlags.enableDownloads == other.featureFlags.enableDownloads &&
         featureFlags.enableNewSearch == other.featureFlags.enableNewSearch &&
         metadata.version == other.metadata.version &&
@@ -157,6 +163,9 @@ class AppConfig {
     featureFlags.useRemoteHome,
     featureFlags.disableHomeHero,
     featureFlags.enableTelemetry,
+    featureFlags.enableEntryJourneyTelemetryV2,
+    featureFlags.enableEntryJourneyStateModelV2,
+    featureFlags.enableEntryJourneyRoutingV2,
     featureFlags.enableDownloads,
     featureFlags.enableNewSearch,
     metadata.version,

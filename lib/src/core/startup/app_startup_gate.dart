@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
@@ -104,18 +105,52 @@ class AppStartupGate extends ConsumerWidget {
 /// - no duplication of delegates / supportedLocales,
 /// - a clear separation between startup shell and main app.
 Widget _buildStartupMaterialApp(Widget home) {
-  return MaterialApp(
-    debugShowCheckedModeBanner: false,
-    scrollBehavior: const MoviScrollBehavior(),
-    themeMode: ThemeMode.dark,
-    theme: AppTheme.dark(),
-    supportedLocales: AppLocalizations.supportedLocales,
-    localizationsDelegates: _startupLocalizationsDelegates,
-    builder: (context, child) {
-      return MoviRemoteNavigation(child: child ?? const SizedBox.shrink());
-    },
-    home: home,
-  );
+  return _StartupMaterialAppShell(home: home);
+}
+
+class _StartupMaterialAppShell extends StatefulWidget {
+  const _StartupMaterialAppShell({required this.home});
+
+  final Widget home;
+
+  @override
+  State<_StartupMaterialAppShell> createState() =>
+      _StartupMaterialAppShellState();
+}
+
+class _StartupMaterialAppShellState extends State<_StartupMaterialAppShell> {
+  late final Future<Color> _accentColorFuture = _loadAccentColor();
+
+  Future<Color> _loadAccentColor() async {
+    try {
+      return await AccentColorPreferences.readPersistedAccentColor();
+    } catch (_) {
+      return AppTheme.dark().colorScheme.primary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Color>(
+      future: _accentColorFuture,
+      builder: (context, snapshot) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          scrollBehavior: const MoviScrollBehavior(),
+          themeMode: ThemeMode.dark,
+          theme: AppTheme.dark(accentColor: snapshot.data),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: _startupLocalizationsDelegates,
+          builder: (context, child) {
+            return MoviRemoteNavigation(
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+          home: widget.home,
+        );
+      },
+    );
+  }
 }
 
 /// Minimal dark loading screen used while the app is initializing.

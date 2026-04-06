@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
+import 'package:movi/src/core/config/providers/config_provider.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
@@ -12,6 +13,7 @@ import 'package:movi/src/core/router/app_routes.dart';
 import 'package:movi/src/core/router/launch_redirect_guard.dart';
 import 'package:movi/src/core/router/not_found_page.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 
@@ -34,12 +36,18 @@ RouterBundle createRouterBundle({
   required AppLogger logger,
   required AuthRepository authRepository,
   required AppLaunchStateRegistry launchRegistry,
+  required TunnelStateRegistry tunnelStateRegistry,
+  required bool enableEntryJourneyStateModelV2,
+  required bool enableEntryJourneyRoutingV2,
 }) {
   final guard = LaunchRedirectGuard(
     logger: logger,
     appStateController: appStateController,
     authRepository: authRepository,
     launchRegistry: launchRegistry,
+    tunnelStateRegistry: tunnelStateRegistry,
+    enableEntryJourneyStateModelV2: enableEntryJourneyStateModelV2,
+    enableEntryJourneyRoutingV2: enableEntryJourneyRoutingV2,
   );
 
   final router = GoRouter(
@@ -84,6 +92,9 @@ GoRouter createRouter({
     logger: logger,
     authRepository: authRepository,
     launchRegistry: sl<AppLaunchStateRegistry>(),
+    tunnelStateRegistry: sl<TunnelStateRegistry>(),
+    enableEntryJourneyStateModelV2: false,
+    enableEntryJourneyRoutingV2: false,
   ).router;
 }
 
@@ -97,6 +108,9 @@ RouterHandle createRouterHandle({
     logger: logger,
     authRepository: authRepository,
     launchRegistry: sl<AppLaunchStateRegistry>(),
+    tunnelStateRegistry: sl<TunnelStateRegistry>(),
+    enableEntryJourneyStateModelV2: false,
+    enableEntryJourneyRoutingV2: false,
   );
   return RouterHandle(router: bundle.router, guard: bundle.guard);
 }
@@ -107,16 +121,21 @@ RouterHandle createRouterHandle({
 final appRouterProvider = Provider<GoRouter>((ref) {
   final appStateController = ref.watch(appStateControllerProvider);
   final sl = ref.watch(slProvider);
+  final featureFlags = ref.watch(featureFlagsProvider);
 
   final logger = sl<AppLogger>();
   final authRepository = sl<AuthRepository>();
   final launchRegistry = sl<AppLaunchStateRegistry>();
+  final tunnelStateRegistry = sl<TunnelStateRegistry>();
 
   final bundle = createRouterBundle(
     appStateController: appStateController,
     logger: logger,
     authRepository: authRepository,
     launchRegistry: launchRegistry,
+    tunnelStateRegistry: tunnelStateRegistry,
+    enableEntryJourneyStateModelV2: featureFlags.enableEntryJourneyStateModelV2,
+    enableEntryJourneyRoutingV2: featureFlags.enableEntryJourneyRoutingV2,
   );
 
   ref.onDispose(() {

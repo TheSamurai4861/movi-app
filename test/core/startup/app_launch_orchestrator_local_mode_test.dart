@@ -9,6 +9,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
+import 'package:movi/src/core/config/models/feature_flags.dart';
+import 'package:movi/src/core/config/providers/overrides.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
@@ -21,6 +23,8 @@ import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
+import 'package:movi/src/core/startup/entry_journey_orchestrator.dart';
+import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
@@ -72,6 +76,251 @@ void main() {
       expect(result.destination, BootstrapDestination.welcomeUser);
       expect(result.meta.accountId, isNull);
       expect(result.meta.profilesCount, 0);
+    },
+  );
+
+  test(
+    'shadow tunnel reports profileRequired when no local profile exists',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyStateModelV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      final result = await harness.run();
+      final shadow = await harness.container.read(
+        entryJourneyShadowSnapshotProvider.future,
+      );
+
+      expect(result.destination, BootstrapDestination.welcomeUser);
+      expect(shadow.canonicalState.stage, TunnelStage.profileRequired);
+      expect(shadow.comparison, EntryJourneyShadowComparison.convergent);
+    },
+  );
+
+  test(
+    'emits entry journey telemetry events when v2 telemetry flag is enabled',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyTelemetryV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_telemetry';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.destination, BootstrapDestination.home);
+      final telemetryEvents = harness.logger.events
+          .where((event) => event.category == 'entry_journey')
+          .map((event) => event.message)
+          .join('\n');
+      expect(
+        telemetryEvents,
+        contains('feature=entry_journey event=entry_journey_started'),
+      );
+      expect(
+        telemetryEvents,
+        contains('feature=entry_journey event=entry_journey_stage_entered'),
+      );
+      expect(
+        telemetryEvents,
+        contains('feature=entry_journey event=profiles_inventory_loaded'),
+      );
+      expect(
+        telemetryEvents,
+        contains('feature=entry_journey event=catalog_minimal_ready'),
+      );
+      expect(
+        telemetryEvents,
+        contains('feature=entry_journey event=catalog_full_load_completed'),
+      );
+      expect(
+        telemetryEvents,
+        contains('feature=entry_journey event=entry_journey_completed'),
+      );
+      expect(telemetryEvents, contains('runId='));
+    },
+  );
+
+  test(
+    'does not emit entry journey telemetry events when v2 telemetry flag is disabled',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyTelemetryV2: false,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+      const accountId = 'local_xtream_account_no_telemetry';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Offline Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+
+      expect(result.destination, BootstrapDestination.home);
+      final telemetryEvents = harness.logger.events
+          .where((event) => event.category == 'entry_journey')
+          .map((event) => event.message)
+          .join('\n');
+      expect(telemetryEvents, isEmpty);
+    },
+  );
+
+  test(
+    'emits manual selection safe state telemetry when multiple sources require user choice',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyTelemetryV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+
+      Future<void> saveSource(String accountId, String title) async {
+        await harness.iptvLocal.saveAccount(
+          XtreamAccount(
+            id: accountId,
+            alias: title,
+            endpoint: XtreamEndpoint.parse('http://example.com'),
+            username: 'demo',
+            status: XtreamAccountStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_$accountId',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film $title',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      await saveSource('source_1', 'Source 1');
+      await saveSource('source_2', 'Source 2');
+
+      final result = await harness.run();
+
+      expect(result.destination, BootstrapDestination.chooseSource);
+      final telemetryEvents = harness.logger.events
+          .where((event) => event.category == 'entry_journey')
+          .map((event) => event.message)
+          .join('\n');
+      expect(
+        telemetryEvents,
+        contains('event=source_selection_resolved runId='),
+      );
+      expect(telemetryEvents, contains('result=manual_selection_required'));
+      expect(telemetryEvents, contains('reasonCode=source_selection_required'));
+      expect(
+        telemetryEvents,
+        contains('event=entry_journey_safe_state_reached'),
+      );
+      expect(telemetryEvents, contains('destination=chooseSource'));
+    },
+  );
+
+  test(
+    'shadow tunnel reports authRequired when cloud auth is enabled and no session exists',
+    () async {
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        enableEntryJourneyStateModelV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+
+      final result = await harness.run();
+      final shadow = await harness.container.read(
+        entryJourneyShadowSnapshotProvider.future,
+      );
+
+      expect(result.destination, BootstrapDestination.auth);
+      expect(shadow.canonicalState.stage, TunnelStage.authRequired);
+      expect(shadow.comparison, EntryJourneyShadowComparison.convergent);
     },
   );
 
@@ -186,6 +435,35 @@ void main() {
         harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
         AuthFailureCode.refreshFailed,
       );
+    },
+  );
+
+  test(
+    'shadow tunnel reports authRequired when cloud session requires reauthentication',
+    () async {
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        enableEntryJourneyStateModelV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+      harness.authRepository.returnNullOnRefresh = true;
+
+      await harness.localProfiles.createProfile(
+        name: 'Cloud Profile',
+        color: 0xFF2160AB,
+        accountId: 'cloud-user',
+      );
+
+      final result = await harness.run();
+      final shadow = await harness.container.read(
+        entryJourneyShadowSnapshotProvider.future,
+      );
+
+      expect(result.destination, BootstrapDestination.auth);
+      expect(shadow.canonicalState.stage, TunnelStage.authRequired);
+      expect(shadow.comparison, EntryJourneyShadowComparison.convergent);
     },
   );
 
@@ -359,9 +637,70 @@ void main() {
   );
 
   test(
+    'shadow tunnel reports sourceRequired when multiple sources need manual selection',
+    () async {
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyStateModelV2: true,
+      );
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+
+      Future<void> saveSource(String accountId) async {
+        await harness.iptvLocal.saveAccount(
+          XtreamAccount(
+            id: accountId,
+            alias: accountId,
+            endpoint: XtreamEndpoint.parse('http://example.com'),
+            username: 'demo',
+            status: XtreamAccountStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_$accountId',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film $accountId',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      await saveSource('source_1');
+      await saveSource('source_2');
+
+      final result = await harness.run();
+      final shadow = await harness.container.read(
+        entryJourneyShadowSnapshotProvider.future,
+      );
+
+      expect(result.destination, BootstrapDestination.chooseSource);
+      expect(shadow.canonicalState.stage, TunnelStage.sourceRequired);
+      expect(shadow.comparison, EntryJourneyShadowComparison.convergent);
+    },
+  );
+
+  test(
     'returns home without backend when local profile and local IPTV source exist',
     () async {
-      final harness = await _LaunchHarness.create();
+      final harness = await _LaunchHarness.create(
+        enableEntryJourneyStateModelV2: true,
+      );
       addTearDown(harness.dispose);
 
       final created = await harness.localProfiles.createProfile(
@@ -426,6 +765,12 @@ void main() {
             .isHomeReady,
         isTrue,
       );
+
+      final shadow = await harness.container.read(
+        entryJourneyShadowSnapshotProvider.future,
+      );
+      expect(shadow.canonicalState.stage, TunnelStage.readyForHome);
+      expect(shadow.comparison, EntryJourneyShadowComparison.convergent);
     },
   );
 
@@ -619,6 +964,7 @@ class _LaunchHarness {
     required this.localePreferences,
     required this.authRepository,
     required this.homeController,
+    required this.logger,
     this.supabaseClient,
   });
 
@@ -631,9 +977,14 @@ class _LaunchHarness {
   final _MemoryLocalePreferences localePreferences;
   final _FakeAuthRepository authRepository;
   final _FakeHomeController homeController;
+  final _MemoryLogger logger;
   final SupabaseClient? supabaseClient;
 
-  static Future<_LaunchHarness> create({bool cloudAuthEnabled = false}) async {
+  static Future<_LaunchHarness> create({
+    bool cloudAuthEnabled = false,
+    bool enableEntryJourneyTelemetryV2 = false,
+    bool enableEntryJourneyStateModelV2 = false,
+  }) async {
     await sl.reset();
 
     final db = await openDatabase(
@@ -679,11 +1030,19 @@ class _LaunchHarness {
     );
     sl.registerSingleton<IptvLocalRepository>(iptvLocal);
     sl.registerSingleton<AppLaunchStateRegistry>(AppLaunchStateRegistry());
+    sl.registerSingleton<TunnelStateRegistry>(TunnelStateRegistry());
     sl.registerSingleton<RefreshXtreamCatalog>(refreshXtreamCatalog);
     sl.registerSingleton<RefreshStalkerCatalog>(refreshStalkerCatalog);
 
     final container = ProviderContainer(
       overrides: [
+        overrideFeatureFlags(
+          FeatureFlags(
+            enableTelemetry: true,
+            enableEntryJourneyTelemetryV2: enableEntryJourneyTelemetryV2,
+            enableEntryJourneyStateModelV2: enableEntryJourneyStateModelV2,
+          ),
+        ),
         app_startup_provider.appStartupProvider.overrideWith(
           (ref) async => StartupResult.ready(durationMs: 0),
         ),
@@ -713,6 +1072,7 @@ class _LaunchHarness {
       localePreferences: localePreferences,
       authRepository: authRepository,
       homeController: homeController,
+      logger: logger,
       supabaseClient: supabaseClient,
     );
   }

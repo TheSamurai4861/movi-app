@@ -292,8 +292,8 @@ FR40: Epic 8 - Signalement des situations en etat degrade ou en etat sur.
 
 ## Epic List
 
-### Epic 1: Trusted App Entry and Session Continuity
-Les utilisateurs peuvent ouvrir l'application, retrouver une session coherente et atteindre un etat exploitable sans boucle, sans spinner infini et sans confusion sur leur niveau d'acces.
+### Epic 1: Trusted App Entry, Access Recovery, and First Useful State
+Les utilisateurs peuvent ouvrir l'application, retrouver une session coherente, recuperer d'un acces degrade, puis atteindre rapidement un premier etat utile sans boucle, sans spinner infini et sans confusion sur leur niveau d'acces.
 **FRs covered:** FR1, FR2, FR3, FR4
 
 ### Epic 2: Discover and Navigate Content Across Mobile and TV
@@ -324,9 +324,9 @@ Les utilisateurs peuvent continuer a utiliser `movi` quand le reseau est degrade
 Le support et les operations peuvent diagnostiquer les incidents critiques, distinguer les etats recuperables, expliquer les echecs visibles et confirmer les etats surs sans fuite de donnees sensibles.
 **FRs covered:** FR36, FR37, FR38, FR39, FR40
 
-## Epic 1: Trusted App Entry and Session Continuity
+## Epic 1: Trusted App Entry, Access Recovery, and First Useful State
 
-Les utilisateurs peuvent ouvrir l'application, retrouver une session coherente et atteindre un etat exploitable sans boucle, sans spinner infini et sans confusion sur leur niveau d'acces.
+Les utilisateurs peuvent ouvrir l'application, retrouver une session coherente, recuperer d'un acces degrade, puis atteindre rapidement un premier etat utile sans boucle, sans spinner infini et sans confusion sur leur niveau d'acces.
 
 ### Story 1.1: Reach a Usable Startup State Without Crash Loops
 
@@ -368,10 +368,10 @@ So that I immediately understand whether I am signed in, signed out, or in a lim
 **Then** the application defaults to a signed-out or otherwise safe non-authenticated path
 **And** no protected route is exposed by mistake.
 
-### Story 1.3: Recover Cleanly From Expired, Offline, and Timeout Session States
+### Story 1.3: Recover Cleanly From Expired, Offline, and Timeout Session States With Explicit Recovery UX
 
 As a returning user,
-I want interrupted or degraded session restoration to end in a clear recovery state,
+I want interrupted or degraded session restoration to end in a clear visible recovery state,
 So that I can continue safely or reauthenticate without redirect loops or blocked navigation.
 
 **FRs implemented:** FR2, FR3
@@ -388,10 +388,15 @@ So that I can continue safely or reauthenticate without redirect loops or blocke
 **Then** the application remains navigable in a safe degraded state
 **And** retries stay explicit, bounded, and observable.
 
-### Story 1.4: Restore Essential Context After Launch Without Breaking Safety Rules
+**Given** the user lands in an expired, offline, timeout, or revalidated degraded path
+**When** the recovery state is shown
+**Then** the screen explains the current access state, the primary next action, and any allowed degraded continuation path
+**And** the user never has to infer whether the app is blocked, retrying, or safe to continue.
+
+### Story 1.4: Restore Essential Context Into the Correct First Useful State
 
 As a returning user,
-I want the app to restore my essential context after interruption,
+I want the app to restore my essential context into the correct first useful state after interruption,
 So that I can continue from a useful place without losing my orientation or bypassing safety gates.
 
 **FRs implemented:** FR4
@@ -400,13 +405,78 @@ So that I can continue from a useful place without losing my orientation or bypa
 
 **Given** startup and access resolution complete successfully
 **When** the application restores essential context
-**Then** the user lands on the last safe relevant screen or an equivalent useful entry point
+**Then** the user lands on the last safe relevant screen, `home lite`, or an equivalent useful entry point
 **And** the restored context does not bypass auth, parental, or entitlement gates.
 
 **Given** the previously stored context is invalid, stale, or no longer safe to restore
 **When** context restoration is attempted
 **Then** the application falls back to a safe default entry point
 **And** the user is not left in an ambiguous or broken navigation state.
+
+**Given** secondary data such as full catalog freshness or library hydration is not yet complete
+**When** the first useful state becomes visible
+**Then** the application may continue hydrating in the background
+**And** the user is not blocked behind a full preload corridor when a safe useful state already exists.
+
+### Story 1.5: Resolve the Entry Flow Into a Single First Useful State Contract
+
+As a user opening the app,
+I want the entry flow to resolve into one coherent first useful state contract,
+So that launch logic feels fast, predictable, and understandable instead of fragmented across technical screens.
+
+**FRs implemented:** FR1, FR3, FR4
+
+**Acceptance Criteria:**
+
+**Given** startup, auth, profile, and source decisions are being evaluated
+**When** the application resolves the entry flow
+**Then** it produces one explicit user-facing destination contract such as `auth recovery`, `profile decision`, `source hub`, `source warmup`, or `home lite`
+**And** route orchestration does not expose redundant technical corridors as separate product states.
+
+**Given** the app can reach a safe useful state before full hydration completes
+**When** first useful state is available
+**Then** the shell or equivalent useful surface becomes visible within the defined launch budget
+**And** non-critical warmup continues progressively in the background.
+
+### Story 1.6: Surface Explicit Entry States for Empty, Loading, Error, Timeout, Offline, Expired, and Recovered Conditions
+
+As a user entering the app,
+I want every critical entry condition to be represented by a clear state,
+So that I always understand what is happening, what is safe, and what to do next.
+
+**FRs implemented:** FR1, FR2, FR3, FR32, FR33
+
+**Acceptance Criteria:**
+
+**Given** the entry flow encounters `empty`, `loading`, `error`, `timeout`, `offline`, `expired`, or `recovered` conditions
+**When** the relevant screen is rendered
+**Then** the application shows a distinct state with the correct explanation and next action
+**And** the state is distinguishable from normal, blocked, and pending-sync outcomes.
+
+**Given** the underlying condition changes because retry, reconnect, revalidation, or recovery succeeds
+**When** the entry UI refreshes
+**Then** the visible state updates coherently without contradictory banners, stale labels, or hidden redirects
+**And** the user remains on a deterministic path.
+
+### Story 1.7: Make the Entry Flow Fully Usable on Android TV
+
+As a user on Android TV,
+I want the entry flow to work naturally with directional navigation,
+So that auth, profile, source, and recovery states remain clear and controllable on TV.
+
+**FRs implemented:** FR10
+
+**Acceptance Criteria:**
+
+**Given** the user navigates startup, auth, profile, source, or recovery screens with a remote
+**When** focus moves across primary and secondary actions
+**Then** focus remains visible, deterministic, and spatially coherent
+**And** no focus trap, hidden action, or ambiguous next move occurs.
+
+**Given** the same entry path is used on mobile and Android TV
+**When** the UI renders on TV
+**Then** the same core states and actions remain available with adapted spacing, readability, and target sizing
+**And** the presentation satisfies `10-foot UI` clarity before the user reaches discovery or playback.
 
 ## Epic 2: Discover and Navigate Content Across Mobile and TV
 
@@ -422,8 +492,8 @@ So that I can start browsing useful movie and TV options immediately.
 
 **Acceptance Criteria:**
 
-**Given** catalog data and primary app state are available
-**When** the discovery home renders
+**Given** primary app state and a safe local or remote content snapshot are available
+**When** the discovery home renders as the first useful post-entry surface
 **Then** the user sees a dedicated browse surface with a compact hero, a visible primary action, and structured movie/TV rails
 **And** the main browse path is reachable without navigating through secondary screens first.
 
@@ -431,6 +501,11 @@ So that I can start browsing useful movie and TV options immediately.
 **When** the home surface is shown
 **Then** the application keeps the discovery home usable with partial content or explicit empty states
 **And** the failure is communicated without blocking navigation to available content.
+
+**Given** the app has reached `home lite` before full hydration completes
+**When** secondary rails, freshness checks, or library hydration finish later
+**Then** the discovery home enriches progressively in place
+**And** the user does not lose shell context or re-enter a blocking bootstrap screen.
 
 ### Story 2.2: Resolve Movie and TV Content Into a Usable Detail State
 
@@ -992,6 +1067,11 @@ So that I am not blocked from understanding my current context.
 **Then** the application makes the degraded condition explicit
 **And** it avoids implying that missing remote data is already current or confirmed.
 
+**Given** degraded connectivity occurs during the app entry flow
+**When** a full warmup path cannot complete in time
+**Then** the application prefers a safe minimal useful entry state over a blocked preload corridor
+**And** the user can still identify active profile, source, and next safe action.
+
 ### Story 7.2: Surface Pending-Sync and Degraded States in Context
 
 As a user,
@@ -1011,6 +1091,11 @@ So that I understand which data or actions are still catching up.
 **When** the UI refreshes
 **Then** the visible status updates coherently without contradictory banners or stale indicators
 **And** the user is not forced to infer the state from missing or inconsistent content.
+
+**Given** entry, home-lite, or source warmup is still reconciling remote freshness
+**When** the user reaches the first useful state
+**Then** any `pending-sync` or degraded marker appears in the decision context that it affects
+**And** the user is not left to guess whether content is current, local-only, or still recovering.
 
 ### Story 7.3: Recover to Normal Use Automatically When Connectivity Returns
 
@@ -1075,6 +1160,11 @@ So that incidents in startup, auth, parental, and subscription gates can be trac
 **When** observability data is emitted
 **Then** the resulting events still identify the effective outcome explicitly
 **And** support can distinguish safe, degraded, blocked, and failed access outcomes.
+
+**Given** the application resolves an entry-flow destination such as `auth recovery`, `profile decision`, `source hub`, `source warmup`, `home lite`, or `home hydrated`
+**When** diagnostics are recorded for that launch
+**Then** all events for the same launch share a correlated entry-flow identifier and timing checkpoints
+**And** support can distinguish `first useful state visible` from later background hydration completion.
 
 ### Story 8.2: Instrument Playback, Resume, and Sync Critical Flows With Stable Diagnostic Identifiers
 

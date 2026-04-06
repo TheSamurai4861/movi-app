@@ -41,6 +41,7 @@ import 'package:movi/src/core/storage/services/storage_module.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/supabase/supabase_module.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 
 import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
 import 'package:movi/src/features/home/data/home_feed_data_module.dart';
@@ -559,6 +560,9 @@ void _registerState() {
       () => AppLaunchStateRegistry(),
     );
   }
+  if (!sl.isRegistered<TunnelStateRegistry>()) {
+    sl.registerLazySingleton<TunnelStateRegistry>(() => TunnelStateRegistry());
+  }
 
   sl<LocalePreferences>().languageStream.listen((_) {
     if (sl.isRegistered<TmdbCacheDataSource>()) {
@@ -635,6 +639,9 @@ void _assertCriticalRegistrations() {
   }
   if (!sl.isRegistered<IptvLocalRepository>()) {
     missing.add('IptvLocalRepository');
+  }
+  if (!sl.isRegistered<TunnelStateRegistry>()) {
+    missing.add('TunnelStateRegistry');
   }
 
   if (missing.isNotEmpty) {

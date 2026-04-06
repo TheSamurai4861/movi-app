@@ -785,3 +785,28 @@ L'implementation devra suivre cet ordre:
 **5. Migrer de facon brownfield**
 - adopter d'abord cette direction sur les surfaces coeur: home, detail, player overlays, continue watching, premium states, parental states
 - utiliser la Direction 6 comme niveau minimal acceptable sur les zones legacy avant alignement complet
+
+## Addendum 2026-04-03 - Canonical Entry Flow
+
+Le recadrage approuve introduit un ordre UX cible explicite pour l'entree dans `movi`.
+
+Ordre cible ecran par ecran:
+- `Native Splash`
+- `Entry Bootstrap Surface`
+- `Auth Recovery / Sign-In Decision`
+- `Profile Decision`
+- `Source Hub`
+- `Source Warmup / Catalog Recovery` uniquement si necessaire
+- `Home Lite`
+- `Home Hydrated`
+
+Regles UX approuvees:
+- l'utilisateur ne doit jamais percevoir `startup`, `launch`, `bootstrap` et `warmup` comme des couloirs techniques distincts
+- tout etat critique d'entree doit expliciter ce qui se passe, ce qui est sur, et quelle action vient ensuite
+- `WelcomeUserPage` ne doit plus etre defini comme une redirection auth implicite, mais comme une vraie surface de decision profil
+- `WelcomeSourcePage` et `WelcomeSourceSelectPage` evoluent vers un `Source Hub` unifie avec etats `add`, `repair`, `restore`, `choose`, `continue degraded`
+- `WelcomeSourceLoadingPage` devient un etat borne de warmup/recovery, pas un preload obligatoire avant toute entree utile
+- `Home Lite` devient la premiere surface utile prioritaire des qu'un contexte sur existe
+
+Contraintes TV additionnelles:
+- auth, profil, source, erreur, timeout et offline doivent respecter les memes exigences de focus visible et de lisibilite `10-foot UI` que les surfaces discovery

@@ -415,7 +415,7 @@ final accentColorStreamProvider = StreamProvider<Color>((ref) {
     return Stream.value(AppColors.accent);
   }
   final prefs = locator<AccentColorPreferences>();
-  return prefs.accentColorStream;
+  return prefs.accentColorStreamWithInitial;
 });
 
 /// Couleur d'accent courante.

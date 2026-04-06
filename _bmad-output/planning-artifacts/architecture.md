@@ -887,3 +887,26 @@ No critical internal architecture gap remains that would block creation of coher
 
 **First Implementation Priority:**
 Consolidate the critical boundaries `core/startup`, `core/auth`, `core/storage`, `core/network`, `core/parental`, and `core/profile`, then open the target locations `core/subscription`, `features/subscription`, `core/notifications`, and `features/notifications` cleanly before extending the story set.
+
+## Addendum 2026-04-03 - Entry Flow Runtime Contract
+
+The approved course correction introduces a sharper runtime contract for app entry.
+
+Architecture clarifications:
+- split `startup readiness` from `entry decision`
+- split `first useful state` from `background hydration`
+- stop using `fully hydrated home` as the sole condition for entering the shell
+- keep routing deterministic while allowing `home lite` when a safe useful state already exists
+
+Approved target contract:
+- `startup ready`: platform and app dependencies are initialized enough to render entry UX
+- `entry decision`: auth, profile, source, and recovery destination are resolved
+- `home lite ready`: a safe shell/home surface can render with local or partial data
+- `home hydrated`: secondary rails, freshness checks, and library hydration are complete enough to remove degraded/pending states when applicable
+
+Implications for architecture and implementation:
+- `core/startup/` owns the state machine and timing checkpoints for `entry_flow`
+- `core/router/` redirects according to explicit user-facing destination classes, not only technical preload phases
+- `features/welcome/` owns entry surfaces as product states, not as thin wrappers around technical routes
+- `features/home/` must support progressive hydration from `home lite` to hydrated home without forcing a second bootstrap corridor
+- entry diagnostics must correlate `entry_flow_started`, `entry_destination_resolved`, `first_useful_state_visible`, and `home_hydrated`

@@ -25,10 +25,11 @@ class AccentColorPreferences {
     String storageKey = _defaultStorageKey,
   }) async {
     final resolvedStorage = storage ?? const FlutterSecureStorage();
-    final defaultColor = defaultAccentColor ?? AppColors.accent;
-
-    final persistedColorRaw = await resolvedStorage.read(key: storageKey);
-    final initialColor = _parseColor(persistedColorRaw) ?? defaultColor;
+    final initialColor = await readPersistedAccentColor(
+      storage: resolvedStorage,
+      defaultAccentColor: defaultAccentColor,
+      storageKey: storageKey,
+    );
 
     return AccentColorPreferences._(
       storage: resolvedStorage,
@@ -36,6 +37,18 @@ class AccentColorPreferences {
       accentColor: initialColor,
       accentColorController: StreamController<Color>.broadcast(),
     );
+  }
+
+  /// Reads the persisted accent color from storage and falls back safely.
+  static Future<Color> readPersistedAccentColor({
+    FlutterSecureStorage? storage,
+    Color? defaultAccentColor,
+    String storageKey = _defaultStorageKey,
+  }) async {
+    final resolvedStorage = storage ?? const FlutterSecureStorage();
+    final defaultColor = defaultAccentColor ?? AppColors.accent;
+    final persistedColorRaw = await resolvedStorage.read(key: storageKey);
+    return _parseColor(persistedColorRaw) ?? defaultColor;
   }
 
   final FlutterSecureStorage _storage;
@@ -57,12 +70,29 @@ class AccentColorPreferences {
 
   /// Persists and notifies a new accent color.
   Future<void> setAccentColor(Color color) async {
-    if (color == _accentColor) return;
+    if (_sameColor(color, _accentColor)) return;
+
+    final previousColor = _accentColor;
     _accentColor = color;
-    await _storage.write(key: _storageKey, value: _stringifyColor(color));
-    if (!_accentColorController.isClosed) {
-      _accentColorController.add(color);
+    _emitAccentColor(color);
+
+    try {
+      await _storage.write(key: _storageKey, value: _stringifyColor(color));
+    } catch (_) {
+      _accentColor = previousColor;
+      _emitAccentColor(previousColor);
+      rethrow;
     }
+  }
+
+
+  void _emitAccentColor(Color color) {
+    if (_accentColorController.isClosed) return;
+    _accentColorController.add(color);
+  }
+
+  static bool _sameColor(Color a, Color b) {
+    return a.toARGB32() == b.toARGB32();
   }
 
   /// Cleans up internal resources.
@@ -96,8 +126,7 @@ class AccentColorPreferences {
   }
 
   static String _stringifyColor(Color color) {
-    // ignore: deprecated_member_use
-    final argb32 = color.value;
+    final argb32 = color.toARGB32();
     return argb32.toRadixString(16).padLeft(8, '0').toUpperCase();
   }
 }

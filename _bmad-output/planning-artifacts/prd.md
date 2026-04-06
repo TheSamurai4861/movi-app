@@ -624,3 +624,22 @@ Mitigation :
 - Les etats `safe`, `degrade`, `recovered` ou `failed` doivent etre explicitement discernables dans l'observabilite.
 - Aucune release critique ne doit etre autorisee si les preuves attendues sur `startup / auth / parental / playback / resume / sync / subscription / TV` sont absentes ou au rouge.
 - Les preuves de verification doivent rester indexables et tracables de `REQ -> FLOW -> INV -> TST -> EVD`.
+
+## Addendum 2026-04-03 - Entry Flow Reframe
+
+Le recadrage approuve sur `welcome / auth / sources / entry flow` clarifie que la promesse produit ne porte pas uniquement sur un "home completement hydrate", mais sur l'atteinte rapide d'un **premier etat utile** suivi d'une hydratation progressive.
+
+Exigences additionnelles approuvees:
+- distinguer explicitement `first useful state` et `fully hydrated home`
+- autoriser une entree `home lite` quand un etat local sur et exploitable existe deja
+- rendre explicites dans l'UX d'entree les etats `empty`, `loading`, `error`, `timeout`, `offline`, `expired`, `pending-sync`, `recovered`
+- traiter les parcours d'entree `Android` et `Android TV` comme critiques au meme titre que discovery, detail et playback
+- mesurer separement:
+  - `launch -> first useful state visible`
+  - `launch -> home hydrated`
+  - `auth recovery visible`
+  - `source warmup resolved`
+
+Les quality gates MVP sont donc etendus:
+- aucune release critique si la preuve `startup / auth / source selection / first useful home / TV entry flow` est absente ou au rouge
+- aucune release critique si l'utilisateur doit attendre un preload complet alors qu'un etat utile, sur et borne pouvait etre affiche plus tot

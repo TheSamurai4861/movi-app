@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
@@ -91,6 +93,10 @@ class OverlaySplash extends ConsumerWidget {
 
   Color _resolveAccentColor(WidgetRef ref, ThemeData theme) {
     try {
+      final locator = ref.read(slProvider);
+      if (!locator.isRegistered<AccentColorPreferences>()) {
+        return theme.colorScheme.primary;
+      }
       return ref.watch(asp.currentAccentColorProvider);
     } catch (_) {
       return theme.colorScheme.primary;

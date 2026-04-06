@@ -1,3 +1,9 @@
+import java.io.FileInputStream
+import java.security.KeyStore
+import java.security.MessageDigest
+import java.security.cert.Certificate
+import java.security.cert.CertificateFactory
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -22,7 +28,7 @@ val configuredKeyPassword = (System.getenv("MOVI_KEY_PASSWORD")
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
 
-fun resolveKeystoreFile(rawPath: String): File {
+fun resolveKeystoreCandidates(rawPath: String): List<File> {
     val normalizedPath = rawPath.replace("\\", "/")
     val isAbsolutePath =
         normalizedPath.contains(":") ||
@@ -32,24 +38,160 @@ fun resolveKeystoreFile(rawPath: String): File {
     if (isAbsolutePath) {
         candidates += file(normalizedPath)
     } else {
-        candidates += file(normalizedPath)
         candidates += rootProject.file(normalizedPath)
         if (normalizedPath.startsWith("android/")) {
             candidates += rootProject.file(normalizedPath.removePrefix("android/"))
         } else {
+            candidates += file(normalizedPath)
             candidates += rootProject.file("app/$normalizedPath")
         }
     }
 
-    return candidates.firstOrNull { it.exists() } ?: candidates.first()
+    return candidates.toList()
 }
 
-val releaseKeystoreFile = configuredKeystorePath?.let(::resolveKeystoreFile)
-val hasReleaseSigning =
-    releaseKeystoreFile?.isFile == true &&
-        configuredStorePassword != null &&
-        configuredAlias != null &&
-        configuredKeyPassword != null
+fun sha1Of(certificate: Certificate): String =
+    MessageDigest.getInstance("SHA-1")
+        .digest(certificate.encoded)
+        .joinToString(":") { byte -> "%02X".format(byte) }
+
+data class ReleaseSigningStatus(
+    val keystoreCandidates: List<File>,
+    val keystoreFile: File?,
+    val expectedSha1: String?,
+    val actualSha1: String?,
+    val isReady: Boolean,
+    val message: String,
+)
+
+fun loadExpectedUploadSha1(): String? {
+    val expectedCertificateFile = rootProject.file("upload_certificate.pem")
+    if (!expectedCertificateFile.isFile) {
+        return null
+    }
+
+    FileInputStream(expectedCertificateFile).use { input ->
+        val certificate = CertificateFactory.getInstance("X.509").generateCertificate(input)
+        return sha1Of(certificate)
+    }
+}
+
+fun buildReleaseSigningStatus(): ReleaseSigningStatus {
+    val keystoreCandidates =
+        configuredKeystorePath?.let(::resolveKeystoreCandidates).orEmpty()
+    val keystoreFile = keystoreCandidates.firstOrNull { it.isFile }
+    val expectedSha1 = loadExpectedUploadSha1()
+
+    val missingConfig = buildList {
+        if (configuredKeystorePath == null) add("MOVI_KEYSTORE")
+        if (configuredStorePassword == null) add("MOVI_STORE_PASSWORD")
+        if (configuredAlias == null) add("MOVI_ALIAS")
+        if (configuredKeyPassword == null) add("MOVI_KEY_PASSWORD")
+    }
+
+    if (missingConfig.isNotEmpty()) {
+        return ReleaseSigningStatus(
+            keystoreCandidates = keystoreCandidates,
+            keystoreFile = keystoreFile,
+            expectedSha1 = expectedSha1,
+            actualSha1 = null,
+            isReady = false,
+            message = "Missing release signing config: ${missingConfig.joinToString(", ")}",
+        )
+    }
+
+    if (keystoreFile == null) {
+        val searchedPaths =
+            keystoreCandidates
+                .ifEmpty { listOf(File(configuredKeystorePath!!)) }
+                .joinToString(", ") { it.absolutePath }
+        return ReleaseSigningStatus(
+            keystoreCandidates = keystoreCandidates,
+            keystoreFile = null,
+            expectedSha1 = expectedSha1,
+            actualSha1 = null,
+            isReady = false,
+            message = "Release keystore not found. Searched: $searchedPaths",
+        )
+    }
+
+    if (expectedSha1 == null) {
+        return ReleaseSigningStatus(
+            keystoreCandidates = keystoreCandidates,
+            keystoreFile = keystoreFile,
+            expectedSha1 = null,
+            actualSha1 = null,
+            isReady = false,
+            message = "Expected Play upload certificate is missing: ${rootProject.file("upload_certificate.pem").absolutePath}",
+        )
+    }
+
+    return try {
+        val keyStore = KeyStore.getInstance(KeyStore.getDefaultType())
+        FileInputStream(keystoreFile).use { input ->
+            keyStore.load(input, configuredStorePassword!!.toCharArray())
+        }
+
+        val certificate =
+            keyStore.getCertificate(configuredAlias)
+                ?: return ReleaseSigningStatus(
+                    keystoreCandidates = keystoreCandidates,
+                    keystoreFile = keystoreFile,
+                    expectedSha1 = expectedSha1,
+                    actualSha1 = null,
+                    isReady = false,
+                    message = "Alias '$configuredAlias' not found in release keystore ${keystoreFile.absolutePath}",
+                )
+
+        val actualSha1 = sha1Of(certificate)
+
+        keyStore.getKey(configuredAlias, configuredKeyPassword!!.toCharArray())
+            ?: return ReleaseSigningStatus(
+                keystoreCandidates = keystoreCandidates,
+                keystoreFile = keystoreFile,
+                expectedSha1 = expectedSha1,
+                actualSha1 = actualSha1,
+                isReady = false,
+                message = "Private key for alias '$configuredAlias' is not accessible in ${keystoreFile.absolutePath}",
+            )
+
+        if (actualSha1 != expectedSha1) {
+            ReleaseSigningStatus(
+                keystoreCandidates = keystoreCandidates,
+                keystoreFile = keystoreFile,
+                expectedSha1 = expectedSha1,
+                actualSha1 = actualSha1,
+                isReady = false,
+                message =
+                    "Release keystore fingerprint mismatch. Expected SHA1: $expectedSha1, actual SHA1: $actualSha1, file: ${keystoreFile.absolutePath}",
+            )
+        } else {
+            ReleaseSigningStatus(
+                keystoreCandidates = keystoreCandidates,
+                keystoreFile = keystoreFile,
+                expectedSha1 = expectedSha1,
+                actualSha1 = actualSha1,
+                isReady = true,
+                message =
+                    "Release signing ready for prod with SHA1 $actualSha1 using ${keystoreFile.absolutePath}",
+            )
+        }
+    } catch (error: Exception) {
+        ReleaseSigningStatus(
+            keystoreCandidates = keystoreCandidates,
+            keystoreFile = keystoreFile,
+            expectedSha1 = expectedSha1,
+            actualSha1 = null,
+            isReady = false,
+            message =
+                "Release keystore validation failed for ${keystoreFile.absolutePath}: ${error::class.simpleName}: ${error.message}",
+        )
+    }
+}
+
+val releaseSigningStatus = buildReleaseSigningStatus()
+val releaseKeystoreFile = releaseSigningStatus.keystoreFile
+val hasReleaseSigning = releaseSigningStatus.isReady
 
 android {
     namespace = "com.matteo.movi"
@@ -151,13 +293,41 @@ flutter {
 
 if (!hasReleaseSigning) {
     logger.warn(
-        "Movi release keystore not found or incomplete. " +
-            "devRelease/stageRelease will use debug signing. " +
-            "Looked for: ${releaseKeystoreFile?.path ?: configuredKeystorePath ?: "MOVI_KEYSTORE not set"}",
+        "Movi prodRelease signing unavailable. " +
+            "devRelease/stageRelease may still use debug signing, but Play release builds must stop. " +
+            releaseSigningStatus.message,
     )
+} else {
+    logger.lifecycle(releaseSigningStatus.message)
 }
 
 afterEvaluate {
+    fun requiresProdReleaseSigning(taskName: String): Boolean {
+        val normalizedName = taskName.lowercase()
+        if (normalizedName == "assemblerelease" || normalizedName == "bundlerelease") {
+            return true
+        }
+
+        return normalizedName.contains("prodrelease") &&
+            (
+                normalizedName.startsWith("assemble") ||
+                    normalizedName.startsWith("bundle") ||
+                    normalizedName.startsWith("package") ||
+                    normalizedName.startsWith("sign") ||
+                    normalizedName.startsWith("validate")
+            )
+    }
+
+    gradle.taskGraph.whenReady {
+        val needsProdReleaseSigning =
+            allTasks.any { task -> requiresProdReleaseSigning(task.name) }
+        if (needsProdReleaseSigning && !hasReleaseSigning) {
+            throw GradleException(
+                "Cannot build Play release without a validated prod signing config. ${releaseSigningStatus.message}",
+            )
+        }
+    }
+
     fun registerDefaultFlutterApkAliasTask(
         taskName: String,
         sourceApkName: String,

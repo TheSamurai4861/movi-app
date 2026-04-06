@@ -1,6 +1,3 @@
-// FILE #448
-// lib/src/features/welcome/presentation/pages/welcome_source_page.dart
-
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -38,7 +35,8 @@ class WelcomeSourcePage extends ConsumerStatefulWidget {
   ConsumerState<WelcomeSourcePage> createState() => _WelcomeSourcePageState();
 }
 
-class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
+class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
+    with TickerProviderStateMixin {
   String? _selectedSourceId;
 
   final _nameCtrl = TextEditingController();
@@ -56,6 +54,17 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
   bool _obscurePassword = true;
   List<SupabaseIptvSourceEntity> _sources = const <SupabaseIptvSourceEntity>[];
 
+  // Animation pour le bouton refresh
+  late AnimationController _refreshAnimationController;
+  late Animation<double> _refreshAnimation;
+
+  bool _hasSupabaseAccess = false;
+
+  bool get _shouldDisplaySavedSourcesSection {
+    return _hasSupabaseAccess &&
+        (_sources.isNotEmpty || _sourcesError != null || _loadingSources);
+  }
+
   SupabaseIptvSourcesRepository? get _supaRepo {
     final locator = ref.read(slProvider);
     if (!locator.isRegistered<SupabaseIptvSourcesRepository>()) {
@@ -67,11 +76,23 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
   @override
   void initState() {
     super.initState();
+
+    // Initialisation de l'animation du bouton refresh
+    _refreshAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _refreshAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(_refreshAnimationController);
+
     unawaited(_loadSupabaseSources());
   }
 
   @override
   void dispose() {
+    _refreshAnimationController.dispose();
     _nameCtrl.dispose();
     _serverCtrl.dispose();
     _userCtrl.dispose();
@@ -113,7 +134,11 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
     return false;
   }
 
-  Future<void> _loadSupabaseSources() async {
+  Future<void> _loadSupabaseSources({bool animateRefreshButton = false}) async {
+    if (animateRefreshButton) {
+      _refreshAnimationController.forward(from: 0.0);
+    }
+
     setState(() {
       _loadingSources = true;
       _sourcesError = null;
@@ -127,6 +152,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
         _loadingSources = false;
         _sources = const <SupabaseIptvSourceEntity>[];
         _sourcesError = null;
+        _hasSupabaseAccess = false;
       });
       unawaited(
         LoggingService.log(
@@ -148,6 +174,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
       setState(() {
         _sources = rows;
         _loadingSources = false;
+        _hasSupabaseAccess = true;
       });
 
       // Auto-sélection + pré-remplissage si possible
@@ -159,6 +186,8 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
       setState(() {
         _loadingSources = false;
         _sourcesError = e.toString();
+        _sources = const <SupabaseIptvSourceEntity>[];
+        _hasSupabaseAccess = true;
       });
 
       if (kDebugMode) {
@@ -323,12 +352,20 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
     if (!mounted) return;
 
     if (success) {
-      unawaited(LoggingService.log('WelcomeSources: activate success'));
+      unawaited(
+        LoggingService.log(
+          'WelcomeSources: activate success - redirecting to loading page',
+        ),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.snackbarSourceAddedBackground)),
       );
-      // Redirection vers la page de chargement pour attendre le chargement complet des playlists
-      GoRouter.of(context).go(AppRouteNames.welcomeSourceLoading);
+      if (mounted) {
+        GoRouter.of(context).goNamed(
+          AppRouteIds.welcomeSourceLoading,
+          queryParameters: const <String, String>{'force_reload': '1'},
+        );
+      }
       return;
     }
 
@@ -384,42 +421,60 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
                   const SizedBox(height: AppSpacing.lg),
 
                   // ---------------- Sources Supabase ----------------
-                  _SectionHeader(
-                    title: 'Sources sauvegardées',
-                    forceRow: true,
-                    trailing: IconButton(
-                      tooltip: 'Rafraîchir',
-                      onPressed: isBusy
-                          ? null
-                          : () => unawaited(_loadSupabaseSources()),
-                      icon: Icon(Icons.refresh, color: accentColor),
+                  // Afficher seulement si Supabase est disponible
+                  if (_shouldDisplaySavedSourcesSection) ...[
+                    _SectionHeader(
+                      title: 'Sources sauvegardées',
+                      forceRow: true,
+                      trailing: AnimatedBuilder(
+                        animation: _refreshAnimation,
+                        builder: (context, child) {
+                          return Transform.rotate(
+                            angle:
+                                _refreshAnimation.value *
+                                2 *
+                                3.14159, // Rotation complète
+                            child: IconButton(
+                              tooltip: 'Rafraîchir',
+                              onPressed: isBusy
+                                  ? null
+                                  : () => unawaited(
+                                      _loadSupabaseSources(
+                                        animateRefreshButton: true,
+                                      ),
+                                    ),
+                              icon: Icon(Icons.refresh, color: accentColor),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: AppSpacing.sm),
 
-                  if (_loadingSources)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      child: CircularProgressIndicator(),
-                    )
-                  else if (_sourcesError != null)
-                    _ErrorBox(
-                      message: _sourcesError!,
-                      onRetry: () => unawaited(_loadSupabaseSources()),
-                    )
-                  else if (_sources.isEmpty)
-                    const _InfoBox(
-                      message:
-                          'Aucune source trouvée sur Supabase. Ajoute/active une source ci-dessous.',
-                    )
-                  else
-                    _SourcesList(
-                      sources: _sources,
-                      selectedId: _selectedSourceId,
-                      onSelect: _selectSource,
-                    ),
+                    if (_loadingSources)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: CircularProgressIndicator(),
+                      )
+                    else if (_sourcesError != null)
+                      _ErrorBox(
+                        message: _sourcesError!,
+                        onRetry: () => unawaited(_loadSupabaseSources()),
+                      )
+                    else if (_sources.isEmpty)
+                      const _InfoBox(
+                        message:
+                            'Aucune source trouvée sur Supabase. Ajoute/active une source ci-dessous.',
+                      )
+                    else
+                      _SourcesList(
+                        sources: _sources,
+                        selectedId: _selectedSourceId,
+                        onSelect: _selectSource,
+                      ),
 
-                  const SizedBox(height: AppSpacing.lg),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
 
                   // ---------------- Activation ----------------
                   _SectionHeader(title: 'Activer une source'),

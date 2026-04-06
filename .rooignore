@@ -1,0 +1,13 @@
+node_modules
+dist
+build
+coverage
+.git
+.dart_tool
+.next
+out
+target
+ios/Pods
+android/.gradle
+*.log
+*.lock

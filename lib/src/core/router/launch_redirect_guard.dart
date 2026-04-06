@@ -10,9 +10,11 @@ import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/route_catalog.dart';
+import 'package:movi/src/core/router/tunnel_surface.dart';
 import 'package:movi/src/core/state/app_state.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 import 'package:movi/src/features/welcome/domain/enum.dart';
 
 /// Guard responsable de la logique de redirection initiale.
@@ -28,13 +30,20 @@ class LaunchRedirectGuard extends ChangeNotifier {
     required AppStateController appStateController,
     required AuthRepository authRepository,
     required AppLaunchStateRegistry launchRegistry,
+    TunnelStateRegistry? tunnelStateRegistry,
+    bool enableEntryJourneyStateModelV2 = false,
+    bool enableEntryJourneyRoutingV2 = false,
   }) : _appStateController = appStateController,
        _authRepository = authRepository,
-       _launchRegistry = launchRegistry {
+       _launchRegistry = launchRegistry,
+       _tunnelStateRegistry = tunnelStateRegistry ?? TunnelStateRegistry(),
+       _enableEntryJourneyStateModelV2 = enableEntryJourneyStateModelV2,
+       _enableEntryJourneyRoutingV2 = enableEntryJourneyRoutingV2 {
     _removeAppStateListener = _appStateController.addListener(
       _onAppStateChanged,
     );
     _launchRegistry.addListener(_onLaunchStateChanged);
+    _tunnelStateRegistry.addListener(_onTunnelStateChanged);
 
     // Initialisation immédiate de l’état d’auth
     _isAuthenticated = _authRepository.currentSession != null;
@@ -56,6 +65,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
   final AppStateController _appStateController;
   final AuthRepository _authRepository;
   final AppLaunchStateRegistry _launchRegistry;
+  final TunnelStateRegistry _tunnelStateRegistry;
+  final bool _enableEntryJourneyStateModelV2;
+  final bool _enableEntryJourneyRoutingV2;
 
   /// Cache : état d’authentification
   bool? _isAuthenticated;
@@ -64,6 +76,9 @@ class LaunchRedirectGuard extends ChangeNotifier {
   bool _pendingNotify = false;
 
   static const Duration _authResolveTimeout = Duration(seconds: 4);
+
+  bool get _useProjectedRouting =>
+      _enableEntryJourneyStateModelV2 && _enableEntryJourneyRoutingV2;
 
   late final void Function() _removeAppStateListener;
   late final StreamSubscription _authSubscription;
@@ -81,6 +96,8 @@ class LaunchRedirectGuard extends ChangeNotifier {
     final onLaunch = current == AppRoutePaths.launch;
     final onAuth = current == AppRoutePaths.authOtp;
     final onBootstrap = current == AppRoutePaths.bootstrap;
+    final onWelcomeSourceLoading =
+        current == AppRoutePaths.welcomeSourceLoading;
     final authReturnsToPrevious =
         onAuth && state.uri.queryParameters['return_to'] == 'previous';
     final isStartupRoute = AppRouteCatalog.criticalRoutes.contains(current);
@@ -92,6 +109,14 @@ class LaunchRedirectGuard extends ChangeNotifier {
 
     if (authReturnsToPrevious) {
       return null;
+    }
+
+    if (_useProjectedRouting) {
+      return _handleProjectedRouting(
+        current: current,
+        onAuth: onAuth,
+        isStartupRoute: isStartupRoute,
+      );
     }
 
     if (launchState.status == AppLaunchStatus.running && isStartupRoute) {
@@ -107,6 +132,14 @@ class LaunchRedirectGuard extends ChangeNotifier {
     }
 
     if (launchState.status == AppLaunchStatus.success) {
+      final allowsWelcomeSourceLoading =
+          onWelcomeSourceLoading &&
+          (launchState.destination == BootstrapDestination.welcomeSources ||
+              launchState.destination == BootstrapDestination.chooseSource);
+      if (allowsWelcomeSourceLoading) {
+        return null;
+      }
+
       final hasStaleAuthDestination =
           launchState.destination == BootstrapDestination.auth &&
           _isAuthenticated == true;
@@ -151,6 +184,34 @@ class LaunchRedirectGuard extends ChangeNotifier {
     return null;
   }
 
+  String? _handleProjectedRouting({
+    required String current,
+    required bool onAuth,
+    required bool isStartupRoute,
+  }) {
+    final tunnelState = _tunnelStateRegistry.state;
+    final surface = TunnelSurfaceMapper.fromTunnelState(tunnelState);
+    final target = TunnelSurfaceRouteMapper.routeForSurface(
+      surface: surface,
+      tunnelState: tunnelState,
+      currentLocation: current,
+    );
+
+    if (onAuth && surface == TunnelSurface.auth) {
+      return null;
+    }
+
+    if (surface == TunnelSurface.auth) {
+      return current == AppRoutePaths.authOtp ? null : AppRoutePaths.authOtp;
+    }
+
+    if (!isStartupRoute) {
+      return null;
+    }
+
+    return current == target ? null : target;
+  }
+
   /// Réagit aux changements de l’AppState.
   ///
   /// Ici on ne redirige pas sur la logique "profil/source", elle est gérée par
@@ -177,6 +238,12 @@ class LaunchRedirectGuard extends ChangeNotifier {
 
   void _onLaunchStateChanged() {
     _safeNotify();
+  }
+
+  void _onTunnelStateChanged() {
+    if (_useProjectedRouting) {
+      _safeNotify();
+    }
   }
 
   String? _mapDestination(BootstrapDestination? destination) {
@@ -231,6 +298,7 @@ class LaunchRedirectGuard extends ChangeNotifier {
     _authSubscription.cancel();
     _authResolutionTimer?.cancel();
     _launchRegistry.removeListener(_onLaunchStateChanged);
+    _tunnelStateRegistry.removeListener(_onTunnelStateChanged);
     super.dispose();
   }
 }

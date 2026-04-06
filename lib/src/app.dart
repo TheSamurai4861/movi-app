@@ -45,6 +45,9 @@ class MyApp extends ConsumerWidget {
     // Current locale (selected language) for the whole app.
     final locale = ref.watch(app_state.currentLocaleProvider);
 
+    // Current theme mode (light / dark / system) for the whole app.
+    final themeMode = ref.watch(app_state.currentThemeModeProvider);
+
     // Dynamic accent color used to build both light & dark themes.
     final accentColor = ref.watch(app_state.currentAccentColorProvider);
 
@@ -56,7 +59,7 @@ class MyApp extends ConsumerWidget {
       scrollBehavior: const MoviScrollBehavior(),
       theme: AppTheme.light(accentColor: accentColor),
       darkTheme: AppTheme.dark(accentColor: accentColor),
-      themeMode: ThemeMode.dark,
+      themeMode: themeMode,
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: _appLocalizationsDelegates,

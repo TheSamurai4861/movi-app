@@ -1,0 +1,2759 @@
+﻿diff --git a/_bmad-output/implementation-artifacts/1-3-recover-cleanly-from-expired-offline-and-timeout-session-states.md b/_bmad-output/implementation-artifacts/1-3-recover-cleanly-from-expired-offline-and-timeout-session-states.md
+new file mode 100644
+index 0000000..f071518
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/1-3-recover-cleanly-from-expired-offline-and-timeout-session-states.md
+@@ -0,0 +1,326 @@
++# Story 1.3: Recover Cleanly From Expired, Offline, and Timeout Session States
++
++Status: review
++
++<!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
++
++## Story
++
++En tant qu'utilisateur de retour,
++je veux qu'une restauration de session expiree, offline ou timeoutee me laisse dans un etat de recuperation clair,
++afin de pouvoir continuer en securite ou me reauthentifier sans boucle de redirection ni navigation bloquee.
++
++## Acceptance Criteria
++
++1. **Given** a stored session is expired or no longer valid  
++   **When** session restoration runs  
++   **Then** invalid sensitive state is cleared as required  
++   **And** the user is shown a clear reauthentication or recovery path without redirect loops.
++
++2. **Given** session restoration is blocked by offline conditions, timeout, or backend unavailability  
++   **When** the maximum bounded wait is reached  
++   **Then** the application remains navigable in a safe degraded state  
++   **And** retries stay explicit, bounded, and observable.
++
++## Tasks / Subtasks
++
++- [x] Formaliser des outcomes de recovery auth/session L1 explicites et types.
++  - [x] Etendre `AuthOrchestrator.bootstrapSession()` ou son contrat adjacent pour distinguer au minimum `invalidSession`, `offline`, `timeout` et `refreshFailed`, sans reintroduire une seconde politique de refresh ailleurs dans l'app.
++  - [x] Garantir un resultat borne et deterministe pour les memes entrees auth, y compris quand le backend est indisponible ou lent.
++  - [x] Ne jamais baser la decision de recovery sur `currentSession != null` seul quand la revalidation a deja echoue ou timeoute.
++
++- [x] Nettoyer l'etat sensible requis quand la session est expiree/invalide.
++  - [x] Identifier la surface minimale a nettoyer pour respecter le `fail-closed` sur l'acces sensible, sans effacer agressivement le contexte `local-first` encore valable.
++  - [x] Reutiliser les ports / services de cleanup deja presents dans `core/auth` au lieu d'inventer une nouvelle logique opportuniste dans `core/router` ou l'UI.
++  - [x] Verifier que la sortie "session invalide" conduit vers un chemin de reauthentification clair et non boucle.
++
++- [x] Aligner `launch -> bootstrap -> destination` sur des etats de recovery actionnables.
++  - [x] Garder `AppLaunchOrchestrator`, `BootstrapDestination`, `AppLaunchCriteria`, `LaunchRedirectGuard` et `SplashBootstrapPage` comme surfaces uniques de decision et de presentation de recovery.
++  - [x] Router les cas `invalidSession` vers une reauth explicite (`auth` / OTP) sans exposer de route protegee.
++  - [x] Router les cas `offline`, `timeout` ou backend indisponible vers un etat degrade navigable avec retry explicite et borne, sans spinner infini ni loop `/launch -> /bootstrap -> /auth`.
++
++- [x] Preserver la logique `local-first` et les parcours deja durcis par 1.1/1.2.
++  - [x] Si `Supabase` n'est pas configure, conserver le comportement local existant sans regressions.
++  - [x] Ne pas casser `WelcomeUserPage`, `AuthOtpPage`, `SplashBootstrapPage` ni la route `/auth/otp?return_to=previous`.
++  - [x] Ne pas effacer les profils, sources locales ou preloads qui restent valides localement quand seule la restauration cloud est en echec degrade.
++
++- [x] Aligner l'observabilite et la UX de recovery sur les contrats existants.
++  - [x] Reutiliser `AuthFailureCode`, `operationId`, `reasonCode`, `recoveryMessage` et les journaux/telemetry deja en place; ne pas inventer une taxonomie parallele.
++  - [x] Rendre explicites et testables les outcomes `reauth-required`, `degraded-retryable` et `authenticated`, avec causes `invalidSession`, `offline`, `timeout`, `refreshFailed` et autre cause typed si necessaire.
++  - [x] Verifier qu'aucun secret, token, email complet, URL sensible ou PII n'apparait dans les traces ou messages de recovery.
++
++- [x] Ajouter ou mettre a jour les tests qui verrouillent FR2/FR3 pour les cas de recovery.
++  - [x] Etendre `test/core/auth/auth_orchestrator_test.dart` pour couvrir invalidation, offline, timeout et cleanup associe.
++  - [x] Etendre `test/core/startup/app_launch_orchestrator_local_mode_test.dart` pour couvrir les chemins `invalidSession -> auth` et `offline/timeout -> degraded retryable`.
++  - [x] Etendre `test/core/router/launch_redirect_guard_reconnect_test.dart` pour prouver l'absence de redirect loop et la non-exposition de routes critiques pendant la recovery.
++  - [x] Etendre `test/features/welcome/presentation/splash_bootstrap_page_progress_test.dart` ou un test voisin pour verrouiller le message de recovery et le retry explicite.
++
++## Dev Notes
++
++### Portee et limites de la story
++
++- Cette story couvre la seconde moitie de `FR2`/`FR3`: recuperation propre quand la restauration de session ne peut pas conclure nominalement.
++- La determination de base `session validee -> experience authentifiee` a deja ete traitee par la story `1.2`.
++- La restauration du contexte essentiel apres lancement (`FR4`) appartient toujours a la story `1.4`.
++- Le depot est brownfield: il faut durcir et completer `core/auth + core/startup + core/router + welcome` existants, pas recreer un nouveau gestionnaire de session ou une nouvelle navigation parallele.
++
++### Contexte existant a reutiliser
++
++- `lib/src/core/auth/application/auth_orchestrator.dart` fait deja le bootstrap L1 auth en `fail-closed`, avec telemetry `bootstrap_session` et `refresh_session`.
++- `lib/src/core/auth/domain/entities/auth_failures.dart` expose deja `AuthFailureCode.timeout`, `offline`, `invalidSession`, `refreshFailed`, `notConfigured`, etc., mais tous ne sont pas encore propages jusqu'a la decision UX de recovery.
++- `lib/src/core/auth/data/repositories/supabase_auth_repository.dart` borne deja `refreshSession()` avec timeout et peut servir de point central pour distinguer timeout/indisponibilite backend.
++- `lib/src/core/auth/presentation/providers/auth_providers.dart` evite maintenant un second `bootstrapSession()` quand `AppLaunchState` a deja tranche l'etat auth.
++- `lib/src/core/startup/app_launch_orchestrator.dart` route actuellement toute session cloud non validee vers `BootstrapDestination.auth`; cela couvre le `fail-closed`, mais ne distingue pas encore les cas `reauth-required` vs `degraded-retryable`.
++- `lib/src/core/router/launch_redirect_guard.dart` redirige deja les routes critiques et non-startup vers la destination de bootstrap resolue; c'est la bonne surface pour eviter les loops et l'exposition accidentelle de routes protegees.
++- `lib/src/features/welcome/presentation/pages/splash_bootstrap_page.dart` sait deja afficher un `recoveryMessage` et un retry explicite via `LaunchErrorPanel`.
++- `lib/src/features/welcome/presentation/pages/welcome_user_page.dart` priorise deja OTP quand `Supabase` est disponible et l'utilisateur `unauthenticated`, sans casser le mode local quand `Supabase` est indisponible.
++- `lib/src/features/auth/presentation/auth_otp_controller.dart` et `auth_otp_page.dart` constituent deja le chemin de reauth explicite; cette story doit s'y raccorder, pas le contourner.
++
++### Gaps probables a traiter dans cette story
++
++- `AuthOrchestrator` sait aujourd'hui echouer en `unauthenticated`, mais n'expose pas encore assez d'information structuree pour que le launch distingue session invalide vs indisponibilite temporaire.
++- `AppLaunchOrchestrator` traite actuellement les cas `invalidSession`, `timeout`, `offline` et backend indisponible de la meme facon (`BootstrapDestination.auth`), ce qui ne satisfait pas encore l'AC 2 sur l'etat degrade navigable avec retry explicite.
++- Le code de cleanup existe cote auth, mais il faut cadrer precisement ce qui doit etre nettoye pour une session invalide sans detruire le contexte `local-first` encore utile.
++- Le shell de recovery existe deja (`SplashBootstrapPage` + `LaunchErrorPanel`), mais il n'est pas encore branche sur des outcomes auth/session plus fins.
++- Le risque principal n'est pas le crash: c'est soit une boucle de redirection, soit un dead-end OTP alors que le probleme est simplement transitoire (`offline` / `timeout`).
++
++### Technical Requirements
++
++- Respecter `FR2` et `FR3` sans deriver vers la restauration de contexte complet de `1.4`.
++- Traiter `invalidSession` et etat sensible incoherent en `fail-closed`:
++  - access path protege ferme
++  - route de reauth explicite
++  - nettoyage des elements sensibles requis
++- Traiter `offline`, `timeout` et backend indisponible comme etats recuperables bornes:
++  - pas de spinner infini
++  - pas de retries implicites non bornes
++  - etat degrade lisible, actionnable, retry explicite
++- Conserver le mode `local-first`:
++  - ne pas effacer les donnees locales encore valides sans raison
++  - ne pas casser les chemins de bienvenue locale quand `Supabase` est absent
++- Reutiliser les contrats de correlation/observabilite deja poses:
++  - `operationId`
++  - `AuthFailureCode`
++  - `reasonCode`
++  - `recoveryMessage`
++- Aucun secret, token, credential ou PII dans les logs, messages de recovery, crash reports ou preuves.
++
++### Architecture Compliance
++
++- `Riverpod` reste le mecanisme principal de state management UI; `GetIt` reste borne au wiring/composition root.
++- La politique auth/session vit dans `lib/src/core/auth/`; l'orchestration de lancement vit dans `lib/src/core/startup/`; la redirection reste dans `lib/src/core/router/`.
++- `go_router` reste la source de verite pour la redirection critique; ne pas contourner les loops par des navigations ad hoc dans les widgets.
++- `AuthGate` doit rester passif pour `local-first`; cette story ne doit pas deplacer tout le policy handling dedans.
++- Les acces `Supabase`, stockage et IO externe restent encapsules derriere des repositories / adapters / services.
++- Ne pas ajouter de nouvelle logique opportuniste dans `lib/src/core/utils/` ou `lib/src/core/widgets/`.
++
++### Library / Framework Requirements
++
++- Rester sur les versions epinglees du depot pour cette story:
++  - Flutter `>=3.38.0`
++  - Dart `^3.9.2`
++  - `flutter_riverpod ^3.0.3`
++  - `go_router ^16.3.0`
++  - `supabase_flutter ^2.10.0`
++  - `sentry_flutter ^9.2.0`
++- Veille technique officielle reverifiee le `2026-04-03`:
++  - `flutter_riverpod` publie: `3.3.1`
++  - `go_router` publie: `17.2.0`
++  - `supabase_flutter` publie: `2.12.2`
++  - `sentry_flutter` publie: `9.16.0`
++- Information utile pour cette story:
++  - `supabase_flutter` continue de documenter `auth.onAuthStateChange.listen(...)` comme surface de synchronisation cote app
++  - la documentation Supabase sur les sessions confirme que certaines invalidations/restrictions sont constatees au refresh, ce qui renforce la distinction entre `session locale presente` et `session effectivement restauree`
++  - `go_router` documente les redirections basees sur l'etat applicatif; la solution doit donc rester dans `LaunchRedirectGuard` / `AppLaunchState`
++- Regle de mise en oeuvre: aucun bump de dependance dans cette story.
++
++### File Structure Requirements
++
++- Zones cibles probables:
++  - `lib/src/core/auth/application/auth_orchestrator.dart`
++  - `lib/src/core/auth/domain/entities/auth_failures.dart`
++  - `lib/src/core/auth/domain/entities/auth_models.dart`
++  - `lib/src/core/auth/presentation/providers/auth_providers.dart`
++  - `lib/src/core/startup/app_launch_orchestrator.dart`
++  - `lib/src/core/router/launch_redirect_guard.dart`
++  - `lib/src/features/welcome/presentation/pages/splash_bootstrap_page.dart`
++  - `lib/src/features/welcome/presentation/providers/bootstrap_providers.dart`
++  - `lib/src/features/auth/presentation/auth_otp_controller.dart` uniquement si necessaire pour garder la recovery explicite et bornee
++- Zones de tests cibles:
++  - `test/core/auth/`
++  - `test/core/startup/`
++  - `test/core/router/`
++  - `test/features/welcome/presentation/`
++- Eviter d'elargir la surface:
++  - pas de nouveau gestionnaire global de session
++  - pas de nouveau routeur
++  - pas de nouvelle state machine auth parallele
++
++### Testing Requirements
++
++- Conserver les tests existants et les etendre avant de refactorer les chemins critiques.
++- Ajouter des assertions explicites sur:
++  - `invalidSession` -> chemin reauth clair, sans loop
++  - `offline` / `timeout` / backend indisponible -> etat degrade navigable + retry explicite
++  - absence d'exposition accidentelle de `/`, `/player`, deep links ou autres routes critiques pendant la recovery
++  - stabilite de la destination et du message de recovery pour les memes entrees
++  - preservation du mode local quand `Supabase` n'est pas configure
++  - absence de fuite d'informations sensibles dans telemetry/logs/messages
++- Les tests unitaires doivent rester majoritaires pour la politique auth/recovery.
++- Les tests widget/router servent a verrouiller l'absence de loop et le retry UX explicite.
++
++### UX Guardrails
++
++- L'utilisateur doit comprendre rapidement s'il doit:
++  - se reconnecter
++  - patienter/reessayer
++  - continuer dans un etat degrade mais navigable
++- Aucun spinner infini ni transition opaque entre `/launch`, `/bootstrap`, OTP et la destination finale.
++- Un cas transitoire (`offline`, `timeout`, backend indisponible) ne doit pas ressembler a une session definitivement invalide.
++- Un cas definitivement invalide ne doit pas laisser croire que l'acces protege peut encore etre utilise.
++- Les messages de recovery doivent rester calmes, premium, actionnables et coherents sur mobile comme sur TV.
++
++### Previous Story Intelligence
++
++- La story `1.1` a deja durci le bootstrap startup, introduit un shell Safe/Ready exploitable, et pose les invariants `operationId` / `reasonCode`.
++- La story `1.2` a deja remplace la decision brute sur `currentSession` par `AuthOrchestrator.bootstrapSession()` et ferme l'exposition de routes non critiques pendant la resolution auth.
++- La review de `1.2` a ajoute deux garde-fous importants pour `1.3`:
++  - `LaunchRedirectGuard` redirige maintenant aussi les routes non-startup vers la destination de bootstrap resolue
++  - `AuthController` ne refait plus un `bootstrapSession()` quand le launch a deja tranche l'etat auth
++- `1.3` doit donc completer les outcomes de recovery, pas remettre en cause la structure de decision deja durcie.
++
++### Git Intelligence Summary
++
++- Les commits recents montrent un pattern `Phase 4` centre sur le hardening progressif des flux critiques, sans refonte transverse brutale.
++- Le commit `b79fc42` a renforce la pile `core/auth` / `core/startup` qui sert de base a cette story.
++- Le commit `86c8255` reste hors scope (surface player).
++- Le pattern recent du depot est:
++  - typed failures / reason codes
++  - timeouts bornes
++  - retries explicites
++  - tests unitaires et widget de verrouillage sur surfaces critiques
++
++### Latest Technical Intelligence
++
++- `supabase_flutter` officiel documente toujours `auth.onAuthStateChange.listen(...)` comme point d'integration auth cote Flutter.
++- La documentation Supabase sur les sessions rappelle qu'une session n'est pas seulement un snapshot local, mais un etat qui peut etre invalide au prochain refresh; cela justifie la distinction `invalidSession` vs indisponibilite temporaire.
++- `go_router` reste "feature complete" avec redirections par etat applicatif, ce qui conforte l'usage du garde de route existant pour prevenir les loops.
++- `flutter_riverpod` continue de mettre en avant les etats asynchrones explicites et testables; cette story doit conserver des outcomes auth/recovery lisibles plutot qu'un etat implicite disperse.
++
++### Project Structure Notes
++
++- Aucun `project-context.md` exploitable n'a ete trouve dans le depot courant.
++- La structure reelle du depot confirme les zones canoniques pour cette story:
++  - `core/auth` pour la politique session/recovery
++  - `core/startup` pour l'orchestration de lancement
++  - `core/router` pour la redirection initiale
++  - `features/welcome` / `features/auth` pour la presentation de la recovery et de la reauth
++- La story doit rester compatible avec l'architecture cible documentee, sans lancer une reorganisation de `core/shared`, `core/utils` ou `core/widgets`.
++
++### References
++
++- `_bmad-output/planning-artifacts/epics.md`
++  - `Epic 1: Trusted App Entry and Session Continuity`
++  - `Story 1.3: Recover Cleanly From Expired, Offline, and Timeout Session States`
++  - `Story 1.4: Restore Essential Context After Launch Without Breaking Safety Rules`
++- `_bmad-output/planning-artifacts/prd.md`
++  - `Functional Requirements > Access & Session Management`
++  - `Risk Mitigations`
++  - `Non-Functional Requirements > Security & Privacy`
++  - `Non-Functional Requirements > Reliability & Resilience`
++  - `User Journeys`
++- `_bmad-output/planning-artifacts/architecture.md`
++  - `Authentication & Security`
++  - `Frontend Architecture > Routing`
++  - `Data Architecture`
++  - `Implementation Handoff`
++- `_bmad-output/planning-artifacts/ux-design-specification.md`
++  - `Experience Principles`
++  - `Critical Success Moments`
++  - `Design Direction Decision`
++  - `Accessibility Considerations`
++- `_bmad-output/implementation-artifacts/1-1-reach-a-usable-startup-state-without-crash-loops.md`
++- `_bmad-output/implementation-artifacts/1-2-restore-session-and-initial-access-deterministically.md`
++- Codebase:
++  - `lib/src/core/auth/application/auth_orchestrator.dart`
++  - `lib/src/core/auth/domain/entities/auth_failures.dart`
++  - `lib/src/core/auth/domain/entities/auth_models.dart`
++  - `lib/src/core/auth/presentation/providers/auth_providers.dart`
++  - `lib/src/core/startup/app_launch_orchestrator.dart`
++  - `lib/src/core/router/launch_redirect_guard.dart`
++  - `lib/src/features/welcome/presentation/pages/splash_bootstrap_page.dart`
++  - `lib/src/features/welcome/presentation/providers/bootstrap_providers.dart`
++  - `lib/src/features/welcome/presentation/pages/welcome_user_page.dart`
++  - `lib/src/features/auth/presentation/auth_otp_controller.dart`
++  - `lib/src/features/auth/presentation/auth_otp_page.dart`
++- Tests existants:
++  - `test/core/auth/auth_orchestrator_test.dart`
++  - `test/core/auth/presentation/providers/auth_providers_test.dart`
++  - `test/core/startup/app_launch_orchestrator_local_mode_test.dart`
++  - `test/core/router/launch_redirect_guard_reconnect_test.dart`
++  - `test/features/welcome/presentation/splash_bootstrap_page_progress_test.dart`
++  - `test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart`
++  - `test/features/settings/presentation/reconnect_validation_test.dart`
++- Documentation officielle verifiee le `2026-04-03`:
++  - `https://pub.dev/packages/flutter_riverpod`
++  - `https://pub.dev/packages/go_router`
++  - `https://pub.dev/packages/supabase_flutter`
++  - `https://pub.dev/packages/sentry_flutter`
++  - `https://supabase.com/docs/guides/auth/sessions`
++
++## Dev Agent Record
++
++### Agent Model Used
++
++GPT-5 Codex
++
++### Debug Log References
++
++- `git log -5 --oneline`
++- `Get-Content _bmad-output/planning-artifacts/epics.md`
++- `Get-Content _bmad-output/planning-artifacts/prd.md`
++- `Get-Content _bmad-output/planning-artifacts/architecture.md`
++- `Get-Content _bmad-output/planning-artifacts/ux-design-specification.md`
++- `Get-Content _bmad-output/implementation-artifacts/1-1-reach-a-usable-startup-state-without-crash-loops.md`
++- `Get-Content _bmad-output/implementation-artifacts/1-2-restore-session-and-initial-access-deterministically.md`
++- `Get-Content lib/src/core/auth/application/auth_orchestrator.dart`
++- `Get-Content lib/src/core/startup/app_launch_orchestrator.dart`
++- `Get-Content lib/src/core/router/launch_redirect_guard.dart`
++- `Get-Content lib/src/features/welcome/presentation/pages/splash_bootstrap_page.dart`
++- `dart format lib/src/core/auth/application/auth_orchestrator.dart lib/src/core/auth/application/services/local_data_cleanup_service.dart lib/src/core/auth/application/ports/local_cleanup_port.dart lib/src/core/auth/domain/entities/auth_models.dart lib/src/core/auth/presentation/providers/auth_providers.dart lib/src/core/startup/app_launch_orchestrator.dart lib/src/core/startup/presentation/widgets/launch_recovery_banner.dart lib/src/features/shell/presentation/pages/app_shell_page.dart lib/src/features/welcome/presentation/pages/welcome_user_page.dart lib/src/features/welcome/presentation/pages/welcome_source_page.dart lib/src/features/welcome/presentation/pages/welcome_source_select_page.dart test/core/auth/auth_orchestrator_test.dart test/core/startup/app_launch_orchestrator_local_mode_test.dart test/core/router/launch_redirect_guard_reconnect_test.dart test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart`
++- `flutter test test/core/auth/auth_orchestrator_test.dart test/core/startup/app_launch_orchestrator_local_mode_test.dart test/core/router/launch_redirect_guard_reconnect_test.dart test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart`
++
++### Completion Notes List
++
++- `AuthOrchestrator` expose maintenant un `AuthBootstrapResult` type avec outcomes `authenticated`, `reauthRequired` et `degradedRetryable`, ainsi que des causes `invalidSession`, `offline`, `timeout` et `refreshFailed`.
++- La sortie `invalidSession` applique un cleanup cible via `clearSensitiveSessionState()` pour fermer l'acces sensible tout en preservant les donnees `local-first` encore valides.
++- `AppLaunchOrchestrator` propage des recoveries actionnables jusqu'a la destination de bootstrap, route `invalidSession` vers `auth` et laisse les erreurs transitoires navigables en mode degrade avec retry explicite.
++- Une `LaunchRecoveryBanner` reutilisable affiche le message et l'action `Reessayer` sur le shell et les ecrans welcome, en supprimant l'auto-redirection OTP quand la recovery est retryable.
++- Les tests couvrent maintenant invalidation, offline, timeout, reachability home en degrade et UX de retry sur `WelcomeUserPage`.
++- Validation executee avec succes via `flutter test test/core/auth/auth_orchestrator_test.dart test/core/startup/app_launch_orchestrator_local_mode_test.dart test/core/router/launch_redirect_guard_reconnect_test.dart test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart`.
++
++### File List
++
++- `lib/src/core/auth/application/auth_orchestrator.dart`
++- `lib/src/core/auth/application/ports/local_cleanup_port.dart`
++- `lib/src/core/auth/application/services/local_data_cleanup_service.dart`
++- `lib/src/core/auth/domain/entities/auth_models.dart`
++- `lib/src/core/auth/presentation/providers/auth_providers.dart`
++- `lib/src/core/startup/app_launch_orchestrator.dart`
++- `lib/src/core/startup/presentation/widgets/launch_recovery_banner.dart`
++- `lib/src/features/shell/presentation/pages/app_shell_page.dart`
++- `lib/src/features/welcome/presentation/pages/welcome_source_page.dart`
++- `lib/src/features/welcome/presentation/pages/welcome_source_select_page.dart`
++- `lib/src/features/welcome/presentation/pages/welcome_user_page.dart`
++- `test/core/auth/auth_orchestrator_test.dart`
++- `test/core/router/launch_redirect_guard_reconnect_test.dart`
++- `test/core/startup/app_launch_orchestrator_local_mode_test.dart`
++- `test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart`
++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
++- `_bmad-output/implementation-artifacts/1-3-recover-cleanly-from-expired-offline-and-timeout-session-states.md`
++
++### Change Log
++
++- `2026-04-03`: creation de la story 1.3 avec contexte brownfield complet, garde-fous auth/startup/router et strategie de recovery explicite.
++- `2026-04-03`: implementation des outcomes auth/session types, du cleanup sensible cible et de la propagation `AppLaunchRecovery` jusqu'aux destinations de bootstrap.
++- `2026-04-03`: ajout d'une UX de retry explicite sur shell/welcome et couverture de tests pour invalidSession, offline, timeout et navigation degradee.
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+new file mode 100644
+index 0000000..b16bdde
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -0,0 +1,111 @@
++﻿# generated: 2026-04-02 23:12:35
++# last_updated: 2026-04-03 11:45:01
++# project: movi
++# project_key: NOKEY
++# tracking_system: file-system
++# story_location: _bmad-output/implementation-artifacts
++
++# DEFINITIONS DES STATUTS:
++# =======================
++# Statuts Epic:
++#   - backlog: Epic non commence
++#   - in-progress: Epic en cours
++#   - done: Toutes les stories de l epic sont terminees
++#
++# Transitions Epic:
++#   - backlog -> in-progress: automatiquement quand la premiere story devient active
++#   - in-progress -> done: quand toutes les stories passent a done
++#
++# Statuts Story:
++#   - backlog: Story presente uniquement dans epics.md
++#   - ready-for-dev: Fichier story cree dans implementation-artifacts
++#   - in-progress: Implementation en cours
++#   - review: Prete pour revue
++#   - done: Story terminee
++#
++# Statuts Retrospective:
++#   - optional: Peut etre faite mais non requise
++#   - done: Retrospective terminee
++#
++# NOTES WORKFLOW:
++# ===============
++# - Les epics passent a in-progress quand le travail commence sur leur premiere story
++# - Les stories peuvent avancer en parallele si la capacite equipe le permet
++# - Le Scrum Master cree souvent la story suivante apres completion de la precedente
++# - Le developpeur passe la story a review avant code review puis done
++
++generated: '2026-04-02 23:12:35'
++last_updated: '2026-04-03 11:45:01'
++project: 'movi'
++project_key: 'NOKEY'
++tracking_system: 'file-system'
++story_location: '_bmad-output/implementation-artifacts'
++
++development_status:
++  epic-1: in-progress
++  1-1-reach-a-usable-startup-state-without-crash-loops: done
++  1-2-restore-session-and-initial-access-deterministically: done
++  1-3-recover-cleanly-from-expired-offline-and-timeout-session-states: review
++  1-4-restore-essential-context-after-launch-without-breaking-safety-rules: backlog
++  epic-1-retrospective: optional
++
++  epic-2: backlog
++  2-1-present-a-dedicated-discovery-home-with-prioritized-content-paths: backlog
++  2-2-resolve-movie-and-tv-content-into-a-usable-detail-state: backlog
++  2-3-surface-relevant-content-from-the-user-s-current-context: backlog
++  2-4-expose-in-progress-and-resume-signals-without-ambiguity: backlog
++  2-5-preserve-navigation-context-across-browse-detail-and-return-flows: backlog
++  2-6-adapt-discovery-and-detail-interactions-for-android-tv: backlog
++  epic-2-retrospective: optional
++
++  epic-3: backlog
++  3-1-launch-eligible-playback-from-primary-content-surfaces: backlog
++  3-2-reach-a-playable-state-with-bounded-startup-and-observable-outcomes: backlog
++  3-3-restore-local-playback-progress-after-interruption: backlog
++  3-4-reconcile-cross-device-progress-without-blocking-local-use: backlog
++  3-5-explain-playback-and-resume-failures-with-actionable-recovery: backlog
++  3-6-apply-resume-policies-consistently-across-movies-episodes-and-started-content: backlog
++  epic-3-retrospective: optional
++
++  epic-4: backlog
++  4-1-restore-and-switch-profiles-with-isolated-usage-context: backlog
++  4-2-create-and-update-profile-level-parental-restrictions: backlog
++  4-3-enforce-parental-decisions-on-discovery-details-and-playback-entry: backlog
++  4-4-show-the-effect-of-sensitive-rules-and-settings-in-context: backlog
++  4-5-view-and-update-supported-application-preferences-safely: backlog
++  4-6-restore-essential-preferences-across-restart-and-device-changes-with-safe-fallbacks: backlog
++  epic-4-retrospective: optional
++
++  epic-5: backlog
++  5-1-surface-the-current-subscription-and-entitlement-status-clearly: backlog
++  5-2-gate-premium-capabilities-with-fail-closed-access-decisions: backlog
++  5-3-restore-and-revalidate-premium-rights-after-session-or-device-changes: backlog
++  5-4-explain-why-premium-access-is-available-unavailable-or-pending: backlog
++  5-5-run-a-store-coherent-subscription-purchase-flow: backlog
++  5-6-run-a-store-coherent-restore-purchase-flow: backlog
++  epic-5-retrospective: optional
++
++  epic-6: backlog
++  6-1-let-users-opt-in-or-out-of-followed-content-notifications: backlog
++  6-2-deliver-useful-notifications-for-new-episodes-and-relevant-followed-content-events: backlog
++  6-3-let-users-control-supported-notification-preferences-clearly: backlog
++  epic-6-retrospective: optional
++
++  epic-7: backlog
++  7-1-reach-a-minimal-useful-state-when-network-conditions-are-degraded: backlog
++  7-2-surface-pending-sync-and-degraded-states-in-context: backlog
++  7-3-recover-to-normal-use-automatically-when-connectivity-returns: backlog
++  7-4-reconcile-out-of-sequence-cross-device-events-deterministically: backlog
++  epic-7-retrospective: optional
++
++  epic-8: backlog
++  8-1-instrument-access-and-session-critical-flows-with-stable-diagnostic-identifiers: backlog
++  8-2-instrument-playback-resume-and-sync-critical-flows-with-stable-diagnostic-identifiers: backlog
++  8-3-correlate-critical-events-across-system-layers: backlog
++  8-4-redact-diagnostic-payloads-by-default-while-preserving-investigation-value: backlog
++  8-5-distinguish-recoverable-states-from-states-requiring-corrective-action: backlog
++  8-6-link-visible-user-failures-to-actionable-diagnostic-context: backlog
++  8-7-signal-safe-degraded-recovered-and-failed-states-explicitly: backlog
++  epic-8-retrospective: optional
++
++
+diff --git a/lib/src/core/auth/application/auth_orchestrator.dart b/lib/src/core/auth/application/auth_orchestrator.dart
+index 0309aab..bcd5075 100644
+--- a/lib/src/core/auth/application/auth_orchestrator.dart
++++ b/lib/src/core/auth/application/auth_orchestrator.dart
+@@ -1,8 +1,9 @@
+ import 'dart:async';
+ 
+ import 'package:flutter/foundation.dart';
+-import 'package:movi/src/core/auth/application/ports/local_cleanup_port.dart';
++
+ import 'package:movi/src/core/auth/application/ports/auth_telemetry_port.dart';
++import 'package:movi/src/core/auth/application/ports/local_cleanup_port.dart';
+ import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
+ import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
+ import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
+@@ -31,27 +32,58 @@ final class AuthOrchestrator {
+ 
+   /// Resolves current auth state deterministically.
+   ///
+-  /// Fail-closed rule (L1): any uncertainty during validation => unauthenticated.
+-  Future<AuthSnapshot> bootstrapSession() async {
++  /// Fail-closed rule (L1): a validated session is required before exposing an
++  /// authenticated path. Invalid sessions force reauthentication; transient
++  /// failures keep the app unauthenticated but explicitly retryable.
++  Future<AuthBootstrapResult> bootstrapSession() async {
+     _telemetry?.event(action: 'bootstrap_session', result: 'start');
++
+     final current = _repo.currentSession;
+     if (current == null) {
+-      _telemetry?.event(action: 'bootstrap_session', result: 'success', reasonCode: AuthFailureCode.invalidSession);
+-      return AuthSnapshot.unauthenticated;
++      _telemetry?.event(
++        action: 'bootstrap_session',
++        result: 'success',
++        reasonCode: AuthFailureCode.invalidSession,
++      );
++      return _reauthRequiredResult(AuthFailureCode.invalidSession);
+     }
+ 
+     final refreshed = await _refreshFailClosed();
+-    if (refreshed == null) {
++    if (refreshed.session != null) {
++      _telemetry?.event(action: 'bootstrap_session', result: 'success');
++      return AuthBootstrapResult(
++        snapshot: AuthSnapshot(
++          status: AuthStatus.authenticated,
++          session: refreshed.session,
++        ),
++        outcome: AuthBootstrapOutcome.authenticated,
++        reasonCode: 'authenticated',
++      );
++    }
++
++    final cause = refreshed.cause ?? AuthFailureCode.refreshFailed;
++    if (cause == AuthFailureCode.invalidSession) {
++      await _clearInvalidSessionStateBestEffort();
+       _telemetry?.event(
+         action: 'bootstrap_session',
+         result: 'failure',
+-        reasonCode: AuthFailureCode.refreshFailed,
++        reasonCode: cause,
+       );
+-      return AuthSnapshot.unauthenticated;
++      return _reauthRequiredResult(cause);
+     }
+ 
+-    _telemetry?.event(action: 'bootstrap_session', result: 'success');
+-    return AuthSnapshot(status: AuthStatus.authenticated, session: refreshed);
++    _telemetry?.event(
++      action: 'bootstrap_session',
++      result: 'failure',
++      reasonCode: cause,
++    );
++    return AuthBootstrapResult(
++      snapshot: AuthSnapshot.unauthenticated,
++      outcome: AuthBootstrapOutcome.degradedRetryable,
++      cause: cause,
++      reasonCode: cause.name,
++      recoveryMessage: _degradedMessageFor(cause),
++    );
+   }
+ 
+   Future<AuthFailure?> signOutAndCleanup() async {
+@@ -80,43 +112,136 @@ final class AuthOrchestrator {
+     return _cleanupBestEffort();
+   }
+ 
+-  Future<AuthSession?> _refreshFailClosed() async {
+-    // Refresh policy: bounded attempts, but fail-closed on first uncertainty.
+-    // (`_refreshAttempts` is still kept as explicit policy input for future
+-    // controlled evolutions, but current behavior is intentionally strict.)
++  Future<_RefreshSessionResult> _refreshFailClosed() async {
+     try {
+       _telemetry?.event(action: 'refresh_session', result: 'start');
+-      final refreshed = await _repo
+-          .refreshSession()
+-          .timeout(
+-            _refreshTimeout,
+-            onTimeout: () => throw TimeoutException('auth refresh timeout'),
+-          );
++      final refreshed = await _repo.refreshSession().timeout(
++        _refreshTimeout,
++        onTimeout: () => throw TimeoutException('auth refresh timeout'),
++      );
+       if (refreshed == null) {
+         _telemetry?.event(
+           action: 'refresh_session',
+           result: 'failure',
+           reasonCode: AuthFailureCode.invalidSession,
+         );
+-        return null;
++        return const _RefreshSessionResult(
++          cause: AuthFailureCode.invalidSession,
++        );
+       }
+       _telemetry?.event(action: 'refresh_session', result: 'success');
+-      return refreshed;
++      return _RefreshSessionResult(session: refreshed);
+     } on TimeoutException {
+       _telemetry?.event(
+         action: 'refresh_session',
+         result: 'failure',
+         reasonCode: AuthFailureCode.timeout,
+       );
+-      return null;
++      return const _RefreshSessionResult(cause: AuthFailureCode.timeout);
+     } catch (e) {
++      final cause = _classifyRefreshFailure(e);
+       _telemetry?.event(
+         action: 'refresh_session',
+         result: 'failure',
+-        reasonCode: AuthFailureCode.refreshFailed,
++        reasonCode: cause,
++        detail: kDebugMode ? 'type=${e.runtimeType}' : null,
++      );
++      return _RefreshSessionResult(cause: cause);
++    }
++  }
++
++  AuthBootstrapResult _reauthRequiredResult(AuthFailureCode cause) {
++    return AuthBootstrapResult(
++      snapshot: AuthSnapshot.unauthenticated,
++      outcome: AuthBootstrapOutcome.reauthRequired,
++      cause: cause,
++      reasonCode: cause.name,
++      recoveryMessage: _reauthMessageFor(cause),
++    );
++  }
++
++  AuthFailureCode _classifyRefreshFailure(Object error) {
++    final message = error.toString().toLowerCase();
++    if (message.contains('offline') ||
++        message.contains('failed host lookup') ||
++        message.contains('socketexception') ||
++        message.contains('host is down') ||
++        message.contains('network is unreachable') ||
++        message.contains('connection refused')) {
++      return AuthFailureCode.offline;
++    }
++    if (message.contains('timeout') || message.contains('timed out')) {
++      return AuthFailureCode.timeout;
++    }
++    return AuthFailureCode.refreshFailed;
++  }
++
++  String _reauthMessageFor(AuthFailureCode cause) {
++    return switch (cause) {
++      AuthFailureCode.invalidSession =>
++        'Session expiree. Reconnectez-vous pour retablir l\'acces.',
++      _ => 'Reconnectez-vous pour retablir l\'acces.',
++    };
++  }
++
++  String _degradedMessageFor(AuthFailureCode cause) {
++    return switch (cause) {
++      AuthFailureCode.offline =>
++        'Connexion indisponible. Vous pouvez continuer en mode degrade et reessayer.',
++      AuthFailureCode.timeout =>
++        'La restauration de session a expire. Vous pouvez continuer en mode degrade et reessayer.',
++      AuthFailureCode.refreshFailed =>
++        'Le service de session est temporairement indisponible. Vous pouvez continuer en mode degrade et reessayer.',
++      _ =>
++        'La session ne peut pas etre restauree maintenant. Vous pouvez continuer en mode degrade et reessayer.',
++    };
++  }
++
++  Future<void> _clearInvalidSessionStateBestEffort() async {
++    _telemetry?.event(
++      action: 'invalidate_session',
++      result: 'start',
++      reasonCode: AuthFailureCode.invalidSession,
++    );
++
++    try {
++      await _repo.signOut();
++      _telemetry?.event(
++        action: 'invalidate_session',
++        result: 'success',
++        reasonCode: AuthFailureCode.invalidSession,
++      );
++    } catch (e) {
++      _telemetry?.event(
++        action: 'invalidate_session',
++        result: 'failure',
++        reasonCode: AuthFailureCode.invalidSession,
++        detail: kDebugMode ? 'type=${e.runtimeType}' : null,
++      );
++    }
++
++    final cleanup = _cleanup;
++    if (cleanup == null) return;
++
++    try {
++      _telemetry?.event(
++        action: 'sensitive_cleanup',
++        result: 'start',
++        reasonCode: AuthFailureCode.invalidSession,
++      );
++      await cleanup.clearSensitiveSessionState();
++      _telemetry?.event(
++        action: 'sensitive_cleanup',
++        result: 'success',
++        reasonCode: AuthFailureCode.invalidSession,
++      );
++    } catch (e) {
++      _telemetry?.event(
++        action: 'sensitive_cleanup',
++        result: 'failure',
++        reasonCode: AuthFailureCode.invalidSession,
+         detail: kDebugMode ? 'type=${e.runtimeType}' : null,
+       );
+-      return null;
+     }
+   }
+ 
+@@ -144,3 +269,10 @@ final class AuthOrchestrator {
+   }
+ }
+ 
++@immutable
++final class _RefreshSessionResult {
++  const _RefreshSessionResult({this.session, this.cause});
++
++  final AuthSession? session;
++  final AuthFailureCode? cause;
++}
+diff --git a/lib/src/core/auth/application/ports/local_cleanup_port.dart b/lib/src/core/auth/application/ports/local_cleanup_port.dart
+index 77c54fb..313440a 100644
+--- a/lib/src/core/auth/application/ports/local_cleanup_port.dart
++++ b/lib/src/core/auth/application/ports/local_cleanup_port.dart
+@@ -1,5 +1,6 @@
+ /// Port for local user data cleanup on logout.
+ abstract interface class LocalCleanupPort {
++  Future<void> clearSensitiveSessionState();
++
+   Future<void> clearAllLocalData();
+ }
+-
+diff --git a/lib/src/core/auth/application/services/local_data_cleanup_service.dart b/lib/src/core/auth/application/services/local_data_cleanup_service.dart
+index f824c5e..18e4fb0 100644
+--- a/lib/src/core/auth/application/services/local_data_cleanup_service.dart
++++ b/lib/src/core/auth/application/services/local_data_cleanup_service.dart
+@@ -12,11 +12,9 @@ import 'package:movi/src/core/storage/repositories/secure_storage_repository.dar
+ /// Le nettoyage est volontairement tolérant aux erreurs : une étape qui échoue
+ /// ne doit pas bloquer la déconnexion.
+ class LocalDataCleanupService {
+-  LocalDataCleanupService({
+-    required Database db,
+-    required GetIt sl,
+-  }) : _db = db,
+-       _sl = sl;
++  LocalDataCleanupService({required Database db, required GetIt sl})
++    : _db = db,
++      _sl = sl;
+ 
+   static const List<String> _secureStorageKeysToRemove = <String>[
+     'selected_profile_id',
+@@ -29,14 +27,28 @@ class LocalDataCleanupService {
+     'iptv_sync_interval',
+   ];
+ 
+-  static const List<String> _cacheTypesToClear = <String>[
+-    'search',
+-    'settings',
++  static const List<String> _sensitiveSessionKeysToRemove = <String>[
++    'selected_profile_id',
++    'selected_iptv_source_id',
+   ];
+ 
++  static const List<String> _cacheTypesToClear = <String>['search', 'settings'];
++
+   final Database _db;
+   final GetIt _sl;
+ 
++  /// Clears only auth/session-derived local state that can otherwise keep the
++  /// app in an unsafe or ambiguous recovery path after an invalid session.
++  ///
++  /// This intentionally preserves local-first assets such as profiles, IPTV
++  /// sources, playlists, and caches that remain valid offline.
++  Future<void> clearSensitiveSessionState() async {
++    _log('Starting sensitive session cleanup...');
++    await _clearSecureStorageKeys(_sensitiveSessionKeysToRemove);
++    await _clearSyncOutbox();
++    _log('Sensitive session cleanup completed');
++  }
++
+   /// Supprime toutes les données locales de l'utilisateur.
+   Future<void> clearAllLocalData() async {
+     _log('Starting local data cleanup...');
+@@ -68,9 +80,7 @@ class LocalDataCleanupService {
+     try {
+       return await iptvRepository.getAccounts();
+     } catch (error, stackTrace) {
+-      _log(
+-        'Error loading IPTV accounts for cleanup: $error\n$stackTrace',
+-      );
++      _log('Error loading IPTV accounts for cleanup: $error\n$stackTrace');
+       return const <dynamic>[];
+     }
+   }
+@@ -144,6 +154,10 @@ class LocalDataCleanupService {
+   }
+ 
+   Future<void> _clearSecureStorage() async {
++    await _clearSecureStorageKeys(_secureStorageKeysToRemove);
++  }
++
++  Future<void> _clearSecureStorageKeys(List<String> keys) async {
+     final secureStorageRepository = _getOptional<SecureStorageRepository>();
+     if (secureStorageRepository == null) {
+       return;
+@@ -152,7 +166,7 @@ class LocalDataCleanupService {
+     await _runSafely(
+       errorContext: 'clearing secure storage',
+       action: () async {
+-        for (final key in _secureStorageKeysToRemove) {
++        for (final key in keys) {
+           try {
+             await secureStorageRepository.remove(key);
+           } catch (error) {
+@@ -240,4 +254,4 @@ class LocalDataCleanupService {
+ 
+     debugPrint('[LocalDataCleanupService] $message');
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/lib/src/core/auth/domain/entities/auth_models.dart b/lib/src/core/auth/domain/entities/auth_models.dart
+index 6adcf29..a84bfa3 100644
+--- a/lib/src/core/auth/domain/entities/auth_models.dart
++++ b/lib/src/core/auth/domain/entities/auth_models.dart
+@@ -1,65 +1,118 @@
+-import 'package:flutter/foundation.dart';
+-
+-/// Authentication status exposed to the app.
+-enum AuthStatus { unknown, authenticated, unauthenticated }
+-
+-/// Minimal session representation (domain-friendly).
+-///
+-/// This avoids leaking Supabase SDK models into the Domain layer.
+-@immutable
+-class AuthSession {
+-  const AuthSession({required this.userId});
+-
+-  final String userId;
+-
+-  AuthSession copyWith({String? userId}) =>
+-      AuthSession(userId: userId ?? this.userId);
+-
+-  @override
+-  bool operator ==(Object other) =>
+-      identical(this, other) ||
+-      (other is AuthSession && other.userId == userId);
+-
+-  @override
+-  int get hashCode => userId.hashCode;
+-
+-  @override
+-  String toString() => 'AuthSession(userId: $userId)';
+-}
+-
+-@immutable
+-class AuthSnapshot {
+-  const AuthSnapshot({required this.status, this.session});
+-
+-  final AuthStatus status;
+-  final AuthSession? session;
+-
+-  String? get userId => session?.userId;
+-  bool get isAuthenticated => status == AuthStatus.authenticated;
+-
+-  AuthSnapshot copyWith({AuthStatus? status, AuthSession? session}) {
+-    return AuthSnapshot(
+-      status: status ?? this.status,
+-      session: session ?? this.session,
+-    );
+-  }
+-
+-  static const AuthSnapshot unknown = AuthSnapshot(status: AuthStatus.unknown);
+-  static const AuthSnapshot unauthenticated = AuthSnapshot(
+-    status: AuthStatus.unauthenticated,
+-  );
+-
+-  @override
+-  bool operator ==(Object other) {
+-    return identical(this, other) ||
+-        (other is AuthSnapshot &&
+-            other.status == status &&
+-            other.session == session);
+-  }
+-
+-  @override
+-  int get hashCode => Object.hash(status, session);
+-
+-  @override
+-  String toString() => 'AuthSnapshot(status: $status, session: $session)';
+-}
++import 'package:flutter/foundation.dart';
++
++import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
++
++/// Authentication status exposed to the app.
++enum AuthStatus { unknown, authenticated, unauthenticated }
++
++/// Minimal session representation (domain-friendly).
++///
++/// This avoids leaking Supabase SDK models into the Domain layer.
++@immutable
++class AuthSession {
++  const AuthSession({required this.userId});
++
++  final String userId;
++
++  AuthSession copyWith({String? userId}) =>
++      AuthSession(userId: userId ?? this.userId);
++
++  @override
++  bool operator ==(Object other) =>
++      identical(this, other) ||
++      (other is AuthSession && other.userId == userId);
++
++  @override
++  int get hashCode => userId.hashCode;
++
++  @override
++  String toString() => 'AuthSession(userId: $userId)';
++}
++
++@immutable
++class AuthSnapshot {
++  const AuthSnapshot({required this.status, this.session});
++
++  final AuthStatus status;
++  final AuthSession? session;
++
++  String? get userId => session?.userId;
++  bool get isAuthenticated => status == AuthStatus.authenticated;
++
++  AuthSnapshot copyWith({AuthStatus? status, AuthSession? session}) {
++    return AuthSnapshot(
++      status: status ?? this.status,
++      session: session ?? this.session,
++    );
++  }
++
++  static const AuthSnapshot unknown = AuthSnapshot(status: AuthStatus.unknown);
++  static const AuthSnapshot unauthenticated = AuthSnapshot(
++    status: AuthStatus.unauthenticated,
++  );
++
++  @override
++  bool operator ==(Object other) {
++    return identical(this, other) ||
++        (other is AuthSnapshot &&
++            other.status == status &&
++            other.session == session);
++  }
++
++  @override
++  int get hashCode => Object.hash(status, session);
++
++  @override
++  String toString() => 'AuthSnapshot(status: $status, session: $session)';
++}
++
++enum AuthBootstrapOutcome { authenticated, reauthRequired, degradedRetryable }
++
++@immutable
++class AuthBootstrapResult {
++  const AuthBootstrapResult({
++    required this.snapshot,
++    required this.outcome,
++    this.cause,
++    this.reasonCode,
++    this.recoveryMessage,
++  });
++
++  final AuthSnapshot snapshot;
++  final AuthBootstrapOutcome outcome;
++  final AuthFailureCode? cause;
++  final String? reasonCode;
++  final String? recoveryMessage;
++
++  bool get isAuthenticated => snapshot.isAuthenticated;
++  bool get requiresReauthentication =>
++      outcome == AuthBootstrapOutcome.reauthRequired;
++  bool get isDegradedRetryable =>
++      outcome == AuthBootstrapOutcome.degradedRetryable;
++
++  @override
++  bool operator ==(Object other) {
++    return identical(this, other) ||
++        (other is AuthBootstrapResult &&
++            other.snapshot == snapshot &&
++            other.outcome == outcome &&
++            other.cause == cause &&
++            other.reasonCode == reasonCode &&
++            other.recoveryMessage == recoveryMessage);
++  }
++
++  @override
++  int get hashCode =>
++      Object.hash(snapshot, outcome, cause, reasonCode, recoveryMessage);
++
++  @override
++  String toString() {
++    return 'AuthBootstrapResult('
++        'snapshot: $snapshot, '
++        'outcome: $outcome, '
++        'cause: $cause, '
++        'reasonCode: $reasonCode, '
++        'recoveryMessage: $recoveryMessage'
++        ')';
++  }
++}
+diff --git a/lib/src/core/auth/presentation/providers/auth_providers.dart b/lib/src/core/auth/presentation/providers/auth_providers.dart
+index 6b9ecb0..e1b6352 100644
+--- a/lib/src/core/auth/presentation/providers/auth_providers.dart
++++ b/lib/src/core/auth/presentation/providers/auth_providers.dart
+@@ -12,6 +12,7 @@ import 'package:movi/src/core/auth/application/services/local_data_cleanup_servi
+ import 'package:movi/src/core/auth/application/ports/auth_telemetry_port.dart';
+ import 'package:movi/src/core/auth/infrastructure/auth_telemetry_adapters.dart';
+ import 'package:movi/src/core/logging/logger.dart';
++import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+ 
+ final authRepositoryProvider = Provider<AuthRepository>((ref) {
+   final sl = ref.watch(slProvider);
+@@ -27,9 +28,12 @@ final authOrchestratorProvider = Provider<AuthOrchestrator>((ref) {
+   final LocalCleanupPort? cleanupPort = cleanupService == null
+       ? null
+       : _LocalCleanupAdapter(cleanupService);
+-  final AppLogger? logger =
+-      sl.isRegistered<AppLogger>() ? sl<AppLogger>() : null;
+-  final AuthTelemetryPort telemetry = AuthLoggerTelemetryAdapter(logger: logger);
++  final AppLogger? logger = sl.isRegistered<AppLogger>()
++      ? sl<AppLogger>()
++      : null;
++  final AuthTelemetryPort telemetry = AuthLoggerTelemetryAdapter(
++    logger: logger,
++  );
+ 
+   return AuthOrchestrator(
+     repository: repo,
+@@ -42,6 +46,10 @@ final class _LocalCleanupAdapter implements LocalCleanupPort {
+   _LocalCleanupAdapter(this._service);
+   final LocalDataCleanupService _service;
+ 
++  @override
++  Future<void> clearSensitiveSessionState() =>
++      _service.clearSensitiveSessionState();
++
+   @override
+   Future<void> clearAllLocalData() => _service.clearAllLocalData();
+ }
+@@ -89,8 +97,12 @@ class AuthController extends Notifier<AuthControllerState> {
+ 
+   @override
+   AuthControllerState build() {
++    final sl = ref.watch(slProvider);
+     final repo = ref.watch(authRepositoryProvider);
+     final orchestrator = ref.watch(authOrchestratorProvider);
++    final launchRegistry = sl.isRegistered<AppLaunchStateRegistry>()
++        ? sl<AppLaunchStateRegistry>()
++        : null;
+ 
+     // If the repo changes (hot reload / DI replacement), resubscribe safely.
+     if (!identical(_repo, repo)) {
+@@ -112,11 +124,19 @@ class AuthController extends Notifier<AuthControllerState> {
+     // Bootstrapping: explicit unknown -> authenticated/unauthenticated.
+     if (!_bootstrapped) {
+       _bootstrapped = true;
+-      state = AuthControllerState.unknown;
+-      unawaited(() async {
+-        final snapshot = await orchestrator.bootstrapSession();
+-        _onAuthSnapshot(snapshot);
+-      }());
++      final launchSnapshot = _snapshotFromResolvedLaunch(
++        launchRegistry?.state,
++        repo,
++      );
++      if (launchSnapshot != null) {
++        _onAuthSnapshot(launchSnapshot);
++      } else {
++        state = AuthControllerState.unknown;
++        unawaited(() async {
++          final result = await orchestrator.bootstrapSession();
++          _onAuthSnapshot(result.snapshot);
++        }());
++      }
+     }
+ 
+     return state;
+@@ -129,6 +149,26 @@ class AuthController extends Notifier<AuthControllerState> {
+     );
+   }
+ 
++  AuthSnapshot? _snapshotFromResolvedLaunch(
++    AppLaunchState? launchState,
++    AuthRepository repo,
++  ) {
++    if (launchState == null || launchState.status != AppLaunchStatus.success) {
++      return null;
++    }
++
++    if (!launchState.criteria.hasSession) {
++      return AuthSnapshot.unauthenticated;
++    }
++
++    final session = repo.currentSession;
++    if (session == null) {
++      return null;
++    }
++
++    return AuthSnapshot(status: AuthStatus.authenticated, session: session);
++  }
++
+   Future<void> signOut() async {
+     final orchestrator = ref.read(authOrchestratorProvider);
+     await orchestrator.signOutAndCleanup();
+diff --git a/lib/src/core/startup/app_launch_orchestrator.dart b/lib/src/core/startup/app_launch_orchestrator.dart
+index 3a19ee6..89e99ed 100644
+--- a/lib/src/core/startup/app_launch_orchestrator.dart
++++ b/lib/src/core/startup/app_launch_orchestrator.dart
+@@ -3,9 +3,11 @@ import 'dart:async';
+ import 'package:flutter/foundation.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ 
++import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
++import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
++import 'package:movi/src/core/config/config.dart';
+ import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
+ import 'package:movi/src/core/di/di.dart';
+-import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
+ import 'package:movi/src/core/logging/logging.dart';
+ import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+ import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
+@@ -64,6 +66,25 @@ enum AppLaunchPhase {
+   done,
+ }
+ 
++enum AppLaunchRecoveryKind { reauthRequired, degradedRetryable }
++
++@immutable
++class AppLaunchRecovery {
++  const AppLaunchRecovery({
++    required this.kind,
++    required this.cause,
++    required this.reasonCode,
++    required this.message,
++  });
++
++  final AppLaunchRecoveryKind kind;
++  final AuthFailureCode cause;
++  final String reasonCode;
++  final String message;
++
++  bool get isRetryable => kind == AppLaunchRecoveryKind.degradedRetryable;
++}
++
+ class AppLaunchState {
+   const AppLaunchState({
+     this.status = AppLaunchStatus.idle,
+@@ -73,6 +94,7 @@ class AppLaunchState {
+     this.completedAt,
+     this.destination,
+     this.criteria = AppLaunchCriteria.empty,
++    this.recovery,
+     this.recoveryMessage,
+     this.runId,
+   });
+@@ -84,6 +106,7 @@ class AppLaunchState {
+   final DateTime? completedAt;
+   final BootstrapDestination? destination;
+   final AppLaunchCriteria criteria;
++  final AppLaunchRecovery? recovery;
+   final String? recoveryMessage;
+   final String? runId;
+ 
+@@ -97,6 +120,7 @@ class AppLaunchState {
+     Object? completedAt = _sentinel,
+     Object? destination = _sentinel,
+     AppLaunchCriteria? criteria,
++    Object? recovery = _sentinel,
+     Object? recoveryMessage = _sentinel,
+     Object? runId = _sentinel,
+   }) {
+@@ -116,6 +140,9 @@ class AppLaunchState {
+           ? this.destination
+           : destination as BootstrapDestination?,
+       criteria: criteria ?? this.criteria,
++      recovery: identical(recovery, _sentinel)
++          ? this.recovery
++          : recovery as AppLaunchRecovery?,
+       recoveryMessage: identical(recoveryMessage, _sentinel)
+           ? this.recoveryMessage
+           : recoveryMessage as String?,
+@@ -272,7 +299,6 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+   };
+ 
+   late final AppStartupRunner _startupRunner;
+-  late final AuthRepository _authRepository;
+   late final ProfileRepository _profileRepository;
+   late final SupabaseIptvSourcesRepository? _iptvSourcesRepository;
+   late final SelectedProfilePreferences _selectedProfilePreferences;
+@@ -298,7 +324,6 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+ 
+     _startupRunner = () =>
+         ref.read(app_startup_provider.appStartupProvider.future);
+-    _authRepository = ref.read(authRepositoryProvider);
+     _profileRepository = sl<ProfileRepository>();
+     _iptvSourcesRepository = sl.isRegistered<SupabaseIptvSourcesRepository>()
+         ? sl<SupabaseIptvSourcesRepository>()
+@@ -348,6 +373,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+         completedAt: null,
+         destination: null,
+         criteria: AppLaunchCriteria.empty,
++        recovery: null,
+         recoveryMessage: null,
+         runId: runId,
+       ),
+@@ -407,6 +433,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+       );
+     }
+ 
++    void setRecovery(AppLaunchRecovery? recovery) {
++      _updateState(state.copyWith(recovery: recovery));
++    }
++
+     Future<void> logStep(String message) async {
+       final uid = meta.accountId ?? 'null';
+       final pc = meta.profilesCount?.toString() ?? 'n/a';
+@@ -495,13 +525,42 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+ 
+       step = 'auth_session';
+       _setPhase(AppLaunchPhase.auth, stepName: step);
+-      final session = _authRepository.currentSession;
+-      if (session == null) {
+-        await logStep('no session -> local mode');
+-      } else {
++      final authResult = await ref
++          .read(authOrchestratorProvider)
++          .bootstrapSession();
++      final session = authResult.snapshot.session;
++      const supabaseConfig = SupabaseConfig.fromEnvironment;
++      final isCloudAuthEnabled =
++          supabaseConfig.isConfigured ||
++          ref.read(supabaseClientProvider) != null;
++      if (authResult.isAuthenticated && session != null) {
++        setRecovery(null);
+         meta = meta.copyWith(accountId: session.userId);
+         updateCriteria();
+-        await logStep('session ok');
++        await logStep('session validated');
++      } else if (isCloudAuthEnabled && authResult.requiresReauthentication) {
++        final recovery = _buildAuthRecovery(authResult);
++        setRecovery(recovery);
++        await logStep(
++          'invalid session -> explicit reauth (${recovery?.reasonCode ?? 'none'})',
++        );
++        destination = BootstrapDestination.auth;
++        return completeSuccess(destination);
++      } else if (isCloudAuthEnabled && authResult.isDegradedRetryable) {
++        final recovery = _buildAuthRecovery(authResult);
++        setRecovery(recovery);
++        await logStep(
++          'session recovery degraded -> local-first continuation '
++          '(${recovery?.reasonCode ?? 'none'})',
++        );
++      } else if (isCloudAuthEnabled) {
++        setRecovery(_buildAuthRecovery(authResult));
++        await logStep('session unverifiable -> safe auth path');
++        destination = BootstrapDestination.auth;
++        return completeSuccess(destination);
++      } else {
++        setRecovery(null);
++        await logStep('no validated session -> local mode');
+       }
+ 
+       step = 'profiles_fetch';
+@@ -923,6 +982,26 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
+     );
+   }
+ 
++  AppLaunchRecovery? _buildAuthRecovery(AuthBootstrapResult authResult) {
++    final cause = authResult.cause;
++    final reasonCode = authResult.reasonCode;
++    final message = authResult.recoveryMessage;
++    if (cause == null || reasonCode == null || message == null) {
++      return null;
++    }
++
++    final kind = authResult.isDegradedRetryable
++        ? AppLaunchRecoveryKind.degradedRetryable
++        : AppLaunchRecoveryKind.reauthRequired;
++
++    return AppLaunchRecovery(
++      kind: kind,
++      cause: cause,
++      reasonCode: reasonCode,
++      message: message,
++    );
++  }
++
+   void _setRecoveryMessage(String? message) {
+     _updateState(state.copyWith(recoveryMessage: message));
+   }
+diff --git a/lib/src/core/startup/presentation/widgets/launch_recovery_banner.dart b/lib/src/core/startup/presentation/widgets/launch_recovery_banner.dart
+new file mode 100644
+index 0000000..265f844
+--- /dev/null
++++ b/lib/src/core/startup/presentation/widgets/launch_recovery_banner.dart
+@@ -0,0 +1,38 @@
++import 'package:flutter/material.dart';
++
++class LaunchRecoveryBanner extends StatelessWidget {
++  const LaunchRecoveryBanner({
++    super.key,
++    required this.message,
++    required this.onRetry,
++  });
++
++  final String message;
++  final VoidCallback onRetry;
++
++  @override
++  Widget build(BuildContext context) {
++    final theme = Theme.of(context);
++
++    return Material(
++      color: Colors.transparent,
++      child: Container(
++        width: double.infinity,
++        padding: const EdgeInsets.all(12),
++        decoration: BoxDecoration(
++          color: theme.colorScheme.surfaceContainerHighest,
++          borderRadius: BorderRadius.circular(16),
++          border: Border.all(color: theme.colorScheme.outlineVariant),
++        ),
++        child: Row(
++          crossAxisAlignment: CrossAxisAlignment.start,
++          children: [
++            Expanded(child: Text(message, style: theme.textTheme.bodyMedium)),
++            const SizedBox(width: 12),
++            TextButton(onPressed: onRetry, child: const Text('Reessayer')),
++          ],
++        ),
++      ),
++    );
++  }
++}
+diff --git a/lib/src/features/shell/presentation/pages/app_shell_page.dart b/lib/src/features/shell/presentation/pages/app_shell_page.dart
+index 66d973d..dcfe6ea 100644
+--- a/lib/src/features/shell/presentation/pages/app_shell_page.dart
++++ b/lib/src/features/shell/presentation/pages/app_shell_page.dart
+@@ -4,8 +4,11 @@ import 'package:flutter/foundation.dart';
+ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:go_router/go_router.dart';
+ 
+ // Shell
++import 'package:movi/src/core/router/app_route_names.dart';
++import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
+ import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
+ import 'package:movi/src/features/shell/presentation/navigation/shell_scroll_to_top_controller.dart';
+ import 'package:movi/src/features/shell/presentation/navigation/shell_shortcuts.dart';
+@@ -13,6 +16,7 @@ import 'package:movi/src/features/shell/presentation/providers/shell_providers.d
+ import 'package:movi/src/features/shell/presentation/layouts/app_shell_large_layout.dart';
+ import 'package:movi/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart';
+ import 'package:movi/src/features/shell/presentation/layouts/app_shell_tv_layout.dart';
++import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
+ 
+ // Pages (adapte les imports si tes features ont des chemins différents)
+ import 'package:movi/src/features/home/presentation/pages/home_page.dart';
+@@ -122,6 +126,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
+   @override
+   Widget build(BuildContext context) {
+     final selectedIndex = ref.watch(selectedIndexProvider);
++    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
+ 
+     final keepAliveIndices = ref.watch(keepAliveIndicesProvider);
+     final sidebarDestinations = buildSidebarDestinations(context);
+@@ -144,7 +149,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
+ 
+     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
+     // Pas de texte brut : pas de loadingLabel ici.
+-    return Focus(
++    final shellBody = Focus(
+       onKeyEvent: (_, event) {
+         if (event is! KeyDownEvent) return KeyEventResult.ignored;
+         if (_isTextInputFocused()) return KeyEventResult.ignored;
+@@ -204,5 +209,30 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
+               ),
+       ),
+     );
++
++    if (!(launchRecovery?.isRetryable ?? false)) {
++      return shellBody;
++    }
++
++    return Stack(
++      children: [
++        Positioned.fill(child: shellBody),
++        Positioned(
++          top: 12,
++          left: 12,
++          right: 12,
++          child: SafeArea(
++            bottom: false,
++            child: LaunchRecoveryBanner(
++              message: launchRecovery!.message,
++              onRetry: () {
++                ref.read(appLaunchOrchestratorProvider.notifier).reset();
++                context.go(AppRouteNames.launch);
++              },
++            ),
++          ),
++        ),
++      ],
++    );
+   }
+ }
+diff --git a/lib/src/features/welcome/presentation/pages/welcome_source_page.dart b/lib/src/features/welcome/presentation/pages/welcome_source_page.dart
+index 2342d1d..4a70cc5 100644
+--- a/lib/src/features/welcome/presentation/pages/welcome_source_page.dart
++++ b/lib/src/features/welcome/presentation/pages/welcome_source_page.dart
+@@ -14,12 +14,14 @@ import 'package:movi/src/core/di/di.dart';
+ import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
+ import 'package:movi/src/core/logging/logging.dart';
+ import 'package:movi/src/core/router/router.dart';
++import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
+ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+ import 'package:movi/src/core/utils/app_spacing.dart';
+ import 'package:movi/src/core/utils/unawaited.dart';
+ import 'package:movi/src/core/widgets/movi_primary_button.dart';
+ import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
+ import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
++import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
+ import 'package:movi/src/features/welcome/presentation/widgets/welcome_faq_row.dart';
+ import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
+ 
+@@ -346,6 +348,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
+     final l10n = AppLocalizations.of(context)!;
+     final connectState = ref.watch(iptvConnectControllerProvider);
+     final accentColor = ref.watch(asp.currentAccentColorProvider);
++    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
+ 
+     final isBusy = _loadingSources || connectState.isLoading;
+ 
+@@ -366,6 +369,18 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage> {
+                     title: l10n.welcomeSourceTitle,
+                     subtitle: l10n.welcomeSourceSubtitle,
+                   ),
++                  if (launchRecovery?.isRetryable ?? false) ...[
++                    const SizedBox(height: AppSpacing.md),
++                    LaunchRecoveryBanner(
++                      message: launchRecovery!.message,
++                      onRetry: () {
++                        ref
++                            .read(appLaunchOrchestratorProvider.notifier)
++                            .reset();
++                        context.go(AppRouteNames.launch);
++                      },
++                    ),
++                  ],
+                   const SizedBox(height: AppSpacing.lg),
+ 
+                   // ---------------- Sources Supabase ----------------
+diff --git a/lib/src/features/welcome/presentation/pages/welcome_source_select_page.dart b/lib/src/features/welcome/presentation/pages/welcome_source_select_page.dart
+index 0363cfe..bb1eb18 100644
+--- a/lib/src/features/welcome/presentation/pages/welcome_source_select_page.dart
++++ b/lib/src/features/welcome/presentation/pages/welcome_source_select_page.dart
+@@ -9,6 +9,7 @@ import 'package:movi/src/core/di/di.dart';
+ import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+ import 'package:movi/src/core/router/app_route_names.dart';
+ import 'package:movi/src/core/router/app_route_paths.dart';
++import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
+ import 'package:movi/src/core/state/app_event_bus.dart';
+ import 'package:movi/src/core/state/app_state_provider.dart';
+ import 'package:movi/src/core/utils/app_assets.dart';
+@@ -18,6 +19,7 @@ import 'package:movi/src/features/library/presentation/providers/library_cloud_s
+ import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
+ import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
+ import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
++import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
+ 
+ class WelcomeSourceSelectPage extends ConsumerWidget {
+   const WelcomeSourceSelectPage({super.key});
+@@ -63,6 +65,7 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
+   Widget build(BuildContext context, WidgetRef ref) {
+     final l10n = AppLocalizations.of(context)!;
+     final asyncAccounts = ref.watch(allIptvAccountsProvider);
++    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
+ 
+     final locator = ref.watch(slProvider);
+     final selectedPrefs = locator<SelectedIptvSourcePreferences>();
+@@ -85,6 +88,21 @@ class WelcomeSourceSelectPage extends ConsumerWidget {
+                   title: l10n.activeSourceTitle,
+                   onBack: () => _handleBack(context),
+                 ),
++                if (launchRecovery?.isRetryable ?? false) ...[
++                  const SizedBox(height: 12),
++                  Padding(
++                    padding: const EdgeInsets.symmetric(horizontal: 20),
++                    child: LaunchRecoveryBanner(
++                      message: launchRecovery!.message,
++                      onRetry: () {
++                        ref
++                            .read(appLaunchOrchestratorProvider.notifier)
++                            .reset();
++                        context.go(AppRouteNames.launch);
++                      },
++                    ),
++                  ),
++                ],
+                 const SizedBox(height: 16),
+                 Expanded(
+                   child: asyncAccounts.when(
+diff --git a/lib/src/features/welcome/presentation/pages/welcome_user_page.dart b/lib/src/features/welcome/presentation/pages/welcome_user_page.dart
+index aa21fb4..ba77be1 100644
+--- a/lib/src/features/welcome/presentation/pages/welcome_user_page.dart
++++ b/lib/src/features/welcome/presentation/pages/welcome_user_page.dart
+@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
+ 
+ import 'package:movi/src/core/router/app_route_names.dart';
+ import 'package:movi/src/core/router/app_route_paths.dart';
++import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
+ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+ import 'package:movi/l10n/app_localizations.dart';
+ import 'package:movi/src/core/utils/app_spacing.dart';
+@@ -51,8 +52,12 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
+       // providers "local mode" (DI) tant que l'auth n'est pas faite.
+       final client = ref.read(supabaseClientProvider);
+       final authStatus = ref.read(supabaseAuthStatusProvider);
++      final launchRecovery = ref.read(appLaunchStateProvider).recovery;
++      final shouldSuppressEmailAuth = launchRecovery?.isRetryable ?? false;
+       final shouldPrioritizeEmailAuth =
+-          client != null && authStatus == SupabaseAuthStatus.unauthenticated;
++          client != null &&
++          authStatus == SupabaseAuthStatus.unauthenticated &&
++          !shouldSuppressEmailAuth;
+       if (shouldPrioritizeEmailAuth) return;
+ 
+       unawaited(ref.read(userSettingsControllerProvider.notifier).load());
+@@ -101,9 +106,12 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
+     final l10n = AppLocalizations.of(context)!;
+     final supabaseClient = ref.watch(supabaseClientProvider);
+     final supabaseAuthStatus = ref.watch(supabaseAuthStatusProvider);
++    final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
++    final shouldSuppressEmailAuth = launchRecovery?.isRetryable ?? false;
+     final shouldPrioritizeEmailAuth =
+         supabaseClient != null &&
+-        supabaseAuthStatus == SupabaseAuthStatus.unauthenticated;
++        supabaseAuthStatus == SupabaseAuthStatus.unauthenticated &&
++        !shouldSuppressEmailAuth;
+ 
+     // Robustesse: si on priorise l'auth, ne pas "watch" les providers de profil/settings
+     // pour éviter de dépendre d'une DI complète avant la connexion.
+@@ -113,15 +121,11 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
+         WidgetsBinding.instance.addPostFrameCallback((_) {
+           if (!mounted) return;
+           unawaited(
+-            context.push<bool>(
+-              '${AppRoutePaths.authOtp}?return_to=previous',
+-            ),
++            context.push<bool>('${AppRoutePaths.authOtp}?return_to=previous'),
+           );
+         });
+       }
+-      return Scaffold(
+-        body: OverlaySplash(message: l10n.authOtpTitle),
+-      );
++      return Scaffold(body: OverlaySplash(message: l10n.authOtpTitle));
+     }
+ 
+     final state = ref.watch(userSettingsControllerProvider);
+@@ -148,6 +152,23 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
+                     title: l10n.welcomeTitle,
+                     subtitle: l10n.welcomeSubtitle,
+                   ),
++                  if (launchRecovery?.isRetryable ?? false) ...[
++                    const SizedBox(height: AppSpacing.lg),
++                    Padding(
++                      padding: const EdgeInsets.symmetric(
++                        horizontal: AppSpacing.lg,
++                      ),
++                      child: LaunchRecoveryBanner(
++                        message: launchRecovery!.message,
++                        onRetry: () {
++                          ref
++                              .read(appLaunchOrchestratorProvider.notifier)
++                              .reset();
++                          context.go(AppRouteNames.launch);
++                        },
++                      ),
++                    ),
++                  ],
+                   const SizedBox(height: AppSpacing.xl),
+                   profilesAsync.when(
+                     loading: () => const Padding(
+diff --git a/test/core/auth/auth_orchestrator_test.dart b/test/core/auth/auth_orchestrator_test.dart
+index 108dadf..a219588 100644
+--- a/test/core/auth/auth_orchestrator_test.dart
++++ b/test/core/auth/auth_orchestrator_test.dart
+@@ -26,11 +26,18 @@ final class _TelemetryFake implements AuthTelemetryPort {
+ }
+ 
+ final class _AuthRepoFake implements AuthRepository {
+-  _AuthRepoFake({this.session, this.refreshDelay, this.refreshThrows});
++  _AuthRepoFake({
++    this.session,
++    this.refreshDelay,
++    this.refreshThrows,
++    this.returnNullOnRefresh = false,
++  });
+ 
+   AuthSession? session;
+   Duration? refreshDelay;
+   Object? refreshThrows;
++  bool returnNullOnRefresh;
++  int signOutCalls = 0;
+ 
+   @override
+   Stream<AuthSnapshot> get onAuthStateChange =>
+@@ -45,6 +52,7 @@ final class _AuthRepoFake implements AuthRepository {
+     if (d != null) await Future<void>.delayed(d);
+     final t = refreshThrows;
+     if (t != null) throw t;
++    if (returnNullOnRefresh) return null;
+     return session;
+   }
+ 
+@@ -55,71 +63,101 @@ final class _AuthRepoFake implements AuthRepository {
+   }) async {}
+ 
+   @override
+-  Future<void> signInWithOtp({required String email, bool shouldCreateUser = true}) async {}
++  Future<void> signInWithOtp({
++    required String email,
++    bool shouldCreateUser = true,
++  }) async {}
+ 
+   @override
+-  Future<bool> verifyOtp({required String email, required String token}) async =>
+-      false;
++  Future<bool> verifyOtp({
++    required String email,
++    required String token,
++  }) async => false;
+ 
+   @override
+-  Future<void> signOut() async {}
++  Future<void> signOut() async {
++    signOutCalls += 1;
++    session = null;
++  }
+ }
+ 
+ final class _CleanupFake implements LocalCleanupPort {
+   _CleanupFake({this.throwOnCleanup});
+-  int calls = 0;
++  int fullCleanupCalls = 0;
++  int sensitiveCleanupCalls = 0;
+   final Object? throwOnCleanup;
+ 
++  @override
++  Future<void> clearSensitiveSessionState() async {
++    sensitiveCleanupCalls += 1;
++    final t = throwOnCleanup;
++    if (t != null) throw t;
++  }
++
+   @override
+   Future<void> clearAllLocalData() async {
+-    calls += 1;
++    fullCleanupCalls += 1;
+     final t = throwOnCleanup;
+     if (t != null) throw t;
+   }
+ }
+ 
+ void main() {
+-  test('bootstrapSession returns unauthenticated when no current session', () async {
+-    final repo = _AuthRepoFake(session: null);
+-    final telemetry = _TelemetryFake();
+-    final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+-
+-    final snap = await orch.bootstrapSession();
+-    expect(snap.status, AuthStatus.unauthenticated);
+-    expect(
+-      telemetry.events.join('\n'),
+-      contains('action=bootstrap_session'),
+-    );
+-  });
+-
+-  test('bootstrapSession returns authenticated when refresh succeeds', () async {
+-    final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
+-    final telemetry = _TelemetryFake();
+-    final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+-
+-    final snap = await orch.bootstrapSession();
+-    expect(snap.status, AuthStatus.authenticated);
+-    expect(snap.userId, 'u1');
+-    expect(telemetry.events.join('\n'), contains('action=refresh_session result=success'));
+-  });
+-
+-  test('bootstrapSession is fail-closed when refresh throws', () async {
+-    final repo = _AuthRepoFake(
+-      session: const AuthSession(userId: 'u1'),
+-      refreshThrows: StateError('offline'),
+-    );
+-    final telemetry = _TelemetryFake();
+-    final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
+-
+-    final snap = await orch.bootstrapSession();
+-    expect(snap.status, AuthStatus.unauthenticated);
+-    expect(
+-      telemetry.events.join('\n'),
+-      contains('reasonCode=${AuthFailureCode.refreshFailed.name}'),
+-    );
+-  });
+-
+-  test('bootstrapSession is fail-closed when refresh times out', () async {
++  test(
++    'bootstrapSession returns unauthenticated when no current session',
++    () async {
++      final repo = _AuthRepoFake(session: null);
++      final telemetry = _TelemetryFake();
++      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
++
++      final result = await orch.bootstrapSession();
++      expect(result.snapshot.status, AuthStatus.unauthenticated);
++      expect(result.outcome, AuthBootstrapOutcome.reauthRequired);
++      expect(result.cause, AuthFailureCode.invalidSession);
++      expect(telemetry.events.join('\n'), contains('action=bootstrap_session'));
++    },
++  );
++
++  test(
++    'bootstrapSession returns authenticated when refresh succeeds',
++    () async {
++      final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
++      final telemetry = _TelemetryFake();
++      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
++
++      final result = await orch.bootstrapSession();
++      expect(result.snapshot.status, AuthStatus.authenticated);
++      expect(result.snapshot.userId, 'u1');
++      expect(result.outcome, AuthBootstrapOutcome.authenticated);
++      expect(
++        telemetry.events.join('\n'),
++        contains('action=refresh_session result=success'),
++      );
++    },
++  );
++
++  test(
++    'bootstrapSession degrades retryably when refresh fails offline',
++    () async {
++      final repo = _AuthRepoFake(
++        session: const AuthSession(userId: 'u1'),
++        refreshThrows: StateError('offline'),
++      );
++      final telemetry = _TelemetryFake();
++      final orch = AuthOrchestrator(repository: repo, telemetry: telemetry);
++
++      final result = await orch.bootstrapSession();
++      expect(result.snapshot.status, AuthStatus.unauthenticated);
++      expect(result.outcome, AuthBootstrapOutcome.degradedRetryable);
++      expect(result.cause, AuthFailureCode.offline);
++      expect(
++        telemetry.events.join('\n'),
++        contains('reasonCode=${AuthFailureCode.offline.name}'),
++      );
++    },
++  );
++
++  test('bootstrapSession degrades retryably when refresh times out', () async {
+     final repo = _AuthRepoFake(
+       session: const AuthSession(userId: 'u1'),
+       refreshDelay: const Duration(milliseconds: 50),
+@@ -131,14 +169,46 @@ void main() {
+       refreshTimeout: const Duration(milliseconds: 1),
+     );
+ 
+-    final snap = await orch.bootstrapSession();
+-    expect(snap.status, AuthStatus.unauthenticated);
++    final result = await orch.bootstrapSession();
++    expect(result.snapshot.status, AuthStatus.unauthenticated);
++    expect(result.outcome, AuthBootstrapOutcome.degradedRetryable);
++    expect(result.cause, AuthFailureCode.timeout);
+     expect(
+       telemetry.events.join('\n'),
+       contains('reasonCode=${AuthFailureCode.timeout.name}'),
+     );
+   });
+ 
++  test(
++    'bootstrapSession clears sensitive session state on invalid session',
++    () async {
++      final repo = _AuthRepoFake(
++        session: const AuthSession(userId: 'u1'),
++        returnNullOnRefresh: true,
++      );
++      final telemetry = _TelemetryFake();
++      final cleanup = _CleanupFake();
++      final orch = AuthOrchestrator(
++        repository: repo,
++        cleanupPort: cleanup,
++        telemetry: telemetry,
++      );
++
++      final result = await orch.bootstrapSession();
++
++      expect(result.snapshot.status, AuthStatus.unauthenticated);
++      expect(result.outcome, AuthBootstrapOutcome.reauthRequired);
++      expect(result.cause, AuthFailureCode.invalidSession);
++      expect(repo.signOutCalls, 1);
++      expect(cleanup.sensitiveCleanupCalls, 1);
++      expect(cleanup.fullCleanupCalls, 0);
++      expect(
++        telemetry.events.join('\n'),
++        contains('action=sensitive_cleanup result=success'),
++      );
++    },
++  );
++
+   test('signOutAndCleanup runs cleanup best-effort', () async {
+     final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
+     final telemetry = _TelemetryFake();
+@@ -151,26 +221,35 @@ void main() {
+ 
+     final failure = await orch.signOutAndCleanup();
+     expect(failure, isNull);
+-    expect(cleanup.calls, 1);
+-    expect(telemetry.events.join('\n'), contains('action=local_cleanup result=success'));
+-  });
+-
+-  test('signOutAndCleanup returns cleanup failure when cleanup fails', () async {
+-    final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
+-    final telemetry = _TelemetryFake();
+-    final cleanup = _CleanupFake(throwOnCleanup: StateError('disk error'));
+-    final orch = AuthOrchestrator(
+-      repository: repo,
+-      cleanupPort: cleanup,
+-      telemetry: telemetry,
++    expect(cleanup.fullCleanupCalls, 1);
++    expect(
++      telemetry.events.join('\n'),
++      contains('action=local_cleanup result=success'),
+     );
+-
+-    final failure = await orch.signOutAndCleanup();
+-    expect(failure, isNotNull);
+-    expect(failure!.code, AuthFailureCode.unknown);
+-    expect(telemetry.events.join('\n'), contains('action=local_cleanup result=failure'));
+   });
+ 
++  test(
++    'signOutAndCleanup returns cleanup failure when cleanup fails',
++    () async {
++      final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
++      final telemetry = _TelemetryFake();
++      final cleanup = _CleanupFake(throwOnCleanup: StateError('disk error'));
++      final orch = AuthOrchestrator(
++        repository: repo,
++        cleanupPort: cleanup,
++        telemetry: telemetry,
++      );
++
++      final failure = await orch.signOutAndCleanup();
++      expect(failure, isNotNull);
++      expect(failure!.code, AuthFailureCode.unknown);
++      expect(
++        telemetry.events.join('\n'),
++        contains('action=local_cleanup result=failure'),
++      );
++    },
++  );
++
+   test('auth telemetry does not leak secrets/PII (basic patterns)', () async {
+     final repo = _AuthRepoFake(session: const AuthSession(userId: 'u1'));
+     final telemetry = _TelemetryFake();
+@@ -194,4 +273,3 @@ void main() {
+     }
+   });
+ }
+-
+diff --git a/test/core/router/launch_redirect_guard_reconnect_test.dart b/test/core/router/launch_redirect_guard_reconnect_test.dart
+index 2c697b1..be54a2b 100644
+--- a/test/core/router/launch_redirect_guard_reconnect_test.dart
++++ b/test/core/router/launch_redirect_guard_reconnect_test.dart
+@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:go_router/go_router.dart';
+ 
++import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
+ import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
+ import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
+ import 'package:movi/src/core/di/di.dart';
+@@ -24,6 +25,81 @@ void main() {
+     await sl.reset();
+   });
+ 
++  testWidgets(
++    'keeps home reachable when launch resolves to degraded retryable home',
++    (tester) async {
++      final localePreferences = _MemoryLocalePreferences();
++      final authRepository = _FakeAuthRepository.authenticated();
++      final logger = _MemoryLogger();
++      final launchRegistry = AppLaunchStateRegistry(
++        initial: const AppLaunchState(
++          status: AppLaunchStatus.success,
++          destination: BootstrapDestination.home,
++          criteria: AppLaunchCriteria(
++            hasSession: false,
++            hasSelectedProfile: true,
++            hasSelectedSource: true,
++            hasIptvCatalogReady: true,
++            hasHomePreloaded: true,
++            hasLibraryReady: true,
++          ),
++          recovery: AppLaunchRecovery(
++            kind: AppLaunchRecoveryKind.degradedRetryable,
++            cause: AuthFailureCode.offline,
++            reasonCode: 'offline',
++            message:
++                'Connexion indisponible. Vous pouvez continuer en mode degrade et reessayer.',
++          ),
++        ),
++      );
++
++      sl.registerSingleton<LocalePreferences>(localePreferences);
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      addTearDown(authRepository.dispose);
++      addTearDown(localePreferences.dispose);
++
++      final appStateController = container.read(appStateControllerProvider);
++      final guard = LaunchRedirectGuard(
++        logger: logger,
++        appStateController: appStateController,
++        authRepository: authRepository,
++        launchRegistry: launchRegistry,
++      );
++      addTearDown(guard.dispose);
++
++      final router = GoRouter(
++        initialLocation: AppRoutePaths.home,
++        refreshListenable: guard,
++        redirect: guard.handle,
++        routes: [
++          GoRoute(
++            path: AppRoutePaths.launch,
++            builder: (context, state) => const Text('Launch'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.home,
++            builder: (context, state) => const Text('Home'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.bootstrap,
++            builder: (context, state) => const Text('Bootstrap'),
++          ),
++        ],
++      );
++      addTearDown(router.dispose);
++
++      await tester.pumpWidget(
++        ProviderScope(child: MaterialApp.router(routerConfig: router)),
++      );
++      await tester.pumpAndSettle();
++
++      expect(find.text('Home'), findsOneWidget);
++      expect(find.text('Launch'), findsNothing);
++      expect(find.text('Bootstrap'), findsNothing);
++    },
++  );
++
+   testWidgets(
+     'keeps /auth/otp?return_to=previous reachable even when launch state is already successful',
+     (tester) async {
+@@ -155,12 +231,214 @@ void main() {
+       expect(find.text('Home'), findsNothing);
+     },
+   );
++
++  testWidgets(
++    'reruns launch when auth destination is stale but a session already exists',
++    (tester) async {
++      final localePreferences = _MemoryLocalePreferences();
++      final authRepository = _FakeAuthRepository.authenticated();
++      final logger = _MemoryLogger();
++      final launchRegistry = AppLaunchStateRegistry(
++        initial: const AppLaunchState(
++          status: AppLaunchStatus.success,
++          destination: BootstrapDestination.auth,
++        ),
++      );
++
++      sl.registerSingleton<LocalePreferences>(localePreferences);
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      addTearDown(authRepository.dispose);
++      addTearDown(localePreferences.dispose);
++
++      final appStateController = container.read(appStateControllerProvider);
++      final guard = LaunchRedirectGuard(
++        logger: logger,
++        appStateController: appStateController,
++        authRepository: authRepository,
++        launchRegistry: launchRegistry,
++      );
++      addTearDown(guard.dispose);
++
++      final router = GoRouter(
++        initialLocation: AppRoutePaths.home,
++        refreshListenable: guard,
++        redirect: guard.handle,
++        routes: [
++          GoRoute(
++            path: AppRoutePaths.launch,
++            builder: (context, state) => const Text('Launch'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.home,
++            builder: (context, state) => const Text('Home'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.bootstrap,
++            builder: (context, state) => const Text('Bootstrap'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.authOtp,
++            builder: (context, state) => const Text('Reconnect Auth'),
++          ),
++        ],
++      );
++      addTearDown(router.dispose);
++
++      await tester.pumpWidget(
++        ProviderScope(child: MaterialApp.router(routerConfig: router)),
++      );
++      await tester.pumpAndSettle();
++
++      expect(find.text('Launch'), findsOneWidget);
++      expect(find.text('Reconnect Auth'), findsNothing);
++      expect(find.text('Home'), findsNothing);
++      expect(find.text('Bootstrap'), findsNothing);
++    },
++  );
++
++  testWidgets(
++    'redirects protected home route to auth when launch resolution is explicitly unauthenticated',
++    (tester) async {
++      final localePreferences = _MemoryLocalePreferences();
++      final authRepository = _FakeAuthRepository.unauthenticatedResolved();
++      final logger = _MemoryLogger();
++      final launchRegistry = AppLaunchStateRegistry(
++        initial: const AppLaunchState(
++          status: AppLaunchStatus.success,
++          destination: BootstrapDestination.auth,
++        ),
++      );
++
++      sl.registerSingleton<LocalePreferences>(localePreferences);
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      addTearDown(authRepository.dispose);
++      addTearDown(localePreferences.dispose);
++
++      final appStateController = container.read(appStateControllerProvider);
++      final guard = LaunchRedirectGuard(
++        logger: logger,
++        appStateController: appStateController,
++        authRepository: authRepository,
++        launchRegistry: launchRegistry,
++      );
++      addTearDown(guard.dispose);
++
++      final router = GoRouter(
++        initialLocation: AppRoutePaths.home,
++        refreshListenable: guard,
++        redirect: guard.handle,
++        routes: [
++          GoRoute(
++            path: AppRoutePaths.launch,
++            builder: (context, state) => const Text('Launch'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.home,
++            builder: (context, state) => const Text('Home'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.bootstrap,
++            builder: (context, state) => const Text('Bootstrap'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.authOtp,
++            builder: (context, state) => const Text('Reconnect Auth'),
++          ),
++        ],
++      );
++      addTearDown(router.dispose);
++
++      await tester.pumpWidget(
++        ProviderScope(child: MaterialApp.router(routerConfig: router)),
++      );
++      await tester.pumpAndSettle();
++
++      expect(find.text('Reconnect Auth'), findsOneWidget);
++      expect(find.text('Launch'), findsNothing);
++      expect(find.text('Home'), findsNothing);
++      expect(find.text('Bootstrap'), findsNothing);
++    },
++  );
++
++  testWidgets(
++    'redirects non-startup routes to auth when launch resolution is explicitly unauthenticated',
++    (tester) async {
++      final localePreferences = _MemoryLocalePreferences();
++      final authRepository = _FakeAuthRepository.unauthenticatedResolved();
++      final logger = _MemoryLogger();
++      final launchRegistry = AppLaunchStateRegistry(
++        initial: const AppLaunchState(
++          status: AppLaunchStatus.success,
++          destination: BootstrapDestination.auth,
++        ),
++      );
++
++      sl.registerSingleton<LocalePreferences>(localePreferences);
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      addTearDown(authRepository.dispose);
++      addTearDown(localePreferences.dispose);
++
++      final appStateController = container.read(appStateControllerProvider);
++      final guard = LaunchRedirectGuard(
++        logger: logger,
++        appStateController: appStateController,
++        authRepository: authRepository,
++        launchRegistry: launchRegistry,
++      );
++      addTearDown(guard.dispose);
++
++      final router = GoRouter(
++        initialLocation: AppRoutePaths.player,
++        refreshListenable: guard,
++        redirect: guard.handle,
++        routes: [
++          GoRoute(
++            path: AppRoutePaths.launch,
++            builder: (context, state) => const Text('Launch'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.player,
++            builder: (context, state) => const Text('Player'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.bootstrap,
++            builder: (context, state) => const Text('Bootstrap'),
++          ),
++          GoRoute(
++            path: AppRoutePaths.authOtp,
++            builder: (context, state) => const Text('Reconnect Auth'),
++          ),
++        ],
++      );
++      addTearDown(router.dispose);
++
++      await tester.pumpWidget(
++        ProviderScope(child: MaterialApp.router(routerConfig: router)),
++      );
++      await tester.pumpAndSettle();
++
++      expect(find.text('Reconnect Auth'), findsOneWidget);
++      expect(find.text('Player'), findsNothing);
++      expect(find.text('Bootstrap'), findsNothing);
++    },
++  );
+ }
+ 
+ class _FakeAuthRepository implements AuthRepository {
+   _FakeAuthRepository.authenticated()
+     : _session = const AuthSession(userId: 'cloud-user');
+ 
++  _FakeAuthRepository.unauthenticatedResolved() : _session = null {
++    Future<void>.microtask(() {
++      if (!_controller.isClosed) {
++        _controller.add(AuthSnapshot.unauthenticated);
++      }
++    });
++  }
++
+   final StreamController<AuthSnapshot> _controller =
+       StreamController<AuthSnapshot>.broadcast();
+ 
+diff --git a/test/core/startup/app_launch_orchestrator_local_mode_test.dart b/test/core/startup/app_launch_orchestrator_local_mode_test.dart
+index 1f48cf4..27a7508 100644
+--- a/test/core/startup/app_launch_orchestrator_local_mode_test.dart
++++ b/test/core/startup/app_launch_orchestrator_local_mode_test.dart
+@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
+ import 'package:flutter_riverpod/flutter_riverpod.dart';
+ import 'package:flutter_test/flutter_test.dart';
+ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
++import 'package:supabase_flutter/supabase_flutter.dart';
+ 
++import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
+ import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
+ import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
+ import 'package:movi/src/core/di/di.dart';
+@@ -20,6 +22,7 @@ import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+ import 'package:movi/src/core/startup/app_startup_provider.dart'
+     as app_startup_provider;
+ import 'package:movi/src/core/startup/domain/startup_contracts.dart';
++import 'package:movi/src/core/supabase/supabase_providers.dart';
+ import 'package:movi/src/core/state/app_state_provider.dart';
+ import 'package:movi/src/core/storage/database/sqlite_database_migrations.dart';
+ import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
+@@ -72,6 +75,269 @@ void main() {
+     },
+   );
+ 
++  test(
++    'returns auth when cloud auth is enabled and no validated session exists',
++    () async {
++      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
++      addTearDown(harness.dispose);
++
++      await harness.localProfiles.createProfile(
++        name: 'Local Profile',
++        color: 0xFF2160AB,
++      );
++      const accountId = 'local_xtream_account_signed_out';
++      await harness.iptvLocal.saveAccount(
++        XtreamAccount(
++          id: accountId,
++          alias: 'Offline Source',
++          endpoint: XtreamEndpoint.parse('http://example.com'),
++          username: 'demo',
++          status: XtreamAccountStatus.pending,
++          createdAt: DateTime(2026, 1, 1),
++        ),
++      );
++      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
++        XtreamPlaylist(
++          id: 'pl_movies',
++          accountId: accountId,
++          title: 'Films',
++          type: XtreamPlaylistType.movies,
++          items: const <XtreamPlaylistItem>[
++            XtreamPlaylistItem(
++              accountId: accountId,
++              categoryId: 'cat_movies',
++              categoryName: 'Films',
++              streamId: 1001,
++              title: 'Film local',
++              type: XtreamPlaylistItemType.movie,
++              tmdbId: 550,
++            ),
++          ],
++        ),
++      ]);
++
++      final result = await harness.run();
++
++      expect(result.isSuccess, isTrue);
++      expect(result.destination, BootstrapDestination.auth);
++      expect(result.meta.accountId, isNull);
++      expect(harness.authRepository.refreshCalls, 0);
++      expect(harness.homeController.loadCalls, 0);
++    },
++  );
++
++  test(
++    'continues local-first when cloud auth refresh fails transiently',
++    () async {
++      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
++      addTearDown(harness.dispose);
++
++      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
++      harness.authRepository.refreshThrows = StateError('refresh failed');
++
++      await harness.localProfiles.createProfile(
++        name: 'Cloud Profile',
++        color: 0xFF2160AB,
++        accountId: 'cloud-user',
++      );
++      const accountId = 'cloud_xtream_account_refresh_failed';
++      await harness.iptvLocal.saveAccount(
++        XtreamAccount(
++          id: accountId,
++          alias: 'Cloud Source',
++          endpoint: XtreamEndpoint.parse('http://example.com'),
++          username: 'demo',
++          status: XtreamAccountStatus.pending,
++          createdAt: DateTime(2026, 1, 1),
++        ),
++      );
++      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
++        XtreamPlaylist(
++          id: 'pl_movies',
++          accountId: accountId,
++          title: 'Films',
++          type: XtreamPlaylistType.movies,
++          items: const <XtreamPlaylistItem>[
++            XtreamPlaylistItem(
++              accountId: accountId,
++              categoryId: 'cat_movies',
++              categoryName: 'Films',
++              streamId: 1001,
++              title: 'Film local',
++              type: XtreamPlaylistItemType.movie,
++              tmdbId: 550,
++            ),
++          ],
++        ),
++      ]);
++
++      final result = await harness.run();
++
++      expect(result.isSuccess, isTrue);
++      expect(result.destination, BootstrapDestination.home);
++      expect(result.meta.accountId, isNull);
++      expect(harness.authRepository.refreshCalls, 1);
++      expect(harness.homeController.loadCalls, 1);
++      expect(
++        harness.container.read(appLaunchOrchestratorProvider).recovery?.kind,
++        AppLaunchRecoveryKind.degradedRetryable,
++      );
++      expect(
++        harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
++        AuthFailureCode.refreshFailed,
++      );
++    },
++  );
++
++  test(
++    'routes invalid cloud sessions to explicit auth reauthentication',
++    () async {
++      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
++      addTearDown(harness.dispose);
++
++      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
++      harness.authRepository.returnNullOnRefresh = true;
++
++      await harness.localProfiles.createProfile(
++        name: 'Cloud Profile',
++        color: 0xFF2160AB,
++        accountId: 'cloud-user',
++      );
++
++      final result = await harness.run();
++
++      expect(result.isSuccess, isTrue);
++      expect(result.destination, BootstrapDestination.auth);
++      expect(result.meta.accountId, isNull);
++      expect(harness.authRepository.refreshCalls, 1);
++      expect(harness.authRepository.signOutCalls, 1);
++      expect(
++        harness.container.read(appLaunchOrchestratorProvider).recovery?.kind,
++        AppLaunchRecoveryKind.reauthRequired,
++      );
++      expect(
++        harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
++        AuthFailureCode.invalidSession,
++      );
++    },
++  );
++
++  test(
++    'continues local-first in degraded retryable mode after auth timeout',
++    () async {
++      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
++      addTearDown(harness.dispose);
++
++      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
++      harness.authRepository.refreshThrows = TimeoutException(
++        'auth refresh timeout',
++      );
++
++      await harness.localProfiles.createProfile(
++        name: 'Offline Profile',
++        color: 0xFF2160AB,
++      );
++      const accountId = 'local_xtream_account_timeout';
++      await harness.iptvLocal.saveAccount(
++        XtreamAccount(
++          id: accountId,
++          alias: 'Offline Source',
++          endpoint: XtreamEndpoint.parse('http://example.com'),
++          username: 'demo',
++          status: XtreamAccountStatus.pending,
++          createdAt: DateTime(2026, 1, 1),
++        ),
++      );
++      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
++        XtreamPlaylist(
++          id: 'pl_movies',
++          accountId: accountId,
++          title: 'Films',
++          type: XtreamPlaylistType.movies,
++          items: const <XtreamPlaylistItem>[
++            XtreamPlaylistItem(
++              accountId: accountId,
++              categoryId: 'cat_movies',
++              categoryName: 'Films',
++              streamId: 1001,
++              title: 'Film local',
++              type: XtreamPlaylistItemType.movie,
++              tmdbId: 550,
++            ),
++          ],
++        ),
++      ]);
++
++      final result = await harness.run();
++
++      expect(result.isSuccess, isTrue);
++      expect(result.destination, BootstrapDestination.home);
++      expect(result.meta.accountId, isNull);
++      expect(
++        harness.container.read(appLaunchOrchestratorProvider).recovery?.kind,
++        AppLaunchRecoveryKind.degradedRetryable,
++      );
++      expect(
++        harness.container.read(appLaunchOrchestratorProvider).recovery?.cause,
++        AuthFailureCode.timeout,
++      );
++    },
++  );
++
++  test(
++    'validates the session before entering the authenticated launch path',
++    () async {
++      final harness = await _LaunchHarness.create(cloudAuthEnabled: true);
++      addTearDown(harness.dispose);
++
++      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
++
++      final created = await harness.localProfiles.createProfile(
++        name: 'Cloud Profile',
++        color: 0xFF2160AB,
++        accountId: 'cloud-user',
++      );
++      const accountId = 'cloud_xtream_account_validated';
++      await harness.iptvLocal.saveAccount(
++        XtreamAccount(
++          id: accountId,
++          alias: 'Cloud Source',
++          endpoint: XtreamEndpoint.parse('http://example.com'),
++          username: 'demo',
++          status: XtreamAccountStatus.pending,
++          createdAt: DateTime(2026, 1, 1),
++        ),
++      );
++      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
++        XtreamPlaylist(
++          id: 'pl_movies',
++          accountId: accountId,
++          title: 'Films',
++          type: XtreamPlaylistType.movies,
++          items: const <XtreamPlaylistItem>[
++            XtreamPlaylistItem(
++              accountId: accountId,
++              categoryId: 'cat_movies',
++              categoryName: 'Films',
++              streamId: 1001,
++              title: 'Film local',
++              type: XtreamPlaylistItemType.movie,
++              tmdbId: 550,
++            ),
++          ],
++        ),
++      ]);
++
++      final result = await harness.run();
++
++      expect(result.isSuccess, isTrue);
++      expect(result.destination, BootstrapDestination.home);
++      expect(result.meta.accountId, 'cloud-user');
++      expect(result.meta.selectedProfileId, created.id);
++      expect(harness.authRepository.refreshCalls, 1);
++    },
++  );
++
+   test(
+     'returns welcomeSources without backend when local profile exists but no local source exists',
+     () async {
+@@ -353,6 +619,7 @@ class _LaunchHarness {
+     required this.localePreferences,
+     required this.authRepository,
+     required this.homeController,
++    this.supabaseClient,
+   });
+ 
+   final Database db;
+@@ -364,8 +631,9 @@ class _LaunchHarness {
+   final _MemoryLocalePreferences localePreferences;
+   final _FakeAuthRepository authRepository;
+   final _FakeHomeController homeController;
++  final SupabaseClient? supabaseClient;
+ 
+-  static Future<_LaunchHarness> create() async {
++  static Future<_LaunchHarness> create({bool cloudAuthEnabled = false}) async {
+     await sl.reset();
+ 
+     final db = await openDatabase(
+@@ -390,6 +658,10 @@ class _LaunchHarness {
+     final refreshXtreamCatalog = _FakeRefreshXtreamCatalog();
+     final refreshStalkerCatalog = _FakeRefreshStalkerCatalog();
+     final homeController = _FakeHomeController();
++    final supabaseClient = cloudAuthEnabled
++        ? SupabaseClient('https://example.supabase.co', 'anon-key')
++        : null;
++    supabaseClient?.auth.stopAutoRefresh();
+ 
+     sl.registerSingleton<Database>(db);
+     sl.registerSingleton<AppLogger>(logger);
+@@ -416,6 +688,8 @@ class _LaunchHarness {
+           (ref) async => StartupResult.ready(durationMs: 0),
+         ),
+         homeControllerProvider.overrideWith(() => homeController),
++        if (supabaseClient != null)
++          supabaseClientProvider.overrideWithValue(supabaseClient),
+       ],
+     );
+ 
+@@ -439,6 +713,7 @@ class _LaunchHarness {
+       localePreferences: localePreferences,
+       authRepository: authRepository,
+       homeController: homeController,
++      supabaseClient: supabaseClient,
+     );
+   }
+ 
+@@ -552,6 +827,11 @@ class _FakeAuthRepository implements AuthRepository {
+       StreamController<AuthSnapshot>.broadcast();
+ 
+   AuthSession? _session;
++  int refreshCalls = 0;
++  int signOutCalls = 0;
++  Object? refreshThrows;
++  Duration? refreshDelay;
++  bool returnNullOnRefresh = false;
+ 
+   @override
+   Stream<AuthSnapshot> get onAuthStateChange => _controller.stream;
+@@ -559,8 +839,22 @@ class _FakeAuthRepository implements AuthRepository {
+   @override
+   AuthSession? get currentSession => _session;
+ 
++  set session(AuthSession? value) {
++    _session = value;
++  }
++
+   @override
+-  Future<AuthSession?> refreshSession() async => _session;
++  Future<AuthSession?> refreshSession() async {
++    refreshCalls += 1;
++    final delay = refreshDelay;
++    if (delay != null) {
++      await Future<void>.delayed(delay);
++    }
++    final failure = refreshThrows;
++    if (failure != null) throw failure;
++    if (returnNullOnRefresh) return null;
++    return _session;
++  }
+ 
+   @override
+   Future<void> signInWithPassword({
+@@ -590,6 +884,7 @@ class _FakeAuthRepository implements AuthRepository {
+ 
+   @override
+   Future<void> signOut() async {
++    signOutCalls += 1;
+     _session = null;
+     _controller.add(AuthSnapshot.unauthenticated);
+   }
+diff --git a/test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart b/test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart
+index 9b96ed2..5e91f4d 100644
+--- a/test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart
++++ b/test/features/welcome/presentation/welcome_user_page_auth_priority_test.dart
+@@ -5,16 +5,20 @@ import 'package:go_router/go_router.dart';
+ import 'package:supabase_flutter/supabase_flutter.dart';
+ 
+ import 'package:movi/l10n/app_localizations.dart';
++import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
++import 'package:movi/src/core/profile/domain/entities/profile.dart';
++import 'package:movi/src/core/profile/presentation/controllers/profiles_controller.dart';
++import 'package:movi/src/core/profile/presentation/controllers/selected_profile_controller.dart';
+ import 'package:movi/src/core/profile/presentation/providers/profile_auth_providers.dart';
+-import 'package:movi/src/core/supabase/supabase_providers.dart';
+ import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
+ import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
+-import 'package:movi/src/core/profile/domain/entities/profile.dart';
++import 'package:movi/src/core/supabase/supabase_providers.dart';
++import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
+ import 'package:movi/src/features/settings/domain/entities/user_settings.dart';
+ import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
++import 'package:movi/src/features/welcome/domain/enum.dart';
+ import 'package:movi/src/features/welcome/presentation/pages/welcome_user_page.dart';
+-import 'package:movi/src/core/profile/presentation/controllers/profiles_controller.dart';
+-import 'package:movi/src/core/profile/presentation/controllers/selected_profile_controller.dart';
++import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
+ 
+ class _FakeSupabaseAuthStatusNotifier extends SupabaseAuthStatusNotifier {
+   _FakeSupabaseAuthStatusNotifier(this._value);
+@@ -45,19 +49,33 @@ class _FakeSelectedProfileController extends SelectedProfileController {
+   String? build() => null;
+ }
+ 
++class _FakeLaunchOrchestrator extends AppLaunchOrchestrator {
++  _FakeLaunchOrchestrator(this._state);
++
++  final AppLaunchState _state;
++
++  @override
++  AppLaunchState build() => _state;
++}
++
++_neutralLaunchOverride() => appLaunchOrchestratorProvider.overrideWith(
++  () => _FakeLaunchOrchestrator(
++    AppLaunchState(
++      status: AppLaunchStatus.success,
++      destination: BootstrapDestination.welcomeUser,
++    ),
++  ),
++);
++
+ Widget _wrapWithRouter(Widget child) {
+   final router = GoRouter(
+     initialLocation: '/',
+     routes: [
+-      GoRoute(
+-        path: '/',
+-        builder: (_, __) => child,
+-      ),
++      GoRoute(path: '/', builder: (_, __) => child),
+       GoRoute(
+         path: '/auth/otp',
+-        builder: (_, __) => const Scaffold(
+-          body: Center(child: Text('OTP_PAGE')),
+-        ),
++        builder: (_, __) =>
++            const Scaffold(body: Center(child: Text('OTP_PAGE'))),
+       ),
+     ],
+   );
+@@ -71,10 +89,9 @@ Widget _wrapWithRouter(Widget child) {
+ 
+ void main() {
+   testWidgets(
+-    'Supabase dispo + unauthenticated => ouvre automatiquement OTP en priorité',
++    'Supabase dispo + recovery retryable => reste sur Welcome et affiche un retry explicite',
+     (tester) async {
+       final client = SupabaseClient('https://example.supabase.co', 'anon-key');
+-      // Empêche le timer d'auto-refresh (sinon flutter_test détecte un timer pending).
+       client.auth.stopAutoRefresh();
+ 
+       await tester.pumpWidget(
+@@ -86,10 +103,65 @@ void main() {
+                 SupabaseAuthStatus.unauthenticated,
+               ),
+             ),
++            appLaunchOrchestratorProvider.overrideWith(
++              () => _FakeLaunchOrchestrator(
++                const AppLaunchState(
++                  status: AppLaunchStatus.success,
++                  destination: BootstrapDestination.welcomeUser,
++                  recovery: AppLaunchRecovery(
++                    kind: AppLaunchRecoveryKind.degradedRetryable,
++                    cause: AuthFailureCode.offline,
++                    reasonCode: 'offline',
++                    message:
++                        'Connexion indisponible. Vous pouvez continuer en mode degrade et reessayer.',
++                  ),
++                ),
++              ),
++            ),
+             userSettingsControllerProvider.overrideWith(
+               _FakeUserSettingsController.new,
+             ),
+-            profilesControllerProvider.overrideWith(_FakeProfilesController.new),
++            profilesControllerProvider.overrideWith(
++              _FakeProfilesController.new,
++            ),
++            selectedProfileControllerProvider.overrideWith(
++              _FakeSelectedProfileController.new,
++            ),
++          ],
++          child: _wrapWithRouter(const WelcomeUserPage()),
++        ),
++      );
++      await tester.pumpAndSettle();
++
++      expect(find.text('OTP_PAGE'), findsNothing);
++      expect(find.byType(TextFormField), findsOneWidget);
++      expect(find.textContaining('Connexion indisponible'), findsOneWidget);
++      expect(find.text('Reessayer'), findsOneWidget);
++    },
++  );
++
++  testWidgets(
++    'Supabase dispo + unauthenticated => ouvre automatiquement OTP en priorite',
++    (tester) async {
++      final client = SupabaseClient('https://example.supabase.co', 'anon-key');
++      client.auth.stopAutoRefresh();
++
++      await tester.pumpWidget(
++        ProviderScope(
++          overrides: [
++            supabaseClientProvider.overrideWithValue(client),
++            supabaseAuthStatusProvider.overrideWith(
++              () => _FakeSupabaseAuthStatusNotifier(
++                SupabaseAuthStatus.unauthenticated,
++              ),
++            ),
++            _neutralLaunchOverride(),
++            userSettingsControllerProvider.overrideWith(
++              _FakeUserSettingsController.new,
++            ),
++            profilesControllerProvider.overrideWith(
++              _FakeProfilesController.new,
++            ),
+             selectedProfileControllerProvider.overrideWith(
+               _FakeSelectedProfileController.new,
+             ),
+@@ -115,10 +187,13 @@ void main() {
+                 SupabaseAuthStatus.uninitialized,
+               ),
+             ),
++            _neutralLaunchOverride(),
+             userSettingsControllerProvider.overrideWith(
+               _FakeUserSettingsController.new,
+             ),
+-            profilesControllerProvider.overrideWith(_FakeProfilesController.new),
++            profilesControllerProvider.overrideWith(
++              _FakeProfilesController.new,
++            ),
+             selectedProfileControllerProvider.overrideWith(
+               _FakeSelectedProfileController.new,
+             ),
+@@ -128,9 +203,43 @@ void main() {
+       );
+       await tester.pumpAndSettle();
+ 
+-      // Mode local: champ pseudo affiché (TextFormField présent)
+       expect(find.byType(TextFormField), findsOneWidget);
+     },
+   );
+-}
+ 
++  testWidgets(
++    'Supabase dispo + authenticated => ne redirige pas automatiquement vers OTP',
++    (tester) async {
++      final client = SupabaseClient('https://example.supabase.co', 'anon-key');
++      client.auth.stopAutoRefresh();
++
++      await tester.pumpWidget(
++        ProviderScope(
++          overrides: [
++            supabaseClientProvider.overrideWithValue(client),
++            supabaseAuthStatusProvider.overrideWith(
++              () => _FakeSupabaseAuthStatusNotifier(
++                SupabaseAuthStatus.authenticated,
++              ),
++            ),
++            _neutralLaunchOverride(),
++            userSettingsControllerProvider.overrideWith(
++              _FakeUserSettingsController.new,
++            ),
++            profilesControllerProvider.overrideWith(
++              _FakeProfilesController.new,
++            ),
++            selectedProfileControllerProvider.overrideWith(
++              _FakeSelectedProfileController.new,
++            ),
++          ],
++          child: _wrapWithRouter(const WelcomeUserPage()),
++        ),
++      );
++      await tester.pumpAndSettle();
++
++      expect(find.text('OTP_PAGE'), findsNothing);
++      expect(find.byType(TextFormField), findsOneWidget);
++    },
++  );
++}

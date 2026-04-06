@@ -499,6 +499,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 Navigator.of(ctx).pop();
                 unawaited(() async {
                   await accentColorPrefs.setAccentColor(color);
+                  ref.invalidate(asp.accentColorStreamProvider);
+                  ref.invalidate(asp.currentAccentColorProvider);
                   _lockSessionIfUnlocked();
                 }());
               },
@@ -1437,9 +1439,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: ref.read(
-                                    asp.currentAccentColorProvider,
-                                  ),
+                                  color: currentAccentColor,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1476,11 +1476,28 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         menuMaxHeight: 48.0 * 5,
                                         borderRadius: BorderRadius.circular(14),
                                         dropdownColor: const Color(0xFF1E1E1E),
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: currentAccentColor,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
                                         ),
+                                        selectedItemBuilder: (context) => [
+                                          for (final (_, label) in items)
+                                            Align(
+                                              alignment:
+                                                  Alignment.centerLeft,
+                                              child: Text(
+                                                label,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: currentAccentColor,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                         icon: Transform.rotate(
                                           angle: -math.pi / 2,
                                           child: SvgPicture.asset(
@@ -1488,9 +1505,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                             width: 18,
                                             height: 18,
                                             colorFilter: ColorFilter.mode(
-                                              ref.read(
-                                                asp.currentAccentColorProvider,
-                                              ),
+                                              currentAccentColor,
                                               BlendMode.srcIn,
                                             ),
                                           ),
@@ -1499,7 +1514,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                           for (final (code, label) in items)
                                             DropdownMenuItem<String>(
                                               value: code,
-                                              child: Text(label),
+                                              child: Text(
+                                                label,
+                                                style: TextStyle(
+                                                  color: code == selected
+                                                      ? currentAccentColor
+                                                      : Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
                                             ),
                                         ],
                                         onChanged: (value) {

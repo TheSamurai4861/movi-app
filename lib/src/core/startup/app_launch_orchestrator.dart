@@ -21,6 +21,10 @@ import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/startup/app_launch_criteria.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
+import 'package:movi/src/core/startup/canonical_tunnel_state_projector.dart';
+import 'package:movi/src/core/startup/domain/tunnel_state.dart';
+import 'package:movi/src/core/startup/entry_journey_shadow_bridge.dart';
+import 'package:movi/src/core/startup/entry_journey_telemetry.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
@@ -312,8 +316,13 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   late final HomeController _homeController;
   late final HomePreloadRunner _homePreload;
   late final AppLaunchStateRegistry _launchRegistry;
+  late final TunnelStateRegistry _tunnelStateRegistry;
   late final IptvCredentialsEdgeService? _credentialsEdgeService;
   late final CredentialsVault? _credentialsVault;
+  late final EntryJourneyTelemetry _entryJourneyTelemetry;
+  late final LegacyTunnelStateBridge _legacyTunnelStateBridge;
+  late final CanonicalTunnelStateProjector _canonicalTunnelStateProjector;
+  late final bool _useCanonicalTunnelStateModel;
 
   Future<AppLaunchResult>? _ongoing;
   Future<void>? _backgroundSync;
@@ -339,23 +348,48 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _homeController = ref.read(homeControllerProvider.notifier);
     _homePreload = _homeController.load;
     _launchRegistry = sl<AppLaunchStateRegistry>();
+    _tunnelStateRegistry = sl<TunnelStateRegistry>();
     _credentialsEdgeService = sl.isRegistered<IptvCredentialsEdgeService>()
         ? sl<IptvCredentialsEdgeService>()
         : null;
     _credentialsVault = sl.isRegistered<CredentialsVault>()
         ? sl<CredentialsVault>()
         : null;
+    var entryJourneyTelemetryEnabled = false;
+    try {
+      final flags = ref.read(featureFlagsProvider);
+      entryJourneyTelemetryEnabled =
+          flags.enableTelemetry && flags.enableEntryJourneyTelemetryV2;
+      _useCanonicalTunnelStateModel = flags.enableEntryJourneyStateModelV2;
+    } catch (_) {
+      entryJourneyTelemetryEnabled = false;
+      _useCanonicalTunnelStateModel = false;
+    }
+    _legacyTunnelStateBridge = const LegacyTunnelStateBridge();
+    _canonicalTunnelStateProjector = const CanonicalTunnelStateProjector();
+    _entryJourneyTelemetry = EntryJourneyTelemetry(
+      enabled: entryJourneyTelemetryEnabled,
+    );
 
     ref.onDispose(_xtreamSyncService.stop);
 
     const initialState = AppLaunchState();
     _launchRegistry.update(initialState);
+    _tunnelStateRegistry.update(_projectTunnelState(initialState));
     return initialState;
   }
 
   void _updateState(AppLaunchState next) {
     state = next;
     _launchRegistry.update(next);
+    _tunnelStateRegistry.update(_projectTunnelState(next));
+  }
+
+  TunnelState _projectTunnelState(AppLaunchState launchState) {
+    if (_useCanonicalTunnelStateModel) {
+      return _canonicalTunnelStateProjector.fromLaunchState(launchState);
+    }
+    return _legacyTunnelStateBridge.fromLaunchState(launchState);
   }
 
   Future<AppLaunchResult> run() {
@@ -383,6 +417,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       AppLaunchStatus.running,
       stepName: 'start',
       runId: runId,
+    );
+    _entryJourneyTelemetry.event(
+      name: 'entry_journey_started',
+      runId: runId,
+      result: 'start',
+      phase: AppLaunchPhase.init.name,
+      step: 'run',
+      elapsedMs: 0,
     );
 
     final future = _runInternal();
@@ -438,17 +480,18 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     }
 
     Future<void> logStep(String message) async {
-      final uid = meta.accountId ?? 'null';
       final pc = meta.profilesCount?.toString() ?? 'n/a';
       final sc = meta.sourcesCount?.toString() ?? 'n/a';
       final lc = meta.localAccountsCount?.toString() ?? 'n/a';
-      final selProfile = meta.selectedProfileId ?? 'n/a';
-      final selSource = meta.selectedSourceId ?? 'n/a';
       final dest = destination.name;
+      final hasAccount = meta.accountId != null;
+      final hasSelectedProfile = meta.selectedProfileId != null;
+      final hasSelectedSource = meta.selectedSourceId != null;
 
       await LoggingService.log(
-        '[Preload] step=$step uid=$uid profiles=$pc sources=$sc local=$lc '
-        'selectedProfile=$selProfile selectedSource=$selSource dest=$dest :: $message',
+        '[Preload] step=$step hasAccount=$hasAccount profiles=$pc '
+        'sources=$sc local=$lc hasSelectedProfile=$hasSelectedProfile '
+        'hasSelectedSource=$hasSelectedSource dest=$dest :: $message',
       );
     }
 
@@ -468,6 +511,31 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         AppLaunchStatus.success,
         stepName: 'done',
         runId: state.runId,
+      );
+      final reasonCode =
+          state.recovery?.reasonCode ??
+          _reasonCodeForDestination(nextDestination);
+      if (nextDestination != BootstrapDestination.home) {
+        _entryJourneyTelemetry.event(
+          name: 'entry_journey_safe_state_reached',
+          runId: state.runId ?? 'missing',
+          result: 'success',
+          phase: AppLaunchPhase.done.name,
+          step: 'done',
+          reasonCode: reasonCode,
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'destination': nextDestination.name},
+        );
+      }
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_completed',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.done.name,
+        step: 'done',
+        reasonCode: reasonCode,
+        elapsedMs: _elapsedSinceStartMs(),
+        fields: <String, Object?>{'destination': nextDestination.name},
       );
       return AppLaunchResult(destination: destination, meta: meta);
     }
@@ -509,6 +577,16 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         stepName: 'failed',
         runId: state.runId,
       );
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_failed',
+        runId: state.runId ?? 'missing',
+        result: 'failure',
+        phase: AppLaunchPhase.done.name,
+        step: step,
+        reasonCode: 'launch_failure_$code',
+        elapsedMs: _elapsedSinceStartMs(),
+        fields: <String, Object?>{'errorCode': code},
+      );
 
       return AppLaunchResult(
         destination: BootstrapDestination.auth,
@@ -522,6 +600,15 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       _setPhase(AppLaunchPhase.startup, stepName: step);
       await _startupRunner();
       await logStep('startup done');
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_stage_completed',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.startup.name,
+        step: step,
+        reasonCode: 'startup_ready',
+        elapsedMs: _elapsedSinceStartMs(),
+      );
 
       step = 'auth_session';
       _setPhase(AppLaunchPhase.auth, stepName: step);
@@ -538,11 +625,40 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         meta = meta.copyWith(accountId: session.userId);
         updateCriteria();
         await logStep('session validated');
+        _entryJourneyTelemetry.event(
+          name: 'session_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'authenticated',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: authResult.reasonCode ?? 'session_authenticated',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'hasSession': true},
+        );
+        _entryJourneyTelemetry.event(
+          name: 'entry_journey_stage_completed',
+          runId: state.runId ?? 'missing',
+          result: 'success',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: authResult.reasonCode ?? 'session_authenticated',
+          elapsedMs: _elapsedSinceStartMs(),
+        );
       } else if (isCloudAuthEnabled && authResult.requiresReauthentication) {
         final recovery = _buildAuthRecovery(authResult);
         setRecovery(recovery);
         await logStep(
           'invalid session -> explicit reauth (${recovery?.reasonCode ?? 'none'})',
+        );
+        _entryJourneyTelemetry.event(
+          name: 'session_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'reauth_required',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: recovery?.reasonCode ?? authResult.reasonCode,
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'hasSession': false},
         );
         destination = BootstrapDestination.auth;
         return completeSuccess(destination);
@@ -553,14 +669,65 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           'session recovery degraded -> local-first continuation '
           '(${recovery?.reasonCode ?? 'none'})',
         );
+        _entryJourneyTelemetry.event(
+          name: 'session_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'degraded_retryable',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: recovery?.reasonCode ?? authResult.reasonCode,
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'hasSession': false},
+        );
+        _entryJourneyTelemetry.event(
+          name: 'entry_journey_stage_completed',
+          runId: state.runId ?? 'missing',
+          result: 'degraded',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: recovery?.reasonCode ?? authResult.reasonCode,
+          elapsedMs: _elapsedSinceStartMs(),
+        );
       } else if (isCloudAuthEnabled) {
         setRecovery(_buildAuthRecovery(authResult));
         await logStep('session unverifiable -> safe auth path');
+        _entryJourneyTelemetry.event(
+          name: 'session_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'blocked',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode:
+              authResult.reasonCode ??
+              state.recovery?.reasonCode ??
+              'auth_required',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'hasSession': false},
+        );
         destination = BootstrapDestination.auth;
         return completeSuccess(destination);
       } else {
         setRecovery(null);
         await logStep('no validated session -> local mode');
+        _entryJourneyTelemetry.event(
+          name: 'session_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'local_mode',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: 'local_mode',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'hasSession': false},
+        );
+        _entryJourneyTelemetry.event(
+          name: 'entry_journey_stage_completed',
+          runId: state.runId ?? 'missing',
+          result: 'degraded',
+          phase: AppLaunchPhase.auth.name,
+          step: step,
+          reasonCode: 'local_mode',
+          elapsedMs: _elapsedSinceStartMs(),
+        );
       }
 
       step = 'profiles_fetch';
@@ -570,6 +737,25 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       );
       meta = meta.copyWith(profilesCount: profiles.length);
       await logStep('profiles fetched');
+      _entryJourneyTelemetry.event(
+        name: 'profiles_inventory_loaded',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.profiles.name,
+        step: step,
+        reasonCode: profiles.isEmpty ? 'profile_missing' : 'profiles_loaded',
+        elapsedMs: _elapsedSinceStartMs(),
+        fields: <String, Object?>{'profilesCount': profiles.length},
+      );
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_stage_completed',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.profiles.name,
+        step: step,
+        reasonCode: profiles.isEmpty ? 'profile_missing' : 'profiles_loaded',
+        elapsedMs: _elapsedSinceStartMs(),
+      );
 
       if (profiles.isEmpty) {
         destination = BootstrapDestination.welcomeUser;
@@ -606,6 +792,19 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       await logStep(
         'local accounts fetched (xtream=${localAccounts.length} '
         'stalker=${localStalkerAccounts.length})',
+      );
+      _entryJourneyTelemetry.event(
+        name: 'sources_inventory_loaded',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.localAccounts.name,
+        step: step,
+        reasonCode: totalLocalCount == 0 ? 'source_missing' : 'sources_loaded',
+        elapsedMs: _elapsedSinceStartMs(),
+        fields: <String, Object?>{
+          'localSourcesCount': totalLocalCount,
+          'remoteSourcesCount': meta.sourcesCount ?? 0,
+        },
       );
 
       var supaSources = const <SupabaseIptvSourceEntity>[];
@@ -658,6 +857,21 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
             await logStep(
               'local accounts refetched (xtream=${refreshed.length} '
               'stalker=${localStalkerAccounts.length})',
+            );
+            _entryJourneyTelemetry.event(
+              name: 'sources_inventory_loaded',
+              runId: state.runId ?? 'missing',
+              result: 'success',
+              phase: AppLaunchPhase.localAccounts.name,
+              step: step,
+              reasonCode: totalLocalCount == 0
+                  ? 'source_missing'
+                  : 'sources_hydrated_from_cloud',
+              elapsedMs: _elapsedSinceStartMs(),
+              fields: <String, Object?>{
+                'localSourcesCount': totalLocalCount,
+                'remoteSourcesCount': supaSources.length,
+              },
             );
           }
         } else {
@@ -757,6 +971,16 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           _appStateController.setActiveIptvSources({onlyId});
           await logStep('single source already selected -> $onlyId');
         }
+        _entryJourneyTelemetry.event(
+          name: 'source_selection_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'auto_selected',
+          phase: AppLaunchPhase.sourceSelection.name,
+          step: step,
+          reasonCode: 'source_single_auto_selected',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'sourcesCount': validIds.length},
+        );
       } else if (preferredFinal != null &&
           validIds.contains(preferredFinal.trim())) {
         final trimmed = preferredFinal.trim();
@@ -764,15 +988,44 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         updateCriteria();
         _appStateController.setActiveIptvSources({trimmed});
         await logStep('selected source restored -> $trimmed');
+        _entryJourneyTelemetry.event(
+          name: 'source_selection_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'restored',
+          phase: AppLaunchPhase.sourceSelection.name,
+          step: step,
+          reasonCode: 'source_selection_restored',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'sourcesCount': validIds.length},
+        );
       } else {
         final stale = preferredFinal?.trim();
         if (stale != null && stale.isNotEmpty && !validIds.contains(stale)) {
           await _selectedIptvSourcePreferences.clear();
         }
+        _entryJourneyTelemetry.event(
+          name: 'source_selection_resolved',
+          runId: state.runId ?? 'missing',
+          result: 'manual_selection_required',
+          phase: AppLaunchPhase.sourceSelection.name,
+          step: step,
+          reasonCode: 'source_selection_required',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{'sourcesCount': validIds.length},
+        );
         destination = BootstrapDestination.chooseSource;
         await logStep('multiple sources + no valid selection -> chooseSource');
         return completeSuccess(destination);
       }
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_stage_completed',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.sourceSelection.name,
+        step: step,
+        reasonCode: 'source_selection_resolved',
+        elapsedMs: _elapsedSinceStartMs(),
+      );
 
       step = 'preload_complete_home';
       _setPhase(AppLaunchPhase.preloadCompleteHome, stepName: step);
@@ -780,6 +1033,18 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       meta = meta.copyWith(iptvCatalogReady: iptvPreload.catalogReady);
       updateCriteria();
       await logStep('iptv catalog ready for launch');
+      _entryJourneyTelemetry.event(
+        name: 'catalog_minimal_ready',
+        runId: state.runId ?? 'missing',
+        result: iptvPreload.catalogReady ? 'success' : 'failure',
+        phase: AppLaunchPhase.preloadCompleteHome.name,
+        step: step,
+        reasonCode: iptvPreload.catalogReady
+            ? 'catalog_minimal_ready'
+            : 'catalog_minimal_not_ready',
+        elapsedMs: _elapsedSinceStartMs(),
+        fields: <String, Object?>{'refreshed': iptvPreload.refreshed},
+      );
 
       await _runWithRetry<void>(
         attempts: 2,
@@ -795,6 +1060,25 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       meta = meta.copyWith(libraryReady: true);
       updateCriteria();
       await logStep('library preload done');
+      _entryJourneyTelemetry.event(
+        name: 'catalog_full_load_completed',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.preloadCompleteHome.name,
+        step: step,
+        reasonCode: 'catalog_full_load_completed',
+        elapsedMs: _elapsedSinceStartMs(),
+        fields: <String, Object?>{'homePreloaded': true, 'libraryReady': true},
+      );
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_stage_completed',
+        runId: state.runId ?? 'missing',
+        result: 'success',
+        phase: AppLaunchPhase.preloadCompleteHome.name,
+        step: step,
+        reasonCode: 'preload_complete',
+        elapsedMs: _elapsedSinceStartMs(),
+      );
 
       destination = BootstrapDestination.home;
       await logStep('complete preload done -> home');
@@ -933,6 +1217,20 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         lastError = e;
         if (attempt >= attempts) break;
         final delayMs = initialDelay.inMilliseconds * attempt * attempt;
+        _entryJourneyTelemetry.event(
+          name: 'entry_journey_retry_scheduled',
+          runId: state.runId ?? 'missing',
+          result: 'retry',
+          phase: state.phase.name,
+          step: actionName,
+          reasonCode: 'retry_scheduled',
+          elapsedMs: _elapsedSinceStartMs(),
+          fields: <String, Object?>{
+            'attempt': attempt + 1,
+            'maxAttempts': attempts,
+            'delayMs': delayMs,
+          },
+        );
         await Future<void>.delayed(Duration(milliseconds: delayMs));
       }
     }
@@ -950,6 +1248,18 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _assertValidTransition(from: state.phase, to: phase);
     _updateState(state.copyWith(phase: phase));
     _logPhase(phase, state.status, stepName: stepName, runId: state.runId);
+    final runId = state.runId;
+    if (runId != null && runId.isNotEmpty) {
+      _entryJourneyTelemetry.event(
+        name: 'entry_journey_stage_entered',
+        runId: runId,
+        result: state.status.name,
+        phase: phase.name,
+        step: stepName ?? phase.name,
+        reasonCode: 'stage_entered',
+        elapsedMs: _elapsedSinceStartMs(),
+      );
+    }
   }
 
   void _logPhase(
@@ -1004,6 +1314,27 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
   void _setRecoveryMessage(String? message) {
     _updateState(state.copyWith(recoveryMessage: message));
+  }
+
+  int? _elapsedSinceStartMs() {
+    final startedAt = state.startedAt;
+    if (startedAt == null) return null;
+    return DateTime.now().difference(startedAt).inMilliseconds;
+  }
+
+  String _reasonCodeForDestination(BootstrapDestination destination) {
+    switch (destination) {
+      case BootstrapDestination.auth:
+        return 'auth_required';
+      case BootstrapDestination.welcomeUser:
+        return 'profile_required';
+      case BootstrapDestination.welcomeSources:
+        return 'source_required';
+      case BootstrapDestination.chooseSource:
+        return 'source_selection_required';
+      case BootstrapDestination.home:
+        return 'home_ready';
+    }
   }
 
   void _logIptvSyncDecision({
