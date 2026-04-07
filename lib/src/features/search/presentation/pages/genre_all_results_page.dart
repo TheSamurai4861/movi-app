@@ -2,15 +2,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
-import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
@@ -49,6 +49,13 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
   ProviderSubscription<Profile?>? _profileSub;
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'GenreAllBack');
+  final FocusNode _firstItemFocusNode = FocusNode(
+    debugLabel: 'GenreAllFirstItem',
+  );
+  final FocusNode _loadMoreFocusNode = FocusNode(
+    debugLabel: 'GenreAllLoadMore',
+  );
 
   final List<TmdbMovieSummaryDto> _movies = [];
   final List<TmdbTvSummaryDto> _shows = [];
@@ -119,6 +126,9 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
   @override
   void dispose() {
     _profileSub?.close();
+    _backFocusNode.dispose();
+    _firstItemFocusNode.dispose();
+    _loadMoreFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -130,30 +140,6 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
         unawaited(_loadMore());
       }
     }
-  }
-
-  static const double _cardWidth = 150;
-  static const double _posterHeight = 225;
-  static const double _itemHeight = MoviMediaCard.listHeight;
-  static const double _posterAspectRatio = _posterHeight / _cardWidth;
-  static const double _cardChromeHeight = _itemHeight - _posterHeight;
-  static const double _minLargeCardWidth = 112;
-  static const double _gridGapH = 24; // gap horizontal
-  static const double _gridGapV = 16; // gap vertical
-
-  ScreenType _screenTypeFor(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
-  }
-
-  bool _isLargeScreen(BuildContext context) {
-    final screenType = _screenTypeFor(context);
-    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
-  }
-
-  double _slotWidthFor(double availableWidth, int crossAxisCount) {
-    return (availableWidth - (_gridGapH * (crossAxisCount - 1))) /
-        crossAxisCount;
   }
 
   Future<void> _loadMore() async {
@@ -348,178 +334,170 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
     final count = _isMovie ? _movies.length : _shows.length;
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  MoviFocusableAction(
-                    onPressed: () => context.pop(),
-                    semanticLabel: 'Retour',
-                    builder: (context, state) {
-                      return MoviFocusFrame(
-                        scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.all(8),
-                        borderRadius: BorderRadius.circular(999),
-                        backgroundColor: state.focused
-                            ? Colors.white.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        child: SizedBox(
-                          width: 35,
-                          height: 35,
-                          child: const MoviAssetIcon(
-                            AppAssets.iconBack,
-                            color: Colors.white,
+    final initialFocusNode = count > 0 ? _firstItemFocusNode : _backFocusNode;
+
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!mounted) return false;
+        Navigator.of(context).maybePop();
+        return true;
+      },
+      debugLabel: 'GenreAllResultsRouteFocus',
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              MoviSubpageBackTitleHeader(
+                title: widget.args.genreName,
+                onBack: () => context.pop(),
+                focusNode: _backFocusNode,
+                pageHorizontalPadding: _pageHorizontalPadding,
+              ),
+              Expanded(
+                child: count == 0 && !_isLoading
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.noResults,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        children: [
+                          MoviMediaGrid(
+                            itemCount: count,
+                            firstItemFocusNode: _firstItemFocusNode,
+                            footerFocusNode: _hasMore
+                                ? _loadMoreFocusNode
+                                : null,
+                            onExitUp: () {
+                              _backFocusNode.requestFocus();
+                              return true;
+                            },
+                            pageHorizontalPadding: _pageHorizontalPadding,
+                            itemBuilder:
+                                (
+                                  context,
+                                  index,
+                                  focusNode,
+                                  cardWidth,
+                                  posterHeight,
+                                ) {
+                                  if (_isMovie) {
+                                    final movie = _movies[index];
+                                    final media = MoviMedia(
+                                      id: movie.id.toString(),
+                                      title: movie.title,
+                                      poster: imageResolver.poster(
+                                        movie.posterPath,
+                                      ),
+                                      year:
+                                          movie.releaseDate != null &&
+                                              movie.releaseDate!.length >= 4
+                                          ? int.tryParse(
+                                              movie.releaseDate!.substring(
+                                                0,
+                                                4,
+                                              ),
+                                            )
+                                          : null,
+                                      type: MoviMediaType.movie,
+                                    );
+                                    return MoviMediaCard(
+                                      media: media,
+                                      width: cardWidth,
+                                      height: posterHeight,
+                                      focusNode: focusNode,
+                                      onTap: (selectedMedia) =>
+                                          navigateToMovieDetail(
+                                            context,
+                                            ref,
+                                            ContentRouteArgs.movie(
+                                              selectedMedia.id,
+                                            ),
+                                          ),
+                                    );
+                                  }
+
+                                  final show = _shows[index];
+                                  final media = MoviMedia(
+                                    id: show.id.toString(),
+                                    title: show.name,
+                                    poster: imageResolver.poster(
+                                      show.posterPath,
+                                    ),
+                                    type: MoviMediaType.series,
+                                  );
+                                  return MoviMediaCard(
+                                    media: media,
+                                    width: cardWidth,
+                                    height: posterHeight,
+                                    focusNode: focusNode,
+                                    onTap: (selectedMedia) =>
+                                        navigateToTvDetail(
+                                          context,
+                                          ref,
+                                          ContentRouteArgs.series(
+                                            selectedMedia.id,
+                                          ),
+                                        ),
+                                  );
+                                },
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        widget.args.genreName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 35 + 8 + 50),
-                ],
-              ),
-            ),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final availableWidth =
-                      constraints.maxWidth - (_pageHorizontalPadding * 2);
-                  final isLargeScreen = _isLargeScreen(context);
-                  int crossAxisCount =
-                      (availableWidth / (_cardWidth + _gridGapH)).floor().clamp(
-                        1,
-                        6,
-                      );
-                  if (crossAxisCount < 1) {
-                    crossAxisCount = 1;
-                  } else if (crossAxisCount == 1 && availableWidth >= 300) {
-                    crossAxisCount = 2;
-                  }
-
-                  if (isLargeScreen) {
-                    crossAxisCount += 2;
-                    while (crossAxisCount > 1 &&
-                        _slotWidthFor(availableWidth, crossAxisCount) <
-                            _minLargeCardWidth) {
-                      crossAxisCount--;
-                    }
-                  }
-
-                  final resolvedCardWidth = _slotWidthFor(
-                    availableWidth,
-                    crossAxisCount,
-                  );
-                  final resolvedPosterHeight =
-                      resolvedCardWidth * _posterAspectRatio;
-                  final resolvedItemHeight =
-                      resolvedPosterHeight + _cardChromeHeight;
-                  final gridWidth =
-                      (resolvedCardWidth * crossAxisCount) +
-                      _gridGapH * (crossAxisCount - 1);
-
-                  return Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: _pageHorizontalPadding,
-                      ),
-                      child: SizedBox(
-                        width: gridWidth,
-                        child: GridView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                mainAxisSpacing: _gridGapV,
-                                crossAxisSpacing: _gridGapH,
-                                childAspectRatio:
-                                    resolvedCardWidth / resolvedItemHeight,
+                          if (_hasMore) ...[
+                            const SizedBox(height: 20),
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) {
+                                if (event is! KeyDownEvent) {
+                                  return KeyEventResult.ignored;
+                                }
+                                if (event.logicalKey ==
+                                    LogicalKeyboardKey.arrowUp) {
+                                  _firstItemFocusNode.requestFocus();
+                                  return KeyEventResult.handled;
+                                }
+                                if (event.logicalKey ==
+                                        LogicalKeyboardKey.arrowLeft ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.arrowRight ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.arrowDown) {
+                                  return KeyEventResult.handled;
+                                }
+                                return KeyEventResult.ignored;
+                              },
+                              child: Center(
+                                child: MoviPrimaryButton(
+                                  label: AppLocalizations.of(
+                                    context,
+                                  )!.actionLoadMore,
+                                  focusNode: _loadMoreFocusNode,
+                                  expand: false,
+                                  loading: _isLoading,
+                                  onPressed: _isLoading ? null : _loadMore,
+                                ),
                               ),
-                          itemCount: count + (_isLoading ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == count) {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-
-                            if (_isMovie) {
-                              final m = _movies[index];
-                              final media = MoviMedia(
-                                id: m.id.toString(),
-                                title: m.title,
-                                poster: imageResolver.poster(m.posterPath),
-                                year:
-                                    m.releaseDate != null &&
-                                        m.releaseDate!.length >= 4
-                                    ? int.tryParse(
-                                        m.releaseDate!.substring(0, 4),
-                                      )
-                                    : null,
-                                type: MoviMediaType.movie,
-                              );
-                              return MoviMediaCard(
-                                media: media,
-                                onTap: (x) => navigateToMovieDetail(
-                                  context,
-                                  ref,
-                                  ContentRouteArgs.movie(x.id),
-                                ),
-                                width: resolvedCardWidth,
-                                height: resolvedPosterHeight,
-                              );
-                            } else {
-                              final s = _shows[index];
-                              final media = MoviMedia(
-                                id: s.id.toString(),
-                                title: s.name,
-                                poster: imageResolver.poster(s.posterPath),
-                                type: MoviMediaType.series,
-                              );
-                              return MoviMediaCard(
-                                media: media,
-                                onTap: (x) => navigateToTvDetail(
-                                  context,
-                                  ref,
-                                  ContentRouteArgs.series(x.id),
-                                ),
-                                width: resolvedCardWidth,
-                                height: resolvedPosterHeight,
-                              );
-                            }
-                          },
-                        ),
+                            ),
+                          ] else if (_isLoading) ...[
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                          ],
+                        ],
                       ),
-                    ),
-                  );
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

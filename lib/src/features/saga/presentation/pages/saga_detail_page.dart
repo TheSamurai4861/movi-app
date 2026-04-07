@@ -49,26 +49,15 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
     navigateToMovieDetail(context, ref, ContentRouteArgs.movie(movieId));
   }
 
-  Future<void> _startSaga(
-    BuildContext context,
-    WidgetRef ref,
-    SagaDetailViewModel viewModel,
-  ) async {
-    final inProgressMovieId = await ref.read(
-      sagaInProgressMovieProvider(widget.sagaId).future,
+  Future<void> _startSaga(BuildContext context, WidgetRef ref) async {
+    final startTarget = await ref.read(
+      sagaStartTargetProvider(widget.sagaId).future,
     );
     if (!context.mounted) return;
 
-    if (inProgressMovieId != null) {
-      await _playMovie(context, ref, inProgressMovieId);
-      return;
-    }
-
-    final movies = viewModel.saga.timeline
-        .where((entry) => entry.reference.type == ContentType.movie)
-        .toList();
-    if (movies.isNotEmpty && context.mounted) {
-      await _playMovie(context, ref, movies.first.reference.id);
+    final movieId = startTarget.movieId;
+    if (movieId != null && context.mounted) {
+      await _playMovie(context, ref, movieId);
     }
   }
 
@@ -98,9 +87,10 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-
     final sagaDetailAsync = ref.watch(sagaDetailProvider(widget.sagaId));
-    final inProgressMovieAsync = ref.watch(sagaInProgressMovieProvider(widget.sagaId));
+    final sagaStartTargetAsync = ref.watch(
+      sagaStartTargetProvider(widget.sagaId),
+    );
     final isFavoriteAsync = ref.watch(sagaIsFavoriteProvider(widget.sagaId));
 
     return SwipeBackWrapper(
@@ -117,233 +107,264 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
         },
         debugLabel: 'SagaDetailRouteFocus',
         child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: SafeArea(
-          top: true,
-          bottom: true,
-          child: sagaDetailAsync.when(
-            loading: () => OverlaySplash(
-              message: AppLocalizations.of(context)!.overlayPreparingMetadata,
-            ),
-            error: (error, stack) => Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorWithMessage(error.toString()),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => ref.refresh(sagaDetailProvider(widget.sagaId)),
-                    child: Text(AppLocalizations.of(context)!.actionRetry),
-                  ),
-                ],
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: SafeArea(
+            top: true,
+            bottom: true,
+            child: sagaDetailAsync.when(
+              loading: () => OverlaySplash(
+                message: AppLocalizations.of(context)!.overlayPreparingMetadata,
               ),
-            ),
-            data: (viewModel) {
-              final movies = viewModel.saga.timeline
-                  .where((entry) => entry.reference.type == ContentType.movie)
-                  .map((entry) {
-                    final ref = entry.reference;
-                    return MoviMedia(
-                      id: ref.id,
-                      title: ref.title.display,
-                      poster: ref.poster,
-                      year: entry.timelineYear,
-                      type: MoviMediaType.movie,
-                    );
-                  })
-                  .toList();
-
-              // Trier par année
-              movies.sort((a, b) {
-                final yearA = a.year ?? 0;
-                final yearB = b.year ?? 0;
-                return yearA.compareTo(yearB);
-              });
-
-              final isWideLayout = _useDesktopDetailLayout(context);
-              final horizontalPadding = _sectionHorizontalPadding(context);
-              final synopsisText = viewModel.saga.synopsis?.value ?? '';
-              return SingleChildScrollView(
+              error: (error, stack) => Center(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    MoviDetailHeroScene(
-                      isWideLayout: isWideLayout,
-                      background: _buildHeroImage(
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Text(
+                      AppLocalizations.of(
                         context,
-                        poster: viewModel.poster,
-                        backdrop: viewModel.backdrop,
-                      ),
-                      children: [
-                        if (isWideLayout)
-                          _buildDesktopHeroOverlay(
-                            context,
-                            ref,
-                            viewModel,
-                            inProgressMovieAsync,
-                            isFavoriteAsync,
-                            synopsisText: synopsisText,
-                          ),
-                        _buildHeroTopBar(
-                          context,
-                          isWideLayout: isWideLayout,
-                          horizontalPadding: horizontalPadding,
-                        ),
-                      ],
+                      )!.errorWithMessage(error.toString()),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white),
                     ),
-                    if (!isWideLayout)
-                      Padding(
-                        padding: const EdgeInsetsDirectional.only(
-                          start: 20,
-                          end: 20,
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () =>
+                          ref.refresh(sagaDetailProvider(widget.sagaId)),
+                      child: Text(AppLocalizations.of(context)!.actionRetry),
+                    ),
+                  ],
+                ),
+              ),
+              data: (viewModel) {
+                final movies = viewModel.saga.timeline
+                    .where((entry) => entry.reference.type == ContentType.movie)
+                    .map((entry) {
+                      final ref = entry.reference;
+                      return MoviMedia(
+                        id: ref.id,
+                        title: ref.title.display,
+                        poster: ref.poster,
+                        year: entry.timelineYear,
+                        type: MoviMediaType.movie,
+                      );
+                    })
+                    .toList();
+
+                // Trier par année
+                movies.sort((a, b) {
+                  final yearA = a.year ?? 0;
+                  final yearB = b.year ?? 0;
+                  return yearA.compareTo(yearB);
+                });
+
+                final isWideLayout = _useDesktopDetailLayout(context);
+                final horizontalPadding = _sectionHorizontalPadding(context);
+                final synopsisText = viewModel.saga.synopsis?.value ?? '';
+                return SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      MoviDetailHeroScene(
+                        isWideLayout: isWideLayout,
+                        background: _buildHeroImage(
+                          context,
+                          poster: viewModel.poster,
+                          backdrop: viewModel.backdrop,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 16),
-                            Text(
-                              viewModel.saga.title.display,
-                              style:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.headlineMedium?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ) ??
-                                  const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                              textAlign: TextAlign.center,
+                        children: [
+                          if (isWideLayout)
+                            _buildDesktopHeroOverlay(
+                              context,
+                              ref,
+                              viewModel,
+                              sagaStartTargetAsync,
+                              isFavoriteAsync,
+                              synopsisText: synopsisText,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
-                              style:
-                                  Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(color: Colors.white70) ??
-                                  const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white70,
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 24),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: inProgressMovieAsync.when(
-                                    data: (inProgressMovieId) {
-                                      return MoviPrimaryButton(
-                                        focusNode: _primaryActionFocusNode,
-                                        label: inProgressMovieId != null
-                                            ? AppLocalizations.of(
-                                                context,
-                                              )!.sagaContinue
-                                            : AppLocalizations.of(
-                                                context,
-                                              )!.sagaStartNow,
+                          _buildHeroTopBar(
+                            context,
+                            isWideLayout: isWideLayout,
+                            horizontalPadding: horizontalPadding,
+                          ),
+                        ],
+                      ),
+                      if (!isWideLayout)
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            start: 20,
+                            end: 20,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SizedBox(height: 16),
+                              Text(
+                                viewModel.saga.title.display,
+                                style:
+                                    Theme.of(
+                                      context,
+                                    ).textTheme.headlineMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ) ??
+                                    const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${AppLocalizations.of(context)!.sagaMovieCount(viewModel.movieCount)} - ${_formatDuration(viewModel.totalDuration)}',
+                                style:
+                                    Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(color: Colors.white70) ??
+                                    const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white70,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: sagaStartTargetAsync.when(
+                                      data: (startTarget) {
+                                        return MoviPrimaryButton(
+                                          focusNode: _primaryActionFocusNode,
+                                          label: startTarget.hasInProgress
+                                              ? AppLocalizations.of(
+                                                  context,
+                                                )!.sagaContinue
+                                              : AppLocalizations.of(
+                                                  context,
+                                                )!.sagaStartNow,
+                                          assetIcon: AppAssets.iconPlay,
+                                          onPressed: () =>
+                                              _startSaga(context, ref),
+                                        );
+                                      },
+                                      loading: () => MoviPrimaryButton(
+                                        label: AppLocalizations.of(
+                                          context,
+                                        )!.sagaStartNow,
+                                        assetIcon: AppAssets.iconPlay,
+                                        onPressed: () {},
+                                      ),
+                                      error: (_, __) => MoviPrimaryButton(
+                                        label: AppLocalizations.of(
+                                          context,
+                                        )!.sagaStartNow,
                                         assetIcon: AppAssets.iconPlay,
                                         onPressed: () =>
-                                            _startSaga(context, ref, viewModel),
-                                      );
-                                    },
-                                    loading: () => MoviPrimaryButton(
-                                      label: AppLocalizations.of(
-                                        context,
-                                      )!.sagaStartNow,
-                                      assetIcon: AppAssets.iconPlay,
-                                      onPressed: () {},
-                                    ),
-                                    error: (_, __) => MoviPrimaryButton(
-                                      label: AppLocalizations.of(
-                                        context,
-                                      )!.sagaStartNow,
-                                      assetIcon: AppAssets.iconPlay,
-                                      onPressed: () =>
-                                          _startSaga(context, ref, viewModel),
+                                            _startSaga(context, ref),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                SizedBox(
-                                  width: 40,
-                                  height: 40,
-                                  child: isFavoriteAsync.when(
-                                    data: (isFavorite) => MoviFavoriteButton(
-                                      isFavorite: isFavorite,
-                                      onPressed: () async {
-                                        await ref
-                                            .read(
-                                              sagaToggleFavoriteProvider
-                                                  .notifier,
-                                            )
-                                            .toggle(
-                                              widget.sagaId,
-                                              SagaSummary(
-                                                id: viewModel.saga.id,
-                                                tmdbId: viewModel.saga.tmdbId,
-                                                title: viewModel.saga.title,
-                                                cover: viewModel.poster,
-                                              ),
-                                            );
-                                      },
-                                    ),
-                                    loading: () => MoviFavoriteButton(
-                                      isFavorite: true,
-                                      onPressed: () {},
-                                    ),
-                                    error: (_, __) => MoviFavoriteButton(
-                                      isFavorite: true,
-                                      onPressed: () {},
+                                  const SizedBox(width: 16),
+                                  SizedBox(
+                                    width: 40,
+                                    height: 40,
+                                    child: isFavoriteAsync.when(
+                                      data: (isFavorite) => MoviFavoriteButton(
+                                        isFavorite: isFavorite,
+                                        onPressed: () async {
+                                          await ref
+                                              .read(
+                                                sagaToggleFavoriteProvider
+                                                    .notifier,
+                                              )
+                                              .toggle(
+                                                widget.sagaId,
+                                                SagaSummary(
+                                                  id: viewModel.saga.id,
+                                                  tmdbId: viewModel.saga.tmdbId,
+                                                  title: viewModel.saga.title,
+                                                  cover: viewModel.poster,
+                                                ),
+                                              );
+                                        },
+                                      ),
+                                      loading: () => MoviFavoriteButton(
+                                        isFavorite: true,
+                                        onPressed: () {},
+                                      ),
+                                      error: (_, __) => MoviFavoriteButton(
+                                        isFavorite: true,
+                                        onPressed: () {},
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 32),
-                    // Liste des films
-                    Padding(
-                      padding: EdgeInsetsDirectional.only(
-                        start: horizontalPadding,
-                        end: horizontalPadding,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.sagaMoviesList,
-                            style:
-                                Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(color: Colors.white) ??
-                                const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          // Liste horizontale des films
-                          Consumer(
-                            builder: (context, ref, _) {
-                              final availabilityAsync = ref.watch(
-                                sagaMoviesAvailabilityProvider(widget.sagaId),
-                              );
-                              return availabilityAsync.when(
-                                data: (availability) {
-                                  return SizedBox(
+                        ),
+                      const SizedBox(height: 32),
+                      // Liste des films
+                      Padding(
+                        padding: EdgeInsetsDirectional.only(
+                          start: horizontalPadding,
+                          end: horizontalPadding,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.sagaMoviesList,
+                              style:
+                                  Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(color: Colors.white) ??
+                                  const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                            ),
+                            const SizedBox(height: 16),
+                            // Liste horizontale des films
+                            Consumer(
+                              builder: (context, ref, _) {
+                                final availabilityAsync = ref.watch(
+                                  sagaMoviesAvailabilityProvider(widget.sagaId),
+                                );
+                                return availabilityAsync.when(
+                                  data: (availability) {
+                                    return SizedBox(
+                                      height: MoviMediaCard.listHeight,
+                                      child: ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        padding: EdgeInsets.zero,
+                                        itemCount: movies.length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(width: 16),
+                                        itemBuilder: (context, index) {
+                                          final movie = movies[index];
+                                          final movieId = int.tryParse(
+                                            movie.id,
+                                          );
+                                          final isAvailable =
+                                              movieId != null &&
+                                              (availability[movieId] ?? false);
+                                          return _SagaMovieCard(
+                                            media: movie,
+                                            isAvailable: isAvailable,
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                  loading: () => const SizedBox(
+                                    height: MoviMediaCard.listHeight,
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                  error: (_, __) => SizedBox(
                                     height: MoviMediaCard.listHeight,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
@@ -353,60 +374,32 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                           const SizedBox(width: 16),
                                       itemBuilder: (context, index) {
                                         final movie = movies[index];
-                                        final movieId = int.tryParse(movie.id);
-                                        final isAvailable =
-                                            movieId != null &&
-                                            (availability[movieId] ?? false);
-                                        return _SagaMovieCard(
+                                        return MoviMediaCard(
                                           media: movie,
-                                          isAvailable: isAvailable,
+                                          heroTag: 'saga_movie_${movie.id}',
+                                          onTap: (m) => context.push(
+                                            AppRouteNames.movie,
+                                            extra: m,
+                                          ),
                                         );
                                       },
                                     ),
-                                  );
-                                },
-                                loading: () => const SizedBox(
-                                  height: MoviMediaCard.listHeight,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
                                   ),
-                                ),
-                                error: (_, __) => SizedBox(
-                                  height: MoviMediaCard.listHeight,
-                                  child: ListView.separated(
-                                    scrollDirection: Axis.horizontal,
-                                    padding: EdgeInsets.zero,
-                                    itemCount: movies.length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(width: 16),
-                                    itemBuilder: (context, index) {
-                                      final movie = movies[index];
-                                      return MoviMediaCard(
-                                        media: movie,
-                                        heroTag: 'saga_movie_${movie.id}',
-                                        onTap: (m) => context.push(
-                                          AppRouteNames.movie,
-                                          extra: m,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              );
-            },
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
-      )
     );
   }
 
@@ -457,7 +450,7 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
     BuildContext context,
     WidgetRef ref,
     SagaDetailViewModel viewModel,
-    AsyncValue<String?> inProgressMovieAsync,
+    AsyncValue<SagaStartTarget> sagaStartTargetAsync,
     AsyncValue<bool> isFavoriteAsync, {
     required String synopsisText,
   }) {
@@ -524,15 +517,15 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
             children: [
               SizedBox(
                 width: 320,
-                child: inProgressMovieAsync.when(
-                  data: (inProgressMovieId) {
+                child: sagaStartTargetAsync.when(
+                  data: (startTarget) {
                     return MoviPrimaryButton(
                       focusNode: _primaryActionFocusNode,
-                      label: inProgressMovieId != null
+                      label: startTarget.hasInProgress
                           ? AppLocalizations.of(context)!.sagaContinue
                           : AppLocalizations.of(context)!.sagaStartNow,
                       assetIcon: AppAssets.iconPlay,
-                      onPressed: () => _startSaga(context, ref, viewModel),
+                      onPressed: () => _startSaga(context, ref),
                     );
                   },
                   loading: () => MoviPrimaryButton(
@@ -543,7 +536,7 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                   error: (_, __) => MoviPrimaryButton(
                     label: AppLocalizations.of(context)!.sagaStartNow,
                     assetIcon: AppAssets.iconPlay,
-                    onPressed: () => _startSaga(context, ref, viewModel),
+                    onPressed: () => _startSaga(context, ref),
                   ),
                 ),
               ),

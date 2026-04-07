@@ -219,10 +219,10 @@ class HomeController extends Notifier<HomeState> {
         .where((e) => e.type == ContentType.series)
         .toList(growable: false);
 
-    // Collect all movies by paginating if needed
-    final allMovies = <ContentReference>[...initialMovies];
-    var allowedMovies = await policy.filterAllowedUpTo(
-      allMovies,
+    // Filter initial movies first, then evaluate only newly fetched pages.
+    // This avoids re-evaluating the full cumulative set at each iteration.
+    final allowedMovies = await policy.filterAllowedUpTo(
+      initialMovies,
       profile,
       limit: targetMovies,
     );
@@ -242,23 +242,23 @@ class HomeController extends Notifier<HomeState> {
           break;
         }
 
-        allMovies.addAll(pageMovies);
-
-        // Re-filter with all collected movies
-        allowedMovies = await policy.filterAllowedUpTo(
-          allMovies,
+        final remaining = targetMovies - allowedMovies.length;
+        final pageAllowed = await policy.filterAllowedUpTo(
+          pageMovies,
           profile,
-          limit: targetMovies,
+          limit: remaining,
         );
+        if (pageAllowed.isNotEmpty) {
+          allowedMovies.addAll(pageAllowed);
+        }
 
         currentPage++;
       }
     }
 
-    // Collect all series by paginating if needed
-    final allSeries = <ContentReference>[...initialSeries];
-    var allowedSeries = await policy.filterAllowedUpTo(
-      allSeries,
+    // Same incremental strategy for series.
+    final allowedSeries = await policy.filterAllowedUpTo(
+      initialSeries,
       profile,
       limit: targetSeries,
     );
@@ -278,14 +278,15 @@ class HomeController extends Notifier<HomeState> {
           break;
         }
 
-        allSeries.addAll(pageSeries);
-
-        // Re-filter with all collected series
-        allowedSeries = await policy.filterAllowedUpTo(
-          allSeries,
+        final remaining = targetSeries - allowedSeries.length;
+        final pageAllowed = await policy.filterAllowedUpTo(
+          pageSeries,
           profile,
-          limit: targetSeries,
+          limit: remaining,
         );
+        if (pageAllowed.isNotEmpty) {
+          allowedSeries.addAll(pageAllowed);
+        }
 
         currentPage++;
       }

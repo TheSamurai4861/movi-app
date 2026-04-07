@@ -6,6 +6,8 @@ import 'package:movi/src/core/widgets/app_restart.dart';
 class RestartRequiredDialog extends StatelessWidget {
   const RestartRequiredDialog({super.key});
 
+  static const double _mobileActionsBreakpoint = 420;
+
   /// Affiche le dialog et retourne true si l'utilisateur choisit de redémarrer
   static Future<bool> show(BuildContext context) async {
     final result = await showDialog<bool>(
@@ -19,6 +21,7 @@ class RestartRequiredDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final theme = Theme.of(context);
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -53,25 +56,59 @@ class RestartRequiredDialog extends StatelessWidget {
                 'Souhaites-tu redémarrer maintenant ?',
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < _mobileActionsBreakpoint;
+
+                  final laterButton = SizedBox(
+                    width: double.infinity,
+                    height: 52,
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(false),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        textStyle: theme.textTheme.labelLarge,
+                      ),
                       child: const Text('Plus tard'),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  );
+
+                  final restartButton = SizedBox(
+                    width: double.infinity,
+                    height: 52,
                     child: FilledButton(
                       onPressed: () {
                         Navigator.of(context).pop(true);
+                        AppRestart.resetBootstrapState();
                         AppRestart.restartApp(context);
                       },
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        textStyle: theme.textTheme.labelLarge,
+                      ),
                       child: const Text('Redémarrer maintenant'),
                     ),
-                  ),
-                ],
+                  );
+
+                  if (isNarrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        restartButton,
+                        const SizedBox(height: 12),
+                        laterButton,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: laterButton),
+                      const SizedBox(width: 12),
+                      Expanded(child: restartButton),
+                    ],
+                  );
+                },
               ),
             ],
           ),

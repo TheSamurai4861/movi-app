@@ -607,6 +607,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get pinRecoveryDescription => 'Korumalı profilinizin PIN kodunu alın.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => 'Bu özellik yakında geliyor.';
 
   @override

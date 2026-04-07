@@ -124,12 +124,6 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
       error: null,
       formError: null,
     );
-
-    if (trimmed.length == _codeLength &&
-        nextStatus == PinRecoveryUiStatus.codeSent &&
-        state.status != PinRecoveryUiStatus.verifying) {
-      verify();
-    }
   }
 
   void setNewPin(String raw) {
@@ -190,7 +184,9 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
       _startCooldown();
     } else {
       state = state.copyWith(
-        status: PinRecoveryUiStatus.idle,
+        // Conserve l'étape code visible pour permettre la saisie/vérification
+        // même si l'envoi retourne une erreur transitoire.
+        status: PinRecoveryUiStatus.verifyFailed,
         error: result.status,
       );
     }

@@ -592,6 +592,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinRecoveryDescription => '找回受保护资料的 PIN 码。';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => '该功能即将推出。';
 
   @override

@@ -93,8 +93,12 @@ class SelectedProfileController extends Notifier<String?> {
       final previous = state;
       state = id;
       unawaited(_lockPreviousProfileSession(previous, id));
-      // Verrouiller la session si le nouveau profil est un enfant
-      unawaited(_ensureChildProfileLocked(id));
+      // Verrouiller la session uniquement si le profil a réellement changé.
+      // Sinon, on risquerait de relocker une session parentale tout juste déverrouillée
+      // à cause d'une émission identique / d'un rebuild.
+      if (previous != id) {
+        unawaited(_ensureChildProfileLocked(id));
+      }
       unawaited(_restoreActiveIptvSourceIfMissing());
     });
 
@@ -104,9 +108,6 @@ class SelectedProfileController extends Notifier<String?> {
     });
 
     final currentId = service.selectedProfileId;
-    // Vérifier et verrouiller au démarrage si le profil actuel est un enfant
-    unawaited(_ensureChildProfileLocked(currentId));
-
     return currentId;
   }
 
@@ -116,8 +117,10 @@ class SelectedProfileController extends Notifier<String?> {
     await service.setSelectedProfileId(profileId);
     state = service.selectedProfileId;
     await _lockPreviousProfileSession(previous, state);
-    // Verrouiller la session si le nouveau profil est un enfant
-    await _ensureChildProfileLocked(state);
+    // Verrouiller la session uniquement si le profil a réellement changé.
+    if (previous != state) {
+      await _ensureChildProfileLocked(state);
+    }
     await _restoreActiveIptvSourceIfMissing();
   }
 

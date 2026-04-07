@@ -596,6 +596,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pinRecoveryDescription => '보호된 프로필의 PIN 코드를 복구합니다.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => '이 기능은 곧 제공됩니다.';
 
   @override

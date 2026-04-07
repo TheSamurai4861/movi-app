@@ -595,6 +595,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pinRecoveryDescription => '保護されたプロフィールの PIN コードを取得します。';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => 'この機能は近日公開です。';
 
   @override

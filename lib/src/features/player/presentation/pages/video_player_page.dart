@@ -125,6 +125,10 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   final GlobalKey _controlsKey = GlobalKey();
   bool _resumePositionApplied = false;
   PlayerResumeOrchestrator? _resumeOrchestrator;
+  DateTime? _resumeWatchdogUntil;
+  bool _resumeWatchdogEnabled = false;
+  bool _resumeWatchdogFired = false;
+  Timer? _resumeDeferredPersistTimer;
   bool _initialTrackDefaultsApplied = false;
   VideoSource? _currentVideoSource;
   final List<StreamSubscription> _subscriptions = [];
@@ -253,6 +257,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     final stopwatch = Stopwatch()..start();
     _initialTrackDefaultsApplied = false;
     _resumePositionApplied = false;
+    _resumeDeferredPersistTimer?.cancel();
+    _resumeDeferredPersistTimer = null;
+    _resumeWatchdogFired = false;
+    _resumeWatchdogEnabled = false;
+    _resumeWatchdogUntil = null;
+
+    final requestedResume = source.resumePosition;
+    if (requestedResume != null && requestedResume > const Duration(seconds: 10)) {
+      _resumeWatchdogEnabled = true;
+      _resumeWatchdogUntil = DateTime.now().add(const Duration(seconds: 10));
+    }
     _resumeOrchestrator = PlayerResumeOrchestrator(
       requestedResume: source.resumePosition,
       seekTo: (pos) => _playerRepository.seekTo(pos),
@@ -448,7 +463,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           setState(() => _isPlaying = playing);
         }
         if (!wasPlaying && playing) {
-          _startProgressPersistTimer();
+          if (_shouldDelayProgressPersist()) {
+            _resumeDeferredPersistTimer?.cancel();
+            _resumeDeferredPersistTimer = Timer(const Duration(seconds: 3), () {
+              if (!mounted) return;
+              if (_isPlaying && !_shouldDelayProgressPersist()) {
+                _startProgressPersistTimer();
+              }
+            });
+          } else {
+            _startProgressPersistTimer();
+          }
         } else if (wasPlaying && !playing) {
           _stopProgressPersistTimer();
           unawaited(() async {
@@ -463,6 +488,31 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         if (mounted) {
           setState(() => _position = position);
         }
+
+        // Watchdog anti-retour-à-0 (régression tardive après reprise).
+        if (_resumeWatchdogEnabled &&
+            !_resumeWatchdogFired &&
+            _resumeWatchdogUntil != null &&
+            DateTime.now().isBefore(_resumeWatchdogUntil!)) {
+          final target =
+              _resumeOrchestrator?.appliedTarget ?? _resolveResumeRepairTarget();
+          if (target != null &&
+              target > const Duration(seconds: 10) &&
+              position < const Duration(seconds: 2)) {
+            _resumeWatchdogFired = true;
+            _resumeWatchdogEnabled = false;
+            unawaited(() async {
+              await _playerRepository.seekTo(target);
+            }());
+          } else if (position > const Duration(seconds: 5)) {
+            _resumeWatchdogEnabled = false;
+          }
+        } else if (_resumeWatchdogEnabled &&
+            _resumeWatchdogUntil != null &&
+            DateTime.now().isAfter(_resumeWatchdogUntil!)) {
+          _resumeWatchdogEnabled = false;
+        }
+
         final orchestrator = _resumeOrchestrator;
         if (orchestrator == null) {
           return;
@@ -540,6 +590,22 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     setState(() => _resumePositionApplied = true);
   }
 
+  bool _shouldDelayProgressPersist() {
+    final source = _currentVideoSource ?? widget.videoSource;
+    final requested = source?.resumePosition;
+    if (requested == null || requested <= const Duration(seconds: 10)) {
+      return false;
+    }
+
+    final orchestrator = _resumeOrchestrator;
+    final now = DateTime.now();
+    final inWatchdogWindow = _resumeWatchdogEnabled &&
+        _resumeWatchdogUntil != null &&
+        now.isBefore(_resumeWatchdogUntil!);
+    final resumeNotSettled = orchestrator != null && !orchestrator.isDone;
+    return inWatchdogWindow || resumeNotSettled;
+  }
+
   Duration? _resolveResumeRepairTarget() {
     final source = _currentVideoSource ?? widget.videoSource;
     final requestedResume = source?.resumePosition;
@@ -612,6 +678,26 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         videoSource?.contentType == null ||
         _duration <= Duration.zero) {
       return false;
+    }
+
+    // Ne jamais persister un 0 transitoire pendant la fenêtre de reprise.
+    final requestedResume = videoSource?.resumePosition;
+    if (requestedResume != null &&
+        requestedResume > const Duration(seconds: 10) &&
+        _position < const Duration(seconds: 2) &&
+        _shouldDelayProgressPersist()) {
+      _diagnostics.mark(
+        'player_progress_persist',
+        context: <String, Object?>{
+          'reason': reason,
+          'result': 'skip_transient_zero_during_resume_window',
+          'requestedResumeMs': requestedResume.inMilliseconds,
+          'positionMs': _position.inMilliseconds,
+          'contentId': videoSource?.contentId,
+          'contentType': videoSource?.contentType?.name,
+        },
+      );
+      return true;
     }
 
     _isPersistingProgress = true;
@@ -1147,6 +1233,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       isDismissible: true,
       enableDrag: true,
       builder: (context) => SubtitleTrackSelectionMenu(
+        triggerFocusNode: FocusManager.instance.primaryFocus,
         tracks: _subtitleTracks,
         currentTrack: _currentSubtitleTrack,
         onTrackSelected: (track) async {
@@ -1211,6 +1298,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       isDismissible: true,
       enableDrag: true,
       builder: (context) => AudioTrackSelectionMenu(
+        triggerFocusNode: FocusManager.instance.primaryFocus,
         tracks: _audioTracks,
         currentTrack: _currentAudioTrack,
         onTrackSelected: (track) async {
@@ -1322,6 +1410,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       isDismissible: true,
       enableDrag: true,
       builder: (context) => VideoFitModeSelectionMenu(
+        triggerFocusNode: FocusManager.instance.primaryFocus,
         currentMode: _currentVideoFitMode,
         onModeSelected: (mode) async {
           try {
@@ -1505,16 +1594,14 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
             }
             final key = event.logicalKey;
 
-            if (key == LogicalKeyboardKey.escape ||
+            final isBackKey =
+                key == LogicalKeyboardKey.escape ||
                 key == LogicalKeyboardKey.goBack ||
                 key == LogicalKeyboardKey.backspace ||
                 key == LogicalKeyboardKey.browserBack ||
                 key == LogicalKeyboardKey.cancel ||
                 key == LogicalKeyboardKey.gameButtonB ||
-                key == LogicalKeyboardKey.mediaStop) {
-              unawaited(_onBack(context));
-              return KeyEventResult.handled;
-            }
+                key == LogicalKeyboardKey.mediaStop;
 
             final isNavigationKey =
                 key == LogicalKeyboardKey.arrowUp ||
@@ -1525,8 +1612,27 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                 key == LogicalKeyboardKey.enter ||
                 key == LogicalKeyboardKey.space;
 
+            final focusedNode = FocusManager.instance.primaryFocus;
+            final controlOverlayOwnsFocus =
+                _showControls && focusedNode != null && focusedNode != _keyboardFocusNode;
+
+            if (isBackKey) {
+              if (controlOverlayOwnsFocus || _showControls) {
+                setState(() => _showControls = false);
+                _keyboardFocusNode.requestFocus();
+                return KeyEventResult.handled;
+              }
+              unawaited(_onBack(context));
+              return KeyEventResult.handled;
+            }
+
             if (isNavigationKey && !_showControls) {
               setState(() => _showControls = true);
+              return KeyEventResult.handled;
+            }
+
+            if (controlOverlayOwnsFocus) {
+              return KeyEventResult.ignored;
             }
 
             if (key == LogicalKeyboardKey.select ||

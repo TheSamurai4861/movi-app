@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/l10n/app_localizations.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
@@ -11,11 +12,13 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.onBack,
+    this.focusNode,
     this.pageHorizontalPadding = 20,
   });
 
   final String title;
   final VoidCallback? onBack;
+  final FocusNode? focusNode;
 
   /// Même valeur que le padding horizontal du contenu sous-jacent (ex. grille).
   final double pageHorizontalPadding;
@@ -25,9 +28,9 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final headerStartPadding = pageHorizontalPadding - _backButtonFramePadding;
-    final trailingHeaderSpacerWidth =
-        _backButtonSize + _backButtonFramePadding;
+    final headerStartPadding = (pageHorizontalPadding - _backButtonFramePadding)
+        .clamp(0.0, double.infinity);
+    final trailingHeaderSpacerWidth = _backButtonSize + _backButtonFramePadding;
 
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(
@@ -39,8 +42,10 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
       child: Row(
         children: [
           MoviFocusableAction(
+            focusNode: focusNode,
             onPressed: onBack ?? () => context.pop(),
-            semanticLabel: 'Retour',
+            semanticLabel:
+                AppLocalizations.of(context)?.semanticsBack ?? 'Retour',
             builder: (context, state) {
               return MoviFocusFrame(
                 scale: state.focused ? 1.04 : 1,
@@ -52,10 +57,7 @@ class MoviSubpageBackTitleHeader extends StatelessWidget {
                 child: const SizedBox(
                   width: _backButtonSize,
                   height: _backButtonSize,
-                  child: MoviAssetIcon(
-                    AppAssets.iconBack,
-                    color: Colors.white,
-                  ),
+                  child: MoviAssetIcon(AppAssets.iconBack, color: Colors.white),
                 ),
               );
             },

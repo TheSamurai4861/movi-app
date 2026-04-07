@@ -2,10 +2,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
-import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -40,15 +41,6 @@ class ProviderAllResultsPage extends ConsumerStatefulWidget {
 class _ProviderAllResultsPageState
     extends ConsumerState<ProviderAllResultsPage> {
   static const double _pageHorizontalPadding = 20;
-  static const double _cardWidth = 150;
-  static const double _posterHeight = 225;
-  static const double _itemHeight = MoviMediaCard.listHeight;
-  static const double _posterAspectRatio = _posterHeight / _cardWidth;
-  static const double _cardChromeHeight = _itemHeight - _posterHeight;
-  static const double _gridGapH = 24;
-  static const double _gridGapV = 16;
-  static const double _focusBleed = 12;
-  static const double _minLargeCardWidth = 112;
   int _currentPage = 1;
   final List<MovieSummary> _movies = [];
   final List<TvShowSummary> _shows = [];
@@ -56,6 +48,13 @@ class _ProviderAllResultsPageState
   bool _hasMore = true;
   final ScrollController _scrollController = ScrollController();
   ProviderSubscription<Profile?>? _profileSub;
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'ProviderAllBack');
+  final FocusNode _firstItemFocusNode = FocusNode(
+    debugLabel: 'ProviderAllFirstItem',
+  );
+  final FocusNode _loadMoreFocusNode = FocusNode(
+    debugLabel: 'ProviderAllLoadMore',
+  );
 
   @override
   void initState() {
@@ -99,6 +98,9 @@ class _ProviderAllResultsPageState
   @override
   void dispose() {
     _profileSub?.close();
+    _backFocusNode.dispose();
+    _firstItemFocusNode.dispose();
+    _loadMoreFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -110,21 +112,6 @@ class _ProviderAllResultsPageState
         _loadMore();
       }
     }
-  }
-
-  ScreenType _screenTypeFor(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    return ScreenTypeResolver.instance.resolve(size.width, size.height);
-  }
-
-  bool _isLargeScreen(BuildContext context) {
-    final screenType = _screenTypeFor(context);
-    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
-  }
-
-  double _slotWidthFor(double availableWidth, int crossAxisCount) {
-    return (availableWidth - (_gridGapH * (crossAxisCount - 1))) /
-        crossAxisCount;
   }
 
   Future<void> _loadMore() async {
@@ -324,151 +311,159 @@ class _ProviderAllResultsPageState
     final itemsCount = widget.type == MoviMediaType.movie
         ? _movies.length
         : _shows.length;
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          children: [
-            MoviSubpageBackTitleHeader(
-              title: title,
-              onBack: () => context.pop(),
-              pageHorizontalPadding: _pageHorizontalPadding,
-            ),
-            const SizedBox(height: 16),
-            // Grille avec pagination au scroll
-            Expanded(
-              child: itemsCount == 0 && !_isLoading
-                  ? Center(
-                      child: Text(
-                        AppLocalizations.of(context)!.noResults,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    )
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        final availableWidth =
-                            constraints.maxWidth - (_pageHorizontalPadding * 2);
-                        final isLargeScreen = _isLargeScreen(context);
-                        final baseLayoutCardWidth = _cardWidth + _focusBleed;
-                        int crossAxisCount =
-                            (availableWidth / (baseLayoutCardWidth + _gridGapH))
-                                .floor()
-                                .clamp(1, 6);
+    final initialFocusNode = itemsCount > 0
+        ? _firstItemFocusNode
+        : _backFocusNode;
 
-                        if (crossAxisCount < 1) {
-                          crossAxisCount = 1;
-                        } else if (crossAxisCount == 1 &&
-                            availableWidth >= 300) {
-                          crossAxisCount = 2;
-                        }
-
-                        if (isLargeScreen) {
-                          crossAxisCount += 2;
-                          while (crossAxisCount > 1 &&
-                              (_slotWidthFor(availableWidth, crossAxisCount) -
-                                      _focusBleed) <
-                                  _minLargeCardWidth) {
-                            crossAxisCount--;
-                          }
-                        }
-
-                        final layoutCardWidth = _slotWidthFor(
-                          availableWidth,
-                          crossAxisCount,
-                        );
-                        final resolvedCardWidth = layoutCardWidth - _focusBleed;
-                        final resolvedPosterHeight =
-                            resolvedCardWidth * _posterAspectRatio;
-                        final resolvedItemHeight =
-                            resolvedPosterHeight + _cardChromeHeight;
-                        final gridWidth =
-                            (layoutCardWidth * crossAxisCount) +
-                            _gridGapH * (crossAxisCount - 1);
-
-                        return Align(
-                          alignment: Alignment.topCenter,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: _pageHorizontalPadding,
-                            ),
-                            child: SizedBox(
-                              width: gridWidth,
-                              child: GridView.builder(
-                                controller: _scrollController,
-                                padding: EdgeInsets.zero,
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: crossAxisCount,
-                                      childAspectRatio:
-                                          layoutCardWidth /
-                                          (resolvedItemHeight + _focusBleed),
-                                      crossAxisSpacing: _gridGapH,
-                                      mainAxisSpacing: _gridGapV,
-                                    ),
-                                itemCount: itemsCount + (_isLoading ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index >= itemsCount) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
-                                  }
-
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!mounted) return false;
+        Navigator.of(context).maybePop();
+        return true;
+      },
+      debugLabel: 'ProviderAllResultsRouteFocus',
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              MoviSubpageBackTitleHeader(
+                title: title,
+                onBack: () => context.pop(),
+                focusNode: _backFocusNode,
+                pageHorizontalPadding: _pageHorizontalPadding,
+              ),
+              Expanded(
+                child: itemsCount == 0 && !_isLoading
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.noResults,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        children: [
+                          MoviMediaGrid(
+                            itemCount: itemsCount,
+                            firstItemFocusNode: _firstItemFocusNode,
+                            footerFocusNode: _hasMore
+                                ? _loadMoreFocusNode
+                                : null,
+                            onExitUp: () {
+                              _backFocusNode.requestFocus();
+                              return true;
+                            },
+                            pageHorizontalPadding: _pageHorizontalPadding,
+                            itemBuilder:
+                                (
+                                  context,
+                                  index,
+                                  focusNode,
+                                  cardWidth,
+                                  posterHeight,
+                                ) {
                                   if (widget.type == MoviMediaType.movie) {
-                                    final m = _movies[index];
+                                    final movie = _movies[index];
                                     final media = MoviMedia(
-                                      id: m.id.toString(),
-                                      title: m.title.value,
-                                      poster: m.poster,
-                                      year: m.releaseYear,
+                                      id: movie.id.toString(),
+                                      title: movie.title.value,
+                                      poster: movie.poster,
+                                      year: movie.releaseYear,
                                       type: MoviMediaType.movie,
                                     );
-                                    return Center(
-                                      child: MoviMediaCard(
-                                        media: media,
-                                        width: resolvedCardWidth,
-                                        height: resolvedPosterHeight,
-                                        onTap: (mm) => navigateToMovieDetail(
-                                          context,
-                                          ref,
-                                          ContentRouteArgs.movie(mm.id),
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    final s = _shows[index];
-                                    final media = MoviMedia(
-                                      id: s.id.toString(),
-                                      title: s.title.value,
-                                      poster: s.poster,
-                                      type: MoviMediaType.series,
-                                    );
-                                    return Center(
-                                      child: MoviMediaCard(
-                                        media: media,
-                                        width: resolvedCardWidth,
-                                        height: resolvedPosterHeight,
-                                        onTap: (mm) => navigateToTvDetail(
-                                          context,
-                                          ref,
-                                          ContentRouteArgs.series(mm.id),
-                                        ),
-                                      ),
+                                    return MoviMediaCard(
+                                      media: media,
+                                      width: cardWidth,
+                                      height: posterHeight,
+                                      focusNode: focusNode,
+                                      onTap: (selectedMedia) =>
+                                          navigateToMovieDetail(
+                                            context,
+                                            ref,
+                                            ContentRouteArgs.movie(
+                                              selectedMedia.id,
+                                            ),
+                                          ),
                                     );
                                   }
+
+                                  final show = _shows[index];
+                                  final media = MoviMedia(
+                                    id: show.id.toString(),
+                                    title: show.title.value,
+                                    poster: show.poster,
+                                    type: MoviMediaType.series,
+                                  );
+                                  return MoviMediaCard(
+                                    media: media,
+                                    width: cardWidth,
+                                    height: posterHeight,
+                                    focusNode: focusNode,
+                                    onTap: (selectedMedia) =>
+                                        navigateToTvDetail(
+                                          context,
+                                          ref,
+                                          ContentRouteArgs.series(
+                                            selectedMedia.id,
+                                          ),
+                                        ),
+                                  );
                                 },
+                          ),
+                          if (_hasMore) ...[
+                            const SizedBox(height: 20),
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) {
+                                if (event is! KeyDownEvent) {
+                                  return KeyEventResult.ignored;
+                                }
+                                if (event.logicalKey ==
+                                    LogicalKeyboardKey.arrowUp) {
+                                  _firstItemFocusNode.requestFocus();
+                                  return KeyEventResult.handled;
+                                }
+                                if (event.logicalKey ==
+                                        LogicalKeyboardKey.arrowLeft ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.arrowRight ||
+                                    event.logicalKey ==
+                                        LogicalKeyboardKey.arrowDown) {
+                                  return KeyEventResult.handled;
+                                }
+                                return KeyEventResult.ignored;
+                              },
+                              child: Center(
+                                child: MoviPrimaryButton(
+                                  label: AppLocalizations.of(
+                                    context,
+                                  )!.actionLoadMore,
+                                  focusNode: _loadMoreFocusNode,
+                                  expand: false,
+                                  loading: _isLoading,
+                                  onPressed: _isLoading ? null : _loadMore,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                          ] else if (_isLoading) ...[
+                            const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

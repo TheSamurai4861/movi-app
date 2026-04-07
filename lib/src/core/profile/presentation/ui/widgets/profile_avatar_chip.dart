@@ -38,15 +38,6 @@ class ProfileAvatarChip extends StatelessWidget {
             color: color,
             shape: BoxShape.circle,
             border: selected ? Border.all(color: borderColor, width: 3) : null,
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                      color: color.withValues(alpha: 0.35),
-                    ),
-                  ]
-                : null,
           ),
           child: Icon(icon, color: Colors.white, size: size * 0.5),
         ),

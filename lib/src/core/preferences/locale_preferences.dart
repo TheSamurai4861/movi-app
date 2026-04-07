@@ -29,15 +29,25 @@ class LocalePreferences {
     String defaultLanguageCode = 'en-US',
     String storageKey = _defaultStorageKey,
     String themeStorageKey = 'prefs.theme_mode',
-    ThemeMode defaultThemeMode = ThemeMode.system,
+    ThemeMode defaultThemeMode = ThemeMode.dark,
   }) async {
     final resolvedStorage = storage ?? const FlutterSecureStorage();
     final normalizedDefault = _normalize(defaultLanguageCode) ?? 'en-US';
     final persistedLang = await resolvedStorage.read(key: storageKey);
     final initialLang = _normalize(persistedLang) ?? normalizedDefault;
 
+    // Politique produit: l'application reste strictement en mode dark.
+    // On lit la valeur persistée uniquement pour diagnostiquer, puis on force dark.
     final persistedThemeRaw = await resolvedStorage.read(key: themeStorageKey);
-    final initialTheme = _parseTheme(persistedThemeRaw) ?? defaultThemeMode;
+    final persistedTheme = _parseTheme(persistedThemeRaw);
+    final initialTheme = ThemeMode.dark;
+    if (persistedTheme != ThemeMode.dark ||
+        defaultThemeMode != ThemeMode.dark) {
+      await resolvedStorage.write(
+        key: themeStorageKey,
+        value: _stringifyTheme(ThemeMode.dark),
+      );
+    }
 
     return LocalePreferences._(
       storage: resolvedStorage,
@@ -92,11 +102,30 @@ class LocalePreferences {
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
-    if (mode == _themeMode) return;
-    _themeMode = mode;
-    await _storage.write(key: _themeStorageKey, value: _stringifyTheme(mode));
+    // Politique produit: `mode` est ignoré, le thème reste dark.
+    const forcedMode = ThemeMode.dark;
+    assert(() {
+      if (mode != forcedMode) {
+        debugPrint(
+          '[LocalePreferences] setThemeMode($mode) ignored, forcing dark.',
+        );
+      }
+      return true;
+    }());
+    if (_themeMode == forcedMode) {
+      await _storage.write(
+        key: _themeStorageKey,
+        value: _stringifyTheme(forcedMode),
+      );
+      return;
+    }
+    _themeMode = forcedMode;
+    await _storage.write(
+      key: _themeStorageKey,
+      value: _stringifyTheme(forcedMode),
+    );
     if (!_themeController.isClosed) {
-      _themeController.add(mode);
+      _themeController.add(forcedMode);
     }
   }
 

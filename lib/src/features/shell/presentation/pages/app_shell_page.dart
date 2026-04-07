@@ -68,27 +68,51 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   late final ShellFocusCoordinator _shellFocusCoordinator;
   late final ShellScrollToTopController _scrollToTopController =
       ShellScrollToTopController();
+  var _focusListenerAttached = false;
 
   @override
   void initState() {
     super.initState();
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
     _shellFocusCoordinator.attachSidebar(_sidebarFocusNode);
-    FocusManager.instance.addListener(_handlePrimaryFocusChanged);
+    _attachFocusListener();
+  }
+
+  @override
+  void deactivate() {
+    _detachFocusListener();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _attachFocusListener();
   }
 
   @override
   void dispose() {
-    FocusManager.instance.removeListener(_handlePrimaryFocusChanged);
+    _detachFocusListener();
     _shellFocusCoordinator.detachSidebar(_sidebarFocusNode);
     _sidebarFocusNode.dispose();
     _scrollToTopController.dispose();
     super.dispose();
   }
 
+  void _attachFocusListener() {
+    if (_focusListenerAttached) return;
+    FocusManager.instance.addListener(_handlePrimaryFocusChanged);
+    _focusListenerAttached = true;
+  }
+
+  void _detachFocusListener() {
+    if (!_focusListenerAttached) return;
+    FocusManager.instance.removeListener(_handlePrimaryFocusChanged);
+    _focusListenerAttached = false;
+  }
 
   void _handlePrimaryFocusChanged() {
-    if (!mounted) return;
+    if (!mounted || !context.mounted) return;
 
     final focusedNode = FocusManager.instance.primaryFocus;
     if (focusedNode == null || !focusedNode.canRequestFocus) {
@@ -245,6 +269,7 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
             child: LaunchRecoveryBanner(
               message: launchRecovery!.message,
               onRetry: () {
+                if (!context.mounted) return;
                 ref.read(appLaunchOrchestratorProvider.notifier).reset();
                 context.go(AppRouteNames.launch);
               },

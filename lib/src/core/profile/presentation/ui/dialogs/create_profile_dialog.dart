@@ -433,6 +433,7 @@ class _PinPromptDialog extends StatefulWidget {
 
 class _PinPromptDialogState extends State<_PinPromptDialog> {
   final controller = TextEditingController();
+  bool _obscurePin = true;
 
   @override
   void dispose() {
@@ -469,13 +470,24 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
               TextField(
                 controller: controller,
                 keyboardType: TextInputType.number,
-                obscureText: true,
+                obscureText: _obscurePin,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'PIN (4-6 chiffres)',
                   labelStyle: const TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: const Color(0xFF2C2C2E),
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscurePin = !_obscurePin;
+                      });
+                    },
+                    icon: Icon(
+                      _obscurePin ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,

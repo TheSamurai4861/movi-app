@@ -320,6 +320,8 @@ class ComprehensiveCloudSyncService {
     required SupabaseClient client,
     bool Function()? shouldCancel,
     Set<String>? knownIptvAccountIds,
+    bool preferLocalAccent = false,
+    String context = 'default',
   }) async {
     final uid = client.auth.currentSession?.user.id.trim();
     if (uid == null || uid.isEmpty) return;
@@ -342,10 +344,20 @@ class ComprehensiveCloudSyncService {
         final accentColorStr = prefs['accent_color']?.toString();
         if (accentColorStr != null && accentColorStr.isNotEmpty) {
           try {
-            final colorValue = int.parse(accentColorStr, radix: 16);
-            final color = Color(colorValue);
             final accentPrefs = _sl<AccentColorPreferences>();
-            await accentPrefs.setAccentColor(color);
+            if (preferLocalAccent) {
+              assert(() {
+                debugPrint(
+                  '[ComprehensiveCloudSyncService] pullUserPreferences '
+                  'context=$context local_wins=true -> cloud accent ignored',
+                );
+                return true;
+              }());
+            } else {
+              final colorValue = int.parse(accentColorStr, radix: 16);
+              final color = Color(colorValue);
+              await accentPrefs.setAccentColor(color);
+            }
           } catch (_) {
             // Ignorer les erreurs de parsing
           }
@@ -374,10 +386,7 @@ class ComprehensiveCloudSyncService {
         }
         final themeModeStr = prefs['theme_mode']?.toString();
         if (themeModeStr != null) {
-          final themeMode = _parseThemeMode(themeModeStr);
-          if (themeMode != null) {
-            await localePrefs.setThemeMode(themeMode);
-          }
+          await localePrefs.setThemeMode(ThemeMode.dark);
         }
       }
 
@@ -449,19 +458,6 @@ class ComprehensiveCloudSyncService {
         return 'dark';
       case ThemeMode.system:
         return 'system';
-    }
-  }
-
-  ThemeMode? _parseThemeMode(String? raw) {
-    switch (raw?.trim().toLowerCase()) {
-      case 'light':
-        return ThemeMode.light;
-      case 'dark':
-        return ThemeMode.dark;
-      case 'system':
-        return ThemeMode.system;
-      default:
-        return null;
     }
   }
 }

@@ -43,6 +43,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
 
   bool _busy = false;
   String? _error;
+  String? _pinConfirmationMessage;
 
   @override
   void initState() {
@@ -264,7 +265,10 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
       final ok = await _verifyPin();
       if (!ok) {
         if (!mounted) return;
-        setState(() => _error = 'PIN incorrect');
+        setState(() {
+          _error = 'PIN incorrect';
+          _pinConfirmationMessage = null;
+        });
         return;
       }
     }
@@ -283,6 +287,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     setState(() {
       _busy = true;
       _error = null;
+      _pinConfirmationMessage = null;
     });
 
     try {
@@ -293,12 +298,16 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
       setState(() {
         _busy = false;
         _hasPin = true;
+        _pinConfirmationMessage = widget.profile.hasPin
+            ? 'PIN mis à jour.'
+            : 'PIN enregistré.';
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _busy = false;
         _error = 'Erreur: $e';
+        _pinConfirmationMessage = null;
       });
     }
   }
@@ -316,6 +325,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     setState(() {
       _busy = true;
       _error = null;
+      _pinConfirmationMessage = null;
     });
 
     try {
@@ -337,12 +347,14 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
       setState(() {
         _busy = false;
         _hasPin = false;
+        _pinConfirmationMessage = null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _busy = false;
         _error = 'Erreur: $e';
+        _pinConfirmationMessage = null;
       });
     }
   }
@@ -581,6 +593,17 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       ],
                     ),
                   ],
+                  if (_pinConfirmationMessage != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      _pinConfirmationMessage!,
+                      style:
+                          theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.secondary,
+                          ) ??
+                          TextStyle(color: theme.colorScheme.secondary),
+                    ),
+                  ],
                 ],
               ),
 
@@ -669,6 +692,7 @@ class _PinPromptDialog extends StatefulWidget {
 
 class _PinPromptDialogState extends State<_PinPromptDialog> {
   final controller = TextEditingController();
+  bool _obscurePin = true;
 
   @override
   void dispose() {
@@ -705,13 +729,24 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
               TextField(
                 controller: controller,
                 keyboardType: TextInputType.number,
-                obscureText: true,
+                obscureText: _obscurePin,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   labelText: 'PIN (4-6 chiffres)',
                   labelStyle: const TextStyle(color: Colors.white70),
                   filled: true,
                   fillColor: const Color(0xFF2C2C2E),
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscurePin = !_obscurePin;
+                      });
+                    },
+                    icon: Icon(
+                      _obscurePin ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,

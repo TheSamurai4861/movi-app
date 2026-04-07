@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -23,10 +25,7 @@ import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.da
 /// Startup page that waits for IPTV playlists to be fully loaded
 /// before redirecting to home.
 class WelcomeSourceLoadingPage extends ConsumerStatefulWidget {
-  const WelcomeSourceLoadingPage({
-    super.key,
-    this.forceCatalogReload = false,
-  });
+  const WelcomeSourceLoadingPage({super.key, this.forceCatalogReload = false});
 
   final bool forceCatalogReload;
 
@@ -37,6 +36,7 @@ class WelcomeSourceLoadingPage extends ConsumerStatefulWidget {
 
 class _WelcomeSourceLoadingPageState
     extends ConsumerState<WelcomeSourceLoadingPage> {
+  static const Duration _catalogRefreshTimeout = Duration(seconds: 20);
   String? _error;
   bool _isLoading = true;
   String _statusMessage = '';
@@ -107,7 +107,15 @@ class _WelcomeSourceLoadingPageState
               _statusMessage = 'Chargement des films et séries...';
             });
 
-            final result = await refreshXtream(accountId);
+            final result = await refreshXtream(accountId).timeout(
+              _catalogRefreshTimeout,
+              onTimeout: () {
+                throw TimeoutException(
+                  'Timeout pendant le chargement du catalogue Xtream',
+                  _catalogRefreshTimeout,
+                );
+              },
+            );
             result.fold(
               ok: (_) {
                 unawaited(
@@ -127,7 +135,15 @@ class _WelcomeSourceLoadingPageState
               _statusMessage = 'Chargement des films et séries...';
             });
 
-            final result = await refreshStalker(accountId);
+            final result = await refreshStalker(accountId).timeout(
+              _catalogRefreshTimeout,
+              onTimeout: () {
+                throw TimeoutException(
+                  'Timeout pendant le chargement du catalogue Stalker',
+                  _catalogRefreshTimeout,
+                );
+              },
+            );
             result.fold(
               ok: (_) {
                 unawaited(
@@ -174,7 +190,23 @@ class _WelcomeSourceLoadingPageState
           ?.trim();
       if ((preferredSourceId == null || preferredSourceId.isEmpty) &&
           activeSources.length == 1) {
-        await selectedSourcePreferences.setSelectedSourceId(activeSources.first);
+        await selectedSourcePreferences.setSelectedSourceId(
+          activeSources.first,
+        );
+      }
+      final refreshedPreferredId = selectedSourcePreferences.selectedSourceId
+          ?.trim();
+      final missingSelection =
+          refreshedPreferredId == null || refreshedPreferredId.isEmpty;
+      final invalidSelection =
+          !missingSelection && !activeSources.contains(refreshedPreferredId);
+      if (invalidSelection) {
+        await selectedSourcePreferences.clear();
+      }
+      if ((missingSelection || invalidSelection) && activeSources.length > 1) {
+        if (!mounted) return;
+        context.go(AppRouteNames.welcomeSourceSelect);
+        return;
       }
 
       if (!mounted) return;
@@ -221,7 +253,6 @@ class _WelcomeSourceLoadingPageState
               });
               unawaited(_loadCatalog());
             },
-            onContinueAnyway: _goToHome,
             showHeader: false,
             mainAxisAlignment: MainAxisAlignment.end,
             bottomPadding: AppSpacing.lg,
@@ -324,10 +355,11 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  OutlinedButton(
-                    onPressed: onContinueAnyway,
-                    child: const Text('Continuer quand même'),
-                  ),
+                  if (onContinueAnyway != null)
+                    OutlinedButton(
+                      onPressed: onContinueAnyway,
+                      child: const Text('Continuer quand même'),
+                    ),
                 ],
               ],
             ),

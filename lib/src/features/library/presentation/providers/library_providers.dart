@@ -128,7 +128,9 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
   final locale = ref.watch(currentLocaleProvider);
   final localizations = lookupAppLocalizations(locale);
   final hasContinueWatchingPremium = await ref.read(
-    canAccessPremiumFeatureProvider(PremiumFeature.localContinueWatching).future,
+    canAccessPremiumFeatureProvider(
+      PremiumFeature.localContinueWatching,
+    ).future,
   );
 
   final system = <LibraryPlaylistItem>[];
@@ -147,6 +149,27 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
           title: localizations.libraryInProgress,
           itemCount: inProgress.length,
           type: LibraryPlaylistType.inProgress,
+          isPinned: true,
+        ),
+      );
+    }
+  }
+
+  // Historique de visionnage
+  if (hasContinueWatchingPremium) {
+    final historyCompleted = await repository.getHistoryCompleted();
+    final historyInProgress = await repository.getHistoryInProgress();
+    final totalHistory = {
+      for (final item in [...historyCompleted, ...historyInProgress])
+        '${item.type.name}:${item.id}',
+    }.length;
+    if (totalHistory > 0) {
+      system.add(
+        LibraryPlaylistItem(
+          id: LibraryConstants.watchHistoryPlaylistId,
+          title: localizations.libraryWatchHistory,
+          itemCount: totalHistory,
+          type: LibraryPlaylistType.watchHistory,
           isPinned: true,
         ),
       );
@@ -179,27 +202,6 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
         isPinned: true,
       ),
     );
-  }
-
-  // Historique de visionnage
-  if (hasContinueWatchingPremium) {
-    final historyCompleted = await repository.getHistoryCompleted();
-    final historyInProgress = await repository.getHistoryInProgress();
-    final totalHistory = {
-      for (final item in [...historyCompleted, ...historyInProgress])
-        '${item.type.name}:${item.id}',
-    }.length;
-    if (totalHistory > 0) {
-      system.add(
-        LibraryPlaylistItem(
-          id: LibraryConstants.watchHistoryPlaylistId,
-          title: localizations.libraryWatchHistory,
-          itemCount: totalHistory,
-          type: LibraryPlaylistType.watchHistory,
-          isPinned: true,
-        ),
-      );
-    }
   }
 
   // Playlists utilisateur
@@ -263,8 +265,8 @@ final libraryPlaylistsProvider = FutureProvider<List<LibraryPlaylistItem>>((
 
   // Ordre déterministe:
   // - sections système (En cours / Favoris / Historique)
-  // - playlists utilisateur épinglées
-  // - autres playlists utilisateur
+  // - playlists utilisateur épinglées (ordre source stable: created_at DESC)
+  // - autres playlists utilisateur (ordre source stable: created_at DESC)
   // - artistes, puis sagas
   return <LibraryPlaylistItem>[
     ...system,

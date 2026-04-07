@@ -7,6 +7,8 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network.dart';
 
 class NetworkModule {
+  static const Duration _gracefulSwapDelay = Duration(seconds: 15);
+
   static void register({
     LocaleCodeProvider? localeProvider,
     AuthTokenProvider? authTokenProvider,
@@ -26,29 +28,45 @@ class NetworkModule {
     );
 
     final dio = factory.create();
-    _replaceSingleton<Dio>(dio, (old) => old.close(force: true));
-    _replaceSingleton<NetworkExecutor>(
-      NetworkExecutor(
-        dio,
-        logger: logger,
-        defaultMaxConcurrent: 12, // Augmenté de 6 à 12 pour éviter les blocages
-        limiterAcquireTimeout: const Duration(
-          seconds: 10,
-        ), // Timeout augmenté pour réduire les échecs
-      ),
-      (old) => old.dispose(),
+    final newExecutor = NetworkExecutor(
+      dio,
+      logger: logger,
+      defaultMaxConcurrent: 12, // Augmenté de 6 à 12 pour éviter les blocages
+      limiterAcquireTimeout: const Duration(
+        seconds: 10,
+      ), // Timeout augmenté pour réduire les échecs
     );
+    _swapNetworkStackGracefully(dio: dio, executor: newExecutor);
   }
 
-  static void _replaceSingleton<T extends Object>(
-    T instance,
-    void Function(T old)? dispose,
-  ) {
-    if (sl.isRegistered<T>()) {
-      final old = sl<T>();
-      dispose?.call(old);
-      sl.unregister<T>();
+  static void _swapNetworkStackGracefully({
+    required Dio dio,
+    required NetworkExecutor executor,
+  }) {
+    final oldDio = sl.isRegistered<Dio>() ? sl<Dio>() : null;
+    final oldExecutor = sl.isRegistered<NetworkExecutor>()
+        ? sl<NetworkExecutor>()
+        : null;
+
+    if (oldDio != null) {
+      sl.unregister<Dio>();
     }
-    sl.registerSingleton<T>(instance);
+    sl.registerSingleton<Dio>(dio);
+
+    if (oldExecutor != null) {
+      sl.unregister<NetworkExecutor>();
+    }
+    sl.registerSingleton<NetworkExecutor>(executor);
+
+    if (oldExecutor != null) {
+      Future<void>.delayed(_gracefulSwapDelay, () {
+        oldExecutor.dispose();
+      });
+    }
+    if (oldDio != null) {
+      Future<void>.delayed(_gracefulSwapDelay, () {
+        oldDio.close(force: true);
+      });
+    }
   }
 }

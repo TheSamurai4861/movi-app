@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 /// (ex: AppStateController) qui se charge de synchroniser avec les préférences.
 class AppState extends Equatable {
   AppState({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = ThemeMode.dark,
     this.isOnline = true,
     this.preferredLocale = const Locale('en', 'US'),
     this.accentColor,

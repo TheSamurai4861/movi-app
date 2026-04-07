@@ -603,6 +603,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pinRecoveryDescription => 'استرجع رمز PIN لملفك الشخصي المحمي.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => 'هذه الميزة قادمة قريبًا.';
 
   @override

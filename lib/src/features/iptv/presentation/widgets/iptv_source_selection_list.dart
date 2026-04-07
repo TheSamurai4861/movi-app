@@ -12,12 +12,14 @@ class IptvSourceSelectionList extends StatelessWidget {
     required this.selectedId,
     required this.onSelected,
     this.padding = const EdgeInsets.all(12),
+    this.itemFocusNodes,
   });
 
   final List<AnyIptvAccount> accounts;
   final String? selectedId;
   final ValueChanged<AnyIptvAccount> onSelected;
   final EdgeInsetsGeometry padding;
+  final List<FocusNode>? itemFocusNodes;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,9 @@ class IptvSourceSelectionList extends StatelessWidget {
         return _IptvSourceTile(
           account: account,
           isSelected: isSelected,
+          focusNode: itemFocusNodes != null && index < itemFocusNodes!.length
+              ? itemFocusNodes![index]
+              : null,
           onTap: () => onSelected(account),
         );
       },
@@ -43,11 +48,13 @@ class _IptvSourceTile extends StatelessWidget {
     required this.account,
     required this.isSelected,
     required this.onTap,
+    this.focusNode,
   });
 
   final AnyIptvAccount account;
   final bool isSelected;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +62,7 @@ class _IptvSourceTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return MoviFocusableAction(
+      focusNode: focusNode,
       onPressed: onTap,
       semanticLabel: account.alias,
       builder: (context, state) {

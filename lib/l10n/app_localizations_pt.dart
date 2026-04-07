@@ -613,6 +613,13 @@ class AppLocalizationsPt extends AppLocalizations {
       'Recupere o código PIN do seu perfil protegido.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon =>
       'Este recurso estará disponível em breve.';
 

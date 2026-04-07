@@ -447,6 +447,32 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     BootstrapDestination destination, {
     AppLaunchCriteria? criteria,
   }) {
+    final nextCriteria = criteria ?? state.criteria;
+    if (destination == BootstrapDestination.home && !nextCriteria.isHomeReady) {
+      _logHomeCriteriaSnapshot(
+        context: 'set_resolved_destination_blocked',
+        criteria: nextCriteria,
+        selectedSourceId: _selectedIptvSourcePreferences.selectedSourceId
+            ?.trim(),
+      );
+      _updateState(
+        state.copyWith(
+          status: AppLaunchStatus.running,
+          phase: AppLaunchPhase.preloadCompleteHome,
+          completedAt: null,
+          error: null,
+          destination: null,
+          criteria: nextCriteria,
+          recoveryMessage: "Préparation de l'accueil en cours...",
+        ),
+      );
+      return;
+    }
+    _logHomeCriteriaSnapshot(
+      context: 'set_resolved_destination',
+      criteria: nextCriteria,
+      selectedSourceId: _selectedIptvSourcePreferences.selectedSourceId?.trim(),
+    );
     _updateState(
       state.copyWith(
         status: AppLaunchStatus.success,
@@ -454,7 +480,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         completedAt: DateTime.now(),
         error: null,
         destination: destination,
-        criteria: criteria,
+        criteria: nextCriteria,
+        recoveryMessage: null,
       ),
     );
   }
@@ -488,8 +515,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   Future<void> completeManualSourceLoadingToHome({
     required bool hasIptvCatalogReady,
   }) async {
-    final selectedSourceId =
-        _selectedIptvSourcePreferences.selectedSourceId?.trim();
+    final selectedSourceId = _selectedIptvSourcePreferences.selectedSourceId
+        ?.trim();
     final hasSelectedSource =
         selectedSourceId != null && selectedSourceId.isNotEmpty;
 
@@ -524,15 +551,24 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     );
 
     await _ensureLibraryReadyForLaunch();
-    setResolvedDestination(
-      BootstrapDestination.home,
-      criteria: _criteriaFromCurrentContext(
-        hasSelectedSource: hasSelectedSource,
-        hasIptvCatalogReady: hasIptvCatalogReady,
-        hasHomePreloaded: true,
-        hasLibraryReady: true,
-      ),
+    final finalCriteria = _criteriaFromCurrentContext(
+      hasSelectedSource: hasSelectedSource,
+      hasIptvCatalogReady: hasIptvCatalogReady,
+      hasHomePreloaded: true,
+      hasLibraryReady: true,
     );
+    if (!finalCriteria.isHomeReady) {
+      _logHomeCriteriaSnapshot(
+        context: 'manual_source_loading_incomplete',
+        criteria: finalCriteria,
+        selectedSourceId: selectedSourceId,
+      );
+      throw const _LaunchStepException(
+        AppLaunchErrorCode.homePreloadInvalidState,
+        'Home criteria incomplete after manual source loading',
+      );
+    }
+    setResolvedDestination(BootstrapDestination.home, criteria: finalCriteria);
   }
 
   /// Force un état canonique cohérent quand le contexte courant ne peut plus
@@ -996,12 +1032,17 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           validIds.length > 1 &&
           supabaseClient != null) {
         try {
+          await logStep(
+            'bootstrap pull user prefs (local_wins accent enabled)',
+          );
           await ref
               .read(comprehensiveCloudSyncServiceProvider)
               .pullUserPreferences(
                 client: supabaseClient,
                 shouldCancel: () => false,
                 knownIptvAccountIds: validIds,
+                preferLocalAccent: true,
+                context: 'bootstrap_source_selection',
               );
           await logStep('user prefs pulled from cloud (iptv selection)');
         } catch (e, st) {
@@ -1026,12 +1067,17 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           accountIdForCloud.isNotEmpty) {
         await Future<void>.delayed(const Duration(milliseconds: 250));
         try {
+          await logStep(
+            'bootstrap pull retry user prefs (local_wins accent enabled)',
+          );
           await ref
               .read(comprehensiveCloudSyncServiceProvider)
               .pullUserPreferences(
                 client: supabaseClient,
                 shouldCancel: () => false,
                 knownIptvAccountIds: validIds,
+                preferLocalAccent: true,
+                context: 'bootstrap_source_selection_retry',
               );
           await logStep('user prefs pulled from cloud (iptv selection retry)');
         } catch (e, st) {
@@ -1369,6 +1415,29 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     unawaited(
       LoggingService.log(
         '[Launch] ts=$ts phase=${phase.name} status=${status.name} step=$step$runIdPart',
+      ),
+    );
+  }
+
+  void _logHomeCriteriaSnapshot({
+    required String context,
+    required AppLaunchCriteria criteria,
+    String? selectedSourceId,
+  }) {
+    final source = (selectedSourceId == null || selectedSourceId.isEmpty)
+        ? 'none'
+        : selectedSourceId;
+    unawaited(
+      LoggingService.log(
+        '[Launch][Criteria] context=$context '
+        'session=${criteria.hasSession} '
+        'profile=${criteria.hasSelectedProfile} '
+        'source=${criteria.hasSelectedSource} '
+        'iptv=${criteria.hasIptvCatalogReady} '
+        'home=${criteria.hasHomePreloaded} '
+        'library=${criteria.hasLibraryReady} '
+        'isHomeReady=${criteria.isHomeReady} '
+        'selectedSourceId=$source',
       ),
     );
   }

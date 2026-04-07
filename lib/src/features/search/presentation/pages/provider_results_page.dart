@@ -3,6 +3,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
@@ -55,8 +57,12 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   bool _hasMoreShows = true;
   ProviderSubscription<Profile?>? _profileSub;
   bool _lastRestricted = false;
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'ProviderResultsBack');
   final FocusNode _firstMovieFocusNode = FocusNode(
     debugLabel: 'ProviderResultsFirstMovie',
+  );
+  final FocusNode _firstShowFocusNode = FocusNode(
+    debugLabel: 'ProviderResultsFirstShow',
   );
   bool _didRequestInitialMovieFocus = false;
 
@@ -123,7 +129,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   @override
   void dispose() {
     _profileSub?.close();
+    _backFocusNode.dispose();
     _firstMovieFocusNode.dispose();
+    _firstShowFocusNode.dispose();
     super.dispose();
   }
 
@@ -579,7 +587,25 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
     _requestInitialMovieFocusIfNeeded(context);
 
-    return Scaffold(
+    final initialFocusNode = _movies.isNotEmpty
+        ? _firstMovieFocusNode
+        : _shows.isNotEmpty
+        ? _firstShowFocusNode
+        : _backFocusNode;
+
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!mounted) return false;
+        Navigator.of(context).maybePop();
+        return true;
+      },
+      debugLabel: 'ProviderResultsRouteFocus',
+      child: Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
         top: true,
@@ -597,6 +623,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
               child: Row(
                 children: [
                   MoviFocusableAction(
+                    focusNode: _backFocusNode,
                     onPressed: () => context.pop(),
                     semanticLabel: 'Retour',
                     builder: (context, state) {
@@ -726,6 +753,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                           );
                           return MoviMediaCard(
                             media: media,
+                            focusNode: identical(s, showsToShow.first)
+                                ? _firstShowFocusNode
+                                : null,
                             onTap: (mm) => navigateToTvDetail(
                               context,
                               ref,
@@ -761,7 +791,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
             ),
           ],
         ),
-      ),
+      ),)
     );
   }
 }

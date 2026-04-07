@@ -394,7 +394,7 @@ class PlaylistLocalRepository {
       'playlists',
       where: 'owner = ?',
       whereArgs: [owner],
-      orderBy: 'updated_at DESC',
+      orderBy: 'created_at DESC',
     );
     return rows
         .map(

@@ -340,8 +340,24 @@ class LibraryPlaylistCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        _secondaryText(l10n),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: _secondaryText(l10n)),
+                            if (isPinned)
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Icon(
+                                    Icons.push_pin,
+                                    size: 14,
+                                    color: accentColor,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                         style:
                             Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontSize: 14,

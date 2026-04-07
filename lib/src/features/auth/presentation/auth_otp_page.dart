@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
@@ -26,8 +28,9 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
   final _emailController = TextEditingController();
   final _codeController = TextEditingController();
 
-  final _emailFocusNode = FocusNode();
-  final _codeFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode(debugLabel: 'AuthOtpEmail');
+  final _codeFocusNode = FocusNode(debugLabel: 'AuthOtpCode');
+  final _primaryActionFocusNode = FocusNode(debugLabel: 'AuthOtpPrimaryAction');
   bool _handledSuccessfulAuth = false;
 
   @override
@@ -36,6 +39,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     _codeController.dispose();
     _emailFocusNode.dispose();
     _codeFocusNode.dispose();
+    _primaryActionFocusNode.dispose();
     super.dispose();
   }
 
@@ -84,7 +88,22 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
         isVerifying ||
         state.cooldownRemaining > 0;
 
-    return Scaffold(
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: isCodeStepVisible ? _codeFocusNode : _emailFocusNode,
+        fallbackFocusNode: _primaryActionFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!context.mounted) return false;
+        if (GoRouter.of(context).canPop()) {
+          context.pop();
+          return true;
+        }
+        return false;
+      },
+      debugLabel: 'AuthOtpRouteFocus',
+      child: Scaffold(
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -218,6 +237,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
                         child: SizedBox(
                           width: double.infinity,
                           child: MoviPrimaryButton(
+                            focusNode: _primaryActionFocusNode,
                             label: isCodeStepVisible
                                 ? l10n.authOtpPrimarySubmit
                                 : l10n.authOtpPrimarySend,
@@ -301,6 +321,7 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
           ),
         ),
       ),
+      )
     );
   }
 

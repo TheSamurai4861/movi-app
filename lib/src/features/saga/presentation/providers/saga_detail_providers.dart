@@ -10,6 +10,8 @@ import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/features/saga/domain/usecases/get_saga_detail.dart';
 
+const double _sagaCompletedThreshold = 0.95;
+
 /// Provider pour charger les détails d'une saga avec poster en langue null
 final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((
   ref,
@@ -163,33 +165,80 @@ final sagaInProgressMovieProvider = FutureProvider.family<String?, String>((
   ref,
   sagaId,
 ) async {
+  final resolution = await ref.watch(sagaStartTargetProvider(sagaId).future);
+  return resolution.inProgressMovieId;
+});
+
+class SagaStartTarget {
+  const SagaStartTarget({
+    required this.movieId,
+    required this.inProgressMovieId,
+  });
+
+  final String? movieId;
+  final String? inProgressMovieId;
+
+  bool get hasInProgress => inProgressMovieId != null;
+}
+
+final sagaStartTargetProvider = FutureProvider.family<SagaStartTarget, String>((
+  ref,
+  sagaId,
+) async {
   final sagaRepo = ref.watch(slProvider)<SagaRepository>();
   final saga = await sagaRepo.getSaga(SagaId(sagaId));
   final historyRepo = ref.watch(slProvider)<HistoryLocalRepository>();
 
-  // Récupérer tous les historiques de films
+  final movies = saga.timeline
+      .where((entry) => entry.reference.type == ContentType.movie)
+      .toList(growable: false);
+  if (movies.isEmpty) {
+    return const SagaStartTarget(movieId: null, inProgressMovieId: null);
+  }
+
   final allHistory = await historyRepo.readAll(ContentType.movie);
   final historyMap = {for (final h in allHistory) h.contentId: h};
 
-  // Vérifier chaque film de la saga
-  for (final entry in saga.timeline) {
-    if (entry.reference.type == ContentType.movie) {
-      final history = historyMap[entry.reference.id];
-      if (history != null &&
-          history.duration != null &&
-          history.duration! > Duration.zero) {
-        final progress = history.lastPosition?.inSeconds ?? 0;
-        final total = history.duration!.inSeconds;
-        // Considérer comme "en cours" si moins de 90% visionné
-        if (progress < total * 0.9) {
-          return entry.reference.id;
-        }
-      }
+  String? inProgressMovieId;
+  for (final movie in movies) {
+    final progress = _movieProgressRatio(historyMap[movie.reference.id]);
+    if (progress != null &&
+        progress > 0 &&
+        progress < _sagaCompletedThreshold) {
+      inProgressMovieId = movie.reference.id;
+      break;
+    }
+  }
+  if (inProgressMovieId != null) {
+    return SagaStartTarget(
+      movieId: inProgressMovieId,
+      inProgressMovieId: inProgressMovieId,
+    );
+  }
+
+  for (final movie in movies) {
+    final progress = _movieProgressRatio(historyMap[movie.reference.id]);
+    if (progress == null || progress < _sagaCompletedThreshold) {
+      return SagaStartTarget(
+        movieId: movie.reference.id,
+        inProgressMovieId: null,
+      );
     }
   }
 
-  return null;
+  return SagaStartTarget(
+    movieId: movies.first.reference.id,
+    inProgressMovieId: null,
+  );
 });
+
+double? _movieProgressRatio(HistoryEntry? entry) {
+  if (entry == null) return null;
+  final totalSeconds = entry.duration?.inSeconds ?? 0;
+  if (totalSeconds <= 0) return null;
+  final positionSeconds = entry.lastPosition?.inSeconds ?? 0;
+  return positionSeconds / totalSeconds;
+}
 
 /// ViewModel pour la page de détail de saga
 class SagaDetailViewModel {

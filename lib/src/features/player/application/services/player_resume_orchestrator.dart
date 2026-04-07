@@ -20,9 +20,10 @@ final class PlayerResumeOrchestrator {
     required PlayerSeekTo seekTo,
     ResumeTelemetry? telemetry,
     Duration safetyMargin = const Duration(seconds: 1),
-    Duration maxWait = const Duration(seconds: 4),
+    Duration maxWait = const Duration(seconds: 10),
     Duration seekConfirmationTolerance = const Duration(seconds: 2),
-    int maxReseekAttempts = 1,
+    int maxReseekAttempts = 2,
+    Duration stableConfirmation = const Duration(seconds: 2),
     DateTime Function()? now,
   }) : _requestedResume = requestedResume,
        _seekTo = seekTo,
@@ -31,6 +32,7 @@ final class PlayerResumeOrchestrator {
        _maxWait = maxWait,
        _seekConfirmationTolerance = seekConfirmationTolerance,
        _maxReseekAttempts = maxReseekAttempts,
+       _stableConfirmation = stableConfirmation,
        _now = now ?? DateTime.now {
     _startedAt = _now();
   }
@@ -42,6 +44,7 @@ final class PlayerResumeOrchestrator {
   final Duration _maxWait;
   final Duration _seekConfirmationTolerance;
   final int _maxReseekAttempts;
+  final Duration _stableConfirmation;
   final DateTime Function() _now;
 
   late final DateTime _startedAt;
@@ -49,6 +52,7 @@ final class PlayerResumeOrchestrator {
   bool _seekIssued = false;
   int _reseekAttempts = 0;
   Duration? _appliedTarget;
+  DateTime? _confirmedAt;
 
   bool get isDone => _done;
   bool get requiresResume => _hasRequestedResume;
@@ -159,16 +163,38 @@ final class PlayerResumeOrchestrator {
     }
 
     if (_isWithinTolerance(reportedPosition, target)) {
-      _settle(
-        'applied_confirmed',
-        <String, Object?>{
-          'appliedMs': target.inMilliseconds,
-          'positionMs': reportedPosition.inMilliseconds,
-          'reseekAttempts': _reseekAttempts,
-        },
-      );
+      final now = _now();
+      final confirmedAt = _confirmedAt;
+      if (confirmedAt == null) {
+        _confirmedAt = now;
+        _telemetry?.call(
+          'applied_confirmed_candidate',
+          <String, Object?>{
+            'appliedMs': target.inMilliseconds,
+            'positionMs': reportedPosition.inMilliseconds,
+            'stableMs': _stableConfirmation.inMilliseconds,
+            'reseekAttempts': _reseekAttempts,
+          },
+        );
+        return;
+      }
+
+      if (now.difference(confirmedAt) >= _stableConfirmation) {
+        _settle(
+          'applied_confirmed',
+          <String, Object?>{
+            'appliedMs': target.inMilliseconds,
+            'positionMs': reportedPosition.inMilliseconds,
+            'stableMs': _stableConfirmation.inMilliseconds,
+            'reseekAttempts': _reseekAttempts,
+          },
+        );
+      }
       return;
     }
+
+    // Not within tolerance anymore -> reset stability window.
+    _confirmedAt = null;
 
     if (_isTimedOut()) {
       _settle(

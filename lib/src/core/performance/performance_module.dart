@@ -136,4 +136,9 @@ class PerformanceModule {
       '[DEBUG][Startup] PerformanceModule: NetworkExecutor configured (profile=${tuning.profile.name})',
     );
   }
+
+  static void reapplyNetworkExecutorTuning(GetIt sl) {
+    if (!sl.isRegistered<PerformanceTuning>()) return;
+    _configureNetworkExecutor(sl, sl<PerformanceTuning>());
+  }
 }

@@ -150,11 +150,25 @@ class LaunchRedirectGuard extends ChangeNotifier {
       final target = _mapDestination(launchState.destination);
       if (launchState.destination == BootstrapDestination.home &&
           !launchState.criteria.isHomeReady) {
+        _logHomeBootstrapRedirect(
+          current: current,
+          launchState: launchState,
+          reason: 'home_destination_without_ready_criteria',
+          redirectTo: onBootstrap ? null : AppRoutePaths.bootstrap,
+        );
         return onBootstrap ? null : AppRoutePaths.bootstrap;
       }
       if (target != null &&
           launchState.destination != BootstrapDestination.home &&
           current != target) {
+        if (current == AppRoutePaths.home || target == AppRoutePaths.home) {
+          _logHomeBootstrapRedirect(
+            current: current,
+            launchState: launchState,
+            reason: 'non_home_destination_overrides_home_navigation',
+            redirectTo: target,
+          );
+        }
         return target;
       }
       if (!isStartupRoute) {
@@ -261,6 +275,25 @@ class LaunchRedirectGuard extends ChangeNotifier {
       case null:
         return null;
     }
+  }
+
+  void _logHomeBootstrapRedirect({
+    required String current,
+    required AppLaunchState launchState,
+    required String reason,
+    required String? redirectTo,
+  }) {
+    final criteria = launchState.criteria;
+    logger.warn(
+      'LaunchRedirectGuard redirect reason=$reason '
+      'current=$current redirectTo=${redirectTo ?? 'stay'} '
+      'destination=${launchState.destination?.name ?? 'null'} '
+      'status=${launchState.status.name} phase=${launchState.phase.name} '
+      'session=${criteria.hasSession} profile=${criteria.hasSelectedProfile} '
+      'source=${criteria.hasSelectedSource} iptv=${criteria.hasIptvCatalogReady} '
+      'home=${criteria.hasHomePreloaded} library=${criteria.hasLibraryReady} '
+      'isHomeReady=${criteria.isHomeReady}',
+    );
   }
 
   void _onAuthResolutionTimeout() {

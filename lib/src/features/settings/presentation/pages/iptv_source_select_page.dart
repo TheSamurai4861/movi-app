@@ -6,26 +6,21 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
-import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
-import 'package:movi/src/core/widgets/movi_asset_icon.dart';
-import 'package:movi/src/core/widgets/movi_focusable.dart';
-import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
-    as hp;
+import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart' as hp;
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
-/// Sélecteur de source active dédié au contexte Réglages.
-///
-/// Contrairement au flow `welcome/*`, cette page ne dépend pas du bootstrap
-/// et revient simplement vers l'écran précédent une fois la source activée.
 class IptvSourceSelectPage extends ConsumerStatefulWidget {
   const IptvSourceSelectPage({super.key});
 
@@ -36,8 +31,30 @@ class IptvSourceSelectPage extends ConsumerStatefulWidget {
 
 class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
   String? _switchingAccountId;
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'IptvSourceSelectBack');
+  final List<FocusNode> _accountFocusNodes = <FocusNode>[];
 
   bool get _isSwitching => _switchingAccountId != null;
+
+  @override
+  void dispose() {
+    _backFocusNode.dispose();
+    for (final node in _accountFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncAccountFocusNodes(int count) {
+    while (_accountFocusNodes.length < count) {
+      _accountFocusNodes.add(
+        FocusNode(debugLabel: 'IptvSourceSelectItem${_accountFocusNodes.length}'),
+      );
+    }
+    while (_accountFocusNodes.length > count) {
+      _accountFocusNodes.removeLast().dispose();
+    }
+  }
 
   Future<void> _activateSource(AnyIptvAccount account) async {
     if (_isSwitching) return;
@@ -113,8 +130,7 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
       appStateController.setActiveIptvSources(previousActiveIds);
 
       if (!mounted) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error.toString().replaceFirst('Bad state: ', '')),
         ),
@@ -133,129 +149,94 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
     final accountsAsync = ref.watch(allIptvAccountsProvider);
     final selectedId = activeIds.isEmpty ? null : activeIds.first;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: SettingsContentWidth(
-              child: Column(
-                children: [
-                  const SizedBox(height: 16),
-                  IptvSourceSelectHeader(
-                    title: l10n.activeSourceTitle,
-                    onBack: _isSwitching ? null : () => context.pop(),
-                  ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: accountsAsync.when(
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, _) => Center(
-                        child: Text(
-                          '${l10n.errorUnknown}: $error',
-                          style: const TextStyle(color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      data: (accounts) {
-                        if (accounts.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                              ),
-                              child: Text(
-                                l10n.welcomeSourceSubtitle,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          );
-                        }
-
-                        return IptvSourceSelectionList(
-                          accounts: accounts,
-                          selectedId: selectedId,
-                          onSelected: _activateSource,
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_isSwitching)
-            Positioned.fill(
-              child: ColoredBox(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surface.withValues(alpha: 0.82),
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-            ),
-        ],
-      ),
+    final initialFocusNode = accountsAsync.maybeWhen(
+      data: (accounts) {
+        if (accounts.isEmpty) {
+          return _backFocusNode;
+        }
+        _syncAccountFocusNodes(accounts.length);
+        return _accountFocusNodes.first;
+      },
+      orElse: () => _backFocusNode,
     );
-  }
-}
 
-class IptvSourceSelectHeader extends StatelessWidget {
-  const IptvSourceSelectHeader({
-    super.key,
-    required this.title,
-    required this.onBack,
-  });
-
-  final String title;
-  final VoidCallback? onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SizedBox(
-        height: 44,
-        child: Stack(
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!context.mounted || _isSwitching) return false;
+        context.pop();
+        return true;
+      },
+      debugLabel: 'IptvSourceSelectRouteFocus',
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: Stack(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: 35,
-                height: 35,
-                child: MoviFocusableAction(
-                  onPressed: onBack,
-                  semanticLabel: 'Retour',
-                  builder: (context, state) {
-                    return MoviFocusFrame(
-                      scale: state.focused ? 1.04 : 1,
-                      borderRadius: BorderRadius.circular(999),
-                      backgroundColor: state.focused
-                          ? Colors.white.withValues(alpha: 0.14)
-                          : Colors.transparent,
-                      child: const SizedBox(
-                        width: 35,
-                        height: 35,
-                        child: MoviAssetIcon(
-                          AppAssets.iconBack,
-                          color: Colors.white,
+            SafeArea(
+              child: SettingsContentWidth(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    MoviSubpageBackTitleHeader(
+                      title: l10n.activeSourceTitle,
+                      focusNode: _backFocusNode,
+                      onBack: _isSwitching ? null : () => context.pop(),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: accountsAsync.when(
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, _) => Center(
+                          child: Text(
+                            '${l10n.errorUnknown}: $error',
+                            style: const TextStyle(color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
+                        data: (accounts) {
+                          _syncAccountFocusNodes(accounts.length);
+                          if (accounts.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                ),
+                                child: Text(
+                                  l10n.welcomeSourceSubtitle,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return IptvSourceSelectionList(
+                            accounts: accounts,
+                            selectedId: selectedId,
+                            itemFocusNodes: _accountFocusNodes,
+                            onSelected: _activateSource,
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
             ),
-            Center(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+            if (_isSwitching)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surface
+                      .withValues(alpha: 0.82),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
-            ),
           ],
         ),
       ),

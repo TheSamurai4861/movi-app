@@ -604,6 +604,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Retrieve the PIN code for your protected profile.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => 'This feature is coming soon.';
 
   @override

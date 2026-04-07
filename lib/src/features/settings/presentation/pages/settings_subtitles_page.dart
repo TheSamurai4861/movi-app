@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/preferences/playback_sync_offset_preferences.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
@@ -24,10 +26,26 @@ class SettingsSubtitlesPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesBack');
+  final FocusNode _sizePresetFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesSizePreset');
+  final FocusNode _resetOffsetsFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesResetOffsets');
+  final FocusNode _resetDefaultsFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesResetDefaults');
+
   double? _previewBackgroundOpacity;
+
+  @override
+  void dispose() {
+    _backFocusNode.dispose();
+    _sizePresetFocusNode.dispose();
+    _resetOffsetsFocusNode.dispose();
+    _resetDefaultsFocusNode.dispose();
+    super.dispose();
+  }
+
   double? _previewFontScale;
   int? _previewSubtitleOffsetMs;
   int? _previewAudioOffsetMs;
+
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +77,19 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
       fontScale: _previewFontScale ?? prefs.fontScale,
     );
 
-    return Scaffold(
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: _sizePresetFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!context.mounted) return false;
+        context.pop();
+        return true;
+      },
+      debugLabel: 'SettingsSubtitlesRouteFocus',
+      child: Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SettingsContentWidth(
@@ -70,6 +100,7 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
               children: [
               MoviSubpageBackTitleHeader(
                 title: l10n.settingsSubtitlesTitle,
+                focusNode: _backFocusNode,
                 onBack: () => context.pop(),
               ),
               const SizedBox(height: 8),
@@ -92,6 +123,9 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                         .map((preset) {
                           final selected = prefs.sizePreset == preset;
                           return ChoiceChip(
+                            focusNode: preset == SubtitleSizePreset.values.first
+                                ? _sizePresetFocusNode
+                                : null,
                             label: Text(_sizeLabel(l10n, preset)),
                             selected: selected,
                             onSelected: (_) => controller.setSizePreset(preset),
@@ -284,6 +318,7 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
+                          focusNode: _resetOffsetsFocusNode,
                           onPressed: () async {
                             setState(() {
                               _previewSubtitleOffsetMs = null;
@@ -425,6 +460,7 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
+                          focusNode: _resetDefaultsFocusNode,
                           onPressed: controller.resetToDefaults,
                           child: Text(l10n.settingsSubtitlesResetDefaults),
                         ),
@@ -455,7 +491,7 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
           ),
           ),
         ),
-      ),
+      ),)
     );
   }
 
@@ -520,6 +556,7 @@ class _OffsetPresetButtons extends StatelessWidget {
 
   static const List<int> _presets = <int>[-500, -250, 0, 250, 500];
 
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -560,6 +597,7 @@ class _ColorCircle extends StatelessWidget {
   final Color accentColor;
   final double size;
 
+
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
@@ -585,6 +623,7 @@ class _SubtitlePreview extends StatelessWidget {
 
   /// Padding du `Container` autour du cadre 16:9 (les tests reproduisent ce retrait).
   static const double _outerPadding = 12.0;
+
 
   @override
   Widget build(BuildContext context) {
@@ -652,6 +691,7 @@ class _SectionCard extends StatelessWidget {
 
   final String title;
   final Widget child;
+
 
   @override
   Widget build(BuildContext context) {

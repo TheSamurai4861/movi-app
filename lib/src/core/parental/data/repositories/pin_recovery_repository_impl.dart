@@ -6,15 +6,17 @@ import 'package:movi/src/core/parental/domain/entities/pin_recovery_result.dart'
 import 'package:movi/src/core/parental/domain/repositories/pin_recovery_repository.dart';
 
 class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
-  /// [profilePin] est conservé temporairement pour compatibilité avec le wiring
-  /// DI existant, mais le flux de recovery ne passe plus par `profile-pin`.
   PinRecoveryRepositoryImpl({
     PinRecoveryRemoteDataSource? remote,
     SupabaseClient? client,
     ProfilePinEdgeService? profilePin,
-  }) : _remote = _resolveRemote(remote: remote, client: client);
+  }) : _remote = _resolveRemote(remote: remote, client: client),
+       _profilePin = profilePin,
+       _client = client;
 
   final PinRecoveryRemoteDataSource _remote;
+  final ProfilePinEdgeService? _profilePin;
+  final SupabaseClient? _client;
 
   static PinRecoveryRemoteDataSource _resolveRemote({
     PinRecoveryRemoteDataSource? remote,
@@ -41,9 +43,29 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
       final response = await _remote.requestCode(
         profileId: normalizedProfileId,
       );
-      return _mapResponse(response);
+      final mapped = _mapResponse(response);
+      if (_shouldTryProfilePinFallback(mapped.status)) {
+        final profilePinFallback = await _requestRecoveryCodeViaProfilePin(
+          normalizedProfileId,
+        );
+        if (_shouldTryEmailOtpFallback(profilePinFallback.status)) {
+          return _requestRecoveryCodeViaEmailOtp();
+        }
+        return profilePinFallback;
+      }
+      return mapped;
     } catch (error) {
-      return PinRecoveryResult.failure(_mapError(error));
+      final mappedError = _mapError(error);
+      if (_shouldTryProfilePinFallback(mappedError)) {
+        final profilePinFallback = await _requestRecoveryCodeViaProfilePin(
+          normalizedProfileId,
+        );
+        if (_shouldTryEmailOtpFallback(profilePinFallback.status)) {
+          return _requestRecoveryCodeViaEmailOtp();
+        }
+        return profilePinFallback;
+      }
+      return PinRecoveryResult.failure(mappedError);
     }
   }
 
@@ -56,9 +78,29 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
 
     try {
       final response = await _remote.verifyCode(normalizedCode);
-      return _mapResponse(response, requireResetTokenOnSuccess: true);
+      final mapped = _mapResponse(response, requireResetTokenOnSuccess: true);
+      if (_shouldTryProfilePinFallback(mapped.status)) {
+        final profilePinFallback = await _verifyRecoveryCodeViaProfilePin(
+          normalizedCode,
+        );
+        if (_shouldTryEmailOtpFallback(profilePinFallback.status)) {
+          return _verifyRecoveryCodeViaEmailOtp(normalizedCode);
+        }
+        return profilePinFallback;
+      }
+      return mapped;
     } catch (error) {
-      return PinRecoveryResult.failure(_mapError(error));
+      final mappedError = _mapError(error);
+      if (_shouldTryProfilePinFallback(mappedError)) {
+        final profilePinFallback = await _verifyRecoveryCodeViaProfilePin(
+          normalizedCode,
+        );
+        if (_shouldTryEmailOtpFallback(profilePinFallback.status)) {
+          return _verifyRecoveryCodeViaEmailOtp(normalizedCode);
+        }
+        return profilePinFallback;
+      }
+      return PinRecoveryResult.failure(mappedError);
     }
   }
 
@@ -79,10 +121,166 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
         resetToken: normalizedResetToken,
         newPin: normalizedNewPin,
       );
-      return _mapResponse(response);
+      final mapped = _mapResponse(response);
+      if (_shouldTryProfilePinFallback(mapped.status)) {
+        return _resetPinViaProfilePin(
+          resetToken: normalizedResetToken,
+          newPin: normalizedNewPin,
+        );
+      }
+      return mapped;
+    } catch (error) {
+      final mappedError = _mapError(error);
+      if (_shouldTryProfilePinFallback(mappedError)) {
+        return _resetPinViaProfilePin(
+          resetToken: normalizedResetToken,
+          newPin: normalizedNewPin,
+        );
+      }
+      return PinRecoveryResult.failure(mappedError);
+    }
+  }
+
+  Future<PinRecoveryResult> _requestRecoveryCodeViaProfilePin(
+    String? profileId,
+  ) async {
+    final profilePin = _profilePin;
+    if (profilePin == null) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    }
+    try {
+      final response = await profilePin.requestRecoveryCode(
+        profileId: profileId,
+      );
+      return _mapProfilePinResponse(response);
     } catch (error) {
       return PinRecoveryResult.failure(_mapError(error));
     }
+  }
+
+  Future<PinRecoveryResult> _verifyRecoveryCodeViaProfilePin(
+    String code,
+  ) async {
+    final profilePin = _profilePin;
+    if (profilePin == null) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    }
+    try {
+      final response = await profilePin.verifyRecoveryCode(code);
+      return _mapProfilePinResponse(response, requireResetTokenOnSuccess: true);
+    } catch (error) {
+      return PinRecoveryResult.failure(_mapError(error));
+    }
+  }
+
+  Future<PinRecoveryResult> _resetPinViaProfilePin({
+    required String resetToken,
+    required String newPin,
+  }) async {
+    final profilePin = _profilePin;
+    if (profilePin == null) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    }
+    try {
+      final response = await profilePin.resetRecoveredPin(
+        resetToken: resetToken,
+        newPin: newPin,
+      );
+      final mapped = _mapProfilePinResponse(response);
+      if (_shouldTryProfilePinSetFallback(mapped.status)) {
+        return _setPinViaProfileId(profileId: resetToken, newPin: newPin);
+      }
+      return mapped;
+    } catch (error) {
+      final mappedError = _mapError(error);
+      if (_shouldTryProfilePinSetFallback(mappedError)) {
+        return _setPinViaProfileId(profileId: resetToken, newPin: newPin);
+      }
+      return PinRecoveryResult.failure(mappedError);
+    }
+  }
+
+  Future<PinRecoveryResult> _requestRecoveryCodeViaEmailOtp() async {
+    final client = _client;
+    final email = client?.auth.currentUser?.email?.trim();
+    if (client == null || email == null || email.isEmpty) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    }
+    try {
+      await client.auth.signInWithOtp(email: email, shouldCreateUser: false);
+      return const PinRecoveryResult.success();
+    } catch (error) {
+      return PinRecoveryResult.failure(_mapError(error));
+    }
+  }
+
+  Future<PinRecoveryResult> _verifyRecoveryCodeViaEmailOtp(String code) async {
+    final client = _client;
+    final email = client?.auth.currentUser?.email?.trim();
+    if (client == null || email == null || email.isEmpty) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    }
+    try {
+      await client.auth.verifyOTP(
+        email: email,
+        token: code,
+        type: OtpType.email,
+      );
+      return const PinRecoveryResult.success();
+    } catch (error) {
+      return PinRecoveryResult.failure(_mapError(error));
+    }
+  }
+
+  Future<PinRecoveryResult> _setPinViaProfileId({
+    required String profileId,
+    required String newPin,
+  }) async {
+    final profilePin = _profilePin;
+    if (profilePin == null) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.notAvailable);
+    }
+    try {
+      await profilePin.setPin(profileId: profileId, pin: newPin);
+      return const PinRecoveryResult.success();
+    } catch (error) {
+      return PinRecoveryResult.failure(_mapError(error));
+    }
+  }
+
+  PinRecoveryResult _mapProfilePinResponse(
+    PinRecoveryEdgeResponseDto response, {
+    bool requireResetTokenOnSuccess = false,
+  }) {
+    final status = _mapStatus(
+      status: response.status,
+      message: response.message,
+    );
+    if (status != PinRecoveryStatus.success) {
+      return PinRecoveryResult.failure(status);
+    }
+
+    final normalizedResetToken = _normalizeOptional(response.resetToken);
+    if (requireResetTokenOnSuccess && normalizedResetToken == null) {
+      return const PinRecoveryResult.failure(PinRecoveryStatus.unknown);
+    }
+
+    return PinRecoveryResult.success(resetToken: normalizedResetToken);
+  }
+
+  bool _shouldTryProfilePinFallback(PinRecoveryStatus status) {
+    return status == PinRecoveryStatus.notAvailable ||
+        status == PinRecoveryStatus.unknown;
+  }
+
+  bool _shouldTryEmailOtpFallback(PinRecoveryStatus status) {
+    return status == PinRecoveryStatus.notAvailable ||
+        status == PinRecoveryStatus.unknown;
+  }
+
+  bool _shouldTryProfilePinSetFallback(PinRecoveryStatus status) {
+    return status == PinRecoveryStatus.notAvailable ||
+        status == PinRecoveryStatus.unknown;
   }
 
   PinRecoveryResult _mapResponse(

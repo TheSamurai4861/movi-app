@@ -47,6 +47,11 @@ import 'package:movi/src/core/startup/domain/tunnel_state.dart';
 
 import 'package:movi/src/features/category_browser/data/category_browser_data_module.dart';
 import 'package:movi/src/features/home/data/home_feed_data_module.dart';
+import 'package:movi/src/features/home/domain/repositories/home_feed_repository.dart';
+import 'package:movi/src/features/home/domain/services/continue_watching_enrichment_service.dart';
+import 'package:movi/src/features/home/domain/services/home_hero_metadata_service.dart';
+import 'package:movi/src/features/home/domain/services/movie_playback_service.dart';
+import 'package:movi/src/features/home/domain/usecases/load_continue_watching_media.dart';
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/features/iptv/data/iptv_data_module.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
@@ -54,6 +59,7 @@ import 'package:movi/src/features/library/application/services/cloud_sync_prefer
 import 'package:movi/src/features/library/data/library_data_module.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/data/movie_data_module.dart';
+import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
 import 'package:movi/src/features/person/data/person_data_module.dart';
 import 'package:movi/src/features/playlist/data/playlist_data_module.dart';
 import 'package:movi/src/features/saga/data/saga_data_module.dart';
@@ -61,6 +67,7 @@ import 'package:movi/src/features/search/data/search_data_module.dart';
 import 'package:movi/src/features/settings/data/settings_data_module.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/tv/data/tv_data_module.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 
 import 'package:movi/src/shared/data/services/iptv_content_resolver_impl.dart';
 import 'package:movi/src/shared/data/services/parental_tmdb_metadata_resolvers.dart';
@@ -272,6 +279,36 @@ Future<void> _registerNetwork(LocaleCodeProvider? localeProvider) async {
     localeProvider: localeProvider,
     authTokenProvider: _buildTmdbTokenProvider(config.network, secretStore),
   );
+  _rebindRestartSensitiveNetworkDependents();
+  PerformanceModule.reapplyNetworkExecutorTuning(sl);
+}
+
+void _rebindRestartSensitiveNetworkDependents() {
+  // Cible volontairement le graphe TMDB/Home pour éviter les références
+  // mortes après remplacement de NetworkExecutor lors d'un redémarrage.
+  _unregisterIfPresent<HomeFeedRepository>();
+  _unregisterIfPresent<HomeHeroMetadataService>();
+  _unregisterIfPresent<ContinueWatchingEnrichmentService>();
+  _unregisterIfPresent<LoadContinueWatchingMedia>();
+  _unregisterIfPresent<MoviePlaybackService>();
+
+  _unregisterIfPresent<MovieRepository>();
+  _unregisterIfPresent<TvRepository>();
+  _unregisterIfPresent<TmdbMovieRemoteDataSource>();
+  _unregisterIfPresent<TmdbTvRemoteDataSource>();
+
+  _unregisterIfPresent<TmdbIdResolverService>();
+  _unregisterIfPresent<MovieMetadataResolver>();
+  _unregisterIfPresent<SeriesMetadataResolver>();
+
+  _unregisterIfPresent<TmdbHttpClient>();
+  _unregisterIfPresent<TmdbClient>();
+}
+
+void _unregisterIfPresent<T extends Object>() {
+  if (sl.isRegistered<T>()) {
+    sl.unregister<T>();
+  }
 }
 
 AuthTokenProvider? _buildTmdbTokenProvider(
@@ -399,7 +436,8 @@ void _registerSharedServices() {
   if (!sl.isRegistered<TmdbCacheDataSource>() &&
       sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
     sl.registerLazySingleton<TmdbCacheDataSource>(
-      () => TmdbCacheDataSource(sl<content_cache_repo.ContentCacheRepository>()),
+      () =>
+          TmdbCacheDataSource(sl<content_cache_repo.ContentCacheRepository>()),
     );
   }
 

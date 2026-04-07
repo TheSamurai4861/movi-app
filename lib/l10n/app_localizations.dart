@@ -1217,6 +1217,18 @@ abstract class AppLocalizations {
   /// **'Retrieve the PIN code for your protected profile.'**
   String get pinRecoveryDescription;
 
+  /// No description provided for @pinRecoveryRequestCodeButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Send code'**
+  String get pinRecoveryRequestCodeButton;
+
+  /// No description provided for @pinRecoveryCodeSentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent. Check your messages and enter it below.'**
+  String get pinRecoveryCodeSentHint;
+
   /// No description provided for @pinRecoveryComingSoon.
   ///
   /// In en, this message translates to:

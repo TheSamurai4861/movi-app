@@ -11,6 +11,8 @@ import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banne
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
@@ -138,7 +140,15 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
       null => null,
     };
 
-    return Scaffold(
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: _nameFocusNode,
+        fallbackFocusNode: _submitFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () => false,
+      debugLabel: 'WelcomeUserRouteFocus',
+      child: Scaffold(
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -401,7 +411,7 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
             ),
           ),
         ),
-      ),
+      ),)
     );
   }
 }

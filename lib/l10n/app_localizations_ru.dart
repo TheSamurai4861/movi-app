@@ -612,6 +612,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Восстановите PIN-код для защищённого профиля.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => 'Эта функция скоро появится.';
 
   @override

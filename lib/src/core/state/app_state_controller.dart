@@ -78,7 +78,8 @@ class AppStateController extends Notifier<AppState> {
 
     final initialState = AppState(
       preferredLocale: initialLocale,
-      themeMode: _localePreferences.themeMode,
+      // Politique produit: thème global forcé en dark.
+      themeMode: ThemeMode.dark,
     );
 
     // Abonnements aux changements de préférences (langue / thème).
@@ -116,10 +117,14 @@ class AppStateController extends Notifier<AppState> {
 
   /// Définit le mode thème si celui-ci diffère de l'état courant.
   Future<void> setThemeMode(ThemeMode mode) async {
-    if (state.themeMode == mode) return;
+    // Politique dark-only: on persiste dark quoiqu'il arrive.
+    if (state.themeMode == ThemeMode.dark) {
+      await _localePreferences.setThemeMode(ThemeMode.dark);
+      return;
+    }
 
-    await _localePreferences.setThemeMode(mode);
-    _setState(state.copyWith(themeMode: mode));
+    await _localePreferences.setThemeMode(ThemeMode.dark);
+    _setState(state.copyWith(themeMode: ThemeMode.dark));
   }
 
   /// Met à jour l'état de connectivité si celui-ci a changé.
@@ -219,9 +224,10 @@ class AppStateController extends Notifier<AppState> {
     });
 
     _themeSubscription = _localePreferences.themeStream.listen((mode) {
-      if (mode == state.themeMode) return;
+      // Toute émission non-dark est normalisée côté state.
+      if (state.themeMode == ThemeMode.dark && mode == ThemeMode.dark) return;
 
-      _setState(state.copyWith(themeMode: mode));
+      _setState(state.copyWith(themeMode: ThemeMode.dark));
     });
   }
 

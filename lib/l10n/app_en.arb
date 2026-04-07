@@ -307,6 +307,8 @@
   "pinRecoveryLink": "Récupérer le code PIN",
   "pinRecoveryTitle": "Recover PIN code",
   "pinRecoveryDescription": "Retrieve the PIN code for your protected profile.",
+  "pinRecoveryRequestCodeButton": "Send code",
+  "pinRecoveryCodeSentHint": "Code sent. Check your messages and enter it below.",
   "pinRecoveryComingSoon": "This feature is coming soon.",
   "pinRecoveryCodeLabel": "Recovery code",
   "pinRecoveryCodeHint": "8 digits",

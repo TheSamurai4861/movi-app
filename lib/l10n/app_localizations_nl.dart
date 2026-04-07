@@ -611,6 +611,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Herstel de PIN-code van je beveiligde profiel.';
 
   @override
+  String get pinRecoveryRequestCodeButton => 'Send code';
+
+  @override
+  String get pinRecoveryCodeSentHint =>
+      'Code sent. Check your messages and enter it below.';
+
+  @override
   String get pinRecoveryComingSoon => 'Deze functie komt binnenkort.';
 
   @override

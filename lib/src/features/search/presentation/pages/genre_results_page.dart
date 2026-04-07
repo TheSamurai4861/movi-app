@@ -5,6 +5,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
@@ -48,6 +50,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
   final List<TmdbMovieSummaryDto> _movies = [];
   final List<TmdbTvSummaryDto> _shows = [];
   ProviderSubscription<Profile?>? _profileSub;
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'GenreResultsBack');
   final FocusNode _firstMediaFocusNode = FocusNode(
     debugLabel: 'GenreResultsFirstMedia',
   );
@@ -115,6 +118,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
   @override
   void dispose() {
     _profileSub?.close();
+    _backFocusNode.dispose();
     _firstMediaFocusNode.dispose();
     super.dispose();
   }
@@ -331,7 +335,21 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
     final itemCount = _isMovie ? _movies.length : _shows.length;
     _requestInitialMediaFocusIfNeeded(context);
 
-    return Scaffold(
+    final initialFocusNode = itemCount > 0 ? _firstMediaFocusNode : _backFocusNode;
+
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () {
+        if (!mounted) return false;
+        Navigator.of(context).maybePop();
+        return true;
+      },
+      debugLabel: 'GenreResultsRouteFocus',
+      child: Scaffold(
       backgroundColor: colorScheme.surface,
       body: SafeArea(
         top: true,
@@ -343,6 +361,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
               child: Row(
                 children: [
                   MoviFocusableAction(
+                    focusNode: _backFocusNode,
                     onPressed: () => context.pop(),
                     semanticLabel: 'Retour',
                     builder: (context, state) {
@@ -496,7 +515,7 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
             ),
           ],
         ),
-      ),
+      ),)
     );
   }
 }
