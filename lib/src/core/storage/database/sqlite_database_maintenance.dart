@@ -61,6 +61,24 @@ final class LocalDatabaseMaintenance {
         );
       ''',
     );
+    await _ensureColumn(
+      db,
+      table: 'tracked_series',
+      column: 'last_notified_season',
+      ddlType: 'INTEGER',
+    );
+    await _ensureColumn(
+      db,
+      table: 'tracked_series',
+      column: 'last_notified_episode',
+      ddlType: 'INTEGER',
+    );
+    await _ensureColumn(
+      db,
+      table: 'tracked_series',
+      column: 'last_notified_at',
+      ddlType: 'INTEGER',
+    );
   }
 
   static Future<void> ensureColumn(

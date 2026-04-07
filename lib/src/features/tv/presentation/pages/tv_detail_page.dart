@@ -12,6 +12,7 @@ import 'package:movi/src/core/responsive/application/services/screen_type_resolv
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_track_series_button.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -53,6 +54,7 @@ import 'package:movi/src/features/tv/domain/services/episode_playback_variant_re
 import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/features/tv/presentation/widgets/episode_playback_variant_sheet.dart';
+import 'package:movi/src/features/series_tracking/presentation/providers/series_tracking_providers.dart';
 
 class TvDetailPage extends ConsumerStatefulWidget {
   const TvDetailPage({super.key, required this.seriesId});
@@ -91,6 +93,7 @@ final _watchedEpisodeKeysProvider =
 
 class _TvDetailPageState extends ConsumerState<TvDetailPage>
     with TickerProviderStateMixin {
+  static void _noop() {}
   bool _overviewExpanded = false;
   bool _isTransitioningFromLoading = true;
   late TabController _tabController;
@@ -155,6 +158,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     _startAutoRefreshTimer();
     _startSeasonsCheckTimer();
     unawaited(_loadSpoilerMode());
+    unawaited(_refreshSeriesTrackingState());
   }
 
   Future<void> _loadSpoilerMode() async {
@@ -180,6 +184,14 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     } catch (_) {
       // Best-effort: ignore storage errors.
     }
+  }
+
+
+  Future<void> _refreshSeriesTrackingState() async {
+    await ref
+        .read(seriesTrackingToggleProvider.notifier)
+        .refreshTrackedSeriesStatus(widget.seriesId);
+    await ref.read(seriesTrackingToggleProvider.notifier).markSeen(widget.seriesId);
   }
 
   @override
@@ -1372,6 +1384,39 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             child: Consumer(
               builder: (context, ref, _) {
                 final seriesId = widget.seriesId;
+                final isTrackedAsync = ref.watch(
+                  seriesIsTrackedProvider(seriesId),
+                );
+
+                return isTrackedAsync.when(
+                  data: (isTracked) => MoviTrackSeriesButton(
+                    isTracked: isTracked,
+                    onPressed: () async {
+                      final poster = _lastVm?.poster;
+                      await ref
+                          .read(seriesTrackingToggleProvider.notifier)
+                          .toggle(
+                            seriesId: seriesId,
+                            title: mediaTitle,
+                            poster: poster,
+                          );
+                    },
+                  ),
+                  loading: () =>
+                      MoviTrackSeriesButton(isTracked: false, onPressed: _noop),
+                  error: (_, __) =>
+                      MoviTrackSeriesButton(isTracked: false, onPressed: _noop),
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: Consumer(
+              builder: (context, ref, _) {
+                final seriesId = widget.seriesId;
                 final isFavoriteAsync = ref.watch(
                   tvIsFavoriteProvider(seriesId),
                 );
@@ -1386,9 +1431,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     },
                   ),
                   loading: () =>
-                      MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+                      MoviFavoriteButton(isFavorite: false, onPressed: _noop),
                   error: (_, __) =>
-                      MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+                      MoviFavoriteButton(isFavorite: false, onPressed: _noop),
                 );
               },
             ),

@@ -18,6 +18,9 @@ class AppAssets {
   static const String iconStarFilled = 'assets/icons/actions/star_filled.svg';
   static const String iconStarUnfilled =
       'assets/icons/actions/star_unfilled.svg';
+  static const String iconBellFilled = 'assets/icons/actions/bell_filled.svg';
+  static const String iconBellUnfilled =
+      'assets/icons/actions/bell_unfilled.svg';
   static const String iconPlay = 'assets/icons/actions/play_arrow.svg';
   static const String iconBack = 'assets/icons/actions/back.svg';
   static const String iconMore = 'assets/icons/actions/more.svg';

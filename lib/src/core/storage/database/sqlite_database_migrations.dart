@@ -341,6 +341,49 @@ final class LocalDatabaseMigrations {
         'CREATE INDEX IF NOT EXISTS idx_history_user_type_played ON history(user_id, content_type, last_played_at);',
       );
     }
+    if (oldVersion < 20) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS tracked_series (
+          series_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          poster TEXT,
+          last_known_season INTEGER,
+          last_known_episode INTEGER,
+          last_known_air_date INTEGER,
+          last_checked_at INTEGER,
+          has_new_episode INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (series_id, user_id)
+        );
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tracked_series_user_id ON tracked_series(user_id);',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_tracked_series_new_episode ON tracked_series(user_id, has_new_episode);',
+      );
+    }
+
+    if (oldVersion < 21) {
+      await LocalDatabaseMaintenance.ensureColumn(
+        db,
+        table: 'tracked_series',
+        column: 'last_notified_season',
+        ddlType: 'INTEGER',
+      );
+      await LocalDatabaseMaintenance.ensureColumn(
+        db,
+        table: 'tracked_series',
+        column: 'last_notified_episode',
+        ddlType: 'INTEGER',
+      );
+      await LocalDatabaseMaintenance.ensureColumn(
+        db,
+        table: 'tracked_series',
+        column: 'last_notified_at',
+        ddlType: 'INTEGER',
+      );
+    }
   }
 
   static Future<void> _initializeGlobalPlaylistPositions(Database db) async {

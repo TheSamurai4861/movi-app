@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
+import 'package:movi/src/core/widgets/series_new_badge.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -29,6 +30,7 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
 import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
+import 'package:movi/src/features/series_tracking/presentation/providers/series_tracking_providers.dart';
 
 // Enum déplacé dans le domaine: LibraryPlaylistSortType
 
@@ -44,6 +46,18 @@ class LibraryPlaylistDetailPage extends ConsumerStatefulWidget {
 
 class _LibraryPlaylistDetailPageState
     extends ConsumerState<LibraryPlaylistDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.playlist.type == LibraryPlaylistType.favoriteSeries) {
+      unawaited(_refreshTrackedFavoriteSeriesStatuses());
+    }
+  }
+
+  Future<void> _refreshTrackedFavoriteSeriesStatuses() async {
+    await ref.read(seriesTrackingToggleProvider.notifier).refreshFavoriteSeriesStatuses();
+  }
+
   LibraryPlaylistSortType? _sortType;
   final Map<String, Future<_PlaylistMediaDisplayData>> _displayDataCache = {};
 
@@ -831,6 +845,29 @@ class _LibraryPlaylistDetailPageState
                             },
                           ),
                         ),
+                        if (reference.type == ContentType.series)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Consumer(
+                              builder: (context, ref, _) {
+                                final hasNewAsync = ref.watch(
+                                  seriesHasNewEpisodeProvider(reference.id),
+                                );
+                                return hasNewAsync.when(
+                                  data: (hasNewEpisode) => hasNewEpisode
+                                      ? SeriesNewBadge(
+                                          backgroundColor: ref.watch(
+                                            asp.currentAccentColorProvider,
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
+                                  loading: () => const SizedBox.shrink(),
+                                  error: (_, __) => const SizedBox.shrink(),
+                                );
+                              },
+                            ),
+                          ),
                         if (secondaryLabel != null)
                           Positioned(
                             right: 8,
