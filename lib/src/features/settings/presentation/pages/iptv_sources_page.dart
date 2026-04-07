@@ -25,6 +25,7 @@ import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_cata
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
+import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/features/settings/presentation/services/iptv_source_remote_delete_service.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
 
@@ -153,6 +154,10 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     final wasActive = ref
         .read(asp.activeIptvSourcesProvider)
         .contains(account.id);
+    final wasSelected = selectedPrefs.selectedSourceId == account.id;
+    final remainingAccounts = accounts
+        .where((candidate) => candidate.id != account.id)
+        .toList(growable: false);
 
     if (account.isStalker) {
       await local.removeStalkerAccount(account.id);
@@ -166,18 +171,14 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       setState(() => _selectedAccountId = null);
     }
 
-    if (wasActive) {
-      final fallback = accounts.firstWhere(
-        (a) => a.id != account.id,
-        orElse: () => account,
-      );
-      if (fallback.id != account.id) {
-        await selectedPrefs.setSelectedSourceId(fallback.id);
-        appState.setActiveIptvSources({fallback.id});
-        setState(() => _selectedAccountId = fallback.id);
-      } else {
-        await selectedPrefs.clear();
-      }
+    if (remainingAccounts.isEmpty) {
+      await selectedPrefs.clear();
+      appState.setActiveIptvSources(<String>{});
+    } else if (wasActive || wasSelected) {
+      final fallback = remainingAccounts.first;
+      await selectedPrefs.setSelectedSourceId(fallback.id);
+      appState.setActiveIptvSources({fallback.id});
+      setState(() => _selectedAccountId = fallback.id);
     }
 
     final remoteDeleteStatus = await _deleteRemoteSourceBestEffort(
@@ -205,6 +206,17 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     ref.invalidate(stalkerAccountsProvider);
 
     ref.read(appEventBusProvider).emit(const AppEvent(AppEventType.iptvSynced));
+
+    if (remainingAccounts.isEmpty) {
+      ref
+          .read(appLaunchOrchestratorProvider.notifier)
+          .markWelcomeSourcesRequiredFromCurrentContext();
+      if (mounted) {
+        context.go(AppRouteNames.welcomeSources);
+      }
+      return;
+    }
+
     await ref.read(hp.homeControllerProvider.notifier).refresh();
 
     if (mounted) {

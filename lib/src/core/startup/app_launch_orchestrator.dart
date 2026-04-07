@@ -459,37 +459,39 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     );
   }
 
+  AppLaunchCriteria _criteriaFromCurrentContext({
+    required bool hasSelectedSource,
+    required bool hasIptvCatalogReady,
+    required bool hasHomePreloaded,
+    required bool hasLibraryReady,
+  }) {
+    final selectedProfileId = _selectedProfilePreferences.selectedProfileId
+        ?.trim();
+    final hasSelectedProfile =
+        selectedProfileId != null && selectedProfileId.isNotEmpty;
+    return AppLaunchCriteria(
+      hasSession: state.criteria.hasSession,
+      hasSelectedProfile: hasSelectedProfile,
+      hasSelectedSource: hasSelectedSource,
+      hasIptvCatalogReady: hasIptvCatalogReady,
+      hasHomePreloaded: hasHomePreloaded,
+      hasLibraryReady: hasLibraryReady,
+    );
+  }
+
   /// Termine le tunnel d'entrée après un chargement manuel de source
   /// (ex: ajout d'une première source depuis l'écran de bienvenue).
   ///
-  /// Ce chemin ne repasse pas par [run()], car l'utilisateur est déjà engagé
+  /// Ce chemin ne relance pas [run()] car l'utilisateur est déjà engagé
   /// dans une continuation locale du parcours. Il doit donc synchroniser
   /// explicitement les critères de lancement avant la navigation vers Home.
   Future<void> completeManualSourceLoadingToHome({
     required bool hasIptvCatalogReady,
   }) async {
-    final selectedProfileId = _selectedProfilePreferences.selectedProfileId
-        ?.trim();
     final selectedSourceId =
         _selectedIptvSourcePreferences.selectedSourceId?.trim();
-    final hasSelectedProfile =
-        selectedProfileId != null && selectedProfileId.isNotEmpty;
     final hasSelectedSource =
         selectedSourceId != null && selectedSourceId.isNotEmpty;
-
-    AppLaunchCriteria criteria({
-      required bool hasHomePreloaded,
-      required bool hasLibraryReady,
-    }) {
-      return AppLaunchCriteria(
-        hasSession: state.criteria.hasSession,
-        hasSelectedProfile: hasSelectedProfile,
-        hasSelectedSource: hasSelectedSource,
-        hasIptvCatalogReady: hasIptvCatalogReady,
-        hasHomePreloaded: hasHomePreloaded,
-        hasLibraryReady: hasLibraryReady,
-      );
-    }
 
     _updateState(
       state.copyWith(
@@ -498,7 +500,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         completedAt: null,
         error: null,
         destination: null,
-        criteria: criteria(
+        criteria: _criteriaFromCurrentContext(
+          hasSelectedSource: hasSelectedSource,
+          hasIptvCatalogReady: hasIptvCatalogReady,
           hasHomePreloaded: false,
           hasLibraryReady: false,
         ),
@@ -510,7 +514,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     await _preloadHomeForLaunch();
     _updateState(
       state.copyWith(
-        criteria: criteria(
+        criteria: _criteriaFromCurrentContext(
+          hasSelectedSource: hasSelectedSource,
+          hasIptvCatalogReady: hasIptvCatalogReady,
           hasHomePreloaded: true,
           hasLibraryReady: false,
         ),
@@ -520,7 +526,27 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     await _ensureLibraryReadyForLaunch();
     setResolvedDestination(
       BootstrapDestination.home,
-      criteria: criteria(hasHomePreloaded: true, hasLibraryReady: true),
+      criteria: _criteriaFromCurrentContext(
+        hasSelectedSource: hasSelectedSource,
+        hasIptvCatalogReady: hasIptvCatalogReady,
+        hasHomePreloaded: true,
+        hasLibraryReady: true,
+      ),
+    );
+  }
+
+  /// Force un état canonique cohérent quand le contexte courant ne peut plus
+  /// accéder à Home faute de source locale restante (ex: suppression de la
+  /// dernière source depuis Settings).
+  void markWelcomeSourcesRequiredFromCurrentContext() {
+    setResolvedDestination(
+      BootstrapDestination.welcomeSources,
+      criteria: _criteriaFromCurrentContext(
+        hasSelectedSource: false,
+        hasIptvCatalogReady: false,
+        hasHomePreloaded: false,
+        hasLibraryReady: false,
+      ),
     );
   }
 
