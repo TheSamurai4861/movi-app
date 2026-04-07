@@ -12,12 +12,11 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
-import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
-import 'package:movi/src/features/welcome/domain/enum.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/features/welcome/presentation/widgets/welcome_header.dart';
 
@@ -44,9 +43,6 @@ class _WelcomeSourceLoadingPageState
 
   void _goToHome() {
     ref.read(shellControllerProvider.notifier).selectTab(ShellTab.home);
-    ref
-        .read(appLaunchOrchestratorProvider.notifier)
-        .setResolvedDestination(BootstrapDestination.home);
     context.go(AppRouteNames.home);
   }
 
@@ -162,17 +158,35 @@ class _WelcomeSourceLoadingPageState
         }
       }
 
+      final hasCatalogReady = await iptvLocal.hasAnyPlaylistItems(
+        accountIds: activeSources,
+      );
+      if (!hasCatalogReady) {
+        throw Exception(
+          "Le catalogue IPTV n'est pas prêt après le chargement de la source.",
+        );
+      }
+
+      final selectedSourcePreferences =
+          locator<SelectedIptvSourcePreferences>();
+      await selectedSourcePreferences.rereadFromStorage();
+      final preferredSourceId = selectedSourcePreferences.selectedSourceId
+          ?.trim();
+      if ((preferredSourceId == null || preferredSourceId.isEmpty) &&
+          activeSources.length == 1) {
+        await selectedSourcePreferences.setSelectedSourceId(activeSources.first);
+      }
+
       if (!mounted) return;
       setState(() {
-        _statusMessage = 'Préparation de l\'accueil...';
+        _statusMessage = "Préparation de l'accueil...";
       });
 
-      final homeController = ref.read(homeControllerProvider.notifier);
-      await homeController.load(
-        awaitIptv: true,
-        reason: 'initial_load',
-        force: true,
-      );
+      await ref
+          .read(appLaunchOrchestratorProvider.notifier)
+          .completeManualSourceLoadingToHome(
+            hasIptvCatalogReady: hasCatalogReady,
+          );
 
       if (!mounted) return;
       _goToHome();

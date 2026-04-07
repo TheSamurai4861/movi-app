@@ -443,7 +443,10 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _updateState(const AppLaunchState());
   }
 
-  void setResolvedDestination(BootstrapDestination destination) {
+  void setResolvedDestination(
+    BootstrapDestination destination, {
+    AppLaunchCriteria? criteria,
+  }) {
     _updateState(
       state.copyWith(
         status: AppLaunchStatus.success,
@@ -451,7 +454,73 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         completedAt: DateTime.now(),
         error: null,
         destination: destination,
+        criteria: criteria,
       ),
+    );
+  }
+
+  /// Termine le tunnel d'entrée après un chargement manuel de source
+  /// (ex: ajout d'une première source depuis l'écran de bienvenue).
+  ///
+  /// Ce chemin ne repasse pas par [run()], car l'utilisateur est déjà engagé
+  /// dans une continuation locale du parcours. Il doit donc synchroniser
+  /// explicitement les critères de lancement avant la navigation vers Home.
+  Future<void> completeManualSourceLoadingToHome({
+    required bool hasIptvCatalogReady,
+  }) async {
+    final selectedProfileId = _selectedProfilePreferences.selectedProfileId
+        ?.trim();
+    final selectedSourceId =
+        _selectedIptvSourcePreferences.selectedSourceId?.trim();
+    final hasSelectedProfile =
+        selectedProfileId != null && selectedProfileId.isNotEmpty;
+    final hasSelectedSource =
+        selectedSourceId != null && selectedSourceId.isNotEmpty;
+
+    AppLaunchCriteria criteria({
+      required bool hasHomePreloaded,
+      required bool hasLibraryReady,
+    }) {
+      return AppLaunchCriteria(
+        hasSession: state.criteria.hasSession,
+        hasSelectedProfile: hasSelectedProfile,
+        hasSelectedSource: hasSelectedSource,
+        hasIptvCatalogReady: hasIptvCatalogReady,
+        hasHomePreloaded: hasHomePreloaded,
+        hasLibraryReady: hasLibraryReady,
+      );
+    }
+
+    _updateState(
+      state.copyWith(
+        status: AppLaunchStatus.running,
+        phase: AppLaunchPhase.preloadCompleteHome,
+        completedAt: null,
+        error: null,
+        destination: null,
+        criteria: criteria(
+          hasHomePreloaded: false,
+          hasLibraryReady: false,
+        ),
+        recovery: null,
+        recoveryMessage: null,
+      ),
+    );
+
+    await _preloadHomeForLaunch();
+    _updateState(
+      state.copyWith(
+        criteria: criteria(
+          hasHomePreloaded: true,
+          hasLibraryReady: false,
+        ),
+      ),
+    );
+
+    await _ensureLibraryReadyForLaunch();
+    setResolvedDestination(
+      BootstrapDestination.home,
+      criteria: criteria(hasHomePreloaded: true, hasLibraryReady: true),
     );
   }
 

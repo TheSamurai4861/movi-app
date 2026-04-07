@@ -463,6 +463,17 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         if (mounted) {
           setState(() => _position = position);
         }
+        final orchestrator = _resumeOrchestrator;
+        if (orchestrator == null) {
+          return;
+        }
+        unawaited(() async {
+          await orchestrator.onPosition(position);
+          if (!mounted) {
+            return;
+          }
+          _syncResumeStateFromOrchestrator();
+        }());
       }),
     );
 
@@ -470,16 +481,18 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       _playerRepository.durationStream.listen((duration) {
         if (mounted && duration != Duration.zero) {
           setState(() => _duration = duration);
-          final orchestrator = _resumeOrchestrator;
-          if (orchestrator == null || _resumePositionApplied) return;
-          unawaited(() async {
-            await orchestrator.onDuration(duration);
-            if (!mounted) return;
-            if (orchestrator.isDone && !_resumePositionApplied) {
-              setState(() => _resumePositionApplied = true);
-            }
-          }());
         }
+        final orchestrator = _resumeOrchestrator;
+        if (orchestrator == null) {
+          return;
+        }
+        unawaited(() async {
+          await orchestrator.onDuration(duration);
+          if (!mounted) {
+            return;
+          }
+          _syncResumeStateFromOrchestrator();
+        }());
       }),
     );
 
@@ -514,6 +527,79 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   void _stopProgressPersistTimer() {
     _progressPersistTimer?.cancel();
     _progressPersistTimer = null;
+  }
+
+  void _syncResumeStateFromOrchestrator() {
+    final orchestrator = _resumeOrchestrator;
+    if (!mounted || orchestrator == null || !orchestrator.isDone) {
+      return;
+    }
+    if (_resumePositionApplied) {
+      return;
+    }
+    setState(() => _resumePositionApplied = true);
+  }
+
+  Duration? _resolveResumeRepairTarget() {
+    final source = _currentVideoSource ?? widget.videoSource;
+    final requestedResume = source?.resumePosition;
+    if (requestedResume == null || requestedResume <= Duration.zero) {
+      return null;
+    }
+    if (_duration <= Duration.zero) {
+      return null;
+    }
+
+    const safetyMargin = Duration(seconds: 1);
+    final maxSeek = _duration > safetyMargin
+        ? _duration - safetyMargin
+        : Duration.zero;
+    if (maxSeek <= Duration.zero) {
+      return null;
+    }
+
+    final target = requestedResume <= maxSeek ? requestedResume : maxSeek;
+    return target > Duration.zero ? target : null;
+  }
+
+  Future<bool> _repairResumeAfterTrackDefaultsIfNeeded({
+    required String reason,
+  }) async {
+    if (!_resumePositionApplied) {
+      return false;
+    }
+
+    final target =
+        _resumeOrchestrator?.appliedTarget ?? _resolveResumeRepairTarget();
+    if (target == null || target <= Duration.zero) {
+      return false;
+    }
+
+    final stopwatch = Stopwatch()..start();
+    try {
+      await _playerRepository.seekTo(target);
+      _diagnostics.completed(
+        'player_resume_post_track_defaults_repair',
+        elapsed: stopwatch.elapsed,
+        context: <String, Object?>{
+          'reason': reason,
+          'targetMs': target.inMilliseconds,
+        },
+      );
+      return true;
+    } catch (error, stackTrace) {
+      _diagnostics.failed(
+        'player_resume_post_track_defaults_repair',
+        elapsed: stopwatch.elapsed,
+        error: error,
+        stackTrace: stackTrace,
+        context: <String, Object?>{
+          'reason': reason,
+          'targetMs': target.inMilliseconds,
+        },
+      );
+      return false;
+    }
   }
 
   Future<bool> _persistPlaybackProgress({
@@ -683,6 +769,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         _subtitlesEnabled = false;
         _initialTrackDefaultsApplied = true;
       });
+      final repairedResume = await _repairResumeAfterTrackDefaultsIfNeeded(
+        reason: reason,
+      );
       _diagnostics.completed(
         'player_apply_initial_track_defaults',
         elapsed: stopwatch.elapsed,
@@ -691,6 +780,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           'event': 'applied',
           'audioTracks': _audioTracks.length,
           'subtitleTracks': _subtitleTracks.length,
+          'resumeRepairApplied': repairedResume,
         },
       );
     } catch (e) {

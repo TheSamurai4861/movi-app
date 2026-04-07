@@ -2,69 +2,77 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:movi/src/features/player/application/services/player_resume_orchestrator.dart';
 
 void main() {
-  test('applies seek once when duration becomes compatible', () async {
-    final seeks = <Duration>[];
-    final events = <String>[];
+  group('PlayerResumeOrchestrator', () {
+    test(
+      'n\'est validé qu\'après confirmation de position proche de la cible',
+      () async {
+        final seeks = <Duration>[];
+        final telemetry = <String>[];
+        final orchestrator = PlayerResumeOrchestrator(
+          requestedResume: const Duration(seconds: 30),
+          seekTo: (position) async {
+            seeks.add(position);
+          },
+          telemetry: (result, _) => telemetry.add(result),
+        );
 
-    var now = DateTime(2026, 1, 1, 0, 0, 0);
-    final orch = PlayerResumeOrchestrator(
-      requestedResume: const Duration(minutes: 40),
-      seekTo: (d) => seeks.add(d),
-      telemetry: (r, _) => events.add(r),
-      now: () => now,
-      maxWait: const Duration(seconds: 10),
+        await orchestrator.onDuration(const Duration(minutes: 5));
+
+        expect(seeks, <Duration>[const Duration(seconds: 30)]);
+        expect(orchestrator.isDone, isFalse);
+        expect(telemetry, contains('seek_issued'));
+
+        await orchestrator.onPosition(const Duration(seconds: 3));
+        expect(orchestrator.isDone, isFalse);
+
+        await orchestrator.onPosition(const Duration(seconds: 31));
+        expect(orchestrator.isDone, isTrue);
+        expect(telemetry.last, 'applied_confirmed');
+      },
     );
 
-    // Duration too short -> defer.
-    await orch.onDuration(const Duration(minutes: 1));
-    expect(seeks, isEmpty);
-    expect(orch.isDone, isFalse);
+    test('relance un seek si la position retombe au début après reprise', () async {
+      final seeks = <Duration>[];
+      final telemetry = <String>[];
+      final orchestrator = PlayerResumeOrchestrator(
+        requestedResume: const Duration(seconds: 45),
+        seekTo: (position) async {
+          seeks.add(position);
+        },
+        telemetry: (result, _) => telemetry.add(result),
+      );
 
-    // Duration now covers resume -> apply once.
-    await orch.onDuration(const Duration(minutes: 45));
-    expect(seeks, [const Duration(minutes: 40)]);
-    expect(orch.isDone, isTrue);
+      await orchestrator.onDuration(const Duration(minutes: 8));
+      await orchestrator.onPosition(Duration.zero);
+      await orchestrator.onPosition(const Duration(seconds: 45));
 
-    // Spam does not re-apply.
-    await orch.onDuration(const Duration(minutes: 46));
-    expect(seeks, [const Duration(minutes: 40)]);
-    expect(events.contains('applied'), isTrue);
-  });
+      expect(
+        seeks,
+        <Duration>[
+          const Duration(seconds: 45),
+          const Duration(seconds: 45),
+        ],
+      );
+      expect(orchestrator.isDone, isTrue);
+      expect(telemetry, contains('applied_confirmed'));
+    });
 
-  test('marks done when seek throws (no retry loop)', () async {
-    final events = <String>[];
-    final orch = PlayerResumeOrchestrator(
-      requestedResume: const Duration(minutes: 10),
-      seekTo: (_) => throw StateError('boom'),
-      telemetry: (r, _) => events.add(r),
-      maxWait: const Duration(seconds: 10),
-    );
+    test('ignore la reprise quand aucune position valide n\'est demandée', () async {
+      final seeks = <Duration>[];
+      final telemetry = <String>[];
+      final orchestrator = PlayerResumeOrchestrator(
+        requestedResume: Duration.zero,
+        seekTo: (position) async {
+          seeks.add(position);
+        },
+        telemetry: (result, _) => telemetry.add(result),
+      );
 
-    await orch.onDuration(const Duration(minutes: 20));
-    expect(orch.isDone, isTrue);
-    expect(events, contains('seek_failed'));
-  });
+      await orchestrator.onDuration(const Duration(minutes: 2));
 
-  test('times out and does not seek', () async {
-    final seeks = <Duration>[];
-    final events = <String>[];
-
-    var now = DateTime(2026, 1, 1, 0, 0, 0);
-    final orch = PlayerResumeOrchestrator(
-      requestedResume: const Duration(minutes: 40),
-      seekTo: (d) => seeks.add(d),
-      telemetry: (r, _) => events.add(r),
-      now: () => now,
-      maxWait: const Duration(seconds: 2),
-    );
-
-    await orch.onDuration(const Duration(seconds: 1)); // defer
-    now = now.add(const Duration(seconds: 3)); // exceed maxWait
-    await orch.onDuration(const Duration(seconds: 1)); // timeout path
-
-    expect(seeks, isEmpty);
-    expect(orch.isDone, isTrue);
-    expect(events, contains('skip_timeout'));
+      expect(seeks, isEmpty);
+      expect(orchestrator.isDone, isTrue);
+      expect(telemetry.last, 'skip_no_resume');
+    });
   });
 }
-

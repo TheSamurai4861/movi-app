@@ -61,10 +61,10 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   static final Uri _privacyPolicyUrl = Uri.parse(
-    'https://thesamurai4861.github.io/movi-privacy/',
+    'https://thesamurai4861.github.io/movi-privacy/privacy.html',
   );
   static final Uri _termsOfUseUrl = Uri.parse(
-    'https://thesamurai4861.github.io/movi-terms/',
+    'https://thesamurai4861.github.io/movi-privacy/terms.html',
   );
 
   bool _unlocking = false;
