@@ -16,11 +16,13 @@ class PersonDetailActionsRow extends ConsumerWidget {
     required this.personId,
     required this.movies,
     required this.shows,
+    this.primaryActionFocusNode,
   });
 
   final String personId;
   final List<MoviMedia> movies;
   final List<MoviMedia> shows;
+  final FocusNode? primaryActionFocusNode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,6 +30,7 @@ class PersonDetailActionsRow extends ConsumerWidget {
       children: [
         Expanded(
           child: MoviPrimaryButton(
+            focusNode: primaryActionFocusNode,
             label: AppLocalizations.of(context)!.personPlayRandomly,
             assetIcon: AppAssets.iconPlay,
             onPressed: () {

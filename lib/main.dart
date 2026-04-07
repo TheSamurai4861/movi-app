@@ -10,7 +10,6 @@ import 'package:movi/src/app.dart';
 import 'package:movi/src/core/error/global_error_handler.dart';
 import 'package:movi/src/core/network/proxy/http_overrides.dart'
     as http_overrides;
-import 'package:movi/src/core/observability/sentry_bootstrap.dart';
 import 'package:movi/src/core/startup/app_startup_gate.dart';
 import 'package:movi/src/core/widgets/app_restart.dart';
 
@@ -61,13 +60,9 @@ Future<void> main(List<String> args) async {
   // Root of the dependency graph:
   // - ProviderScope: Riverpod DI / state management.
   // - AppStartupGate: runs bootstrap logic before rendering MyApp.
-  await SentryBootstrap.init(
-    appRunner: () async {
-      runApp(
-        AppRestart(
-          child: const ProviderScope(child: AppStartupGate(child: MyApp())),
-        ),
-      );
-    },
-  );
+  runApp(
+  AppRestart(
+    child: const ProviderScope(child: AppStartupGate(child: MyApp())),
+  ),
+);
 }

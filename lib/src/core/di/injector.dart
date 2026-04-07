@@ -28,6 +28,8 @@ import 'package:movi/src/core/parental/domain/services/movie_metadata_resolver.d
 import 'package:movi/src/core/parental/domain/services/playlist_maturity_classifier.dart';
 import 'package:movi/src/core/parental/domain/services/series_metadata_resolver.dart';
 import 'package:movi/src/core/performance/performance_module.dart';
+import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
+    as content_cache_repo;
 import 'package:movi/src/core/profile/data/datasources/supabase_profile_datasource.dart';
 import 'package:movi/src/core/profile/data/repositories/fallback_profile_repository.dart';
 import 'package:movi/src/core/profile/data/repositories/local_profile_repository.dart';
@@ -341,7 +343,7 @@ void _registerSupabaseRepositories() {
   }
 
   if (!sl.isRegistered<IptvLocalRepository>() &&
-      sl.isRegistered<ContentCacheRepository>()) {
+      sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
     // Intentionally left blank.
     // StorageModule should register the real local repository.
   }
@@ -395,9 +397,9 @@ void _registerTmdbInfrastructure() {
 
 void _registerSharedServices() {
   if (!sl.isRegistered<TmdbCacheDataSource>() &&
-      sl.isRegistered<ContentCacheRepository>()) {
+      sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
     sl.registerLazySingleton<TmdbCacheDataSource>(
-      () => TmdbCacheDataSource(sl<ContentCacheRepository>()),
+      () => TmdbCacheDataSource(sl<content_cache_repo.ContentCacheRepository>()),
     );
   }
 
@@ -415,11 +417,11 @@ void _registerSharedServices() {
 
   if (!sl.isRegistered<ContentRatingRepository>() &&
       sl.isRegistered<TmdbContentRatingRemoteDataSource>() &&
-      sl.isRegistered<ContentCacheRepository>()) {
+      sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
     sl.registerLazySingleton<ContentRatingRepository>(
       () => CachedContentRatingRepository(
         sl<TmdbContentRatingRemoteDataSource>(),
-        sl<ContentCacheRepository>(),
+        sl<content_cache_repo.ContentCacheRepository>(),
       ),
     );
   }

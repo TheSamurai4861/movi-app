@@ -1,6 +1,8 @@
 import 'package:movi/src/core/parental/data/datasources/tmdb_content_rating_remote_data_source.dart';
 import 'package:movi/src/core/parental/domain/repositories/content_rating_repository.dart';
-import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/storage/services/cache_policy.dart';
+import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
+    as content_cache_repo;
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class CachedContentRatingRepository implements ContentRatingRepository {
@@ -11,7 +13,7 @@ class CachedContentRatingRepository implements ContentRatingRepository {
   }) : _policy = policy;
 
   final TmdbContentRatingRemoteDataSource _remote;
-  final ContentCacheRepository _cache;
+  final content_cache_repo.ContentCacheRepository _cache;
   final CachePolicy _policy;
 
   String _key(ContentType type, int tmdbId, String region) =>

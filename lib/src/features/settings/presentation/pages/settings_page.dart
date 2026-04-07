@@ -221,9 +221,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   void initState() {
     super.initState();
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    _shellFocusCoordinator.registerPreferredNode(
+    _shellFocusCoordinator.registerTabFocusBinding(
       ShellTab.settings,
-      _firstProfileFocusNode,
+      ShellTabFocusBinding(
+        initialFocusNode: _firstProfileFocusNode,
+      ),
     );
 
     // Utiliser listenManual dans initState (ref.listen ne peut être utilisé que dans build)
@@ -243,7 +245,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void dispose() {
     _authStatusSub?.close();
-    _shellFocusCoordinator.unregisterPreferredNode(
+    _shellFocusCoordinator.unregisterTabFocusBinding(
       ShellTab.settings,
       _firstProfileFocusNode,
     );

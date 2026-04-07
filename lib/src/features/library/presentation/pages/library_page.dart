@@ -56,9 +56,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   void initState() {
     super.initState();
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    _shellFocusCoordinator.registerPreferredNode(
+    _shellFocusCoordinator.registerTabFocusBinding(
       ShellTab.library,
-      _firstPlaylistFocusNode,
+      ShellTabFocusBinding(
+        initialFocusNode: _firstPlaylistFocusNode,
+        fallbackFocusNode: _searchFocusNode,
+      ),
     );
 
     _anim = AnimationController(
@@ -76,7 +79,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   @override
   void dispose() {
-    _shellFocusCoordinator.unregisterPreferredNode(
+    _shellFocusCoordinator.unregisterTabFocusBinding(
       ShellTab.library,
       _firstPlaylistFocusNode,
     );

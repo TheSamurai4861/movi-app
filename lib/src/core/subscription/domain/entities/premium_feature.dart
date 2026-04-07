@@ -7,6 +7,7 @@ enum PremiumFeature {
   localContinueWatching,
   localProfiles,
   localParentalControls,
+  seriesEpisodeTracking,
   advancedSubtitleStyling,
   extendedDiscoveryDetails,
 }

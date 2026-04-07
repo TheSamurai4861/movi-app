@@ -35,8 +35,19 @@ final keepAliveIndicesProvider = Provider<Set<int>>((ref) {
   return ShellRetentionPolicy.keepAliveIndices();
 });
 
+class ShellTabFocusBinding {
+  const ShellTabFocusBinding({
+    required this.initialFocusNode,
+    this.fallbackFocusNode,
+  });
+
+  final FocusNode initialFocusNode;
+  final FocusNode? fallbackFocusNode;
+}
+
 class ShellFocusCoordinator {
-  final Map<ShellTab, FocusNode> _preferredNodes = <ShellTab, FocusNode>{};
+  final Map<ShellTab, ShellTabFocusBinding> _tabBindings =
+      <ShellTab, ShellTabFocusBinding>{};
   final Map<ShellTab, FocusNode> _lastContentNodes = <ShellTab, FocusNode>{};
   FocusNode? _sidebarNode;
 
@@ -50,24 +61,48 @@ class ShellFocusCoordinator {
     }
   }
 
-  void registerPreferredNode(ShellTab tab, FocusNode node) {
-    _preferredNodes[tab] = node;
+  bool get isSidebarFocused => _sidebarNode?.hasFocus ?? false;
+
+  void registerTabFocusBinding(ShellTab tab, ShellTabFocusBinding binding) {
+    _tabBindings[tab] = binding;
   }
 
-  void unregisterPreferredNode(ShellTab tab, FocusNode node) {
-    if (identical(_preferredNodes[tab], node)) {
-      _preferredNodes.remove(tab);
+  void unregisterTabFocusBinding(ShellTab tab, FocusNode node) {
+    final binding = _tabBindings[tab];
+    if (binding == null) return;
+    if (identical(binding.initialFocusNode, node) ||
+        identical(binding.fallbackFocusNode, node)) {
+      _tabBindings.remove(tab);
+    }
+    final rememberedNode = _lastContentNodes[tab];
+    if (identical(rememberedNode, node)) {
+      _lastContentNodes.remove(tab);
     }
   }
 
+  void registerPreferredNode(ShellTab tab, FocusNode node) {
+    registerTabFocusBinding(
+      tab,
+      ShellTabFocusBinding(
+        initialFocusNode: node,
+        fallbackFocusNode: node,
+      ),
+    );
+  }
+
+  void unregisterPreferredNode(ShellTab tab, FocusNode node) {
+    unregisterTabFocusBinding(tab, node);
+  }
+
   void rememberContentFocus(ShellTab tab, FocusNode node) {
+    if (!_canRequestFocus(node)) return;
     _lastContentNodes[tab] = node;
   }
 
   bool focusSidebar() {
     final node = _sidebarNode;
-    if (node == null) return false;
-    node.requestFocus();
+    if (!_canRequestFocus(node)) return false;
+    node!.requestFocus();
     return true;
   }
 
@@ -78,10 +113,20 @@ class ShellFocusCoordinator {
       return true;
     }
 
-    final node = _preferredNodes[tab];
-    if (!_canRequestFocus(node)) return false;
-    node!.requestFocus();
-    return true;
+    final binding = _tabBindings[tab];
+    if (binding == null) return false;
+
+    if (_canRequestFocus(binding.initialFocusNode)) {
+      binding.initialFocusNode.requestFocus();
+      return true;
+    }
+
+    if (_canRequestFocus(binding.fallbackFocusNode)) {
+      binding.fallbackFocusNode!.requestFocus();
+      return true;
+    }
+
+    return false;
   }
 
   bool _canRequestFocus(FocusNode? node) {

@@ -12,6 +12,8 @@ import 'package:movi/src/core/storage/database/sqlite_database.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_maintenance.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_migrations.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
+import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
+    as content_cache_repo;
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/services/xtream_lookup.dart';
@@ -162,10 +164,10 @@ class StorageModule {
       );
     }
 
-    if (!sl.isRegistered<ContentCacheRepository>() &&
+    if (!sl.isRegistered<content_cache_repo.ContentCacheRepository>() &&
         sl.isRegistered<Database>()) {
-      sl.registerLazySingleton<ContentCacheRepository>(
-        () => ContentCacheRepository(sl<Database>()),
+      sl.registerLazySingleton<content_cache_repo.ContentCacheRepository>(
+        () => content_cache_repo.ContentCacheRepository(sl<Database>()),
       );
     }
 

@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -69,6 +72,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   int _retryCount = 0;
   static const int _maxRetries = 3;
   static const Duration _loadingTimeout = Duration(seconds: 15);
+  final FocusNode _primaryActionFocusNode = FocusNode(debugLabel: 'MovieDetailPrimaryAction');
+  final FocusNode _heroBackFocusNode = FocusNode(debugLabel: 'MovieDetailBack');
+  final FocusNode _heroMoreFocusNode = FocusNode(debugLabel: 'MovieDetailMore')
+    ..canRequestFocus = false;
 
   @override
   void initState() {
@@ -80,6 +87,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _primaryActionFocusNode.dispose();
+    _heroBackFocusNode.dispose();
+    _heroMoreFocusNode.dispose();
     super.dispose();
   }
 
@@ -245,6 +255,30 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
+  KeyEventResult _handleHeroBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.ignored;
+    }
+    _heroMoreFocusNode.canRequestFocus = true;
+    _heroMoreFocusNode.requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleHeroMoreKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _heroBackFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Widget _buildErrorScaffold(Object e) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -293,7 +327,19 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final cs = Theme.of(context).colorScheme;
     final isWideLayout = _useDesktopDetailLayout(context);
     return SwipeBackWrapper(
-      child: Scaffold(
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: _primaryActionFocusNode,
+          fallbackFocusNode: _heroBackFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () {
+          if (!mounted || !context.mounted) return false;
+          context.pop();
+          return true;
+        },
+        debugLabel: 'MovieDetailRouteFocus',
+        child: Scaffold(
         backgroundColor: cs.surface,
         body: SafeArea(
           top: true,
@@ -398,6 +444,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           ),
         ),
       ),
+      )
     );
   }
 
@@ -414,18 +461,33 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     return MoviDetailHeroTopBar(
       isWideLayout: isWideLayout,
       horizontalPadding: _sectionHorizontalPadding(context),
-      leading: MoviDetailHeroActionButton(
-        iconAsset: AppAssets.iconBack,
-        semanticLabel: l10n.semanticsBack,
-        onPressed: () => context.pop(),
-        isWideLayout: isWideLayout,
+      leading: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => _handleHeroBackKey(event),
+        child: MoviDetailHeroActionButton(
+          focusNode: _heroBackFocusNode,
+          iconAsset: AppAssets.iconBack,
+          semanticLabel: l10n.semanticsBack,
+          onPressed: () => context.pop(),
+          isWideLayout: isWideLayout,
+        ),
       ),
-      trailing: MoviDetailHeroActionButton(
-        iconAsset: AppAssets.iconMore,
-        semanticLabel: l10n.semanticsMoreActions,
-        onPressed: _showMoreMenu,
-        isWideLayout: isWideLayout,
-        iconWidth: 25,
+      trailing: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => _handleHeroMoreKey(event),
+        onFocusChange: (hasFocus) {
+          if (!hasFocus) {
+            _heroMoreFocusNode.canRequestFocus = false;
+          }
+        },
+        child: MoviDetailHeroActionButton(
+          focusNode: _heroMoreFocusNode,
+          iconAsset: AppAssets.iconMore,
+          semanticLabel: l10n.semanticsMoreActions,
+          onPressed: _showMoreMenu,
+          isWideLayout: isWideLayout,
+          iconWidth: 25,
+        ),
       ),
     );
   }
@@ -639,6 +701,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final isFavoriteAsync = ref.watch(mdp.movieIsFavoriteProvider(movieId));
 
     final primaryButton = MoviPrimaryButton(
+      focusNode: _primaryActionFocusNode,
       label: resumePositionAsync.when(
         data: (resumePosition) => resumePosition != null
             ? AppLocalizations.of(context)!.resumePlayback

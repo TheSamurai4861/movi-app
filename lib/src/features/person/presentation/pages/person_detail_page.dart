@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -107,6 +109,8 @@ class _PersonDetailContent extends StatefulWidget {
 
 class _PersonDetailContentState extends State<_PersonDetailContent> {
   bool _isTransitioningFromLoading = true;
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'PersonDetailBack');
+  final FocusNode _primaryActionFocusNode = FocusNode(debugLabel: 'PersonDetailPrimaryAction');
 
   ScreenType _screenTypeFor(BuildContext context) {
     final mq = MediaQuery.of(context);
@@ -123,6 +127,13 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
 
   double _horizontalPadding(BuildContext context) {
     return _useDesktopLayout(context) ? 36 : 20;
+  }
+
+  @override
+  void dispose() {
+    _backFocusNode.dispose();
+    _primaryActionFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -171,7 +182,19 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
         .toList(growable: false);
 
     return SwipeBackWrapper(
-      child: Scaffold(
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: _primaryActionFocusNode,
+          fallbackFocusNode: _backFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () {
+          if (!mounted || !context.mounted) return false;
+          context.pop();
+          return true;
+        },
+        debugLabel: 'PersonDetailRouteFocus',
+        child: Scaffold(
         backgroundColor: cs.surface,
         body: SafeArea(
           top: true,
@@ -199,6 +222,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                             name: widget.vm.name,
                             moviesCount: widget.vm.moviesCount,
                             showsCount: widget.vm.showsCount,
+                            backFocusNode: _backFocusNode,
                             height: heroHeight,
                           ),
                         Padding(
@@ -215,6 +239,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                                   personId: widget.personId,
                                   movies: movies,
                                   shows: shows,
+                                  primaryActionFocusNode: _primaryActionFocusNode,
                                 ),
                                 const SizedBox(height: 32),
                               ],
@@ -241,6 +266,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
           ),
         ),
       ),
+      )
     );
   }
 
@@ -282,6 +308,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
               width: 47,
               height: 47,
               child: MoviFocusableAction(
+                focusNode: _backFocusNode,
                 onPressed: () => context.pop(),
                 semanticLabel: AppLocalizations.of(context)!.semanticsBack,
                 builder: (context, state) {
@@ -354,6 +381,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                           personId: widget.personId,
                           movies: movies,
                           shows: shows,
+                          primaryActionFocusNode: _primaryActionFocusNode,
                         ),
                       ),
                     ],

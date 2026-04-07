@@ -17,6 +17,7 @@ class AccentColorPreferences {
        _accentColorController = accentColorController;
 
   static const String _defaultStorageKey = 'prefs.accent_color';
+  static const String _legacyStorageKey = 'accent_color';
 
   /// Builds a preferences instance by reading the persisted value from storage.
   static Future<AccentColorPreferences> create({
@@ -48,7 +49,14 @@ class AccentColorPreferences {
     final resolvedStorage = storage ?? const FlutterSecureStorage();
     final defaultColor = defaultAccentColor ?? AppColors.accent;
     final persistedColorRaw = await resolvedStorage.read(key: storageKey);
-    return _parseColor(persistedColorRaw) ?? defaultColor;
+    if (persistedColorRaw != null && persistedColorRaw.trim().isNotEmpty) {
+      return _parseColor(persistedColorRaw) ?? defaultColor;
+    }
+
+    final legacyPersistedColorRaw = await resolvedStorage.read(
+      key: _legacyStorageKey,
+    );
+    return _parseColor(legacyPersistedColorRaw) ?? defaultColor;
   }
 
   final FlutterSecureStorage _storage;
@@ -77,7 +85,11 @@ class AccentColorPreferences {
     _emitAccentColor(color);
 
     try {
-      await _storage.write(key: _storageKey, value: _stringifyColor(color));
+      final serializedColor = _stringifyColor(color);
+      await _storage.write(key: _storageKey, value: serializedColor);
+      if (_storageKey != _legacyStorageKey) {
+        await _storage.write(key: _legacyStorageKey, value: serializedColor);
+      }
     } catch (_) {
       _accentColor = previousColor;
       _emitAccentColor(previousColor);

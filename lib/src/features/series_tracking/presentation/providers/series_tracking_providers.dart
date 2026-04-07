@@ -2,11 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/notifications/local_notification_gateway.dart';
 import 'package:movi/src/core/notifications/local_notification_gateway_provider.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/storage/repositories/series_tracking_local_repository.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
-import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
@@ -26,6 +27,16 @@ final class SeriesTrackingState {
 
 final seriesTrackingStateProvider =
     FutureProvider.family<SeriesTrackingState, String>((ref, seriesId) async {
+      final hasPremium = await ref.watch(
+        canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      );
+      if (!hasPremium) {
+        return const SeriesTrackingState(
+          isTracked: false,
+          hasNewEpisode: false,
+        );
+      }
+
       final repo = ref.watch(seriesTrackingRepositoryProvider);
       final userId = ref.watch(currentUserIdProvider);
       final tracked = await repo.getTrackedSeries(seriesId, userId: userId);
@@ -63,6 +74,11 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
     required String title,
     Uri? poster,
   }) async {
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+    );
+    if (!hasPremium) return;
+
     final repo = ref.read(seriesTrackingRepositoryProvider);
     final userId = ref.read(currentUserIdProvider);
     final isTracked = await repo.isTracked(seriesId, userId: userId);
@@ -94,6 +110,11 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
   }
 
   Future<void> refreshTrackedSeriesStatus(String seriesId) async {
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+    );
+    if (!hasPremium) return;
+
     final repo = ref.read(seriesTrackingRepositoryProvider);
     final userId = ref.read(currentUserIdProvider);
     final tracked = await repo.getTrackedSeries(seriesId, userId: userId);
@@ -123,6 +144,11 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
   }
 
   Future<void> refreshFavoriteSeriesStatuses() async {
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+    );
+    if (!hasPremium) return;
+
     final libraryRepository = ref.read(libraryRepositoryProvider);
     final favorites = await libraryRepository.getLikedShows();
     for (final show in favorites) {
@@ -131,6 +157,11 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
   }
 
   Future<void> refreshAllTrackedSeriesStatuses() async {
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+    );
+    if (!hasPremium) return;
+
     final repo = ref.read(seriesTrackingRepositoryProvider);
     final userId = ref.read(currentUserIdProvider);
     final trackedSeries = await repo.readAllTrackedSeries(userId: userId);

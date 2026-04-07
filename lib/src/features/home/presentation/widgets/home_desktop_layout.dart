@@ -205,9 +205,11 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   void initState() {
     super.initState();
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    _shellFocusCoordinator.registerPreferredNode(
+    _shellFocusCoordinator.registerTabFocusBinding(
       ShellTab.home,
-      _heroPrimaryActionFocusNode,
+      ShellTabFocusBinding(
+        initialFocusNode: _heroPrimaryActionFocusNode,
+      ),
     );
     _logHomeHeroDebug('init_state');
     _requestInitialHeroFocus();
@@ -247,7 +249,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
 
   @override
   void dispose() {
-    _shellFocusCoordinator.unregisterPreferredNode(
+    _shellFocusCoordinator.unregisterTabFocusBinding(
       ShellTab.home,
       _heroPrimaryActionFocusNode,
     );

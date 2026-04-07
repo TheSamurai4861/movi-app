@@ -3,7 +3,8 @@ import 'package:get_it/get_it.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:movi/src/core/security/credentials_vault.dart';
-import 'package:movi/src/core/storage/repositories/content_cache_repository.dart';
+import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
+    as content_cache_repo;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/storage/repositories/secure_storage_repository.dart';
 
@@ -20,6 +21,7 @@ class LocalDataCleanupService {
     'selected_profile_id',
     'selected_iptv_source_id',
     'accent_color',
+    'prefs.accent_color',
     'preferred_audio_language',
     'preferred_subtitle_language',
     'preferred_locale',
@@ -136,7 +138,7 @@ class LocalDataCleanupService {
   }
 
   Future<void> _clearCache() async {
-    final cacheRepository = _getOptional<ContentCacheRepository>();
+    final cacheRepository = _getOptional<content_cache_repo.ContentCacheRepository>();
     if (cacheRepository == null) {
       return;
     }

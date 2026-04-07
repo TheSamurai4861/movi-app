@@ -13,6 +13,7 @@ class PersonDetailHeroSection extends StatelessWidget {
     required this.name,
     required this.moviesCount,
     required this.showsCount,
+    this.backFocusNode,
     this.height = 500.0,
   });
 
@@ -20,6 +21,7 @@ class PersonDetailHeroSection extends StatelessWidget {
   final String name;
   final int moviesCount;
   final int showsCount;
+  final FocusNode? backFocusNode;
   final double height;
 
   @override
@@ -54,6 +56,7 @@ class PersonDetailHeroSection extends StatelessWidget {
                   width: 47,
                   height: 47,
                   child: MoviFocusableAction(
+                    focusNode: backFocusNode,
                     onPressed: () => context.pop(),
                     semanticLabel: 'Retour',
                     builder: (context, state) {

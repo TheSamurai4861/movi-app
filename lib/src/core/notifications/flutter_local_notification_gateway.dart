@@ -52,7 +52,7 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
     const settings = InitializationSettings(android: android, iOS: darwin);
 
     await _plugin.initialize(
-      settings,
+      settings: settings,
       onDidReceiveNotificationResponse: handleNotificationResponse,
       onDidReceiveBackgroundNotificationResponse: moviNotificationTapBackground,
     );
@@ -177,10 +177,10 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
     );
 
     await _plugin.show(
-      request.notificationId,
-      request.title,
-      request.body,
-      notificationDetails,
+      id: request.notificationId,
+      title: request.title,
+      body: request.body,
+      notificationDetails: notificationDetails,
       payload: request.toPayload(),
     );
   }

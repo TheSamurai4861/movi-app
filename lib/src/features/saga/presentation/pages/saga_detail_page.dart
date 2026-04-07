@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/utils/utils.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -14,10 +17,20 @@ import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 
-class SagaDetailPage extends ConsumerWidget {
+class SagaDetailPage extends ConsumerStatefulWidget {
   const SagaDetailPage({super.key, required this.sagaId});
 
   final String sagaId;
+
+  @override
+  ConsumerState<SagaDetailPage> createState() => _SagaDetailPageState();
+}
+
+class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
+  final FocusNode _primaryActionFocusNode = FocusNode(
+    debugLabel: 'SagaDetailPrimaryAction',
+  );
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'SagaDetailBack');
 
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
@@ -33,7 +46,6 @@ class SagaDetailPage extends ConsumerWidget {
     WidgetRef ref,
     String movieId,
   ) async {
-    // Pour l'instant, ouvrir la page de détail du film
     navigateToMovieDetail(context, ref, ContentRouteArgs.movie(movieId));
   }
 
@@ -42,25 +54,21 @@ class SagaDetailPage extends ConsumerWidget {
     WidgetRef ref,
     SagaDetailViewModel viewModel,
   ) async {
-    // Trouver le premier film non visionné ou reprendre le film en cours
     final inProgressMovieId = await ref.read(
-      sagaInProgressMovieProvider(sagaId).future,
+      sagaInProgressMovieProvider(widget.sagaId).future,
     );
     if (!context.mounted) return;
 
     if (inProgressMovieId != null) {
-      // Reprendre le film en cours
-      if (!context.mounted) return;
       await _playMovie(context, ref, inProgressMovieId);
-    } else {
-      // Commencer par le premier film
-      if (!context.mounted) return;
-      final movies = viewModel.saga.timeline
-          .where((entry) => entry.reference.type == ContentType.movie)
-          .toList();
-      if (movies.isNotEmpty && context.mounted) {
-        await _playMovie(context, ref, movies.first.reference.id);
-      }
+      return;
+    }
+
+    final movies = viewModel.saga.timeline
+        .where((entry) => entry.reference.type == ContentType.movie)
+        .toList();
+    if (movies.isNotEmpty && context.mounted) {
+      await _playMovie(context, ref, movies.first.reference.id);
     }
   }
 
@@ -82,13 +90,33 @@ class SagaDetailPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sagaDetailAsync = ref.watch(sagaDetailProvider(sagaId));
-    final inProgressMovieAsync = ref.watch(sagaInProgressMovieProvider(sagaId));
-    final isFavoriteAsync = ref.watch(sagaIsFavoriteProvider(sagaId));
+  void dispose() {
+    _primaryActionFocusNode.dispose();
+    _backFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    final sagaDetailAsync = ref.watch(sagaDetailProvider(widget.sagaId));
+    final inProgressMovieAsync = ref.watch(sagaInProgressMovieProvider(widget.sagaId));
+    final isFavoriteAsync = ref.watch(sagaIsFavoriteProvider(widget.sagaId));
 
     return SwipeBackWrapper(
-      child: Scaffold(
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: _primaryActionFocusNode,
+          fallbackFocusNode: _backFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () {
+          if (!mounted || !context.mounted) return false;
+          context.pop();
+          return true;
+        },
+        debugLabel: 'SagaDetailRouteFocus',
+        child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
           top: true,
@@ -112,7 +140,7 @@ class SagaDetailPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => ref.refresh(sagaDetailProvider(sagaId)),
+                    onPressed: () => ref.refresh(sagaDetailProvider(widget.sagaId)),
                     child: Text(AppLocalizations.of(context)!.actionRetry),
                   ),
                 ],
@@ -216,6 +244,7 @@ class SagaDetailPage extends ConsumerWidget {
                                   child: inProgressMovieAsync.when(
                                     data: (inProgressMovieId) {
                                       return MoviPrimaryButton(
+                                        focusNode: _primaryActionFocusNode,
                                         label: inProgressMovieId != null
                                             ? AppLocalizations.of(
                                                 context,
@@ -259,7 +288,7 @@ class SagaDetailPage extends ConsumerWidget {
                                                   .notifier,
                                             )
                                             .toggle(
-                                              sagaId,
+                                              widget.sagaId,
                                               SagaSummary(
                                                 id: viewModel.saga.id,
                                                 tmdbId: viewModel.saga.tmdbId,
@@ -310,7 +339,7 @@ class SagaDetailPage extends ConsumerWidget {
                           Consumer(
                             builder: (context, ref, _) {
                               final availabilityAsync = ref.watch(
-                                sagaMoviesAvailabilityProvider(sagaId),
+                                sagaMoviesAvailabilityProvider(widget.sagaId),
                               );
                               return availabilityAsync.when(
                                 data: (availability) {
@@ -377,6 +406,7 @@ class SagaDetailPage extends ConsumerWidget {
           ),
         ),
       ),
+      )
     );
   }
 
@@ -402,11 +432,23 @@ class SagaDetailPage extends ConsumerWidget {
     return MoviDetailHeroTopBar(
       isWideLayout: isWideLayout,
       horizontalPadding: horizontalPadding,
-      leading: MoviDetailHeroActionButton(
-        iconAsset: AppAssets.iconBack,
-        semanticLabel: 'Retour',
-        onPressed: () => context.pop(),
-        isWideLayout: isWideLayout,
+      leading: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+              event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: MoviDetailHeroActionButton(
+          focusNode: _backFocusNode,
+          iconAsset: AppAssets.iconBack,
+          semanticLabel: 'Retour',
+          onPressed: () => context.pop(),
+          isWideLayout: isWideLayout,
+        ),
       ),
     );
   }
@@ -485,6 +527,7 @@ class SagaDetailPage extends ConsumerWidget {
                 child: inProgressMovieAsync.when(
                   data: (inProgressMovieId) {
                     return MoviPrimaryButton(
+                      focusNode: _primaryActionFocusNode,
                       label: inProgressMovieId != null
                           ? AppLocalizations.of(context)!.sagaContinue
                           : AppLocalizations.of(context)!.sagaStartNow,
@@ -515,7 +558,7 @@ class SagaDetailPage extends ConsumerWidget {
                       await ref
                           .read(sagaToggleFavoriteProvider.notifier)
                           .toggle(
-                            sagaId,
+                            widget.sagaId,
                             SagaSummary(
                               id: viewModel.saga.id,
                               tmdbId: viewModel.saga.tmdbId,

@@ -11,6 +11,8 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_track_series_button.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -115,6 +117,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   bool _seasonTabListenerAttached = false;
   final Map<int, DateTime> _seasonLoadingStartTimes = {};
   final Map<int, FocusNode> _seasonEpisodeEntryFocusNodes = {};
+  final FocusNode _primaryActionFocusNode = FocusNode(debugLabel: 'TvDetailPrimaryAction');
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'TvHeroBack');
   final FocusNode _moreFocusNode = FocusNode(debugLabel: 'TvHeroMore')
     ..canRequestFocus = false;
@@ -204,6 +207,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     for (final node in _seasonEpisodeEntryFocusNodes.values) {
       node.dispose();
     }
+    _primaryActionFocusNode.dispose();
     _backFocusNode.dispose();
     _moreFocusNode.dispose();
     _tabController.dispose();
@@ -828,7 +832,21 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     final cs = Theme.of(context).colorScheme;
     final isWideLayout = _useDesktopDetailLayout(context);
     return SwipeBackWrapper(
-      child: Scaffold(
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: _primaryActionFocusNode,
+          fallbackFocusNode: seasons.isNotEmpty
+              ? _episodeEntryFocusNode(seasons.first.seasonNumber)
+              : _backFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () {
+          if (!mounted || !context.mounted) return false;
+          context.pop();
+          return true;
+        },
+        debugLabel: 'TvDetailRouteFocus',
+        child: Scaffold(
         backgroundColor: cs.surface,
         body: SafeArea(
           top: true,
@@ -897,6 +915,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           ),
         ),
       ),
+      )
     );
   }
 
@@ -1266,6 +1285,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         );
 
         return MoviPrimaryButton(
+          focusNode: _primaryActionFocusNode,
           label: historyAsync.when(
             data: (entry) {
               if (entry != null &&
@@ -1377,38 +1397,63 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 40,
-            height: 40,
-            child: Consumer(
-              builder: (context, ref, _) {
-                final seriesId = widget.seriesId;
-                final isTrackedAsync = ref.watch(
-                  seriesIsTrackedProvider(seriesId),
-                );
+          Consumer(
+            builder: (context, ref, _) {
+              final hasPremiumAsync = ref.watch(
+                canAccessPremiumFeatureProvider(
+                  PremiumFeature.seriesEpisodeTracking,
+                ),
+              );
 
-                return isTrackedAsync.when(
-                  data: (isTracked) => MoviTrackSeriesButton(
-                    isTracked: isTracked,
-                    onPressed: () async {
-                      final poster = _lastVm?.poster;
-                      await ref
-                          .read(seriesTrackingToggleProvider.notifier)
-                          .toggle(
-                            seriesId: seriesId,
-                            title: mediaTitle,
-                            poster: poster,
-                          );
-                    },
-                  ),
-                  loading: () =>
-                      MoviTrackSeriesButton(isTracked: false, onPressed: _noop),
-                  error: (_, __) =>
-                      MoviTrackSeriesButton(isTracked: false, onPressed: _noop),
-                );
-              },
-            ),
+              return hasPremiumAsync.when(
+                data: (hasPremium) {
+                  if (!hasPremium) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final seriesId = widget.seriesId;
+                  final isTrackedAsync = ref.watch(
+                    seriesIsTrackedProvider(seriesId),
+                  );
+
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: isTrackedAsync.when(
+                          data: (isTracked) => MoviTrackSeriesButton(
+                            isTracked: isTracked,
+                            onPressed: () async {
+                              final poster = _lastVm?.poster;
+                              await ref
+                                  .read(seriesTrackingToggleProvider.notifier)
+                                  .toggle(
+                                    seriesId: seriesId,
+                                    title: mediaTitle,
+                                    poster: poster,
+                                  );
+                            },
+                          ),
+                          loading: () => MoviTrackSeriesButton(
+                            isTracked: false,
+                            onPressed: _noop,
+                          ),
+                          error: (_, __) => MoviTrackSeriesButton(
+                            isTracked: false,
+                            onPressed: _noop,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
           ),
           const SizedBox(width: 12),
           SizedBox(

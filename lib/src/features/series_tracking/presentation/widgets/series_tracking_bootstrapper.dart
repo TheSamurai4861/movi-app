@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/notifications/local_notification_gateway.dart';
 import 'package:movi/src/core/notifications/local_notification_gateway_provider.dart';
 import 'package:movi/src/core/router/router.dart';
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/features/series_tracking/presentation/providers/series_tracking_providers.dart';
 
 class SeriesTrackingBootstrapper extends ConsumerStatefulWidget {
@@ -52,6 +54,11 @@ class _SeriesTrackingBootstrapperState
   }
 
   Future<void> _initialize() async {
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+    );
+    if (!hasPremium) return;
+
     final gateway = ref.read(localNotificationGatewayProvider);
     await gateway.initialize();
     _navigationSub ??= gateway.navigationIntents.listen(_handleIntent);
@@ -69,6 +76,11 @@ class _SeriesTrackingBootstrapperState
   Future<void> _refreshIfNeeded({bool force = false}) async {
     if (!mounted) return;
     if (_refreshing) return;
+
+    final hasPremium = await ref.read(
+      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+    );
+    if (!hasPremium) return;
 
     final now = DateTime.now();
     final last = _lastRefreshAt;

@@ -102,7 +102,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void initState() {
     super.initState();
     final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    shellFocusCoordinator.registerPreferredNode(ShellTab.search, _focusNode);
+    shellFocusCoordinator.registerTabFocusBinding(
+      ShellTab.search,
+      ShellTabFocusBinding(
+        initialFocusNode: _focusNode,
+      ),
+    );
 
     // Charger l’historique une fois.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -145,7 +150,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void dispose() {
     final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    shellFocusCoordinator.unregisterPreferredNode(ShellTab.search, _focusNode);
+    shellFocusCoordinator.unregisterTabFocusBinding(ShellTab.search, _focusNode);
     _historyHideTimer?.cancel();
     _textCtrl.removeListener(_onTextChangedLocal);
     _focusNode.removeListener(_onFocusChangedLocal);

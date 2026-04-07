@@ -74,14 +74,33 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     super.initState();
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
     _shellFocusCoordinator.attachSidebar(_sidebarFocusNode);
+    FocusManager.instance.addListener(_handlePrimaryFocusChanged);
   }
 
   @override
   void dispose() {
+    FocusManager.instance.removeListener(_handlePrimaryFocusChanged);
     _shellFocusCoordinator.detachSidebar(_sidebarFocusNode);
     _sidebarFocusNode.dispose();
     _scrollToTopController.dispose();
     super.dispose();
+  }
+
+
+  void _handlePrimaryFocusChanged() {
+    if (!mounted) return;
+
+    final focusedNode = FocusManager.instance.primaryFocus;
+    if (focusedNode == null || !focusedNode.canRequestFocus) {
+      return;
+    }
+
+    if (_shellFocusCoordinator.isSidebarFocused) {
+      return;
+    }
+
+    final selectedTab = ref.read(selectedTabProvider);
+    _shellFocusCoordinator.rememberContentFocus(selectedTab, focusedNode);
   }
 
   bool _isTvMode(BuildContext context) {
@@ -155,13 +174,13 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
         if (_isTextInputFocused()) return KeyEventResult.ignored;
 
         if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-            _sidebarFocusNode.hasFocus) {
+            focusCoordinator.isSidebarFocused) {
           final focused = focusCoordinator.focusTabEntry(selectedTab);
           return focused ? KeyEventResult.handled : KeyEventResult.ignored;
         }
 
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-            !_sidebarFocusNode.hasFocus) {
+            !focusCoordinator.isSidebarFocused) {
           final focusedNode = FocusManager.instance.primaryFocus;
           if (focusedNode == null) return KeyEventResult.ignored;
           final moved = focusedNode.focusInDirection(TraversalDirection.left);
