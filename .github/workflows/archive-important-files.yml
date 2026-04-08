@@ -1,0 +1,38 @@
+name: Archive important project files
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  create-archive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create zip archive
+        run: |
+          mkdir -p dist
+          zip -r dist/project-important-files.zip \
+            lib \
+            assets \
+            docs \
+            test \
+            pubspec.yaml \
+            pubspec.lock \
+            -x "*/.git/*" \
+               "*/build/*" \
+               "*/.dart_tool/*"
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-important-files
+          path: dist/project-important-files.zip
+          retention-days: 30
+          compression-level: 0
