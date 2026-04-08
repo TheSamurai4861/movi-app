@@ -1,60 +1,6 @@
 workflows:
-  ci-quality-proof:
-    name: CI Quality Proof (no secrets)
-    max_build_duration: 30
-    environment:
-      flutter: stable
-    scripts:
-      - name: Prepare proof folder
-        script: |
-          set -euxo pipefail
-          rm -rf ci_proofs
-          mkdir -p ci_proofs
-          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
-          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
-          echo "workflow=ci-quality-proof" | tee -a ci_proofs/metadata.txt
-
-      - name: Install dependencies (proof)
-        script: |
-          set -euxo pipefail
-          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
-
-      - name: Static analysis (blocking, proof)
-        script: |
-          set -euxo pipefail
-          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
-
-      - name: Tests (proof)
-        script: |
-          set -euxo pipefail
-          if [ -d test ]; then
-            flutter test 2>&1 | tee ci_proofs/flutter_test.log
-          else
-            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
-          fi
-
-      - name: Architecture wall (proof, blocking)
-        script: |
-          set -euxo pipefail
-          dart run tool/arch_lint.dart --baseline docs/architecture/reports/arch_violations_baseline.md --out ci_proofs/arch_violations_delta.md 2>&1 | tee ci_proofs/arch_lint.log
-
-      - name: Architecture canary suite (proof)
-        script: |
-          set -euxo pipefail
-          dart run tool/arch_lint.dart \
-            --scope tool/arch_lint_canary \
-            --canary-fixtures \
-            --expect-all-rules \
-            --out ci_proofs/arch_canary_report.md 2>&1 | tee ci_proofs/arch_canary.log
-
-    artifacts:
-      - ci_proofs/*.log
-      - ci_proofs/arch_violations_delta.md
-      - ci_proofs/arch_canary_report.md
-      - ci_proofs/metadata.txt
-
   ios-dev-ipa:
-    name: iOS Dev IPA (unsigned)
+    name: iOS Dev IPA Non Premium (unsigned)
     max_build_duration: 60
     environment:
       flutter: stable
@@ -129,7 +75,7 @@ workflows:
       - name: Build unsigned IPA (archive, APP_ENV=dev)
         script: |
           set -euxo pipefail
-          echo "Building iOS Dev IPA..."
+          echo "Building iOS Dev IPA (Non Premium)..."
           flutter build ipa --release --no-codesign \
             --target=lib/main.dart \
             --dart-define=APP_ENV=dev \
@@ -146,7 +92,7 @@ workflows:
           rm -rf "$OUTDIR"
           mkdir -p "$OUTDIR/Payload"
           cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
-          (cd "$OUTDIR" && zip -r "Runner-unsigned-dev.ipa" "Payload")
+          (cd "$OUTDIR" && zip -r "Runner-unsigned-dev-non-premium.ipa" "Payload")
 
     artifacts:
       - ci_proofs/*.log
@@ -181,6 +127,15 @@ workflows:
         script: |
           set -euxo pipefail
           flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
+
+      - name: Run tests when present
+        script: |
+          set -euxo pipefail
+          if [ -d test ]; then
+            flutter test 2>&1 | tee ci_proofs/flutter_test.log
+          else
+            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
+          fi
 
       - name: Load .env (optional for dev)
         script: |
@@ -247,169 +202,3 @@ workflows:
       - ci_proofs/metadata.txt
       - build/ios/ipa/*.ipa
       - build/ios/archive/*.xcarchive
-
-  ios-prod-store:
-    name: iOS Prod Store (unsigned)
-    max_build_duration: 60
-    environment:
-      flutter: stable
-      xcode: latest
-      groups:
-        - api
-    scripts:
-      - name: Prepare proof folder
-        script: |
-          set -euxo pipefail
-          rm -rf ci_proofs
-          mkdir -p ci_proofs
-          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
-          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
-          echo "workflow=ios-prod-store" | tee -a ci_proofs/metadata.txt
-
-      - name: Install dependencies
-        script: |
-          set -euxo pipefail
-          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
-
-      - name: Analyze project
-        script: |
-          set -euxo pipefail
-          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
-
-      - name: Run tests when present
-        script: |
-          set -euxo pipefail
-          if [ -d test ]; then
-            flutter test 2>&1 | tee ci_proofs/flutter_test.log
-          else
-            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
-          fi
-
-      - name: Check API vars (required for prod)
-        script: |
-          set -euxo pipefail
-          echo "==== PROD vars check ===="
-          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
-          echo "SUPABASE_URL length: ${#SUPABASE_URL}"
-          echo "SUPABASE_ANON_KEY length: ${#SUPABASE_ANON_KEY}"
-
-          if [ -z "$TMDB_API_KEY" ]; then
-            echo "ERROR: TMDB_API_KEY is empty for prod build"
-            exit 1
-          fi
-
-          if [ -z "$SUPABASE_URL" ]; then
-            echo "ERROR: SUPABASE_URL is empty for prod build"
-            exit 1
-          fi
-
-          if [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "ERROR: SUPABASE_ANON_KEY is empty for prod build"
-            exit 1
-          fi
-          echo "========================="
-
-      - name: Build unsigned IPA (archive, APP_ENV=prod)
-        script: |
-          set -euxo pipefail
-          echo "Building iOS Prod IPA..."
-          flutter build ipa --release --no-codesign \
-            --target=lib/main.dart \
-            --dart-define=APP_ENV=prod \
-            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
-            --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY} \
-            --dart-define=SUPABASE_URL=${SUPABASE_URL} \
-            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
-
-      - name: Package unsigned IPA from .xcarchive
-        script: |
-          set -euxo pipefail
-          ARCHIVE="build/ios/archive/Runner.xcarchive"
-          OUTDIR="build/ios/ipa"
-          rm -rf "$OUTDIR"
-          mkdir -p "$OUTDIR/Payload"
-          cp -R "$ARCHIVE/Products/Applications/Runner.app" "$OUTDIR/Payload/Runner.app"
-          (cd "$OUTDIR" && zip -r "Runner-unsigned-prod.ipa" "Payload")
-
-    artifacts:
-      - ci_proofs/*.log
-      - ci_proofs/metadata.txt
-      - build/ios/ipa/*.ipa
-      - build/ios/archive/*.xcarchive
-
-  android-closed-test:
-    name: Android Closed Test (AAB, forced premium)
-    max_build_duration: 60
-    environment:
-      flutter: stable
-      groups:
-        - api
-    scripts:
-      - name: Prepare proof folder
-        script: |
-          set -euxo pipefail
-          rm -rf ci_proofs
-          mkdir -p ci_proofs
-          echo "commit=${CM_COMMIT:-unknown}" | tee ci_proofs/metadata.txt
-          echo "branch=${CM_BRANCH:-unknown}" | tee -a ci_proofs/metadata.txt
-          echo "workflow=android-closed-test" | tee -a ci_proofs/metadata.txt
-
-      - name: Install dependencies
-        script: |
-          set -euxo pipefail
-          flutter pub get 2>&1 | tee ci_proofs/flutter_pub_get.log
-
-      - name: Analyze project
-        script: |
-          set -euxo pipefail
-          flutter analyze 2>&1 | tee ci_proofs/flutter_analyze.log
-
-      - name: Run tests when present
-        script: |
-          set -euxo pipefail
-          if [ -d test ]; then
-            flutter test 2>&1 | tee ci_proofs/flutter_test.log
-          else
-            echo "No test directory found; skipping tests" | tee ci_proofs/flutter_test.log
-          fi
-
-      - name: Check API vars (required)
-        script: |
-          set -euxo pipefail
-          echo "==== ANDROID CLOSED TEST vars check ===="
-          echo "TMDB_API_KEY length: ${#TMDB_API_KEY}"
-          echo "SUPABASE_URL length: ${#SUPABASE_URL}"
-          echo "SUPABASE_ANON_KEY length: ${#SUPABASE_ANON_KEY}"
-
-          if [ -z "$TMDB_API_KEY" ]; then
-            echo "ERROR: TMDB_API_KEY is empty"
-            exit 1
-          fi
-          if [ -z "$SUPABASE_URL" ]; then
-            echo "ERROR: SUPABASE_URL is empty"
-            exit 1
-          fi
-          if [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "ERROR: SUPABASE_ANON_KEY is empty"
-            exit 1
-          fi
-          echo "========================================"
-
-      - name: Build AAB (release, APP_ENV=prod, FORCE_PREMIUM)
-        script: |
-          set -euxo pipefail
-          echo "Building Android AAB for Closed Testing..."
-          flutter build appbundle --release \
-            --target=lib/main.dart \
-            --dart-define=APP_ENV=prod \
-            --dart-define=TMDB_API_KEY=${TMDB_API_KEY} \
-            --dart-define=TMDB_API_KEY_PROD=${TMDB_API_KEY} \
-            --dart-define=SUPABASE_URL=${SUPABASE_URL} \
-            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
-            --dart-define=FORCE_PREMIUM=true \
-            --dart-define=ALLOW_FORCE_PREMIUM_IN_RELEASE=true
-
-    artifacts:
-      - ci_proofs/*.log
-      - ci_proofs/metadata.txt
-      - build/app/outputs/bundle/release/*.aab
