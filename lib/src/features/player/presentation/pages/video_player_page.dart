@@ -317,6 +317,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           if (context.mounted) context.pop();
           return;
         }
+        ref.invalidate(parental.contentAgeDecisionProvider(content));
       }
     }
 
