@@ -56,8 +56,8 @@ class PinRecoveryUiState {
     String? code,
     int? cooldownRemaining,
     Object? error = _unset,
-    String? targetProfileId,
-    String? resetToken,
+    Object? targetProfileId = _unset,
+    Object? resetToken = _unset,
     String? newPin,
     String? confirmPin,
     Object? formError = _unset,
@@ -67,8 +67,10 @@ class PinRecoveryUiState {
       code: code ?? this.code,
       cooldownRemaining: cooldownRemaining ?? this.cooldownRemaining,
       error: error == _unset ? this.error : error as PinRecoveryStatus?,
-      targetProfileId: targetProfileId ?? this.targetProfileId,
-      resetToken: resetToken ?? this.resetToken,
+      targetProfileId: targetProfileId == _unset
+          ? this.targetProfileId
+          : targetProfileId as String?,
+      resetToken: resetToken == _unset ? this.resetToken : resetToken as String?,
       newPin: newPin ?? this.newPin,
       confirmPin: confirmPin ?? this.confirmPin,
       formError: formError == _unset
@@ -166,9 +168,13 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
 
     state = state.copyWith(
       status: PinRecoveryUiStatus.sendingCode,
+      code: '',
       error: null,
       formError: null,
       targetProfileId: effectiveProfileId,
+      resetToken: null,
+      newPin: '',
+      confirmPin: '',
     );
 
     final useCase = ref.read(requestPinRecoveryCodeProvider);
@@ -216,12 +222,9 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
     );
     final useCase = ref.read(verifyPinRecoveryCodeProvider);
     final result = await useCase(state.code);
-    final fallbackProfileId =
-        state.targetProfileId ?? (ref.read(currentProfileProvider)?.id)?.trim();
-
     if (result.isSuccess) {
-      if ((result.resetToken == null || result.resetToken!.trim().isEmpty) &&
-          (fallbackProfileId == null || fallbackProfileId.isEmpty)) {
+      final resetToken = result.resetToken?.trim();
+      if (resetToken == null || resetToken.isEmpty) {
         state = state.copyWith(
           status: PinRecoveryUiStatus.verifyFailed,
           error: PinRecoveryStatus.unknown,
@@ -232,7 +235,7 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
         status: PinRecoveryUiStatus.verified,
         error: null,
         formError: null,
-        resetToken: result.resetToken ?? fallbackProfileId,
+        resetToken: resetToken,
       );
     } else {
       state = state.copyWith(
@@ -300,8 +303,7 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
       );
 
       ref.invalidate(profilesControllerProvider);
-      final profileId =
-          state.resetToken ?? ref.read(currentProfileProvider)?.id;
+      final profileId = state.targetProfileId ?? ref.read(currentProfileProvider)?.id;
       if (profileId != null && profileId.trim().isNotEmpty) {
         try {
           final sessionSvc = ref.read(parentalSessionServiceProvider);

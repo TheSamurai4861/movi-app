@@ -5,6 +5,13 @@ import 'package:get_it/get_it.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:movi/src/core/app_update/application/check_app_update_requirement.dart';
+import 'package:movi/src/core/app_update/data/datasources/app_update_cache_data_source.dart';
+import 'package:movi/src/core/app_update/data/repositories/supabase_app_update_repository.dart';
+import 'package:movi/src/core/app_update/data/services/app_update_edge_service.dart';
+import 'package:movi/src/core/app_update/data/services/package_info_app_runtime_info_provider.dart';
+import 'package:movi/src/core/app_update/domain/repositories/app_update_repository.dart';
+import 'package:movi/src/core/app_update/domain/services/app_runtime_info_provider.dart';
 import 'package:movi/src/core/auth/auth_module.dart';
 import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/config/config.dart';
@@ -114,6 +121,7 @@ Future<void> initDependencies({
   _registerState();
 
   await SupabaseModule.register(sl);
+  await _registerAppUpdateModule();
   _registerSupabaseRepositories();
 
   AuthModule.register(sl);
@@ -335,6 +343,53 @@ AuthTokenProvider? _buildTmdbTokenProvider(
 
 bool _isV3Key(String key) => !key.startsWith('eyJ') && key.length <= 64;
 
+Future<void> _registerAppUpdateModule() async {
+  if (!sl.isRegistered<AppRuntimeInfoProvider>()) {
+    sl.registerLazySingleton<AppRuntimeInfoProvider>(
+      () => const PackageInfoAppRuntimeInfoProvider(),
+    );
+  }
+
+  if (!sl.isRegistered<AppUpdateCacheDataSource>()) {
+    final cache = await AppUpdateCacheDataSource.create();
+    sl.registerSingleton<AppUpdateCacheDataSource>(cache);
+  }
+
+  if (!sl.isRegistered<SupabaseClient>()) {
+    if (kReleaseMode) {
+      throw StateError(
+        'SupabaseClient must be registered before app update checks in release mode.',
+      );
+    }
+    return;
+  }
+
+  if (!sl.isRegistered<AppUpdateEdgeService>()) {
+    sl.registerLazySingleton<AppUpdateEdgeService>(
+      () => AppUpdateEdgeService(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<AppUpdateRepository>()) {
+    sl.registerLazySingleton<AppUpdateRepository>(
+      () => SupabaseAppUpdateRepository(
+        remoteDataSource: sl<AppUpdateEdgeService>(),
+        cacheDataSource: sl<AppUpdateCacheDataSource>(),
+        logger: sl.isRegistered<AppLogger>() ? sl<AppLogger>() : null,
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<CheckAppUpdateRequirement>()) {
+    sl.registerLazySingleton<CheckAppUpdateRequirement>(
+      () => CheckAppUpdateRequirement(
+        runtimeInfoProvider: sl<AppRuntimeInfoProvider>(),
+        repository: sl<AppUpdateRepository>(),
+      ),
+    );
+  }
+}
+
 void _registerSupabaseRepositories() {
   if (!sl.isRegistered<SupabaseClient>()) {
     const config = SupabaseConfig.fromEnvironment;
@@ -532,10 +587,7 @@ void _registerSharedServices() {
           'SupabaseClient should be registered before PinRecoveryRepository',
         );
       }
-      return PinRecoveryRepositoryImpl(
-        client: sl<SupabaseClient>(),
-        profilePin: sl<ProfilePinEdgeService>(),
-      );
+      return PinRecoveryRepositoryImpl(client: sl<SupabaseClient>());
     });
   }
 

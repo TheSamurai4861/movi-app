@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:movi/src/core/app_update/presentation/providers/app_update_provider.dart';
+import 'package:movi/src/core/app_update/presentation/widgets/app_update_blocked_screen.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
@@ -88,6 +90,44 @@ class AppStartupGate extends ConsumerWidget {
           showDetails: showDetails,
           onRetry: () {
             ref.invalidate(app_startup_provider.appStartupProvider);
+          },
+        ),
+      );
+    }
+
+    final appUpdateState = ref.watch(appUpdateDecisionProvider);
+
+    if (appUpdateState.isLoading) {
+      debugPrint('[AppUpdate] loading...');
+      return _buildStartupMaterialApp(const _StartupLoadingScreen());
+    }
+
+    if (appUpdateState.hasError) {
+      final rawDetails = appUpdateState.error?.toString() ?? 'Unknown app update error';
+      final showDetails = !kReleaseMode || forceStartupDetails;
+      debugPrint('[AppUpdate] error: $rawDetails');
+      return _buildStartupMaterialApp(
+        _StartupErrorScreen(
+          displayDetails: rawDetails,
+          showDetails: showDetails,
+          onRetry: () {
+            ref.invalidate(appUpdateDecisionProvider);
+          },
+        ),
+      );
+    }
+
+    final appUpdateDecision = appUpdateState.asData?.value;
+    if (appUpdateDecision != null && appUpdateDecision.isBlocking) {
+      debugPrint(
+        '[AppUpdate] blocked status=${appUpdateDecision.status.name} '
+        'reasonCode=${appUpdateDecision.reasonCode ?? 'n/a'}',
+      );
+      return _buildStartupMaterialApp(
+        AppUpdateBlockedScreen(
+          decision: appUpdateDecision,
+          onRetry: () {
+            ref.invalidate(appUpdateDecisionProvider);
           },
         ),
       );
