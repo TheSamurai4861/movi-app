@@ -64,7 +64,7 @@ flutter run -d android --dart-define-from-file=.env --dart-define=FORCE_STARTUP_
 ## Analyse statique avec logs
 
 ```powershell
-flutter analyze --dart-define-from-file=.env *>&1 | Tee-Object -FilePath output/flutter-analyze.log
+flutter analyze *>&1 | Tee-Object -FilePath output/flutter-analyze.log
 ```
 
 ## Tests avec logs
