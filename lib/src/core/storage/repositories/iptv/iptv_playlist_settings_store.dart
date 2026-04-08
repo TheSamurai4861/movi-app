@@ -20,12 +20,13 @@ class IptvPlaylistSettingsStore {
   final PlaylistTypeNormalizer _normalizePlaylistType;
 
   Future<List<XtreamPlaylistSettings>> getPlaylistSettings(
-    String accountId,
-  ) async {
+    String accountId, {
+    required String ownerId,
+  }) async {
     final rows = await _db.query(
       IptvStorageTables.playlistSettings,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[accountId],
+      where: 'owner_id = ? AND account_id = ?',
+      whereArgs: <Object?>[ownerId, accountId],
     );
 
     final settings = <XtreamPlaylistSettings>[];
@@ -60,24 +61,28 @@ class IptvPlaylistSettingsStore {
     return settings;
   }
 
-  Future<void> upsertPlaylistSettings(XtreamPlaylistSettings settings) async {
+  Future<void> upsertPlaylistSettings(
+    XtreamPlaylistSettings settings, {
+    required String ownerId,
+  }) async {
     await _db.insert(
       IptvStorageTables.playlistSettings,
-      _toRow(settings),
+      _toRow(ownerId, settings),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
   Future<void> upsertPlaylistSettingsBatch(
-    List<XtreamPlaylistSettings> settings,
-  ) async {
+    List<XtreamPlaylistSettings> settings, {
+    required String ownerId,
+  }) async {
     if (settings.isEmpty) return;
 
     final batch = _db.batch();
     for (final settingsEntry in settings) {
       batch.insert(
         IptvStorageTables.playlistSettings,
-        _toRow(settingsEntry),
+        _toRow(ownerId, settingsEntry),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -86,14 +91,15 @@ class IptvPlaylistSettingsStore {
   }
 
   Future<void> deletePlaylistSettingsNotIn({
+    required String ownerId,
     required String accountId,
     required Set<String> playlistIds,
   }) async {
     if (playlistIds.isEmpty) {
       await _db.delete(
         IptvStorageTables.playlistSettings,
-        where: 'account_id = ?',
-        whereArgs: <Object?>[accountId],
+        where: 'owner_id = ? AND account_id = ?',
+        whereArgs: <Object?>[ownerId, accountId],
       );
       return;
     }
@@ -101,12 +107,14 @@ class IptvPlaylistSettingsStore {
     final placeholders = List.filled(playlistIds.length, '?').join(',');
     await _db.delete(
       IptvStorageTables.playlistSettings,
-      where: 'account_id = ? AND playlist_id NOT IN ($placeholders)',
-      whereArgs: <Object?>[accountId, ...playlistIds],
+      where:
+          'owner_id = ? AND account_id = ? AND playlist_id NOT IN ($placeholders)',
+      whereArgs: <Object?>[ownerId, accountId, ...playlistIds],
     );
   }
 
   Future<void> setPlaylistVisibility({
+    required String ownerId,
     required String accountId,
     required String playlistId,
     required bool isVisible,
@@ -117,12 +125,13 @@ class IptvPlaylistSettingsStore {
         'is_visible': isVisible ? 1 : 0,
         'updated_at': DateTime.now().millisecondsSinceEpoch,
       },
-      where: 'account_id = ? AND playlist_id = ?',
-      whereArgs: <Object?>[accountId, playlistId],
+      where: 'owner_id = ? AND account_id = ? AND playlist_id = ?',
+      whereArgs: <Object?>[ownerId, accountId, playlistId],
     );
   }
 
   Future<void> setAllPlaylistsVisibility({
+    required String ownerId,
     required String accountId,
     required XtreamPlaylistType type,
     required bool isVisible,
@@ -133,12 +142,13 @@ class IptvPlaylistSettingsStore {
         'is_visible': isVisible ? 1 : 0,
         'updated_at': DateTime.now().millisecondsSinceEpoch,
       },
-      where: 'account_id = ? AND type = ?',
-      whereArgs: <Object?>[accountId, type.name],
+      where: 'owner_id = ? AND account_id = ? AND type = ?',
+      whereArgs: <Object?>[ownerId, accountId, type.name],
     );
   }
 
   Future<void> reorderPlaylists({
+    required String ownerId,
     required String accountId,
     required XtreamPlaylistType type,
     required List<String> orderedPlaylistIds,
@@ -149,8 +159,14 @@ class IptvPlaylistSettingsStore {
       batch.update(
         IptvStorageTables.playlistSettings,
         <String, Object?>{'position': index, 'updated_at': now},
-        where: 'account_id = ? AND playlist_id = ? AND type = ?',
-        whereArgs: <Object?>[accountId, orderedPlaylistIds[index], type.name],
+        where:
+            'owner_id = ? AND account_id = ? AND playlist_id = ? AND type = ?',
+        whereArgs: <Object?>[
+          ownerId,
+          accountId,
+          orderedPlaylistIds[index],
+          type.name,
+        ],
       );
     }
 
@@ -158,6 +174,7 @@ class IptvPlaylistSettingsStore {
   }
 
   Future<void> reorderPlaylistsGlobal({
+    required String ownerId,
     required String accountId,
     required List<String> orderedPlaylistIds,
   }) async {
@@ -167,16 +184,17 @@ class IptvPlaylistSettingsStore {
       batch.update(
         IptvStorageTables.playlistSettings,
         <String, Object?>{'global_position': index, 'updated_at': now},
-        where: 'account_id = ? AND playlist_id = ?',
-        whereArgs: <Object?>[accountId, orderedPlaylistIds[index]],
+        where: 'owner_id = ? AND account_id = ? AND playlist_id = ?',
+        whereArgs: <Object?>[ownerId, accountId, orderedPlaylistIds[index]],
       );
     }
 
     await batch.commit(noResult: true);
   }
 
-  Map<String, Object?> _toRow(XtreamPlaylistSettings settings) {
+  Map<String, Object?> _toRow(String ownerId, XtreamPlaylistSettings settings) {
     return <String, Object?>{
+      'owner_id': ownerId,
       'account_id': settings.accountId,
       'playlist_id': settings.playlistId,
       'type': settings.type.name,

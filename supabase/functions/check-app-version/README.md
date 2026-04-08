@@ -34,5 +34,13 @@ Fonction Edge Supabase utilisée par l'application Flutter pour décider si l'en
 ## Déploiement
 
 ```bash
+supabase db push
 supabase functions deploy check-app-version
 ```
+
+
+cd C:\Users\berny\DEV\Flutter\movi
+supabase login
+supabase link --project-ref ibtgtmiohzlujuxmggfd
+supabase db push
+supabase functions deploy check-app-version

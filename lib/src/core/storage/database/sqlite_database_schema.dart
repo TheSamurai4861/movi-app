@@ -40,20 +40,23 @@ final class LocalDatabaseSchema {
 
     await db.execute('''
       CREATE TABLE iptv_accounts (
-        account_id TEXT PRIMARY KEY,
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
         alias TEXT NOT NULL,
         endpoint TEXT NOT NULL,
         username TEXT NOT NULL,
         status TEXT NOT NULL,
         expiration INTEGER,
         created_at INTEGER NOT NULL,
-        last_error TEXT
+        last_error TEXT,
+        PRIMARY KEY (owner_id, account_id)
       );
     ''');
 
     await db.execute('''
       CREATE TABLE IF NOT EXISTS stalker_accounts (
-        account_id TEXT PRIMARY KEY,
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
         alias TEXT NOT NULL,
         endpoint TEXT NOT NULL,
         mac_address TEXT NOT NULL,
@@ -62,33 +65,37 @@ final class LocalDatabaseSchema {
         status TEXT NOT NULL,
         expiration INTEGER,
         created_at INTEGER NOT NULL,
-        last_error TEXT
+        last_error TEXT,
+        PRIMARY KEY (owner_id, account_id)
       );
     ''');
 
     await db.execute('''
       CREATE TABLE iptv_playlists (
+        owner_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
         category_id TEXT NOT NULL,
         payload TEXT NOT NULL,
         updated_at INTEGER NOT NULL,
-        PRIMARY KEY (account_id, category_id)
+        PRIMARY KEY (owner_id, account_id, category_id)
       );
     ''');
 
     await db.execute('''
       CREATE TABLE iptv_playlists_v2 (
+        owner_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
         playlist_id TEXT NOT NULL,
         title TEXT NOT NULL,
         type TEXT NOT NULL,
         updated_at INTEGER NOT NULL,
-        PRIMARY KEY (account_id, playlist_id)
+        PRIMARY KEY (owner_id, account_id, playlist_id)
       );
     ''');
 
     await db.execute('''
       CREATE TABLE iptv_playlist_items_v2 (
+        owner_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
         playlist_id TEXT NOT NULL,
         stream_id INTEGER NOT NULL,
@@ -100,12 +107,13 @@ final class LocalDatabaseSchema {
         container_extension TEXT,
         rating REAL,
         release_year INTEGER,
-        PRIMARY KEY (account_id, playlist_id, stream_id)
+        PRIMARY KEY (owner_id, account_id, playlist_id, stream_id)
       );
     ''');
 
     await db.execute('''
       CREATE TABLE iptv_episodes (
+        owner_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
         series_id INTEGER NOT NULL,
         season_number INTEGER NOT NULL,
@@ -113,12 +121,19 @@ final class LocalDatabaseSchema {
         episode_id INTEGER NOT NULL,
         extension TEXT,
         updated_at INTEGER NOT NULL,
-        PRIMARY KEY (account_id, series_id, season_number, episode_number)
+        PRIMARY KEY (
+          owner_id,
+          account_id,
+          series_id,
+          season_number,
+          episode_number
+        )
       );
     ''');
 
     await db.execute('''
       CREATE TABLE iptv_playlist_settings (
+        owner_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
         playlist_id TEXT NOT NULL,
         type TEXT NOT NULL,
@@ -126,7 +141,7 @@ final class LocalDatabaseSchema {
         global_position INTEGER NOT NULL,
         is_visible INTEGER NOT NULL DEFAULT 1,
         updated_at INTEGER NOT NULL,
-        PRIMARY KEY (account_id, playlist_id)
+        PRIMARY KEY (owner_id, account_id, playlist_id)
       );
     ''');
 
@@ -248,25 +263,25 @@ final class LocalDatabaseSchema {
 
 
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(account_id);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(owner_id, account_id);',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_v2_account ON iptv_playlists_v2(account_id);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_v2_account ON iptv_playlists_v2(owner_id, account_id);',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_playlist_pos ON iptv_playlist_items_v2(account_id, playlist_id, position);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_playlist_pos ON iptv_playlist_items_v2(owner_id, account_id, playlist_id, position);',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_title ON iptv_playlist_items_v2(account_id, title);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_title ON iptv_playlist_items_v2(owner_id, account_id, title);',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_episodes_account_series ON iptv_episodes(account_id, series_id);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_episodes_account_series ON iptv_episodes(owner_id, account_id, series_id);',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_settings_account_type_pos ON iptv_playlist_settings(account_id, type, position);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_settings_account_type_pos ON iptv_playlist_settings(owner_id, account_id, type, position);',
     );
     await db.execute(
-      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_settings_account_global_pos ON iptv_playlist_settings(account_id, global_position);',
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_settings_account_global_pos ON iptv_playlist_settings(owner_id, account_id, global_position);',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_content_cache_updated_at ON content_cache(updated_at);',

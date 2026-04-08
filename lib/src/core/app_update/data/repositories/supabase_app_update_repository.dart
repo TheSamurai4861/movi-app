@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:movi/src/core/app_update/data/datasources/app_update_cache_data_source.dart';
 import 'package:movi/src/core/app_update/data/services/app_update_edge_service.dart';
 import 'package:movi/src/core/app_update/domain/entities/app_update_context.dart';
 import 'package:movi/src/core/app_update/domain/entities/app_update_decision.dart';
 import 'package:movi/src/core/app_update/domain/repositories/app_update_repository.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseAppUpdateRepository implements AppUpdateRepository {
   const SupabaseAppUpdateRepository({
@@ -40,6 +43,24 @@ class SupabaseAppUpdateRepository implements AppUpdateRepository {
         return usableCachedDecision;
       }
 
+      if (_shouldFailOpen(error)) {
+        final decision = AppUpdateDecision.allow(
+          currentVersion: context.currentVersion,
+          platform: context.platform,
+          checkedAt: DateTime.now().toUtc(),
+          reasonCode: _fallbackReasonCode(error),
+          message: 'Remote app update check unavailable; startup allowed.',
+          cacheTtl: Duration.zero,
+        );
+        _logger?.warn(
+          '[AppUpdate] remote check failed open '
+          'status=${decision.status.name} '
+          'reasonCode=${decision.reasonCode ?? 'n/a'}',
+          category: 'app_update',
+        );
+        return decision;
+      }
+
       _logger?.error(
         '[AppUpdate] remote check failed without usable cache.',
         error,
@@ -63,6 +84,40 @@ class SupabaseAppUpdateRepository implements AppUpdateRepository {
 
     final age = DateTime.now().toUtc().difference(decision.checkedAt.toUtc());
     return age <= decision.cacheTtl;
+  }
+
+  bool _shouldFailOpen(Object error) {
+    if (error is FunctionException) {
+      return error.status >= 500;
+    }
+    if (error is TimeoutException) {
+      return true;
+    }
+
+    return _looksLikeNetworkError(error);
+  }
+
+  String _fallbackReasonCode(Object error) {
+    if (error is FunctionException) {
+      return error.status >= 500
+          ? 'app_update_remote_server_error'
+          : 'app_update_remote_function_error';
+    }
+    if (error is TimeoutException) {
+      return 'app_update_remote_timeout';
+    }
+    if (_looksLikeNetworkError(error)) {
+      return 'app_update_remote_network_error';
+    }
+
+    return 'app_update_remote_failed_open';
+  }
+
+  bool _looksLikeNetworkError(Object error) {
+    final errorType = error.runtimeType.toString();
+    return errorType.contains('SocketException') ||
+        errorType.contains('_ClientSocketException') ||
+        errorType.contains('ClientException');
   }
 
   void _logSuccess(AppUpdateDecision decision, {required String source}) {

@@ -12,6 +12,9 @@ import 'package:movi/src/core/auth/application/services/local_data_cleanup_servi
 import 'package:movi/src/core/auth/application/ports/auth_telemetry_port.dart';
 import 'package:movi/src/core/auth/infrastructure/auth_telemetry_adapters.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
+import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -94,6 +97,7 @@ class AuthController extends Notifier<AuthControllerState> {
   AuthRepository? _repo;
   bool _disposeHookRegistered = false;
   bool _bootstrapped = false;
+  Future<void>? _sessionResetInFlight;
 
   @override
   AuthControllerState build() {
@@ -143,10 +147,81 @@ class AuthController extends Notifier<AuthControllerState> {
   }
 
   void _onAuthSnapshot(AuthSnapshot snapshot) {
+    final previous = state;
+    final hadAuthenticatedUser =
+        previous.status == AuthStatus.authenticated &&
+        previous.userId != null &&
+        previous.userId!.trim().isNotEmpty;
+    final hasLostSession =
+        hadAuthenticatedUser && snapshot.status == AuthStatus.unauthenticated;
+    final hasSwitchedUser =
+        hadAuthenticatedUser &&
+        snapshot.status == AuthStatus.authenticated &&
+        snapshot.userId != null &&
+        snapshot.userId!.trim().isNotEmpty &&
+        snapshot.userId != previous.userId;
+
+    if (hasLostSession || hasSwitchedUser) {
+      unawaited(
+        _resetSessionDerivedStateBestEffort(
+          reason: hasSwitchedUser ? 'auth_user_changed' : 'auth_session_lost',
+        ),
+      );
+    }
+
     state = AuthControllerState(
       status: snapshot.status,
       userId: snapshot.userId,
     );
+  }
+
+  Future<void> _resetSessionDerivedStateBestEffort({
+    required String reason,
+  }) {
+    final ongoing = _sessionResetInFlight;
+    if (ongoing != null) {
+      return ongoing;
+    }
+
+    final future = () async {
+      ref.read(appStateControllerProvider).setActiveIptvSources(<String>{});
+
+      final locator = ref.read(slProvider);
+      if (locator.isRegistered<SelectedIptvSourcePreferences>()) {
+        try {
+          await locator<SelectedIptvSourcePreferences>().clear();
+        } catch (error) {
+          if (kDebugMode) {
+            debugPrint(
+              '[AuthController] Failed to clear selected IPTV source '
+              '(reason=$reason): $error',
+            );
+          }
+        }
+      }
+
+      if (locator.isRegistered<SelectedProfilePreferences>()) {
+        try {
+          await locator<SelectedProfilePreferences>().clear();
+        } catch (error) {
+          if (kDebugMode) {
+            debugPrint(
+              '[AuthController] Failed to clear selected profile '
+              '(reason=$reason): $error',
+            );
+          }
+        }
+      }
+    }();
+
+    late final Future<void> trackedFuture;
+    trackedFuture = future.whenComplete(() {
+      if (identical(_sessionResetInFlight, trackedFuture)) {
+        _sessionResetInFlight = null;
+      }
+    });
+    _sessionResetInFlight = trackedFuture;
+    return trackedFuture;
   }
 
   AuthSnapshot? _snapshotFromResolvedLaunch(

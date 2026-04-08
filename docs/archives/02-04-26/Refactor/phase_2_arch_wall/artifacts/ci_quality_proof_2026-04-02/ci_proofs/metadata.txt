@@ -1,3 +1,0 @@
-commit=d81c2bac23c6f68bd14d7cee6ce7aa931fffe5e7
-branch=main
-workflow=ci-quality-proof

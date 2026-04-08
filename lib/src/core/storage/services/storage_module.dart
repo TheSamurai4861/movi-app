@@ -5,6 +5,7 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/security/secure_credentials_vault.dart';
@@ -23,7 +24,7 @@ import 'package:movi/src/shared/domain/services/xtream_lookup.dart';
 /// In tests, prefer overriding repositories with in-memory fakes before calling
 /// [register] to avoid touching the on-disk SQLite database.
 class StorageModule {
-  static const int _databaseVersion = 19;
+  static const int _databaseVersion = 22;
 
   static Future<void> register({bool? allowInMemoryFallback}) async {
     final stopwatch = Stopwatch()..start();
@@ -212,7 +213,15 @@ class StorageModule {
     if (!sl.isRegistered<IptvLocalRepository>() &&
         sl.isRegistered<Database>()) {
       sl.registerLazySingleton<IptvLocalRepository>(
-        () => IptvLocalRepository(sl<Database>()),
+        () => IptvLocalRepository(
+          sl<Database>(),
+          ownerIdProvider: () {
+            if (!sl.isRegistered<AuthRepository>()) {
+              return null;
+            }
+            return sl<AuthRepository>().currentSession?.userId;
+          },
+        ),
       );
     }
 

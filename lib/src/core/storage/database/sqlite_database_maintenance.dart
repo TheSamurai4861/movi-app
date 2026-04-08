@@ -48,7 +48,8 @@ final class LocalDatabaseMaintenance {
       table: 'stalker_accounts',
       ddl: '''
         CREATE TABLE stalker_accounts (
-          account_id TEXT PRIMARY KEY,
+          owner_id TEXT NOT NULL,
+          account_id TEXT NOT NULL,
           alias TEXT NOT NULL,
           endpoint TEXT NOT NULL,
           mac_address TEXT NOT NULL,
@@ -57,7 +58,8 @@ final class LocalDatabaseMaintenance {
           status TEXT NOT NULL,
           expiration INTEGER,
           created_at INTEGER NOT NULL,
-          last_error TEXT
+          last_error TEXT,
+          PRIMARY KEY (owner_id, account_id)
         );
       ''',
     );

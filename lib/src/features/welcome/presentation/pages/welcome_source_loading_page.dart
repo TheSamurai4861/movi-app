@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
@@ -39,6 +40,7 @@ class _WelcomeSourceLoadingPageState
   static const Duration _catalogRefreshTimeout = Duration(seconds: 20);
   String? _error;
   bool _isLoading = true;
+  bool _showSourceSelectionAction = false;
   String _statusMessage = '';
 
   void _goToHome() {
@@ -58,6 +60,7 @@ class _WelcomeSourceLoadingPageState
     setState(() {
       _isLoading = true;
       _error = null;
+      _showSourceSelectionAction = false;
       _statusMessage = 'Chargement de votre catalogue...';
     });
 
@@ -76,12 +79,18 @@ class _WelcomeSourceLoadingPageState
 
       final locator = ref.read(slProvider);
       final iptvLocal = locator<IptvLocalRepository>();
+      final selectedSourcePreferences =
+          locator<SelectedIptvSourcePreferences>();
+      final selectedSourceId = selectedSourcePreferences.selectedSourceId
+          ?.trim();
 
       final xtreamAccounts = await iptvLocal.getAccounts();
       final stalkerAccounts = await iptvLocal.getStalkerAccounts();
 
       final xtreamIds = xtreamAccounts.map((a) => a.id).toSet();
       final stalkerIds = stalkerAccounts.map((a) => a.id).toSet();
+      final knownSourceIds = <String>{...xtreamIds, ...stalkerIds};
+      final invalidActiveSources = activeSources.difference(knownSourceIds);
 
       var mustRefreshCatalog = widget.forceCatalogReload;
       if (!mustRefreshCatalog) {
@@ -89,6 +98,37 @@ class _WelcomeSourceLoadingPageState
           accountIds: activeSources,
         );
         mustRefreshCatalog = !hasAnyItems;
+      }
+
+      _logLoadingContext(
+        context: 'welcome_source_loading_inventory',
+        selectedSourceId: selectedSourceId,
+        activeSourceIds: activeSources,
+        mustRefreshCatalog: mustRefreshCatalog,
+        detail: 'knownSourceIds=${_formatIds(knownSourceIds)}',
+      );
+
+      if (invalidActiveSources.isNotEmpty) {
+        _logLoadingContext(
+          context: 'welcome_source_loading_invalid_selection',
+          selectedSourceId: selectedSourceId,
+          activeSourceIds: activeSources,
+          mustRefreshCatalog: mustRefreshCatalog,
+          detail:
+              'invalidActiveSources=${_formatIds(invalidActiveSources)} '
+              'knownSourceIds=${_formatIds(knownSourceIds)}',
+        );
+        if (selectedSourceId != null &&
+            invalidActiveSources.contains(selectedSourceId)) {
+          await selectedSourcePreferences.clear();
+        }
+        appStateController.setActiveIptvSources(
+          activeSources.difference(invalidActiveSources),
+        );
+        throw _SelectedSourceOwnershipException(
+          invalidSourceIds: invalidActiveSources,
+          currentUserId: _currentUserIdOrNull(),
+        );
       }
 
       if (mustRefreshCatalog) {
@@ -183,8 +223,6 @@ class _WelcomeSourceLoadingPageState
         );
       }
 
-      final selectedSourcePreferences =
-          locator<SelectedIptvSourcePreferences>();
       await selectedSourcePreferences.rereadFromStorage();
       final preferredSourceId = selectedSourcePreferences.selectedSourceId
           ?.trim();
@@ -201,6 +239,13 @@ class _WelcomeSourceLoadingPageState
       final invalidSelection =
           !missingSelection && !activeSources.contains(refreshedPreferredId);
       if (invalidSelection) {
+        _logLoadingContext(
+          context: 'welcome_source_loading_selection_invalid_after_refresh',
+          selectedSourceId: refreshedPreferredId,
+          activeSourceIds: activeSources,
+          mustRefreshCatalog: false,
+          detail: 'selection_missing_from_active_sources',
+        );
         await selectedSourcePreferences.clear();
       }
       if ((missingSelection || invalidSelection) && activeSources.length > 1) {
@@ -226,6 +271,7 @@ class _WelcomeSourceLoadingPageState
       unawaited(
         LoggingService.log(
           'WelcomeSourceLoading: Error loading catalog: $e\n$stackTrace',
+          category: 'welcome',
         ),
       );
 
@@ -233,8 +279,56 @@ class _WelcomeSourceLoadingPageState
       setState(() {
         _error = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
+        _showSourceSelectionAction = e is _SelectedSourceOwnershipException;
       });
     }
+  }
+
+  String? _currentUserIdOrNull() {
+    final session = ref.read(authRepositoryProvider).currentSession;
+    final id = session?.userId.trim();
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+    return id;
+  }
+
+  void _logLoadingContext({
+    required String context,
+    String? selectedSourceId,
+    required Set<String> activeSourceIds,
+    required bool mustRefreshCatalog,
+    String? detail,
+  }) {
+    final currentUserId = _currentUserIdOrNull();
+    final owner = currentUserId ?? 'device_local';
+    final selected = (selectedSourceId == null || selectedSourceId.isEmpty)
+        ? 'none'
+        : selectedSourceId;
+    final extra = detail == null || detail.isEmpty ? '' : ' detail=$detail';
+    unawaited(
+      LoggingService.log(
+        '[WelcomeSourceLoading] context=$context '
+        'currentUserId=${currentUserId ?? 'none'} '
+        'selectedSourceId=$selected '
+        'activeSourceIds=${_formatIds(activeSourceIds)} '
+        'mustRefreshCatalog=$mustRefreshCatalog '
+        'sourceOwner=$owner$extra',
+        category: 'welcome',
+      ),
+    );
+  }
+
+  String _formatIds(Iterable<String> ids) {
+    final normalized = ids
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
+    if (normalized.isEmpty) {
+      return 'none';
+    }
+    return normalized.join(',');
   }
 
   @override
@@ -253,6 +347,9 @@ class _WelcomeSourceLoadingPageState
               });
               unawaited(_loadCatalog());
             },
+            onSelectSource: _showSourceSelectionAction
+                ? () => context.go(AppRouteNames.welcomeSourceSelect)
+                : null,
             showHeader: false,
             mainAxisAlignment: MainAxisAlignment.end,
             bottomPadding: AppSpacing.lg,
@@ -286,6 +383,7 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
     required this.statusMessage,
     required this.error,
     this.onRetry,
+    this.onSelectSource,
     this.onContinueAnyway,
     this.showHeader = true,
     this.mainAxisAlignment = MainAxisAlignment.center,
@@ -296,6 +394,7 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
   final String statusMessage;
   final String? error;
   final VoidCallback? onRetry;
+  final VoidCallback? onSelectSource;
   final VoidCallback? onContinueAnyway;
   final bool showHeader;
   final MainAxisAlignment mainAxisAlignment;
@@ -355,6 +454,13 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
+                  if (onSelectSource != null)
+                    OutlinedButton(
+                      onPressed: onSelectSource,
+                      child: const Text('Choisir une autre source'),
+                    ),
+                  if (onSelectSource != null)
+                    const SizedBox(height: AppSpacing.md),
                   if (onContinueAnyway != null)
                     OutlinedButton(
                       onPressed: onContinueAnyway,
@@ -367,5 +473,30 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+final class _SelectedSourceOwnershipException implements Exception {
+  const _SelectedSourceOwnershipException({
+    required this.invalidSourceIds,
+    required this.currentUserId,
+  });
+
+  final Set<String> invalidSourceIds;
+  final String? currentUserId;
+
+  @override
+  String toString() {
+    final isPlural = invalidSourceIds.length > 1;
+    final userId = currentUserId?.trim();
+    final accountLabel = (userId == null || userId.isEmpty)
+        ? 'ce mode local'
+        : 'ce compte';
+    if (isPlural) {
+      return 'Les sources sélectionnées ne sont plus disponibles pour $accountLabel. '
+          'Choisissez une source liée au compte actif puis relancez le chargement.';
+    }
+    return 'La source sélectionnée n\'est plus disponible pour $accountLabel. '
+        'Choisissez une source liée au compte actif puis relancez le chargement.';
   }
 }

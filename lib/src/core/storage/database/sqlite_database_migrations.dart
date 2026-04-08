@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 
+import 'package:movi/src/core/storage/database/iptv_owner_scope.dart';
 import 'package:movi/src/core/storage/database/sqlite_database_maintenance.dart';
 
 /// Runs incremental SQLite migrations for existing installations.
@@ -384,6 +385,352 @@ final class LocalDatabaseMigrations {
         ddlType: 'INTEGER',
       );
     }
+    if (oldVersion < 22) {
+      await _rebuildIptvTablesWithOwnerScope(db);
+    }
+  }
+
+  static Future<void> _rebuildIptvTablesWithOwnerScope(Database db) async {
+    const legacyOwnerId = IptvOwnerScope.localOwnerId;
+
+    await db.execute('''
+      CREATE TABLE iptv_accounts_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        alias TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        username TEXT NOT NULL,
+        status TEXT NOT NULL,
+        expiration INTEGER,
+        created_at INTEGER NOT NULL,
+        last_error TEXT,
+        PRIMARY KEY (owner_id, account_id)
+      );
+    ''');
+    if (await _tableExists(db, 'iptv_accounts')) {
+      await db.execute('''
+        INSERT INTO iptv_accounts_owner_scoped (
+          owner_id,
+          account_id,
+          alias,
+          endpoint,
+          username,
+          status,
+          expiration,
+          created_at,
+          last_error
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          alias,
+          endpoint,
+          username,
+          status,
+          expiration,
+          created_at,
+          last_error
+        FROM iptv_accounts;
+      ''');
+      await db.execute('DROP TABLE iptv_accounts;');
+    }
+    await db.execute(
+      'ALTER TABLE iptv_accounts_owner_scoped RENAME TO iptv_accounts;',
+    );
+
+    await db.execute('''
+      CREATE TABLE stalker_accounts_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        alias TEXT NOT NULL,
+        endpoint TEXT NOT NULL,
+        mac_address TEXT NOT NULL,
+        username TEXT,
+        token TEXT,
+        status TEXT NOT NULL,
+        expiration INTEGER,
+        created_at INTEGER NOT NULL,
+        last_error TEXT,
+        PRIMARY KEY (owner_id, account_id)
+      );
+    ''');
+    if (await _tableExists(db, 'stalker_accounts')) {
+      await db.execute('''
+        INSERT INTO stalker_accounts_owner_scoped (
+          owner_id,
+          account_id,
+          alias,
+          endpoint,
+          mac_address,
+          username,
+          token,
+          status,
+          expiration,
+          created_at,
+          last_error
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          alias,
+          endpoint,
+          mac_address,
+          username,
+          token,
+          status,
+          expiration,
+          created_at,
+          last_error
+        FROM stalker_accounts;
+      ''');
+      await db.execute('DROP TABLE stalker_accounts;');
+    }
+    await db.execute(
+      'ALTER TABLE stalker_accounts_owner_scoped RENAME TO stalker_accounts;',
+    );
+
+    await db.execute('''
+      CREATE TABLE iptv_playlists_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (owner_id, account_id, category_id)
+      );
+    ''');
+    if (await _tableExists(db, 'iptv_playlists')) {
+      await db.execute('''
+        INSERT INTO iptv_playlists_owner_scoped (
+          owner_id,
+          account_id,
+          category_id,
+          payload,
+          updated_at
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          category_id,
+          payload,
+          updated_at
+        FROM iptv_playlists;
+      ''');
+      await db.execute('DROP TABLE iptv_playlists;');
+    }
+    await db.execute(
+      'ALTER TABLE iptv_playlists_owner_scoped RENAME TO iptv_playlists;',
+    );
+
+    await db.execute('''
+      CREATE TABLE iptv_playlists_v2_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        playlist_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        type TEXT NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (owner_id, account_id, playlist_id)
+      );
+    ''');
+    if (await _tableExists(db, 'iptv_playlists_v2')) {
+      await db.execute('''
+        INSERT INTO iptv_playlists_v2_owner_scoped (
+          owner_id,
+          account_id,
+          playlist_id,
+          title,
+          type,
+          updated_at
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          playlist_id,
+          title,
+          type,
+          updated_at
+        FROM iptv_playlists_v2;
+      ''');
+      await db.execute('DROP TABLE iptv_playlists_v2;');
+    }
+    await db.execute(
+      'ALTER TABLE iptv_playlists_v2_owner_scoped RENAME TO iptv_playlists_v2;',
+    );
+
+    await db.execute('''
+      CREATE TABLE iptv_playlist_items_v2_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        playlist_id TEXT NOT NULL,
+        stream_id INTEGER NOT NULL,
+        position INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        type TEXT NOT NULL,
+        poster TEXT,
+        tmdb_id INTEGER,
+        container_extension TEXT,
+        rating REAL,
+        release_year INTEGER,
+        PRIMARY KEY (owner_id, account_id, playlist_id, stream_id)
+      );
+    ''');
+    if (await _tableExists(db, 'iptv_playlist_items_v2')) {
+      await db.execute('''
+        INSERT INTO iptv_playlist_items_v2_owner_scoped (
+          owner_id,
+          account_id,
+          playlist_id,
+          stream_id,
+          position,
+          title,
+          type,
+          poster,
+          tmdb_id,
+          container_extension,
+          rating,
+          release_year
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          playlist_id,
+          stream_id,
+          position,
+          title,
+          type,
+          poster,
+          tmdb_id,
+          container_extension,
+          rating,
+          release_year
+        FROM iptv_playlist_items_v2;
+      ''');
+      await db.execute('DROP TABLE iptv_playlist_items_v2;');
+    }
+    await db.execute(
+      'ALTER TABLE iptv_playlist_items_v2_owner_scoped RENAME TO iptv_playlist_items_v2;',
+    );
+
+    await db.execute('''
+      CREATE TABLE iptv_episodes_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        series_id INTEGER NOT NULL,
+        season_number INTEGER NOT NULL,
+        episode_number INTEGER NOT NULL,
+        episode_id INTEGER NOT NULL,
+        extension TEXT,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (
+          owner_id,
+          account_id,
+          series_id,
+          season_number,
+          episode_number
+        )
+      );
+    ''');
+    if (await _tableExists(db, 'iptv_episodes')) {
+      await db.execute('''
+        INSERT INTO iptv_episodes_owner_scoped (
+          owner_id,
+          account_id,
+          series_id,
+          season_number,
+          episode_number,
+          episode_id,
+          extension,
+          updated_at
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          series_id,
+          season_number,
+          episode_number,
+          episode_id,
+          extension,
+          updated_at
+        FROM iptv_episodes;
+      ''');
+      await db.execute('DROP TABLE iptv_episodes;');
+    }
+    await db.execute(
+      'ALTER TABLE iptv_episodes_owner_scoped RENAME TO iptv_episodes;',
+    );
+
+    await db.execute('''
+      CREATE TABLE iptv_playlist_settings_owner_scoped (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        playlist_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        position INTEGER NOT NULL,
+        global_position INTEGER NOT NULL DEFAULT 0,
+        is_visible INTEGER NOT NULL DEFAULT 1,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (owner_id, account_id, playlist_id)
+      );
+    ''');
+    if (await _tableExists(db, 'iptv_playlist_settings')) {
+      await db.execute('''
+        INSERT INTO iptv_playlist_settings_owner_scoped (
+          owner_id,
+          account_id,
+          playlist_id,
+          type,
+          position,
+          global_position,
+          is_visible,
+          updated_at
+        )
+        SELECT
+          '$legacyOwnerId',
+          account_id,
+          playlist_id,
+          type,
+          position,
+          COALESCE(global_position, 0),
+          is_visible,
+          updated_at
+        FROM iptv_playlist_settings;
+      ''');
+      await db.execute('DROP TABLE iptv_playlist_settings;');
+    }
+    await db.execute(
+      'ALTER TABLE iptv_playlist_settings_owner_scoped RENAME TO iptv_playlist_settings;',
+    );
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(owner_id, account_id);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_v2_account ON iptv_playlists_v2(owner_id, account_id);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_playlist_pos ON iptv_playlist_items_v2(owner_id, account_id, playlist_id, position);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_items_v2_account_title ON iptv_playlist_items_v2(owner_id, account_id, title);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_episodes_account_series ON iptv_episodes(owner_id, account_id, series_id);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_settings_account_type_pos ON iptv_playlist_settings(owner_id, account_id, type, position);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_playlist_settings_account_global_pos ON iptv_playlist_settings(owner_id, account_id, global_position);',
+    );
+  }
+
+  static Future<bool> _tableExists(Database db, String table) async {
+    final rows = await db.rawQuery(
+      "SELECT 1 FROM sqlite_master WHERE type='table' AND name=? LIMIT 1;",
+      [table],
+    );
+    return rows.isNotEmpty;
   }
 
   static Future<void> _initializeGlobalPlaylistPositions(Database db) async {

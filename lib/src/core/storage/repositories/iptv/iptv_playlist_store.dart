@@ -26,19 +26,22 @@ class IptvPlaylistStore {
   final PlaylistTypeNormalizer _normalizePlaylistType;
   final PlaylistItemTypeNormalizer _normalizeItemType;
 
-  Future<void> migrateLegacyPlaylistsForAccount(String accountId) async {
+  Future<void> migrateLegacyPlaylistsForAccount({
+    required String ownerId,
+    required String accountId,
+  }) async {
     final legacyHasAny = await _hasAnyRow(
       table: IptvStorageTables.playlistsLegacy,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[accountId],
+      where: 'owner_id = ? AND account_id = ?',
+      whereArgs: <Object?>[ownerId, accountId],
     );
     if (!legacyHasAny) return;
 
     final legacyRows = await _db.query(
       IptvStorageTables.playlistsLegacy,
       columns: const ['category_id', 'updated_at'],
-      where: 'account_id = ?',
-      whereArgs: <Object?>[accountId],
+      where: 'owner_id = ? AND account_id = ?',
+      whereArgs: <Object?>[ownerId, accountId],
     );
     if (legacyRows.isEmpty) return;
 
@@ -49,8 +52,8 @@ class IptvPlaylistStore {
       final payloadRow = await _db.query(
         IptvStorageTables.playlistsLegacy,
         columns: const ['payload'],
-        where: 'account_id = ? AND category_id = ?',
-        whereArgs: <Object?>[accountId, playlistId],
+        where: 'owner_id = ? AND account_id = ? AND category_id = ?',
+        whereArgs: <Object?>[ownerId, accountId, playlistId],
         limit: 1,
       );
       if (payloadRow.isEmpty) continue;
@@ -68,6 +71,7 @@ class IptvPlaylistStore {
         await txn.insert(
           IptvStorageTables.playlists,
           <String, Object?>{
+            'owner_id': ownerId,
             'account_id': accountId,
             'playlist_id': playlistId,
             'title': title,
@@ -79,8 +83,8 @@ class IptvPlaylistStore {
 
         await txn.delete(
           IptvStorageTables.playlistItems,
-          where: 'account_id = ? AND playlist_id = ?',
-          whereArgs: <Object?>[accountId, playlistId],
+          where: 'owner_id = ? AND account_id = ? AND playlist_id = ?',
+          whereArgs: <Object?>[ownerId, accountId, playlistId],
         );
 
         if (itemsList.isNotEmpty) {
@@ -102,6 +106,7 @@ class IptvPlaylistStore {
             batch.insert(
               IptvStorageTables.playlistItems,
               <String, Object?>{
+                'owner_id': ownerId,
                 'account_id': accountId,
                 'playlist_id': playlistId,
                 'stream_id': streamId,
@@ -128,8 +133,8 @@ class IptvPlaylistStore {
 
         await txn.delete(
           IptvStorageTables.playlistsLegacy,
-          where: 'account_id = ? AND category_id = ?',
-          whereArgs: <Object?>[accountId, playlistId],
+          where: 'owner_id = ? AND account_id = ? AND category_id = ?',
+          whereArgs: <Object?>[ownerId, accountId, playlistId],
         );
       });
 
@@ -139,8 +144,9 @@ class IptvPlaylistStore {
 
   Future<void> savePlaylists(
     String accountId,
-    List<XtreamPlaylist> playlists,
-  ) async {
+    List<XtreamPlaylist> playlists, {
+    required String ownerId,
+  }) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
     for (final playlist in playlists) {
@@ -148,6 +154,7 @@ class IptvPlaylistStore {
         await txn.insert(
           IptvStorageTables.playlists,
           <String, Object?>{
+            'owner_id': ownerId,
             'account_id': accountId,
             'playlist_id': playlist.id,
             'title': playlist.title,
@@ -159,8 +166,8 @@ class IptvPlaylistStore {
 
         await txn.delete(
           IptvStorageTables.playlistItems,
-          where: 'account_id = ? AND playlist_id = ?',
-          whereArgs: <Object?>[accountId, playlist.id],
+          where: 'owner_id = ? AND account_id = ? AND playlist_id = ?',
+          whereArgs: <Object?>[ownerId, accountId, playlist.id],
         );
 
         if (playlist.items.isNotEmpty) {
@@ -172,6 +179,7 @@ class IptvPlaylistStore {
             batch.insert(
               IptvStorageTables.playlistItems,
               <String, Object?>{
+                'owner_id': ownerId,
                 'account_id': accountId,
                 'playlist_id': playlist.id,
                 'stream_id': item.streamId,
@@ -198,8 +206,8 @@ class IptvPlaylistStore {
 
         await txn.delete(
           IptvStorageTables.playlistsLegacy,
-          where: 'account_id = ? AND category_id = ?',
-          whereArgs: <Object?>[accountId, playlist.id],
+          where: 'owner_id = ? AND account_id = ? AND category_id = ?',
+          whereArgs: <Object?>[ownerId, accountId, playlist.id],
         );
       });
     }
@@ -207,13 +215,14 @@ class IptvPlaylistStore {
 
   Future<List<XtreamPlaylist>> getPlaylists(
     String accountId, {
+    required String ownerId,
     int? itemLimit,
   }) async {
     final rows = await _db.query(
       IptvStorageTables.playlists,
       columns: const ['playlist_id', 'title', 'type'],
-      where: 'account_id = ?',
-      whereArgs: <Object?>[accountId],
+      where: 'owner_id = ? AND account_id = ?',
+      whereArgs: <Object?>[ownerId, accountId],
     );
 
     final playlists = <XtreamPlaylist>[];
@@ -227,6 +236,7 @@ class IptvPlaylistStore {
       final items = (itemLimit != null && itemLimit <= 0)
           ? const <XtreamPlaylistItem>[]
           : await getPlaylistItems(
+              ownerId: ownerId,
               accountId: accountId,
               playlistId: playlistId,
               categoryName: title,
@@ -249,6 +259,7 @@ class IptvPlaylistStore {
   }
 
   Future<List<XtreamPlaylistItem>> getPlaylistItems({
+    required String ownerId,
     required String accountId,
     required String playlistId,
     required String categoryName,
@@ -268,8 +279,8 @@ class IptvPlaylistStore {
         'rating',
         'release_year',
       ],
-      where: 'account_id = ? AND playlist_id = ?',
-      whereArgs: <Object?>[accountId, playlistId],
+      where: 'owner_id = ? AND account_id = ? AND playlist_id = ?',
+      whereArgs: <Object?>[ownerId, accountId, playlistId],
       orderBy: 'position ASC',
       limit: limit,
       offset: offset,

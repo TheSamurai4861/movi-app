@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/storage/repositories/content_cache_repository.dart'
     as content_cache_repo;
@@ -18,6 +20,8 @@ class LocalDataCleanupService {
       _sl = sl;
 
   static const List<String> _secureStorageKeysToRemove = <String>[
+    SelectedProfilePreferences.defaultStorageKey,
+    SelectedIptvSourcePreferences.defaultStorageKey,
     'selected_profile_id',
     'selected_iptv_source_id',
     'accent_color',
@@ -30,6 +34,8 @@ class LocalDataCleanupService {
   ];
 
   static const List<String> _sensitiveSessionKeysToRemove = <String>[
+    SelectedProfilePreferences.defaultStorageKey,
+    SelectedIptvSourcePreferences.defaultStorageKey,
     'selected_profile_id',
     'selected_iptv_source_id',
   ];
@@ -55,12 +61,12 @@ class LocalDataCleanupService {
   Future<void> clearAllLocalData() async {
     _log('Starting local data cleanup...');
 
-    final iptvAccounts = await _loadIptvAccountsForCleanup();
+    final cleanupTargets = await _loadIptvCleanupTargets();
 
     // Important : supprimer les credentials avant les comptes IPTV,
     // sinon les identifiants peuvent ne plus être accessibles.
-    await _clearCredentialsVault(iptvAccounts);
-    await _clearIptvData(iptvAccounts);
+    await _clearCredentialsVault(cleanupTargets.accountIds);
+    await _clearIptvData(cleanupTargets);
 
     await _clearHistory();
     await _clearPlaylists();
@@ -73,34 +79,56 @@ class LocalDataCleanupService {
     _log('Local data cleanup completed');
   }
 
-  Future<List<dynamic>> _loadIptvAccountsForCleanup() async {
+  Future<_IptvCleanupTargets> _loadIptvCleanupTargets() async {
     final iptvRepository = _getOptional<IptvLocalRepository>();
     if (iptvRepository == null) {
-      return const <dynamic>[];
+      return const _IptvCleanupTargets.empty();
     }
 
     try {
-      return await iptvRepository.getAccounts();
+      final xtreamAccounts = await iptvRepository.getAccounts(
+        includeAllOwners: true,
+      );
+      final stalkerAccounts = await iptvRepository.getStalkerAccounts(
+        includeAllOwners: true,
+      );
+      return _IptvCleanupTargets(
+        xtreamAccountIds: xtreamAccounts.map((account) => account.id).toList(),
+        stalkerAccountIds: stalkerAccounts
+            .map((account) => account.id)
+            .toList(),
+      );
     } catch (error, stackTrace) {
       _log('Error loading IPTV accounts for cleanup: $error\n$stackTrace');
-      return const <dynamic>[];
+      return const _IptvCleanupTargets.empty();
     }
   }
 
-  Future<void> _clearIptvData(List<dynamic> accounts) async {
+  Future<void> _clearIptvData(_IptvCleanupTargets targets) async {
     final iptvRepository = _getOptional<IptvLocalRepository>();
-    if (iptvRepository == null || accounts.isEmpty) {
+    if (iptvRepository == null || targets.isEmpty) {
       return;
     }
 
     await _runSafely(
       errorContext: 'clearing IPTV data',
       action: () async {
-        for (final account in accounts) {
-          await iptvRepository.removeAccount(account.id);
+        for (final accountId in targets.xtreamAccountIds) {
+          await iptvRepository.removeAccount(
+            accountId,
+            includeAllOwners: true,
+          );
+        }
+        for (final accountId in targets.stalkerAccountIds) {
+          await iptvRepository.removeStalkerAccount(
+            accountId,
+            includeAllOwners: true,
+          );
         }
 
-        _log('Cleared ${accounts.length} IPTV account(s)');
+        _log(
+          'Cleared ${targets.accountIds.length} IPTV account(s) across all owners',
+        );
       },
     );
   }
@@ -189,21 +217,21 @@ class LocalDataCleanupService {
     );
   }
 
-  Future<void> _clearCredentialsVault(List<dynamic> accounts) async {
+  Future<void> _clearCredentialsVault(List<String> accountIds) async {
     final credentialsVault = _getOptional<CredentialsVault>();
-    if (credentialsVault == null || accounts.isEmpty) {
+    if (credentialsVault == null || accountIds.isEmpty) {
       return;
     }
 
     await _runSafely(
       errorContext: 'clearing credentials vault',
       action: () async {
-        for (final account in accounts) {
+        for (final accountId in accountIds) {
           try {
-            await credentialsVault.removePassword(account.id);
+            await credentialsVault.removePassword(accountId);
           } catch (error) {
             _log(
-              'Skipped credential removal for account "${account.id}": $error',
+              'Skipped credential removal for account "$accountId": $error',
             );
           }
         }
@@ -256,4 +284,25 @@ class LocalDataCleanupService {
 
     debugPrint('[LocalDataCleanupService] $message');
   }
+}
+
+final class _IptvCleanupTargets {
+  const _IptvCleanupTargets({
+    required this.xtreamAccountIds,
+    required this.stalkerAccountIds,
+  });
+
+  const _IptvCleanupTargets.empty()
+    : xtreamAccountIds = const <String>[],
+      stalkerAccountIds = const <String>[];
+
+  final List<String> xtreamAccountIds;
+  final List<String> stalkerAccountIds;
+
+  List<String> get accountIds => <String>{
+    ...xtreamAccountIds,
+    ...stalkerAccountIds,
+  }.toList(growable: false);
+
+  bool get isEmpty => xtreamAccountIds.isEmpty && stalkerAccountIds.isEmpty;
 }

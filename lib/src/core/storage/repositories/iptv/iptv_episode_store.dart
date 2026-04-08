@@ -9,6 +9,7 @@ class IptvEpisodeStore {
   final Database _db;
 
   Future<void> saveEpisodes({
+    required String ownerId,
     required String accountId,
     required int seriesId,
     required Map<int, Map<int, EpisodeData>> episodes,
@@ -18,8 +19,8 @@ class IptvEpisodeStore {
 
     batch.delete(
       IptvStorageTables.episodes,
-      where: 'account_id = ? AND series_id = ?',
-      whereArgs: <Object?>[accountId, seriesId],
+      where: 'owner_id = ? AND account_id = ? AND series_id = ?',
+      whereArgs: <Object?>[ownerId, accountId, seriesId],
     );
 
     for (final seasonEntry in episodes.entries) {
@@ -28,6 +29,7 @@ class IptvEpisodeStore {
         final episodeNumber = episodeEntry.key;
         final episodeData = episodeEntry.value;
         batch.insert(IptvStorageTables.episodes, <String, Object?>{
+          'owner_id': ownerId,
           'account_id': accountId,
           'series_id': seriesId,
           'season_number': seasonNumber,
@@ -43,12 +45,14 @@ class IptvEpisodeStore {
   }
 
   Future<int?> getEpisodeId({
+    required String ownerId,
     required String accountId,
     required int seriesId,
     required int seasonNumber,
     required int episodeNumber,
   }) async {
     final data = await getEpisodeData(
+      ownerId: ownerId,
       accountId: accountId,
       seriesId: seriesId,
       seasonNumber: seasonNumber,
@@ -58,6 +62,7 @@ class IptvEpisodeStore {
   }
 
   Future<EpisodeData?> getEpisodeData({
+    required String ownerId,
     required String accountId,
     required int seriesId,
     required int seasonNumber,
@@ -67,8 +72,14 @@ class IptvEpisodeStore {
       IptvStorageTables.episodes,
       columns: const ['episode_id', 'extension'],
       where:
-          'account_id = ? AND series_id = ? AND season_number = ? AND episode_number = ?',
-      whereArgs: <Object?>[accountId, seriesId, seasonNumber, episodeNumber],
+          'owner_id = ? AND account_id = ? AND series_id = ? AND season_number = ? AND episode_number = ?',
+      whereArgs: <Object?>[
+        ownerId,
+        accountId,
+        seriesId,
+        seasonNumber,
+        episodeNumber,
+      ],
       limit: 1,
     );
 
@@ -82,13 +93,14 @@ class IptvEpisodeStore {
   }
 
   Future<Map<int, Map<int, EpisodeData>>> getAllEpisodesForSeries({
+    required String ownerId,
     required String accountId,
     required int seriesId,
   }) async {
     final rows = await _db.query(
       IptvStorageTables.episodes,
-      where: 'account_id = ? AND series_id = ?',
-      whereArgs: <Object?>[accountId, seriesId],
+      where: 'owner_id = ? AND account_id = ? AND series_id = ?',
+      whereArgs: <Object?>[ownerId, accountId, seriesId],
       orderBy: 'season_number ASC, episode_number ASC',
     );
 

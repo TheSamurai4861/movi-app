@@ -18,13 +18,16 @@ class IptvPlaylistQueryStore {
   final PlaylistItemTypeNormalizer _normalizeItemType;
 
   Future<Set<int>> getAvailableTmdbIds({
+    required String ownerId,
     XtreamPlaylistItemType? type,
     Set<String>? accountIds,
   }) async {
     if (accountIds != null && accountIds.isEmpty) return <int>{};
 
-    final where = StringBuffer('tmdb_id IS NOT NULL AND tmdb_id > 0');
-    final args = <Object?>[];
+    final where = StringBuffer(
+      'owner_id = ? AND tmdb_id IS NOT NULL AND tmdb_id > 0',
+    );
+    final args = <Object?>[ownerId];
     if (type != null) {
       where.write(' AND type = ?');
       args.add(type.name);
@@ -59,6 +62,7 @@ class IptvPlaylistQueryStore {
   }
 
   Future<List<XtreamPlaylistItem>> getAllPlaylistItems({
+    required String ownerId,
     Set<String>? accountIds,
     XtreamPlaylistItemType? type,
   }) async {
@@ -66,8 +70,8 @@ class IptvPlaylistQueryStore {
       return const <XtreamPlaylistItem>[];
     }
 
-    final where = StringBuffer('1 = 1');
-    final args = <Object?>[];
+    final where = StringBuffer('i.owner_id = ?');
+    final args = <Object?>[ownerId];
     if (accountIds != null && accountIds.isNotEmpty) {
       where.write(' AND i.account_id IN (');
       where.write(List.filled(accountIds.length, '?').join(','));
@@ -95,7 +99,8 @@ class IptvPlaylistQueryStore {
         i.release_year AS release_year
       FROM ${IptvStorageTables.playlistItems} i
       JOIN ${IptvStorageTables.playlists} p
-        ON p.account_id = i.account_id
+        ON p.owner_id = i.owner_id
+       AND p.account_id = i.account_id
        AND p.playlist_id = i.playlist_id
       WHERE $where
       ORDER BY i.account_id, i.playlist_id, i.position
@@ -107,15 +112,18 @@ class IptvPlaylistQueryStore {
         .toList(growable: false);
   }
 
-  Future<bool> hasAnyPlaylistItems({Set<String>? accountIds}) async {
+  Future<bool> hasAnyPlaylistItems({
+    required String ownerId,
+    Set<String>? accountIds,
+  }) async {
     if (accountIds != null && accountIds.isNotEmpty) {
       final where =
-          'account_id IN (${List.filled(accountIds.length, '?').join(',')})';
+          'owner_id = ? AND account_id IN (${List.filled(accountIds.length, '?').join(',')})';
       final rows = await _db.query(
         IptvStorageTables.playlistItems,
         columns: const ['account_id'],
         where: where,
-        whereArgs: accountIds.toList(),
+        whereArgs: <Object?>[ownerId, ...accountIds],
         limit: 1,
       );
       return rows.isNotEmpty;
@@ -124,6 +132,8 @@ class IptvPlaylistQueryStore {
     final rows = await _db.query(
       IptvStorageTables.playlistItems,
       columns: const ['account_id'],
+      where: 'owner_id = ?',
+      whereArgs: <Object?>[ownerId],
       limit: 1,
     );
     return rows.isNotEmpty;
@@ -131,6 +141,7 @@ class IptvPlaylistQueryStore {
 
   Future<List<XtreamPlaylistItem>> searchItems(
     String query, {
+    required String ownerId,
     int limit = 500,
     Set<String>? accountIds,
   }) async {
@@ -146,11 +157,13 @@ class IptvPlaylistQueryStore {
     final like = '%$trimmedQuery%';
     final prefix = '$trimmedQuery%';
     final where = StringBuffer('''
+        i.owner_id = ?
+        AND
         i.title IS NOT NULL
         AND i.title <> ''
         AND i.title LIKE ? COLLATE NOCASE
       ''');
-    final args = <Object?>[like];
+    final args = <Object?>[ownerId, like];
     if (accountIds != null && accountIds.isNotEmpty) {
       where.write(' AND i.account_id IN (');
       where.write(List.filled(accountIds.length, '?').join(','));
@@ -175,7 +188,8 @@ class IptvPlaylistQueryStore {
         i.release_year AS release_year
       FROM ${IptvStorageTables.playlistItems} i
       JOIN ${IptvStorageTables.playlists} p
-        ON p.account_id = i.account_id
+        ON p.owner_id = i.owner_id
+       AND p.account_id = i.account_id
        AND p.playlist_id = i.playlist_id
       WHERE $where
       ORDER BY

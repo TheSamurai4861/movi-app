@@ -162,6 +162,8 @@ class IptvConnectController extends Notifier<IptvConnectState> {
   ///   - localOnly: ne touche pas Supabase
   ///   - bestEffortSupabase: tente l'upsert Supabase mais succès même si ça échoue
   ///   - requireSupabase: succès uniquement si l'upsert Supabase est confirmé
+  /// - [runCatalogSyncInBackground]: si false, le caller devient responsable
+  ///   du rafraîchissement catalogue après activation.
   Future<bool> connect({
     required IptvSourceType sourceType,
     required String serverUrl,
@@ -169,6 +171,7 @@ class IptvConnectController extends Notifier<IptvConnectState> {
     String? password,
     String? macAddress,
     String? alias,
+    bool runCatalogSyncInBackground = true,
   }) async {
     final rawUrl = serverUrl.trim();
     final rawUser = username?.trim() ?? '';
@@ -230,7 +233,9 @@ class IptvConnectController extends Notifier<IptvConnectState> {
             warning:
                 'Connexion OK (local). Supabase non mis à jour (policy localOnly).',
           );
-          unawaited(_runBackgroundSync(accountId));
+          if (runCatalogSyncInBackground) {
+            unawaited(_runBackgroundSync(accountId));
+          }
           return true;
         }
 
@@ -256,7 +261,9 @@ class IptvConnectController extends Notifier<IptvConnectState> {
           );
         }
 
-        unawaited(_runBackgroundSync(accountId));
+        if (runCatalogSyncInBackground) {
+          unawaited(_runBackgroundSync(accountId));
+        }
         state = state.copyWith(isLoading: false);
         return true;
       } else {
@@ -303,7 +310,9 @@ class IptvConnectController extends Notifier<IptvConnectState> {
 
         // Pour Stalker, on ne persiste pas encore sur Supabase (à implémenter si nécessaire)
         state = state.copyWith(isLoading: false);
-        unawaited(_runBackgroundSync(accountId));
+        if (runCatalogSyncInBackground) {
+          unawaited(_runBackgroundSync(accountId));
+        }
         return true;
       }
     } catch (e) {

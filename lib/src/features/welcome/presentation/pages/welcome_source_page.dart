@@ -347,6 +347,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
       username: username,
       password: password,
       alias: alias,
+      runCatalogSyncInBackground: false,
     );
 
     if (!mounted) return;

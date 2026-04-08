@@ -9,10 +9,10 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
 import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
+import 'package:movi/src/core/router/app_route_ids.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
-import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
@@ -193,9 +193,6 @@ class _WelcomeSourceSelectPageState
                             final appStateController =
                                 ref.read(appStateControllerProvider);
                             appStateController.setActiveIptvSources({account.id});
-                            ref
-                                .read(appEventBusProvider)
-                                .emit(const AppEvent(AppEventType.iptvSynced));
 
                             try {
                               await pushUserPreferencesIfSignedIn(
@@ -216,7 +213,12 @@ class _WelcomeSourceSelectPageState
                             );
 
                             if (!context.mounted) return;
-                            context.go(AppRouteNames.welcomeSourceLoading);
+                            context.goNamed(
+                              AppRouteIds.welcomeSourceLoading,
+                              queryParameters: const <String, String>{
+                                'force_reload': '1',
+                              },
+                            );
                           },
                         );
                       },

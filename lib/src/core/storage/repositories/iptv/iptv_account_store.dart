@@ -15,8 +15,12 @@ class IptvAccountStore {
 
   final Database _db;
 
-  Future<void> saveAccount(XtreamAccount account) async {
+  Future<void> saveAccount({
+    required String ownerId,
+    required XtreamAccount account,
+  }) async {
     await _db.insert(IptvStorageTables.accounts, <String, Object?>{
+      'owner_id': ownerId,
       'account_id': account.id,
       'alias': account.alias,
       'endpoint': account.endpoint.toRawUrl(),
@@ -28,24 +32,32 @@ class IptvAccountStore {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<List<XtreamAccount>> getAccounts() async {
-    final rows = await _db.query(IptvStorageTables.accounts);
+  Future<List<XtreamAccount>> getAccounts({String? ownerId}) async {
+    final rows = await _db.query(
+      IptvStorageTables.accounts,
+      where: ownerId == null ? null : 'owner_id = ?',
+      whereArgs: ownerId == null ? null : <Object?>[ownerId],
+    );
     return rows.map(_parseAccountRow).toList(growable: false);
   }
 
-  Future<void> removeAccount(String id) async {
+  Future<void> removeAccount(String id, {String? ownerId}) async {
     await _db.delete(
       IptvStorageTables.accounts,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
-    await _deleteAssociatedAccountData(id);
+    await _deleteAssociatedAccountData(id, ownerId: ownerId);
   }
 
-  Future<void> saveStalkerAccount(StalkerAccount account) async {
+  Future<void> saveStalkerAccount({
+    required String ownerId,
+    required StalkerAccount account,
+  }) async {
     await _db.insert(
       IptvStorageTables.stalkerAccounts,
       <String, Object?>{
+        'owner_id': ownerId,
         'account_id': account.id,
         'alias': account.alias,
         'endpoint': account.endpoint.toRawUrl(),
@@ -61,36 +73,42 @@ class IptvAccountStore {
     );
   }
 
-  Future<List<StalkerAccount>> getStalkerAccounts() async {
-    final rows = await _db.query(IptvStorageTables.stalkerAccounts);
+  Future<List<StalkerAccount>> getStalkerAccounts({String? ownerId}) async {
+    final rows = await _db.query(
+      IptvStorageTables.stalkerAccounts,
+      where: ownerId == null ? null : 'owner_id = ?',
+      whereArgs: ownerId == null ? null : <Object?>[ownerId],
+    );
     return rows.map(_parseStalkerAccountRow).toList(growable: false);
   }
 
-  Future<StalkerAccount?> getStalkerAccount(String id) async {
+  Future<StalkerAccount?> getStalkerAccount(String id, {String? ownerId}) async {
     final rows = await _db.query(
       IptvStorageTables.stalkerAccounts,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
       limit: 1,
     );
     if (rows.isEmpty) return null;
     return _parseStalkerAccountRow(rows.first);
   }
 
-  Future<void> removeStalkerAccount(String id) async {
+  Future<void> removeStalkerAccount(String id, {String? ownerId}) async {
     await _db.delete(
       IptvStorageTables.stalkerAccounts,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
-    await _deleteAssociatedAccountData(id);
+    await _deleteAssociatedAccountData(id, ownerId: ownerId);
   }
 
   Future<Set<String>> resolveAccountIds(
     Set<String>? requestedAccountIds,
-  ) async {
-    final xtreamAccounts = await getAccounts();
-    final stalkerAccounts = await getStalkerAccounts();
+    {
+    String? ownerId,
+  }) async {
+    final xtreamAccounts = await getAccounts(ownerId: ownerId);
+    final stalkerAccounts = await getStalkerAccounts(ownerId: ownerId);
     final ids = <String>{
       ...xtreamAccounts.map((account) => account.id),
       ...stalkerAccounts.map((account) => account.id),
@@ -107,32 +125,46 @@ class IptvAccountStore {
     return ids;
   }
 
-  Future<void> _deleteAssociatedAccountData(String id) async {
+  Future<void> _deleteAssociatedAccountData(String id, {String? ownerId}) async {
     await _db.delete(
       IptvStorageTables.playlistItems,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
     await _db.delete(
       IptvStorageTables.playlists,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
     await _db.delete(
       IptvStorageTables.playlistsLegacy,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
     await _db.delete(
       IptvStorageTables.episodes,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
     await _db.delete(
       IptvStorageTables.playlistSettings,
-      where: 'account_id = ?',
-      whereArgs: <Object?>[id],
+      where: _withOptionalOwnerFilter('account_id = ?', ownerId),
+      whereArgs: _withOptionalOwnerArgs(ownerId, <Object?>[id]),
     );
+  }
+
+  String _withOptionalOwnerFilter(String baseWhere, String? ownerId) {
+    if (ownerId == null) {
+      return baseWhere;
+    }
+    return 'owner_id = ? AND $baseWhere';
+  }
+
+  List<Object?> _withOptionalOwnerArgs(String? ownerId, List<Object?> args) {
+    if (ownerId == null) {
+      return args;
+    }
+    return <Object?>[ownerId, ...args];
   }
 
   XtreamAccount _parseAccountRow(Map<String, Object?> row) {

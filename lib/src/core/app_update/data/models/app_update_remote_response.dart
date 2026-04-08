@@ -97,7 +97,7 @@ class AppUpdateRemoteResponse {
 
   Map<String, dynamic> toCacheJson() {
     return <String, dynamic>{
-      'status': status.name,
+      'status': _encodeStatus(status),
       'reasonCode': reasonCode,
       'currentVersion': currentVersion,
       'platform': platform,
@@ -174,11 +174,24 @@ class AppUpdateRemoteResponse {
       case 'allowed':
         return AppUpdateStatus.allowed;
       case 'soft_update':
+      case 'softupdate':
         return AppUpdateStatus.softUpdate;
       case 'force_update':
+      case 'forceupdate':
         return AppUpdateStatus.forceUpdate;
       default:
         throw FormatException('Unknown app update status "$status".');
+    }
+  }
+
+  static String _encodeStatus(AppUpdateStatus status) {
+    switch (status) {
+      case AppUpdateStatus.allowed:
+        return 'allowed';
+      case AppUpdateStatus.softUpdate:
+        return 'soft_update';
+      case AppUpdateStatus.forceUpdate:
+        return 'force_update';
     }
   }
 

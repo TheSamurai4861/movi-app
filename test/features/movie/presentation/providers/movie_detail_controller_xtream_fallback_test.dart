@@ -137,10 +137,14 @@ class _FakeIptvLocalRepository implements IptvLocalRepository {
   final Map<String, List<XtreamPlaylist>> playlistsByAccount;
 
   @override
-  Future<List<XtreamAccount>> getAccounts() async => accounts;
+  Future<List<XtreamAccount>> getAccounts({
+    bool includeAllOwners = false,
+  }) async => accounts;
 
   @override
-  Future<List<StalkerAccount>> getStalkerAccounts() async =>
+  Future<List<StalkerAccount>> getStalkerAccounts({
+    bool includeAllOwners = false,
+  }) async =>
       const <StalkerAccount>[];
 
   @override

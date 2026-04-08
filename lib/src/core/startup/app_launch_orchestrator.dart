@@ -1093,6 +1093,20 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       }
 
       final preferredFinal = preferred;
+      final preferredTrimmed = preferredFinal?.trim();
+      final hasInvalidPreferredSelection =
+          preferredTrimmed != null &&
+          preferredTrimmed.isNotEmpty &&
+          !validIds.contains(preferredTrimmed);
+      if (hasInvalidPreferredSelection) {
+        _logIptvContext(
+          context: 'bootstrap_source_selection_invalid',
+          currentUserId: meta.accountId,
+          selectedSourceId: preferredTrimmed,
+          activeSourceIds: _appStateController.activeIptvSourceIds,
+          detail: 'validSourceIds=${_formatIptvIds(validIds)}',
+        );
+      }
       if (kDebugMode) {
         debugPrint(
           '[BOOTSTRAP] Preferred source present=${preferredFinal != null} '
@@ -1140,7 +1154,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           fields: <String, Object?>{'sourcesCount': validIds.length},
         );
       } else {
-        final stale = preferredFinal?.trim();
+        final stale = preferredTrimmed;
         if (stale != null && stale.isNotEmpty && !validIds.contains(stale)) {
           await _selectedIptvSourcePreferences.clear();
         }
@@ -1512,6 +1526,36 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     unawaited(
       LoggingService.log(
         '[IptvSync] ts=$ts reason=$reason action=$action$extra$runId',
+        category: 'startup',
+      ),
+    );
+  }
+
+  void _logIptvContext({
+    required String context,
+    String? currentUserId,
+    String? selectedSourceId,
+    Iterable<String>? activeSourceIds,
+    bool? mustRefreshCatalog,
+    String? detail,
+  }) {
+    final activeIds = _formatIptvIds(activeSourceIds);
+    final selectedId = _normalizeLogValue(selectedSourceId);
+    final userId = _normalizeLogValue(currentUserId);
+    final owner = _resolveIptvOwnerLabel(currentUserId);
+    final mustRefresh = mustRefreshCatalog == null
+        ? 'n/a'
+        : mustRefreshCatalog.toString();
+    final extra = detail == null || detail.isEmpty ? '' : ' detail=$detail';
+    unawaited(
+      LoggingService.log(
+        '[IptvContext] context=$context '
+        'currentUserId=$userId '
+        'selectedSourceId=$selectedId '
+        'activeSourceIds=$activeIds '
+        'mustRefreshCatalog=$mustRefresh '
+        'sourceOwner=$owner$extra',
+        category: 'startup',
       ),
     );
   }
@@ -1520,7 +1564,18 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     String reason = 'preload',
   }) async {
     final activeIds = _appStateController.activeIptvSourceIds;
+    final currentUserId = _currentUserIdOrNull();
+    final selectedSourceId = _selectedIptvSourcePreferences.selectedSourceId
+        ?.trim();
     if (activeIds.isEmpty) {
+      _logIptvContext(
+        context: 'catalog_ready:$reason',
+        currentUserId: currentUserId,
+        selectedSourceId: selectedSourceId,
+        activeSourceIds: activeIds,
+        mustRefreshCatalog: false,
+        detail: 'no_active_sources',
+      );
       _logIptvSyncDecision(
         reason: reason,
         action: 'skip',
@@ -1534,6 +1589,19 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     final xtreamIds = xtreamAccounts.map((a) => a.id).toSet();
     final stalkerIds = stalkerAccounts.map((a) => a.id).toSet();
+    final knownSourceIds = <String>{...xtreamIds, ...stalkerIds};
+    final missingActiveIds = activeIds.difference(knownSourceIds);
+    if (missingActiveIds.isNotEmpty) {
+      _logIptvContext(
+        context: 'catalog_ready:$reason',
+        currentUserId: currentUserId,
+        selectedSourceId: selectedSourceId,
+        activeSourceIds: activeIds,
+        detail:
+            'active_sources_missing=${_formatIptvIds(missingActiveIds)} '
+            'knownSourceIds=${_formatIptvIds(knownSourceIds)}',
+      );
+    }
 
     var needsRefresh = false;
     for (final id in activeIds) {
@@ -1551,6 +1619,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       final hasAny = await _iptvLocalRepository.hasAnyPlaylistItems(
         accountIds: activeIds,
       );
+      _logIptvContext(
+        context: 'catalog_ready:$reason',
+        currentUserId: currentUserId,
+        selectedSourceId: selectedSourceId,
+        activeSourceIds: activeIds,
+        mustRefreshCatalog: !hasAny,
+        detail: hasAny ? 'fresh_snapshot' : 'missing_playlist_items',
+      );
       if (hasAny) {
         _logIptvSyncDecision(
           reason: reason,
@@ -1559,6 +1635,17 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         );
         return const _IptvPreloadResult(catalogReady: true, refreshed: false);
       }
+    }
+
+    if (needsRefresh) {
+      _logIptvContext(
+        context: 'catalog_ready:$reason',
+        currentUserId: currentUserId,
+        selectedSourceId: selectedSourceId,
+        activeSourceIds: activeIds,
+        mustRefreshCatalog: true,
+        detail: 'playlist_snapshot_missing',
+      );
     }
 
     _logIptvSyncDecision(
@@ -1815,5 +1902,45 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         // best-effort
       }
     }
+  }
+
+  String? _currentUserIdOrNull() {
+    final session = ref.read(authRepositoryProvider).currentSession;
+    final id = session?.userId.trim();
+    if (id == null || id.isEmpty) {
+      return null;
+    }
+    return id;
+  }
+
+  String _resolveIptvOwnerLabel(String? currentUserId) {
+    final normalized = currentUserId?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return 'device_local';
+    }
+    return normalized;
+  }
+
+  String _normalizeLogValue(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return 'none';
+    }
+    return normalized;
+  }
+
+  String _formatIptvIds(Iterable<String>? ids) {
+    if (ids == null) {
+      return 'none';
+    }
+    final normalized = ids
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList(growable: false)
+      ..sort();
+    if (normalized.isEmpty) {
+      return 'none';
+    }
+    return normalized.join(',');
   }
 }
