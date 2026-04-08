@@ -16,14 +16,6 @@ import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/controllers/profiles_controller.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
-import 'package:movi/src/core/subscription/application/usecases/can_access_premium_feature.dart';
-import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
-import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_entitlement.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_status.dart';
-import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
@@ -56,21 +48,8 @@ void main() {
         overrides: [
           profilesControllerProvider.overrideWith(() => fakeProfiles),
           selectedProfileIdProvider.overrideWithValue('p1'),
-          canAccessPremiumFeatureUseCaseProvider.overrideWithValue(
-            CanAccessPremiumFeature(
-              _FakeSubscriptionRepository(
-                snapshot: SubscriptionSnapshot(
-                  status: SubscriptionStatus.inactive,
-                  billingAvailability: BillingAvailability.available,
-                  entitlements: const [
-                    SubscriptionEntitlement(
-                      feature: PremiumFeature.localProfiles,
-                      isActive: false,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          canAccessPremiumFeatureProvider.overrideWith(
+            (ref, feature) async => false,
           ),
           libraryCloudSyncControllerProvider.overrideWith(
             () => _FakeLibraryCloudSyncController(),
@@ -123,21 +102,8 @@ void main() {
         overrides: [
           profilesControllerProvider.overrideWith(() => fakeProfiles),
           selectedProfileIdProvider.overrideWithValue('p1'),
-          canAccessPremiumFeatureUseCaseProvider.overrideWithValue(
-            CanAccessPremiumFeature(
-              _FakeSubscriptionRepository(
-                snapshot: SubscriptionSnapshot(
-                  status: SubscriptionStatus.active,
-                  billingAvailability: BillingAvailability.available,
-                  entitlements: const [
-                    SubscriptionEntitlement(
-                      feature: PremiumFeature.localProfiles,
-                      isActive: true,
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          canAccessPremiumFeatureProvider.overrideWith(
+            (ref, feature) async => true,
           ),
           libraryCloudSyncControllerProvider.overrideWith(
             () => _FakeLibraryCloudSyncController(),
@@ -214,33 +180,6 @@ class _FakeAuthController extends AuthController {
   @override
   AuthControllerState build() {
     return const AuthControllerState(status: AuthStatus.unauthenticated);
-  }
-}
-
-class _FakeSubscriptionRepository implements SubscriptionRepository {
-  _FakeSubscriptionRepository({required this.snapshot});
-
-  final SubscriptionSnapshot snapshot;
-
-  @override
-  Future<SubscriptionSnapshot> getCurrentSubscription() async => snapshot;
-
-  @override
-  Future<List<SubscriptionOffer>> loadAvailableOffers() async => const [];
-
-  @override
-  Future<SubscriptionSnapshot> purchaseSubscription({required String offerId}) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<SubscriptionSnapshot> refreshSubscription() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<SubscriptionSnapshot> restoreSubscription() {
-    throw UnimplementedError();
   }
 }
 
@@ -494,4 +433,3 @@ class _MemorySelectedIptvSourcePreferences implements SelectedIptvSourcePreferen
     await _controller.close();
   }
 }
-

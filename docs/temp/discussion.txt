@@ -1,0 +1,38 @@
+[Crunch] Couleur sombre ok
+[Crunch] Démarrage ko 😅
+[Crunch] J'avais 2 anciennes listes encore visibles sur mon adresse de connexion. J'ai activé une des 2 pour test, et je tombe sur ça, malgré la suppression des données : ça charge quelques secondes puis plus rien.
+
+[TheSamurai] Coupe complètement et redémarre.
+[TheSamurai] C’est galère des fois je te jure 😂
+
+[Crunch] Rien n'y fait, même en vidant le cache, les données, en fermant complètement l’appli, etc.
+[Crunch] Je verrai à la prochaine maj, pas grave 😉
+
+[TheSamurai] Mets-toi sur ta 4G par hasard ?
+[TheSamurai] J’avais eu ce bug quand j’étais sur un wifi qui bloque certaines sources.
+
+[Crunch] Pareil...
+
+[TheSamurai] Bah mince…
+[TheSamurai] Je fais une maj bientôt normalement.
+[TheSamurai] Tu sais me décrire exactement comment t’en es arrivé de « ça fonctionne » à ceci ?
+
+[Crunch] Hier, ça fonctionnait malgré les screens blancs sur une autre adresse mail (hotmail).
+[Crunch] Quand tu as écrit qu'il fallait se connecter avec sa 1re adresse mail, je me suis souvenu que je t'avais fourni celle en Gmail.com, mon adresse de base sur le Play Store, et j'ai eu accès à la maj ce jour.
+[Crunch] Depuis la maj, j'ai ça après connexion sur un Xtream qui était toujours dispo sur ce compte.
+
+[TheSamurai] Ok, donc t’as su mettre ton email + code et, au niveau du choix des sources, après sélection, tu as un chargement infini.
+[TheSamurai] Je vais regarder comment je m’y prends.
+
+[Crunch] C'est ça.
+[Crunch] Il y avait 2 Xtream, dont une avec le blocker.
+[Crunch] Comme un idiot, ou pas, j’ai choisi l’autre.
+
+[TheSamurai] Et l’autre fonctionnait sur le wifi sur lequel tu es actuellement ?
+
+[Crunch] Celle d’hier, oui, sur l’adresse hotmail.
+[Crunch] Malgré les screens blancs.
+[Crunch] Mais je n’ai pas testé les films ou autre en voyant cette drôle de mise en page.
+
+[TheSamurai] Ok ok, je vais creuser le problème.
+[TheSamurai] Je reviens vers toi quand j’aurai fait la maj.

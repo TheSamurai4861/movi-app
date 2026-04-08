@@ -97,57 +97,69 @@ class AuthController extends Notifier<AuthControllerState> {
   AuthRepository? _repo;
   bool _disposeHookRegistered = false;
   bool _bootstrapped = false;
+  bool _isBuilding = false;
+  AuthControllerState _currentState = AuthControllerState.unknown;
   Future<void>? _sessionResetInFlight;
 
   @override
   AuthControllerState build() {
-    final sl = ref.watch(slProvider);
-    final repo = ref.watch(authRepositoryProvider);
-    final orchestrator = ref.watch(authOrchestratorProvider);
-    final launchRegistry = sl.isRegistered<AppLaunchStateRegistry>()
-        ? sl<AppLaunchStateRegistry>()
-        : null;
+    _isBuilding = true;
+    try {
+      final sl = ref.watch(slProvider);
+      final repo = ref.watch(authRepositoryProvider);
+      final orchestrator = ref.watch(authOrchestratorProvider);
+      final launchRegistry = sl.isRegistered<AppLaunchStateRegistry>()
+          ? sl<AppLaunchStateRegistry>()
+          : null;
+      final repoChanged = !identical(_repo, repo);
 
-    // If the repo changes (hot reload / DI replacement), resubscribe safely.
-    if (!identical(_repo, repo)) {
-      unawaited(_sub?.cancel() ?? Future.value());
-      _repo = repo;
-      _sub = repo.onAuthStateChange.listen(_onAuthSnapshot);
-      _bootstrapped = false;
-    }
-
-    if (!_disposeHookRegistered) {
-      _disposeHookRegistered = true;
-      ref.onDispose(() {
+      // If the repo changes (hot reload / DI replacement), resubscribe safely.
+      if (repoChanged) {
         unawaited(_sub?.cancel() ?? Future.value());
+        _repo = repo;
         _sub = null;
-        _repo = null;
-      });
-    }
-
-    // Bootstrapping: explicit unknown -> authenticated/unauthenticated.
-    if (!_bootstrapped) {
-      _bootstrapped = true;
-      final launchSnapshot = _snapshotFromResolvedLaunch(
-        launchRegistry?.state,
-        repo,
-      );
-      if (launchSnapshot != null) {
-        _onAuthSnapshot(launchSnapshot);
-      } else {
-        state = AuthControllerState.unknown;
-        unawaited(() async {
-          final result = await orchestrator.bootstrapSession();
-          _onAuthSnapshot(result.snapshot);
-        }());
+        _bootstrapped = false;
       }
-    }
 
-    return state;
+      if (!_disposeHookRegistered) {
+        _disposeHookRegistered = true;
+        ref.onDispose(() {
+          unawaited(_sub?.cancel() ?? Future.value());
+          _sub = null;
+          _repo = null;
+        });
+      }
+
+      // Bootstrapping: explicit unknown -> authenticated/unauthenticated.
+      if (!_bootstrapped) {
+        _bootstrapped = true;
+        final launchSnapshot = _snapshotFromResolvedLaunch(
+          launchRegistry?.state,
+          repo,
+        );
+        if (launchSnapshot != null) {
+          _setResolvedState(_stateFromSnapshot(launchSnapshot));
+        } else {
+          _setResolvedState(AuthControllerState.unknown);
+          unawaited(() async {
+            final result = await orchestrator.bootstrapSession();
+            _onAuthSnapshot(result.snapshot);
+          }());
+        }
+      }
+
+      if (repoChanged) {
+        _sub = repo.onAuthStateChange.listen(_onAuthSnapshot);
+      }
+
+      return _currentState;
+    } finally {
+      _isBuilding = false;
+    }
   }
 
   void _onAuthSnapshot(AuthSnapshot snapshot) {
-    final previous = state;
+    final previous = _currentState;
     final hadAuthenticatedUser =
         previous.status == AuthStatus.authenticated &&
         previous.userId != null &&
@@ -169,10 +181,7 @@ class AuthController extends Notifier<AuthControllerState> {
       );
     }
 
-    state = AuthControllerState(
-      status: snapshot.status,
-      userId: snapshot.userId,
-    );
+    _setResolvedState(_stateFromSnapshot(snapshot));
   }
 
   Future<void> _resetSessionDerivedStateBestEffort({
@@ -247,6 +256,20 @@ class AuthController extends Notifier<AuthControllerState> {
   Future<void> signOut() async {
     final orchestrator = ref.read(authOrchestratorProvider);
     await orchestrator.signOutAndCleanup();
+  }
+
+  AuthControllerState _stateFromSnapshot(AuthSnapshot snapshot) {
+    return AuthControllerState(
+      status: snapshot.status,
+      userId: snapshot.userId,
+    );
+  }
+
+  void _setResolvedState(AuthControllerState next) {
+    _currentState = next;
+    if (!_isBuilding) {
+      state = next;
+    }
   }
 }
 

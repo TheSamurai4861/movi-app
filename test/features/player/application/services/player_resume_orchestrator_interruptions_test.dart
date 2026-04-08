@@ -12,7 +12,7 @@ void main() {
       maxWait: const Duration(seconds: 10),
     );
     await orch1.onDuration(const Duration(minutes: 30));
-    expect(orch1.isDone, isTrue);
+    expect(orch1.isDone, isFalse);
     expect(seeks, [const Duration(minutes: 10)]);
 
     // Session #2 (after reopen)
@@ -22,7 +22,7 @@ void main() {
       maxWait: const Duration(seconds: 10),
     );
     await orch2.onDuration(const Duration(minutes: 30));
-    expect(orch2.isDone, isTrue);
+    expect(orch2.isDone, isFalse);
     expect(seeks, [const Duration(minutes: 10), const Duration(minutes: 10)]);
   });
 

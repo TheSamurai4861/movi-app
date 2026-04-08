@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
@@ -31,6 +32,7 @@ class LocalDataCleanupService {
     'preferred_locale',
     'theme_mode',
     'iptv_sync_interval',
+    SuppressedRemoteIptvSourcesPreferences.defaultStorageKey,
   ];
 
   static const List<String> _sensitiveSessionKeysToRemove = <String>[

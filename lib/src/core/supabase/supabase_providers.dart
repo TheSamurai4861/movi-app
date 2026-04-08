@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
 
 /// Riverpod access to [SupabaseClient] for widgets/services already using Riverpod.
@@ -17,4 +18,13 @@ final supabaseClientProvider = Provider<SupabaseClient?>((ref) {
     // "Supabase unavailable" to keep the app functional.
     return null;
   }
+});
+
+/// Whether the app should follow the authenticated cloud startup path.
+///
+/// This is intentionally exposed as a provider so tests can force local mode
+/// without inheriting the developer machine's `--dart-define` values.
+final cloudAuthEnabledProvider = Provider<bool>((ref) {
+  const config = SupabaseConfig.fromEnvironment;
+  return config.isConfigured || ref.watch(supabaseClientProvider) != null;
 });

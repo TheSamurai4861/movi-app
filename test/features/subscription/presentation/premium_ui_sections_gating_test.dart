@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:movi/src/core/subscription/application/usecases/can_access_premium_feature.dart';
-import 'package:movi/src/core/subscription/domain/entities/billing_availability.dart';
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_entitlement.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_offer.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_snapshot.dart';
-import 'package:movi/src/core/subscription/domain/entities/subscription_status.dart';
-import 'package:movi/src/core/subscription/domain/repositories/subscription_repository.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_detail_saga_section.dart';
 import 'package:movi/src/features/search/presentation/widgets/watch_providers_grid.dart';
@@ -25,21 +18,8 @@ void main() {
   testWidgets('Non-premium hides saga section and providers grid', (tester) async {
     final container = ProviderContainer(
       overrides: [
-        canAccessPremiumFeatureUseCaseProvider.overrideWithValue(
-          CanAccessPremiumFeature(
-            _FakeSubscriptionRepository(
-              snapshot: SubscriptionSnapshot(
-                status: SubscriptionStatus.inactive,
-                billingAvailability: BillingAvailability.available,
-                entitlements: [
-                  SubscriptionEntitlement(
-                    feature: PremiumFeature.extendedDiscoveryDetails,
-                    isActive: false,
-                  ),
-                ],
-              ),
-            ),
-          ),
+        canAccessPremiumFeatureProvider.overrideWith(
+          (ref, feature) async => false,
         ),
         watchProvidersProvider.overrideWith(
           (ref) async => const [
@@ -88,21 +68,8 @@ void main() {
   testWidgets('Premium shows saga section and providers grid', (tester) async {
     final container = ProviderContainer(
       overrides: [
-        canAccessPremiumFeatureUseCaseProvider.overrideWithValue(
-          CanAccessPremiumFeature(
-            _FakeSubscriptionRepository(
-              snapshot: SubscriptionSnapshot(
-                status: SubscriptionStatus.active,
-                billingAvailability: BillingAvailability.available,
-                entitlements: [
-                  SubscriptionEntitlement(
-                    feature: PremiumFeature.extendedDiscoveryDetails,
-                    isActive: true,
-                  ),
-                ],
-              ),
-            ),
-          ),
+        canAccessPremiumFeatureProvider.overrideWith(
+          (ref, feature) async => true,
         ),
         watchProvidersProvider.overrideWith(
           (ref) async => const [
@@ -165,33 +132,6 @@ class _ProvidersGridSection extends ConsumerWidget {
       horizontalPadding: 0,
       maxContentWidth: double.infinity,
     );
-  }
-}
-
-class _FakeSubscriptionRepository implements SubscriptionRepository {
-  _FakeSubscriptionRepository({required this.snapshot});
-
-  final SubscriptionSnapshot snapshot;
-
-  @override
-  Future<SubscriptionSnapshot> getCurrentSubscription() async => snapshot;
-
-  @override
-  Future<List<SubscriptionOffer>> loadAvailableOffers() async => const [];
-
-  @override
-  Future<SubscriptionSnapshot> purchaseSubscription({required String offerId}) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<SubscriptionSnapshot> refreshSubscription() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<SubscriptionSnapshot> restoreSubscription() {
-    throw UnimplementedError();
   }
 }
 

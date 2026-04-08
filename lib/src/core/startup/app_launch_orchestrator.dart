@@ -9,6 +9,7 @@ import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
@@ -18,6 +19,7 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
+import 'package:movi/src/core/storage/repositories/secure_storage_repository.dart';
 import 'package:movi/src/core/startup/app_launch_criteria.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
     as app_startup_provider;
@@ -319,6 +321,8 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   late final TunnelStateRegistry _tunnelStateRegistry;
   late final IptvCredentialsEdgeService? _credentialsEdgeService;
   late final CredentialsVault? _credentialsVault;
+  late final SuppressedRemoteIptvSourcesPreferences?
+  _suppressedRemoteIptvSourcesPreferences;
   late final EntryJourneyTelemetry _entryJourneyTelemetry;
   late final LegacyTunnelStateBridge _legacyTunnelStateBridge;
   late final CanonicalTunnelStateProjector _canonicalTunnelStateProjector;
@@ -354,6 +358,12 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         : null;
     _credentialsVault = sl.isRegistered<CredentialsVault>()
         ? sl<CredentialsVault>()
+        : null;
+    _suppressedRemoteIptvSourcesPreferences =
+        sl.isRegistered<SecureStorageRepository>()
+        ? SuppressedRemoteIptvSourcesPreferences(
+            storage: sl<SecureStorageRepository>(),
+          )
         : null;
     var entryJourneyTelemetryEnabled = false;
     try {
@@ -747,10 +757,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           .read(authOrchestratorProvider)
           .bootstrapSession();
       final session = authResult.snapshot.session;
-      const supabaseConfig = SupabaseConfig.fromEnvironment;
-      final isCloudAuthEnabled =
-          supabaseConfig.isConfigured ||
-          ref.read(supabaseClientProvider) != null;
+      final isCloudAuthEnabled = ref.read(cloudAuthEnabledProvider);
       if (authResult.isAuthenticated && session != null) {
         setRecovery(null);
         meta = meta.copyWith(accountId: session.userId);
@@ -1787,8 +1794,26 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     final vault = _credentialsVault;
     if (edge == null || vault == null) return 0;
 
+    final suppressedLocalIds = await _loadSuppressedRemoteLocalIds(
+      accountId: uid,
+      sources: sources,
+    );
+
     var hydrated = 0;
     for (final s in sources) {
+      final remoteLocalId = s.localId?.trim();
+      if (remoteLocalId != null &&
+          remoteLocalId.isNotEmpty &&
+          suppressedLocalIds.contains(remoteLocalId)) {
+        if (kDebugMode) {
+          debugPrint(
+            '[Bootstrap] Skipping suppressed remote source ${s.id} '
+            '(localId=$remoteLocalId)',
+          );
+        }
+        continue;
+      }
+
       final serverUrl = s.serverUrl?.trim();
       final username = s.username?.trim();
       final ciphertext = s.encryptedCredentials?.trim();
@@ -1857,6 +1882,38 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     }
 
     return hydrated;
+  }
+
+  Future<Set<String>> _loadSuppressedRemoteLocalIds({
+    required String accountId,
+    required List<SupabaseIptvSourceEntity> sources,
+  }) async {
+    final prefs = _suppressedRemoteIptvSourcesPreferences;
+    if (prefs == null) {
+      return <String>{};
+    }
+
+    final remoteLocalIds = sources
+        .map((source) => source.localId?.trim())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    try {
+      await prefs.retainOnlyRemoteMatches(
+        accountId: accountId,
+        remoteLocalIds: remoteLocalIds,
+      );
+      return await prefs.readSuppressedLocalIds(accountId: accountId);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[Bootstrap] Failed to read remote source suppression state '
+          'for accountId=$accountId: $error',
+        );
+      }
+      return <String>{};
+    }
   }
 
   Future<void> _migrateLegacySupabaseCredentialsToEdge({

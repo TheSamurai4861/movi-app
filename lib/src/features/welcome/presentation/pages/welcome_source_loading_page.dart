@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
@@ -15,7 +16,6 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
-import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
@@ -64,32 +64,74 @@ class _WelcomeSourceLoadingPageState
       _statusMessage = 'Chargement de votre catalogue...';
     });
 
+    var knownSourceIds = <String>{};
+    var activeSources = <String>{};
+
     try {
       final appStateController = ref.read(asp.appStateControllerProvider);
-      final activeSources = appStateController.activeIptvSourceIds;
-
-      if (activeSources.isEmpty) {
-        if (!mounted) return;
-        setState(() {
-          _error = 'Aucune source active trouvée';
-          _isLoading = false;
-        });
-        return;
-      }
+      activeSources = appStateController.activeIptvSourceIds;
 
       final locator = ref.read(slProvider);
       final iptvLocal = locator<IptvLocalRepository>();
       final selectedSourcePreferences =
           locator<SelectedIptvSourcePreferences>();
-      final selectedSourceId = selectedSourcePreferences.selectedSourceId
-          ?.trim();
+      var selectedSourceId = selectedSourcePreferences.selectedSourceId?.trim();
 
       final xtreamAccounts = await iptvLocal.getAccounts();
       final stalkerAccounts = await iptvLocal.getStalkerAccounts();
 
       final xtreamIds = xtreamAccounts.map((a) => a.id).toSet();
       final stalkerIds = stalkerAccounts.map((a) => a.id).toSet();
-      final knownSourceIds = <String>{...xtreamIds, ...stalkerIds};
+      knownSourceIds = <String>{...xtreamIds, ...stalkerIds};
+
+      final sourceResolution = resolveWelcomeSourceLoadingSourceResolution(
+        activeSourceIds: activeSources,
+        knownSourceIds: knownSourceIds,
+        selectedSourceId: selectedSourceId,
+      );
+      if (!sourceResolution.canContinue) {
+        if (selectedSourceId != null &&
+            selectedSourceId.isNotEmpty &&
+            !knownSourceIds.contains(selectedSourceId)) {
+          await selectedSourcePreferences.clear();
+        }
+        _logLoadingContext(
+          context: 'welcome_source_loading_missing_active_source',
+          selectedSourceId: selectedSourceId,
+          activeSourceIds: activeSources,
+          mustRefreshCatalog: false,
+          detail:
+              'knownSourceIds=${_formatIds(knownSourceIds)} '
+              'showSourceSelectionAction=${sourceResolution.showSourceSelectionAction}',
+        );
+        if (!mounted) return;
+        setState(() {
+          _error = sourceResolution.errorMessage;
+          _isLoading = false;
+          _showSourceSelectionAction =
+              sourceResolution.showSourceSelectionAction;
+        });
+        return;
+      }
+
+      if (!_sameSourceIds(activeSources, sourceResolution.activeSourceIds)) {
+        selectedSourceId = sourceResolution.selectedSourceId;
+        if (selectedSourceId != null && selectedSourceId.isNotEmpty) {
+          await selectedSourcePreferences.setSelectedSourceId(selectedSourceId);
+        }
+        appStateController.setActiveIptvSources(
+          sourceResolution.activeSourceIds,
+        );
+        activeSources = appStateController.activeIptvSourceIds;
+        _logLoadingContext(
+          context: 'welcome_source_loading_restored_active_source',
+          selectedSourceId: selectedSourceId,
+          activeSourceIds: activeSources,
+          mustRefreshCatalog: false,
+          detail: 'knownSourceIds=${_formatIds(knownSourceIds)}',
+        );
+      }
+
       final invalidActiveSources = activeSources.difference(knownSourceIds);
 
       var mustRefreshCatalog = widget.forceCatalogReload;
@@ -277,9 +319,14 @@ class _WelcomeSourceLoadingPageState
 
       if (!mounted) return;
       setState(() {
-        _error = e.toString().replaceAll('Exception: ', '');
+        _error = formatWelcomeSourceLoadingErrorMessage(e);
         _isLoading = false;
-        _showSourceSelectionAction = e is _SelectedSourceOwnershipException;
+        _showSourceSelectionAction =
+            e is _SelectedSourceOwnershipException ||
+            shouldOfferWelcomeSourceSelectionOnFailure(
+              knownSourceIds: knownSourceIds,
+              activeSourceIds: activeSources,
+            );
       });
     }
   }
@@ -320,15 +367,20 @@ class _WelcomeSourceLoadingPageState
   }
 
   String _formatIds(Iterable<String> ids) {
-    final normalized = ids
-        .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
+    final normalized =
+        ids
+            .map((id) => id.trim())
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false)
+          ..sort();
     if (normalized.isEmpty) {
       return 'none';
     }
     return normalized.join(',');
+  }
+
+  bool _sameSourceIds(Set<String> left, Set<String> right) {
+    return left.length == right.length && left.containsAll(right);
   }
 
   @override
@@ -358,6 +410,114 @@ class _WelcomeSourceLoadingPageState
       ),
     );
   }
+}
+
+final class WelcomeSourceLoadingSourceResolution {
+  const WelcomeSourceLoadingSourceResolution({
+    required this.activeSourceIds,
+    required this.showSourceSelectionAction,
+    this.selectedSourceId,
+    this.errorMessage,
+  });
+
+  final Set<String> activeSourceIds;
+  final bool showSourceSelectionAction;
+  final String? selectedSourceId;
+  final String? errorMessage;
+
+  bool get canContinue => errorMessage == null;
+}
+
+WelcomeSourceLoadingSourceResolution
+resolveWelcomeSourceLoadingSourceResolution({
+  required Set<String> activeSourceIds,
+  required Set<String> knownSourceIds,
+  String? selectedSourceId,
+}) {
+  final normalizedActive = _normalizeWelcomeSourceIds(activeSourceIds);
+  final normalizedKnown = _normalizeWelcomeSourceIds(knownSourceIds);
+  final normalizedSelected = _normalizeWelcomeSourceId(selectedSourceId);
+
+  if (normalizedActive.isNotEmpty) {
+    return WelcomeSourceLoadingSourceResolution(
+      activeSourceIds: normalizedActive,
+      showSourceSelectionAction: false,
+      selectedSourceId: normalizedSelected,
+    );
+  }
+
+  if (normalizedSelected != null &&
+      normalizedKnown.contains(normalizedSelected)) {
+    return WelcomeSourceLoadingSourceResolution(
+      activeSourceIds: <String>{normalizedSelected},
+      selectedSourceId: normalizedSelected,
+      showSourceSelectionAction: false,
+    );
+  }
+
+  if (normalizedKnown.length == 1) {
+    final restoredSourceId = normalizedKnown.first;
+    return WelcomeSourceLoadingSourceResolution(
+      activeSourceIds: <String>{restoredSourceId},
+      selectedSourceId: restoredSourceId,
+      showSourceSelectionAction: false,
+    );
+  }
+
+  if (normalizedKnown.isEmpty) {
+    return const WelcomeSourceLoadingSourceResolution(
+      activeSourceIds: <String>{},
+      showSourceSelectionAction: false,
+      errorMessage:
+          'Aucune source IPTV locale trouvée. Ajoutez ou reconnectez une source avant de relancer le chargement.',
+    );
+  }
+
+  return const WelcomeSourceLoadingSourceResolution(
+    activeSourceIds: <String>{},
+    showSourceSelectionAction: true,
+    errorMessage:
+        "Aucune source active n'est sélectionnée. Choisissez une source avant de relancer le chargement.",
+  );
+}
+
+bool shouldOfferWelcomeSourceSelectionOnFailure({
+  required Set<String> knownSourceIds,
+  required Set<String> activeSourceIds,
+}) {
+  final normalizedKnown = _normalizeWelcomeSourceIds(knownSourceIds);
+  final normalizedActive = _normalizeWelcomeSourceIds(activeSourceIds);
+  if (normalizedKnown.length <= 1) {
+    return false;
+  }
+  if (normalizedActive.isEmpty) {
+    return true;
+  }
+  return normalizedKnown.difference(normalizedActive).isNotEmpty;
+}
+
+String formatWelcomeSourceLoadingErrorMessage(Object error) {
+  if (error is TimeoutException) {
+    return 'Le chargement de la source a expiré. Vérifiez votre connexion ou choisissez une autre source.';
+  }
+
+  final message = error.toString().replaceAll('Exception: ', '').trim();
+  if (message.isEmpty) {
+    return 'Le chargement de la source a échoué.';
+  }
+  return message;
+}
+
+Set<String> _normalizeWelcomeSourceIds(Iterable<String> ids) {
+  return ids.map(_normalizeWelcomeSourceId).whereType<String>().toSet();
+}
+
+String? _normalizeWelcomeSourceId(String? sourceId) {
+  final normalized = sourceId?.trim();
+  if (normalized == null || normalized.isEmpty) {
+    return null;
+  }
+  return normalized;
 }
 
 class WelcomeSourceLoadingLogo extends ConsumerWidget {
@@ -496,7 +656,7 @@ final class _SelectedSourceOwnershipException implements Exception {
       return 'Les sources sélectionnées ne sont plus disponibles pour $accountLabel. '
           'Choisissez une source liée au compte actif puis relancez le chargement.';
     }
-    return 'La source sélectionnée n\'est plus disponible pour $accountLabel. '
+    return "La source sélectionnée n'est plus disponible pour $accountLabel. "
         'Choisissez une source liée au compte actif puis relancez le chargement.';
   }
 }

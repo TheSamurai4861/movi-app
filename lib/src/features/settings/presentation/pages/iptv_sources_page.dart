@@ -9,11 +9,13 @@ import 'package:intl/intl.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/storage/repositories/secure_storage_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -53,6 +55,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       ref.invalidate(iptvAccountsProvider);
       ref.invalidate(stalkerAccountsProvider);
     });
+    unawaited(_retrySuppressedRemoteDeletes());
   }
 
   @override
@@ -99,12 +102,25 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
   Future<RemoteIptvDeleteStatus> _deleteRemoteSourceBestEffort({
     required String localSourceId,
   }) async {
-    final locator = ref.read(slProvider);
-    if (!locator.isRegistered<SupabaseIptvSourcesRepository>()) {
+    final service = _remoteDeleteServiceOrNull();
+    if (service == null) {
       return RemoteIptvDeleteStatus.skippedRepositoryUnavailable;
     }
 
-    final service = IptvSourceRemoteDeleteService(
+    final userId = ref.read(authUserIdProvider);
+    return service.deleteByLocalIdBestEffort(
+      localId: localSourceId,
+      userId: userId,
+    );
+  }
+
+  IptvSourceRemoteDeleteService? _remoteDeleteServiceOrNull() {
+    final locator = ref.read(slProvider);
+    if (!locator.isRegistered<SupabaseIptvSourcesRepository>()) {
+      return null;
+    }
+
+    return IptvSourceRemoteDeleteService(
       loadSources: ({required accountId}) => locator
           .get<SupabaseIptvSourcesRepository>()
           .getSources(accountId: accountId),
@@ -112,12 +128,93 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
           .get<SupabaseIptvSourcesRepository>()
           .deleteSource(id: id, accountId: accountId),
     );
+  }
 
-    final userId = ref.read(authUserIdProvider);
-    return service.deleteByLocalIdBestEffort(
-      localId: localSourceId,
+  SuppressedRemoteIptvSourcesPreferences?
+  _suppressedRemoteSourcesPreferencesOrNull() {
+    final locator = ref.read(slProvider);
+    if (!locator.isRegistered<SecureStorageRepository>()) {
+      return null;
+    }
+    return SuppressedRemoteIptvSourcesPreferences(
+      storage: locator<SecureStorageRepository>(),
+    );
+  }
+
+  Future<void> _syncRemoteHydrationSuppression({
+    required String localSourceId,
+    required RemoteIptvDeleteStatus remoteDeleteStatus,
+  }) async {
+    final userId = ref.read(authUserIdProvider)?.trim();
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    final prefs = _suppressedRemoteSourcesPreferencesOrNull();
+    if (prefs == null) {
+      return;
+    }
+
+    try {
+      if (remoteDeleteStatus.remoteDeletionConfirmed) {
+        await prefs.clear(accountId: userId, localId: localSourceId);
+      } else {
+        await prefs.suppress(accountId: userId, localId: localSourceId);
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint(
+          '[IptvSourcesPage] failed to sync remote hydration suppression '
+          'status=$remoteDeleteStatus sourceId=$localSourceId error=$error',
+        );
+      }
+    }
+  }
+
+  Future<void> _retrySuppressedRemoteDeletes() async {
+    final userId = ref.read(authUserIdProvider)?.trim();
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
+
+    final prefs = _suppressedRemoteSourcesPreferencesOrNull();
+    final service = _remoteDeleteServiceOrNull();
+    if (prefs == null || service == null) {
+      return;
+    }
+
+    final pendingLocalIds = await prefs.readSuppressedLocalIds(
+      accountId: userId,
+    );
+    if (pendingLocalIds.isEmpty) {
+      return;
+    }
+
+    final results = await service.deleteByLocalIdsBestEffort(
+      localIds: pendingLocalIds,
       userId: userId,
     );
+    for (final entry in results.entries) {
+      await _syncRemoteHydrationSuppression(
+        localSourceId: entry.key,
+        remoteDeleteStatus: entry.value,
+      );
+    }
+
+    if (kDebugMode) {
+      debugPrint(
+        '[IptvSourcesPage] retried suppressed remote deletes '
+        'pending=${pendingLocalIds.length} '
+        'confirmed=${results.values.where((status) => status.remoteDeletionConfirmed).length}',
+      );
+    }
+  }
+
+  String? _remoteDeleteFollowUpMessage(RemoteIptvDeleteStatus status) {
+    if (!status.mayReappearAfterReconnect) {
+      return null;
+    }
+    return 'Source supprimée localement. Elle peut réapparaître après reconnexion tant que la suppression cloud n’a pas abouti.';
   }
 
   Future<void> _confirmAndDelete(
@@ -184,18 +281,19 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     final remoteDeleteStatus = await _deleteRemoteSourceBestEffort(
       localSourceId: account.id,
     );
-    if (remoteDeleteStatus == RemoteIptvDeleteStatus.failed && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Source supprimée localement, mais suppression cloud impossible.',
-          ),
-        ),
-      );
+    await _syncRemoteHydrationSuppression(
+      localSourceId: account.id,
+      remoteDeleteStatus: remoteDeleteStatus,
+    );
+    final remoteDeleteFollowUp = _remoteDeleteFollowUpMessage(
+      remoteDeleteStatus,
+    );
+    if (remoteDeleteFollowUp != null && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(remoteDeleteFollowUp)));
     }
-    if (kDebugMode &&
-        remoteDeleteStatus != RemoteIptvDeleteStatus.deleted &&
-        remoteDeleteStatus != RemoteIptvDeleteStatus.skippedNotFound) {
+    if (kDebugMode && !remoteDeleteStatus.remoteDeletionConfirmed) {
       debugPrint(
         '[IptvSourcesPage] remote delete status=$remoteDeleteStatus sourceId=${account.id}',
       );
@@ -219,7 +317,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 
     await ref.read(hp.homeControllerProvider.notifier).refresh();
 
-    if (mounted) {
+    if (mounted && remoteDeleteFollowUp == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Source supprimée')));

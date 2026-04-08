@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/notifications/local_notification_gateway.dart';
 import 'package:movi/src/core/notifications/local_notification_gateway_provider.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -35,7 +38,9 @@ class _SeriesTrackingBootstrapperState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initialize());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_initializeSafely());
+    });
   }
 
   @override
@@ -57,11 +62,22 @@ class _SeriesTrackingBootstrapperState
     final hasPremium = await ref.read(
       canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
     );
-    if (!hasPremium) return;
+    if (!hasPremium || !mounted) return;
 
     final gateway = ref.read(localNotificationGatewayProvider);
-    await gateway.initialize();
-    _navigationSub ??= gateway.navigationIntents.listen(_handleIntent);
+    try {
+      await gateway.initialize();
+      if (!mounted) return;
+      _navigationSub ??= gateway.navigationIntents.listen(_handleIntent);
+    } catch (error, stackTrace) {
+      _logBootstrapWarning(
+        action: 'notifications_initialize',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    if (!mounted) return;
     _scheduleRefresh(force: true);
   }
 
@@ -69,8 +85,20 @@ class _SeriesTrackingBootstrapperState
     _scheduled?.cancel();
     _scheduled = Timer(
       force ? const Duration(milliseconds: 200) : const Duration(seconds: 1),
-      () => _refreshIfNeeded(force: force),
+      () => unawaited(_refreshIfNeededSafely(force: force)),
     );
+  }
+
+  Future<void> _initializeSafely() async {
+    try {
+      await _initialize();
+    } catch (error, stackTrace) {
+      _logBootstrapWarning(
+        action: 'bootstrap_initialize',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> _refreshIfNeeded({bool force = false}) async {
@@ -99,6 +127,40 @@ class _SeriesTrackingBootstrapperState
     } finally {
       _refreshing = false;
     }
+  }
+
+  Future<void> _refreshIfNeededSafely({bool force = false}) async {
+    try {
+      await _refreshIfNeeded(force: force);
+    } catch (error, stackTrace) {
+      _logBootstrapWarning(
+        action: force ? 'refresh_forced' : 'refresh',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  void _logBootstrapWarning({
+    required String action,
+    required Object error,
+    required StackTrace stackTrace,
+  }) {
+    final message =
+        '[SeriesTrackingBootstrapper][WARN] action=$action '
+        'result=degraded errorType=${error.runtimeType}';
+    if (kDebugMode) {
+      debugPrint('$message error=$error');
+    }
+    unawaited(
+      LoggingService.log(
+        message,
+        level: LogLevel.warn,
+        category: 'series_tracking',
+        error: error,
+        stackTrace: stackTrace,
+      ),
+    );
   }
 
   void _handleIntent(SeriesNotificationNavigationIntent intent) {

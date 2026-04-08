@@ -13,12 +13,14 @@ import 'package:movi/src/core/config/models/feature_flags.dart';
 import 'package:movi/src/core/config/providers/overrides.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/profile/data/repositories/fallback_profile_repository.dart';
 import 'package:movi/src/core/profile/data/repositories/local_profile_repository.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
+import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart'
@@ -36,7 +38,9 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
+import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/features/iptv/data/datasources/xtream_cache_data_source.dart';
+import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_catalog_snapshot.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
@@ -617,6 +621,184 @@ void main() {
   );
 
   test(
+    'does not rehydrate a remote source suppressed after local deletion',
+    () async {
+      final secureStorageRepository = _FakeSecureStorageRepository();
+      final suppressedPrefs = SuppressedRemoteIptvSourcesPreferences(
+        storage: secureStorageRepository,
+      );
+      await suppressedPrefs.suppress(
+        accountId: 'cloud-user',
+        localId: 'cloud_local_source',
+      );
+
+      final credentialsVault = MemoryCredentialsVault();
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        secureStorageRepository: secureStorageRepository,
+        credentialsVault: credentialsVault,
+        credentialsEdgeService: _FakeIptvCredentialsEdgeService(
+          const <String, ({String username, String password})>{
+            'v1:encrypted': (username: 'demo', password: 'secret'),
+          },
+        ),
+        iptvSourcesRepository:
+            _FakeSupabaseIptvSourcesRepository(<SupabaseIptvSourceEntity>[
+              const SupabaseIptvSourceEntity(
+                id: 'remote_1',
+                accountId: 'cloud-user',
+                name: 'Cloud Source',
+                localId: 'cloud_local_source',
+                serverUrl: 'http://example.com',
+                username: 'demo',
+                encryptedCredentials: 'v1:encrypted',
+              ),
+            ]),
+      );
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+
+      await harness.localProfiles.createProfile(
+        name: 'Cloud Profile',
+        color: 0xFF2160AB,
+        accountId: 'cloud-user',
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.welcomeSources);
+      expect(await harness.iptvLocal.getAccounts(), isEmpty);
+      expect(
+        await suppressedPrefs.readSuppressedLocalIds(accountId: 'cloud-user'),
+        {'cloud_local_source'},
+      );
+      expect(await credentialsVault.readPassword('cloud_local_source'), isNull);
+    },
+  );
+
+  test(
+    'rehydrates a single remote source and preserves it as active before catalog failure',
+    () async {
+      final credentialsVault = MemoryCredentialsVault();
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        credentialsVault: credentialsVault,
+        credentialsEdgeService: _FakeIptvCredentialsEdgeService(
+          const <String, ({String username, String password})>{
+            'v1:encrypted': (username: 'demo', password: 'secret'),
+          },
+        ),
+        iptvSourcesRepository:
+            _FakeSupabaseIptvSourcesRepository(<SupabaseIptvSourceEntity>[
+              const SupabaseIptvSourceEntity(
+                id: 'remote_1',
+                accountId: 'cloud-user',
+                name: 'Cloud Source',
+                localId: 'cloud_local_source',
+                serverUrl: 'http://example.com',
+                username: 'demo',
+                encryptedCredentials: 'v1:encrypted',
+              ),
+            ]),
+      );
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+
+      await harness.localProfiles.createProfile(
+        name: 'Cloud Profile',
+        color: 0xFF2160AB,
+        accountId: 'cloud-user',
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isFalse);
+      expect(result.failure, isNotNull);
+      expect(
+        result.failure!.failure.message.toLowerCase(),
+        contains('catalog'),
+      );
+      final localAccounts = await harness.iptvLocal.getAccounts();
+      expect(localAccounts.map((account) => account.id).toList(), [
+        'cloud_local_source',
+      ]);
+      expect(
+        harness.selectedSourcePreferences.selectedSourceId,
+        'cloud_local_source',
+      );
+      expect(
+        harness.container.read(appStateControllerProvider).activeIptvSourceIds,
+        {'cloud_local_source'},
+      );
+      expect(
+        await credentialsVault.readPassword('cloud_local_source'),
+        'secret',
+      );
+    },
+  );
+
+  test(
+    'clears a stale selected source and routes to chooseSource when multiple local sources remain',
+    () async {
+      final harness = await _LaunchHarness.create();
+      addTearDown(harness.dispose);
+
+      await harness.localProfiles.createProfile(
+        name: 'Local Profile',
+        color: 0xFF2160AB,
+      );
+
+      Future<void> saveSource(String accountId) async {
+        await harness.iptvLocal.saveAccount(
+          XtreamAccount(
+            id: accountId,
+            alias: accountId,
+            endpoint: XtreamEndpoint.parse('http://example.com'),
+            username: 'demo',
+            status: XtreamAccountStatus.pending,
+            createdAt: DateTime(2026, 1, 1),
+          ),
+        );
+        await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+          XtreamPlaylist(
+            id: 'pl_$accountId',
+            accountId: accountId,
+            title: 'Films',
+            type: XtreamPlaylistType.movies,
+            items: <XtreamPlaylistItem>[
+              XtreamPlaylistItem(
+                accountId: accountId,
+                categoryId: 'cat_movies',
+                categoryName: 'Films',
+                streamId: 1001,
+                title: 'Film $accountId',
+                type: XtreamPlaylistItemType.movie,
+                tmdbId: 550,
+              ),
+            ],
+          ),
+        ]);
+      }
+
+      await saveSource('source_1');
+      await saveSource('source_2');
+      await harness.selectedSourcePreferences.setSelectedSourceId(
+        'stale_source',
+      );
+
+      final result = await harness.run();
+
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.chooseSource);
+      expect(harness.selectedSourcePreferences.selectedSourceId, isNull);
+      expect(harness.homeController.loadCalls, 0);
+    },
+  );
+
+  test(
     'returns welcomeSources without backend when local profile exists but no local source exists',
     () async {
       final harness = await _LaunchHarness.create();
@@ -984,6 +1166,10 @@ class _LaunchHarness {
     bool cloudAuthEnabled = false,
     bool enableEntryJourneyTelemetryV2 = false,
     bool enableEntryJourneyStateModelV2 = false,
+    SecureStorageRepository? secureStorageRepository,
+    CredentialsVault? credentialsVault,
+    IptvCredentialsEdgeService? credentialsEdgeService,
+    SupabaseIptvSourcesRepository? iptvSourcesRepository,
   }) async {
     await sl.reset();
 
@@ -1033,6 +1219,20 @@ class _LaunchHarness {
     sl.registerSingleton<TunnelStateRegistry>(TunnelStateRegistry());
     sl.registerSingleton<RefreshXtreamCatalog>(refreshXtreamCatalog);
     sl.registerSingleton<RefreshStalkerCatalog>(refreshStalkerCatalog);
+    if (secureStorageRepository != null) {
+      sl.registerSingleton<SecureStorageRepository>(secureStorageRepository);
+    }
+    if (credentialsVault != null) {
+      sl.registerSingleton<CredentialsVault>(credentialsVault);
+    }
+    if (credentialsEdgeService != null) {
+      sl.registerSingleton<IptvCredentialsEdgeService>(credentialsEdgeService);
+    }
+    if (iptvSourcesRepository != null) {
+      sl.registerSingleton<SupabaseIptvSourcesRepository>(
+        iptvSourcesRepository,
+      );
+    }
 
     final container = ProviderContainer(
       overrides: [
@@ -1043,6 +1243,7 @@ class _LaunchHarness {
             enableEntryJourneyStateModelV2: enableEntryJourneyStateModelV2,
           ),
         ),
+        cloudAuthEnabledProvider.overrideWith((ref) => cloudAuthEnabled),
         app_startup_provider.appStartupProvider.overrideWith(
           (ref) async => StartupResult.ready(durationMs: 0),
         ),
@@ -1521,5 +1722,68 @@ class _FakeStalkerRepository implements StalkerRepository {
       movieCount: 0,
       seriesCount: 0,
     );
+  }
+}
+
+final class _FakeSecureStorageRepository extends SecureStorageRepository {
+  _FakeSecureStorageRepository();
+
+  final Map<String, Map<String, dynamic>> _store =
+      <String, Map<String, dynamic>>{};
+
+  @override
+  Future<Map<String, dynamic>?> get(String key) async {
+    final value = _store[key];
+    if (value == null) {
+      return null;
+    }
+    return Map<String, dynamic>.from(value);
+  }
+
+  @override
+  Future<void> put({
+    required String key,
+    required Map<String, dynamic> payload,
+  }) async {
+    _store[key] = Map<String, dynamic>.from(payload);
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    _store.remove(key);
+  }
+}
+
+final class _FakeIptvCredentialsEdgeService extends IptvCredentialsEdgeService {
+  _FakeIptvCredentialsEdgeService(this._payloads)
+    : super(SupabaseClient('https://example.supabase.co', 'anon-key'));
+
+  final Map<String, ({String username, String password})> _payloads;
+
+  @override
+  Future<({String username, String password})> decrypt({
+    required String ciphertext,
+  }) async {
+    final payload = _payloads[ciphertext];
+    if (payload == null) {
+      throw FormatException('Missing fake credentials payload for $ciphertext');
+    }
+    return payload;
+  }
+}
+
+final class _FakeSupabaseIptvSourcesRepository
+    extends SupabaseIptvSourcesRepository {
+  _FakeSupabaseIptvSourcesRepository(this.sources)
+    : super(SupabaseClient('https://example.supabase.co', 'anon-key'));
+
+  final List<SupabaseIptvSourceEntity> sources;
+
+  @override
+  Future<List<SupabaseIptvSourceEntity>> getSources({
+    String? accountId,
+    bool? diagnostics,
+  }) async {
+    return sources;
   }
 }

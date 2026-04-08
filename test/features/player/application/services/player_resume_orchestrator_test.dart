@@ -8,12 +8,14 @@ void main() {
       () async {
         final seeks = <Duration>[];
         final telemetry = <String>[];
+        var now = DateTime(2026, 1, 1, 12);
         final orchestrator = PlayerResumeOrchestrator(
           requestedResume: const Duration(seconds: 30),
           seekTo: (position) async {
             seeks.add(position);
           },
           telemetry: (result, _) => telemetry.add(result),
+          now: () => now,
         );
 
         await orchestrator.onDuration(const Duration(minutes: 5));
@@ -26,6 +28,11 @@ void main() {
         expect(orchestrator.isDone, isFalse);
 
         await orchestrator.onPosition(const Duration(seconds: 31));
+        expect(orchestrator.isDone, isFalse);
+        expect(telemetry.last, 'applied_confirmed_candidate');
+
+        now = now.add(const Duration(seconds: 2));
+        await orchestrator.onPosition(const Duration(seconds: 31));
         expect(orchestrator.isDone, isTrue);
         expect(telemetry.last, 'applied_confirmed');
       },
@@ -34,16 +41,20 @@ void main() {
     test('relance un seek si la position retombe au début après reprise', () async {
       final seeks = <Duration>[];
       final telemetry = <String>[];
+      var now = DateTime(2026, 1, 1, 13);
       final orchestrator = PlayerResumeOrchestrator(
         requestedResume: const Duration(seconds: 45),
         seekTo: (position) async {
           seeks.add(position);
         },
         telemetry: (result, _) => telemetry.add(result),
+        now: () => now,
       );
 
       await orchestrator.onDuration(const Duration(minutes: 8));
       await orchestrator.onPosition(Duration.zero);
+      await orchestrator.onPosition(const Duration(seconds: 45));
+      now = now.add(const Duration(seconds: 2));
       await orchestrator.onPosition(const Duration(seconds: 45));
 
       expect(

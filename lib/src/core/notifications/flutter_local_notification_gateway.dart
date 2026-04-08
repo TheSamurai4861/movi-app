@@ -39,6 +39,9 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
 
   bool _initialized = false;
 
+  bool get _supportsManagedSeriesNotifications =>
+      Platform.isAndroid || Platform.isIOS;
+
   @override
   Stream<SeriesNotificationNavigationIntent> get navigationIntents =>
       _intents.stream;
@@ -46,6 +49,10 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
   @override
   Future<void> initialize() async {
     if (_initialized) return;
+    if (!_supportsManagedSeriesNotifications) {
+      _initialized = true;
+      return;
+    }
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwin = DarwinInitializationSettings();
@@ -82,10 +89,11 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
 
   @override
   Future<bool> requestSeriesNotificationsPermissionIfNeeded() async {
-    await initialize();
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (!_supportsManagedSeriesNotifications) {
       return false;
     }
+
+    await initialize();
 
     final alreadyEnabled = await areSeriesNotificationsEnabled();
     if (alreadyEnabled) return true;
@@ -112,10 +120,11 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
 
   @override
   Future<bool> areSeriesNotificationsEnabled() async {
-    await initialize();
-    if (!Platform.isAndroid && !Platform.isIOS) {
+    if (!_supportsManagedSeriesNotifications) {
       return false;
     }
+
+    await initialize();
 
     if (Platform.isAndroid) {
       final androidPlugin =
@@ -137,6 +146,10 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
   Future<void> showNewEpisodeNotification(
     NewEpisodeNotificationRequest request,
   ) async {
+    if (!_supportsManagedSeriesNotifications) {
+      return;
+    }
+
     await initialize();
     if (!await areSeriesNotificationsEnabled()) {
       return;

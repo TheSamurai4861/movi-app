@@ -76,19 +76,63 @@ void main() {
       expect(authRepository.refreshCalls, 0);
     },
   );
+
+  test(
+    'AuthController handles an auth stream event emitted during build',
+    () {
+      final authRepository = _FakeAuthRepository(
+        emittedSnapshot: const AuthSnapshot(
+          status: AuthStatus.authenticated,
+          session: AuthSession(userId: 'stream-user'),
+        ),
+      );
+      sl.registerSingleton<AuthRepository>(authRepository);
+      sl.registerSingleton<AppLaunchStateRegistry>(
+        AppLaunchStateRegistry(
+          initial: const AppLaunchState(
+            status: AppLaunchStatus.success,
+            destination: BootstrapDestination.auth,
+            criteria: AppLaunchCriteria.empty,
+          ),
+        ),
+      );
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final state = container.read(authControllerProvider);
+
+      expect(state.status, AuthStatus.authenticated);
+      expect(state.userId, 'stream-user');
+      expect(authRepository.refreshCalls, 0);
+    },
+  );
 }
 
 final class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({this.session});
+  _FakeAuthRepository({this.session, this.emittedSnapshot});
 
-  final StreamController<AuthSnapshot> _controller =
-      StreamController<AuthSnapshot>.broadcast();
+  final AuthSnapshot? emittedSnapshot;
 
   AuthSession? session;
   int refreshCalls = 0;
 
   @override
-  Stream<AuthSnapshot> get onAuthStateChange => _controller.stream;
+  Stream<AuthSnapshot> get onAuthStateChange {
+    final snapshot = emittedSnapshot;
+    if (snapshot == null) {
+      return const Stream<AuthSnapshot>.empty();
+    }
+    late final StreamController<AuthSnapshot> controller;
+    controller = StreamController<AuthSnapshot>.broadcast(
+      sync: true,
+      onListen: () {
+        controller.add(snapshot);
+        controller.close();
+      },
+    );
+    return controller.stream;
+  }
 
   @override
   AuthSession? get currentSession => session;
