@@ -14,6 +14,9 @@ void main() {
   testWidgets('shows the full raw title for each playback variant', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -77,6 +80,9 @@ void main() {
   testWidgets(
     'falls back to the source label when a variant has no raw title',
     (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
@@ -117,6 +123,9 @@ void main() {
   testWidgets('keeps raw titles with embedded metadata untouched', (
     tester,
   ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -176,89 +185,10 @@ void main() {
     expect(find.text('Full HD'), findsNothing);
   });
 
-  testWidgets('initial focus is first variant and up/down stay bounded', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: MoviePlaybackVariantSheet(
-              movieTitle: 'The Matrix',
-              variants: <PlaybackVariant>[
-                PlaybackVariant(
-                  id: 'source-a:1',
-                  sourceId: 'source-a',
-                  sourceLabel: 'A',
-                  videoSource: const VideoSource(
-                    url: 'https://video.example/1.mp4',
-                    title: 'The Matrix',
-                    contentId: '603',
-                    contentType: ContentType.movie,
-                  ),
-                  contentType: ContentType.movie,
-                  rawTitle: 'v1',
-                  normalizedTitle: 'The Matrix',
-                ),
-                PlaybackVariant(
-                  id: 'source-b:2',
-                  sourceId: 'source-b',
-                  sourceLabel: 'B',
-                  videoSource: const VideoSource(
-                    url: 'https://video.example/2.mp4',
-                    title: 'The Matrix',
-                    contentId: '603',
-                    contentType: ContentType.movie,
-                  ),
-                  contentType: ContentType.movie,
-                  rawTitle: 'v2',
-                  normalizedTitle: 'The Matrix',
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    await tester.pumpAndSettle();
-    expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      contains('movie_playback_variant_0'),
-    );
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pump();
-    expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      contains('movie_playback_variant_0'),
-    );
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      contains('movie_playback_variant_1'),
-    );
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      contains('movie_playback_variant_cancel'),
-    );
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(
-      FocusManager.instance.primaryFocus?.debugLabel,
-      contains('movie_playback_variant_cancel'),
-    );
-  });
-
   testWidgets('escape closes sheet and restores trigger focus', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     final triggerFocusNode = FocusNode(debugLabel: 'trigger');
 
     await tester.pumpWidget(

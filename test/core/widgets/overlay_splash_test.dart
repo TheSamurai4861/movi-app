@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/theme/app_theme.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
 
 void main() {
@@ -32,11 +32,8 @@ void main() {
         ),
       );
 
-      final svg = tester.widget<SvgPicture>(find.byType(SvgPicture));
-      expect(
-        svg.colorFilter,
-        const ColorFilter.mode(accentColor, BlendMode.srcIn),
-      );
+      final logo = tester.widget<MoviAssetIcon>(find.byType(MoviAssetIcon));
+      expect(logo.color, accentColor);
     },
   );
 }

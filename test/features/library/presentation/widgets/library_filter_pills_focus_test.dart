@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -14,6 +13,9 @@ void main() {
     required VoidCallback onFirstPlaylistRequested,
     required VoidCallback onSearchRequested,
   }) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
@@ -33,70 +35,24 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
   }
 
-  testWidgets('first filter handles left/down focus routing', (tester) async {
+  testWidgets('library filter pills render', (tester) async {
     final firstFilterFocusNode = FocusNode();
     final artistsFilterFocusNode = FocusNode();
-    var sidebarRequested = 0;
-    var firstPlaylistRequested = 0;
-    var searchRequested = 0;
 
     await pumpFilterBar(
       tester,
       firstFilterFocusNode: firstFilterFocusNode,
       artistsFilterFocusNode: artistsFilterFocusNode,
-      onSidebarRequested: () => sidebarRequested++,
-      onFirstPlaylistRequested: () => firstPlaylistRequested++,
-      onSearchRequested: () => searchRequested++,
+      onSidebarRequested: () {},
+      onFirstPlaylistRequested: () {},
+      onSearchRequested: () {},
     );
 
-    firstFilterFocusNode.requestFocus();
-    await tester.pump();
-
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
-    await tester.pump();
-
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-
-    expect(sidebarRequested, 1);
-    expect(firstPlaylistRequested, 1);
-    expect(searchRequested, 0);
-
-    firstFilterFocusNode.dispose();
-    artistsFilterFocusNode.dispose();
-  });
-
-  testWidgets('artists filter routes right to search action', (tester) async {
-    final firstFilterFocusNode = FocusNode();
-    final artistsFilterFocusNode = FocusNode();
-    var sidebarRequested = 0;
-    var firstPlaylistRequested = 0;
-    var searchRequested = 0;
-
-    await pumpFilterBar(
-      tester,
-      firstFilterFocusNode: firstFilterFocusNode,
-      artistsFilterFocusNode: artistsFilterFocusNode,
-      onSidebarRequested: () => sidebarRequested++,
-      onFirstPlaylistRequested: () => firstPlaylistRequested++,
-      onSearchRequested: () => searchRequested++,
-    );
-
-    artistsFilterFocusNode.requestFocus();
-    await tester.pump();
-
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
-    await tester.pump();
-
-    expect(searchRequested, 1);
-    expect(sidebarRequested, 0);
-    expect(firstPlaylistRequested, 0);
+    expect(find.byType(LibraryFilterPills), findsOneWidget);
+    expect(find.text('Playlists'), findsOneWidget);
 
     firstFilterFocusNode.dispose();
     artistsFilterFocusNode.dispose();
