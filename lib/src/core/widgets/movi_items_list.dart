@@ -29,6 +29,8 @@ class MoviItemsList extends StatefulWidget {
     this.verticalPreloadMargin = 150,
     this.debounceMs = 240,
     this.consumeLeadingEdgeLeftKey = false,
+    this.horizontalFocusAlignment,
+    this.verticalFocusAlignment = 0.5,
   }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
 
   final String title;
@@ -68,6 +70,8 @@ class MoviItemsList extends StatefulWidget {
   /// Durée du debounce des notifications de viewport.
   final int debounceMs;
   final bool consumeLeadingEdgeLeftKey;
+  final double? horizontalFocusAlignment;
+  final double verticalFocusAlignment;
 
   @override
   State<MoviItemsList> createState() => _MoviItemsListState();
@@ -301,6 +305,8 @@ class _MoviItemsListState extends State<MoviItemsList> {
                         isTrailingEdge: i == widget.items.length - 1,
                         consumeBackwardEdgeKey:
                             widget.consumeLeadingEdgeLeftKey,
+                        horizontalAlignment: widget.horizontalFocusAlignment,
+                        verticalAlignment: widget.verticalFocusAlignment,
                         child: widget.items[i],
                       ),
                       separatorBuilder: (context, _) =>

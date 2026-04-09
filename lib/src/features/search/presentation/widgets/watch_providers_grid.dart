@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,17 +14,96 @@ import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/models/provider_results_args.dart';
 
-class WatchProvidersGrid extends ConsumerWidget {
+class WatchProvidersGrid extends ConsumerStatefulWidget {
   const WatchProvidersGrid({
     super.key,
     this.horizontalPadding = 20,
     this.maxContentWidth = double.infinity,
     this.firstItemFocusNode,
+    this.onFirstItemLeft,
+    this.focusVerticalAlignment = 0.22,
+    this.focusRequestId,
+    this.focusRequestColumn,
   });
 
   final double horizontalPadding;
   final double maxContentWidth;
   final FocusNode? firstItemFocusNode;
+  final VoidCallback? onFirstItemLeft;
+  final double focusVerticalAlignment;
+  final int? focusRequestId;
+  final int? focusRequestColumn;
+
+  @override
+  ConsumerState<WatchProvidersGrid> createState() => _WatchProvidersGridState();
+}
+
+class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
+  final Map<int, FocusNode> _providerFocusNodes = <int, FocusNode>{};
+
+  void _syncFocusNodes(List<WatchProvider> providers) {
+    final usesExternalFirst = widget.firstItemFocusNode != null;
+    final activeIds = <int>{};
+
+    for (var index = 0; index < providers.length; index++) {
+      if (!(usesExternalFirst && index == 0)) {
+        activeIds.add(providers[index].providerId);
+      }
+    }
+
+    final staleIds = _providerFocusNodes.keys
+        .where((id) => !activeIds.contains(id))
+        .toList(growable: false);
+    for (final id in staleIds) {
+      _providerFocusNodes.remove(id)?.dispose();
+    }
+  }
+
+  FocusNode _focusNodeFor(WatchProvider provider, {required bool isFirstItem}) {
+    if (isFirstItem && widget.firstItemFocusNode != null) {
+      return widget.firstItemFocusNode!;
+    }
+    return _providerFocusNodes.putIfAbsent(
+      provider.providerId,
+      () => FocusNode(debugLabel: 'Provider-${provider.providerId}'),
+    );
+  }
+
+  int _lastRowAlignedIndex({
+    required int itemCount,
+    required int columns,
+    required int column,
+  }) {
+    final lastRowStart = ((itemCount - 1) ~/ columns) * columns;
+    return math.min(lastRowStart + column, itemCount - 1);
+  }
+
+  void _applyPendingFocusRequest(
+    List<WatchProvider> providers,
+    int columns,
+    int? requestColumn,
+  ) {
+    if (widget.focusRequestId == null || requestColumn == null) return;
+    if (providers.isEmpty) return;
+
+    final targetIndex = _lastRowAlignedIndex(
+      itemCount: providers.length,
+      columns: columns,
+      column: requestColumn,
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final node = _focusNodeFor(
+        providers[targetIndex],
+        isFirstItem: targetIndex == 0,
+      );
+      if (!node.canRequestFocus || node.context == null) {
+        return;
+      }
+      node.requestFocus();
+    });
+  }
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -48,7 +128,15 @@ class WatchProvidersGrid extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void dispose() {
+    for (final node in _providerFocusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final screenType = _screenTypeFor(context);
     final providersAsync = ref.watch(watchProvidersProvider);
 
@@ -58,15 +146,17 @@ class WatchProvidersGrid extends ConsumerWidget {
           return const SizedBox.shrink();
         }
 
+        _syncFocusNodes(providers);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  constraints: BoxConstraints(maxWidth: widget.maxContentWidth),
                   child: Text(
                     AppLocalizations.of(context)!.searchByProvidersTitle,
                     style: const TextStyle(
@@ -80,17 +170,22 @@ class WatchProvidersGrid extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxContentWidth),
+                  constraints: BoxConstraints(maxWidth: widget.maxContentWidth),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final columns = _columnCount(
                         screenType,
                         constraints.maxWidth,
                         providers.length,
+                      );
+                      _applyPendingFocusRequest(
+                        providers,
+                        columns,
+                        widget.focusRequestColumn,
                       );
                       final aspectRatio = switch (screenType) {
                         ScreenType.mobile => 2.0,
@@ -110,10 +205,35 @@ class WatchProvidersGrid extends ConsumerWidget {
                         ),
                         itemCount: providers.length,
                         itemBuilder: (context, index) {
-                          return _WatchProviderCard(
+                          final card = _WatchProviderCard(
                             provider: providers[index],
-                            focusNode: index == 0 ? firstItemFocusNode : null,
+                            focusNode: _focusNodeFor(
+                              providers[index],
+                              isFirstItem: index == 0,
+                            ),
+                            focusVerticalAlignment:
+                                widget.focusVerticalAlignment,
                           );
+                          final decoratedCard =
+                              index % columns != 0 ||
+                                  widget.onFirstItemLeft == null
+                              ? card
+                              : Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) {
+                                    if (event is! KeyDownEvent) {
+                                      return KeyEventResult.ignored;
+                                    }
+                                    if (event.logicalKey !=
+                                        LogicalKeyboardKey.arrowLeft) {
+                                      return KeyEventResult.ignored;
+                                    }
+                                    widget.onFirstItemLeft!.call();
+                                    return KeyEventResult.handled;
+                                  },
+                                  child: card,
+                                );
+                          return decoratedCard;
                         },
                       );
                     },
@@ -126,7 +246,7 @@ class WatchProvidersGrid extends ConsumerWidget {
       },
       loading: () => Padding(
         padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
+          horizontal: widget.horizontalPadding,
           vertical: 16,
         ),
         child: Center(child: CircularProgressIndicator()),
@@ -138,10 +258,15 @@ class WatchProvidersGrid extends ConsumerWidget {
 
 /// Carte représentant un provider.
 class _WatchProviderCard extends ConsumerWidget {
-  const _WatchProviderCard({required this.provider, this.focusNode});
+  const _WatchProviderCard({
+    required this.provider,
+    this.focusNode,
+    this.focusVerticalAlignment,
+  });
 
   final WatchProvider provider;
   final FocusNode? focusNode;
+  final double? focusVerticalAlignment;
 
   Color _getProviderColor(int providerId) {
     // Palette de couleurs par défaut pour les providers connus
@@ -173,6 +298,7 @@ class _WatchProviderCard extends ConsumerWidget {
 
     return MoviFocusableAction(
       focusNode: focusNode,
+      ensureVisibleVerticalAlignment: focusVerticalAlignment,
       onPressed: () {
         context.push(
           AppRouteNames.providerResults,

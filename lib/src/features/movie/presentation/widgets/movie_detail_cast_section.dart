@@ -125,6 +125,7 @@ class _MovieDetailCastSectionState
                   isLeadingEdge: index == 0,
                   isTrailingEdge: index == widget.cast.length - 1,
                   consumeBackwardEdgeKey: true,
+                  horizontalAlignment: 0.18,
                   child: MoviPersonCard(
                     person: p,
                     focusNode: _itemFocusNodes[index],

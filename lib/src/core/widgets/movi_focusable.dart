@@ -137,6 +137,7 @@ class MoviFocusableAction extends StatefulWidget {
     this.autofocus = false,
     this.enableHover = true,
     this.ensureVisibleOnFocus = true,
+    this.ensureVisibleVerticalAlignment,
     this.behavior = HitTestBehavior.opaque,
     this.semanticLabel,
     this.button = true,
@@ -152,6 +153,7 @@ class MoviFocusableAction extends StatefulWidget {
   final bool autofocus;
   final bool enableHover;
   final bool ensureVisibleOnFocus;
+  final double? ensureVisibleVerticalAlignment;
   final HitTestBehavior behavior;
   final String? semanticLabel;
   final bool button;
@@ -179,11 +181,15 @@ class _MoviFocusableActionState extends State<MoviFocusableAction> {
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final alignment = widget.ensureVisibleVerticalAlignment;
       Scrollable.ensureVisible(
         context,
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        alignment: alignment ?? 0,
+        alignmentPolicy: alignment == null
+            ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+            : ScrollPositionAlignmentPolicy.explicit,
       );
     });
   }
@@ -280,6 +286,7 @@ class MoviEnsureVisibleOnFocus extends StatefulWidget {
     this.isTrailingEdge = false,
     this.consumeBackwardEdgeKey = false,
     this.enableVerticalScroll = true,
+    this.horizontalAlignment,
     this.verticalAlignment = 0.5,
   });
 
@@ -288,6 +295,7 @@ class MoviEnsureVisibleOnFocus extends StatefulWidget {
   final bool isTrailingEdge;
   final bool consumeBackwardEdgeKey;
   final bool enableVerticalScroll;
+  final double? horizontalAlignment;
   final double verticalAlignment;
 
   @override
@@ -319,11 +327,15 @@ class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
       }
 
       try {
+        final horizontalAlignment = widget.horizontalAlignment;
         position.ensureVisible(
           target,
           duration: Duration.zero,
           curve: _scrollCurve,
-          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+          alignment: horizontalAlignment ?? 0,
+          alignmentPolicy: horizontalAlignment == null
+              ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+              : ScrollPositionAlignmentPolicy.explicit,
         );
       } catch (_) {
         // Best effort: ignore transient detach races.

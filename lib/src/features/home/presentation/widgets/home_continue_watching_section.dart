@@ -121,6 +121,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
               estimatedItemWidth: HomeLayoutConstants.continueWatchingCardWidth,
               estimatedItemHeight:
                   HomeLayoutConstants.continueWatchingCardHeight,
+              horizontalFocusAlignment: 0.18,
               items: inProgress
                   .take(itemLimit)
                   .map((media) => _buildCard(context, ref, media))

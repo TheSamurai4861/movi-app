@@ -23,6 +23,7 @@ class MovieDetailRecommendationsSection extends ConsumerWidget {
       consumeLeadingEdgeLeftKey: true,
       estimatedItemWidth: 150,
       estimatedItemHeight: MoviMediaCard.listHeight,
+      horizontalFocusAlignment: 0.18,
       titlePadding: horizontalPadding,
       horizontalPadding: EdgeInsetsDirectional.only(
         start: horizontalPadding,

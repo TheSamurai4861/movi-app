@@ -57,6 +57,7 @@ class HomeIptvSection extends ConsumerWidget {
         itemSpacing: HomeLayoutConstants.itemSpacing,
         estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
         estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
+        horizontalFocusAlignment: 0.18,
         items: [
           ...items.take(itemLimit).map((r) => _buildMediaCard(context, ref, r)),
           SeeAllCard(
@@ -159,6 +160,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
             itemSpacing: HomeLayoutConstants.itemSpacing,
             estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
             estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
+            horizontalFocusAlignment: 0.18,
             items: List.generate(itemLimit, (_) => const HomeLoadingSkeleton()),
           ),
           const SizedBox(height: HomeLayoutConstants.sectionGap),
@@ -167,6 +169,7 @@ class HomeIptvLoadingSections extends StatelessWidget {
             itemSpacing: HomeLayoutConstants.itemSpacing,
             estimatedItemWidth: HomeLayoutConstants.mediaCardWidth,
             estimatedItemHeight: HomeLayoutConstants.mediaCardHeight,
+            horizontalFocusAlignment: 0.18,
             items: List.generate(itemLimit, (_) => const HomeLoadingSkeleton()),
           ),
           const SizedBox(height: HomeLayoutConstants.sectionGap),

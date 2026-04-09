@@ -121,6 +121,7 @@ final _watchedEpisodeKeysProvider = FutureProvider.family<Set<String>, String>((
 class _TvDetailPageState extends ConsumerState<TvDetailPage>
     with TickerProviderStateMixin {
   static void _noop() {}
+  static const double _heroFocusVerticalAlignment = 0.08;
   bool _overviewExpanded = false;
   bool _isTransitioningFromLoading = true;
   late TabController _tabController;
@@ -465,10 +466,29 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     _lastFocusedHeroAction = action;
   }
 
+  bool _isFocusNodeActive(FocusNode node) {
+    final context = node.context;
+    if (context == null || !node.canRequestFocus) {
+      return false;
+    }
+    if (context is Element && !context.mounted) {
+      return false;
+    }
+    return true;
+  }
+
   double? _focusNodeCenterX(FocusNode node) {
     final context = node.context;
     if (context == null) return null;
-    final renderObject = context.findRenderObject();
+    if (context is Element && !context.mounted) {
+      return null;
+    }
+    RenderObject? renderObject;
+    try {
+      renderObject = context.findRenderObject();
+    } on FlutterError {
+      return null;
+    }
     if (renderObject is! RenderBox || !renderObject.hasSize) {
       return null;
     }
@@ -480,9 +500,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     FocusNode source,
     Iterable<FocusNode> candidates,
   ) {
-    final available = candidates
-        .where((node) => node.context != null && node.canRequestFocus)
-        .toList();
+    final available = candidates.where(_isFocusNodeActive).toList();
     if (available.isEmpty) return false;
 
     final sourceCenterX = _focusNodeCenterX(source);
@@ -622,6 +640,37 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       seasonNumber: season.seasonNumber,
       visibleIndex: targetIndex,
     );
+  }
+
+  KeyEventResult _handleEpisodeItemKey(
+    int seasonNumber,
+    int visibleIndex,
+    int itemCount,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _requestSeasonTabsFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (visibleIndex > 0) {
+        _episodeFocusNode(seasonNumber, visibleIndex - 1).requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (visibleIndex < itemCount - 1) {
+        _episodeFocusNode(seasonNumber, visibleIndex + 1).requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   bool _requestHeroActionDownTarget(FocusNode source) {
@@ -1765,73 +1814,76 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           seriesPlaybackLaunchPlanProvider(seriesId),
         );
 
-        return Focus(
-          canRequestFocus: false,
-          onFocusChange: (focused) {
-            _markHeroActionFocused(_TvHeroAction.primary, focused);
-          },
-          onKeyEvent: (_, event) => _handleHeroActionKey(
-            _primaryActionFocusNode,
-            event,
-            rightNode: _changeVersionFocusNode,
-          ),
-          child: MoviPrimaryButton(
-            focusNode: _primaryActionFocusNode,
-            label: launchPlanAsync.when(
-              data: (launchPlan) {
-                if (launchPlan != null &&
-                    launchPlan.isResumeEligible &&
-                    launchPlan.season != null &&
-                    launchPlan.episode != null) {
-                  final hasContinueWatchingPremium = ref
-                      .watch(
-                        canAccessPremiumFeatureProvider(
-                          PremiumFeature.localContinueWatching,
-                        ),
-                      )
-                      .maybeWhen(data: (value) => value, orElse: () => false);
-                  if (hasContinueWatchingPremium) {
-                    return AppLocalizations.of(context)!.tvResumeSeasonEpisode(
-                      launchPlan.season!,
-                      launchPlan.episode!,
-                    );
+        return MoviEnsureVisibleOnFocus(
+          verticalAlignment: _heroFocusVerticalAlignment,
+          child: Focus(
+            canRequestFocus: false,
+            onFocusChange: (focused) {
+              _markHeroActionFocused(_TvHeroAction.primary, focused);
+            },
+            onKeyEvent: (_, event) => _handleHeroActionKey(
+              _primaryActionFocusNode,
+              event,
+              rightNode: _changeVersionFocusNode,
+            ),
+            child: MoviPrimaryButton(
+              focusNode: _primaryActionFocusNode,
+              label: launchPlanAsync.when(
+                data: (launchPlan) {
+                  if (launchPlan != null &&
+                      launchPlan.isResumeEligible &&
+                      launchPlan.season != null &&
+                      launchPlan.episode != null) {
+                    final hasContinueWatchingPremium = ref
+                        .watch(
+                          canAccessPremiumFeatureProvider(
+                            PremiumFeature.localContinueWatching,
+                          ),
+                        )
+                        .maybeWhen(data: (value) => value, orElse: () => false);
+                    if (hasContinueWatchingPremium) {
+                      return AppLocalizations.of(context)!.tvResumeSeasonEpisode(
+                        launchPlan.season!,
+                        launchPlan.episode!,
+                      );
+                    }
+                    return AppLocalizations.of(context)!.homeWatchNow;
                   }
                   return AppLocalizations.of(context)!.homeWatchNow;
-                }
-                return AppLocalizations.of(context)!.homeWatchNow;
-              },
-              loading: () => AppLocalizations.of(context)!.homeWatchNow,
-              error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
-            ),
-            assetIcon: AppAssets.iconPlay,
-            buttonStyle: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
+                },
+                loading: () => AppLocalizations.of(context)!.homeWatchNow,
+                error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
               ),
-            ),
-            onPressed: () async {
-              final hasContinueWatchingPremium = ref
-                  .read(
-                    canAccessPremiumFeatureProvider(
-                      PremiumFeature.localContinueWatching,
-                    ),
-                  )
-                  .maybeWhen(data: (value) => value, orElse: () => false);
-              if (!hasContinueWatchingPremium) {
-                // Non-premium: always start from S1E1 (no resume).
+              assetIcon: AppAssets.iconPlay,
+              buttonStyle: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(32),
+                ),
+              ),
+              onPressed: () async {
+                final hasContinueWatchingPremium = ref
+                    .read(
+                      canAccessPremiumFeatureProvider(
+                        PremiumFeature.localContinueWatching,
+                      ),
+                    )
+                    .maybeWhen(data: (value) => value, orElse: () => false);
+                if (!hasContinueWatchingPremium) {
+                  // Non-premium: always start from S1E1 (no resume).
+                  // ignore: use_build_context_synchronously
+                  await _openFirstEpisode(startFromBeginning: true);
+                  return;
+                }
                 // ignore: use_build_context_synchronously
-                await _openFirstEpisode(startFromBeginning: true);
-                return;
-              }
-              // ignore: use_build_context_synchronously
-              await _playSeries(
-                context,
-                seriesId,
-                mediaTitle,
-                startFromBeginning: false,
-              );
-            },
+                await _playSeries(
+                  context,
+                  seriesId,
+                  mediaTitle,
+                  startFromBeginning: false,
+                );
+              },
+            ),
           ),
         );
       },
@@ -1858,66 +1910,69 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   )
                   .maybeWhen(data: (value) => value, orElse: () => false);
 
-              return Focus(
-                canRequestFocus: false,
-                onFocusChange: (focused) {
-                  if (_changeVersionFocused == focused) return;
-                  if (focused) {
-                    _markHeroActionFocused(
-                      _TvHeroAction.changeVersion,
-                      focused,
-                    );
-                  }
-                  setState(() => _changeVersionFocused = focused);
-                },
-                onKeyEvent: (_, event) => _handleHeroActionKey(
-                  _changeVersionFocusNode,
-                  event,
-                  leftNode: _primaryActionFocusNode,
-                  rightNode: hasPremium
-                      ? _trackSeriesFocusNode
-                      : _favoriteActionFocusNode,
-                ),
-                child: Semantics(
-                  button: true,
-                  label: AppLocalizations.of(context)!.actionChangeVersion,
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Material(
-                      type: MaterialType.transparency,
-                      child: InkWell(
-                        focusNode: _changeVersionFocusNode,
-                        onTap: () async {
-                          await _chooseSeriesVersion(mediaTitle);
-                        },
-                        borderRadius: BorderRadius.circular(22),
-                        child: AnimatedScale(
-                          scale: _changeVersionFocused ? 1.05 : 1,
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOutCubic,
-                          child: AnimatedContainer(
+              return MoviEnsureVisibleOnFocus(
+                verticalAlignment: _heroFocusVerticalAlignment,
+                child: Focus(
+                  canRequestFocus: false,
+                  onFocusChange: (focused) {
+                    if (_changeVersionFocused == focused) return;
+                    if (focused) {
+                      _markHeroActionFocused(
+                        _TvHeroAction.changeVersion,
+                        focused,
+                      );
+                    }
+                    setState(() => _changeVersionFocused = focused);
+                  },
+                  onKeyEvent: (_, event) => _handleHeroActionKey(
+                    _changeVersionFocusNode,
+                    event,
+                    leftNode: _primaryActionFocusNode,
+                    rightNode: hasPremium
+                        ? _trackSeriesFocusNode
+                        : _favoriteActionFocusNode,
+                  ),
+                  child: Semantics(
+                    button: true,
+                    label: AppLocalizations.of(context)!.actionChangeVersion,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: InkWell(
+                          focusNode: _changeVersionFocusNode,
+                          onTap: () async {
+                            await _chooseSeriesVersion(mediaTitle);
+                          },
+                          borderRadius: BorderRadius.circular(22),
+                          child: AnimatedScale(
+                            scale: _changeVersionFocused ? 1.05 : 1,
                             duration: const Duration(milliseconds: 180),
                             curve: Curves.easeOutCubic,
-                            padding: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: _changeVersionFocused
-                                  ? iconActionFocusedBackground
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              curve: Curves.easeOutCubic,
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
                                 color: _changeVersionFocused
-                                    ? Theme.of(context).colorScheme.primary
+                                    ? iconActionFocusedBackground
                                     : Colors.transparent,
-                                width: 2,
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(
+                                  color: _changeVersionFocused
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            alignment: Alignment.center,
-                            child: const MoviAssetIcon(
-                              AppAssets.iconChange,
-                              width: 28,
-                              height: 28,
-                              color: Colors.white,
+                              alignment: Alignment.center,
+                              child: const MoviAssetIcon(
+                                AppAssets.iconChange,
+                                width: 28,
+                                height: 28,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -1954,71 +2009,74 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       SizedBox(
                         width: 44,
                         height: 44,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onFocusChange: (focused) {
-                            _markHeroActionFocused(
-                              _TvHeroAction.tracking,
-                              focused,
-                            );
-                          },
-                          onKeyEvent: (_, event) => _handleHeroActionKey(
-                            _trackSeriesFocusNode,
-                            event,
-                            leftNode: _changeVersionFocusNode,
-                            rightNode: _favoriteActionFocusNode,
-                          ),
-                          child: isTrackedAsync.when(
-                            data: (isTracked) => MoviTrackSeriesButton(
-                              focusNode: _trackSeriesFocusNode,
-                              isTracked: isTracked,
-                              size: 44,
-                              iconSize: 28,
-                              focusPadding: const EdgeInsets.all(5),
-                              focusedBackgroundColor:
-                                  iconActionFocusedBackground,
-                              focusedBorderColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              borderWidth: 2,
-                              onPressed: () async {
-                                final poster = _lastVm?.poster;
-                                await ref
-                                    .read(seriesTrackingToggleProvider.notifier)
-                                    .toggle(
-                                      seriesId: seriesId,
-                                      title: mediaTitle,
-                                      poster: poster,
-                                    );
-                              },
+                        child: MoviEnsureVisibleOnFocus(
+                          verticalAlignment: _heroFocusVerticalAlignment,
+                          child: Focus(
+                            canRequestFocus: false,
+                            onFocusChange: (focused) {
+                              _markHeroActionFocused(
+                                _TvHeroAction.tracking,
+                                focused,
+                              );
+                            },
+                            onKeyEvent: (_, event) => _handleHeroActionKey(
+                              _trackSeriesFocusNode,
+                              event,
+                              leftNode: _changeVersionFocusNode,
+                              rightNode: _favoriteActionFocusNode,
                             ),
-                            loading: () => MoviTrackSeriesButton(
-                              focusNode: _trackSeriesFocusNode,
-                              isTracked: false,
-                              size: 44,
-                              iconSize: 28,
-                              focusPadding: const EdgeInsets.all(5),
-                              focusedBackgroundColor:
-                                  iconActionFocusedBackground,
-                              focusedBorderColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              borderWidth: 2,
-                              onPressed: _noop,
-                            ),
-                            error: (_, __) => MoviTrackSeriesButton(
-                              focusNode: _trackSeriesFocusNode,
-                              isTracked: false,
-                              size: 44,
-                              iconSize: 28,
-                              focusPadding: const EdgeInsets.all(5),
-                              focusedBackgroundColor:
-                                  iconActionFocusedBackground,
-                              focusedBorderColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              borderWidth: 2,
-                              onPressed: _noop,
+                            child: isTrackedAsync.when(
+                              data: (isTracked) => MoviTrackSeriesButton(
+                                focusNode: _trackSeriesFocusNode,
+                                isTracked: isTracked,
+                                size: 44,
+                                iconSize: 28,
+                                focusPadding: const EdgeInsets.all(5),
+                                focusedBackgroundColor:
+                                    iconActionFocusedBackground,
+                                focusedBorderColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                borderWidth: 2,
+                                onPressed: () async {
+                                  final poster = _lastVm?.poster;
+                                  await ref
+                                      .read(seriesTrackingToggleProvider.notifier)
+                                      .toggle(
+                                        seriesId: seriesId,
+                                        title: mediaTitle,
+                                        poster: poster,
+                                      );
+                                },
+                              ),
+                              loading: () => MoviTrackSeriesButton(
+                                focusNode: _trackSeriesFocusNode,
+                                isTracked: false,
+                                size: 44,
+                                iconSize: 28,
+                                focusPadding: const EdgeInsets.all(5),
+                                focusedBackgroundColor:
+                                    iconActionFocusedBackground,
+                                focusedBorderColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                borderWidth: 2,
+                                onPressed: _noop,
+                              ),
+                              error: (_, __) => MoviTrackSeriesButton(
+                                focusNode: _trackSeriesFocusNode,
+                                isTracked: false,
+                                size: 44,
+                                iconSize: 28,
+                                focusPadding: const EdgeInsets.all(5),
+                                focusedBackgroundColor:
+                                    iconActionFocusedBackground,
+                                focusedBorderColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                borderWidth: 2,
+                                onPressed: _noop,
+                              ),
                             ),
                           ),
                         ),
@@ -2043,80 +2101,92 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 );
 
                 return isFavoriteAsync.when(
-                  data: (isFavorite) => Focus(
-                    canRequestFocus: false,
-                    onFocusChange: (focused) {
-                      _markHeroActionFocused(_TvHeroAction.favorite, focused);
-                    },
-                    onKeyEvent: (_, event) => _handleHeroActionKey(
-                      _favoriteActionFocusNode,
-                      event,
-                      leftNode: _trackSeriesFocusNode.context != null
-                          ? _trackSeriesFocusNode
-                          : _changeVersionFocusNode,
-                    ),
-                    child: MoviFavoriteButton(
-                      focusNode: _favoriteActionFocusNode,
-                      isFavorite: isFavorite,
-                      size: 44,
-                      iconSize: 28,
-                      focusPadding: const EdgeInsets.all(5),
-                      focusedBackgroundColor: iconActionFocusedBackground,
-                      focusedBorderColor: Theme.of(context).colorScheme.primary,
-                      borderWidth: 2,
-                      onPressed: () async {
-                        await ref
-                            .read(tvToggleFavoriteProvider.notifier)
-                            .toggle(seriesId);
+                  data: (isFavorite) => MoviEnsureVisibleOnFocus(
+                    verticalAlignment: _heroFocusVerticalAlignment,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onFocusChange: (focused) {
+                        _markHeroActionFocused(_TvHeroAction.favorite, focused);
                       },
+                      onKeyEvent: (_, event) => _handleHeroActionKey(
+                        _favoriteActionFocusNode,
+                        event,
+                        leftNode: _trackSeriesFocusNode.context != null
+                            ? _trackSeriesFocusNode
+                            : _changeVersionFocusNode,
+                      ),
+                      child: MoviFavoriteButton(
+                        focusNode: _favoriteActionFocusNode,
+                        isFavorite: isFavorite,
+                        size: 44,
+                        iconSize: 28,
+                        focusPadding: const EdgeInsets.all(5),
+                        focusedBackgroundColor: iconActionFocusedBackground,
+                        focusedBorderColor:
+                            Theme.of(context).colorScheme.primary,
+                        borderWidth: 2,
+                        onPressed: () async {
+                          await ref
+                              .read(tvToggleFavoriteProvider.notifier)
+                              .toggle(seriesId);
+                        },
+                      ),
                     ),
                   ),
-                  loading: () => Focus(
-                    canRequestFocus: false,
-                    onFocusChange: (focused) {
-                      _markHeroActionFocused(_TvHeroAction.favorite, focused);
-                    },
-                    onKeyEvent: (_, event) => _handleHeroActionKey(
-                      _favoriteActionFocusNode,
-                      event,
-                      leftNode: _trackSeriesFocusNode.context != null
-                          ? _trackSeriesFocusNode
-                          : _changeVersionFocusNode,
-                    ),
-                    child: MoviFavoriteButton(
-                      focusNode: _favoriteActionFocusNode,
-                      isFavorite: false,
-                      size: 44,
-                      iconSize: 28,
-                      focusPadding: const EdgeInsets.all(5),
-                      focusedBackgroundColor: iconActionFocusedBackground,
-                      focusedBorderColor: Theme.of(context).colorScheme.primary,
-                      borderWidth: 2,
-                      onPressed: _noop,
+                  loading: () => MoviEnsureVisibleOnFocus(
+                    verticalAlignment: _heroFocusVerticalAlignment,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onFocusChange: (focused) {
+                        _markHeroActionFocused(_TvHeroAction.favorite, focused);
+                      },
+                      onKeyEvent: (_, event) => _handleHeroActionKey(
+                        _favoriteActionFocusNode,
+                        event,
+                        leftNode: _trackSeriesFocusNode.context != null
+                            ? _trackSeriesFocusNode
+                            : _changeVersionFocusNode,
+                      ),
+                      child: MoviFavoriteButton(
+                        focusNode: _favoriteActionFocusNode,
+                        isFavorite: false,
+                        size: 44,
+                        iconSize: 28,
+                        focusPadding: const EdgeInsets.all(5),
+                        focusedBackgroundColor: iconActionFocusedBackground,
+                        focusedBorderColor:
+                            Theme.of(context).colorScheme.primary,
+                        borderWidth: 2,
+                        onPressed: _noop,
+                      ),
                     ),
                   ),
-                  error: (_, __) => Focus(
-                    canRequestFocus: false,
-                    onFocusChange: (focused) {
-                      _markHeroActionFocused(_TvHeroAction.favorite, focused);
-                    },
-                    onKeyEvent: (_, event) => _handleHeroActionKey(
-                      _favoriteActionFocusNode,
-                      event,
-                      leftNode: _trackSeriesFocusNode.context != null
-                          ? _trackSeriesFocusNode
-                          : _changeVersionFocusNode,
-                    ),
-                    child: MoviFavoriteButton(
-                      focusNode: _favoriteActionFocusNode,
-                      isFavorite: false,
-                      size: 44,
-                      iconSize: 28,
-                      focusPadding: const EdgeInsets.all(5),
-                      focusedBackgroundColor: iconActionFocusedBackground,
-                      focusedBorderColor: Theme.of(context).colorScheme.primary,
-                      borderWidth: 2,
-                      onPressed: _noop,
+                  error: (_, __) => MoviEnsureVisibleOnFocus(
+                    verticalAlignment: _heroFocusVerticalAlignment,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onFocusChange: (focused) {
+                        _markHeroActionFocused(_TvHeroAction.favorite, focused);
+                      },
+                      onKeyEvent: (_, event) => _handleHeroActionKey(
+                        _favoriteActionFocusNode,
+                        event,
+                        leftNode: _trackSeriesFocusNode.context != null
+                            ? _trackSeriesFocusNode
+                            : _changeVersionFocusNode,
+                      ),
+                      child: MoviFavoriteButton(
+                        focusNode: _favoriteActionFocusNode,
+                        isFavorite: false,
+                        size: 44,
+                        iconSize: 28,
+                        focusPadding: const EdgeInsets.all(5),
+                        focusedBackgroundColor: iconActionFocusedBackground,
+                        focusedBorderColor:
+                            Theme.of(context).colorScheme.primary,
+                        borderWidth: 2,
+                        onPressed: _noop,
+                      ),
                     ),
                   ),
                 );
@@ -2275,6 +2345,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   itemBuilder: (context, index) {
                     final p = cast[index];
                     return MoviEnsureVisibleOnFocus(
+                      horizontalAlignment: 0.18,
                       verticalAlignment: 0.34,
                       child: Focus(
                         canRequestFocus: false,
@@ -2479,6 +2550,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Widget _buildSeasonEpisodeFocusable({
     required int seasonNumber,
     required int visibleIndex,
+    required int itemCount,
     required EpisodeViewModel episode,
     required bool hideSpoilers,
     bool enableVerticalScroll = true,
@@ -2487,11 +2559,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
+      onKeyEvent: (_, event) => _handleEpisodeItemKey(
+        seasonNumber,
+        visibleIndex,
+        itemCount,
+        event,
+      ),
       onFocusChange: (focused) {
         _handleEpisodeFocusChanged(seasonNumber, visibleIndex, focused);
       },
       child: MoviEnsureVisibleOnFocus(
         enableVerticalScroll: enableVerticalScroll,
+        horizontalAlignment: enableVerticalScroll ? null : 0.18,
         verticalAlignment: 0.38,
         child: MoviFocusableAction(
           ensureVisibleOnFocus: false,
@@ -2573,6 +2652,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 return _buildSeasonEpisodeFocusable(
                   seasonNumber: season.seasonNumber,
                   visibleIndex: index,
+                  itemCount: sortedEpisodes.length,
                   episode: episode,
                   hideSpoilers: hideSpoilers,
                   enableVerticalScroll: false,
@@ -2609,6 +2689,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         return _buildSeasonEpisodeFocusable(
           seasonNumber: season.seasonNumber,
           visibleIndex: index,
+          itemCount: sortedEpisodes.length,
           episode: episode,
           hideSpoilers: hideSpoilers,
           builder: (context, state) {

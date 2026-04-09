@@ -680,6 +680,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                           : null,
                       estimatedItemWidth: _previewCardWidth,
                       estimatedItemHeight: _previewRailItemHeight,
+                      horizontalFocusAlignment: 0.18,
                       titlePadding: 20,
                       horizontalPadding: const EdgeInsetsDirectional.only(
                         start: 20,
@@ -735,6 +736,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
                           : null,
                       estimatedItemWidth: _previewCardWidth,
                       estimatedItemHeight: _previewRailItemHeight,
+                      horizontalFocusAlignment: 0.18,
                       titlePadding: 20,
                       horizontalPadding: const EdgeInsetsDirectional.only(
                         start: 20,

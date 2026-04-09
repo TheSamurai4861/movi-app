@@ -57,6 +57,7 @@ class MovieDetailPage extends ConsumerStatefulWidget {
 
 class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     with TickerProviderStateMixin {
+  static const double _heroFocusVerticalAlignment = 0.08;
   bool _isTransitioningFromLoading = true;
   String mediaTitle = '—';
   String yearText = '—';
@@ -774,28 +775,31 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
     final isFavoriteAsync = ref.watch(mdp.movieIsFavoriteProvider(movieId));
 
-    final primaryButton = Focus(
-      canRequestFocus: false,
-      onKeyEvent: (_, event) => _handlePrimaryActionKey(event),
-      child: MoviPrimaryButton(
-        focusNode: _primaryActionFocusNode,
-        label: launchPlanAsync.when(
-          data: (launchPlan) => launchPlan?.isResumeEligible == true
-              ? AppLocalizations.of(context)!.resumePlayback
-              : AppLocalizations.of(context)!.homeWatchNow,
-          loading: () => AppLocalizations.of(context)!.homeWatchNow,
-          error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
-        ),
-        assetIcon: AppAssets.iconPlay,
-        buttonStyle: FilledButton.styleFrom(
-          backgroundColor: cs.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(32),
+    final primaryButton = MoviEnsureVisibleOnFocus(
+      verticalAlignment: _heroFocusVerticalAlignment,
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => _handlePrimaryActionKey(event),
+        child: MoviPrimaryButton(
+          focusNode: _primaryActionFocusNode,
+          label: launchPlanAsync.when(
+            data: (launchPlan) => launchPlan?.isResumeEligible == true
+                ? AppLocalizations.of(context)!.resumePlayback
+                : AppLocalizations.of(context)!.homeWatchNow,
+            loading: () => AppLocalizations.of(context)!.homeWatchNow,
+            error: (_, __) => AppLocalizations.of(context)!.homeWatchNow,
           ),
+          assetIcon: AppAssets.iconPlay,
+          buttonStyle: FilledButton.styleFrom(
+            backgroundColor: cs.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(32),
+            ),
+          ),
+          onPressed: () async {
+            _playMovie(context, mediaTitle, startFromBeginning: false);
+          },
         ),
-        onPressed: () async {
-          _playMovie(context, mediaTitle, startFromBeginning: false);
-        },
       ),
     );
 
@@ -866,10 +870,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           playButton,
           if (isAvailable) ...[
             const SizedBox(width: 12),
-            Focus(
-              canRequestFocus: false,
-              onKeyEvent: (_, event) => _handleSecondaryActionKey(event),
-              child: changeVersionButton,
+            MoviEnsureVisibleOnFocus(
+              verticalAlignment: _heroFocusVerticalAlignment,
+              child: Focus(
+                canRequestFocus: false,
+                onKeyEvent: (_, event) => _handleSecondaryActionKey(event),
+                child: changeVersionButton,
+              ),
             ),
             const SizedBox(width: 12),
           ] else ...[
@@ -878,46 +885,49 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           SizedBox(
             width: 44,
             height: 44,
-            child: Focus(
-              canRequestFocus: false,
-              onKeyEvent: (_, event) => _handleSecondaryActionKey(event),
-              child: isFavoriteAsync.when(
-                data: (isFavorite) => MoviFavoriteButton(
-                  isFavorite: isFavorite,
-                  focusNode: _favoriteActionFocusNode,
-                  size: 44,
-                  iconSize: 28,
-                  focusPadding: const EdgeInsets.all(5),
-                  focusedBackgroundColor: iconActionFocusedBackground,
-                  focusedBorderColor: cs.primary,
-                  borderWidth: 2,
-                  onPressed: () async {
-                    await ref
-                        .read(mdp.movieToggleFavoriteProvider.notifier)
-                        .toggle(movieId);
-                  },
-                ),
-                loading: () => MoviFavoriteButton(
-                  isFavorite: false,
-                  focusNode: _favoriteActionFocusNode,
-                  size: 44,
-                  iconSize: 28,
-                  focusPadding: const EdgeInsets.all(5),
-                  focusedBackgroundColor: iconActionFocusedBackground,
-                  focusedBorderColor: cs.primary,
-                  borderWidth: 2,
-                  onPressed: () {},
-                ),
-                error: (_, __) => MoviFavoriteButton(
-                  isFavorite: false,
-                  focusNode: _favoriteActionFocusNode,
-                  size: 44,
-                  iconSize: 28,
-                  focusPadding: const EdgeInsets.all(5),
-                  focusedBackgroundColor: iconActionFocusedBackground,
-                  focusedBorderColor: cs.primary,
-                  borderWidth: 2,
-                  onPressed: () {},
+            child: MoviEnsureVisibleOnFocus(
+              verticalAlignment: _heroFocusVerticalAlignment,
+              child: Focus(
+                canRequestFocus: false,
+                onKeyEvent: (_, event) => _handleSecondaryActionKey(event),
+                child: isFavoriteAsync.when(
+                  data: (isFavorite) => MoviFavoriteButton(
+                    isFavorite: isFavorite,
+                    focusNode: _favoriteActionFocusNode,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: iconActionFocusedBackground,
+                    focusedBorderColor: cs.primary,
+                    borderWidth: 2,
+                    onPressed: () async {
+                      await ref
+                          .read(mdp.movieToggleFavoriteProvider.notifier)
+                          .toggle(movieId);
+                    },
+                  ),
+                  loading: () => MoviFavoriteButton(
+                    isFavorite: false,
+                    focusNode: _favoriteActionFocusNode,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: iconActionFocusedBackground,
+                    focusedBorderColor: cs.primary,
+                    borderWidth: 2,
+                    onPressed: () {},
+                  ),
+                  error: (_, __) => MoviFavoriteButton(
+                    isFavorite: false,
+                    focusNode: _favoriteActionFocusNode,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: iconActionFocusedBackground,
+                    focusedBorderColor: cs.primary,
+                    borderWidth: 2,
+                    onPressed: () {},
+                  ),
                 ),
               ),
             ),
