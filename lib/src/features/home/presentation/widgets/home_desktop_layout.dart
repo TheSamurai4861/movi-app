@@ -140,11 +140,16 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   final FocusNode _heroPrimaryActionFocusNode = FocusNode(
     debugLabel: 'HomeHeroPrimaryAction',
   );
+  final FocusNode _heroMoviesFilterFocusNode = FocusNode(
+    debugLabel: 'HomeHeroMoviesFilter',
+  );
   late final ShellFocusCoordinator _shellFocusCoordinator;
   bool get _allowLegacyHeroOverlayPrecache =>
       defaultTargetPlatform != TargetPlatform.windows;
   String? _lastLoggedHeroBuildSignature;
   String? _lastLoggedHeroOverlayUrl;
+  late final VoidCallback _heroPrimaryActionFocusListener =
+      _onHeroPrimaryActionFocusChanged;
 
   bool _isScheduled = false;
   void _logHomeHeroDebug(
@@ -212,6 +217,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
       ),
     );
     _logHomeHeroDebug('init_state');
+    _heroPrimaryActionFocusNode.addListener(_heroPrimaryActionFocusListener);
     _requestInitialHeroFocus();
     // Déclencher automatiquement le refresh après le premier frame si les données sont vides
     // Simule un pull-to-refresh complet (sync + refresh home)
@@ -247,13 +253,30 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
     });
   }
 
+  void _onHeroPrimaryActionFocusChanged() {
+    if (!mounted || !_heroPrimaryActionFocusNode.hasFocus) {
+      return;
+    }
+    final controller = PrimaryScrollController.maybeOf(context);
+    if (controller == null || !controller.hasClients || controller.offset <= 0) {
+      return;
+    }
+    controller.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
   @override
   void dispose() {
+    _heroPrimaryActionFocusNode.removeListener(_heroPrimaryActionFocusListener);
     _shellFocusCoordinator.unregisterTabFocusBinding(
       ShellTab.home,
       _heroPrimaryActionFocusNode,
     );
     _heroPrimaryActionFocusNode.dispose();
+    _heroMoviesFilterFocusNode.dispose();
     super.dispose();
   }
 
@@ -366,6 +389,7 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
                 HomeHeroSection(
                   heroItems: state.hero,
                   primaryActionFocusNode: _heroPrimaryActionFocusNode,
+                  moviesFilterFocusNode: _heroMoviesFilterFocusNode,
                   onLoadingChanged: (isLoading) {
                     if (mounted && _isHeroLoadingMeta != isLoading) {
                       _logHomeHeroDebug(

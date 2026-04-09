@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
 import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
@@ -47,14 +46,12 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
   int _currentPage = 1;
   bool _isLoading = false;
   bool _hasMore = true;
-  final ScrollController _scrollController = ScrollController();
+  int _loadRequestToken = 0;
+  int _lastWheelLoadMs = 0;
   ProviderSubscription<Profile?>? _profileSub;
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'GenreAllBack');
   final FocusNode _firstItemFocusNode = FocusNode(
     debugLabel: 'GenreAllFirstItem',
-  );
-  final FocusNode _loadMoreFocusNode = FocusNode(
-    debugLabel: 'GenreAllLoadMore',
   );
 
   final List<TmdbMovieSummaryDto> _movies = [];
@@ -91,7 +88,6 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
       return;
     }
 
-    _scrollController.addListener(_onScroll);
     _profileSub = ref.listenManual<Profile?>(currentProfileProvider, (
       previous,
       next,
@@ -109,10 +105,7 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
       if (changed || prevRestricted != nextRestricted) {
         // Reload from scratch (pagination + filtering depend on the restriction level).
         setState(() {
-          _currentPage = 1;
-          _hasMore = true;
-          _movies.clear();
-          _shows.clear();
+          _resetPaginationAndInvalidateInFlight();
         });
         unawaited(_loadMore());
       }
@@ -128,22 +121,12 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     _profileSub?.close();
     _backFocusNode.dispose();
     _firstItemFocusNode.dispose();
-    _loadMoreFocusNode.dispose();
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent * 0.8) {
-      if (!_isLoading && _hasMore) {
-        unawaited(_loadMore());
-      }
-    }
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
+    final requestToken = ++_loadRequestToken;
 
     setState(() => _isLoading = true);
 
@@ -154,119 +137,69 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
       final Profile? profile = ref.read(currentProfileProvider);
       final bool hasRestrictions =
           profile != null && (profile.isKid || profile.pegiLimit != null);
-      final int maxPrefetchPages = hasRestrictions ? 30 : 10;
-      const targetNewItems = 20;
       final policy = hasRestrictions
           ? ref.read(parental.agePolicyProvider)
           : null;
+      final json = await client
+          .getJson(
+            _isMovie ? 'discover/movie' : 'discover/tv',
+            query: {
+              'with_genres': widget.args.genreId.toString(),
+              'page': _currentPage,
+              'sort_by': 'popularity.desc',
+            },
+            language: language,
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('Timeout loading results'),
+          );
+      if (!mounted || requestToken != _loadRequestToken) return;
 
-      final collectedMovies = <TmdbMovieSummaryDto>[];
-      final collectedShows = <TmdbTvSummaryDto>[];
-      var tries = 0;
-      var consecutiveEmptyPages = 0;
+      final results = (json['results'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList(growable: false);
+      final totalPages = json['total_pages'] as int? ?? 1;
 
-      while (_hasMore && tries < maxPrefetchPages) {
-        final json = await client
-            .getJson(
-              _isMovie ? 'discover/movie' : 'discover/tv',
-              query: {
-                'with_genres': widget.args.genreId.toString(),
-                'page': _currentPage,
-                'sort_by': 'popularity.desc',
-              },
-              language: language,
-            )
-            .timeout(
-              const Duration(seconds: 30),
-              onTimeout: () =>
-                  throw TimeoutException('Timeout loading results'),
-            );
-
-        final results = (json['results'] as List<dynamic>? ?? [])
-            .whereType<Map<String, dynamic>>()
+      if (_isMovie) {
+        final nextMovies = results
+            .map(TmdbMovieSummaryDto.fromJson)
             .toList(growable: false);
-        final totalPages = json['total_pages'] as int? ?? 1;
-
-        if (_isMovie) {
-          final nextMovies = results
-              .map(TmdbMovieSummaryDto.fromJson)
-              .toList(growable: false);
-          final filteredMovies = hasRestrictions
-              ? await _filterMovieDtos(
-                  policy: policy!,
-                  profile: profile,
-                  items: nextMovies,
-                )
-              : nextMovies;
-
-          // Détecter pages vides
-          if (filteredMovies.isEmpty) {
-            consecutiveEmptyPages++;
-            // Arrêter si 3 pages vides consécutives ET on a essayé au moins 5 pages
-            if (consecutiveEmptyPages >= 3 && tries >= 5) {
-              break;
-            }
-          } else {
-            consecutiveEmptyPages = 0; // Reset si on trouve des items
-          }
-
-          collectedMovies.addAll(filteredMovies);
-        } else {
-          final nextShows = results
-              .map(TmdbTvSummaryDto.fromJson)
-              .toList(growable: false);
-          final filteredShows = hasRestrictions
-              ? await _filterShowDtos(
-                  policy: policy!,
-                  profile: profile,
-                  items: nextShows,
-                )
-              : nextShows;
-
-          // Détecter pages vides
-          if (filteredShows.isEmpty) {
-            consecutiveEmptyPages++;
-            // Arrêter si 3 pages vides consécutives ET on a essayé au moins 5 pages
-            if (consecutiveEmptyPages >= 3 && tries >= 5) {
-              break;
-            }
-          } else {
-            consecutiveEmptyPages = 0; // Reset si on trouve des items
-          }
-
-          collectedShows.addAll(filteredShows);
-        }
-
-        _hasMore = _currentPage < totalPages;
-        _currentPage++;
-        tries++;
-
-        final got = _isMovie ? collectedMovies.length : collectedShows.length;
-        if (got >= targetNewItems) break;
-        if (!_hasMore) break;
+        final filteredMovies = hasRestrictions
+            ? await _filterMovieDtos(
+                policy: policy!,
+                profile: profile,
+                items: nextMovies,
+              )
+            : nextMovies;
+        if (!mounted || requestToken != _loadRequestToken) return;
+        setState(() {
+          _movies.addAll(filteredMovies);
+          _hasMore = _currentPage < totalPages;
+          _currentPage++;
+          _isLoading = false;
+        });
+      } else {
+        final nextShows = results
+            .map(TmdbTvSummaryDto.fromJson)
+            .toList(growable: false);
+        final filteredShows = hasRestrictions
+            ? await _filterShowDtos(
+                policy: policy!,
+                profile: profile,
+                items: nextShows,
+              )
+            : nextShows;
+        if (!mounted || requestToken != _loadRequestToken) return;
+        setState(() {
+          _shows.addAll(filteredShows);
+          _hasMore = _currentPage < totalPages;
+          _currentPage++;
+          _isLoading = false;
+        });
       }
-
-      // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-      final finalCount = _isMovie
-          ? collectedMovies.length
-          : collectedShows.length;
-      if (finalCount < targetNewItems && finalCount > 0) {
-        debugPrint(
-          '[GenreAllResultsPage] Only found $finalCount items out of $targetNewItems requested for genre ${widget.args.genreId}',
-        );
-      }
-
-      if (!mounted) return;
-      setState(() {
-        if (_isMovie) {
-          _movies.addAll(collectedMovies);
-        } else {
-          _shows.addAll(collectedShows);
-        }
-        _isLoading = false;
-      });
     } on TimeoutException {
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadRequestToken) return;
       setState(() {
         _isLoading = false;
         _hasMore = false;
@@ -278,7 +211,7 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
         ).showSnackBar(SnackBar(content: Text(l10n.errorTimeoutLoading)));
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadRequestToken) return;
       setState(() => _isLoading = false);
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
@@ -287,6 +220,15 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
         );
       }
     }
+  }
+
+  void _resetPaginationAndInvalidateInFlight() {
+    _loadRequestToken++;
+    _currentPage = 1;
+    _hasMore = true;
+    _isLoading = false;
+    _movies.clear();
+    _shows.clear();
   }
 
   Future<List<TmdbMovieSummaryDto>> _filterMovieDtos({
@@ -372,44 +314,92 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                     : ListView(
                         padding: const EdgeInsets.only(bottom: 24),
                         children: [
-                          MoviMediaGrid(
-                            itemCount: count,
-                            firstItemFocusNode: _firstItemFocusNode,
-                            footerFocusNode: _hasMore
-                                ? _loadMoreFocusNode
-                                : null,
-                            onExitUp: () {
-                              _backFocusNode.requestFocus();
-                              return true;
+                          NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              if (!_hasMore || _isLoading) return false;
+                              if (notification is! ScrollUpdateNotification) {
+                                return false;
+                              }
+                              if (notification.dragDetails != null) {
+                                return false;
+                              }
+                              final delta = notification.scrollDelta;
+                              if (delta == null || delta <= 0) return false;
+                              if (notification.metrics.extentAfter > 320) {
+                                return false;
+                              }
+                              final now = DateTime.now().millisecondsSinceEpoch;
+                              if (now - _lastWheelLoadMs < 450) return false;
+                              _lastWheelLoadMs = now;
+                              unawaited(_loadMore());
+                              return false;
                             },
-                            pageHorizontalPadding: _pageHorizontalPadding,
-                            itemBuilder:
-                                (
-                                  context,
-                                  index,
-                                  focusNode,
-                                  cardWidth,
-                                  posterHeight,
-                                ) {
-                                  if (_isMovie) {
-                                    final movie = _movies[index];
-                                    final media = MoviMedia(
-                                      id: movie.id.toString(),
-                                      title: movie.title,
-                                      poster: imageResolver.poster(
-                                        movie.posterPath,
-                                      ),
-                                      year:
-                                          movie.releaseDate != null &&
-                                              movie.releaseDate!.length >= 4
-                                          ? int.tryParse(
-                                              movie.releaseDate!.substring(
-                                                0,
-                                                4,
+                            child: MoviMediaGrid(
+                              itemCount: count,
+                              firstItemFocusNode: _firstItemFocusNode,
+                              onExitUp: () {
+                                _backFocusNode.requestFocus();
+                                return true;
+                              },
+                              onExitDown: () {
+                                if (_hasMore && !_isLoading) {
+                                  unawaited(_loadMore());
+                                }
+                                return true;
+                              },
+                              pageHorizontalPadding: _pageHorizontalPadding,
+                              itemBuilder:
+                                  (
+                                    context,
+                                    index,
+                                    focusNode,
+                                    cardWidth,
+                                    posterHeight,
+                                  ) {
+                                    if (_isMovie) {
+                                      final movie = _movies[index];
+                                      final media = MoviMedia(
+                                        id: movie.id.toString(),
+                                        title: movie.title,
+                                        poster: imageResolver.poster(
+                                          movie.posterPath,
+                                        ),
+                                        year:
+                                            movie.releaseDate != null &&
+                                                movie.releaseDate!.length >= 4
+                                            ? int.tryParse(
+                                                movie.releaseDate!.substring(
+                                                  0,
+                                                  4,
+                                                ),
+                                              )
+                                            : null,
+                                        type: MoviMediaType.movie,
+                                      );
+                                      return MoviMediaCard(
+                                        media: media,
+                                        width: cardWidth,
+                                        height: posterHeight,
+                                        focusNode: focusNode,
+                                        onTap: (selectedMedia) =>
+                                            navigateToMovieDetail(
+                                              context,
+                                              ref,
+                                              ContentRouteArgs.movie(
+                                                selectedMedia.id,
                                               ),
-                                            )
-                                          : null,
-                                      type: MoviMediaType.movie,
+                                            ),
+                                      );
+                                    }
+
+                                    final show = _shows[index];
+                                    final media = MoviMedia(
+                                      id: show.id.toString(),
+                                      title: show.name,
+                                      poster: imageResolver.poster(
+                                        show.posterPath,
+                                      ),
+                                      type: MoviMediaType.series,
                                     );
                                     return MoviMediaCard(
                                       media: media,
@@ -417,77 +407,18 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
                                       height: posterHeight,
                                       focusNode: focusNode,
                                       onTap: (selectedMedia) =>
-                                          navigateToMovieDetail(
+                                          navigateToTvDetail(
                                             context,
                                             ref,
-                                            ContentRouteArgs.movie(
+                                            ContentRouteArgs.series(
                                               selectedMedia.id,
                                             ),
                                           ),
                                     );
-                                  }
-
-                                  final show = _shows[index];
-                                  final media = MoviMedia(
-                                    id: show.id.toString(),
-                                    title: show.name,
-                                    poster: imageResolver.poster(
-                                      show.posterPath,
-                                    ),
-                                    type: MoviMediaType.series,
-                                  );
-                                  return MoviMediaCard(
-                                    media: media,
-                                    width: cardWidth,
-                                    height: posterHeight,
-                                    focusNode: focusNode,
-                                    onTap: (selectedMedia) =>
-                                        navigateToTvDetail(
-                                          context,
-                                          ref,
-                                          ContentRouteArgs.series(
-                                            selectedMedia.id,
-                                          ),
-                                        ),
-                                  );
-                                },
-                          ),
-                          if (_hasMore) ...[
-                            const SizedBox(height: 20),
-                            Focus(
-                              canRequestFocus: false,
-                              onKeyEvent: (_, event) {
-                                if (event is! KeyDownEvent) {
-                                  return KeyEventResult.ignored;
-                                }
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowUp) {
-                                  _firstItemFocusNode.requestFocus();
-                                  return KeyEventResult.handled;
-                                }
-                                if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowLeft ||
-                                    event.logicalKey ==
-                                        LogicalKeyboardKey.arrowRight ||
-                                    event.logicalKey ==
-                                        LogicalKeyboardKey.arrowDown) {
-                                  return KeyEventResult.handled;
-                                }
-                                return KeyEventResult.ignored;
-                              },
-                              child: Center(
-                                child: MoviPrimaryButton(
-                                  label: AppLocalizations.of(
-                                    context,
-                                  )!.actionLoadMore,
-                                  focusNode: _loadMoreFocusNode,
-                                  expand: false,
-                                  loading: _isLoading,
-                                  onPressed: _isLoading ? null : _loadMore,
-                                ),
-                              ),
+                                  },
                             ),
-                          ] else if (_isLoading) ...[
+                          ),
+                          if (_isLoading) ...[
                             const Padding(
                               padding: EdgeInsets.all(16),
                               child: Center(child: CircularProgressIndicator()),

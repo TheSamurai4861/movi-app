@@ -596,10 +596,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent. Check your messages and enter it below.';
+      'Code sent to your account email. Check your messages and enter it below.';
 
   @override
   String get pinRecoveryComingSoon => '该功能即将推出。';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'PIN recovery by email is currently unavailable.';
 
   @override
   String get pinRecoveryCodeLabel => '找回码';
@@ -645,6 +649,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN 已更新';
+
+  @override
+  String get profilePinSaved => 'PIN saved.';
+
+  @override
+  String get profilePinEditLabel => 'Edit PIN code';
 
   @override
   String get settingsAccountsSection => '账户';

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 
@@ -50,6 +52,48 @@ void main() {
       await tester.pump();
 
       expect(find.byType(MoviPlaceholderCard), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'LibraryPlaylistCard exposes a more button when an explicit action is provided',
+    (tester) async {
+      var moreTapped = false;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryPlaylistCard(
+                title: 'Ma playlist',
+                itemCount: 3,
+                type: LibraryPlaylistType.userPlaylist,
+                onMorePressed: () => moreTapped = true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is MoviAssetIcon && widget.assetPath == AppAssets.iconMore,
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is MoviAssetIcon && widget.assetPath == AppAssets.iconMore,
+        ),
+      );
+      await tester.pump();
+
+      expect(moreTapped, isTrue);
       expect(tester.takeException(), isNull);
     },
   );

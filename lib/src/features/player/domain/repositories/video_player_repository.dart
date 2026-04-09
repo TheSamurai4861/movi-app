@@ -4,6 +4,8 @@ import 'package:movi/src/features/player/domain/value_objects/player_tracks.dart
 
 enum PlayerOffsetKind { subtitle, audio }
 
+enum PlayerSubtitleFailureKind { unsupportedCodec }
+
 class PlayerOffsetUnsupportedException implements Exception {
   const PlayerOffsetUnsupportedException({required this.kind, this.reason});
 
@@ -16,6 +18,24 @@ class PlayerOffsetUnsupportedException implements Exception {
         ? ''
         : ' ($reason)';
     return 'PlayerOffsetUnsupportedException(kind: $kind)$reasonPart';
+  }
+}
+
+class PlayerSubtitleSelectionException implements Exception {
+  const PlayerSubtitleSelectionException({
+    required this.kind,
+    this.reason,
+  });
+
+  final PlayerSubtitleFailureKind kind;
+  final String? reason;
+
+  @override
+  String toString() {
+    final reasonPart = (reason == null || reason!.trim().isEmpty)
+        ? ''
+        : ' ($reason)';
+    return 'PlayerSubtitleSelectionException(kind: $kind)$reasonPart';
   }
 }
 

@@ -691,51 +691,69 @@ class _HeaderBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MoviFocusableAction(
-                  onPressed: onSearch,
+                _HeaderActionButton(
+                  iconPath: AppAssets.iconSearch,
                   semanticLabel: 'Rechercher',
-                  builder: (context, state) {
-                    return MoviFocusFrame(
-                      scale: state.focused ? 1.04 : 1,
-                      padding: const EdgeInsets.all(8),
-                      borderRadius: BorderRadius.circular(999),
-                      backgroundColor: state.focused
-                          ? Colors.white.withValues(alpha: 0.14)
-                          : Colors.transparent,
-                      child: MoviAssetIcon(
-                        AppAssets.iconSearch,
-                        width: 30,
-                        height: 30,
-                        color: searchActive ? accent : Colors.white,
-                      ),
-                    );
-                  },
+                  accent: accent,
+                  active: searchActive,
+                  onPressed: onSearch,
                 ),
                 const SizedBox(width: 8),
-                MoviFocusableAction(
-                  onPressed: onAdd,
+                _HeaderActionButton(
+                  iconPath: AppAssets.iconPlus,
                   semanticLabel: 'Ajouter',
-                  builder: (context, state) {
-                    return MoviFocusFrame(
-                      scale: state.focused ? 1.04 : 1,
-                      padding: const EdgeInsets.all(8),
-                      borderRadius: BorderRadius.circular(999),
-                      backgroundColor: state.focused
-                          ? Colors.white.withValues(alpha: 0.14)
-                          : Colors.transparent,
-                      child: const MoviAssetIcon(
-                        AppAssets.iconPlus,
-                        width: 25,
-                        height: 25,
-                        color: Colors.white,
-                      ),
-                    );
-                  },
+                  accent: accent,
+                  onPressed: onAdd,
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({
+    required this.iconPath,
+    required this.semanticLabel,
+    required this.accent,
+    required this.onPressed,
+    this.active = false,
+  });
+
+  final String iconPath;
+  final String semanticLabel;
+  final Color accent;
+  final VoidCallback onPressed;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: MoviFocusableAction(
+        onPressed: onPressed,
+        semanticLabel: semanticLabel,
+        builder: (context, state) {
+          final backgroundColor = active
+              ? accent.withValues(alpha: state.focused ? 0.28 : 0.20)
+              : Colors.white.withValues(alpha: state.focused ? 0.14 : 0.08);
+          return MoviFocusFrame(
+            scale: state.focused ? 1.04 : 1,
+            padding: const EdgeInsets.all(10),
+            borderRadius: BorderRadius.circular(999),
+            backgroundColor: backgroundColor,
+            child: MoviAssetIcon(
+              iconPath,
+              width: 24,
+              height: 24,
+              color: active ? accent : Colors.white,
+            ),
+          );
+        },
       ),
     );
   }

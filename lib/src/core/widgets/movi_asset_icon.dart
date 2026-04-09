@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:movi/src/core/utils/app_assets.dart';
 
 /// Renders a local asset icon from either an SVG or a raster file.
 ///
@@ -35,24 +38,88 @@ class MoviAssetIcon extends StatelessWidget {
 
   double? get _effectiveWidth => width ?? size;
   double? get _effectiveHeight => height ?? size;
+  double get _fallbackIconSize =>
+      (_effectiveWidth ?? _effectiveHeight ?? 24).toDouble();
+
+  static final Map<String, Future<String>> _svgContentCache =
+      <String, Future<String>>{};
 
   static bool isSvgAsset(String assetPath) =>
       assetPath.toLowerCase().endsWith('.svg');
 
-  @override
-  Widget build(BuildContext context) {
-    if (isSvgAsset(assetPath)) {
-      return SvgPicture.asset(
-        assetPath,
+  Future<String> _loadSvgContent() {
+    return _svgContentCache.putIfAbsent(
+      assetPath,
+      () => rootBundle.loadString(assetPath),
+    );
+  }
+
+  Widget _buildSvgFallback(BuildContext context) {
+    if (assetPath == AppAssets.iconAppLogoSvg) {
+      return Image.asset(
+        AppAssets.iconAppIconPng,
         width: _effectiveWidth,
         height: _effectiveHeight,
         fit: fit,
         alignment: alignment,
-        semanticsLabel: semanticLabel,
+        semanticLabel: semanticLabel,
         excludeFromSemantics: excludeFromSemantics,
-        colorFilter: color == null
-            ? null
-            : ColorFilter.mode(color!, colorBlendMode),
+        filterQuality: filterQuality,
+        color: color,
+        colorBlendMode: colorBlendMode,
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.play_circle_fill_rounded,
+          size: _fallbackIconSize,
+          color: color,
+        ),
+      );
+    }
+
+    final iconData = switch (assetPath) {
+      AppAssets.iconStarFilled => Icons.star_rounded,
+      AppAssets.iconStar ||
+      AppAssets.iconStarUnfilled => Icons.star_border_rounded,
+      _ => Icons.broken_image_outlined,
+    };
+
+    final fallbackIcon = Icon(iconData, size: _fallbackIconSize, color: color);
+
+    if (excludeFromSemantics ||
+        semanticLabel == null ||
+        semanticLabel!.trim().isEmpty) {
+      return fallbackIcon;
+    }
+
+    return Semantics(label: semanticLabel, child: fallbackIcon);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isSvgAsset(assetPath)) {
+      return FutureBuilder<String>(
+        future: _loadSvgContent(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return SvgPicture.string(
+              snapshot.data!,
+              width: _effectiveWidth,
+              height: _effectiveHeight,
+              fit: fit,
+              alignment: alignment,
+              semanticsLabel: semanticLabel,
+              excludeFromSemantics: excludeFromSemantics,
+              colorFilter: color == null
+                  ? null
+                  : ColorFilter.mode(color!, colorBlendMode),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return _buildSvgFallback(context);
+          }
+
+          return SizedBox(width: _effectiveWidth, height: _effectiveHeight);
+        },
       );
     }
 

@@ -73,5 +73,36 @@ void main() {
       expect(find.text('EN'), findsOneWidget);
       expect(find.text(l10n.settingsAudioOffsetTitle), findsNothing);
     });
+
+    testWidgets('subtitle sheet falls back to default label when empty metadata', (
+      tester,
+    ) async {
+      final tracks = <TrackInfo>[
+        const TrackInfo(type: TrackType.subtitle, id: 99, title: null),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SubtitleTrackSelectionMenu(
+              tracks: tracks,
+              currentTrack: null,
+              onTrackSelected: (_) async {},
+              onDisable: () async {},
+              onOpenSubtitleSettings: () {},
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(SubtitleTrackSelectionMenu)),
+      )!;
+
+      expect(find.text(l10n.defaultTrackLabel('99')), findsOneWidget);
+    });
   });
 }

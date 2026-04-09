@@ -60,12 +60,25 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     super.dispose();
   }
 
+  bool get _requiresPinToDisableKidProfile =>
+      widget.profile.isKid && !_isKid && !_hasPin;
+
+  bool get _canRemovePinSafely => !_isKid && !widget.profile.isKid;
+
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context)!;
     final name = _nameController.text.trim();
 
     if (name.isEmpty) {
       setState(() => _error = l10n.errorFillFields);
+      return;
+    }
+
+    if (_requiresPinToDisableKidProfile) {
+      setState(
+        () =>
+            _error = 'Définissez un code PIN avant d’activer le profil enfant.',
+      );
       return;
     }
 
@@ -315,6 +328,15 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
   Future<void> _removePin() async {
     if (_busy || !_hasPin) return;
 
+    if (!_canRemovePinSafely) {
+      setState(() {
+        _error =
+            'Désactivez et enregistrez d’abord le profil enfant avant de supprimer le code PIN.';
+        _pinConfirmationMessage = null;
+      });
+      return;
+    }
+
     final pin = await showDialog<String>(
       context: context,
       builder: (ctx) => const _RemovePinDialog(),
@@ -364,6 +386,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.primary;
+    final canSave = !_busy && !_requiresPinToDisableKidProfile;
 
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
@@ -424,6 +447,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                         borderSide: BorderSide.none,
                       ),
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
                 ],
               ),
@@ -449,7 +473,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       Expanded(
                         flex: 6,
                         child: const Text(
-                          'Active le contrôle parental (PEGI + PIN).',
+                          'Active le contrôle parental. Le code PIN reste facultatif tant que le profil reste enfant.',
                           style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ),
@@ -574,7 +598,10 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
-                            onPressed: (_busy || !_hasPin) ? null : _removePin,
+                            onPressed:
+                                (_busy || !_hasPin || !_canRemovePinSafely)
+                                ? null
+                                : _removePin,
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.red),
                               foregroundColor: Colors.white,
@@ -591,6 +618,20 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                           ),
                         ),
                       ],
+                    ),
+                  ],
+                  if (_requiresPinToDisableKidProfile) ...[
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Définissez un code PIN avant de repasser ce profil en adulte.',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                    ),
+                  ],
+                  if (_hasPin && !_canRemovePinSafely) ...[
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Pour supprimer le code PIN, désactivez d’abord le profil enfant puis enregistrez.',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ],
                   if (_pinConfirmationMessage != null) ...[
@@ -641,7 +682,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _busy ? null : _save,
+                      onPressed: canSave ? _save : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accentColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),

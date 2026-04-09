@@ -24,6 +24,8 @@ class LibraryPlaylistHero extends StatelessWidget {
     this.backdrop,
     this.actions,
     this.onMore,
+    this.backFocusNode,
+    this.onBackKeyEvent,
   });
 
   final LibraryPlaylistItem playlist;
@@ -35,6 +37,8 @@ class LibraryPlaylistHero extends StatelessWidget {
   final String? backdrop;
   final Widget? actions;
   final VoidCallback? onMore;
+  final FocusNode? backFocusNode;
+  final KeyEventResult Function(KeyEvent event)? onBackKeyEvent;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +91,12 @@ class LibraryPlaylistHero extends StatelessWidget {
               top: 12,
               left: horizontalPadding,
               right: horizontalPadding,
-              child: _HeroTopBar(onBack: onBack, onMore: onMore),
+              child: _HeroTopBar(
+                onBack: onBack,
+                onMore: onMore,
+                backFocusNode: backFocusNode,
+                onBackKeyEvent: onBackKeyEvent,
+              ),
             ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -195,7 +204,12 @@ class LibraryPlaylistHero extends StatelessWidget {
             top: 8,
             left: 20,
             right: 20,
-            child: _HeroTopBar(onBack: onBack, onMore: onMore),
+            child: _HeroTopBar(
+              onBack: onBack,
+              onMore: onMore,
+              backFocusNode: backFocusNode,
+              onBackKeyEvent: onBackKeyEvent,
+            ),
           ),
           // Logo centré
           Center(child: _getPlaylistIcon()),
@@ -336,31 +350,46 @@ class LibraryPlaylistHero extends StatelessWidget {
 }
 
 class _HeroTopBar extends StatefulWidget {
-  const _HeroTopBar({required this.onBack, required this.onMore});
+  const _HeroTopBar({
+    required this.onBack,
+    required this.onMore,
+    this.backFocusNode,
+    this.onBackKeyEvent,
+  });
 
   final VoidCallback onBack;
   final VoidCallback? onMore;
+  final FocusNode? backFocusNode;
+  final KeyEventResult Function(KeyEvent event)? onBackKeyEvent;
 
   @override
   State<_HeroTopBar> createState() => _HeroTopBarState();
 }
 
 class _HeroTopBarState extends State<_HeroTopBar> {
-  late final FocusNode _backFocusNode = FocusNode(
-    debugLabel: 'PlaylistHeroBack',
+  late final FocusNode _internalBackFocusNode = FocusNode(
+    debugLabel: 'PlaylistHeroBackInternal',
   );
   late final FocusNode _moreFocusNode = FocusNode(
     debugLabel: 'PlaylistHeroMore',
   )..canRequestFocus = false;
 
+  FocusNode get _backFocusNode => widget.backFocusNode ?? _internalBackFocusNode;
+
   @override
   void dispose() {
-    _backFocusNode.dispose();
+    if (widget.backFocusNode == null) {
+      _internalBackFocusNode.dispose();
+    }
     _moreFocusNode.dispose();
     super.dispose();
   }
 
   KeyEventResult _handleBackKey(KeyEvent event) {
+    final externalResult = widget.onBackKeyEvent?.call(event);
+    if (externalResult != null && externalResult != KeyEventResult.ignored) {
+      return externalResult;
+    }
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey != LogicalKeyboardKey.arrowRight ||
         widget.onMore == null) {

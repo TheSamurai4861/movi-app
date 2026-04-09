@@ -1214,7 +1214,7 @@ abstract class AppLocalizations {
   /// No description provided for @pinRecoveryDescription.
   ///
   /// In en, this message translates to:
-  /// **'Retrieve the PIN code for your protected profile.'**
+  /// **'We will send an 8-digit code to your account email to reset this profile PIN.'**
   String get pinRecoveryDescription;
 
   /// No description provided for @pinRecoveryRequestCodeButton.
@@ -1226,7 +1226,7 @@ abstract class AppLocalizations {
   /// No description provided for @pinRecoveryCodeSentHint.
   ///
   /// In en, this message translates to:
-  /// **'Code sent. Check your messages and enter it below.'**
+  /// **'Code sent to your account email. Check your messages and enter it below.'**
   String get pinRecoveryCodeSentHint;
 
   /// No description provided for @pinRecoveryComingSoon.
@@ -1234,6 +1234,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This feature is coming soon.'**
   String get pinRecoveryComingSoon;
+
+  /// No description provided for @pinRecoveryNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN recovery by email is currently unavailable.'**
+  String get pinRecoveryNotAvailable;
 
   /// No description provided for @pinRecoveryCodeLabel.
   ///
@@ -1324,6 +1330,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PIN updated'**
   String get pinRecoveryResetSuccess;
+
+  /// No description provided for @profilePinSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'PIN saved.'**
+  String get profilePinSaved;
+
+  /// No description provided for @profilePinEditLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit PIN code'**
+  String get profilePinEditLabel;
 
   /// No description provided for @settingsAccountsSection.
   ///

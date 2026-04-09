@@ -1,7 +1,9 @@
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
+import 'package:movi/src/features/player/domain/entities/playback_launch_plan.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.dart';
 
@@ -127,7 +129,7 @@ class NextEpisodeService {
         : '$seriesTitle - S${nextSeasonNumber.toString().padLeft(2, '0')}E${nextEpisodeNumber.toString().padLeft(2, '0')}';
 
     final resolvedTmdbId = int.tryParse(seriesId) ?? xtreamItem.tmdbId;
-    final source = VideoSource(
+    final rawSource = VideoSource(
       url: streamUrl.toString(),
       title: formattedTitle,
       contentId: seriesId,
@@ -137,6 +139,20 @@ class NextEpisodeService {
       season: nextSeasonNumber,
       episode: nextEpisodeNumber,
     );
+    final source =
+        PlaybackLaunchPlan(
+          contentType: ContentType.series,
+          targetContentId: seriesId,
+          season: nextSeasonNumber,
+          episode: nextEpisodeNumber,
+          resumePosition: null,
+          reasonCode: ResumeReasonCode.noPosition,
+          isResumeEligible: false,
+        ).buildVideoSource(
+          source: rawSource,
+          title: formattedTitle,
+          poster: poster,
+        );
 
     return NextEpisodeResult.success(source);
   }

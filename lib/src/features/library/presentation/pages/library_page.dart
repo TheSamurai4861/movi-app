@@ -43,6 +43,11 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   final _firstPlaylistFocusNode = FocusNode(debugLabel: 'LibraryFirstPlaylist');
+  final _firstFilterFocusNode = FocusNode(debugLabel: 'LibraryFilterPlaylists');
+  final _clearFilterFocusNode = FocusNode(debugLabel: 'LibraryClearFilter');
+  final _artistsFilterFocusNode = FocusNode(debugLabel: 'LibraryFilterArtists');
+  final _searchActionFocusNode = FocusNode(debugLabel: 'LibrarySearchAction');
+  final _addActionFocusNode = FocusNode(debugLabel: 'LibraryAddAction');
   final List<FocusNode> _playlistFocusNodes = [];
   late final ShellFocusCoordinator _shellFocusCoordinator;
 
@@ -87,8 +92,95 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     _searchController.dispose();
     _searchFocusNode.dispose();
     _firstPlaylistFocusNode.dispose();
+    _firstFilterFocusNode.dispose();
+    _clearFilterFocusNode.dispose();
+    _artistsFilterFocusNode.dispose();
+    _searchActionFocusNode.dispose();
+    _addActionFocusNode.dispose();
     _anim.dispose();
     super.dispose();
+  }
+
+  void _focusFirstPlaylist() {
+    _requestPlaylistFocus(0, ensureVisible: true);
+  }
+
+  void _focusFirstFilter() {
+    if (_firstFilterFocusNode.context == null ||
+        !_firstFilterFocusNode.canRequestFocus) {
+      return;
+    }
+    _firstFilterFocusNode.requestFocus();
+  }
+
+  void _focusArtistsFilter() {
+    if (_artistsFilterFocusNode.context == null ||
+        !_artistsFilterFocusNode.canRequestFocus) {
+      return;
+    }
+    _artistsFilterFocusNode.requestFocus();
+  }
+
+  void _focusSidebarMenu() {
+    _shellFocusCoordinator.focusSidebar();
+  }
+
+  void _focusSearchInput() {
+    if (_searchFocusNode.context == null || !_searchFocusNode.canRequestFocus) {
+      return;
+    }
+    _searchFocusNode.requestFocus();
+    _searchController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _searchController.text.length),
+    );
+  }
+
+  void _focusSearchAction() {
+    if (_searchActionFocusNode.context == null ||
+        !_searchActionFocusNode.canRequestFocus) {
+      return;
+    }
+    _searchActionFocusNode.requestFocus();
+  }
+
+  KeyEventResult _handleSearchActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (_addActionFocusNode.context != null &&
+          _addActionFocusNode.canRequestFocus) {
+        _addActionFocusNode.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _focusFirstPlaylist();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _focusArtistsFilter();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleAddActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _focusFirstPlaylist();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _focusArtistsFilter();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   void _syncPlaylistFocusNodes(int count) {
@@ -124,47 +216,119 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     _playlistFocusNodes.clear();
   }
 
+  void _requestPlaylistFocus(int index, {bool ensureVisible = false}) {
+    if (index < 0 || index >= _playlistFocusNodes.length) return;
+    final node = _playlistFocusNodes[index];
+    if (node.context == null || !node.canRequestFocus) return;
+    node.requestFocus();
+    if (!ensureVisible) return;
+    unawaited(
+      Scrollable.ensureVisible(
+        node.context!,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+      ),
+    );
+  }
+
   KeyEventResult _handlePlaylistListDirection(int index, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    final isBackKey =
+        event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace;
+    final hasSearchResults =
+        _isSearchVisible && _searchController.text.trim().isNotEmpty;
+    if (isBackKey && hasSearchResults) {
+      _focusSearchInput();
+      return KeyEventResult.handled;
+    }
+
     int? targetIndex;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft && index == 0) {
+      _focusSidebarMenu();
+      return KeyEventResult.handled;
+    }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       targetIndex = index + 1 < _playlistFocusNodes.length ? index + 1 : null;
     } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      targetIndex = index > 0 ? index - 1 : null;
+      if (index == 0) {
+        _focusFirstFilter();
+        return KeyEventResult.handled;
+      }
+      targetIndex = index - 1;
     }
 
     if (targetIndex == null) return KeyEventResult.ignored;
-    _playlistFocusNodes[targetIndex].requestFocus();
+    _requestPlaylistFocus(targetIndex, ensureVisible: true);
     return KeyEventResult.handled;
   }
 
   KeyEventResult _handlePlaylistGridDirection(
+    BuildContext context,
     int index,
     int columns,
     KeyEvent event,
   ) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    final isBackKey =
+        event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace;
+    final hasSearchResults =
+        _isSearchVisible && _searchController.text.trim().isNotEmpty;
+    if (isBackKey && hasSearchResults) {
+      _focusSearchInput();
+      return KeyEventResult.handled;
+    }
+
     int? targetIndex;
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      targetIndex = index % columns == 0 ? null : index - 1;
+      if (index % columns == 0) {
+        _focusSidebarMenu();
+        return KeyEventResult.handled;
+      }
+      targetIndex = index - 1;
     } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
       final nextIndex = index + 1;
-      targetIndex =
-          (index % columns == columns - 1 ||
-              nextIndex >= _playlistFocusNodes.length)
-          ? null
-          : nextIndex;
+      if (index % columns == columns - 1 ||
+          nextIndex >= _playlistFocusNodes.length) {
+        return KeyEventResult.handled;
+      }
+      targetIndex = nextIndex;
     } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      targetIndex = index - columns >= 0 ? index - columns : null;
+      if (index - columns < 0) {
+        _focusFirstFilter();
+        return KeyEventResult.handled;
+      }
+      targetIndex = index - columns;
     } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       final nextIndex = index + columns;
-      targetIndex = nextIndex < _playlistFocusNodes.length ? nextIndex : null;
+      if (nextIndex >= _playlistFocusNodes.length) {
+        return KeyEventResult.handled;
+      }
+      targetIndex = nextIndex;
     }
 
     if (targetIndex == null) return KeyEventResult.ignored;
-    _playlistFocusNodes[targetIndex].requestFocus();
+    _requestPlaylistFocus(targetIndex, ensureVisible: true);
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp && targetIndex < columns) {
+      final scrollController = PrimaryScrollController.maybeOf(context);
+      if (scrollController != null &&
+          scrollController.hasClients &&
+          scrollController.offset > 0) {
+        unawaited(
+          scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+          ),
+        );
+      }
+    }
     return KeyEventResult.handled;
   }
 
@@ -176,10 +340,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       // Focus après l’animation (meilleure sensation)
       Future.delayed(const Duration(milliseconds: 120), () {
         if (!mounted) return;
-        _searchFocusNode.requestFocus();
-        _searchController.selection = TextSelection.fromPosition(
-          TextPosition(offset: _searchController.text.length),
-        );
+        _focusSearchInput();
       });
     } else {
       _anim.reverse();
@@ -230,7 +391,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       }
     }
 
-    if (_screenType(context) == ScreenType.desktop) {
+    final dialogScreenType = _screenType(context);
+    if (dialogScreenType == ScreenType.desktop ||
+        dialogScreenType == ScreenType.tv) {
       showDialog<void>(
         context: context,
         builder: (dialogContext) {
@@ -287,43 +450,72 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                               return KeyEventResult.ignored;
                             },
                             child: ConstrainedBox(
-                              constraints: const BoxConstraints(minHeight: 48),
+                              constraints: const BoxConstraints(minHeight: 52),
                               child: SizedBox(
                                 width: double.infinity,
-                                child: OutlinedButton(
-                                  focusNode: cancelFocusNode,
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Theme.of(
-                                      dialogContext,
-                                    ).colorScheme.onSurface,
-                                    side: BorderSide(
-                                      color: Theme.of(
-                                        dialogContext,
-                                      ).colorScheme.outlineVariant,
-                                    ),
-                                    textStyle: Theme.of(dialogContext)
-                                        .textTheme
-                                        .labelLarge
-                                        ?.copyWith(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                child: ListenableBuilder(
+                                  listenable: cancelFocusNode,
+                                  builder: (context, _) {
+                                    final isFocused = cancelFocusNode.hasFocus;
+                                    return AnimatedScale(
+                                      scale: isFocused ? 1.03 : 1,
+                                      duration: const Duration(milliseconds: 160),
+                                      curve: Curves.easeOutCubic,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 160),
+                                        curve: Curves.easeOutCubic,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(999),
+                                          boxShadow: isFocused
+                                              ? [
+                                                  BoxShadow(
+                                                    color: Colors.black.withValues(
+                                                      alpha: 0.28,
+                                                    ),
+                                                    blurRadius: 14,
+                                                    spreadRadius: 0.5,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : null,
                                         ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 15,
-                                    ),
-                                    shape: const StadiumBorder(),
-                                    overlayColor: Colors.transparent,
-                                  ),
-                                  onPressed: () =>
-                                      Navigator.of(dialogContext).pop(),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    child: Text(l10n.actionCancel),
-                                  ),
+                                        child: OutlinedButton(
+                                          focusNode: cancelFocusNode,
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Theme.of(
+                                              dialogContext,
+                                            ).colorScheme.onSurface,
+                                            side: const BorderSide(
+                                              color: Colors.red,
+                                            ),
+                                            minimumSize: const Size.fromHeight(
+                                              52,
+                                            ),
+                                            alignment: Alignment.center,
+                                            textStyle: Theme.of(dialogContext)
+                                                .textTheme
+                                                .labelLarge
+                                                ?.copyWith(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 30,
+                                              vertical: 16,
+                                            ),
+                                            shape: const StadiumBorder(),
+                                            overlayColor: Colors.transparent,
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.of(dialogContext).pop(),
+                                          child: Text(
+                                            l10n.actionCancel,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -418,6 +610,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     LibraryPlaylistItem playlist,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final accentColor = Theme.of(context).colorScheme.primary;
     if (playlist.playlistId == null) return;
 
     showCupertinoModalPopup<void>(
@@ -448,14 +641,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 );
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      AppLocalizations.of(context)!.errorGenericWithMessage(
-                        e.toString(),
-                      ),
+                      AppLocalizations.of(
+                        context,
+                      )!.errorGenericWithMessage(e.toString()),
                     ),
                   ),
                 );
@@ -467,7 +658,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 Icon(
                   Icons.push_pin,
                   size: 18,
-                  color: playlist.isPinned ? Colors.white70 : Colors.white,
+                  color: playlist.isPinned ? accentColor : Colors.white,
                 ),
                 const SizedBox(width: 8),
                 Text(playlist.isPinned ? l10n.unpinPlaylist : l10n.pinPlaylist),
@@ -546,20 +737,20 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      AppLocalizations.of(context)!.snackbarPlaylistRenamed(name),
+                      AppLocalizations.of(
+                        context,
+                      )!.snackbarPlaylistRenamed(name),
                     ),
                   ),
                 );
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      AppLocalizations.of(context)!.errorGenericWithMessage(
-                        e.toString(),
-                      ),
+                      AppLocalizations.of(
+                        context,
+                      )!.errorGenericWithMessage(e.toString()),
                     ),
                   ),
                 );
@@ -584,9 +775,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(l10n.deletePlaylist),
-        content: Text(
-          l10n.dialogConfirmDeletePlaylist(playlist.title),
-        ),
+        content: Text(l10n.dialogConfirmDeletePlaylist(playlist.title)),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -613,14 +802,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 );
               } catch (e) {
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      AppLocalizations.of(context)!.errorGenericWithMessage(
-                        e.toString(),
-                      ),
+                      AppLocalizations.of(
+                        context,
+                      )!.errorGenericWithMessage(e.toString()),
                     ),
                   ),
                 );
@@ -701,6 +888,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       focusNode: _searchFocusNode,
       hintText: l10n.librarySearchPlaceholder,
       clearTooltip: l10n.clear,
+      onSubmitted: _focusSearchAction,
+      onRequestFirstResultFocus: _focusFirstPlaylist,
       onChanged: (text) {
         ref.read(librarySearchQueryProvider.notifier).setQuery(text);
       },
@@ -759,41 +948,54 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                     },
                   ),
                 ],
-                IconButton(
-                  style: IconButton.styleFrom(
-                    backgroundColor: _isSearchVisible
-                        ? theme.colorScheme.primary.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.08),
-                    padding: const EdgeInsets.all(10),
-                    shape: const CircleBorder(),
+                if (!isLargeScreen)
+                  Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleSearchActionKey(event),
+                    child: IconButton(
+                      focusNode: _searchActionFocusNode,
+                      style: IconButton.styleFrom(
+                        backgroundColor: _isSearchVisible
+                            ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                            : Colors.white.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.all(10),
+                        shape: const CircleBorder(),
+                      ),
+                      icon: MoviAssetIcon(
+                        AppAssets.iconSearch,
+                        width: 24,
+                        height: 24,
+                        color: _isSearchVisible
+                            ? theme.colorScheme.primary
+                            : Colors.white,
+                      ),
+                      onPressed: _toggleSearch,
+                      tooltip: l10n.searchTitle,
+                    ),
                   ),
-                  icon: MoviAssetIcon(
-                    AppAssets.iconSearch,
-                    width: 24,
-                    height: 24,
-                    color: _isSearchVisible
-                        ? theme.colorScheme.primary
-                        : Colors.white,
+                if (!isLargeScreen) ...[
+                  const SizedBox(width: 6),
+                  Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleAddActionKey(event),
+                    child: IconButton(
+                      focusNode: _addActionFocusNode,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.all(10),
+                        shape: const CircleBorder(),
+                      ),
+                      icon: const MoviAssetIcon(
+                        AppAssets.iconPlus,
+                        width: 24,
+                        height: 24,
+                        color: Colors.white,
+                      ),
+                      onPressed: _showCreatePlaylistDialog,
+                      tooltip: l10n.createPlaylistTitle,
+                    ),
                   ),
-                  onPressed: _toggleSearch,
-                  tooltip: l10n.searchTitle,
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
-                    padding: const EdgeInsets.all(10),
-                    shape: const CircleBorder(),
-                  ),
-                  icon: const MoviAssetIcon(
-                    AppAssets.iconPlus,
-                    width: 24,
-                    height: 24,
-                    color: Colors.white,
-                  ),
-                  onPressed: _showCreatePlaylistDialog,
-                  tooltip: l10n.createPlaylistTitle,
-                ),
+                ],
               ],
             ),
           ),
@@ -827,11 +1029,57 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
           Padding(
             padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: LibraryFilterPills(
-              activeFilter: filter,
-              onFilterChanged: (newFilter) {
-                ref.read(libraryFilterProvider.notifier).setFilter(newFilter);
-              },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: LibraryFilterPills(
+                    activeFilter: filter,
+                    firstFilterFocusNode: _firstFilterFocusNode,
+                    clearFilterFocusNode: _clearFilterFocusNode,
+                    artistsFilterFocusNode: _artistsFilterFocusNode,
+                    onRequestSidebarFocus: _focusSidebarMenu,
+                    onRequestFirstPlaylistFocus: _focusFirstPlaylist,
+                    onRequestSearchActionFocus: () {
+                      if (_addActionFocusNode.context != null &&
+                          _addActionFocusNode.canRequestFocus) {
+                        _addActionFocusNode.requestFocus();
+                        return;
+                      }
+                      if (_searchActionFocusNode.context != null &&
+                          _searchActionFocusNode.canRequestFocus) {
+                        _searchActionFocusNode.requestFocus();
+                      }
+                    },
+                    onFilterChanged: (newFilter) {
+                      ref.read(libraryFilterProvider.notifier).setFilter(newFilter);
+                    },
+                  ),
+                ),
+                if (isLargeScreen) ...[
+                  const SizedBox(width: 12),
+                  Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleAddActionKey(event),
+                    child: IconButton(
+                      focusNode: _addActionFocusNode,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.08),
+                        padding: const EdgeInsets.all(10),
+                        shape: const CircleBorder(),
+                      ),
+                      icon: const MoviAssetIcon(
+                        AppAssets.iconPlus,
+                        width: 24,
+                        height: 24,
+                        color: Colors.white,
+                      ),
+                      onPressed: _showCreatePlaylistDialog,
+                      tooltip: l10n.createPlaylistTitle,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
 
@@ -854,9 +1102,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, _) => Center(
                   child: Text(
-                    AppLocalizations.of(context)!.errorGenericWithMessage(
-                      error.toString(),
-                    ),
+                    AppLocalizations.of(
+                      context,
+                    )!.errorGenericWithMessage(error.toString()),
                     style: TextStyle(color: theme.colorScheme.error),
                     textAlign: TextAlign.center,
                   ),
@@ -875,9 +1123,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                             24 + _libraryScrollBottomPadding(context),
                           ),
                           child: Text(
-                            AppLocalizations.of(context)!.libraryNoResultsForQuery(
-                              searchQuery,
-                            ),
+                            AppLocalizations.of(
+                              context,
+                            )!.libraryNoResultsForQuery(searchQuery),
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -946,6 +1194,13 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                 ? () =>
                                       _showPlaylistMenu(context, ref, playlist)
                                 : null,
+                            onMorePressed:
+                                playlist.type ==
+                                        LibraryPlaylistType.userPlaylist &&
+                                    playlist.playlistId != null
+                                ? () =>
+                                      _showPlaylistMenu(context, ref, playlist)
+                                : null,
                           ),
                         );
                       },
@@ -976,17 +1231,17 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                             child: GridView.builder(
                               padding: EdgeInsets.fromLTRB(
                                 horizontalPadding,
-                                0,
+                                10,
                                 horizontalPadding,
                                 _libraryScrollBottomPadding(context),
                               ),
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: columns,
-                                mainAxisExtent: 276,
-                                crossAxisSpacing: gap,
-                                mainAxisSpacing: gap,
-                              ),
+                                    crossAxisCount: columns,
+                                    mainAxisExtent: 286,
+                                    crossAxisSpacing: gap,
+                                    mainAxisSpacing: gap,
+                                  ),
                               itemCount: playlists.length,
                               itemBuilder: (context, index) {
                                 final playlist = playlists[index];
@@ -996,17 +1251,19 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                     canRequestFocus: false,
                                     onKeyEvent: (_, event) =>
                                         _handlePlaylistGridDirection(
-                                      index,
-                                      columns,
-                                      event,
-                                    ),
+                                          context,
+                                          index,
+                                          columns,
+                                          event,
+                                        ),
                                     child: LibraryPlaylistCard(
                                       title: playlist.title,
                                       itemCount: playlist.itemCount,
                                       type: playlist.type,
                                       isPinned: playlist.isPinned,
                                       photo: playlist.photo,
-                                      layout: LibraryPlaylistCardLayout.vertical,
+                                      layout:
+                                          LibraryPlaylistCardLayout.vertical,
                                       isSaga: playlist.id.startsWith(
                                         LibraryConstants.sagaPrefix,
                                       ),
@@ -1014,7 +1271,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                                         LibraryConstants.sagaPrefix,
                                       ),
                                       focusNode: _playlistFocusNodes[index],
-                                      onTap: () => _navigateToPlaylist(playlist),
+                                      onTap: () =>
+                                          _navigateToPlaylist(playlist),
                                       onLongPress:
                                           playlist.type ==
                                                   LibraryPlaylistType
@@ -1052,6 +1310,8 @@ class _LibrarySearchField extends StatelessWidget {
     required this.focusNode,
     required this.hintText,
     required this.clearTooltip,
+    required this.onSubmitted,
+    required this.onRequestFirstResultFocus,
     required this.onChanged,
     required this.onClear,
   });
@@ -1060,8 +1320,19 @@ class _LibrarySearchField extends StatelessWidget {
   final FocusNode focusNode;
   final String hintText;
   final String clearTooltip;
+  final VoidCallback onSubmitted;
+  final VoidCallback onRequestFirstResultFocus;
   final ValueChanged<String> onChanged;
   final VoidCallback onClear;
+
+  KeyEventResult _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      onRequestFirstResultFocus();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1070,49 +1341,54 @@ class _LibrarySearchField extends StatelessWidget {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          textInputAction: TextInputAction.search,
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            hintText: hintText,
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: 12, right: 8),
-              child: const MoviAssetIcon(
-                AppAssets.iconSearch,
-                width: 25,
-                height: 25,
-                color: Colors.white70,
+        return Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleKeyEvent(event),
+          child: TextField(
+            controller: controller,
+            focusNode: focusNode,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => onSubmitted(),
+            onChanged: onChanged,
+            decoration: InputDecoration(
+              hintText: hintText,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.only(left: 12, right: 8),
+                child: const MoviAssetIcon(
+                  AppAssets.iconSearch,
+                  width: 25,
+                  height: 25,
+                  color: Colors.white70,
+                ),
               ),
-            ),
-            suffixIcon: value.text.isNotEmpty
-                ? IconButton(
-                    icon: const MoviAssetIcon(
-                      AppAssets.iconDelete,
-                      width: 25,
-                      height: 25,
-                      color: Colors.white,
-                    ),
-                    onPressed: onClear,
-                    tooltip: clearTooltip,
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
-              borderSide: BorderSide(color: colorScheme.outlineVariant),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(999),
-              borderSide: BorderSide(color: colorScheme.primary, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 16,
+              suffixIcon: value.text.isNotEmpty
+                  ? IconButton(
+                      icon: const MoviAssetIcon(
+                        AppAssets.iconDelete,
+                        width: 25,
+                        height: 25,
+                        color: Colors.white,
+                      ),
+                      onPressed: onClear,
+                      tooltip: clearTooltip,
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide(color: colorScheme.outlineVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide(color: colorScheme.primary, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 16,
+              ),
             ),
           ),
         );

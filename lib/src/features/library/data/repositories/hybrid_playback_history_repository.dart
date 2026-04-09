@@ -46,7 +46,10 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
     final resolvedUserId = (userId == null || userId.trim().isEmpty)
         ? defaultUserId
         : userId.trim();
-    final sanitized = sanitizePlaybackProgress(position: position, duration: duration);
+    final sanitized = sanitizePlaybackProgress(
+      position: position,
+      duration: duration,
+    );
     // 1. Écrire en local d'abord (priorité absolue)
     await local.upsertPlay(
       contentId: contentId,
@@ -101,6 +104,33 @@ class HybridPlaybackHistoryRepository implements PlaybackHistoryRepository {
     if (remote != null) {
       _syncToRemote(() => remote!.remove(contentId, type));
     }
+  }
+
+  @override
+  Future<PlaybackHistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String? userId,
+  }) async {
+    final resolvedUserId = (userId == null || userId.trim().isEmpty)
+        ? defaultUserId
+        : userId.trim();
+    final localEntry = await local.getSeriesResumeState(
+      seriesId,
+      userId: resolvedUserId,
+    );
+
+    if (localEntry == null) return null;
+
+    return PlaybackHistoryEntry(
+      contentId: localEntry.contentId,
+      type: localEntry.type,
+      title: localEntry.title,
+      poster: localEntry.poster,
+      lastPosition: localEntry.lastPosition,
+      duration: localEntry.duration,
+      season: localEntry.season,
+      episode: localEntry.episode,
+    );
   }
 
   @override

@@ -610,17 +610,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pinRecoveryDescription =>
-      'Récupérez le code PIN de votre profil protégé.';
+      'Nous enverrons un code à 8 chiffres à l’e-mail de votre compte pour réinitialiser le PIN de ce profil.';
 
   @override
   String get pinRecoveryRequestCodeButton => 'Envoyer le code';
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code envoyé. Vérifiez vos messages, puis saisissez-le ci-dessous.';
+      'Code envoyé à l’e-mail de votre compte. Vérifiez vos messages, puis saisissez-le ci-dessous.';
 
   @override
   String get pinRecoveryComingSoon => 'Cette fonctionnalité arrive bientôt.';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'La récupération du code PIN par e-mail est indisponible pour le moment.';
 
   @override
   String get pinRecoveryCodeLabel => 'Code de récupération';
@@ -667,6 +671,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN mis à jour';
+
+  @override
+  String get profilePinSaved => 'PIN enregistré.';
+
+  @override
+  String get profilePinEditLabel => 'Modifier le code PIN';
 
   @override
   String get settingsAccountsSection => 'Comptes';

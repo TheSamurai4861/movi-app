@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/cupertino.dart';
@@ -60,6 +61,156 @@ class _LibraryPlaylistDetailPageState
 
   LibraryPlaylistSortType? _sortType;
   final Map<String, Future<_PlaylistMediaDisplayData>> _displayDataCache = {};
+  final FocusNode _heroBackFocusNode = FocusNode(
+    debugLabel: 'LibraryPlaylistHeroBack',
+  );
+  final FocusNode _playRandomFocusNode = FocusNode(
+    debugLabel: 'LibraryPlaylistPlayRandom',
+  );
+  final FocusNode _sortFocusNode = FocusNode(
+    debugLabel: 'LibraryPlaylistSort',
+  );
+  final List<FocusNode> _itemFocusNodes = <FocusNode>[];
+  final List<FocusNode> _itemMoreFocusNodes = <FocusNode>[];
+  bool _didRequestInitialActionFocus = false;
+
+  @override
+  void dispose() {
+    _heroBackFocusNode.dispose();
+    _playRandomFocusNode.dispose();
+    _sortFocusNode.dispose();
+    for (final node in _itemFocusNodes) {
+      node.dispose();
+    }
+    for (final node in _itemMoreFocusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncItemFocusNodes(int count) {
+    while (_itemFocusNodes.length < count) {
+      _itemFocusNodes.add(
+        FocusNode(debugLabel: 'LibraryPlaylistItem-${_itemFocusNodes.length}'),
+      );
+    }
+    while (_itemMoreFocusNodes.length < count) {
+      _itemMoreFocusNodes.add(
+        FocusNode(
+          debugLabel: 'LibraryPlaylistItemMore-${_itemMoreFocusNodes.length}',
+        ),
+      );
+    }
+    while (_itemFocusNodes.length > count) {
+      _itemFocusNodes.removeLast().dispose();
+    }
+    while (_itemMoreFocusNodes.length > count) {
+      _itemMoreFocusNodes.removeLast().dispose();
+    }
+  }
+
+  void _requestInitialActionFocus() {
+    if (_didRequestInitialActionFocus) return;
+    _didRequestInitialActionFocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_playRandomFocusNode.context != null && _playRandomFocusNode.canRequestFocus) {
+        _playRandomFocusNode.requestFocus();
+      }
+    });
+  }
+
+  void _focusFirstItem() {
+    if (_itemFocusNodes.isEmpty) return;
+    final first = _itemFocusNodes.first;
+    if (first.context == null || !first.canRequestFocus) return;
+    first.requestFocus();
+  }
+
+  void _requestItemFocusAt(int index, {bool ensureVisible = false}) {
+    if (index < 0 || index >= _itemFocusNodes.length) return;
+    final node = _itemFocusNodes[index];
+    if (node.context == null || !node.canRequestFocus) return;
+    node.requestFocus();
+    if (!ensureVisible) return;
+    unawaited(
+      Scrollable.ensureVisible(
+        node.context!,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+      ),
+    );
+  }
+
+  KeyEventResult _handleHeroBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (_playRandomFocusNode.context != null &&
+          _playRandomFocusNode.canRequestFocus) {
+        _playRandomFocusNode.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handlePlayRandomKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _heroBackFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _sortFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _focusFirstItem();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleSortKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _heroBackFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _playRandomFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _focusFirstItem();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handlePageBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final isBack =
+        event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace;
+    if (!isBack) return KeyEventResult.ignored;
+    if (!mounted || !context.mounted) return KeyEventResult.handled;
+    context.pop();
+    return KeyEventResult.handled;
+  }
 
   ScreenType _screenType(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -143,24 +294,73 @@ class _LibraryPlaylistDetailPageState
       });
 
   void _showSortMenu(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final bool useTvStyleMenu = _isLargeScreen(context);
+
+    void selectSort(LibraryPlaylistSortType sortType) {
+      if (!mounted) return;
+      setState(() {
+        _sortType = sortType;
+      });
+    }
+
+    if (useTvStyleMenu) {
+      String checkedLabel(String label, LibraryPlaylistSortType sortType) {
+        return _sortType == sortType ? '✓ $label' : label;
+      }
+
+      showMoviTvActionMenu(
+        context: context,
+        title: l10n.playlistSortByTitle,
+        actions: [
+          MoviTvActionMenuAction(
+            label: checkedLabel(
+              l10n.playlistSortByTitleOption,
+              LibraryPlaylistSortType.title,
+            ),
+            onPressed: () => selectSort(LibraryPlaylistSortType.title),
+          ),
+          MoviTvActionMenuAction(
+            label: checkedLabel(
+              l10n.playlistSortRecentAdditions,
+              LibraryPlaylistSortType.recentlyAdded,
+            ),
+            onPressed: () => selectSort(LibraryPlaylistSortType.recentlyAdded),
+          ),
+          MoviTvActionMenuAction(
+            label: checkedLabel(
+              l10n.playlistSortOldestFirst,
+              LibraryPlaylistSortType.yearAscending,
+            ),
+            onPressed: () => selectSort(LibraryPlaylistSortType.yearAscending),
+          ),
+          MoviTvActionMenuAction(
+            label: checkedLabel(
+              l10n.playlistSortNewestFirst,
+              LibraryPlaylistSortType.yearDescending,
+            ),
+            onPressed: () => selectSort(LibraryPlaylistSortType.yearDescending),
+          ),
+        ],
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
-        title: Text(AppLocalizations.of(context)!.playlistSortByTitle),
+        title: Text(l10n.playlistSortByTitle),
         actions: [
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (mounted) {
-                setState(() {
-                  _sortType = LibraryPlaylistSortType.title;
-                });
-              }
+              selectSort(LibraryPlaylistSortType.title);
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(AppLocalizations.of(context)!.playlistSortByTitleOption),
+                Text(l10n.playlistSortByTitleOption),
                 if (_sortType == LibraryPlaylistSortType.title)
                   const SizedBox(width: 8),
                 if (_sortType == LibraryPlaylistSortType.title)
@@ -171,16 +371,12 @@ class _LibraryPlaylistDetailPageState
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (mounted) {
-                setState(() {
-                  _sortType = LibraryPlaylistSortType.recentlyAdded;
-                });
-              }
+              selectSort(LibraryPlaylistSortType.recentlyAdded);
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(AppLocalizations.of(context)!.playlistSortRecentAdditions),
+                Text(l10n.playlistSortRecentAdditions),
                 if (_sortType == LibraryPlaylistSortType.recentlyAdded)
                   const SizedBox(width: 8),
                 if (_sortType == LibraryPlaylistSortType.recentlyAdded)
@@ -191,16 +387,12 @@ class _LibraryPlaylistDetailPageState
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (mounted) {
-                setState(() {
-                  _sortType = LibraryPlaylistSortType.yearAscending;
-                });
-              }
+              selectSort(LibraryPlaylistSortType.yearAscending);
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(AppLocalizations.of(context)!.playlistSortOldestFirst),
+                Text(l10n.playlistSortOldestFirst),
                 if (_sortType == LibraryPlaylistSortType.yearAscending)
                   const SizedBox(width: 8),
                 if (_sortType == LibraryPlaylistSortType.yearAscending)
@@ -211,16 +403,12 @@ class _LibraryPlaylistDetailPageState
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (mounted) {
-                setState(() {
-                  _sortType = LibraryPlaylistSortType.yearDescending;
-                });
-              }
+              selectSort(LibraryPlaylistSortType.yearDescending);
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(AppLocalizations.of(context)!.playlistSortNewestFirst),
+                Text(l10n.playlistSortNewestFirst),
                 if (_sortType == LibraryPlaylistSortType.yearDescending)
                   const SizedBox(width: 8),
                 if (_sortType == LibraryPlaylistSortType.yearDescending)
@@ -231,7 +419,7 @@ class _LibraryPlaylistDetailPageState
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(AppLocalizations.of(context)!.actionCancel),
+          child: Text(l10n.actionCancel),
         ),
       ),
     );
@@ -492,12 +680,15 @@ class _LibraryPlaylistDetailPageState
         ? ref.watch(playlistItemsProvider(widget.playlist.playlistId!))
         : null;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
+    return Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) => _handlePageBackKey(event),
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
           children: [
             // Hero section (350px)
             itemsAsync.when(
@@ -549,6 +740,8 @@ class _LibraryPlaylistDetailPageState
                           ),
                 isLargeScreen: isLargeScreen,
                 horizontalPadding: pagePadding,
+                backFocusNode: _heroBackFocusNode,
+                onBackKeyEvent: _handleHeroBackKey,
                 actions: isLargeScreen
                     ? Builder(
                         builder: (context) {
@@ -562,6 +755,10 @@ class _LibraryPlaylistDetailPageState
                           return LibraryPlaylistActionsBar(
                             compact: true,
                             isEmpty: isEmpty,
+                            playRandomFocusNode: _playRandomFocusNode,
+                            sortFocusNode: _sortFocusNode,
+                            onPlayRandomKeyEvent: _handlePlayRandomKey,
+                            onSortKeyEvent: _handleSortKey,
                             onPlayRandom: isEmpty
                                 ? null
                                 : () => _playRandomly(context, sortedItems),
@@ -596,6 +793,10 @@ class _LibraryPlaylistDetailPageState
 
                     return LibraryPlaylistActionsBar(
                       isEmpty: isEmpty,
+                      playRandomFocusNode: _playRandomFocusNode,
+                      sortFocusNode: _sortFocusNode,
+                      onPlayRandomKeyEvent: _handlePlayRandomKey,
+                      onSortKeyEvent: _handleSortKey,
                       onPlayRandom: isEmpty
                           ? null
                           : () => _playRandomly(context, sortedItems),
@@ -645,6 +846,10 @@ class _LibraryPlaylistDetailPageState
                   ),
                 ),
                 data: (items) {
+                  _syncItemFocusNodes(items.length);
+                  if (items.isNotEmpty) {
+                    _requestInitialActionFocus();
+                  }
                   if (items.isEmpty) {
                     return Center(
                       child: Text(
@@ -682,8 +887,20 @@ class _LibraryPlaylistDetailPageState
                           widget.playlist.playlistId != null &&
                           playlistItemsAsync != null) {
                         return playlistItemsAsync.when(
-                          loading: () => _buildMediaItem(context, ref, item),
-                          error: (_, __) => _buildMediaItem(context, ref, item),
+                          loading: () => _buildMediaItem(
+                            context,
+                            ref,
+                            item,
+                            index: index,
+                            itemCount: sortedItems.length,
+                          ),
+                          error: (_, __) => _buildMediaItem(
+                            context,
+                            ref,
+                            item,
+                            index: index,
+                            itemCount: sortedItems.length,
+                          ),
                           data: (playlistItems) {
                             final playlistItem = playlistItems.firstWhere(
                               (pi) => pi.reference.id == item.id,
@@ -693,19 +910,28 @@ class _LibraryPlaylistDetailPageState
                               context,
                               ref,
                               item,
+                              index: index,
+                              itemCount: sortedItems.length,
                               playlistItem: playlistItem,
                               playlistId: widget.playlist.playlistId,
                             );
                           },
                         );
                       }
-                      return _buildMediaItem(context, ref, item);
+                      return _buildMediaItem(
+                        context,
+                        ref,
+                        item,
+                        index: index,
+                        itemCount: sortedItems.length,
+                      );
                     },
                   );
                 },
               ),
             ),
           ],
+          ),
         ),
       ),
     );
@@ -715,6 +941,8 @@ class _LibraryPlaylistDetailPageState
     BuildContext context,
     WidgetRef ref,
     ContentReference reference, {
+    required int index,
+    required int itemCount,
     PlaylistItem? playlistItem,
     String? playlistId,
   }) {
@@ -740,32 +968,97 @@ class _LibraryPlaylistDetailPageState
             widget.playlist.type == LibraryPlaylistType.inProgress ||
             widget.playlist.type == LibraryPlaylistType.watchHistory;
 
-        Widget content = GestureDetector(
-          onTap: () => unawaited(_openMedia(context, reference)),
-          onLongPress: canDelete
-              ? () {
-                  if (widget.playlist.type ==
-                          LibraryPlaylistType.userPlaylist &&
-                      playlistItem != null &&
-                      playlistId != null) {
-                    _showDeleteItemDialog(
-                      context,
-                      ref,
-                      reference,
-                      playlistItem,
-                      playlistId,
-                    );
-                  } else {
-                    _showDeleteOtherItemDialog(context, ref, reference);
-                  }
-                }
-              : null,
-          behavior: HitTestBehavior.opaque,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
+        final itemFocusNode = _itemFocusNodes[index];
+        final moreFocusNode = _itemMoreFocusNodes[index];
+
+        KeyEventResult handleItemKey(KeyEvent event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            if (index == 0) {
+              _playRandomFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            _requestItemFocusAt(index - 1, ensureVisible: true);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            final nextIndex = index + 1;
+            if (nextIndex >= itemCount) {
+              return KeyEventResult.handled;
+            }
+            _requestItemFocusAt(nextIndex, ensureVisible: true);
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            if (canDelete) {
+              moreFocusNode.requestFocus();
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        }
+
+        KeyEventResult handleMoreKey(KeyEvent event) {
+          if (event is! KeyDownEvent) return KeyEventResult.ignored;
+          if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+            itemFocusNode.requestFocus();
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+              event.logicalKey == LogicalKeyboardKey.arrowDown ||
+              event.logicalKey == LogicalKeyboardKey.arrowRight) {
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        }
+
+        Widget content = Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) => handleItemKey(event),
+                  child: MoviFocusableAction(
+                    focusNode: itemFocusNode,
+                    semanticLabel: displayReference.title.value,
+                    onPressed: () => unawaited(_openMedia(context, reference)),
+                    onLongPress: canDelete
+                        ? () {
+                            if (widget.playlist.type ==
+                                    LibraryPlaylistType.userPlaylist &&
+                                playlistItem != null &&
+                                playlistId != null) {
+                              _showDeleteItemDialog(
+                                context,
+                                ref,
+                                reference,
+                                playlistItem,
+                                playlistId,
+                              );
+                            } else {
+                              _showDeleteOtherItemDialog(context, ref, reference);
+                            }
+                          }
+                        : null,
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.01 : 1,
+                        borderRadius: BorderRadius.circular(14),
+                        borderColor: state.focused
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                        borderWidth: 2,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
                 // Backdrop paysage (180x100) + badge durée/saisons en stack (flou)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -914,25 +1207,7 @@ class _LibraryPlaylistDetailPageState
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (canDelete) ...[
-                            const SizedBox(width: 12),
-                            GestureDetector(
-                              onTap: () {
-                                _showItemOptionsMenuGeneric(
-                                  context,
-                                  ref,
-                                  reference,
-                                  playlistItem: playlistItem,
-                                  playlistId: playlistId,
-                                );
-                              },
-                              child: const Icon(
-                                Icons.more_horiz,
-                                color: Colors.white70,
-                                size: 24,
-                              ),
-                            ),
-                          ],
+                          if (canDelete) const SizedBox(width: 12),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -988,7 +1263,50 @@ class _LibraryPlaylistDetailPageState
                   ),
                 ),
               ],
-            ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              if (canDelete)
+                Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) => handleMoreKey(event),
+                  child: MoviFocusableAction(
+                    focusNode: moreFocusNode,
+                    semanticLabel: 'Options ${displayReference.title.value}',
+                    onPressed: () {
+                      _showItemOptionsMenuGeneric(
+                        context,
+                        ref,
+                        reference,
+                        playlistItem: playlistItem,
+                        playlistId: playlistId,
+                      );
+                    },
+                    builder: (context, state) {
+                      return MoviFocusFrame(
+                        scale: state.focused ? 1.04 : 1,
+                        borderRadius: BorderRadius.circular(999),
+                        padding: const EdgeInsets.all(8),
+                        borderColor: state.focused
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                        borderWidth: 2,
+                        backgroundColor: state.focused
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        child: const Icon(
+                          Icons.more_horiz,
+                          color: Colors.white70,
+                          size: 24,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
         );
 
@@ -1125,6 +1443,27 @@ class _LibraryPlaylistDetailPageState
       return;
     }
 
+    final l10n = AppLocalizations.of(context)!;
+    final useTvMenu = _isLargeScreen(context);
+    if (useTvMenu) {
+      showMoviTvActionMenu(
+        context: context,
+        title: 'Options',
+        actions: [
+          MoviTvActionMenuAction(
+            label: l10n.playlistDeleteTitle,
+            destructive: true,
+            onPressed: () => _showDeleteOtherItemDialog(context, ref, reference),
+          ),
+          MoviTvActionMenuAction(
+            label: l10n.actionAddToList,
+            onPressed: () => _showAddItemToPlaylistDialog(context, ref, reference),
+          ),
+        ],
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
     // Pour les autres types de playlists (favoris, en cours, historique)
     showCupertinoModalPopup<void>(
       context: context,
@@ -1137,19 +1476,19 @@ class _LibraryPlaylistDetailPageState
               Navigator.of(ctx).pop();
               _showDeleteOtherItemDialog(context, ref, reference);
             },
-            child: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
+            child: Text(l10n.playlistDeleteTitle),
           ),
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
               _showAddItemToPlaylistDialog(context, ref, reference);
             },
-            child: Text(AppLocalizations.of(context)!.actionAddToList),
+            child: Text(l10n.actionAddToList),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(AppLocalizations.of(context)!.actionCancel),
+          child: Text(l10n.actionCancel),
         ),
       ),
     );
@@ -1162,6 +1501,33 @@ class _LibraryPlaylistDetailPageState
     PlaylistItem playlistItem,
     String playlistId,
   ) {
+    final l10n = AppLocalizations.of(context)!;
+    final useTvMenu = _isLargeScreen(context);
+    if (useTvMenu) {
+      showMoviTvActionMenu(
+        context: context,
+        title: 'Options',
+        actions: [
+          MoviTvActionMenuAction(
+            label: l10n.playlistDeleteTitle,
+            destructive: true,
+            onPressed: () => _showDeleteItemDialog(
+              context,
+              ref,
+              reference,
+              playlistItem,
+              playlistId,
+            ),
+          ),
+          MoviTvActionMenuAction(
+            label: l10n.actionAddToList,
+            onPressed: () => _showAddItemToPlaylistDialog(context, ref, reference),
+          ),
+        ],
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -1179,19 +1545,19 @@ class _LibraryPlaylistDetailPageState
                 playlistId,
               );
             },
-            child: Text(AppLocalizations.of(context)!.playlistDeleteTitle),
+            child: Text(l10n.playlistDeleteTitle),
           ),
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
               _showAddItemToPlaylistDialog(context, ref, reference);
             },
-            child: Text(AppLocalizations.of(context)!.actionAddToList),
+            child: Text(l10n.actionAddToList),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(AppLocalizations.of(context)!.actionCancel),
+          child: Text(l10n.actionCancel),
         ),
       ),
     );

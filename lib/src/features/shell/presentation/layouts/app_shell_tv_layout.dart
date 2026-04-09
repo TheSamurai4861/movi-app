@@ -18,6 +18,7 @@ class AppShellTvLayout extends StatelessWidget {
     required this.pageBuilders,
     required this.keepAliveIndices,
     required this.sidebarFocusNode,
+    this.onSidebarFocusedIndexChanged,
     this.scrollControllerForIndex,
     this.sidebarLogo,
   });
@@ -33,6 +34,7 @@ class AppShellTvLayout extends StatelessWidget {
   final ScrollController Function(int index)? scrollControllerForIndex;
 
   final FocusNode sidebarFocusNode;
+  final ValueChanged<int>? onSidebarFocusedIndexChanged;
   final Widget? sidebarLogo;
 
   @override
@@ -46,6 +48,7 @@ class AppShellTvLayout extends StatelessWidget {
           SidebarNav(
             selectedIndex: selectedIndex,
             onDestinationSelected: onNavTap,
+            onFocusedIndexChanged: onSidebarFocusedIndexChanged,
             destinations: destinations,
             logo: sidebarLogo,
             focusNode: sidebarFocusNode,

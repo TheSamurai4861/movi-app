@@ -20,6 +20,7 @@ import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart'
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/features/player/domain/entities/playback_launch_plan.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_preferences.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
@@ -32,9 +33,10 @@ import 'package:movi/src/features/movie/domain/usecases/mark_movie_as_unseen.dar
 import 'package:movi/src/features/movie/domain/usecases/add_movie_to_playlist.dart';
 import 'package:movi/src/features/movie/domain/usecases/ensure_movie_enrichment.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
-import 'package:movi/src/features/library/domain/services/resume_eligibility.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
+import 'package:movi/src/shared/domain/constants/playback_progress_thresholds.dart';
+import 'package:movi/src/shared/domain/services/playback_resume_resolution.dart';
 
 /// Provider pour MovieRepository avec userId actuel
 final movieRepositoryProvider = Provider<MovieRepository>((ref) {
@@ -109,6 +111,27 @@ final movieAvailabilityOnIptvProvider = FutureProvider.family<bool, String>((
 /// Position de reprise alignée avec la définition métier "En cours".
 /// On n'affiche "Reprendre" que si la progression est dans la plage
 /// [inProgressMinThreshold, inProgressMaxThreshold[.
+final moviePlaybackLaunchPlanProvider =
+    FutureProvider.family<PlaybackLaunchPlan?, String>((ref, movieId) async {
+      try {
+        final userId = ref.watch(currentUserIdProvider);
+        final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
+        final entry = await historyRepo.getEntry(
+          movieId,
+          ContentType.movie,
+          userId: userId,
+        );
+        return PlaybackLaunchPlan.fromPlaybackProgress(
+          contentType: ContentType.movie,
+          targetContentId: movieId,
+          position: entry?.lastPosition,
+          duration: entry?.duration,
+        );
+      } catch (_) {
+        return null;
+      }
+    });
+
 final movieResumePositionProvider = FutureProvider.family<Duration?, String>((
   ref,
   movieId,
@@ -120,9 +143,10 @@ final movieResumePositionProvider = FutureProvider.family<Duration?, String>((
     ContentType.movie,
     userId: userId,
   );
-  final resume = entry?.lastPosition;
-  final duration = entry?.duration;
-  return normalizeResumePosition(position: resume, duration: duration);
+  return resolvePlaybackResume(
+    position: entry?.lastPosition,
+    duration: entry?.duration,
+  ).resumePosition;
 });
 
 final markMovieAsSeenUseCaseProvider = Provider<MarkMovieAsSeen>(
@@ -319,7 +343,7 @@ final movieSeenProvider = FutureProvider.family<bool, String>((ref, id) async {
     }
     final progress =
         (entry.lastPosition?.inSeconds ?? 0) / entry.duration!.inSeconds;
-    return progress >= 0.9;
+    return progress >= PlaybackProgressThresholds.maxInProgress;
   } catch (_) {
     return false;
   }
@@ -451,7 +475,8 @@ final moviePlaybackSelectionProvider =
       PlaybackVariantSelectionLocalRepository? variantSelectionRepo;
       try {
         if (locator.isRegistered<PlaybackVariantSelectionLocalRepository>()) {
-          variantSelectionRepo = locator<PlaybackVariantSelectionLocalRepository>();
+          variantSelectionRepo =
+              locator<PlaybackVariantSelectionLocalRepository>();
         }
       } catch (_) {
         variantSelectionRepo = null;
@@ -503,6 +528,7 @@ final moviePlaybackSelectionProvider =
         reason: PlaybackSelectionReason.deterministicFallback,
         rankedVariants: decision.rankedVariants,
         selectedVariant: match,
+        launchPlan: decision.launchPlan,
       );
     });
 

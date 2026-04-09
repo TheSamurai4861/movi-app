@@ -6,12 +6,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_failures.dart';
+import 'package:movi/src/core/parental/application/services/parental_session_service.dart';
+import 'package:movi/src/core/parental/presentation/providers/parental_access_providers.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/controllers/profiles_controller.dart';
 import 'package:movi/src/core/profile/presentation/controllers/selected_profile_controller.dart';
 import 'package:movi/src/core/profile/presentation/providers/profile_auth_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
+import 'package:movi/src/core/storage/repositories/secure_payload_store.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/startup/app_launch_orchestrator.dart';
 import 'package:movi/src/features/settings/domain/entities/user_settings.dart';
@@ -40,13 +43,27 @@ class _FakeUserSettingsController extends UserSettingsController {
 }
 
 class _FakeProfilesController extends ProfilesController {
+  _FakeProfilesController({this.profiles = const <Profile>[]});
+
+  final List<Profile> profiles;
+  final List<String> selectedIds = <String>[];
+
   @override
-  Future<List<Profile>> build() async => <Profile>[];
+  Future<List<Profile>> build() async => profiles;
+
+  @override
+  Future<void> selectProfile(String profileId) async {
+    selectedIds.add(profileId);
+  }
 }
 
 class _FakeSelectedProfileController extends SelectedProfileController {
+  _FakeSelectedProfileController([this._selectedProfileId]);
+
+  final String? _selectedProfileId;
+
   @override
-  String? build() => null;
+  String? build() => _selectedProfileId;
 }
 
 class _FakeLaunchOrchestrator extends AppLaunchOrchestrator {
@@ -85,6 +102,27 @@ Widget _wrapWithRouter(Widget child) {
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
   );
+}
+
+class _MemorySecurePayloadStore implements SecurePayloadStore {
+  final Map<String, Map<String, dynamic>> _values =
+      <String, Map<String, dynamic>>{};
+
+  @override
+  Future<Map<String, dynamic>?> get(String key) async => _values[key];
+
+  @override
+  Future<void> put({
+    required String key,
+    required Map<String, dynamic> payload,
+  }) async {
+    _values[key] = Map<String, dynamic>.from(payload);
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    _values.remove(key);
+  }
 }
 
 void main() {
@@ -240,6 +278,126 @@ void main() {
 
       expect(find.text('OTP_PAGE'), findsNothing);
       expect(find.byType(TextFormField), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'switching from a selected child profile to an adult profile requires PIN on welcome',
+    (tester) async {
+      final fakeProfiles = _FakeProfilesController(
+        profiles: const [
+          Profile(
+            id: 'child',
+            accountId: 'a',
+            name: 'Kid',
+            color: 0xFF2160AB,
+            isKid: true,
+            pegiLimit: 12,
+          ),
+          Profile(
+            id: 'adult',
+            accountId: 'a',
+            name: 'Parent',
+            color: 0xFF2160AB,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(null),
+            supabaseAuthStatusProvider.overrideWith(
+              () => _FakeSupabaseAuthStatusNotifier(
+                SupabaseAuthStatus.uninitialized,
+              ),
+            ),
+            _neutralLaunchOverride(),
+            userSettingsControllerProvider.overrideWith(
+              _FakeUserSettingsController.new,
+            ),
+            profilesControllerProvider.overrideWith(() => fakeProfiles),
+            selectedProfileControllerProvider.overrideWith(
+              () => _FakeSelectedProfileController('child'),
+            ),
+            selectedProfileIdProvider.overrideWithValue('child'),
+            parentalSessionServiceProvider.overrideWithValue(
+              ParentalSessionService(
+                _MemorySecurePayloadStore(),
+                persistToSecureStorage: false,
+              ),
+            ),
+          ],
+          child: _wrapWithRouter(const WelcomeUserPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Parent'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Profil verrouillé'), findsOneWidget);
+      expect(fakeProfiles.selectedIds, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'continue prompts for PIN before auto-selecting a restricted first profile on welcome',
+    (tester) async {
+      final fakeProfiles = _FakeProfilesController(
+        profiles: const [
+          Profile(
+            id: 'child',
+            accountId: 'a',
+            name: 'Kid',
+            color: 0xFF2160AB,
+            isKid: true,
+            pegiLimit: 12,
+          ),
+          Profile(
+            id: 'adult',
+            accountId: 'a',
+            name: 'Parent',
+            color: 0xFF2160AB,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            supabaseClientProvider.overrideWithValue(null),
+            supabaseAuthStatusProvider.overrideWith(
+              () => _FakeSupabaseAuthStatusNotifier(
+                SupabaseAuthStatus.uninitialized,
+              ),
+            ),
+            _neutralLaunchOverride(),
+            userSettingsControllerProvider.overrideWith(
+              _FakeUserSettingsController.new,
+            ),
+            profilesControllerProvider.overrideWith(() => fakeProfiles),
+            selectedProfileControllerProvider.overrideWith(
+              () => _FakeSelectedProfileController(),
+            ),
+            selectedProfileIdProvider.overrideWithValue(null),
+            parentalSessionServiceProvider.overrideWithValue(
+              ParentalSessionService(
+                _MemorySecurePayloadStore(),
+                persistToSecureStorage: false,
+              ),
+            ),
+          ],
+          child: _wrapWithRouter(const WelcomeUserPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Profil verrouillé'), findsOneWidget);
+      expect(fakeProfiles.selectedIds, isEmpty);
     },
   );
 }

@@ -45,9 +45,9 @@ class _MoviRemoteNavigationState extends ConsumerState<MoviRemoteNavigation> {
 
     final key = event.logicalKey;
 
-    if ((key == LogicalKeyboardKey.backspace ||
-            key == LogicalKeyboardKey.goBack) &&
-        !_isTextInputFocused()) {
+    if (key == LogicalKeyboardKey.goBack ||
+        key == LogicalKeyboardKey.escape ||
+        (key == LogicalKeyboardKey.backspace && !_isTextInputFocused())) {
       unawaited(_handleBackNavigation());
       return KeyEventResult.handled;
     }
@@ -110,7 +110,25 @@ class _MoviRemoteNavigationState extends ConsumerState<MoviRemoteNavigation> {
 
   Future<void> _handleBackNavigation() async {
     final didPop = await Navigator.maybePop(context);
-    if (didPop || !mounted) return;
-    ref.read(shellFocusCoordinatorProvider).focusSidebar();
+    if (!mounted) return;
+    if (!didPop) {
+      ref.read(shellFocusCoordinatorProvider).focusSidebar();
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        return;
+      }
+
+      final selectedTab = ref.read(selectedTabProvider);
+      final focusCoordinator = ref.read(shellFocusCoordinatorProvider);
+      final restored = focusCoordinator.focusTabEntry(selectedTab);
+      if (!restored) {
+        focusCoordinator.focusSidebar();
+      }
+    });
   }
 }

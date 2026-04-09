@@ -388,6 +388,21 @@ final class LocalDatabaseMigrations {
     if (oldVersion < 22) {
       await _rebuildIptvTablesWithOwnerScope(db);
     }
+    if (oldVersion < 23) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS series_seen_state (
+          series_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          marked_at INTEGER NOT NULL,
+          season INTEGER,
+          episode INTEGER,
+          PRIMARY KEY (series_id, user_id)
+        );
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_series_seen_state_user_id ON series_seen_state(user_id);',
+      );
+    }
   }
 
   static Future<void> _rebuildIptvTablesWithOwnerScope(Database db) async {

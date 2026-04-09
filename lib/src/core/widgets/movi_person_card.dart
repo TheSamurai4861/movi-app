@@ -65,6 +65,7 @@ class MoviPersonCard extends StatefulWidget {
     this.height = 225,
     this.onTap,
     this.heroTag,
+    this.focusNode,
   });
 
   final MoviPerson person;
@@ -72,6 +73,7 @@ class MoviPersonCard extends StatefulWidget {
   final double height;
   final ValueChanged<MoviPerson>? onTap;
   final Object? heroTag;
+  final FocusNode? focusNode;
 
   @override
   State<MoviPersonCard> createState() => _MoviPersonCardState();
@@ -113,6 +115,7 @@ class _MoviPersonCardState extends State<MoviPersonCard> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        focusNode: widget.focusNode,
         onTap: widget.onTap == null
             ? null
             : () => widget.onTap?.call(widget.person),

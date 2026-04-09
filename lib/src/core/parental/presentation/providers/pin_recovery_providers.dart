@@ -70,7 +70,9 @@ class PinRecoveryUiState {
       targetProfileId: targetProfileId == _unset
           ? this.targetProfileId
           : targetProfileId as String?,
-      resetToken: resetToken == _unset ? this.resetToken : resetToken as String?,
+      resetToken: resetToken == _unset
+          ? this.resetToken
+          : resetToken as String?,
       newPin: newPin ?? this.newPin,
       confirmPin: confirmPin ?? this.confirmPin,
       formError: formError == _unset
@@ -109,6 +111,11 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
   PinRecoveryUiState build() {
     ref.onDispose(_disposeTimer);
     return const PinRecoveryUiState();
+  }
+
+  void resetFlow() {
+    _disposeTimer();
+    state = const PinRecoveryUiState();
   }
 
   void setCode(String raw) {
@@ -189,10 +196,11 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
       );
       _startCooldown();
     } else {
+      _disposeTimer();
       state = state.copyWith(
-        // Conserve l'étape code visible pour permettre la saisie/vérification
-        // même si l'envoi retourne une erreur transitoire.
-        status: PinRecoveryUiStatus.verifyFailed,
+        // Ne garde pas l'étape code ouverte quand aucun code n'a été envoyé.
+        status: PinRecoveryUiStatus.idle,
+        cooldownRemaining: 0,
         error: result.status,
       );
     }
@@ -303,7 +311,8 @@ class PinRecoveryController extends Notifier<PinRecoveryUiState> {
       );
 
       ref.invalidate(profilesControllerProvider);
-      final profileId = state.targetProfileId ?? ref.read(currentProfileProvider)?.id;
+      final profileId =
+          state.targetProfileId ?? ref.read(currentProfileProvider)?.id;
       if (profileId != null && profileId.trim().isNotEmpty) {
         try {
           final sessionSvc = ref.read(parentalSessionServiceProvider);

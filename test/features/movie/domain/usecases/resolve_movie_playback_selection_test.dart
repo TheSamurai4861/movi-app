@@ -9,6 +9,7 @@ import 'package:movi/src/features/player/domain/entities/playback_selection_deci
 import 'package:movi/src/features/player/domain/entities/playback_selection_preferences.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
+import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 void main() {
@@ -66,6 +67,12 @@ void main() {
       decision.selectedVariant?.videoSource.resumePosition,
       const Duration(minutes: 12),
     );
+    expect(decision.launchPlan, isNotNull);
+    expect(decision.launchPlan?.contentType, ContentType.movie);
+    expect(decision.launchPlan?.targetContentId, '603');
+    expect(decision.launchPlan?.resumePosition, const Duration(minutes: 12));
+    expect(decision.resumeEligible, isTrue);
+    expect(decision.resumeReasonCode, ResumeReasonCode.applied);
   });
 
   test(
@@ -121,6 +128,10 @@ void main() {
 
       expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
       expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+      expect(decision.launchPlan?.targetContentId, '603');
+      expect(decision.launchPlan?.resumePosition, isNull);
+      expect(decision.resumeEligible, isFalse);
+      expect(decision.resumeReasonCode, ResumeReasonCode.progressOutOfRange);
     },
   );
 
@@ -189,6 +200,27 @@ void main() {
 
       final decision = await _resolveDefault(usecase);
       expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+      expect(
+        logger.messages.any(
+          (message) =>
+              message.contains('op=movie_resume_resolution') &&
+              message.contains('event=resume_skipped') &&
+              message.contains('contentType=movie') &&
+              message.contains('reasonCode=progressOutOfRange'),
+        ),
+        isTrue,
+      );
+      expect(
+        logger.messages.any(
+          (message) =>
+              message.contains('op=movie_playback_selection') &&
+              message.contains('result=autoPlay') &&
+              message.contains('resumeRequested=false') &&
+              message.contains('resumeApplied=false') &&
+              message.contains('resumeReasonCode=progressOutOfRange'),
+        ),
+        isTrue,
+      );
     },
   );
 }
@@ -271,17 +303,27 @@ class _FakePlaybackHistoryRepository implements PlaybackHistoryRepository {
 }
 
 class _MemoryLogger implements AppLogger {
-  @override
-  void debug(String message, {String? category}) {}
+  final List<String> messages = <String>[];
 
   @override
-  void info(String message, {String? category}) {}
+  void debug(String message, {String? category}) {
+    messages.add(message);
+  }
 
   @override
-  void warn(String message, {String? category}) {}
+  void info(String message, {String? category}) {
+    messages.add(message);
+  }
 
   @override
-  void error(String message, [Object? error, StackTrace? stackTrace]) {}
+  void warn(String message, {String? category}) {
+    messages.add(message);
+  }
+
+  @override
+  void error(String message, [Object? error, StackTrace? stackTrace]) {
+    messages.add(message);
+  }
 
   @override
   void log(
@@ -290,5 +332,7 @@ class _MemoryLogger implements AppLogger {
     String? category,
     Object? error,
     StackTrace? stackTrace,
-  }) {}
+  }) {
+    messages.add(message);
+  }
 }

@@ -166,6 +166,21 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     return ctx.findAncestorStateOfType<EditableTextState>() != null;
   }
 
+  void _focusPrimaryEntryWithRetry(
+    ShellFocusCoordinator coordinator,
+    ShellTab tab, {
+    int attempts = 0,
+  }) {
+    if (!mounted) return;
+    final focused = coordinator.focusTabPrimaryEntry(tab);
+    if (focused || attempts >= 8) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusPrimaryEntryWithRetry(coordinator, tab, attempts: attempts + 1);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedIndexProvider);
@@ -179,15 +194,24 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     final isTv = isLarge && _isTvMode(context);
     final selectedTab = shellTabFromIndex(selectedIndex);
     final focusCoordinator = ref.read(shellFocusCoordinatorProvider);
+    void handleSidebarFocusedIndexChanged(int index) {
+      focusCoordinator.setSidebarFocusedIndex(index);
+    }
+
     void handleNavTap(int index) {
+      final targetTab = shellTabFromIndex(index);
       if (index == selectedIndex) {
         // Re-tap onglet actif => remonter en haut.
         // (Si la page n'a pas de scroll primaire, c'est un no-op.)
         _scrollToTopController.scrollToTop(index);
-        focusCoordinator.focusTabEntry(selectedTab);
+        focusCoordinator.focusTabEntry(targetTab);
         return;
       }
       shellSelectIndex(ref, index);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        focusCoordinator.focusTabEntry(targetTab);
+      });
     }
 
     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
@@ -199,8 +223,22 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
 
         if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
             focusCoordinator.isSidebarFocused) {
-          final focused = focusCoordinator.focusTabEntry(selectedTab);
-          return focused ? KeyEventResult.handled : KeyEventResult.ignored;
+          final targetIndex =
+              focusCoordinator.sidebarFocusedIndex ?? selectedIndex;
+          final targetTab = shellTabFromIndex(targetIndex);
+          if (targetIndex != selectedIndex) {
+            shellSelectIndex(ref, targetIndex);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
+            });
+            return KeyEventResult.handled;
+          }
+          final focused = focusCoordinator.focusTabPrimaryEntry(targetTab);
+          if (!focused) {
+            _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
+          }
+          return KeyEventResult.handled;
         }
 
         if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
@@ -230,6 +268,8 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
                       scrollControllerForIndex:
                           _scrollToTopController.controllerForIndex,
                       sidebarLogo: widget.sidebarLogo,
+                      onSidebarFocusedIndexChanged:
+                          handleSidebarFocusedIndexChanged,
                     )
                   : AppShellLargeLayout(
                       selectedIndex: selectedIndex,
@@ -241,6 +281,8 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
                       scrollControllerForIndex:
                           _scrollToTopController.controllerForIndex,
                       sidebarLogo: widget.sidebarLogo,
+                      onSidebarFocusedIndexChanged:
+                          handleSidebarFocusedIndexChanged,
                     ))
             : AppShellMobileLayout(
                 selectedIndex: selectedIndex,

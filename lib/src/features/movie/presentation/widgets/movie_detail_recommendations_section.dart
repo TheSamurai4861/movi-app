@@ -20,6 +20,7 @@ class MovieDetailRecommendationsSection extends ConsumerWidget {
     if (items.isEmpty) return const SizedBox.shrink();
     return MoviItemsList(
       title: AppLocalizations.of(context)!.recommendationsTitle,
+      consumeLeadingEdgeLeftKey: true,
       estimatedItemWidth: 150,
       estimatedItemHeight: MoviMediaCard.listHeight,
       titlePadding: horizontalPadding,

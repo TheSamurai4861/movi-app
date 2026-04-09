@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
@@ -354,12 +353,9 @@ class _SkeletonHeroPreview extends StatelessWidget {
                           height: 96,
                           child: FittedBox(
                             fit: BoxFit.contain,
-                            child: SvgPicture.asset(
+                            child: MoviAssetIcon(
                               AppAssets.iconAppLogoSvg,
-                              colorFilter: ColorFilter.mode(
-                                theme.colorScheme.primary,
-                                BlendMode.srcIn,
-                              ),
+                              color: theme.colorScheme.primary,
                             ),
                           ),
                         ),

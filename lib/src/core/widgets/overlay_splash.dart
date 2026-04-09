@@ -7,12 +7,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 
 class OverlaySplash extends ConsumerWidget {
   const OverlaySplash({
@@ -49,10 +49,13 @@ class OverlaySplash extends ConsumerWidget {
             Center(
               child: Semantics(
                 label: 'MOVI splash logo',
-                child: SvgPicture.asset(
+                child: MoviAssetIcon(
                   AppAssets.iconAppLogoSvg,
+                  width: 120,
                   height: 120,
-                  colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
+                  color: accentColor,
+                  excludeFromSemantics: false,
+                  semanticLabel: 'MOVI splash logo',
                 ),
               ),
             ),
@@ -68,7 +71,8 @@ class OverlaySplash extends ConsumerWidget {
                     child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: (theme.platform == TargetPlatform.iOS ||
+                      child:
+                          (theme.platform == TargetPlatform.iOS ||
                               theme.platform == TargetPlatform.macOS)
                           ? const CupertinoActivityIndicator(radius: 12)
                           : const CircularProgressIndicator(strokeWidth: 2),
@@ -123,13 +127,13 @@ class _ElapsedLoadingTextState extends State<_ElapsedLoadingText> {
       stream: Stream<int>.periodic(const Duration(seconds: 1), (i) => i),
       builder: (_, __) {
         final s = _sw.elapsed.inSeconds;
-        final text = '${
-            widget.baseText.isEmpty ? 'Chargement…' : widget.baseText
-          } · ${s}s';
+        final text =
+            '${widget.baseText.isEmpty ? 'Chargement…' : widget.baseText} · ${s}s';
         return Text(
           text,
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70) ??
+          style:
+              theme.textTheme.bodySmall?.copyWith(color: Colors.white70) ??
               const TextStyle(color: Colors.white70, fontSize: 12),
         );
       },

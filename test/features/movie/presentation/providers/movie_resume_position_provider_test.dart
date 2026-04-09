@@ -27,6 +27,12 @@ void main() {
       mdp.movieResumePositionProvider(movieId).future,
     );
     expect(resume, isNull);
+
+    final launchPlan = await container.read(
+      mdp.moviePlaybackLaunchPlanProvider(movieId).future,
+    );
+    expect(launchPlan?.targetContentId, movieId);
+    expect(launchPlan?.isResumeEligible, isFalse);
   });
 
   test('returns null when position is null', () async {

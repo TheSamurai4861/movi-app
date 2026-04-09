@@ -37,6 +37,12 @@ class _MoviOverlayFocusScopeState extends State<MoviOverlayFocusScope> {
     final triggerFocusNode = widget.triggerFocusNode;
     final fallbackFocusNode = widget.fallbackFocusNode;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentPrimaryFocus = FocusManager.instance.primaryFocus;
+      // If another overlay already owns focus, do not steal it back.
+      if (currentPrimaryFocus != null &&
+          !_isNodeInScope(currentPrimaryFocus, _focusScopeNode)) {
+        return;
+      }
       if (_requestFocusIfValid(triggerFocusNode)) {
         return;
       }
@@ -52,6 +58,17 @@ class _MoviOverlayFocusScopeState extends State<MoviOverlayFocusScope> {
     }
     node.requestFocus();
     return true;
+  }
+
+  bool _isNodeInScope(FocusNode node, FocusScopeNode scope) {
+    FocusNode? cursor = node;
+    while (cursor != null) {
+      if (identical(cursor, scope)) {
+        return true;
+      }
+      cursor = cursor.parent;
+    }
+    return false;
   }
 
   @override

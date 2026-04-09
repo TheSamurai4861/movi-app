@@ -23,6 +23,7 @@ class AppShellLargeLayout extends StatelessWidget {
     required this.pageBuilders,
     required this.keepAliveIndices,
     required this.sidebarFocusNode,
+    this.onSidebarFocusedIndexChanged,
     this.scrollControllerForIndex,
     this.sidebarLogo,
   });
@@ -44,6 +45,7 @@ class AppShellLargeLayout extends StatelessWidget {
 
   /// Focus node du scope sidebar (utilisé aussi par ShellShortcuts).
   final FocusNode sidebarFocusNode;
+  final ValueChanged<int>? onSidebarFocusedIndexChanged;
 
   /// Logo optionnel en haut de la sidebar.
   final Widget? sidebarLogo;
@@ -59,6 +61,7 @@ class AppShellLargeLayout extends StatelessWidget {
           SidebarNav(
             selectedIndex: selectedIndex,
             onDestinationSelected: onNavTap,
+            onFocusedIndexChanged: onSidebarFocusedIndexChanged,
             destinations: destinations,
             logo: sidebarLogo,
             focusNode: sidebarFocusNode,

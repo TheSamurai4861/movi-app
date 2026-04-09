@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -18,6 +19,7 @@ import 'package:movi/src/core/profile/presentation/providers/profiles_providers.
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
 import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/settings/presentation/localization/movi_premium_localizer.dart';
@@ -86,56 +88,159 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Premium: tapping another profile switches selection',
-    (tester) async {
-      _registerSettingsPreferences();
+  testWidgets('Premium: tapping another profile switches selection', (
+    tester,
+  ) async {
+    _registerSettingsPreferences();
 
-      final fakeProfiles = _RecordingProfilesController(
-        profiles: const [
-          Profile(id: 'p1', accountId: 'a', name: 'Alice', color: 0xFF2160AB),
-          Profile(id: 'p2', accountId: 'a', name: 'Bob', color: 0xFF2160AB),
-        ],
-      );
+    final fakeProfiles = _RecordingProfilesController(
+      profiles: const [
+        Profile(id: 'p1', accountId: 'a', name: 'Alice', color: 0xFF2160AB),
+        Profile(id: 'p2', accountId: 'a', name: 'Bob', color: 0xFF2160AB),
+      ],
+    );
 
-      final container = ProviderContainer(
-        overrides: [
-          profilesControllerProvider.overrideWith(() => fakeProfiles),
-          selectedProfileIdProvider.overrideWithValue('p1'),
-          canAccessPremiumFeatureProvider.overrideWith(
-            (ref, feature) async => true,
-          ),
-          libraryCloudSyncControllerProvider.overrideWith(
-            () => _FakeLibraryCloudSyncController(),
-          ),
-          authControllerProvider.overrideWith(() => _FakeAuthController()),
-          supabaseClientProvider.overrideWithValue(null),
-          allIptvAccountsProvider.overrideWith(
-            (ref) async => const <AnyIptvAccount>[],
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const SettingsPage(),
-          ),
+    final container = ProviderContainer(
+      overrides: [
+        profilesControllerProvider.overrideWith(() => fakeProfiles),
+        selectedProfileIdProvider.overrideWithValue('p1'),
+        canAccessPremiumFeatureProvider.overrideWith(
+          (ref, feature) async => true,
         ),
-      );
-      await tester.pumpAndSettle();
+        libraryCloudSyncControllerProvider.overrideWith(
+          () => _FakeLibraryCloudSyncController(),
+        ),
+        authControllerProvider.overrideWith(() => _FakeAuthController()),
+        supabaseClientProvider.overrideWithValue(null),
+        allIptvAccountsProvider.overrideWith(
+          (ref) async => const <AnyIptvAccount>[],
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
 
-      await tester.tap(find.text('Bob'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(fakeProfiles.selectedIds, ['p2']);
-      expect(find.text('Bob'), findsWidgets);
-    },
-  );
+    await tester.tap(find.text('Bob'));
+    await tester.pumpAndSettle();
+
+    expect(fakeProfiles.selectedIds, ['p2']);
+    expect(find.text('Bob'), findsWidgets);
+  });
+
+  testWidgets('Keyboard focus graph supports profiles and premium boundary', (
+    tester,
+  ) async {
+    _registerSettingsPreferences();
+    tester.view.physicalSize = const Size(2401, 1080);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final fakeProfiles = _RecordingProfilesController(
+      profiles: const [
+        Profile(id: 'p1', accountId: 'a', name: 'Alice', color: 0xFF2160AB),
+        Profile(id: 'p2', accountId: 'a', name: 'Bob', color: 0xFF2160AB),
+      ],
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        profilesControllerProvider.overrideWith(() => fakeProfiles),
+        selectedProfileIdProvider.overrideWithValue('p1'),
+        canAccessPremiumFeatureProvider.overrideWith(
+          (ref, feature) async => true,
+        ),
+        libraryCloudSyncControllerProvider.overrideWith(
+          () => _FakeLibraryCloudSyncController(),
+        ),
+        authControllerProvider.overrideWith(() => _FakeAuthController()),
+        supabaseClientProvider.overrideWithValue(null),
+        allIptvAccountsProvider.overrideWith(
+          (ref) async => const <AnyIptvAccount>[],
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final firstProfileAction = tester.widget<MoviFocusableAction>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is MoviFocusableAction &&
+            widget.focusNode?.debugLabel == 'SettingsFirstProfile',
+      ),
+    );
+    firstProfileAction.focusNode!.requestFocus();
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('SettingsFirstProfile'),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('SettingsProfile-1'),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('SettingsAddProfile'),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('SettingsAddProfile'),
+    );
+
+    final premiumInkWell = tester.widget<InkWell>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is InkWell &&
+            widget.focusNode?.debugLabel == 'SettingsPremiumTile',
+      ),
+    );
+    premiumInkWell.focusNode!.requestFocus();
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('SettingsPremiumTile'),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('SettingsFirstProfile'),
+    );
+  });
 }
 
 void _registerSettingsPreferences() {
@@ -357,7 +462,8 @@ class _MemoryPlayerPreferences implements PlayerPreferences {
   }
 
   @override
-  Stream<String?> get preferredVideoFitModeStream => _videoFitModeController.stream;
+  Stream<String?> get preferredVideoFitModeStream =>
+      _videoFitModeController.stream;
 
   @override
   Stream<String?> get preferredVideoFitModeStreamWithInitial async* {
@@ -378,7 +484,9 @@ class _MemoryPlayerPreferences implements PlayerPreferences {
   }
 
   @override
-  Future<void> setPreferredPlaybackQuality(PreferredPlaybackQuality? quality) async {
+  Future<void> setPreferredPlaybackQuality(
+    PreferredPlaybackQuality? quality,
+  ) async {
     preferredPlaybackQuality = quality;
     _qualityController.add(quality);
   }
@@ -398,7 +506,8 @@ class _MemoryPlayerPreferences implements PlayerPreferences {
   }
 }
 
-class _MemorySelectedIptvSourcePreferences implements SelectedIptvSourcePreferences {
+class _MemorySelectedIptvSourcePreferences
+    implements SelectedIptvSourcePreferences {
   _MemorySelectedIptvSourcePreferences({required this.selectedSourceId});
 
   final StreamController<String?> _controller =

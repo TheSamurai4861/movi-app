@@ -108,7 +108,7 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
     return Material(
       color: Colors.transparent,
       borderRadius: borderRadius,
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.none,
       child: InkWell(
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
@@ -124,12 +124,9 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               borderRadius: borderRadius,
-              border: Border.all(
-                color: _focused ? accent : Colors.transparent,
-                width: 2,
-              ),
               boxShadow: _focused
                   ? [
                       BoxShadow(
@@ -140,50 +137,64 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                     ]
                   : null,
             ),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: Stack(
-                children: [
-                  Positioned.fill(child: _buildBackdropImage(widget.backdrop)),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      height: 100,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Color(0xFF000000), Color(0x00000000)],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: width,
+                height: height,
+                child: Stack(
+                  children: [
+                    Positioned.fill(child: _buildBackdropImage(widget.backdrop)),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        height: 100,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [Color(0xFF000000), Color(0x00000000)],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: SizedBox(
-                      height: 5,
-                      child: Stack(
-                        children: [
-                          Container(color: const Color(0xFFA6A6A6)),
-                          FractionallySizedBox(
-                            widthFactor: widget.progress.clamp(0.0, 1.0),
-                            alignment: Alignment.centerLeft,
-                            child: Container(color: accent),
-                          ),
-                        ],
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SizedBox(
+                        height: 5,
+                        child: Stack(
+                          children: [
+                            Container(color: const Color(0xFFA6A6A6)),
+                            FractionallySizedBox(
+                              widthFactor: widget.progress.clamp(0.0, 1.0),
+                              alignment: Alignment.centerLeft,
+                              child: Container(color: accent),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  if (widget.isEpisode)
-                    _buildEpisodeContent(width)
-                  else
-                    _buildMovieContent(width),
-                ],
+                    if (widget.isEpisode)
+                      _buildEpisodeContent(width)
+                    else
+                      _buildMovieContent(width),
+                    if (_focused)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: accent, width: 2),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

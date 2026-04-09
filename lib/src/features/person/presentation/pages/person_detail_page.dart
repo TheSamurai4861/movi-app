@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
@@ -109,8 +110,21 @@ class _PersonDetailContent extends StatefulWidget {
 
 class _PersonDetailContentState extends State<_PersonDetailContent> {
   bool _isTransitioningFromLoading = true;
+  final ScrollController _scrollController = ScrollController();
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'PersonDetailBack');
   final FocusNode _primaryActionFocusNode = FocusNode(debugLabel: 'PersonDetailPrimaryAction');
+  final FocusNode _favoriteActionFocusNode = FocusNode(
+    debugLabel: 'PersonDetailFavoriteAction',
+  );
+  final FocusNode _biographyExpandFocusNode = FocusNode(
+    debugLabel: 'PersonDetailBiographyExpand',
+  );
+  final FocusNode _firstMovieFocusNode = FocusNode(
+    debugLabel: 'PersonDetailFirstMovie',
+  );
+  final FocusNode _firstShowFocusNode = FocusNode(
+    debugLabel: 'PersonDetailFirstShow',
+  );
 
   ScreenType _screenTypeFor(BuildContext context) {
     final mq = MediaQuery.of(context);
@@ -129,10 +143,133 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
     return _useDesktopLayout(context) ? 36 : 20;
   }
 
+  bool _requestFocusIfPossible(FocusNode node) {
+    if (node.context == null || !node.canRequestFocus) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  void _focusPrimaryActionAndScrollTop() {
+    _requestFocusIfPossible(_primaryActionFocusNode);
+    if (!_scrollController.hasClients || _scrollController.offset <= 0) {
+      return;
+    }
+    unawaited(
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      ),
+    );
+  }
+
+  void _focusBackAndScrollTop() {
+    _requestFocusIfPossible(_backFocusNode);
+    if (!_scrollController.hasClients || _scrollController.offset <= 0) {
+      return;
+    }
+    unawaited(
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+      ),
+    );
+  }
+
+  KeyEventResult _handlePrimaryActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _focusBackAndScrollTop();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _requestFocusIfPossible(_favoriteActionFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (_requestFocusIfPossible(_biographyExpandFocusNode)) {
+        return KeyEventResult.handled;
+      }
+      _requestFocusIfPossible(_firstMovieFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleFavoriteActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _requestFocusIfPossible(_primaryActionFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleBiographyExpandKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _focusPrimaryActionAndScrollTop();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestFocusIfPossible(_firstMovieFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleFirstMovieKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (_requestFocusIfPossible(_biographyExpandFocusNode)) {
+        return KeyEventResult.handled;
+      }
+      _requestFocusIfPossible(_primaryActionFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestFocusIfPossible(_firstShowFocusNode);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleFirstShowKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _requestFocusIfPossible(_firstMovieFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   void dispose() {
+    _scrollController.dispose();
     _backFocusNode.dispose();
     _primaryActionFocusNode.dispose();
+    _favoriteActionFocusNode.dispose();
+    _biographyExpandFocusNode.dispose();
+    _firstMovieFocusNode.dispose();
+    _firstShowFocusNode.dispose();
     super.dispose();
   }
 
@@ -206,6 +343,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
               children: [
                 Expanded(
                   child: SingleChildScrollView(
+                    controller: _scrollController,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -240,6 +378,10 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                                   movies: movies,
                                   shows: shows,
                                   primaryActionFocusNode: _primaryActionFocusNode,
+                                  favoriteActionFocusNode: _favoriteActionFocusNode,
+                                  onPrimaryActionKeyEvent: _handlePrimaryActionKey,
+                                  onFavoriteActionKeyEvent:
+                                      _handleFavoriteActionKey,
                                 ),
                                 const SizedBox(height: 32),
                               ],
@@ -247,12 +389,18 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                                   widget.vm.biography!.isNotEmpty) ...[
                                 PersonBiographySection(
                                   biography: widget.vm.biography!,
+                                  expandFocusNode: _biographyExpandFocusNode,
+                                  onExpandKeyEvent: _handleBiographyExpandKey,
                                 ),
                                 const SizedBox(height: 32),
                               ],
                               PersonFilmographySection(
                                 movies: movies,
                                 shows: shows,
+                                firstMovieFocusNode: _firstMovieFocusNode,
+                                firstShowFocusNode: _firstShowFocusNode,
+                                onFirstMovieKeyEvent: _handleFirstMovieKey,
+                                onFirstShowKeyEvent: _handleFirstShowKey,
                               ),
                             ],
                           ),
@@ -382,6 +530,9 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                           movies: movies,
                           shows: shows,
                           primaryActionFocusNode: _primaryActionFocusNode,
+                          favoriteActionFocusNode: _favoriteActionFocusNode,
+                          onPrimaryActionKeyEvent: _handlePrimaryActionKey,
+                          onFavoriteActionKeyEvent: _handleFavoriteActionKey,
                         ),
                       ),
                     ],

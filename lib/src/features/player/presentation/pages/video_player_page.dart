@@ -33,7 +33,6 @@ import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/player/presentation/providers/player_providers.dart';
 import 'package:movi/src/features/player/domain/value_objects/player_tracks.dart';
 import 'package:movi/src/features/player/domain/value_objects/track_info.dart';
-import 'package:movi/src/features/player/presentation/utils/track_label_formatter.dart';
 import 'package:movi/src/features/player/application/services/next_episode_service.dart';
 import 'package:movi/src/features/player/application/services/player_resume_orchestrator.dart';
 import 'package:movi/src/features/player/application/usecases/adjust_brightness.dart';
@@ -49,6 +48,7 @@ import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/player/application/usecases/auto_enter_picture_in_picture.dart';
 import 'dart:io';
+import 'package:movi/src/shared/presentation/providers/playback_history_providers.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
@@ -71,6 +71,19 @@ bool shouldPersistOnDispose({required bool skipDisposePersist}) {
   return !skipDisposePersist;
 }
 
+double computeCoverScale({
+  required double viewportAspectRatio,
+  required double videoAspectRatio,
+}) {
+  if (viewportAspectRatio <= 0 || videoAspectRatio <= 0) {
+    return 1.0;
+  }
+  if (viewportAspectRatio > videoAspectRatio) {
+    return viewportAspectRatio / videoAspectRatio;
+  }
+  return videoAspectRatio / viewportAspectRatio;
+}
+
 /// Tant que la durée rapportée par le backend est plus courte que la reprise
 /// demandée, on attend une valeur suivante. Sinon un premier [duration] trop
 /// court ferait un seek partiel puis [resumeApplied] bloquerait la vraie reprise.
@@ -85,6 +98,39 @@ bool shouldDeferResumeUntilDurationCoversResume({
 }
 
 /// Page de lecture vidéo avec contrôles personnalisés
+@immutable
+class PlaybackPersistSnapshot {
+  const PlaybackPersistSnapshot({
+    required this.videoSource,
+    required this.position,
+    required this.duration,
+  });
+
+  final VideoSource videoSource;
+  final Duration position;
+  final Duration duration;
+}
+
+PlaybackPersistSnapshot? createPlaybackPersistSnapshot({
+  required VideoSource? videoSource,
+  required Duration position,
+  required Duration duration,
+}) {
+  if (videoSource?.contentId == null ||
+      videoSource?.contentType == null ||
+      duration <= Duration.zero) {
+    return null;
+  }
+
+  return PlaybackPersistSnapshot(
+    videoSource: videoSource!,
+    position: position,
+    duration: duration,
+  );
+}
+
+enum SourceChangeFlushResult { notRequired, flushed, failed }
+
 class VideoPlayerPage extends ConsumerStatefulWidget {
   const VideoPlayerPage({super.key, this.videoSource});
 
@@ -156,9 +202,18 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   int _audioOffsetMs = 0;
   double? _lastSubtitleBottomPaddingLogged;
   Timer? _progressPersistTimer;
-  bool _isPersistingProgress = false;
+  Future<bool>? _ongoingProgressPersist;
   bool _skipDisposePersist = false;
   static const Duration _progressPersistInterval = Duration(seconds: 20);
+
+  double _resolveCurrentVideoAspectRatio() {
+    final width = _videoController.player.state.width;
+    final height = _videoController.player.state.height;
+    if (width == null || height == null || width <= 0 || height <= 0) {
+      return 16 / 9;
+    }
+    return width / height;
+  }
 
   @override
   void initState() {
@@ -264,7 +319,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     _resumeWatchdogUntil = null;
 
     final requestedResume = source.resumePosition;
-    if (requestedResume != null && requestedResume > const Duration(seconds: 10)) {
+    if (requestedResume != null &&
+        requestedResume > const Duration(seconds: 10)) {
       _resumeWatchdogEnabled = true;
       _resumeWatchdogUntil = DateTime.now().add(const Duration(seconds: 10));
     }
@@ -273,9 +329,13 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       seekTo: (pos) => _playerRepository.seekTo(pos),
       telemetry: (result, ctx) {
         _diagnostics.mark(
-          'player_resume_apply',
+          'player_resume',
+          event: _resumeTelemetryEvent(result),
           context: <String, Object?>{
             'result': result,
+            'contentId': source.contentId,
+            'contentType': source.contentType?.name,
+            'requestedResumeMs': source.resumePosition?.inMilliseconds,
             ...ctx,
           },
         );
@@ -496,7 +556,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
             _resumeWatchdogUntil != null &&
             DateTime.now().isBefore(_resumeWatchdogUntil!)) {
           final target =
-              _resumeOrchestrator?.appliedTarget ?? _resolveResumeRepairTarget();
+              _resumeOrchestrator?.appliedTarget ??
+              _resolveResumeRepairTarget();
           if (target != null &&
               target > const Duration(seconds: 10) &&
               position < const Duration(seconds: 2)) {
@@ -600,7 +661,8 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
     final orchestrator = _resumeOrchestrator;
     final now = DateTime.now();
-    final inWatchdogWindow = _resumeWatchdogEnabled &&
+    final inWatchdogWindow =
+        _resumeWatchdogEnabled &&
         _resumeWatchdogUntil != null &&
         now.isBefore(_resumeWatchdogUntil!);
     final resumeNotSettled = orchestrator != null && !orchestrator.isDone;
@@ -673,51 +735,89 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     required String reason,
     bool invalidateProviders = false,
   }) async {
-    if (_isPersistingProgress) return false;
-    final videoSource = _currentVideoSource ?? widget.videoSource;
-    if (videoSource?.contentId == null ||
-        videoSource?.contentType == null ||
-        _duration <= Duration.zero) {
+    final snapshot = createPlaybackPersistSnapshot(
+      videoSource: _currentVideoSource ?? widget.videoSource,
+      position: _position,
+      duration: _duration,
+    );
+    if (snapshot == null) {
       return false;
     }
+    return _enqueuePlaybackProgressPersist(
+      snapshot: snapshot,
+      reason: reason,
+      invalidateProviders: invalidateProviders,
+    );
+  }
+
+  Future<bool> _enqueuePlaybackProgressPersist({
+    required PlaybackPersistSnapshot snapshot,
+    required String reason,
+    bool invalidateProviders = false,
+  }) async {
+    while (_ongoingProgressPersist != null) {
+      await _ongoingProgressPersist;
+    }
+
+    final future = _persistPlaybackProgressSnapshot(
+      snapshot: snapshot,
+      reason: reason,
+      invalidateProviders: invalidateProviders,
+    );
+    _ongoingProgressPersist = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_ongoingProgressPersist, future)) {
+        _ongoingProgressPersist = null;
+      }
+    }
+  }
+
+  Future<bool> _persistPlaybackProgressSnapshot({
+    required PlaybackPersistSnapshot snapshot,
+    required String reason,
+    bool invalidateProviders = false,
+  }) async {
+    final videoSource = snapshot.videoSource;
 
     // Ne jamais persister un 0 transitoire pendant la fenêtre de reprise.
-    final requestedResume = videoSource?.resumePosition;
+    final requestedResume = videoSource.resumePosition;
     if (requestedResume != null &&
         requestedResume > const Duration(seconds: 10) &&
-        _position < const Duration(seconds: 2) &&
+        snapshot.position < const Duration(seconds: 2) &&
         _shouldDelayProgressPersist()) {
       _diagnostics.mark(
         'player_progress_persist',
+        event: 'progress_skipped',
         context: <String, Object?>{
           'reason': reason,
           'result': 'skip_transient_zero_during_resume_window',
           'requestedResumeMs': requestedResume.inMilliseconds,
-          'positionMs': _position.inMilliseconds,
-          'contentId': videoSource?.contentId,
-          'contentType': videoSource?.contentType?.name,
+          'positionMs': snapshot.position.inMilliseconds,
+          'contentId': videoSource.contentId,
+          'contentType': videoSource.contentType?.name,
         },
       );
       return true;
     }
-
-    _isPersistingProgress = true;
     try {
       final existingEntry = await _historyRepository.getEntry(
-        videoSource!.contentId!,
+        videoSource.contentId!,
         videoSource.contentType!,
         season: videoSource.season,
         episode: videoSource.episode,
         userId: _currentUserId,
       );
       final previousPosition = existingEntry?.lastPosition;
-      final candidatePosition = _position;
+      final candidatePosition = snapshot.position;
       final accepted = shouldAcceptProgressWrite(
         previousPosition: previousPosition,
         candidatePosition: candidatePosition,
       );
       _diagnostics.mark(
-        'player_progress_write_decision',
+        'player_progress_persist',
+        event: accepted ? 'progress_accepted' : 'progress_rejected',
         context: <String, Object?>{
           'decision': accepted ? 'accepted' : 'rejected_low_or_stale',
           'player_progress_source': reason,
@@ -733,11 +833,12 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
       final sanitized = sanitizePlaybackProgress(
         position: candidatePosition,
-        duration: _duration,
+        duration: snapshot.duration,
       );
       if (sanitized.position == null) {
         _diagnostics.mark(
           'player_progress_persist',
+          event: 'progress_skipped',
           context: <String, Object?>{
             'reason': reason,
             'result': 'skip_invalid_position',
@@ -762,6 +863,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       );
       _diagnostics.mark(
         'player_progress_persist',
+        event: 'progress_persisted',
         context: <String, Object?>{
           'reason': reason,
           'result': 'persisted',
@@ -784,10 +886,26 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
           ref.invalidate(
             mediaHistoryProvider((contentId: contentId, type: contentType)),
           );
+          ref.invalidate(
+            inProgressHistoryEntryProvider((
+              contentId: contentId,
+              type: contentType,
+            )),
+          );
+          ref.invalidate(
+            latestPlaybackHistoryEntryProvider((
+              contentId: contentId,
+              type: contentType,
+            )),
+          );
+          if (contentType == ContentType.series) {
+            ref.invalidate(seriesPlaybackLaunchPlanProvider(contentId));
+          }
         }
         if (contentType == ContentType.movie &&
             contentId != null &&
             contentId.isNotEmpty) {
+          ref.invalidate(mdp.moviePlaybackLaunchPlanProvider(contentId));
           ref.invalidate(mdp.movieResumePositionProvider(contentId));
           _diagnostics.mark(
             'movie_resume_provider_invalidated',
@@ -804,13 +922,89 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
         stackTrace: stackTrace,
         context: <String, Object?>{
           'reason': reason,
-          'contentId': videoSource?.contentId,
+          'contentId': videoSource.contentId,
         },
       );
       return false;
-    } finally {
-      _isPersistingProgress = false;
     }
+  }
+
+  Future<SourceChangeFlushResult>
+  _flushCurrentPlaybackProgressBeforeSourceChange({
+    required String reason,
+    required VideoSource nextVideoSource,
+  }) async {
+    final snapshot = createPlaybackPersistSnapshot(
+      videoSource: _currentVideoSource ?? widget.videoSource,
+      position: _position,
+      duration: _duration,
+    );
+    if (snapshot == null) {
+      _diagnostics.mark(
+        'player_source_change_flush',
+        event: 'source_change_flush_not_required',
+        context: <String, Object?>{
+          'reason': reason,
+          'nextContentId': nextVideoSource.contentId,
+          'nextContentType': nextVideoSource.contentType?.name,
+        },
+      );
+      return SourceChangeFlushResult.notRequired;
+    }
+
+    _diagnostics.mark(
+      'player_source_change_flush',
+      event: 'source_change_flush_started',
+      context: <String, Object?>{
+        'reason': reason,
+        'currentContentId': snapshot.videoSource.contentId,
+        'currentContentType': snapshot.videoSource.contentType?.name,
+        'currentSeason': snapshot.videoSource.season,
+        'currentEpisode': snapshot.videoSource.episode,
+        'nextContentId': nextVideoSource.contentId,
+        'nextContentType': nextVideoSource.contentType?.name,
+        'nextSeason': nextVideoSource.season,
+        'nextEpisode': nextVideoSource.episode,
+        'positionMs': snapshot.position.inMilliseconds,
+        'durationMs': snapshot.duration.inMilliseconds,
+      },
+    );
+
+    final persisted = await _enqueuePlaybackProgressPersist(
+      snapshot: snapshot,
+      reason: reason,
+      invalidateProviders: true,
+    );
+    _diagnostics.mark(
+      'player_source_change_flush',
+      event: persisted
+          ? 'source_change_flush_completed'
+          : 'source_change_flush_failed',
+      context: <String, Object?>{
+        'reason': reason,
+        'currentContentId': snapshot.videoSource.contentId,
+        'currentContentType': snapshot.videoSource.contentType?.name,
+        'nextContentId': nextVideoSource.contentId,
+        'nextContentType': nextVideoSource.contentType?.name,
+      },
+    );
+
+    return persisted
+        ? SourceChangeFlushResult.flushed
+        : SourceChangeFlushResult.failed;
+  }
+
+  String _resumeTelemetryEvent(String result) {
+    if (result == 'applied_confirmed') {
+      return 'resume_applied';
+    }
+    if (result.startsWith('skip_')) {
+      return 'resume_skipped';
+    }
+    if (result == 'seek_failed' || result == 'verify_timeout') {
+      return 'resume_failed';
+    }
+    return 'resume_progress';
   }
 
   /// Une seule fois par ouverture de média : première piste audio, sous-titres désactivés.
@@ -885,30 +1079,24 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   void _syncTrackStateFromPlayerTracks(PlayerTracks tracks) {
-    final filteredSubtitleTracks = tracks.subtitleTracks
-        .where(
-          (track) => TrackLabelFormatter.formatTrackLabel(track).isNotEmpty,
-        )
-        .toList(growable: false);
-    final filteredAudioTracks = tracks.audioTracks
-        .where(
-          (track) => TrackLabelFormatter.formatTrackLabel(track).isNotEmpty,
-        )
-        .toList(growable: false);
+    // Ne pas filtrer les pistes sans label: certains flux exposent des tracks
+    // valides avec metadata vide. Le menu gère déjà un fallback "Piste {id}".
+    final subtitleTracks = tracks.subtitleTracks.toList(growable: false);
+    final audioTracks = tracks.audioTracks.toList(growable: false);
 
     setState(() {
-      _hasSubtitles = filteredSubtitleTracks.isNotEmpty;
-      _subtitleTracks = filteredSubtitleTracks;
-      _audioTracks = filteredAudioTracks;
+      _hasSubtitles = subtitleTracks.isNotEmpty;
+      _subtitleTracks = subtitleTracks;
+      _audioTracks = audioTracks;
 
       _currentAudioTrack = _resolveCurrentTrack(
-        tracks: filteredAudioTracks,
+        tracks: audioTracks,
         activeTrackId: tracks.activeAudioTrackId,
         fallbackToFirstTrack: true,
       );
 
       _currentSubtitleTrack = _resolveCurrentTrack(
-        tracks: filteredSubtitleTracks,
+        tracks: subtitleTracks,
         activeTrackId: tracks.activeSubtitleTrackId,
         fallbackToFirstTrack: false,
       );
@@ -1140,7 +1328,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
   }
 
   Future<void> _goToNextEpisode() async {
-    final source = widget.videoSource;
+    final source = _currentVideoSource ?? widget.videoSource;
     if (source == null ||
         source.contentType != ContentType.series ||
         source.contentId == null ||
@@ -1203,6 +1391,25 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
     }
 
     final nextVideoSource = result.source!;
+    _stopProgressPersistTimer();
+    final flushResult = await _flushCurrentPlaybackProgressBeforeSourceChange(
+      reason: 'source_switch_next_episode',
+      nextVideoSource: nextVideoSource,
+    );
+    if (flushResult == SourceChangeFlushResult.failed) {
+      if (!mounted) return;
+      final logger = ref.read(slProvider)<AppLogger>();
+      logger.warn(
+        'Source change aborted because progress flush failed',
+        category: 'Player',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.errorNextEpisodeFailed),
+        ),
+      );
+      return;
+    }
 
     // Mettre à jour le VideoSource actuel
     if (mounted) {
@@ -1215,7 +1422,7 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
       });
     }
 
-    await _playerRepository.open(nextVideoSource);
+    await _openGuarded(nextVideoSource);
   }
 
   Future<void> _showSubtitleMenu() async {
@@ -1246,6 +1453,15 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                 _subtitlesEnabled = true;
               });
             }
+          } on PlayerSubtitleSelectionException catch (e) {
+            if (!mounted || !context.mounted) return;
+            final message = switch (e.kind) {
+              PlayerSubtitleFailureKind.unsupportedCodec =>
+                'Ce format de sous-titres n\'est pas supporte sur cet appareil.',
+            };
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
           } catch (e) {
             // Ignorer les erreurs si le player a été disposé
           }
@@ -1615,7 +1831,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
             final focusedNode = FocusManager.instance.primaryFocus;
             final controlOverlayOwnsFocus =
-                _showControls && focusedNode != null && focusedNode != _keyboardFocusNode;
+                _showControls &&
+                focusedNode != null &&
+                focusedNode != _keyboardFocusNode;
 
             if (isBackKey) {
               if (controlOverlayOwnsFocus || _showControls) {
@@ -1675,46 +1893,30 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
                     );
 
                     if (_currentVideoFitMode == VideoFitMode.contain) {
-                      // Pour contain, on centre la vidéo et on la laisse prendre sa taille naturelle
-                      // Le Video widget gère déjà son aspect ratio
-                      return Center(child: videoWidget);
-                    } else {
-                      // Pour cover, on utilise Transform.scale pour remplir l'écran
-                      // On calcule un facteur d'échelle basé sur les dimensions de l'écran
-                      // pour garantir que la vidéo couvre tout l'écran
-                      final screenWidth = constraints.maxWidth;
-                      final screenHeight = constraints.maxHeight;
-                      final screenAspectRatio = screenWidth / screenHeight;
-
-                      // Calculer un facteur d'échelle qui garantit la couverture
-                      // En supposant que la vidéo a un aspect ratio standard (16:9 = 1.78)
-                      // Si l'écran est plus large que 16:9, on doit agrandir verticalement
-                      // Si l'écran est plus étroit que 16:9, on doit agrandir horizontalement
-                      final standardVideoAspectRatio = 16 / 9; // ~1.78
-                      double scale;
-                      if (screenAspectRatio > standardVideoAspectRatio) {
-                        // Écran plus large : agrandir verticalement
-                        scale =
-                            screenHeight /
-                            (screenWidth / standardVideoAspectRatio);
-                      } else {
-                        // Écran plus étroit : agrandir horizontalement
-                        scale =
-                            screenWidth /
-                            (screenHeight * standardVideoAspectRatio);
-                      }
-                      // Utiliser un facteur minimum de 1.2 et maximum de 3.0
-                      final finalScale = scale.clamp(1.2, 3.0);
-
-                      return ClipRect(
-                        child: Center(
-                          child: Transform.scale(
-                            scale: finalScale,
-                            child: videoWidget,
-                          ),
-                        ),
-                      );
+                      // Important (Windows): garder un viewport contraint à la
+                      // taille complète du player. Un Center ici peut relâcher
+                      // les contraintes et produire une image visuellement "zoomée/rétrécie".
+                      return SizedBox.expand(child: videoWidget);
                     }
+
+                    final screenWidth = constraints.maxWidth;
+                    final screenHeight = constraints.maxHeight;
+                    final viewportAspectRatio =
+                        screenHeight > 0 ? screenWidth / screenHeight : 16 / 9;
+                    final videoAspectRatio = _resolveCurrentVideoAspectRatio();
+                    final scale = computeCoverScale(
+                      viewportAspectRatio: viewportAspectRatio,
+                      videoAspectRatio: videoAspectRatio,
+                    );
+
+                    // On garde un rendu externe pour préserver le pipeline
+                    // sous-titres, avec un cover basé sur le ratio réel du flux.
+                    return ClipRect(
+                      child: Transform.scale(
+                        scale: scale,
+                        child: SizedBox.expand(child: videoWidget),
+                      ),
+                    );
                   },
                 ),
 

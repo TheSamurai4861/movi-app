@@ -4,6 +4,7 @@ class AppAssets {
 
   // Branding
   static const String iconAppLogoSvg = 'assets/branding/app_logo.svg';
+  static const String iconAppIconPng = 'assets/branding/app_icon.png';
 
   // Navigation icons
   static const String navHome = 'assets/icons/navigation/home.svg';

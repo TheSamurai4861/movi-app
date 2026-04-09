@@ -21,7 +21,10 @@ class PlaybackHistoryRepositoryImpl implements PlaybackHistoryRepository {
     int? episode,
     String? userId,
   }) {
-    final sanitized = sanitizePlaybackProgress(position: position, duration: duration);
+    final sanitized = sanitizePlaybackProgress(
+      position: position,
+      duration: duration,
+    );
     return _local.upsertPlay(
       contentId: contentId,
       type: type,
@@ -39,6 +42,28 @@ class PlaybackHistoryRepositoryImpl implements PlaybackHistoryRepository {
   @override
   Future<void> remove(String contentId, ContentType type, {String? userId}) {
     return _local.remove(contentId, type, userId: userId ?? 'default');
+  }
+
+  @override
+  Future<PlaybackHistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String? userId,
+  }) async {
+    final e = await _local.getSeriesResumeState(
+      seriesId,
+      userId: userId ?? 'default',
+    );
+    if (e == null) return null;
+    return PlaybackHistoryEntry(
+      contentId: e.contentId,
+      type: e.type,
+      title: e.title,
+      poster: e.poster,
+      lastPosition: e.lastPosition,
+      duration: e.duration,
+      season: e.season,
+      episode: e.episode,
+    );
   }
 
   @override

@@ -81,6 +81,20 @@ final class LocalDatabaseMaintenance {
       column: 'last_notified_at',
       ddlType: 'INTEGER',
     );
+    await _ensureTable(
+      db,
+      table: 'series_seen_state',
+      ddl: '''
+        CREATE TABLE series_seen_state (
+          series_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          marked_at INTEGER NOT NULL,
+          season INTEGER,
+          episode INTEGER,
+          PRIMARY KEY (series_id, user_id)
+        );
+      ''',
+    );
   }
 
   static Future<void> ensureColumn(

@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
 import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
@@ -46,20 +45,17 @@ class _ProviderAllResultsPageState
   final List<TvShowSummary> _shows = [];
   bool _isLoading = false;
   bool _hasMore = true;
-  final ScrollController _scrollController = ScrollController();
+  int _loadRequestToken = 0;
+  int _lastWheelLoadMs = 0;
   ProviderSubscription<Profile?>? _profileSub;
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'ProviderAllBack');
   final FocusNode _firstItemFocusNode = FocusNode(
     debugLabel: 'ProviderAllFirstItem',
   );
-  final FocusNode _loadMoreFocusNode = FocusNode(
-    debugLabel: 'ProviderAllLoadMore',
-  );
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
 
     // Ensure parental filtering applies even if the current profile loads later
     // (ex: profiles fetched async).
@@ -80,10 +76,7 @@ class _ProviderAllResultsPageState
       if (changed || prevRestricted != nextRestricted) {
         // Reload from scratch so the list reflects the new restriction level.
         setState(() {
-          _currentPage = 1;
-          _hasMore = true;
-          _movies.clear();
-          _shows.clear();
+          _resetPaginationAndInvalidateInFlight();
         });
         unawaited(_loadMore());
       }
@@ -100,22 +93,12 @@ class _ProviderAllResultsPageState
     _profileSub?.close();
     _backFocusNode.dispose();
     _firstItemFocusNode.dispose();
-    _loadMoreFocusNode.dispose();
-    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent * 0.8) {
-      if (!_isLoading && _hasMore) {
-        _loadMore();
-      }
-    }
   }
 
   Future<void> _loadMore() async {
     if (_isLoading || !_hasMore) return;
+    final requestToken = ++_loadRequestToken;
 
     setState(() {
       _isLoading = true;
@@ -123,110 +106,48 @@ class _ProviderAllResultsPageState
 
     try {
       final profile = ref.read(currentProfileProvider);
-      final bool hasRestrictions =
-          profile != null && (profile.isKid || profile.pegiLimit != null);
-      final int maxPrefetchPages = hasRestrictions ? 30 : 10;
-
       final useCase = ref.read(loadWatchProvidersUseCaseProvider);
       final providerId = widget.args.providerId;
 
       if (widget.type == MoviMediaType.movie) {
-        const targetNewItems = 20;
-        var tries = 0;
-        var consecutiveEmptyPages = 0;
-        final collected = <MovieSummary>[];
-
-        while (_hasMore &&
-            tries < maxPrefetchPages &&
-            collected.length < targetNewItems) {
-          final page = await useCase
-              .getMovies(providerId, region: 'FR', page: _currentPage)
-              .timeout(
-                const Duration(seconds: 30),
-                onTimeout: () =>
-                    throw TimeoutException('Timeout loading movies'),
-              );
-          final nextItems = await _filterMovies(page.items);
-
-          // Détecter pages vides
-          if (nextItems.isEmpty) {
-            consecutiveEmptyPages++;
-            // Arrêter si 3 pages vides consécutives ET on a essayé au moins 5 pages
-            if (consecutiveEmptyPages >= 3 && tries >= 5) {
-              break;
-            }
-          } else {
-            consecutiveEmptyPages = 0; // Reset si on trouve des items
-          }
-
-          collected.addAll(nextItems);
-          _hasMore = _currentPage < page.totalPages;
-          _currentPage++;
-          tries++;
-        }
-
-        // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-        if (collected.length < targetNewItems && collected.isNotEmpty) {
-          debugPrint(
-            '[ProviderAllResultsPage] Only found ${collected.length} movies out of $targetNewItems requested for provider $providerId',
-          );
-        }
+        final page = await useCase
+            .getMovies(providerId, region: 'FR', page: _currentPage)
+            .timeout(
+              const Duration(seconds: 30),
+              onTimeout: () => throw TimeoutException('Timeout loading movies'),
+            );
+        if (!mounted || requestToken != _loadRequestToken) return;
+        final collected = await _filterMovies(page.items, profile: profile);
+        if (!mounted || requestToken != _loadRequestToken) return;
 
         if (!mounted) return;
         setState(() {
           _movies.addAll(collected);
+          _hasMore = _currentPage < page.totalPages;
+          _currentPage++;
           _isLoading = false;
         });
       } else {
-        const targetNewItems = 20;
-        var tries = 0;
-        var consecutiveEmptyPages = 0;
-        final collected = <TvShowSummary>[];
-
-        while (_hasMore &&
-            tries < maxPrefetchPages &&
-            collected.length < targetNewItems) {
-          final page = await useCase
-              .getShows(providerId, region: 'FR', page: _currentPage)
-              .timeout(
-                const Duration(seconds: 30),
-                onTimeout: () =>
-                    throw TimeoutException('Timeout loading shows'),
-              );
-          final nextItems = await _filterShows(page.items);
-
-          // Détecter pages vides
-          if (nextItems.isEmpty) {
-            consecutiveEmptyPages++;
-            // Arrêter si 3 pages vides consécutives ET on a essayé au moins 5 pages
-            if (consecutiveEmptyPages >= 3 && tries >= 5) {
-              break;
-            }
-          } else {
-            consecutiveEmptyPages = 0; // Reset si on trouve des items
-          }
-
-          collected.addAll(nextItems);
-          _hasMore = _currentPage < page.totalPages;
-          _currentPage++;
-          tries++;
-        }
-
-        // Log discret si le seuil n'est pas atteint mais qu'on a des résultats
-        if (collected.length < targetNewItems && collected.isNotEmpty) {
-          debugPrint(
-            '[ProviderAllResultsPage] Only found ${collected.length} shows out of $targetNewItems requested for provider $providerId',
-          );
-        }
+        final page = await useCase
+            .getShows(providerId, region: 'FR', page: _currentPage)
+            .timeout(
+              const Duration(seconds: 30),
+              onTimeout: () => throw TimeoutException('Timeout loading shows'),
+            );
+        if (!mounted || requestToken != _loadRequestToken) return;
+        final collected = await _filterShows(page.items, profile: profile);
+        if (!mounted || requestToken != _loadRequestToken) return;
 
         if (!mounted) return;
         setState(() {
           _shows.addAll(collected);
+          _hasMore = _currentPage < page.totalPages;
+          _currentPage++;
           _isLoading = false;
         });
       }
     } on TimeoutException {
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadRequestToken) return;
       setState(() {
         _isLoading = false;
         _hasMore = false; // Arrêter les tentatives futures
@@ -238,7 +159,7 @@ class _ProviderAllResultsPageState
         ).showSnackBar(SnackBar(content: Text(l10n.errorTimeoutLoading)));
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestToken != _loadRequestToken) return;
       setState(() {
         _isLoading = false;
         // Ne pas mettre _hasMore à false pour permettre une nouvelle tentative
@@ -252,17 +173,23 @@ class _ProviderAllResultsPageState
     }
   }
 
-  bool _hasRestrictions() {
-    final profile = ref.read(currentProfileProvider);
-    if (profile == null) return false;
-    return profile.isKid || profile.pegiLimit != null;
+  void _resetPaginationAndInvalidateInFlight() {
+    _loadRequestToken++;
+    _currentPage = 1;
+    _hasMore = true;
+    _isLoading = false;
+    _movies.clear();
+    _shows.clear();
   }
 
-  Future<List<MovieSummary>> _filterMovies(List<MovieSummary> items) async {
+  Future<List<MovieSummary>> _filterMovies(
+    List<MovieSummary> items, {
+    required Profile? profile,
+  }) async {
     if (items.isEmpty) return items;
-    final profile = ref.read(currentProfileProvider);
-    if (profile == null) return items;
-    if (!_hasRestrictions()) return items;
+    final hasRestrictions =
+        profile != null && (profile.isKid || profile.pegiLimit != null);
+    if (!hasRestrictions) return items;
 
     final policy = ref.read(parental.agePolicyProvider);
     final refs = items.map(
@@ -281,11 +208,14 @@ class _ProviderAllResultsPageState
         .toList(growable: false);
   }
 
-  Future<List<TvShowSummary>> _filterShows(List<TvShowSummary> items) async {
+  Future<List<TvShowSummary>> _filterShows(
+    List<TvShowSummary> items, {
+    required Profile? profile,
+  }) async {
     if (items.isEmpty) return items;
-    final profile = ref.read(currentProfileProvider);
-    if (profile == null) return items;
-    if (!_hasRestrictions()) return items;
+    final hasRestrictions =
+        profile != null && (profile.isKid || profile.pegiLimit != null);
+    if (!hasRestrictions) return items;
 
     final policy = ref.read(parental.agePolicyProvider);
     final refs = items.map(
@@ -351,33 +281,79 @@ class _ProviderAllResultsPageState
                     : ListView(
                         padding: const EdgeInsets.only(bottom: 24),
                         children: [
-                          MoviMediaGrid(
-                            itemCount: itemsCount,
-                            firstItemFocusNode: _firstItemFocusNode,
-                            footerFocusNode: _hasMore
-                                ? _loadMoreFocusNode
-                                : null,
-                            onExitUp: () {
-                              _backFocusNode.requestFocus();
-                              return true;
+                          NotificationListener<ScrollNotification>(
+                            onNotification: (notification) {
+                              if (!_hasMore || _isLoading) return false;
+                              if (notification is! ScrollUpdateNotification) {
+                                return false;
+                              }
+                              if (notification.dragDetails != null) {
+                                return false;
+                              }
+                              final delta = notification.scrollDelta;
+                              if (delta == null || delta <= 0) return false;
+                              if (notification.metrics.extentAfter > 320) {
+                                return false;
+                              }
+                              final now = DateTime.now().millisecondsSinceEpoch;
+                              if (now - _lastWheelLoadMs < 450) return false;
+                              _lastWheelLoadMs = now;
+                              unawaited(_loadMore());
+                              return false;
                             },
-                            pageHorizontalPadding: _pageHorizontalPadding,
-                            itemBuilder:
-                                (
-                                  context,
-                                  index,
-                                  focusNode,
-                                  cardWidth,
-                                  posterHeight,
-                                ) {
-                                  if (widget.type == MoviMediaType.movie) {
-                                    final movie = _movies[index];
+                            child: MoviMediaGrid(
+                              itemCount: itemsCount,
+                              firstItemFocusNode: _firstItemFocusNode,
+                              onExitUp: () {
+                                _backFocusNode.requestFocus();
+                                return true;
+                              },
+                              onExitDown: () {
+                                if (_hasMore && !_isLoading) {
+                                  unawaited(_loadMore());
+                                }
+                                return true;
+                              },
+                              pageHorizontalPadding: _pageHorizontalPadding,
+                              itemBuilder:
+                                  (
+                                    context,
+                                    index,
+                                    focusNode,
+                                    cardWidth,
+                                    posterHeight,
+                                  ) {
+                                    if (widget.type == MoviMediaType.movie) {
+                                      final movie = _movies[index];
+                                      final media = MoviMedia(
+                                        id: movie.id.toString(),
+                                        title: movie.title.value,
+                                        poster: movie.poster,
+                                        year: movie.releaseYear,
+                                        type: MoviMediaType.movie,
+                                      );
+                                      return MoviMediaCard(
+                                        media: media,
+                                        width: cardWidth,
+                                        height: posterHeight,
+                                        focusNode: focusNode,
+                                        onTap: (selectedMedia) =>
+                                            navigateToMovieDetail(
+                                              context,
+                                              ref,
+                                              ContentRouteArgs.movie(
+                                                selectedMedia.id,
+                                              ),
+                                            ),
+                                      );
+                                    }
+
+                                    final show = _shows[index];
                                     final media = MoviMedia(
-                                      id: movie.id.toString(),
-                                      title: movie.title.value,
-                                      poster: movie.poster,
-                                      year: movie.releaseYear,
-                                      type: MoviMediaType.movie,
+                                      id: show.id.toString(),
+                                      title: show.title.value,
+                                      poster: show.poster,
+                                      type: MoviMediaType.series,
                                     );
                                     return MoviMediaCard(
                                       media: media,
@@ -385,75 +361,18 @@ class _ProviderAllResultsPageState
                                       height: posterHeight,
                                       focusNode: focusNode,
                                       onTap: (selectedMedia) =>
-                                          navigateToMovieDetail(
+                                          navigateToTvDetail(
                                             context,
                                             ref,
-                                            ContentRouteArgs.movie(
+                                            ContentRouteArgs.series(
                                               selectedMedia.id,
                                             ),
                                           ),
                                     );
-                                  }
-
-                                  final show = _shows[index];
-                                  final media = MoviMedia(
-                                    id: show.id.toString(),
-                                    title: show.title.value,
-                                    poster: show.poster,
-                                    type: MoviMediaType.series,
-                                  );
-                                  return MoviMediaCard(
-                                    media: media,
-                                    width: cardWidth,
-                                    height: posterHeight,
-                                    focusNode: focusNode,
-                                    onTap: (selectedMedia) =>
-                                        navigateToTvDetail(
-                                          context,
-                                          ref,
-                                          ContentRouteArgs.series(
-                                            selectedMedia.id,
-                                          ),
-                                        ),
-                                  );
-                                },
-                          ),
-                          if (_hasMore) ...[
-                            const SizedBox(height: 20),
-                            Focus(
-                              canRequestFocus: false,
-                              onKeyEvent: (_, event) {
-                                if (event is! KeyDownEvent) {
-                                  return KeyEventResult.ignored;
-                                }
-                                if (event.logicalKey ==
-                                    LogicalKeyboardKey.arrowUp) {
-                                  _firstItemFocusNode.requestFocus();
-                                  return KeyEventResult.handled;
-                                }
-                                if (event.logicalKey ==
-                                        LogicalKeyboardKey.arrowLeft ||
-                                    event.logicalKey ==
-                                        LogicalKeyboardKey.arrowRight ||
-                                    event.logicalKey ==
-                                        LogicalKeyboardKey.arrowDown) {
-                                  return KeyEventResult.handled;
-                                }
-                                return KeyEventResult.ignored;
-                              },
-                              child: Center(
-                                child: MoviPrimaryButton(
-                                  label: AppLocalizations.of(
-                                    context,
-                                  )!.actionLoadMore,
-                                  focusNode: _loadMoreFocusNode,
-                                  expand: false,
-                                  loading: _isLoading,
-                                  onPressed: _isLoading ? null : _loadMore,
-                                ),
-                              ),
+                                  },
                             ),
-                          ] else if (_isLoading) ...[
+                          ),
+                          if (_isLoading) ...[
                             const Padding(
                               padding: EdgeInsets.all(16),
                               child: Center(child: CircularProgressIndicator()),

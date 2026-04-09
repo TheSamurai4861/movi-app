@@ -2,14 +2,16 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/player/application/services/playback_selection_service.dart';
+import 'package:movi/src/features/player/domain/entities/playback_launch_plan.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_preferences.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
 import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
+import 'package:movi/src/shared/domain/services/playback_resume_resolution.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class ResolveEpisodePlaybackSelection {
   const ResolveEpisodePlaybackSelection(
@@ -66,12 +68,13 @@ class ResolveEpisodePlaybackSelection {
         return decision;
       }
 
-      final resumePosition = await _loadResumePosition(
+      final resumeResolution = await _loadResumeResolution(
         seriesId,
         seasonNumber: seasonNumber,
         episodeNumber: episodeNumber,
         userId: userId,
       );
+      final resumePosition = resumeResolution.resumePosition;
       final variantsWithResume = resumePosition == null
           ? variants
           : variants
@@ -104,10 +107,26 @@ class ResolveEpisodePlaybackSelection {
         preferences: preferences,
         context: context,
       );
+      final enrichedDecision = PlaybackSelectionDecision(
+        disposition: decision.disposition,
+        reason: decision.reason,
+        rankedVariants: decision.rankedVariants,
+        selectedVariant: decision.selectedVariant,
+        launchPlan: PlaybackLaunchPlan(
+          contentType: ContentType.series,
+          targetContentId: seriesId,
+          season: seasonNumber,
+          episode: episodeNumber,
+          resumePosition: resumeResolution.resumePosition,
+          reasonCode: resumeResolution.reasonCode,
+          isResumeEligible: resumeResolution.canResume,
+        ),
+      );
 
       final hasExplicitPreferredSource =
           preferences.preferredSourceIds.length == 1;
-      if (decision.requiresManualSelection && hasExplicitPreferredSource) {
+      if (enrichedDecision.requiresManualSelection &&
+          hasExplicitPreferredSource) {
         _logger.warn(
           'Episode playback selection remained ambiguous '
           'for seriesId=$seriesId season=$seasonNumber episode=$episodeNumber '
@@ -119,17 +138,21 @@ class ResolveEpisodePlaybackSelection {
       _diagnostics.completed(
         'episode_playback_selection',
         elapsed: stopwatch.elapsed,
-        result: decision.disposition.name,
+        result: enrichedDecision.disposition.name,
         context: <String, Object?>{
           'seriesId': seriesId,
           'seasonNumber': seasonNumber,
           'episodeNumber': episodeNumber,
           'variants': variantsWithResume.length,
-          'reason': decision.reason.name,
-          'hasResume': resumePosition != null,
+          'reason': enrichedDecision.reason.name,
+          'resumeRequested': resumeResolution.canResume,
+          'resumeApplied':
+              enrichedDecision.selectedVariant?.videoSource.resumePosition !=
+              null,
+          'resumeReasonCode': resumeResolution.reasonCode.name,
         },
       );
-      return decision;
+      return enrichedDecision;
     } catch (error, stackTrace) {
       _diagnostics.failed(
         'episode_playback_selection',
@@ -146,40 +169,48 @@ class ResolveEpisodePlaybackSelection {
     }
   }
 
-  Future<Duration?> _loadResumePosition(
+  Future<PlaybackResumeResolution> _loadResumeResolution(
     String seriesId, {
     required int seasonNumber,
     required int episodeNumber,
     String? userId,
   }) async {
     try {
-      final entry = await _history.getEntry(
+      final entry = await _history.getSeriesResumeState(
         seriesId,
-        ContentType.series,
-        season: seasonNumber,
-        episode: episodeNumber,
         userId: userId,
       );
-      final decision = decideResume(
+      if (entry != null &&
+          (entry.season != seasonNumber || entry.episode != episodeNumber)) {
+        return const PlaybackResumeResolution(
+          resumePosition: null,
+          reasonCode: ResumeReasonCode.positionInvalid,
+        );
+      }
+      final resolution = resolvePlaybackResume(
         position: entry?.lastPosition,
         duration: entry?.duration,
       );
       _diagnostics.mark(
-        'episode_resume_eligibility',
+        'episode_resume_resolution',
+        event: resolution.canResume ? 'resume_eligible' : 'resume_skipped',
         context: <String, Object?>{
           'seriesId': seriesId,
+          'contentType': ContentType.series.name,
           'seasonNumber': seasonNumber,
           'episodeNumber': episodeNumber,
           'hasEntry': entry != null,
           'positionMs': entry?.lastPosition?.inMilliseconds,
           'durationMs': entry?.duration?.inMilliseconds,
-          'eligible': decision.positionOrNull != null,
-          'reasonCode': decision.reasonCode.name,
+          'reasonCode': resolution.reasonCode.name,
         },
       );
-      return decision.positionOrNull;
+      return resolution;
     } catch (_) {
-      return null;
+      return const PlaybackResumeResolution(
+        resumePosition: null,
+        reasonCode: ResumeReasonCode.positionInvalid,
+      );
     }
   }
 

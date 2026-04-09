@@ -28,11 +28,26 @@ void main() {
     expect(local.lastUserId, 'user-local');
     expect(remote.upsertCount, 1);
   });
+
+  test('getSeriesResumeState reads the canonical local series state', () async {
+    final local = _RecordingLocalHistoryRepository();
+    final repository = HybridPlaybackHistoryRepository(
+      local: local,
+      defaultUserId: 'user-local',
+      remote: null,
+    );
+
+    await repository.getSeriesResumeState('series-1');
+
+    expect(local.lastSeriesResumeStateId, 'series-1');
+    expect(local.lastUserId, 'user-local');
+  });
 }
 
 class _RecordingLocalHistoryRepository implements HistoryLocalRepository {
   int upsertCount = 0;
   String? lastUserId;
+  String? lastSeriesResumeStateId;
 
   @override
   Future<void> upsertPlay({
@@ -49,6 +64,16 @@ class _RecordingLocalHistoryRepository implements HistoryLocalRepository {
   }) async {
     upsertCount += 1;
     lastUserId = userId;
+  }
+
+  @override
+  Future<HistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String userId = 'default',
+  }) async {
+    lastSeriesResumeStateId = seriesId;
+    lastUserId = userId;
+    return null;
   }
 
   @override
@@ -100,6 +125,14 @@ class _FailingSupabasePlaybackHistoryRepository
   }) async {
     upsertCount += 1;
     throw StateError('remote error');
+  }
+
+  @override
+  Future<PlaybackHistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String? userId,
+  }) async {
+    return null;
   }
 
   @override

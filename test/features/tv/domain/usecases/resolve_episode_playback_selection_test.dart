@@ -10,9 +10,15 @@ import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
 import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
 import 'package:movi/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart';
+import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 void main() {
+  setUp(() {
+    _FakePlaybackHistoryRepository.getEntryCalls = 0;
+    _FakePlaybackHistoryRepository.getSeriesResumeStateCalls = 0;
+  });
+
   test(
     'applies resume position before selecting the episode variant',
     () async {
@@ -84,10 +90,43 @@ void main() {
         decision.selectedVariant?.videoSource.resumePosition,
         const Duration(minutes: 7),
       );
+      expect(decision.launchPlan, isNotNull);
+      expect(decision.launchPlan?.contentType, ContentType.series);
+      expect(decision.launchPlan?.targetContentId, '37854');
+      expect(decision.launchPlan?.season, 2);
+      expect(decision.launchPlan?.episode, 15);
+      expect(decision.launchPlan?.resumePosition, const Duration(minutes: 7));
+      expect(decision.resumeEligible, isTrue);
+      expect(decision.resumeReasonCode, ResumeReasonCode.applied);
+      expect(_FakePlaybackHistoryRepository.getSeriesResumeStateCalls, 1);
+      expect(_FakePlaybackHistoryRepository.getEntryCalls, 0);
       expect(resolver.lastCall?.seriesId, '37854');
       expect(resolver.lastCall?.seasonNumber, 2);
       expect(resolver.lastCall?.episodeNumber, 15);
       expect(resolver.lastCall?.candidateSourceIds, const <String>{'xtream-a'});
+      expect(
+        logger.messages.any(
+          (message) =>
+              message.contains('op=episode_resume_resolution') &&
+              message.contains('event=resume_eligible') &&
+              message.contains('contentType=series') &&
+              message.contains('seasonNumber=2') &&
+              message.contains('episodeNumber=15') &&
+              message.contains('reasonCode=applied'),
+        ),
+        isTrue,
+      );
+      expect(
+        logger.messages.any(
+          (message) =>
+              message.contains('op=episode_playback_selection') &&
+              message.contains('result=autoPlay') &&
+              message.contains('resumeRequested=true') &&
+              message.contains('resumeApplied=true') &&
+              message.contains('resumeReasonCode=applied'),
+        ),
+        isTrue,
+      );
     },
   );
 
@@ -151,6 +190,75 @@ void main() {
     expect(decision.selectedVariant, isNull);
     expect(decision.rankedVariants, hasLength(2));
   });
+
+  test(
+    'rejects resume position when progress is below in-progress threshold',
+    () async {
+      final logger = _MemoryLogger();
+      final usecase = ResolveEpisodePlaybackSelection(
+        _FakeEpisodePlaybackVariantResolver(
+          variants: <PlaybackVariant>[
+            PlaybackVariant(
+              id: 'xtream-a:101',
+              sourceId: 'xtream-a',
+              sourceLabel: 'Salon',
+              videoSource: const VideoSource(
+                url: 'https://provider.example/series/101-s01e03.mkv',
+                contentId: '100088',
+                contentType: ContentType.series,
+                season: 1,
+                episode: 3,
+              ),
+              contentType: ContentType.series,
+              rawTitle: 'The.Last.of.Us.MULTI.1080p',
+              normalizedTitle: 'The Last of Us',
+            ),
+          ],
+        ),
+        const PlaybackSelectionService(),
+        _FakePlaybackHistoryRepository(
+          entry: const PlaybackHistoryEntry(
+            contentId: '100088',
+            type: ContentType.series,
+            title: 'The Last of Us',
+            lastPosition: Duration(seconds: 8),
+            duration: Duration(minutes: 52),
+            season: 1,
+            episode: 3,
+          ),
+        ),
+        logger,
+        PerformanceDiagnosticLogger(logger),
+      );
+
+      final decision = await usecase(
+        seriesId: '100088',
+        seasonNumber: 1,
+        episodeNumber: 3,
+        seasonSnapshots: <EpisodePlaybackSeasonSnapshot>[
+          EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+            seasonNumber: 1,
+            episodeNumbers: const <int>[1, 2, 3, 4, 5, 6, 7, 8, 9],
+          ),
+        ],
+        preferences: const PlaybackSelectionPreferences(
+          preferredSourceIds: <String>{'xtream-a'},
+        ),
+        context: const PlaybackSelectionContext(
+          contentType: ContentType.series,
+        ),
+      );
+
+      expect(decision.disposition, PlaybackSelectionDisposition.autoPlay);
+      expect(decision.selectedVariant?.videoSource.resumePosition, isNull);
+      expect(decision.launchPlan?.targetContentId, '100088');
+      expect(decision.launchPlan?.season, 1);
+      expect(decision.launchPlan?.episode, 3);
+      expect(decision.launchPlan?.resumePosition, isNull);
+      expect(decision.resumeEligible, isFalse);
+      expect(decision.resumeReasonCode, ResumeReasonCode.progressOutOfRange);
+    },
+  );
 
   test('returns unavailable when no playable episode variant exists', () async {
     final usecase = ResolveEpisodePlaybackSelection(
@@ -227,6 +335,17 @@ class _FakePlaybackHistoryRepository implements PlaybackHistoryRepository {
   const _FakePlaybackHistoryRepository({this.entry});
 
   final PlaybackHistoryEntry? entry;
+  static int getEntryCalls = 0;
+  static int getSeriesResumeStateCalls = 0;
+
+  @override
+  Future<PlaybackHistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String? userId,
+  }) async {
+    getSeriesResumeStateCalls += 1;
+    return entry;
+  }
 
   @override
   Future<PlaybackHistoryEntry?> getEntry(
@@ -236,6 +355,7 @@ class _FakePlaybackHistoryRepository implements PlaybackHistoryRepository {
     int? episode,
     String? userId,
   }) async {
+    getEntryCalls += 1;
     return entry;
   }
 
@@ -246,17 +366,27 @@ class _FakePlaybackHistoryRepository implements PlaybackHistoryRepository {
 }
 
 class _MemoryLogger implements AppLogger {
-  @override
-  void debug(String message, {String? category}) {}
+  final List<String> messages = <String>[];
 
   @override
-  void info(String message, {String? category}) {}
+  void debug(String message, {String? category}) {
+    messages.add(message);
+  }
 
   @override
-  void warn(String message, {String? category}) {}
+  void info(String message, {String? category}) {
+    messages.add(message);
+  }
 
   @override
-  void error(String message, [Object? error, StackTrace? stackTrace]) {}
+  void warn(String message, {String? category}) {
+    messages.add(message);
+  }
+
+  @override
+  void error(String message, [Object? error, StackTrace? stackTrace]) {
+    messages.add(message);
+  }
 
   @override
   void log(
@@ -265,5 +395,7 @@ class _MemoryLogger implements AppLogger {
     String? category,
     Object? error,
     StackTrace? stackTrace,
-  }) {}
+  }) {
+    messages.add(message);
+  }
 }

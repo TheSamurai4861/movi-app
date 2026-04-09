@@ -12,20 +12,34 @@ class MoviTrackSeriesButton extends StatefulWidget {
     super.key,
     required this.isTracked,
     required this.onPressed,
+    this.focusNode,
     this.size = 35,
+    this.iconSize = 36,
     this.filledAsset = AppAssets.iconBellFilled,
     this.unfilledAsset = AppAssets.iconBellUnfilled,
     this.filledColor = Colors.white,
     this.unfilledColor = Colors.white,
+    this.focusedBackgroundColor,
+    this.focusPadding = const EdgeInsets.all(0),
+    this.focusedBorderColor,
+    this.unfocusedBorderColor,
+    this.borderWidth = 0,
   });
 
   final bool isTracked;
   final VoidCallback onPressed;
+  final FocusNode? focusNode;
   final double size;
+  final double iconSize;
   final String filledAsset;
   final String unfilledAsset;
   final Color filledColor;
   final Color unfilledColor;
+  final Color? focusedBackgroundColor;
+  final EdgeInsetsGeometry focusPadding;
+  final Color? focusedBorderColor;
+  final Color? unfocusedBorderColor;
+  final double borderWidth;
 
   @override
   State<MoviTrackSeriesButton> createState() => _MoviTrackSeriesButtonState();
@@ -37,9 +51,13 @@ class _MoviTrackSeriesButtonState extends State<MoviTrackSeriesButton> {
   @override
   Widget build(BuildContext context) {
     const duration = Duration(milliseconds: 300);
-    final backgroundColor = _focused
-        ? Colors.black.withValues(alpha: 0.45)
-        : Colors.transparent;
+    final focusedBg =
+        widget.focusedBackgroundColor ?? Colors.black.withValues(alpha: 0.45);
+    final effectiveFocusedBorder =
+        widget.focusedBorderColor ?? Colors.transparent;
+    final effectiveUnfocusedBorder =
+        widget.unfocusedBorderColor ?? Colors.transparent;
+    final backgroundColor = _focused ? focusedBg : Colors.transparent;
 
     return Semantics(
       button: true,
@@ -53,6 +71,7 @@ class _MoviTrackSeriesButtonState extends State<MoviTrackSeriesButton> {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
+            focusNode: widget.focusNode,
             onTap: widget.onPressed,
             onFocusChange: (focused) {
               if (_focused == focused) return;
@@ -63,24 +82,31 @@ class _MoviTrackSeriesButtonState extends State<MoviTrackSeriesButton> {
               scale: _focused ? 1.05 : 1,
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutCubic,
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(widget.size / 2),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              padding: widget.focusPadding,
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(widget.size / 2),
+                border: Border.all(
+                  color: _focused
+                      ? effectiveFocusedBorder
+                      : effectiveUnfocusedBorder,
+                  width: widget.borderWidth,
                 ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
                     AnimatedOpacity(
                       duration: duration,
                       curve: Curves.easeInOut,
                       opacity: widget.isTracked ? 0.0 : 1.0,
                       child: MoviAssetIcon(
                         widget.unfilledAsset,
-                        width: 36,
-                        height: 36,
+                        width: widget.iconSize,
+                        height: widget.iconSize,
                         color: widget.unfilledColor,
                       ),
                     ),
@@ -90,8 +116,8 @@ class _MoviTrackSeriesButtonState extends State<MoviTrackSeriesButton> {
                       opacity: widget.isTracked ? 1.0 : 0.0,
                       child: MoviAssetIcon(
                         widget.filledAsset,
-                        width: 36,
-                        height: 36,
+                        width: widget.iconSize,
+                        height: widget.iconSize,
                         color: widget.filledColor,
                       ),
                     ),

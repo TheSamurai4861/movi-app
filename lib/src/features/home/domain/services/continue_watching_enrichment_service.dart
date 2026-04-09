@@ -6,6 +6,7 @@ import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
+import 'package:movi/src/shared/domain/services/playback_resume_resolution.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
@@ -19,6 +20,7 @@ import 'package:movi/src/core/preferences/preferences.dart';
 class ContinueWatchingEnrichmentService {
   ContinueWatchingEnrichmentService({
     required HistoryLocalRepository historyRepo,
+    required SeriesSeenStateRepository seriesSeenStateRepo,
     required MovieRepository movieRepository,
     required TvRepository tvRepository,
     required TmdbCacheDataSource tmdbCache,
@@ -28,6 +30,7 @@ class ContinueWatchingEnrichmentService {
     required TmdbIdResolverService tmdbIdResolver,
     required LocalePreferences localePreferences,
   }) : _historyRepo = historyRepo,
+       _seriesSeenStateRepo = seriesSeenStateRepo,
        _movieRepository = movieRepository,
        _tvRepository = tvRepository,
        _tmdbCache = tmdbCache,
@@ -38,6 +41,7 @@ class ContinueWatchingEnrichmentService {
        _localePreferences = localePreferences;
 
   final HistoryLocalRepository _historyRepo;
+  final SeriesSeenStateRepository _seriesSeenStateRepo;
   final MovieRepository _movieRepository;
   final TvRepository _tvRepository;
   final TmdbCacheDataSource _tmdbCache;
@@ -50,10 +54,9 @@ class ContinueWatchingEnrichmentService {
   /// Charge et enrichit la liste des médias "en cours" à partir de l'historique.
   ///
   /// [minProgress] et [maxProgress] bornent la progression considérée comme
-  /// "en cours" (ex: 5%–90%).
+  /// "en cours" via la même décision métier que la reprise.
+  /// Les seuils "en cours" sont centralisés via `resolvePlaybackResume`.
   Future<List<InProgressMedia>> loadInProgress({
-    double minProgress = 0.05,
-    double maxProgress = 0.9,
     String userId = 'default',
   }) async {
     final movies = await _historyRepo.readAll(
@@ -70,8 +73,21 @@ class ContinueWatchingEnrichmentService {
     final inProgress = <InProgressMedia>[];
 
     for (final entry in allEntries) {
+      if (entry.type == ContentType.series) {
+        final seenState = await _seriesSeenStateRepo.getSeenState(
+          entry.contentId,
+          userId: userId,
+        );
+        if (seenState != null) {
+          continue;
+        }
+      }
       final progress = _calculateProgress(entry);
-      if (progress < minProgress || progress >= maxProgress) continue;
+      final resolution = resolvePlaybackResume(
+        position: entry.lastPosition,
+        duration: entry.duration,
+      );
+      if (!resolution.canResume) continue;
 
       int? tmdbId = _extractTmdbId(entry.contentId);
 

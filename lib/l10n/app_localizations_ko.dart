@@ -600,10 +600,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent. Check your messages and enter it below.';
+      'Code sent to your account email. Check your messages and enter it below.';
 
   @override
   String get pinRecoveryComingSoon => '이 기능은 곧 제공됩니다.';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'PIN recovery by email is currently unavailable.';
 
   @override
   String get pinRecoveryCodeLabel => '복구 코드';
@@ -649,6 +653,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN을 업데이트했습니다';
+
+  @override
+  String get profilePinSaved => 'PIN saved.';
+
+  @override
+  String get profilePinEditLabel => 'Edit PIN code';
 
   @override
   String get settingsAccountsSection => '계정';

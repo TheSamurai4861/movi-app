@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:movi/src/features/player/domain/entities/video_source.dart';
 import 'package:movi/src/features/player/presentation/pages/video_player_page.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 void main() {
   group('shouldAcceptProgressWrite', () {
@@ -98,6 +100,55 @@ void main() {
     test('persists on dispose when back did not handle persistence', () {
       final shouldPersist = shouldPersistOnDispose(skipDisposePersist: false);
       expect(shouldPersist, isTrue);
+    });
+  });
+
+  group('createPlaybackPersistSnapshot', () {
+    test('captures a valid source change snapshot', () {
+      final snapshot = createPlaybackPersistSnapshot(
+        videoSource: const VideoSource(
+          url: 'https://provider.example/series/s01e02.mkv',
+          contentId: 'series-1',
+          contentType: ContentType.series,
+          season: 1,
+          episode: 2,
+        ),
+        position: const Duration(minutes: 14),
+        duration: const Duration(minutes: 52),
+      );
+
+      expect(snapshot, isNotNull);
+      expect(snapshot?.videoSource.contentId, 'series-1');
+      expect(snapshot?.videoSource.season, 1);
+      expect(snapshot?.videoSource.episode, 2);
+      expect(snapshot?.position, const Duration(minutes: 14));
+      expect(snapshot?.duration, const Duration(minutes: 52));
+    });
+
+    test('returns null when the source cannot be persisted', () {
+      final snapshot = createPlaybackPersistSnapshot(
+        videoSource: const VideoSource(
+          url: 'https://provider.example/series/s01e02.mkv',
+        ),
+        position: const Duration(minutes: 14),
+        duration: const Duration(minutes: 52),
+      );
+
+      expect(snapshot, isNull);
+    });
+
+    test('returns null when duration is not yet known', () {
+      final snapshot = createPlaybackPersistSnapshot(
+        videoSource: const VideoSource(
+          url: 'https://provider.example/series/s01e02.mkv',
+          contentId: 'series-1',
+          contentType: ContentType.series,
+        ),
+        position: const Duration(minutes: 14),
+        duration: Duration.zero,
+      );
+
+      expect(snapshot, isNull);
     });
   });
 }

@@ -330,6 +330,14 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
   Future<AppLaunchResult>? _ongoing;
   Future<void>? _backgroundSync;
+  Future<void>? _backgroundCloudSync;
+  static final RegExp _cloudProfileIdPattern = RegExp(
+    r'^[0-9a-fA-F]{8}-'
+    r'[0-9a-fA-F]{4}-'
+    r'[1-5][0-9a-fA-F]{3}-'
+    r'[89abAB][0-9a-fA-F]{3}-'
+    r'[0-9a-fA-F]{12}$',
+  );
 
   @override
   AppLaunchState build() {
@@ -450,6 +458,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
   void reset() {
     _ongoing = null;
     _backgroundSync = null;
+    _backgroundCloudSync = null;
     _updateState(const AppLaunchState());
   }
 
@@ -1247,6 +1256,7 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
       final result = completeSuccess(destination);
 
       _startIptvBackgroundSync(meta);
+      _startCloudBackgroundSync(meta);
       return result;
     } catch (e, st) {
       return completeFailure(e, st);
@@ -1780,6 +1790,85 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         _backgroundSync = null;
       }
     });
+  }
+
+  void _startCloudBackgroundSync(AppLaunchMeta meta) {
+    if (_backgroundCloudSync != null) return;
+    final future = _runCloudBackgroundSync(meta);
+    _backgroundCloudSync = future;
+    future.whenComplete(() {
+      if (_backgroundCloudSync == future) {
+        _backgroundCloudSync = null;
+      }
+    });
+  }
+
+  Future<void> _runCloudBackgroundSync(AppLaunchMeta meta) async {
+    final accountId = meta.accountId?.trim();
+    if (accountId == null || accountId.isEmpty) {
+      return;
+    }
+
+    final profileId = _resolveCloudSyncProfileId(meta);
+    if (profileId == null) {
+      await LoggingService.log(
+        '[Preload] step=cloud_sync_background uid=$accountId '
+        ':: skipped (no cloud profile id)',
+      );
+      return;
+    }
+
+    final client = ref.read(supabaseClientProvider);
+    if (client == null) {
+      return;
+    }
+
+    await LoggingService.log(
+      '[Preload] step=cloud_sync_background uid=$accountId '
+      'profile=$profileId :: start',
+    );
+
+    try {
+      final cloudSync = ref.read(comprehensiveCloudSyncServiceProvider);
+      await cloudSync.syncAll(
+        client: client,
+        profileId: profileId,
+        shouldCancel: () => false,
+      );
+      await cloudSync.pullUserPreferences(
+        client: client,
+        shouldCancel: () => false,
+        context: 'bootstrap_auto_resync',
+      );
+      _appEventBus.emit(const AppEvent(AppEventType.librarySynced));
+      await LoggingService.log(
+        '[Preload] step=cloud_sync_background uid=$accountId '
+        'profile=$profileId :: success',
+      );
+    } catch (error) {
+      await LoggingService.log(
+        '[Preload][WARN] step=cloud_sync_background uid=$accountId '
+        'profile=$profileId type=${error.runtimeType}',
+      );
+      if (kDebugMode) {
+        debugPrint('[Bootstrap] cloud sync failed (background): $error');
+      }
+    }
+  }
+
+  String? _resolveCloudSyncProfileId(AppLaunchMeta meta) {
+    final candidates = <String?>[
+      meta.selectedProfileId,
+      _selectedProfilePreferences.selectedProfileId,
+    ];
+    for (final candidate in candidates) {
+      final trimmed = candidate?.trim();
+      if (trimmed == null || trimmed.isEmpty) continue;
+      if (_cloudProfileIdPattern.hasMatch(trimmed)) {
+        return trimmed;
+      }
+    }
+    return null;
   }
 
   Future<int> _hydrateLocalAccountsFromSupabase({

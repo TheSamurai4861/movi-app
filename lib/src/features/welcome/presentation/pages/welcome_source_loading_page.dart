@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
@@ -15,6 +14,7 @@ import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -527,11 +527,11 @@ class WelcomeSourceLoadingLogo extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
 
-    return SvgPicture.asset(
+    return MoviAssetIcon(
       AppAssets.iconAppLogoSvg,
       width: 100,
       height: 100,
-      colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
+      color: accentColor,
     );
   }
 }

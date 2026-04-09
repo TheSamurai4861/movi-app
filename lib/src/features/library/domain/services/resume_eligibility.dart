@@ -1,9 +1,12 @@
-import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
+import 'package:movi/src/shared/domain/services/playback_resume_resolution.dart';
 
 /// Règle métier partagée pour décider si une reprise est admissible.
 Duration? normalizeResumePosition({
   required Duration? position,
   required Duration? duration,
 }) {
-  return decideResume(position: position, duration: duration).positionOrNull;
+  return resolvePlaybackResume(
+    position: position,
+    duration: duration,
+  ).resumePosition;
 }

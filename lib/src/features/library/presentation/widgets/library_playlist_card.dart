@@ -35,6 +35,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
     this.layout = LibraryPlaylistCardLayout.horizontal,
     this.focusNode,
     this.autofocus = false,
+    this.onMorePressed,
   });
 
   final String title;
@@ -50,6 +51,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
   final LibraryPlaylistCardLayout layout;
   final FocusNode? focusNode;
   final bool autofocus;
+  final VoidCallback? onMorePressed;
 
   /// Génère une couleur foncée à partir de l'accent color pour la partie sombre du gradient.
   Color _darkenColor(Color color) {
@@ -162,7 +164,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
       color: (isActor || photo != null)
           ? Theme.of(context).colorScheme.surfaceContainerHighest
           : null,
-      border: isFocused ? Border.all(color: Colors.white, width: 2) : null,
+      border: isFocused ? Border.all(color: accentColor, width: 2) : null,
     );
 
     return Container(
@@ -186,6 +188,33 @@ class LibraryPlaylistCard extends ConsumerWidget {
     );
   }
 
+  Widget _buildMoreButton(BuildContext context, AppLocalizations? l10n) {
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: MoviFocusableAction(
+        onPressed: onMorePressed,
+        semanticLabel: l10n?.hc_plus_d_actions_ffe6be2a ?? 'Plus d\'actions',
+        builder: (context, state) {
+          final backgroundColor = state.focused
+              ? Colors.white.withValues(alpha: 0.14)
+              : Colors.white.withValues(alpha: 0.08);
+          return MoviFocusFrame(
+            scale: state.focused ? 1.04 : 1,
+            padding: const EdgeInsets.all(10),
+            borderRadius: BorderRadius.circular(999),
+            backgroundColor: backgroundColor,
+            child: const SizedBox(
+              width: 24,
+              height: 24,
+              child: MoviAssetIcon(AppAssets.iconMore, color: Colors.white),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
@@ -202,7 +231,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
             builder: (context, constraints) {
               final imageSize = _artworkSizeForVertical(constraints.maxWidth);
               return MoviFocusFrame(
-                scale: state.focused ? 1.03 : 1,
+                scale: state.focused ? 1.02 : 1,
                 borderRadius: BorderRadius.circular(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -292,98 +321,112 @@ class LibraryPlaylistCard extends ConsumerWidget {
       );
     }
 
-    return MoviFocusableAction(
-      onPressed: onTap,
-      onLongPress: onLongPress,
-      focusNode: focusNode,
-      autofocus: autofocus,
-      semanticLabel: title,
-      builder: (context, state) {
-        return MoviFocusFrame(
-          scale: state.focused ? 1.02 : 1,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 75,
-                  height: 75,
-                  child: _buildArtwork(
-                    context,
-                    accentColor,
-                    width: 75,
-                    height: 75,
-                    borderRadius: 16,
-                    isFocused: state.focused,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: MoviFocusableAction(
+              onPressed: onTap,
+              onLongPress: onLongPress,
+              focusNode: focusNode,
+              autofocus: autofocus,
+              semanticLabel: title,
+              builder: (context, state) {
+                return MoviFocusFrame(
+                  scale: state.focused ? 1.02 : 1,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Row(
                     children: [
-                      Text(
-                        title,
-                        style:
-                            Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ) ??
-                            const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      SizedBox(
+                        width: 75,
+                        height: 75,
+                        child: _buildArtwork(
+                          context,
+                          accentColor,
+                          width: 75,
+                          height: 75,
+                          borderRadius: 16,
+                          isFocused: state.focused,
+                        ),
                       ),
-                      const SizedBox(height: 4),
-                      Text.rich(
-                        TextSpan(
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            TextSpan(text: _secondaryText(l10n)),
-                            if (isPinned)
-                              WidgetSpan(
-                                alignment: PlaceholderAlignment.middle,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 6),
-                                  child: Icon(
-                                    Icons.push_pin,
-                                    size: 14,
-                                    color: accentColor,
+                            Text(
+                              title,
+                              style:
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodyLarge?.copyWith(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ) ??
+                                  const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
                                   ),
-                                ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(text: _secondaryText(l10n)),
+                                  if (isPinned)
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.middle,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(left: 6),
+                                        child: Icon(
+                                          Icons.push_pin,
+                                          size: 14,
+                                          color: accentColor,
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
+                              style:
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ) ??
+                                  TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ) ??
-                            TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
-        );
-      },
+          if (onMorePressed != null) ...[
+            const SizedBox(width: 20),
+            _buildMoreButton(context, l10n),
+          ],
+        ],
+      ),
     );
   }
 }

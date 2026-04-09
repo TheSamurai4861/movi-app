@@ -46,6 +46,18 @@ abstract class HistoryLocalRepository {
 
   Future<void> remove(String contentId, ContentType type, {String userId});
   Future<List<HistoryEntry>> readAll(ContentType type, {String userId});
+
+  /// Returns the canonical resume state for a series.
+  ///
+  /// With the current SQLite schema, a series is stored in a single history row.
+  /// This method makes that contract explicit.
+  Future<HistoryEntry?> getSeriesResumeState(String seriesId, {String userId});
+
+  /// Returns the history entry for a content.
+  ///
+  /// For series, `season` and `episode` are only an opportunistic filter against
+  /// the canonical series row already stored locally. They do not address a
+  /// dedicated per-episode history row.
   Future<HistoryEntry?> getEntry(
     String contentId,
     ContentType type, {
@@ -73,10 +85,8 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     int? episode,
     String userId = 'default',
   }) async {
-    final db = _db;
-    // Try to update existing row (increment play_count)
     final now = (playedAt ?? DateTime.now()).millisecondsSinceEpoch;
-    final updateCount = await db.rawUpdate(
+    final updateCount = await _db.rawUpdate(
       '''
       UPDATE history
       SET last_played_at = ?,
@@ -89,7 +99,7 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
           title = COALESCE(?, title)
       WHERE content_id = ? AND content_type = ? AND user_id = ?
       ''',
-      [
+      <Object?>[
         now,
         position?.inSeconds,
         duration?.inSeconds,
@@ -104,7 +114,7 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     );
 
     if (updateCount == 0) {
-      await db.insert('history', {
+      await _db.insert('history', <String, Object?>{
         'content_id': contentId,
         'content_type': type.name,
         'title': title,
@@ -126,11 +136,10 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     ContentType type, {
     String userId = 'default',
   }) async {
-    final db = _db;
-    await db.delete(
+    await _db.delete(
       'history',
       where: 'content_id = ? AND content_type = ? AND user_id = ?',
-      whereArgs: [contentId, type.name, userId],
+      whereArgs: <Object?>[contentId, type.name, userId],
     );
   }
 
@@ -139,39 +148,27 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     ContentType type, {
     String userId = 'default',
   }) async {
-    final db = _db;
-    final rows = await db.query(
+    final rows = await _db.query(
       'history',
       where: 'content_type = ? AND user_id = ?',
-      whereArgs: [type.name, userId],
+      whereArgs: <Object?>[type.name, userId],
       orderBy: 'last_played_at DESC',
     );
     return rows
-        .map(
-          (row) => HistoryEntry(
-            contentId: row['content_id'] as String,
-            type: type,
-            title: row['title'] as String,
-            poster:
-                row['poster'] != null && (row['poster'] as String).isNotEmpty
-                ? Uri.tryParse(row['poster'] as String)
-                : null,
-            lastPlayedAt: DateTime.fromMillisecondsSinceEpoch(
-              row['last_played_at'] as int,
-            ),
-            playCount: (row['play_count'] as int?) ?? 1,
-            lastPosition: row['last_position'] != null
-                ? Duration(seconds: row['last_position'] as int)
-                : null,
-            duration: row['duration'] != null
-                ? Duration(seconds: row['duration'] as int)
-                : null,
-            season: row['season'] as int?,
-            episode: row['episode'] as int?,
-            userId: (row['user_id'] as String?) ?? 'default',
-          ),
-        )
-        .toList();
+        .map((row) => _mapRowToHistoryEntry(row, type: type))
+        .toList(growable: false);
+  }
+
+  @override
+  Future<HistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String userId = 'default',
+  }) {
+    return _queryCanonicalEntry(
+      contentId: seriesId,
+      type: ContentType.series,
+      userId: userId,
+    );
   }
 
   @override
@@ -182,26 +179,48 @@ class HistoryLocalRepositoryImpl implements HistoryLocalRepository {
     int? episode,
     String userId = 'default',
   }) async {
-    final db = _db;
-    String where = 'content_id = ? AND content_type = ? AND user_id = ?';
-    List<Object?> whereArgs = [contentId, type.name, userId];
-
-    // Pour les séries, on peut filtrer par saison et épisode si fournis
-    if (season != null && episode != null) {
-      where += ' AND season = ? AND episode = ?';
-      whereArgs.addAll([season, episode]);
+    final entry = await _queryCanonicalEntry(
+      contentId: contentId,
+      type: type,
+      userId: userId,
+    );
+    if (entry == null) {
+      return null;
     }
 
-    final rows = await db.query(
+    if (type == ContentType.series &&
+        season != null &&
+        episode != null &&
+        (entry.season != season || entry.episode != episode)) {
+      return null;
+    }
+
+    return entry;
+  }
+
+  Future<HistoryEntry?> _queryCanonicalEntry({
+    required String contentId,
+    required ContentType type,
+    required String userId,
+  }) async {
+    final rows = await _db.query(
       'history',
-      where: where,
-      whereArgs: whereArgs,
+      where: 'content_id = ? AND content_type = ? AND user_id = ?',
+      whereArgs: <Object?>[contentId, type.name, userId],
       limit: 1,
     );
 
-    if (rows.isEmpty) return null;
+    if (rows.isEmpty) {
+      return null;
+    }
 
-    final row = rows.first;
+    return _mapRowToHistoryEntry(rows.first, type: type);
+  }
+
+  HistoryEntry _mapRowToHistoryEntry(
+    Map<String, Object?> row, {
+    required ContentType type,
+  }) {
     return HistoryEntry(
       contentId: row['content_id'] as String,
       type: type,

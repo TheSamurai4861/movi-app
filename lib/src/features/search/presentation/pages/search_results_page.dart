@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
@@ -34,9 +33,6 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   final FocusNode _retryFocusNode = FocusNode(
     debugLabel: 'SearchResultsRetry',
   );
-  final FocusNode _loadMoreFocusNode = FocusNode(
-    debugLabel: 'SearchResultsLoadMore',
-  );
 
   @override
   void initState() {
@@ -58,7 +54,6 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
     _backFocusNode.dispose();
     _firstResultFocusNode.dispose();
     _retryFocusNode.dispose();
-    _loadMoreFocusNode.dispose();
     super.dispose();
   }
 
@@ -113,7 +108,6 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
                     backFocusNode: _backFocusNode,
                     firstResultFocusNode: _firstResultFocusNode,
                     retryFocusNode: _retryFocusNode,
-                    loadMoreFocusNode: _loadMoreFocusNode,
                   ),
                 ),
               ),
@@ -125,14 +119,13 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   }
 }
 
-class _SearchResultsBody extends ConsumerWidget {
+class _SearchResultsBody extends ConsumerStatefulWidget {
   const _SearchResultsBody({
     required this.state,
     required this.query,
     required this.backFocusNode,
     required this.firstResultFocusNode,
     required this.retryFocusNode,
-    required this.loadMoreFocusNode,
   });
 
   final SearchResultsState state;
@@ -140,11 +133,25 @@ class _SearchResultsBody extends ConsumerWidget {
   final FocusNode backFocusNode;
   final FocusNode firstResultFocusNode;
   final FocusNode retryFocusNode;
-  final FocusNode loadMoreFocusNode;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SearchResultsBody> createState() => _SearchResultsBodyState();
+}
+
+class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
+  static const int _wheelCooldownMs = 450;
+  static const int _wheelExtentAfterThreshold = 320;
+  int _lastWheelLoadMs = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    final state = widget.state;
+    final query = widget.query;
+    final backFocusNode = widget.backFocusNode;
+    final firstResultFocusNode = widget.firstResultFocusNode;
+    final retryFocusNode = widget.retryFocusNode;
 
     if (state.error != null && state.mediaList.isEmpty) {
       return ListView(
@@ -199,79 +206,76 @@ class _SearchResultsBody extends ConsumerWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: Text('Requête: "$query"'),
         ),
-        MoviMediaGrid(
-          itemCount: state.mediaList.length,
-          firstItemFocusNode: firstResultFocusNode,
-          footerFocusNode: state.hasMore ? loadMoreFocusNode : null,
-          onExitUp: () {
-            backFocusNode.requestFocus();
-            return true;
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (!state.hasMore || state.isLoadingMore) return false;
+            if (notification is! ScrollUpdateNotification) return false;
+            if (notification.dragDetails != null) return false;
+            final delta = notification.scrollDelta;
+            if (delta == null || delta <= 0) return false;
+            if (notification.metrics.extentAfter > _wheelExtentAfterThreshold) {
+              return false;
+            }
+            final now = DateTime.now().millisecondsSinceEpoch;
+            if (now - _lastWheelLoadMs < _wheelCooldownMs) return false;
+            _lastWheelLoadMs = now;
+            ref
+                .read(
+                  searchResultsControllerProvider(
+                    SearchResultsPageArgs(query: state.query, type: state.type),
+                  ).notifier,
+                )
+                .fetchNextPage();
+            return false;
           },
-          itemBuilder: (context, index, focusNode, cardWidth, posterHeight) {
-            final media = state.mediaList[index];
-            return MoviMediaCard(
-              media: media,
-              width: cardWidth,
-              height: posterHeight,
-              focusNode: focusNode,
-              onTap: (selectedMedia) {
-                if (selectedMedia.type == MoviMediaType.movie) {
-                  navigateToMovieDetail(
+          child: MoviMediaGrid(
+            itemCount: state.mediaList.length,
+            firstItemFocusNode: firstResultFocusNode,
+            onExitUp: () {
+              backFocusNode.requestFocus();
+              return true;
+            },
+            onExitDown: () {
+              if (state.hasMore && !state.isLoadingMore) {
+                ref
+                    .read(
+                      searchResultsControllerProvider(
+                        SearchResultsPageArgs(query: state.query, type: state.type),
+                      ).notifier,
+                    )
+                    .fetchNextPage();
+              }
+              return true;
+            },
+            itemBuilder: (context, index, focusNode, cardWidth, posterHeight) {
+              final media = state.mediaList[index];
+              return MoviMediaCard(
+                media: media,
+                width: cardWidth,
+                height: posterHeight,
+                focusNode: focusNode,
+                onTap: (selectedMedia) {
+                  if (selectedMedia.type == MoviMediaType.movie) {
+                    navigateToMovieDetail(
+                      context,
+                      ref,
+                      ContentRouteArgs.movie(selectedMedia.id),
+                    );
+                    return;
+                  }
+                  navigateToTvDetail(
                     context,
                     ref,
-                    ContentRouteArgs.movie(selectedMedia.id),
+                    ContentRouteArgs.series(selectedMedia.id),
                   );
-                  return;
-                }
-                navigateToTvDetail(
-                  context,
-                  ref,
-                  ContentRouteArgs.series(selectedMedia.id),
-                );
-              },
-            );
-          },
-        ),
-        if (state.hasMore) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Focus(
-            canRequestFocus: false,
-            onKeyEvent: (_, event) {
-              if (event is! KeyDownEvent) {
-                return KeyEventResult.ignored;
-              }
-              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                firstResultFocusNode.requestFocus();
-                return KeyEventResult.handled;
-              }
-              if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
-                  event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-                  event.logicalKey == LogicalKeyboardKey.arrowRight) {
-                return KeyEventResult.handled;
-              }
-              return KeyEventResult.ignored;
+                },
+              );
             },
-            child: Center(
-              child: MoviPrimaryButton(
-                label: l10n.actionLoadMore,
-                focusNode: loadMoreFocusNode,
-                expand: false,
-                loading: state.isLoadingMore,
-                onPressed: state.isLoadingMore
-                    ? null
-                    : () => ref
-                          .read(
-                            searchResultsControllerProvider(
-                              SearchResultsPageArgs(
-                                query: state.query,
-                                type: state.type,
-                              ),
-                            ).notifier,
-                          )
-                          .fetchNextPage(),
-              ),
-            ),
           ),
+        ),
+        if (state.isLoadingMore) ...[
+          const SizedBox(height: AppSpacing.lg),
+          const Center(child: CircularProgressIndicator()),
         ],
       ],
     );

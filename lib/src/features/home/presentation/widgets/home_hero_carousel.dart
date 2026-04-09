@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/di/di.dart';
@@ -18,7 +19,6 @@ import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/responsive/presentation/extensions/responsive_context.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -49,12 +49,14 @@ class HomeHeroCarousel extends ConsumerStatefulWidget {
     required this.items,
     this.onLoadingChanged,
     this.primaryActionFocusNode,
+    this.moviesFilterFocusNode,
     this.layoutHeight,
   });
 
   final List<ContentReference> items;
   final ValueChanged<bool>? onLoadingChanged;
   final FocusNode? primaryActionFocusNode;
+  final FocusNode? moviesFilterFocusNode;
   final double? layoutHeight;
 
   @override
@@ -128,6 +130,36 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   String? _lastLoggedHeroBuildSignature;
   String? _lastLoggedResolvedMediaSignature;
   ScreenType _screenType = ScreenType.mobile;
+
+  KeyEventResult _handlePrimaryActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.ignored;
+    }
+    final moviesNode = widget.moviesFilterFocusNode;
+    if (moviesNode == null ||
+        moviesNode.context == null ||
+        !moviesNode.canRequestFocus) {
+      return KeyEventResult.handled;
+    }
+    moviesNode.requestFocus();
+    return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleFavoriteActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.ignored;
+    }
+    final moviesNode = widget.moviesFilterFocusNode;
+    if (moviesNode == null ||
+        moviesNode.context == null ||
+        !moviesNode.canRequestFocus) {
+      return KeyEventResult.handled;
+    }
+    moviesNode.requestFocus();
+    return KeyEventResult.handled;
+  }
 
   void _logHeroDebug(
     String event, {
@@ -513,16 +545,10 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     _lastPrefetchAt = DateTime.now();
 
     // Préparer meta courante (cache→affichage), puis hydratation réseau dédiée.
-    _metaFutures[id] = _loadMetaWithRetry(
-      current,
-      workToken: workToken,
-    );
+    _metaFutures[id] = _loadMetaWithRetry(current, workToken: workToken);
     _logHeroDebug(
       'meta_future_assigned',
-      context: <String, Object?>{
-        'currentId': id,
-        'workToken': workToken,
-      },
+      context: <String, Object?>{'currentId': id, 'workToken': workToken},
     );
     _hydrateMetaIfNeeded(current, workToken: workToken);
     if (!isInitialHeroWarmup) {
@@ -658,8 +684,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final String? posterPath =
         _selectHeroPosterPath(posters) ?? data['poster_path']?.toString();
     final String? posterBgPath = data['poster_background']?.toString();
-    final preferredLang =
-        (ref.read(asp.currentLanguageCodeProvider)).split('-').first;
+    final preferredLang = (ref.read(
+      asp.currentLanguageCodeProvider,
+    )).split('-').first;
     final String? logoPath = TmdbImageSelectorService.selectLogoPath(
       logos,
       preferredLang: preferredLang,
@@ -1290,6 +1317,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
 
   @override
   Widget build(BuildContext context) {
+    const iconActionFocusedBackground = Color(0x807A7A7A);
     _scheduleVisibilitySync();
     final ContentReference? item = _currentItem;
     final int? tmdbId = _tmdbIdOf(item);
@@ -1460,7 +1488,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                           left: 0,
                           right: 0,
                           top: MediaQuery.of(context).padding.top + 12,
-                          child: const HomeHeroFilterBar(),
+                          child: HomeHeroFilterBar(
+                            moviesFocusNode: widget.moviesFilterFocusNode,
+                          ),
                         ),
                         if (isWideHero)
                           Positioned.fill(
@@ -1515,7 +1545,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                         TextOverflow.ellipsis,
                                                     style: const TextStyle(
                                                       fontSize: 24,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       color: Colors.white,
                                                     ),
                                                   )
@@ -1530,18 +1561,22 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                     tallMaxHeight: 104,
                                                     blockyMaxHeight: 132,
                                                     blockyRatioThreshold: 1.45,
-                                                    onErrorFallback: (_) => Text(
-                                                      displayTitle,
-                                                      maxLines: 2,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        fontSize: 24,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
+                                                    onErrorFallback: (_) =>
+                                                        Text(
+                                                          displayTitle,
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 24,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                        ),
                                                   ),
                                           ),
                                         ),
@@ -1602,24 +1637,47 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                           children: [
                                             SizedBox(
                                               width: 320,
-                                              child: MoviPrimaryButton(
-                                                label: AppLocalizations.of(
-                                                  context,
-                                                )!.homeWatchNow,
-                                                focusNode: widget
-                                                    .primaryActionFocusNode,
-                                                assetIcon: AppAssets.iconPlay,
-                                                onPressed: () =>
-                                                    _openDetails(context),
+                                              child: Focus(
+                                                canRequestFocus: false,
+                                                onKeyEvent: (_, event) =>
+                                                    _handlePrimaryActionKey(
+                                                      event,
+                                                    ),
+                                                child: MoviPrimaryButton(
+                                                  label: AppLocalizations.of(
+                                                    context,
+                                                  )!.homeWatchNow,
+                                                  focusNode: widget
+                                                      .primaryActionFocusNode,
+                                                  assetIcon: AppAssets.iconPlay,
+                                                  onPressed: () =>
+                                                      _openDetails(context),
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 16),
-                                            Consumer(
-                                              builder: (context, ref, _) {
+                                            Focus(
+                                              canRequestFocus: false,
+                                              onKeyEvent: (_, event) =>
+                                                  _handleFavoriteActionKey(
+                                                    event,
+                                                  ),
+                                              child: Consumer(
+                                                builder: (context, ref, _) {
                                                 final current = _currentItem;
                                                 if (current == null) {
                                                   return MoviFavoriteButton(
                                                     isFavorite: false,
+                                                    size: 44,
+                                                    iconSize: 28,
+                                                    focusPadding:
+                                                        const EdgeInsets.all(5),
+                                                    focusedBackgroundColor:
+                                                        iconActionFocusedBackground,
+                                                    focusedBorderColor: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    borderWidth: 2,
                                                     onPressed: () {},
                                                   );
                                                 }
@@ -1627,6 +1685,16 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                 if (id.isEmpty) {
                                                   return MoviFavoriteButton(
                                                     isFavorite: false,
+                                                    size: 44,
+                                                    iconSize: 28,
+                                                    focusPadding:
+                                                        const EdgeInsets.all(5),
+                                                    focusedBackgroundColor:
+                                                        iconActionFocusedBackground,
+                                                    focusedBorderColor: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    borderWidth: 2,
                                                     onPressed: () {},
                                                   );
                                                 }
@@ -1644,6 +1712,18 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                         MoviFavoriteButton(
                                                           isFavorite:
                                                               isFavorite,
+                                                          size: 44,
+                                                          iconSize: 28,
+                                                          focusPadding:
+                                                              const EdgeInsets.all(
+                                                                5,
+                                                              ),
+                                                          focusedBackgroundColor:
+                                                              iconActionFocusedBackground,
+                                                          focusedBorderColor: Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                          borderWidth: 2,
                                                           onPressed: () async {
                                                             await ref
                                                                 .read(
@@ -1656,11 +1736,35 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                     loading: () =>
                                                         MoviFavoriteButton(
                                                           isFavorite: false,
+                                                          size: 44,
+                                                          iconSize: 28,
+                                                          focusPadding:
+                                                              const EdgeInsets.all(
+                                                                5,
+                                                              ),
+                                                          focusedBackgroundColor:
+                                                              iconActionFocusedBackground,
+                                                          focusedBorderColor: Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                          borderWidth: 2,
                                                           onPressed: () {},
                                                         ),
                                                     error: (_, __) =>
                                                         MoviFavoriteButton(
                                                           isFavorite: false,
+                                                          size: 44,
+                                                          iconSize: 28,
+                                                          focusPadding:
+                                                              const EdgeInsets.all(
+                                                                5,
+                                                              ),
+                                                          focusedBackgroundColor:
+                                                              iconActionFocusedBackground,
+                                                          focusedBorderColor: Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                          borderWidth: 2,
                                                           onPressed: () {},
                                                         ),
                                                   );
@@ -1676,6 +1780,18 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                   data: (isFavorite) =>
                                                       MoviFavoriteButton(
                                                         isFavorite: isFavorite,
+                                                        size: 44,
+                                                        iconSize: 28,
+                                                        focusPadding:
+                                                            const EdgeInsets.all(
+                                                              5,
+                                                            ),
+                                                        focusedBackgroundColor:
+                                                            iconActionFocusedBackground,
+                                                        focusedBorderColor: Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
+                                                        borderWidth: 2,
                                                         onPressed: () async {
                                                           await ref
                                                               .read(
@@ -1688,15 +1804,40 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                                   loading: () =>
                                                       MoviFavoriteButton(
                                                         isFavorite: false,
+                                                        size: 44,
+                                                        iconSize: 28,
+                                                        focusPadding:
+                                                            const EdgeInsets.all(
+                                                              5,
+                                                            ),
+                                                        focusedBackgroundColor:
+                                                            iconActionFocusedBackground,
+                                                        focusedBorderColor: Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
+                                                        borderWidth: 2,
                                                         onPressed: () {},
                                                       ),
                                                   error: (_, __) =>
                                                       MoviFavoriteButton(
                                                         isFavorite: false,
+                                                        size: 44,
+                                                        iconSize: 28,
+                                                        focusPadding:
+                                                            const EdgeInsets.all(
+                                                              5,
+                                                            ),
+                                                        focusedBackgroundColor:
+                                                            iconActionFocusedBackground,
+                                                        focusedBorderColor: Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
+                                                        borderWidth: 2,
                                                         onPressed: () {},
                                                       ),
-                                                );
-                                              },
+                                                  );
+                                                },
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -1762,17 +1903,20 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                               fit: BoxFit.contain,
                                               alignment: Alignment.center,
                                               filterQuality: FilterQuality.high,
-                                              errorBuilder: (_, __, ___) => Text(
-                                                displayTitle,
-                                                textAlign: TextAlign.center,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
+                                              errorBuilder: (_, __, ___) =>
+                                                  Text(
+                                                    displayTitle,
+                                                    textAlign: TextAlign.center,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: const TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
                                             ),
                                           ),
                                   ),
@@ -1923,22 +2067,40 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Expanded(
-                                child: MoviPrimaryButton(
-                                  label: AppLocalizations.of(
-                                    context,
-                                  )!.homeWatchNow,
-                                  focusNode: widget.primaryActionFocusNode,
-                                  assetIcon: AppAssets.iconPlay,
-                                  onPressed: () => _openDetails(context),
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handlePrimaryActionKey(event),
+                                  child: MoviPrimaryButton(
+                                    label: AppLocalizations.of(
+                                      context,
+                                    )!.homeWatchNow,
+                                    focusNode: widget.primaryActionFocusNode,
+                                    assetIcon: AppAssets.iconPlay,
+                                    onPressed: () => _openDetails(context),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              Consumer(
-                                builder: (context, ref, _) {
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) =>
+                                    _handleFavoriteActionKey(event),
+                                child: Consumer(
+                                  builder: (context, ref, _) {
                                   final current = _currentItem;
                                   if (current == null) {
                                     return MoviFavoriteButton(
                                       isFavorite: false,
+                                      size: 44,
+                                      iconSize: 28,
+                                      focusPadding: const EdgeInsets.all(5),
+                                      focusedBackgroundColor:
+                                          iconActionFocusedBackground,
+                                      focusedBorderColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      borderWidth: 2,
                                       onPressed: () {},
                                     );
                                   }
@@ -1946,6 +2108,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                   if (id.isEmpty) {
                                     return MoviFavoriteButton(
                                       isFavorite: false,
+                                      size: 44,
+                                      iconSize: 28,
+                                      focusPadding: const EdgeInsets.all(5),
+                                      focusedBackgroundColor:
+                                          iconActionFocusedBackground,
+                                      focusedBorderColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      borderWidth: 2,
                                       onPressed: () {},
                                     );
                                   }
@@ -1957,6 +2128,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                     return isFavoriteAsync.when(
                                       data: (isFavorite) => MoviFavoriteButton(
                                         isFavorite: isFavorite,
+                                        size: 44,
+                                        iconSize: 28,
+                                        focusPadding: const EdgeInsets.all(5),
+                                        focusedBackgroundColor:
+                                            iconActionFocusedBackground,
+                                        focusedBorderColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        borderWidth: 2,
                                         onPressed: () async {
                                           await ref
                                               .read(
@@ -1968,10 +2148,28 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                       ),
                                       loading: () => MoviFavoriteButton(
                                         isFavorite: false,
+                                        size: 44,
+                                        iconSize: 28,
+                                        focusPadding: const EdgeInsets.all(5),
+                                        focusedBackgroundColor:
+                                            iconActionFocusedBackground,
+                                        focusedBorderColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        borderWidth: 2,
                                         onPressed: () {},
                                       ),
                                       error: (_, __) => MoviFavoriteButton(
                                         isFavorite: false,
+                                        size: 44,
+                                        iconSize: 28,
+                                        focusPadding: const EdgeInsets.all(5),
+                                        focusedBackgroundColor:
+                                            iconActionFocusedBackground,
+                                        focusedBorderColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        borderWidth: 2,
                                         onPressed: () {},
                                       ),
                                     );
@@ -1983,6 +2181,15 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                   return isFavoriteAsync.when(
                                     data: (isFavorite) => MoviFavoriteButton(
                                       isFavorite: isFavorite,
+                                      size: 44,
+                                      iconSize: 28,
+                                      focusPadding: const EdgeInsets.all(5),
+                                      focusedBackgroundColor:
+                                          iconActionFocusedBackground,
+                                      focusedBorderColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      borderWidth: 2,
                                       onPressed: () async {
                                         await ref
                                             .read(
@@ -1994,14 +2201,33 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                                     ),
                                     loading: () => MoviFavoriteButton(
                                       isFavorite: false,
+                                      size: 44,
+                                      iconSize: 28,
+                                      focusPadding: const EdgeInsets.all(5),
+                                      focusedBackgroundColor:
+                                          iconActionFocusedBackground,
+                                      focusedBorderColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      borderWidth: 2,
                                       onPressed: () {},
                                     ),
                                     error: (_, __) => MoviFavoriteButton(
                                       isFavorite: false,
+                                      size: 44,
+                                      iconSize: 28,
+                                      focusPadding: const EdgeInsets.all(5),
+                                      focusedBackgroundColor:
+                                          iconActionFocusedBackground,
+                                      focusedBorderColor: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      borderWidth: 2,
                                       onPressed: () {},
                                     ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
                             ],
                           ),
@@ -2406,12 +2632,9 @@ class _HeroSkeleton extends StatelessWidget {
                           final accentColor = ref.watch(
                             asp.currentAccentColorProvider,
                           );
-                          return SvgPicture.asset(
+                          return MoviAssetIcon(
                             AppAssets.iconAppLogoSvg,
-                            colorFilter: ColorFilter.mode(
-                              accentColor,
-                              BlendMode.srcIn,
-                            ),
+                            color: accentColor,
                           );
                         },
                       ),

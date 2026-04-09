@@ -219,7 +219,6 @@ final class LocalDatabaseSchema {
       );
     ''');
 
-
     await db.execute('''
       CREATE TABLE tracked_series (
         series_id TEXT NOT NULL,
@@ -238,6 +237,16 @@ final class LocalDatabaseSchema {
       );
     ''');
 
+    await db.execute('''
+      CREATE TABLE series_seen_state (
+        series_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        marked_at INTEGER NOT NULL,
+        season INTEGER,
+        episode INTEGER,
+        PRIMARY KEY (series_id, user_id)
+      );
+    ''');
 
     await db.execute('''
       CREATE TABLE local_profiles (
@@ -260,7 +269,9 @@ final class LocalDatabaseSchema {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_tracked_series_new_episode ON tracked_series(user_id, has_new_episode);',
     );
-
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_series_seen_state_user_id ON series_seen_state(user_id);',
+    );
 
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_iptv_playlists_account ON iptv_playlists(owner_id, account_id);',

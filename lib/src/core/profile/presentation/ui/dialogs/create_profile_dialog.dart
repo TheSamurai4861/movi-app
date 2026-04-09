@@ -34,11 +34,20 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
   bool _isKid = false;
   int _pegiLimit = 12;
   String? _pin;
+  String? _pinConfirmationMessage;
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  ButtonStyle _destructiveCancelButtonStyle() {
+    return OutlinedButton.styleFrom(
+      side: const BorderSide(color: Colors.red),
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+    );
   }
 
   Future<void> _createProfile() async {
@@ -74,21 +83,20 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
       return;
     }
 
-    // If kid profile: require PIN + set restrictions.
+    // If kid profile: apply restrictions, and save a PIN only if one was provided.
     if (_isKid) {
       final pin = _pin?.trim();
-      if (pin == null || !RegExp(r'^\d{4,6}$').hasMatch(pin)) {
+      if (pin != null &&
+          pin.isNotEmpty &&
+          !RegExp(r'^\d{4,6}$').hasMatch(pin)) {
         setState(() {
           _isLoading = false;
-          _error = 'PIN requis (4-6 chiffres)';
+          _error = 'PIN invalide (4-6 chiffres)';
         });
         return;
       }
 
       try {
-        final pinSvc = ref.read(parental.profilePinEdgeServiceProvider);
-        await pinSvc.setPin(profileId: created.id, pin: pin);
-
         final ok = await ref
             .read(profilesControllerProvider.notifier)
             .updateProfile(
@@ -110,9 +118,14 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
           return;
         }
 
+        if (pin != null && RegExp(r'^\d{4,6}$').hasMatch(pin)) {
+          final pinSvc = ref.read(parental.profilePinEdgeServiceProvider);
+          await pinSvc.setPin(profileId: created.id, pin: pin);
+        }
+
         await ref.read(profilesControllerProvider.notifier).refresh();
       } catch (e) {
-        // Best-effort rollback: delete the profile if PIN setup fails.
+        // Best-effort rollback: delete the profile if child setup fails.
         await ref
             .read(profilesControllerProvider.notifier)
             .deleteProfile(created.id);
@@ -144,10 +157,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
     final accentColor = theme.colorScheme.primary;
 
     final bool canCreate =
-        !_isLoading &&
-        _nameController.text.trim().isNotEmpty &&
-        (!_isKid ||
-            (_pin != null && RegExp(r'^\d{4,6}$').hasMatch(_pin!.trim())));
+        !_isLoading && _nameController.text.trim().isNotEmpty;
 
     return Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
@@ -236,7 +246,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                       Expanded(
                         flex: 6,
                         child: const Text(
-                          'Oblige un PIN et active le filtre PEGI.',
+                          'Active le filtre PEGI. Le code PIN reste optionnel.',
                           style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
                       ),
@@ -250,6 +260,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                   _isKid = v;
                                   if (!v) {
                                     _pin = null;
+                                    _pinConfirmationMessage = null;
                                   } else {
                                     _pegiLimit = 12;
                                   }
@@ -331,15 +342,22 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                                 if (!mounted) return;
                                 final trimmed = pin?.trim();
                                 if (trimmed == null || trimmed.isEmpty) return;
-                                setState(() => _pin = trimmed);
+                                setState(() {
+                                  _pin = trimmed;
+                                  _error = null;
+                                  _pinConfirmationMessage =
+                                      l10n.profilePinSaved;
+                                });
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentColor,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: const Text(
-                          'Définir code PIN',
-                          style: TextStyle(
+                        child: Text(
+                          _pin == null
+                              ? l10n.hc_definir_code_pin_53a0bd07
+                              : l10n.profilePinEditLabel,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -347,6 +365,17 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                         ),
                       ),
                     ),
+                    if (_pinConfirmationMessage != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _pinConfirmationMessage!,
+                        style:
+                            theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.secondary,
+                            ) ??
+                            TextStyle(color: theme.colorScheme.secondary),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -369,11 +398,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                       onPressed: _isLoading
                           ? null
                           : () => Navigator.of(context).pop(false),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: accentColor),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                      style: _destructiveCancelButtonStyle(),
                       child: Text(
                         l10n.actionCancel,
                         style: const TextStyle(
@@ -441,6 +466,14 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
     super.dispose();
   }
 
+  ButtonStyle _destructiveCancelButtonStyle() {
+    return OutlinedButton.styleFrom(
+      side: const BorderSide(color: Colors.red),
+      foregroundColor: Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -500,11 +533,7 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(null),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: accentColor),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                      style: _destructiveCancelButtonStyle(),
                       child: const Text(
                         'Annuler',
                         style: TextStyle(

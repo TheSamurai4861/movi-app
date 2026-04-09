@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -19,6 +20,7 @@ import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart'
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/profile/data/repositories/fallback_profile_repository.dart';
 import 'package:movi/src/core/profile/data/repositories/local_profile_repository.dart';
+import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/shared/failure.dart';
@@ -35,6 +37,9 @@ import 'package:movi/src/core/storage/database/sqlite_database_schema.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/core/utils/result.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart';
+import 'package:movi/src/features/library/application/services/comprehensive_cloud_sync_service.dart';
+import 'package:movi/src/features/library/application/services/library_cloud_sync_service.dart';
+import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -621,6 +626,141 @@ void main() {
   );
 
   test(
+    'triggers cloud auto-resync in background after authenticated bootstrap',
+    () async {
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        trackCloudSync: true,
+      );
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+
+      const cloudProfileId = '11111111-1111-4111-8111-111111111111';
+      await harness.localProfiles.upsertProfile(
+        Profile(
+          id: cloudProfileId,
+          accountId: 'cloud-user',
+          name: 'Cloud Profile',
+          color: 0xFF2160AB,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.selectedProfilePreferences.setSelectedProfileId(
+        cloudProfileId,
+      );
+
+      const accountId = 'cloud_xtream_account_auto_sync';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Cloud Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(harness.trackingCloudSyncService, isNotNull);
+      expect(harness.trackingCloudSyncService!.syncAllCalls, 1);
+      expect(harness.trackingCloudSyncService!.pullUserPreferencesCalls, 1);
+    },
+  );
+
+  test(
+    'cloud auto-resync failure stays best-effort and does not block home bootstrap',
+    () async {
+      final harness = await _LaunchHarness.create(
+        cloudAuthEnabled: true,
+        trackCloudSync: true,
+        cloudSyncFailure: StateError('forced cloud sync failure'),
+      );
+      addTearDown(harness.dispose);
+
+      harness.authRepository.session = const AuthSession(userId: 'cloud-user');
+
+      const cloudProfileId = '22222222-2222-4222-8222-222222222222';
+      await harness.localProfiles.upsertProfile(
+        Profile(
+          id: cloudProfileId,
+          accountId: 'cloud-user',
+          name: 'Cloud Profile',
+          color: 0xFF2160AB,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.selectedProfilePreferences.setSelectedProfileId(
+        cloudProfileId,
+      );
+
+      const accountId = 'cloud_xtream_account_auto_sync_failure';
+      await harness.iptvLocal.saveAccount(
+        XtreamAccount(
+          id: accountId,
+          alias: 'Cloud Source',
+          endpoint: XtreamEndpoint.parse('http://example.com'),
+          username: 'demo',
+          status: XtreamAccountStatus.pending,
+          createdAt: DateTime(2026, 1, 1),
+        ),
+      );
+      await harness.iptvLocal.savePlaylists(accountId, <XtreamPlaylist>[
+        XtreamPlaylist(
+          id: 'pl_movies',
+          accountId: accountId,
+          title: 'Films',
+          type: XtreamPlaylistType.movies,
+          items: const <XtreamPlaylistItem>[
+            XtreamPlaylistItem(
+              accountId: accountId,
+              categoryId: 'cat_movies',
+              categoryName: 'Films',
+              streamId: 1001,
+              title: 'Film local',
+              type: XtreamPlaylistItemType.movie,
+              tmdbId: 550,
+            ),
+          ],
+        ),
+      ]);
+
+      final result = await harness.run();
+      expect(result.isSuccess, isTrue);
+      expect(result.destination, BootstrapDestination.home);
+
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+      expect(harness.trackingCloudSyncService, isNotNull);
+      expect(harness.trackingCloudSyncService!.syncAllCalls, 1);
+      expect(harness.trackingCloudSyncService!.pullUserPreferencesCalls, 0);
+    },
+  );
+
+  test(
     'does not rehydrate a remote source suppressed after local deletion',
     () async {
       final secureStorageRepository = _FakeSecureStorageRepository();
@@ -1147,6 +1287,7 @@ class _LaunchHarness {
     required this.authRepository,
     required this.homeController,
     required this.logger,
+    this.trackingCloudSyncService,
     this.supabaseClient,
   });
 
@@ -1160,12 +1301,15 @@ class _LaunchHarness {
   final _FakeAuthRepository authRepository;
   final _FakeHomeController homeController;
   final _MemoryLogger logger;
+  final _TrackingComprehensiveCloudSyncService? trackingCloudSyncService;
   final SupabaseClient? supabaseClient;
 
   static Future<_LaunchHarness> create({
     bool cloudAuthEnabled = false,
     bool enableEntryJourneyTelemetryV2 = false,
     bool enableEntryJourneyStateModelV2 = false,
+    bool trackCloudSync = false,
+    Object? cloudSyncFailure,
     SecureStorageRepository? secureStorageRepository,
     CredentialsVault? credentialsVault,
     IptvCredentialsEdgeService? credentialsEdgeService,
@@ -1195,6 +1339,12 @@ class _LaunchHarness {
     final refreshXtreamCatalog = _FakeRefreshXtreamCatalog();
     final refreshStalkerCatalog = _FakeRefreshStalkerCatalog();
     final homeController = _FakeHomeController();
+    final trackingCloudSyncService = trackCloudSync
+        ? _TrackingComprehensiveCloudSyncService(
+            db: db,
+            forcedFailure: cloudSyncFailure,
+          )
+        : null;
     final supabaseClient = cloudAuthEnabled
         ? SupabaseClient('https://example.supabase.co', 'anon-key')
         : null;
@@ -1248,6 +1398,10 @@ class _LaunchHarness {
           (ref) async => StartupResult.ready(durationMs: 0),
         ),
         homeControllerProvider.overrideWith(() => homeController),
+        if (trackingCloudSyncService != null)
+          comprehensiveCloudSyncServiceProvider.overrideWithValue(
+            trackingCloudSyncService,
+          ),
         if (supabaseClient != null)
           supabaseClientProvider.overrideWithValue(supabaseClient),
       ],
@@ -1274,6 +1428,7 @@ class _LaunchHarness {
       authRepository: authRepository,
       homeController: homeController,
       logger: logger,
+      trackingCloudSyncService: trackingCloudSyncService,
       supabaseClient: supabaseClient,
     );
   }
@@ -1722,6 +1877,75 @@ class _FakeStalkerRepository implements StalkerRepository {
       movieCount: 0,
       seriesCount: 0,
     );
+  }
+}
+
+final class _TrackingComprehensiveCloudSyncService
+    extends ComprehensiveCloudSyncService {
+  _TrackingComprehensiveCloudSyncService({
+    required Database db,
+    this.forcedFailure,
+  }) : super(
+         sl: GetIt.asNewInstance(),
+         librarySync: LibraryCloudSyncService(
+           secureStorage: _MemorySecurePayloadStore(),
+           outbox: SyncOutboxRepository(db),
+           db: db,
+           playlistLocal: PlaylistLocalRepository(db: db),
+         ),
+       );
+
+  final Object? forcedFailure;
+  int syncAllCalls = 0;
+  int pullUserPreferencesCalls = 0;
+
+  @override
+  Future<void> syncAll({
+    required SupabaseClient client,
+    required String profileId,
+    bool Function()? shouldCancel,
+  }) async {
+    syncAllCalls += 1;
+    final failure = forcedFailure;
+    if (failure != null) {
+      throw failure;
+    }
+  }
+
+  @override
+  Future<void> pullUserPreferences({
+    required SupabaseClient client,
+    bool Function()? shouldCancel,
+    Set<String>? knownIptvAccountIds,
+    bool preferLocalAccent = false,
+    String context = 'default',
+  }) async {
+    pullUserPreferencesCalls += 1;
+  }
+}
+
+final class _MemorySecurePayloadStore implements SecurePayloadStore {
+  final Map<String, Map<String, dynamic>> _data =
+      <String, Map<String, dynamic>>{};
+
+  @override
+  Future<Map<String, dynamic>?> get(String key) async {
+    final value = _data[key];
+    if (value == null) return null;
+    return Map<String, dynamic>.from(value);
+  }
+
+  @override
+  Future<void> put({
+    required String key,
+    required Map<String, dynamic> payload,
+  }) async {
+    _data[key] = Map<String, dynamic>.from(payload);
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    _data.remove(key);
   }
 }
 

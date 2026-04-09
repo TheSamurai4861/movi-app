@@ -7,15 +7,7 @@ class LoadContinueWatchingMedia {
 
   final ContinueWatchingEnrichmentService _service;
 
-  Future<List<InProgressMedia>> call({
-    double minProgress = 0.05,
-    double maxProgress = 0.9,
-    String userId = 'default',
-  }) {
-    return _service.loadInProgress(
-      minProgress: minProgress,
-      maxProgress: maxProgress,
-      userId: userId,
-    );
+  Future<List<InProgressMedia>> call({String userId = 'default'}) {
+    return _service.loadInProgress(userId: userId);
   }
 }

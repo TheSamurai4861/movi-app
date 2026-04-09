@@ -616,10 +616,14 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent. Check your messages and enter it below.';
+      'Code sent to your account email. Check your messages and enter it below.';
 
   @override
   String get pinRecoveryComingSoon => 'Ця функція скоро зʼявиться.';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'PIN recovery by email is currently unavailable.';
 
   @override
   String get pinRecoveryCodeLabel => 'Код відновлення';
@@ -665,6 +669,12 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN оновлено';
+
+  @override
+  String get profilePinSaved => 'PIN saved.';
+
+  @override
+  String get profilePinEditLabel => 'Edit PIN code';
 
   @override
   String get settingsAccountsSection => 'Облікові записи';

@@ -12,7 +12,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/auth/application/services/local_data_cleanup_service.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
@@ -23,8 +22,6 @@ import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
 import 'package:movi/src/core/preferences/player_preferences.dart';
-import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
-import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/core/profile/presentation/providers/profile_auth_providers.dart';
@@ -32,12 +29,15 @@ import 'package:movi/src/core/profile/presentation/providers/profiles_providers.
 import 'package:movi/src/core/profile/presentation/providers/selected_profile_providers.dart';
 import 'package:movi/src/core/profile/presentation/ui/dialogs/create_profile_dialog.dart';
 import 'package:movi/src/core/profile/presentation/ui/dialogs/manage_profile_dialog.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/core/widgets/movi_tv_action_menu.dart';
 import 'package:movi/src/features/iptv/application/services/xtream_sync_service.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
@@ -72,6 +72,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String? _unlockedProfileId;
   ProviderSubscription<SupabaseAuthStatus>? _authStatusSub;
   final _firstProfileFocusNode = FocusNode(debugLabel: 'SettingsFirstProfile');
+  final _addProfileFocusNode = FocusNode(debugLabel: 'SettingsAddProfile');
+  final _premiumTileFocusNode = FocusNode(debugLabel: 'SettingsPremiumTile');
+  final _languageSelectorFocusNode = FocusNode(
+    debugLabel: 'SettingsLanguageSelector',
+  );
+  late List<FocusNode> _profileFocusNodes;
   late final ShellFocusCoordinator _shellFocusCoordinator;
 
   static const Map<String, String> _languageNativeNames = {
@@ -170,6 +176,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Future<void> _showTvLanguageSelector(
+    BuildContext context,
+    String currentCode,
+  ) async {
+    final localePrefs = ref.read(slProvider)<LocalePreferences>();
+    final l10n = AppLocalizations.of(context)!;
+    final items = _availableLanguages();
+    final currentLang = currentCode.toLowerCase().split('-').first;
+
+    await showMoviTvActionMenu(
+      context: context,
+      title: l10n.settingsLanguageLabel,
+      actions: items
+          .map(
+            (entry) => MoviTvActionMenuAction(
+              label:
+                  '${entry.$1.toLowerCase().split('-').first == currentLang ? '✓ ' : ''}${entry.$2}',
+              onPressed: () {
+                _guard(() => localePrefs.setLanguageCode(entry.$1));
+              },
+            ),
+          )
+          .toList(growable: false),
+      cancelLabel: l10n.actionCancel,
+    );
+  }
+
   Future<void> _openExternalLink(Uri url) async {
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (ok) return;
@@ -220,12 +253,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _profileFocusNodes = <FocusNode>[_firstProfileFocusNode];
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
     _shellFocusCoordinator.registerTabFocusBinding(
       ShellTab.settings,
-      ShellTabFocusBinding(
-        initialFocusNode: _firstProfileFocusNode,
-      ),
+      ShellTabFocusBinding(initialFocusNode: _firstProfileFocusNode),
     );
 
     // Utiliser listenManual dans initState (ref.listen ne peut être utilisé que dans build)
@@ -249,9 +281,43 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ShellTab.settings,
       _firstProfileFocusNode,
     );
+    _disposeOwnedProfileFocusNodes();
     _firstProfileFocusNode.dispose();
+    _addProfileFocusNode.dispose();
+    _premiumTileFocusNode.dispose();
+    _languageSelectorFocusNode.dispose();
     _lockSessionIfUnlocked();
     super.dispose();
+  }
+
+  void _syncProfileFocusNodes(int profileCount) {
+    if (_profileFocusNodes.length == profileCount) return;
+    if (_profileFocusNodes.isEmpty && profileCount > 0) {
+      _profileFocusNodes.add(_firstProfileFocusNode);
+    }
+    while (_profileFocusNodes.length < profileCount) {
+      final index = _profileFocusNodes.length;
+      _profileFocusNodes.add(
+        index == 0
+            ? _firstProfileFocusNode
+            : FocusNode(debugLabel: 'SettingsProfile-$index'),
+      );
+    }
+    while (_profileFocusNodes.length > profileCount) {
+      final removed = _profileFocusNodes.removeLast();
+      if (!identical(removed, _firstProfileFocusNode)) {
+        removed.dispose();
+      }
+    }
+  }
+
+  void _disposeOwnedProfileFocusNodes() {
+    for (final node in _profileFocusNodes) {
+      if (!identical(node, _firstProfileFocusNode)) {
+        node.dispose();
+      }
+    }
+    _profileFocusNodes.clear();
   }
 
   // -------------------- Parental guard --------------------
@@ -759,8 +825,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   // -------------------- UI parts --------------------
 
-  KeyEventResult _handleSettingsHorizontalBoundary(KeyEvent event) {
+  ScreenType _screenTypeFor(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _isTvLayout(BuildContext context) {
+    return _screenTypeFor(context) == ScreenType.tv;
+  }
+
+  KeyEventResult _handleSettingsHorizontalBoundary(
+    KeyEvent event, {
+    bool blockDown = false,
+  }) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (blockDown && event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       ref.read(shellFocusCoordinatorProvider).focusSidebar();
       return KeyEventResult.handled;
@@ -771,6 +852,70 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return KeyEventResult.ignored;
   }
 
+  KeyEventResult _handleProfileKey({
+    required KeyEvent event,
+    required int index,
+    required int profileCount,
+  }) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (index == 0) {
+        ref.read(shellFocusCoordinatorProvider).focusSidebar();
+      } else {
+        _profileFocusNodes[index - 1].requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (index + 1 < profileCount) {
+        _profileFocusNodes[index + 1].requestFocus();
+      } else {
+        _addProfileFocusNode.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleAddProfileKey({
+    required KeyEvent event,
+    required int profileCount,
+  }) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (profileCount > 0) {
+        _profileFocusNodes[profileCount - 1].requestFocus();
+      } else {
+        _firstProfileFocusNode.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handlePremiumTileKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _firstProfileFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    return _handleSettingsHorizontalBoundary(event);
+  }
+
   Widget _buildSettingItem({
     required String title,
     String? value,
@@ -778,6 +923,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     VoidCallback? onTap,
     Widget? trailing,
     bool showChevronDown = false,
+    bool blockArrowDown = false,
   }) {
     final accentColor = ref.watch(asp.currentAccentColorProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -785,7 +931,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     return Focus(
       canRequestFocus: false,
-      onKeyEvent: (_, event) => _handleSettingsHorizontalBoundary(event),
+      onKeyEvent: (_, event) =>
+          _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
       child: InkWell(
         onTap: onTap,
         focusColor: accentColor.withValues(alpha: 0.18),
@@ -877,21 +1024,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           children: [
             Row(
               children: [
-                _buildProfileCircle(
-                  name: l10n.errorUnknown,
-                  color: const Color.fromARGB(20, 255, 255, 255),
-                  icon: Icons.error_outline,
-                  onTap: () => _guard(
-                    () =>
-                        ref.read(profilesControllerProvider.notifier).refresh(),
+                Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) => _handleProfileKey(
+                    event: event,
+                    index: 0,
+                    profileCount: 1,
+                  ),
+                  child: _buildProfileCircle(
+                    name: l10n.errorUnknown,
+                    color: const Color.fromARGB(20, 255, 255, 255),
+                    icon: Icons.error_outline,
+                    focusNode: _firstProfileFocusNode,
+                    onTap: () => _guard(
+                      () => ref
+                          .read(profilesControllerProvider.notifier)
+                          .refresh(),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 24),
-                _buildProfileCircle(
-                  name: l10n.playlistAddButton,
-                  color: const Color.fromARGB(20, 255, 255, 255),
-                  icon: Icons.add,
-                  onTap: _onAddProfile,
+                Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) =>
+                      _handleAddProfileKey(event: event, profileCount: 1),
+                  child: _buildProfileCircle(
+                    name: l10n.playlistAddButton,
+                    color: const Color.fromARGB(20, 255, 255, 255),
+                    icon: Icons.add,
+                    focusNode: _addProfileFocusNode,
+                    onTap: _onAddProfile,
+                  ),
                 ),
               ],
             ),
@@ -903,35 +1066,52 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ],
         );
       },
-      data: (profiles) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            ...profiles.map(
-              (profile) => Padding(
-                padding: const EdgeInsets.only(right: 24),
+      data: (profiles) {
+        _syncProfileFocusNodes(profiles.length);
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var index = 0; index < profiles.length; index++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 24),
+                  child: Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleProfileKey(
+                      event: event,
+                      index: index,
+                      profileCount: profiles.length,
+                    ),
+                    child: _buildProfileCircle(
+                      name: profiles[index].name,
+                      color: Theme.of(context).colorScheme.primary,
+                      icon: Icons.person,
+                      isSelected: profiles[index].id == selectedProfileId,
+                      focusNode: _profileFocusNodes[index],
+                      onTap: () => unawaited(_onSelectProfile(profiles[index])),
+                      onLongPress: () =>
+                          unawaited(_onManageProfile(profiles[index])),
+                    ),
+                  ),
+                ),
+              Focus(
+                canRequestFocus: false,
+                onKeyEvent: (_, event) => _handleAddProfileKey(
+                  event: event,
+                  profileCount: profiles.length,
+                ),
                 child: _buildProfileCircle(
-                  name: profile.name,
-                  color: Theme.of(context).colorScheme.primary,
-                  icon: Icons.person,
-                  isSelected: profile.id == selectedProfileId,
-                  focusNode: profiles.first.id == profile.id
-                      ? _firstProfileFocusNode
-                      : null,
-                  onTap: () => unawaited(_onSelectProfile(profile)),
-                  onLongPress: () => unawaited(_onManageProfile(profile)),
+                  name: l10n.playlistAddButton,
+                  color: const Color.fromARGB(20, 255, 255, 255),
+                  icon: Icons.add,
+                  focusNode: _addProfileFocusNode,
+                  onTap: _onAddProfile,
                 ),
               ),
-            ),
-            _buildProfileCircle(
-              name: l10n.playlistAddButton,
-              color: const Color.fromARGB(20, 255, 255, 255),
-              icon: Icons.add,
-              onTap: _onAddProfile,
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -966,6 +1146,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         title: AppLocalizations.of(context)!.settingsCloudAccountTitle,
         value: accountValue,
         valueColor: accountValueColor,
+        blockArrowDown: !hasCloudSession && !(client != null),
       ),
       if (!hasCloudSession && client != null)
         _buildSettingItem(
@@ -973,9 +1154,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           onTap: () => _guard(
             () => context.push('${AppRoutePaths.authOtp}?return_to=previous'),
           ),
+          blockArrowDown: true,
         ),
       SizedBox(height: 8),
-      if (hasCloudSession) _buildSignOutButton(context),
+      if (hasCloudSession) _buildSignOutButton(context, blockArrowDown: true),
     ]);
   }
 
@@ -1043,15 +1225,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     VoidCallback? onLongPress,
     FocusNode? focusNode,
     bool isSelected = false,
+    KeyEventResult Function(KeyEvent event)? onKeyEvent,
   }) {
     return Focus(
       canRequestFocus: false,
-      onKeyEvent: (_, event) {
-        if (!identical(focusNode, _firstProfileFocusNode)) {
-          return KeyEventResult.ignored;
-        }
-        return _handleSettingsHorizontalBoundary(event);
-      },
+      onKeyEvent: onKeyEvent == null ? null : (_, event) => onKeyEvent(event),
       child: MoviFocusableAction(
         onPressed: onTap,
         onLongPress: onLongPress,
@@ -1156,7 +1334,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (!ok) return;
     }
 
-    ref.read(profilesControllerProvider.notifier).selectProfile(profile.id);
+    await ref
+        .read(profilesControllerProvider.notifier)
+        .selectProfile(profile.id);
     _lockSessionIfUnlocked();
   }
 
@@ -1172,13 +1352,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _lockSessionIfUnlocked();
   }
 
-  Widget _buildSignOutButton(BuildContext context) {
+  Widget _buildSignOutButton(
+    BuildContext context, {
+    bool blockArrowDown = false,
+  }) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return Focus(
       canRequestFocus: false,
-      onKeyEvent: (_, event) => _handleSettingsHorizontalBoundary(event),
+      onKeyEvent: (_, event) =>
+          _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
       child: OutlinedButton(
         onPressed: () => _guard(() async {
           final confirmed = await showCupertinoDialog<bool>(
@@ -1208,21 +1392,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           final navigatorContext = context;
 
           try {
-            final locator = ref.read(slProvider);
-
-            if (locator.isRegistered<LocalDataCleanupService>()) {
-              await locator<LocalDataCleanupService>().clearAllLocalData();
-            }
-
-            // Clear in-memory selections to avoid stale state after logout.
-            ref.read(asp.appStateControllerProvider).setActiveIptvSources({});
-            if (locator.isRegistered<SelectedIptvSourcePreferences>()) {
-              await locator<SelectedIptvSourcePreferences>().clear();
-            }
-            if (locator.isRegistered<SelectedProfilePreferences>()) {
-              await locator<SelectedProfilePreferences>().clear();
-            }
-
             await ref.read(authControllerProvider.notifier).signOut();
 
             if (!mounted) return;
@@ -1339,7 +1508,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   const SizedBox(height: _sectionTitleGap),
                   _buildProfilesSection(),
                   const SizedBox(height: _sectionItemGap),
-                  const MoviPremiumSettingsTile(),
+                  MoviPremiumSettingsTile(
+                    focusNode: _premiumTileFocusNode,
+                    onKeyEvent: _handlePremiumTileKey,
+                  ),
 
                   const SizedBox(height: _sectionGap),
 
@@ -1425,6 +1597,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           final isCupertinoPlatform =
                               platform == TargetPlatform.iOS ||
                               platform == TargetPlatform.macOS;
+                          final isTvLayout = _isTvLayout(context);
 
                           if (isCupertinoPlatform) {
                             return CupertinoButton(
@@ -1444,6 +1617,63 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                   color: currentAccentColor,
                                   fontWeight: FontWeight.w500,
                                 ),
+                              ),
+                            );
+                          }
+
+                          if (isTvLayout) {
+                            final selectedLabel = items
+                                .firstWhere((e) => e.$1 == selected)
+                                .$2;
+                            return SizedBox(
+                              height: 44,
+                              child: MoviFocusableAction(
+                                focusNode: _languageSelectorFocusNode,
+                                onPressed: () => _guard(
+                                  () => _showTvLanguageSelector(
+                                    context,
+                                    currentLangCode,
+                                  ),
+                                ),
+                                semanticLabel: l10n.settingsLanguageLabel,
+                                builder: (context, state) {
+                                  return MoviFocusFrame(
+                                    scale: state.focused ? 1.02 : 1,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    borderRadius: BorderRadius.circular(14),
+                                    backgroundColor: Colors.white.withValues(
+                                      alpha: state.focused ? 0.16 : 0.08,
+                                    ),
+                                    borderColor: state.focused
+                                        ? currentAccentColor
+                                        : Colors.white.withValues(alpha: 0.14),
+                                    borderWidth: 1.5,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          selectedLabel,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: currentAccentColor,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          Icons.keyboard_arrow_down,
+                                          size: 18,
+                                          color: currentAccentColor,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           }
@@ -1486,8 +1716,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                         selectedItemBuilder: (context) => [
                                           for (final (_, label) in items)
                                             Align(
-                                              alignment:
-                                                  Alignment.centerLeft,
+                                              alignment: Alignment.centerLeft,
                                               child: Text(
                                                 label,
                                                 maxLines: 1,

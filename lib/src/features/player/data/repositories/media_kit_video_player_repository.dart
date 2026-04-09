@@ -101,6 +101,25 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
       (t) => t.id == trackId.toString(),
       orElse: () => tracks.first,
     );
+    if (_isUnsupportedSubtitleCodec(track)) {
+      final fallback = _resolveSupportedSubtitleFallback(
+        tracks: tracks,
+        rejectedTrackId: track.id,
+      );
+      if (fallback != null) {
+        _logger?.warn(
+          '[Player] subtitle fallback id=${track.id} codec=${track.codec} -> ${fallback.id} codec=${fallback.codec}',
+        );
+        await _player.setSubtitleTrack(fallback);
+      }
+      _logger?.warn(
+        '[Player] subtitle track rejected id=${track.id} codec=${track.codec}',
+      );
+      throw PlayerSubtitleSelectionException(
+        kind: PlayerSubtitleFailureKind.unsupportedCodec,
+        reason: track.codec,
+      );
+    }
     await _player.setSubtitleTrack(track);
   }
 
@@ -297,6 +316,29 @@ class MediaKitVideoPlayerRepository implements VideoPlayerRepository {
   bool _supportsMpvPropertyControl() {
     final platform = _player.platform;
     return platform is NativePlayer;
+  }
+
+  bool _isUnsupportedSubtitleCodec(SubtitleTrack track) {
+    final codec = (track.codec ?? '').trim().toLowerCase();
+    if (codec.isEmpty) return false;
+    // Certains builds mpv/windows ne décodent pas les sous-titres image PGS.
+    return codec.contains('hdmv_pgs_subtitle') || codec.contains('pgs');
+  }
+
+  SubtitleTrack? _resolveSupportedSubtitleFallback({
+    required List<SubtitleTrack> tracks,
+    required String rejectedTrackId,
+  }) {
+    for (final candidate in tracks) {
+      if (candidate.id == rejectedTrackId) continue;
+      if (candidate.id == 'no' || candidate.id == 'auto') continue;
+      if (!_isUnsupportedSubtitleCodec(candidate)) return candidate;
+    }
+    for (final candidate in tracks) {
+      if (candidate.id == rejectedTrackId) continue;
+      if (!_isUnsupportedSubtitleCodec(candidate)) return candidate;
+    }
+    return null;
   }
 
   Map<String, String>? _buildStreamHeaders(String url) {

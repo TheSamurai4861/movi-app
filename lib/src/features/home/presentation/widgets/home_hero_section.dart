@@ -16,11 +16,13 @@ class HomeHeroSection extends ConsumerWidget {
     required this.heroItems,
     required this.onLoadingChanged,
     this.primaryActionFocusNode,
+    this.moviesFilterFocusNode,
   });
 
   final List<ContentReference> heroItems;
   final ValueChanged<bool> onLoadingChanged;
   final FocusNode? primaryActionFocusNode;
+  final FocusNode? moviesFilterFocusNode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,6 +53,7 @@ class HomeHeroSection extends ConsumerWidget {
           items: heroItems.take(10).toList(growable: false),
           onLoadingChanged: onLoadingChanged,
           primaryActionFocusNode: primaryActionFocusNode,
+          moviesFilterFocusNode: moviesFilterFocusNode,
           layoutHeight: heroLayoutHeight,
         ),
       );
@@ -68,6 +71,7 @@ class HomeHeroSection extends ConsumerWidget {
             items: heroItems.take(10).toList(growable: false),
             onLoadingChanged: onLoadingChanged,
             primaryActionFocusNode: primaryActionFocusNode,
+            moviesFilterFocusNode: moviesFilterFocusNode,
             layoutHeight: heroLayoutHeight,
           ),
         ),

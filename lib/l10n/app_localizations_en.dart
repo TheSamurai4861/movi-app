@@ -601,17 +601,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pinRecoveryDescription =>
-      'Retrieve the PIN code for your protected profile.';
+      'We will send an 8-digit code to your account email to reset this profile PIN.';
 
   @override
   String get pinRecoveryRequestCodeButton => 'Send code';
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent. Check your messages and enter it below.';
+      'Code sent to your account email. Check your messages and enter it below.';
 
   @override
   String get pinRecoveryComingSoon => 'This feature is coming soon.';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'PIN recovery by email is currently unavailable.';
 
   @override
   String get pinRecoveryCodeLabel => 'Recovery code';
@@ -658,6 +662,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN updated';
+
+  @override
+  String get profilePinSaved => 'PIN saved.';
+
+  @override
+  String get profilePinEditLabel => 'Edit PIN code';
 
   @override
   String get settingsAccountsSection => 'Accounts';

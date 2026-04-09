@@ -3,12 +3,14 @@ import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.d
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/movie/domain/services/movie_playback_variant_resolver.dart';
 import 'package:movi/src/features/player/application/services/playback_selection_service.dart';
+import 'package:movi/src/features/player/domain/entities/playback_launch_plan.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_decision.dart';
 import 'package:movi/src/features/player/domain/entities/playback_selection_preferences.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
 import 'package:movi/src/features/player/domain/entities/video_source.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/services/media_resume_decision.dart';
+import 'package:movi/src/shared/domain/services/playback_resume_resolution.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 class ResolveMoviePlaybackSelection {
   const ResolveMoviePlaybackSelection(
@@ -63,7 +65,11 @@ class ResolveMoviePlaybackSelection {
         return decision;
       }
 
-      final resumePosition = await _loadResumePosition(movieId, userId: userId);
+      final resumeResolution = await _loadResumeResolution(
+        movieId,
+        userId: userId,
+      );
+      final resumePosition = resumeResolution.resumePosition;
       final variantsWithResume = resumePosition == null
           ? variants
           : variants
@@ -96,10 +102,24 @@ class ResolveMoviePlaybackSelection {
         preferences: preferences,
         context: context,
       );
+      final enrichedDecision = PlaybackSelectionDecision(
+        disposition: decision.disposition,
+        reason: decision.reason,
+        rankedVariants: decision.rankedVariants,
+        selectedVariant: decision.selectedVariant,
+        launchPlan: PlaybackLaunchPlan(
+          contentType: ContentType.movie,
+          targetContentId: movieId,
+          resumePosition: resumeResolution.resumePosition,
+          reasonCode: resumeResolution.reasonCode,
+          isResumeEligible: resumeResolution.canResume,
+        ),
+      );
 
       final hasExplicitPreferredSource =
           preferences.preferredSourceIds.length == 1;
-      if (decision.requiresManualSelection && hasExplicitPreferredSource) {
+      if (enrichedDecision.requiresManualSelection &&
+          hasExplicitPreferredSource) {
         _logger.warn(
           'Movie playback selection remained ambiguous for movieId=$movieId despite a selected source',
           category: 'playback_selection',
@@ -109,15 +129,19 @@ class ResolveMoviePlaybackSelection {
       _diagnostics.completed(
         'movie_playback_selection',
         elapsed: stopwatch.elapsed,
-        result: decision.disposition.name,
+        result: enrichedDecision.disposition.name,
         context: <String, Object?>{
           'movieId': movieId,
           'variants': variantsWithResume.length,
-          'reason': decision.reason.name,
-          'hasResume': resumePosition != null,
+          'reason': enrichedDecision.reason.name,
+          'resumeRequested': resumeResolution.canResume,
+          'resumeApplied':
+              enrichedDecision.selectedVariant?.videoSource.resumePosition !=
+              null,
+          'resumeReasonCode': resumeResolution.reasonCode.name,
         },
       );
-      return decision;
+      return enrichedDecision;
     } catch (error, stackTrace) {
       _diagnostics.failed(
         'movie_playback_selection',
@@ -130,7 +154,7 @@ class ResolveMoviePlaybackSelection {
     }
   }
 
-  Future<Duration?> _loadResumePosition(
+  Future<PlaybackResumeResolution> _loadResumeResolution(
     String movieId, {
     String? userId,
   }) async {
@@ -140,25 +164,28 @@ class ResolveMoviePlaybackSelection {
         ContentType.movie,
         userId: userId,
       );
-      final decision = decideResume(
+      final resolution = resolvePlaybackResume(
         position: entry?.lastPosition,
         duration: entry?.duration,
       );
-      final normalized = decision.positionOrNull;
       _diagnostics.mark(
-        'movie_resume_eligibility',
+        'movie_resume_resolution',
+        event: resolution.canResume ? 'resume_eligible' : 'resume_skipped',
         context: <String, Object?>{
           'movieId': movieId,
+          'contentType': ContentType.movie.name,
           'hasEntry': entry != null,
           'positionMs': entry?.lastPosition?.inMilliseconds,
           'durationMs': entry?.duration?.inMilliseconds,
-          'eligible': normalized != null,
-          'reasonCode': decision.reasonCode.name,
+          'reasonCode': resolution.reasonCode.name,
         },
       );
-      return normalized;
+      return resolution;
     } catch (_) {
-      return null;
+      return const PlaybackResumeResolution(
+        resumePosition: null,
+        reasonCode: ResumeReasonCode.positionInvalid,
+      );
     }
   }
 

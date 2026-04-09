@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 
 /// Grille média avec navigation TV explicite.
 ///
@@ -28,7 +29,10 @@ class MoviMediaGrid extends StatefulWidget {
     this.firstItemFocusNode,
     this.footerFocusNode,
     this.onExitUp,
+    this.onExitDown,
     this.padding = EdgeInsets.zero,
+    this.focusRequestId,
+    this.focusRequestIndex,
   });
 
   final int itemCount;
@@ -50,22 +54,67 @@ class MoviMediaGrid extends StatefulWidget {
   final FocusNode? firstItemFocusNode;
   final FocusNode? footerFocusNode;
   final bool Function()? onExitUp;
+  final bool Function()? onExitDown;
   final EdgeInsetsGeometry padding;
+  final int? focusRequestId;
+  final int? focusRequestIndex;
 
   @override
   State<MoviMediaGrid> createState() => _MoviMediaGridState();
 }
 
 class _MoviMediaGridState extends State<MoviMediaGrid> {
-  late List<FocusNode> _itemFocusNodes = _buildFocusNodes(widget.itemCount);
+  late final List<FocusNode> _itemFocusNodes = <FocusNode>[];
+  bool? _lastFocusEnabled;
 
-  List<FocusNode> _buildFocusNodes(int count) {
-    return List<FocusNode>.generate(count, (index) {
-      if (index == 0 && widget.firstItemFocusNode != null) {
-        return widget.firstItemFocusNode!;
+  @override
+  void initState() {
+    super.initState();
+    _syncFocusNodes(widget.itemCount, firstItem: widget.firstItemFocusNode);
+  }
+
+  void _syncFocusNodes(
+    int count, {
+    required FocusNode? firstItem,
+    FocusNode? previousFirstItem,
+  }) {
+    if (_itemFocusNodes.isEmpty && count > 0 && firstItem != null) {
+      _itemFocusNodes.add(firstItem);
+    }
+
+    // Ensure index 0 matches the injected firstItemFocusNode (if any).
+    if (count > 0 && firstItem != null) {
+      if (_itemFocusNodes.isEmpty) {
+        _itemFocusNodes.add(firstItem);
+      } else if (!identical(_itemFocusNodes[0], firstItem)) {
+        final previous = _itemFocusNodes[0];
+        _itemFocusNodes[0] = firstItem;
+        final wasInjectedByOldWidget =
+            previousFirstItem != null && identical(previous, previousFirstItem);
+        final isInjectedByNewWidget =
+            identical(previous, widget.firstItemFocusNode);
+        if (!wasInjectedByOldWidget && !isInjectedByNewWidget) {
+          previous.dispose();
+        }
       }
-      return FocusNode(debugLabel: 'MoviMediaGridItem-$index');
-    }, growable: false);
+    }
+
+    while (_itemFocusNodes.length < count) {
+      final index = _itemFocusNodes.length;
+      _itemFocusNodes.add(
+        index == 0 && firstItem != null
+            ? firstItem
+            : FocusNode(debugLabel: 'MoviMediaGridItem-$index'),
+      );
+    }
+
+    while (_itemFocusNodes.length > count) {
+      final removed = _itemFocusNodes.removeLast();
+      if (identical(removed, widget.firstItemFocusNode)) {
+        continue;
+      }
+      removed.dispose();
+    }
   }
 
   void _disposeOwnedFocusNodes() {
@@ -82,9 +131,29 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.itemCount != widget.itemCount ||
         oldWidget.firstItemFocusNode != widget.firstItemFocusNode) {
-      _disposeOwnedFocusNodes();
-      _itemFocusNodes = _buildFocusNodes(widget.itemCount);
+      _syncFocusNodes(
+        widget.itemCount,
+        firstItem: widget.firstItemFocusNode,
+        previousFirstItem: oldWidget.firstItemFocusNode,
+      );
     }
+    if (oldWidget.focusRequestId != widget.focusRequestId) {
+      _requestFocusAtIndex(widget.focusRequestIndex);
+    }
+  }
+
+  void _requestFocusAtIndex(int? index) {
+    if (index == null || index < 0 || index >= _itemFocusNodes.length) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final node = _itemFocusNodes[index];
+      if (!node.canRequestFocus || node.context == null) {
+        return;
+      }
+      node.requestFocus();
+    });
   }
 
   @override
@@ -103,6 +172,15 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
     return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 
+  void _syncFocusEnabled(bool enabled) {
+    if (_lastFocusEnabled == enabled) return;
+    _lastFocusEnabled = enabled;
+    for (final node in _itemFocusNodes) {
+      node.canRequestFocus = enabled;
+      node.skipTraversal = !enabled;
+    }
+  }
+
   double _slotWidthFor(double availableWidth, int crossAxisCount) {
     return (availableWidth - (widget.gridGapH * (crossAxisCount - 1))) /
         crossAxisCount;
@@ -113,6 +191,39 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
       return false;
     }
     node.requestFocus();
+    return true;
+  }
+
+  void _ensureVisible(FocusNode node, {required bool goingUp}) {
+    final ctx = node.context;
+    if (ctx == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final targetContext = node.context;
+      if (targetContext == null) return;
+      Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        alignmentPolicy: goingUp
+            ? ScrollPositionAlignmentPolicy.keepVisibleAtStart
+            : ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      );
+    });
+  }
+
+  bool _scrollAncestorToTopIfNeeded(BuildContext context) {
+    final position = Scrollable.maybeOf(context)?.position;
+    if (position == null) return false;
+    if (!position.hasPixels) return false;
+    if (position.pixels <= 1.0) return false;
+    unawaited(
+      position.animateTo(
+        0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      ),
+    );
     return true;
   }
 
@@ -142,6 +253,10 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
       targetIndex = index + 1;
     } else if (key == LogicalKeyboardKey.arrowUp) {
       if (index - crossAxisCount < 0) {
+        // Only allow exiting upward (back/header) when the parent scroll is at top.
+        if (_scrollAncestorToTopIfNeeded(context)) {
+          return KeyEventResult.handled;
+        }
         final handled = widget.onExitUp?.call() ?? false;
         return handled ? KeyEventResult.handled : KeyEventResult.ignored;
       }
@@ -149,8 +264,12 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
     } else if (key == LogicalKeyboardKey.arrowDown) {
       final proposedIndex = index + crossAxisCount;
       if (proposedIndex > lastItemIndex) {
-        final handled = _requestFocusIfAvailable(widget.footerFocusNode);
-        return handled ? KeyEventResult.handled : KeyEventResult.handled;
+        final movedToFooter = _requestFocusIfAvailable(widget.footerFocusNode);
+        if (movedToFooter) {
+          return KeyEventResult.handled;
+        }
+        final handled = widget.onExitDown?.call() ?? true;
+        return handled ? KeyEventResult.handled : KeyEventResult.ignored;
       }
       targetIndex = proposedIndex;
     }
@@ -168,6 +287,13 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
       final targetNode = _itemFocusNodes[candidateIndex];
       if (targetNode.canRequestFocus && targetNode.context != null) {
         targetNode.requestFocus();
+        if (key == LogicalKeyboardKey.arrowUp ||
+            key == LogicalKeyboardKey.arrowDown) {
+          _ensureVisible(
+            targetNode,
+            goingUp: key == LogicalKeyboardKey.arrowUp,
+          );
+        }
         return KeyEventResult.handled;
       }
 
@@ -197,6 +323,7 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
         final availableWidth =
             constraints.maxWidth - (widget.pageHorizontalPadding * 2);
         final isLargeScreen = _isLargeScreen(context);
+        _syncFocusEnabled(isLargeScreen);
 
         int crossAxisCount =
             (availableWidth / (baseLayoutCardWidth + widget.gridGapH))

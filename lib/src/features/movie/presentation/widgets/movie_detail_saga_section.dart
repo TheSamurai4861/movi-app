@@ -24,7 +24,9 @@ class MovieDetailSagaSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final hasExtendedDiscoveryPremium = ref
         .watch(
-          canAccessPremiumFeatureProvider(PremiumFeature.extendedDiscoveryDetails),
+          canAccessPremiumFeatureProvider(
+            PremiumFeature.extendedDiscoveryDetails,
+          ),
         )
         .maybeWhen(data: (value) => value, orElse: () => false);
     if (!hasExtendedDiscoveryPremium) {
@@ -60,8 +62,9 @@ class MovieDetailSagaSection extends ConsumerWidget {
                       ref,
                       sagaId: sagaLink.id.value,
                     ),
-                    semanticLabel:
-                        AppLocalizations.of(context)!.semanticsSeeSagaPage,
+                    semanticLabel: AppLocalizations.of(
+                      context,
+                    )!.semanticsSeeSagaPage,
                     builder: (context, state) {
                       return MoviFocusFrame(
                         scale: state.focused ? 1.03 : 1,
@@ -93,6 +96,7 @@ class MovieDetailSagaSection extends ConsumerWidget {
             MoviItemsList(
               title: '',
               hideHeader: true,
+              consumeLeadingEdgeLeftKey: true,
               estimatedItemWidth: 150,
               estimatedItemHeight: MoviMediaCard.listHeight,
               titlePadding: 0,

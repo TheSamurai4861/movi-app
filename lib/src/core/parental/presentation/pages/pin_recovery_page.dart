@@ -34,9 +34,36 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
   );
   final FocusNode _verifyFocusNode = FocusNode(debugLabel: 'PinRecoveryVerify');
   final FocusNode _resetFocusNode = FocusNode(debugLabel: 'PinRecoveryReset');
+  ProviderSubscription<PinRecoveryUiState>? _pinRecoverySub;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(pinRecoveryControllerProvider.notifier).resetFlow();
+    });
+    _pinRecoverySub = ref.listenManual<PinRecoveryUiState>(
+      pinRecoveryControllerProvider,
+      (previous, next) {
+        if (!mounted) return;
+        if (previous?.status == PinRecoveryUiStatus.resetSuccess ||
+            next.status != PinRecoveryUiStatus.resetSuccess) {
+          return;
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Navigator.of(context).maybePop(true);
+        });
+      },
+      fireImmediately: false,
+    );
+  }
 
   @override
   void dispose() {
+    _pinRecoverySub?.close();
     _backFocusNode.dispose();
     _requestCodeFocusNode.dispose();
     _codeFocusNode.dispose();
@@ -53,7 +80,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
       PinRecoveryStatus.invalid => l10n.pinRecoveryCodeInvalid,
       PinRecoveryStatus.expired => l10n.pinRecoveryCodeExpired,
       PinRecoveryStatus.tooManyAttempts => l10n.pinRecoveryTooManyAttempts,
-      PinRecoveryStatus.notAvailable => l10n.pinRecoveryComingSoon,
+      PinRecoveryStatus.notAvailable => l10n.pinRecoveryNotAvailable,
       PinRecoveryStatus.unknown => l10n.pinRecoveryUnknownError,
       PinRecoveryStatus.success => null,
     };

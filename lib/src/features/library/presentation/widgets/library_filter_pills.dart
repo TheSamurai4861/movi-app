@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -11,10 +12,73 @@ class LibraryFilterPills extends ConsumerWidget {
     super.key,
     required this.activeFilter,
     required this.onFilterChanged,
+    this.firstFilterFocusNode,
+    this.clearFilterFocusNode,
+    this.artistsFilterFocusNode,
+    this.onRequestSidebarFocus,
+    this.onRequestFirstPlaylistFocus,
+    this.onRequestSearchActionFocus,
   });
 
   final LibraryFilterType? activeFilter;
   final ValueChanged<LibraryFilterType?> onFilterChanged;
+  final FocusNode? firstFilterFocusNode;
+  final FocusNode? clearFilterFocusNode;
+  final FocusNode? artistsFilterFocusNode;
+  final VoidCallback? onRequestSidebarFocus;
+  final VoidCallback? onRequestFirstPlaylistFocus;
+  final VoidCallback? onRequestSearchActionFocus;
+
+  KeyEventResult _handleFirstFilterKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (activeFilter != null &&
+          clearFilterFocusNode != null &&
+          clearFilterFocusNode!.context != null &&
+          clearFilterFocusNode!.canRequestFocus) {
+        clearFilterFocusNode!.requestFocus();
+        return KeyEventResult.handled;
+      }
+      onRequestSidebarFocus?.call();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      onRequestFirstPlaylistFocus?.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleDefaultFilterKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      onRequestFirstPlaylistFocus?.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleArtistsFilterKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      onRequestFirstPlaylistFocus?.call();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      onRequestSearchActionFocus?.call();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,62 +86,88 @@ class LibraryFilterPills extends ConsumerWidget {
     return Row(
       children: [
         if (activeFilter != null) ...[
-          MoviFocusableAction(
-            onPressed: () => onFilterChanged(null),
-            semanticLabel:
-                AppLocalizations.of(context)!.libraryClearFilterSemanticLabel,
-            builder: (context, state) {
-              return MoviFocusFrame(
-                scale: state.focused ? 1.04 : 1,
-                borderRadius: BorderRadius.circular(999),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: accentColor,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: state.focused ? Colors.white : Colors.transparent,
-                      width: 1.5,
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleDefaultFilterKey(event),
+            child: MoviFocusableAction(
+              focusNode: clearFilterFocusNode,
+              onPressed: () => onFilterChanged(null),
+              semanticLabel: AppLocalizations.of(
+                context,
+              )!.libraryClearFilterSemanticLabel,
+              builder: (context, state) {
+                return MoviFocusFrame(
+                  scale: state.focused ? 1.04 : 1,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: state.focused
+                            ? Colors.white
+                            : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Colors.white,
                     ),
                   ),
-                  child: const Icon(Icons.close, size: 16, color: Colors.white),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
           const SizedBox(width: 8),
         ],
         // Pills de filtre
-        _FilterPill(
-          label: AppLocalizations.of(context)!.libraryPlaylistsFilter,
-          isActive: activeFilter == LibraryFilterType.playlists,
-          accentColor: accentColor,
-          onTap: () => onFilterChanged(
-            activeFilter == LibraryFilterType.playlists
-                ? null
-                : LibraryFilterType.playlists,
+        Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleFirstFilterKey(event),
+          child: _FilterPill(
+            label: AppLocalizations.of(context)!.libraryPlaylistsFilter,
+            isActive: activeFilter == LibraryFilterType.playlists,
+            accentColor: accentColor,
+            focusNode: firstFilterFocusNode,
+            onTap: () => onFilterChanged(
+              activeFilter == LibraryFilterType.playlists
+                  ? null
+                  : LibraryFilterType.playlists,
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        _FilterPill(
-          label: AppLocalizations.of(context)!.librarySagasFilter,
-          isActive: activeFilter == LibraryFilterType.sagas,
-          accentColor: accentColor,
-          onTap: () => onFilterChanged(
-            activeFilter == LibraryFilterType.sagas
-                ? null
-                : LibraryFilterType.sagas,
+        Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleDefaultFilterKey(event),
+          child: _FilterPill(
+            label: AppLocalizations.of(context)!.librarySagasFilter,
+            isActive: activeFilter == LibraryFilterType.sagas,
+            accentColor: accentColor,
+            onTap: () => onFilterChanged(
+              activeFilter == LibraryFilterType.sagas
+                  ? null
+                  : LibraryFilterType.sagas,
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        _FilterPill(
-          label: AppLocalizations.of(context)!.libraryArtistsFilter,
-          isActive: activeFilter == LibraryFilterType.artistes,
-          accentColor: accentColor,
-          onTap: () => onFilterChanged(
-            activeFilter == LibraryFilterType.artistes
-                ? null
-                : LibraryFilterType.artistes,
+        Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleArtistsFilterKey(event),
+          child: _FilterPill(
+            label: AppLocalizations.of(context)!.libraryArtistsFilter,
+            isActive: activeFilter == LibraryFilterType.artistes,
+            accentColor: accentColor,
+            focusNode: artistsFilterFocusNode,
+            onTap: () => onFilterChanged(
+              activeFilter == LibraryFilterType.artistes
+                  ? null
+                  : LibraryFilterType.artistes,
+            ),
           ),
         ),
       ],
@@ -91,12 +181,14 @@ class _FilterPill extends StatelessWidget {
     required this.isActive,
     required this.accentColor,
     required this.onTap,
+    this.focusNode,
   });
 
   final String label;
   final bool isActive;
   final Color accentColor;
   final VoidCallback onTap;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +201,7 @@ class _FilterPill extends StatelessWidget {
 
     return MoviFocusableAction(
       onPressed: onTap,
+      focusNode: focusNode,
       semanticLabel: label,
       builder: (context, state) {
         return MoviFocusFrame(

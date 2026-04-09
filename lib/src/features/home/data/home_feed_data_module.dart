@@ -70,6 +70,7 @@ class HomeFeedDataModule {
       sl.registerLazySingleton<ContinueWatchingEnrichmentService>(
         () => ContinueWatchingEnrichmentService(
           historyRepo: sl<HistoryLocalRepository>(),
+          seriesSeenStateRepo: sl<SeriesSeenStateRepository>(),
           movieRepository: sl<MovieRepository>(),
           tvRepository: sl<TvRepository>(),
           tmdbCache: sl<TmdbCacheDataSource>(),

@@ -25,16 +25,13 @@ class _CategoryPageState extends ConsumerState<CategoryPage> {
     debugLabel: 'CategoryFirstItem',
   );
   final FocusNode _retryFocusNode = FocusNode(debugLabel: 'CategoryRetry');
-  final FocusNode _loadMoreFocusNode = FocusNode(
-    debugLabel: 'CategoryLoadMore',
-  );
+  int _lastWheelLoadMs = 0;
 
   @override
   void dispose() {
     _backFocusNode.dispose();
     _firstItemFocusNode.dispose();
     _retryFocusNode.dispose();
-    _loadMoreFocusNode.dispose();
     super.dispose();
   }
 
@@ -156,18 +153,38 @@ class _CategoryPageState extends ConsumerState<CategoryPage> {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
-        CategoryGrid(
-          items: state.items,
-          backFocusNode: _backFocusNode,
-          firstItemFocusNode: _firstItemFocusNode,
-          loadMoreFocusNode: _loadMoreFocusNode,
-          hasMore: state.hasMore,
-          isLoadingMore: state.isLoading && state.items.isNotEmpty,
-          onLoadMore: state.hasMore && !state.isLoading && visibleKey != null
-              ? () => ref
-                    .read(categoryControllerProvider(visibleKey).notifier)
-                    .fetchNextPage()
-              : null,
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (visibleKey == null) return false;
+            if (!state.hasMore || state.isLoading) return false;
+            if (notification is! ScrollUpdateNotification) return false;
+
+            // On desktop: wheel/trackpad => dragDetails == null.
+            if (notification.dragDetails != null) return false;
+            final delta = notification.scrollDelta;
+            if (delta == null || delta <= 0) return false;
+            if (notification.metrics.extentAfter > 320) return false;
+
+            final now = DateTime.now().millisecondsSinceEpoch;
+            if (now - _lastWheelLoadMs < 450) return false;
+            _lastWheelLoadMs = now;
+            ref
+                .read(categoryControllerProvider(visibleKey).notifier)
+                .fetchNextPage();
+            return false;
+          },
+          child: CategoryGrid(
+            items: state.items,
+            backFocusNode: _backFocusNode,
+            firstItemFocusNode: _firstItemFocusNode,
+            hasMore: state.hasMore,
+            isLoadingMore: state.isLoading && state.items.isNotEmpty,
+            onLoadMore: state.hasMore && !state.isLoading && visibleKey != null
+                ? () => ref
+                      .read(categoryControllerProvider(visibleKey).notifier)
+                      .fetchNextPage()
+                : null,
+          ),
         ),
       ],
     );

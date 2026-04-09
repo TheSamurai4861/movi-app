@@ -10,6 +10,7 @@ import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 class MoviFavoriteButton extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback onPressed;
+  final FocusNode? focusNode;
 
   /// Optional custom asset paths. Defaults to AppAssets star icons.
   final String filledAsset;
@@ -19,6 +20,12 @@ class MoviFavoriteButton extends StatefulWidget {
 
   /// Size of the tappable area (width & height). Defaults to 35.
   final double size;
+  final double iconSize;
+  final Color? focusedBackgroundColor;
+  final EdgeInsetsGeometry focusPadding;
+  final Color? focusedBorderColor;
+  final Color? unfocusedBorderColor;
+  final double borderWidth;
 
   const MoviFavoriteButton({
     super.key,
@@ -29,6 +36,13 @@ class MoviFavoriteButton extends StatefulWidget {
     this.filledColor = Colors.white,
     this.unfilledColor = Colors.white,
     this.size = 35,
+    this.iconSize = 36,
+    this.focusedBackgroundColor,
+    this.focusPadding = const EdgeInsets.all(0),
+    this.focusedBorderColor,
+    this.unfocusedBorderColor,
+    this.borderWidth = 0,
+    this.focusNode,
   });
 
   @override
@@ -41,8 +55,14 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
   @override
   Widget build(BuildContext context) {
     const duration = Duration(milliseconds: 300);
+    final focusedBg =
+        widget.focusedBackgroundColor ?? const Color(0x80000000);
+    final effectiveFocusedBorder =
+        widget.focusedBorderColor ?? Colors.transparent;
+    final effectiveUnfocusedBorder =
+        widget.unfocusedBorderColor ?? Colors.transparent;
     final backgroundColor = _focused
-        ? Colors.black.withValues(alpha: 0.45)
+        ? focusedBg
         : Colors.transparent;
 
     return Semantics(
@@ -55,6 +75,7 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
+            focusNode: widget.focusNode,
             onTap: widget.onPressed,
             onFocusChange: (focused) {
               if (_focused == focused) return;
@@ -68,9 +89,16 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
+                padding: widget.focusPadding,
                 decoration: BoxDecoration(
                   color: backgroundColor,
                   borderRadius: BorderRadius.circular(widget.size / 2),
+                  border: Border.all(
+                    color: _focused
+                        ? effectiveFocusedBorder
+                        : effectiveUnfocusedBorder,
+                    width: widget.borderWidth,
+                  ),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -81,8 +109,8 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
                       opacity: widget.isFavorite ? 0.0 : 1.0,
                       child: MoviAssetIcon(
                         widget.unfilledAsset,
-                        width: 36,
-                        height: 36,
+                        width: widget.iconSize,
+                        height: widget.iconSize,
                         color: widget.unfilledColor,
                       ),
                     ),
@@ -92,8 +120,8 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
                       opacity: widget.isFavorite ? 1.0 : 0.0,
                       child: MoviAssetIcon(
                         widget.filledAsset,
-                        width: 36,
-                        height: 36,
+                        width: widget.iconSize,
+                        height: widget.iconSize,
                         color: widget.filledColor,
                       ),
                     ),

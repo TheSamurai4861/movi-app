@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -10,7 +11,37 @@ import 'package:movi/src/features/home/presentation/providers/home_providers.dar
     as hp;
 
 class HomeHeroFilterBar extends ConsumerWidget {
-  const HomeHeroFilterBar({super.key});
+  const HomeHeroFilterBar({super.key, this.moviesFocusNode});
+  final FocusNode? moviesFocusNode;
+
+  void _scrollToTop(BuildContext context) {
+    final controller = PrimaryScrollController.maybeOf(context);
+    if (controller == null || !controller.hasClients) {
+      return;
+    }
+    if (controller.offset <= 0) {
+      return;
+    }
+    controller.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  KeyEventResult _handleSeriesKey(
+    BuildContext context,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    final isLtr = Directionality.of(context) == TextDirection.ltr;
+    if (isLtr && event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,22 +55,40 @@ class HomeHeroFilterBar extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _BlurPillButton(
-              label: l10n.moviesTitle,
-              isActive: mediaFilter == hp.HomeIptvMediaFilter.movies,
-              activeColor: accentColor,
-              onTap: () => ref
-                  .read(hp.homeIptvMediaFilterProvider.notifier)
-                  .toggle(hp.HomeIptvMediaFilter.movies),
+            Focus(
+              canRequestFocus: false,
+              onFocusChange: (hasFocus) {
+                if (hasFocus) {
+                  _scrollToTop(context);
+                }
+              },
+              child: _BlurPillButton(
+                label: l10n.moviesTitle,
+                isActive: mediaFilter == hp.HomeIptvMediaFilter.movies,
+                activeColor: accentColor,
+                focusNode: moviesFocusNode,
+                onTap: () => ref
+                    .read(hp.homeIptvMediaFilterProvider.notifier)
+                    .toggle(hp.HomeIptvMediaFilter.movies),
+              ),
             ),
             const SizedBox(width: 8),
-            _BlurPillButton(
-              label: l10n.seriesTitle,
-              isActive: mediaFilter == hp.HomeIptvMediaFilter.series,
-              activeColor: accentColor,
-              onTap: () => ref
-                  .read(hp.homeIptvMediaFilterProvider.notifier)
-                  .toggle(hp.HomeIptvMediaFilter.series),
+            Focus(
+              canRequestFocus: false,
+              onFocusChange: (hasFocus) {
+                if (hasFocus) {
+                  _scrollToTop(context);
+                }
+              },
+              onKeyEvent: (_, event) => _handleSeriesKey(context, event),
+              child: _BlurPillButton(
+                label: l10n.seriesTitle,
+                isActive: mediaFilter == hp.HomeIptvMediaFilter.series,
+                activeColor: accentColor,
+                onTap: () => ref
+                    .read(hp.homeIptvMediaFilterProvider.notifier)
+                    .toggle(hp.HomeIptvMediaFilter.series),
+              ),
             ),
           ],
         ),
@@ -54,12 +103,14 @@ class _BlurPillButton extends StatelessWidget {
     required this.onTap,
     this.isActive = false,
     this.activeColor,
+    this.focusNode,
   });
 
   final String label;
   final VoidCallback onTap;
   final bool isActive;
   final Color? activeColor;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +126,7 @@ class _BlurPillButton extends StatelessWidget {
         : Colors.white30;
 
     return MoviFocusableAction(
+      focusNode: focusNode,
       onPressed: onTap,
       semanticLabel: label,
       builder: (context, state) {

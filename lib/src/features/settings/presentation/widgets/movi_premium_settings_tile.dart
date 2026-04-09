@@ -7,7 +7,10 @@ import 'package:movi/src/features/settings/presentation/providers/movi_premium_p
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
 class MoviPremiumSettingsTile extends ConsumerWidget {
-  const MoviPremiumSettingsTile({super.key});
+  const MoviPremiumSettingsTile({super.key, this.focusNode, this.onKeyEvent});
+
+  final FocusNode? focusNode;
+  final KeyEventResult Function(KeyEvent event)? onKeyEvent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +24,9 @@ class MoviPremiumSettingsTile extends ConsumerWidget {
 
     return Focus(
       canRequestFocus: false,
+      onKeyEvent: onKeyEvent == null ? null : (_, event) => onKeyEvent!(event),
       child: InkWell(
+        focusNode: focusNode,
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const MoviPremiumPage()),
@@ -68,8 +73,11 @@ class MoviPremiumSettingsTile extends ConsumerWidget {
               const SizedBox(width: 8),
               pageState.hasActiveSubscription
                   ? const Icon(Icons.verified, size: 20, color: Colors.white70)
-                  : const Icon(Icons.chevron_right,
-                      size: 20, color: Colors.white70),
+                  : const Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: Colors.white70,
+                    ),
             ],
           ),
         ),

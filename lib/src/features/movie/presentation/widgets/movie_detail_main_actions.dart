@@ -31,6 +31,7 @@ class MovieDetailMainActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const iconActionFocusedBackground = Color(0x807A7A7A);
     final localizations = AppLocalizations.of(context)!;
     final historyAsync = ref.watch(
       hp.mediaHistoryProvider((contentId: movieId, type: ContentType.movie)),
@@ -109,14 +110,36 @@ class MovieDetailMainActions extends ConsumerWidget {
               isFavoriteAsync.when(
                 data: (isFavorite) => MoviFavoriteButton(
                   isFavorite: isFavorite,
+                  size: 44,
+                  iconSize: 28,
+                  focusPadding: const EdgeInsets.all(5),
+                  focusedBackgroundColor: iconActionFocusedBackground,
+                  focusedBorderColor: Theme.of(context).colorScheme.primary,
+                  borderWidth: 2,
                   onPressed: () {
                     toggleFavorite();
                   },
                 ),
-                loading: () =>
-                    MoviFavoriteButton(isFavorite: false, onPressed: () {}),
-                error: (_, __) =>
-                    MoviFavoriteButton(isFavorite: false, onPressed: () {}),
+                loading: () => MoviFavoriteButton(
+                  isFavorite: false,
+                  size: 44,
+                  iconSize: 28,
+                  focusPadding: const EdgeInsets.all(5),
+                  focusedBackgroundColor: iconActionFocusedBackground,
+                  focusedBorderColor: Theme.of(context).colorScheme.primary,
+                  borderWidth: 2,
+                  onPressed: () {},
+                ),
+                error: (_, __) => MoviFavoriteButton(
+                  isFavorite: false,
+                  size: 44,
+                  iconSize: 28,
+                  focusPadding: const EdgeInsets.all(5),
+                  focusedBackgroundColor: iconActionFocusedBackground,
+                  focusedBorderColor: Theme.of(context).colorScheme.primary,
+                  borderWidth: 2,
+                  onPressed: () {},
+                ),
               ),
             ],
           ),

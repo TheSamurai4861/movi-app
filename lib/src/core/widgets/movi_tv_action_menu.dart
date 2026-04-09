@@ -72,9 +72,11 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
           constraints: const BoxConstraints(maxWidth: 520),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: colorScheme.surface.withValues(alpha: 0.98),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              color: const Color(0xFF1C1C1E),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.35),
@@ -89,7 +91,8 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (widget.title != null && widget.title!.trim().isNotEmpty) ...[
+                  if (widget.title != null &&
+                      widget.title!.trim().isNotEmpty) ...[
                     Text(
                       widget.title!,
                       textAlign: TextAlign.center,
@@ -104,16 +107,22 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                       label: widget.actions[i].label,
                       destructive: widget.actions[i].destructive,
                       focusNode: _actionFocusNodes[i],
-                      previousFocusNode: i > 0 ? _actionFocusNodes[i - 1] : null,
+                      previousFocusNode: i > 0
+                          ? _actionFocusNodes[i - 1]
+                          : null,
                       nextFocusNode: i == widget.actions.length - 1
                           ? _cancelFocusNode
                           : _actionFocusNodes[i + 1],
                       onPressed: () {
                         Navigator.of(context).pop();
-                        widget.actions[i].onPressed();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted) return;
+                          widget.actions[i].onPressed();
+                        });
                       },
                     ),
-                    if (i != widget.actions.length - 1) const SizedBox(height: 12),
+                    if (i != widget.actions.length - 1)
+                      const SizedBox(height: 12),
                   ],
                   if (widget.actions.isNotEmpty) const SizedBox(height: 18),
                   _MoviTvActionMenuButton(
@@ -122,6 +131,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                     previousFocusNode: _actionFocusNodes.isNotEmpty
                         ? _actionFocusNodes.last
                         : null,
+                    isCancel: true,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -161,6 +171,7 @@ class _MoviTvActionMenuButton extends StatelessWidget {
     this.previousFocusNode,
     this.nextFocusNode,
     this.destructive = false,
+    this.isCancel = false,
   });
 
   final String label;
@@ -169,25 +180,33 @@ class _MoviTvActionMenuButton extends StatelessWidget {
   final FocusNode? previousFocusNode;
   final FocusNode? nextFocusNode;
   final bool destructive;
+  final bool isCancel;
 
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
     }
 
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
-        previousFocusNode != null &&
-        previousFocusNode!.context != null &&
-        previousFocusNode!.canRequestFocus) {
-      previousFocusNode!.requestFocus();
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (previousFocusNode != null &&
+          previousFocusNode!.context != null &&
+          previousFocusNode!.canRequestFocus) {
+        previousFocusNode!.requestFocus();
+      }
       return KeyEventResult.handled;
     }
 
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
-        nextFocusNode != null &&
-        nextFocusNode!.context != null &&
-        nextFocusNode!.canRequestFocus) {
-      nextFocusNode!.requestFocus();
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (nextFocusNode != null &&
+          nextFocusNode!.context != null &&
+          nextFocusNode!.canRequestFocus) {
+        nextFocusNode!.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
       return KeyEventResult.handled;
     }
 
@@ -197,7 +216,16 @@ class _MoviTvActionMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final foreground = destructive ? colorScheme.error : colorScheme.onSurface;
+    final isDangerAction = destructive || isCancel;
+    final foreground = isDangerAction
+        ? colorScheme.error
+        : colorScheme.onSurface;
+    final restingBorderColor = isDangerAction
+        ? colorScheme.error.withValues(alpha: 0.8)
+        : colorScheme.primary.withValues(alpha: 0.45);
+    final focusedBorderColor = isDangerAction
+        ? colorScheme.error
+        : colorScheme.primary;
 
     return Focus(
       onKeyEvent: (_, event) => _handleKeyEvent(event),
@@ -211,11 +239,11 @@ class _MoviTvActionMenuButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             borderRadius: BorderRadius.circular(20),
             backgroundColor: state.focused
-                ? Colors.white.withValues(alpha: 0.12)
-                : Colors.white.withValues(alpha: 0.04),
+                ? colorScheme.primary.withValues(alpha: 0.16)
+                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
             borderColor: state.focused
-                ? Colors.white
-                : Colors.white.withValues(alpha: 0.06),
+                ? focusedBorderColor
+                : restingBorderColor,
             borderWidth: 2,
             child: Text(
               label,
@@ -230,7 +258,7 @@ class _MoviTvActionMenuButton extends StatelessWidget {
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
-              ),
+            ),
           );
         },
       ),

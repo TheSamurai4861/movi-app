@@ -506,13 +506,11 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
                             overlayRadius: 12,
                           ),
                         ),
-                        child: IgnorePointer(
-                          child: Slider(
-                            value: progress.clamp(0.0, 1.0),
-                            onChanged: (_) {},
-                            activeColor: accentColor,
-                            inactiveColor: Colors.white.withValues(alpha: 0.3),
-                          ),
+                        child: Slider(
+                          value: progress.clamp(0.0, 1.0),
+                          onChanged: widget.onSeek,
+                          activeColor: accentColor,
+                          inactiveColor: Colors.white.withValues(alpha: 0.3),
                         ),
                       ),
                     ),
@@ -704,16 +702,14 @@ class _PlayerIconAction extends StatelessWidget {
             children: [
               MoviFocusFrame(
                 scale: state.focused ? 1.04 : 1,
-                borderRadius: BorderRadius.circular(buttonSize / 2),
+                shape: BoxShape.circle,
                 backgroundColor: state.focused
                     ? Colors.white.withValues(alpha: 0.28)
                     : Colors.white.withValues(alpha: 0.20),
                 borderColor: state.focused ? Colors.white : Colors.transparent,
                 borderWidth: 2,
-                padding: EdgeInsets.all(isLarge ? 16 : 12),
-                child: SizedBox(
-                  width: buttonSize - (isLarge ? 32 : 24),
-                  height: buttonSize - (isLarge ? 32 : 24),
+                child: SizedBox.square(
+                  dimension: buttonSize,
                   child: Center(
                     child: iconAsset != null
                         ? MoviAssetIcon(

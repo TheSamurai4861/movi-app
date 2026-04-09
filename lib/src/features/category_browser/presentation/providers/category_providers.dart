@@ -18,7 +18,7 @@ class CategoryState {
   const CategoryState({
     this.items = const <ContentReference>[],
     this.page = 1,
-    this.pageSize = 20,
+    this.pageSize = 12,
     this.hasMore = false,
     this.isLoading = false,
     this.error,
@@ -89,29 +89,32 @@ class CategoryController extends Notifier<CategoryState> {
         ? 1
         : policy.maxConcurrentFilter;
 
-    final allowed = <ContentReference>[];
-    while (_scanIndex < _allItems.length && allowed.length < count) {
-      final end = (_scanIndex + batchSize) > _allItems.length
-          ? _allItems.length
-          : (_scanIndex + batchSize);
-      final batch = _allItems.sublist(_scanIndex, end);
+    final end = (_scanIndex + count) > _allItems.length
+        ? _allItems.length
+        : (_scanIndex + count);
+    final scanWindow = _allItems.sublist(_scanIndex, end);
+    _scanIndex = end;
 
+    final allowed = <ContentReference>[];
+    var offset = 0;
+    while (offset < scanWindow.length) {
+      final chunkEnd = (offset + batchSize) > scanWindow.length
+          ? scanWindow.length
+          : (offset + batchSize);
+      final chunk = scanWindow.sublist(offset, chunkEnd);
       final results = await Future.wait<bool>(
-        batch.map((item) async {
+        chunk.map((item) async {
           final decision = await policy.evaluate(item, profile);
           return decision.isAllowed;
         }),
         eagerError: false,
       );
-
-      for (var i = 0; i < batch.length; i++) {
+      for (var i = 0; i < chunk.length; i++) {
         if (results[i]) {
-          allowed.add(batch[i]);
-          if (allowed.length >= count) break;
+          allowed.add(chunk[i]);
         }
       }
-
-      _scanIndex = end;
+      offset = chunkEnd;
     }
 
     return allowed;

@@ -23,6 +23,7 @@ class SidebarNav extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.enableHover = true,
+    this.onFocusedIndexChanged,
   });
 
   /// Index sélectionné.
@@ -60,6 +61,7 @@ class SidebarNav extends StatefulWidget {
 
   /// Désactive les comportements de hover (utile TV).
   final bool enableHover;
+  final ValueChanged<int>? onFocusedIndexChanged;
 
   @override
   State<SidebarNav> createState() => _SidebarNavState();
@@ -99,6 +101,7 @@ class _SidebarNavState extends State<SidebarNav> {
   void _focusSelectedItem() {
     if (_itemFocusNodes.isEmpty) return;
     final index = widget.selectedIndex.clamp(0, _itemFocusNodes.length - 1);
+    widget.onFocusedIndexChanged?.call(index);
     _itemFocusNodes[index].requestFocus();
   }
 
@@ -129,6 +132,7 @@ class _SidebarNavState extends State<SidebarNav> {
     }
 
     _itemFocusNodes[targetIndex].requestFocus();
+    widget.onFocusedIndexChanged?.call(targetIndex);
     return KeyEventResult.handled;
   }
 
@@ -212,7 +216,10 @@ class _SidebarNavState extends State<SidebarNav> {
                               assetPath: widget.destinations[i].assetPath,
                               tooltip: widget.destinations[i].tooltip,
                               selected: widget.selectedIndex == i,
-                              onTap: () => widget.onDestinationSelected(i),
+                              onTap: () {
+                                widget.onFocusedIndexChanged?.call(i);
+                                widget.onDestinationSelected(i);
+                              },
                               focusNode: _itemFocusNodes[i],
                               enableHover: widget.enableHover,
                             ),

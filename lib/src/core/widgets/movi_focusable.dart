@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:movi/src/core/responsive/presentation/extensions/responsive_context.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 
 class _MoviEnsureVisibleBoundary extends InheritedWidget {
   const _MoviEnsureVisibleBoundary({
@@ -61,6 +64,7 @@ class MoviFocusFrame extends StatelessWidget {
     required this.child,
     this.scale = 1,
     this.padding = EdgeInsets.zero,
+    this.shape = BoxShape.rectangle,
     this.borderRadius,
     this.backgroundColor,
     this.borderColor,
@@ -74,6 +78,7 @@ class MoviFocusFrame extends StatelessWidget {
   final Widget child;
   final double scale;
   final EdgeInsetsGeometry padding;
+  final BoxShape shape;
   final BorderRadiusGeometry? borderRadius;
   final Color? backgroundColor;
   final Color? borderColor;
@@ -86,6 +91,7 @@ class MoviFocusFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.zero;
+    final effectiveBorderRadius = shape == BoxShape.circle ? null : radius;
     final hasDecoration =
         backgroundColor != null ||
         (borderColor != null && borderWidth > 0) ||
@@ -104,7 +110,8 @@ class MoviFocusFrame extends StatelessWidget {
         decoration: hasDecoration
             ? BoxDecoration(
                 color: backgroundColor,
-                borderRadius: radius,
+                shape: shape,
+                borderRadius: effectiveBorderRadius,
                 border: borderColor != null && borderWidth > 0
                     ? Border.all(color: borderColor!, width: borderWidth)
                     : null,
@@ -181,10 +188,29 @@ class _MoviFocusableActionState extends State<MoviFocusableAction> {
     });
   }
 
+  bool _isFocusEnabled(BuildContext context) {
+    // `ResponsiveContext` requires `ResponsiveLayout` in the tree. Some widget
+    // trees (ex: tests, overlays) may not provide it, so we fall back to
+    // `ScreenTypeResolver` based on MediaQuery.
+    try {
+      return context.isDesktop || context.isTv;
+    } catch (_) {
+      final mq = MediaQuery.maybeOf(context);
+      if (mq == null) return false;
+      final type = ScreenTypeResolver.instance.resolve(
+        mq.size.width,
+        mq.size.height == 0 ? 1 : mq.size.height,
+      );
+      return type == ScreenType.desktop || type == ScreenType.tv;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // On désactive la logique focus (TV/desktop) sur mobile/tablette.
+    final focusEnabled = _isFocusEnabled(context);
     final state = MoviInteractiveState(
-      focused: _focused,
+      focused: focusEnabled ? _focused : false,
       hovered: widget.enableHover ? _hovered : false,
       pressed: _pressed,
     );
@@ -192,7 +218,7 @@ class _MoviFocusableActionState extends State<MoviFocusableAction> {
     Widget child = FocusableActionDetector(
       autofocus: widget.autofocus,
       focusNode: widget.focusNode,
-      enabled: _enabled,
+      enabled: _enabled && focusEnabled,
       mouseCursor:
           widget.mouseCursor ??
           (widget.enableHover ? SystemMouseCursors.click : MouseCursor.defer),
@@ -207,6 +233,7 @@ class _MoviFocusableActionState extends State<MoviFocusableAction> {
         ),
       },
       onShowFocusHighlight: (value) {
+        if (!focusEnabled) return;
         if (_focused == value) return;
         setState(() => _focused = value);
         if (value && widget.ensureVisibleOnFocus) {
@@ -251,11 +278,17 @@ class MoviEnsureVisibleOnFocus extends StatefulWidget {
     required this.child,
     this.isLeadingEdge = false,
     this.isTrailingEdge = false,
+    this.consumeBackwardEdgeKey = false,
+    this.enableVerticalScroll = true,
+    this.verticalAlignment = 0.5,
   });
 
   final Widget child;
   final bool isLeadingEdge;
   final bool isTrailingEdge;
+  final bool consumeBackwardEdgeKey;
+  final bool enableVerticalScroll;
+  final double verticalAlignment;
 
   @override
   State<MoviEnsureVisibleOnFocus> createState() =>
@@ -308,7 +341,7 @@ class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
         verticalTarget,
         duration: Duration.zero,
         curve: _scrollCurve,
-        alignment: 0.5,
+        alignment: widget.verticalAlignment,
         alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
       );
     } catch (_) {
@@ -337,7 +370,8 @@ class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
           context,
           axis: Axis.vertical,
         );
-        if (verticalScrollable != null &&
+        if (widget.enableVerticalScroll &&
+            verticalScrollable != null &&
             !identical(verticalScrollable, horizontalScrollable)) {
           _scrollScrollable(verticalScrollable, target);
         }
@@ -361,7 +395,9 @@ class _MoviEnsureVisibleOnFocusState extends State<MoviEnsureVisibleOnFocus> {
 
           if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
               blocksBackward) {
-            return KeyEventResult.ignored;
+            return widget.consumeBackwardEdgeKey
+                ? KeyEventResult.handled
+                : KeyEventResult.ignored;
           }
 
           if (event.logicalKey == LogicalKeyboardKey.arrowRight &&

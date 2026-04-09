@@ -20,6 +20,8 @@ import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/presentation/providers/playback_history_providers.dart'
+    as playback_history;
 import 'package:movi/src/features/home/domain/entities/in_progress_media.dart'
     as domain;
 import 'package:movi/src/core/parental/parental.dart' as parental;
@@ -912,14 +914,7 @@ final homeInProgressProvider = FutureProvider<List<domain.InProgressMedia>>((
   final useCase = locator<LoadContinueWatchingMedia>();
   final userId = ref.watch(currentUserIdProvider);
 
-  // Aligner le crit?re "en cours" avec la librairie:
-  // - progression >= minProgressThreshold
-  // - et < maxProgressThreshold
-  return useCase(
-    minProgress: HomeLayoutConstants.minProgressThreshold,
-    maxProgress: HomeLayoutConstants.maxProgressThreshold,
-    userId: userId,
-  );
+  return useCase(userId: userId);
 });
 
 /// Provider pour obtenir l'état de lecture d'un média spécifique
@@ -928,32 +923,8 @@ final mediaHistoryProvider =
       HistoryEntry?,
       ({String contentId, ContentType type})
     >((ref, params) async {
-      final locator = ref.watch(slProvider);
-      final historyRepo = locator<HistoryLocalRepository>();
-      final userId = ref.watch(currentUserIdProvider);
-
-      final entries = await historyRepo.readAll(params.type, userId: userId);
-
-      try {
-        final entry = entries.firstWhere(
-          (e) => e.contentId == params.contentId,
-        );
-        if (entry.duration == null || entry.duration!.inSeconds <= 0) {
-          return null;
-        }
-
-        final pos = entry.lastPosition?.inSeconds ?? 0;
-        final progress = pos / entry.duration!.inSeconds;
-
-        // Un média est considéré en cours seulement si la progression est comprise
-        // entre les seuils configurés dans HomeLayoutConstants.
-        if (progress >= HomeLayoutConstants.minProgressThreshold &&
-            progress < HomeLayoutConstants.maxProgressThreshold) {
-          return entry;
-        }
-      } catch (_) {
-        // Entry not found
-      }
-
-      return null;
+      final state = await ref.watch(
+        playback_history.playbackHistoryReadStateProvider(params).future,
+      );
+      return state.resumableEntry;
     });

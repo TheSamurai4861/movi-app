@@ -131,17 +131,19 @@ class _MoviPrimaryButtonState extends State<MoviPrimaryButton> {
         scale: _focused && effectiveOnPressed != null ? 1.03 : 1,
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
+        alignment: Alignment.center,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            border: _focused && effectiveOnPressed != null
-                ? Border.all(
-                    color: scheme.primary.withValues(alpha: 0.95),
-                    width: 2,
-                  )
-                : null,
+            // Keep a constant border width so focus does not change layout footprint.
+            border: Border.all(
+              color: _focused && effectiveOnPressed != null
+                  ? scheme.primary.withValues(alpha: 0.95)
+                  : Colors.transparent,
+              width: 2,
+            ),
             boxShadow: _focused && effectiveOnPressed != null
                 ? [
                     BoxShadow(

@@ -98,6 +98,14 @@ class SupabasePlaybackHistoryRepository implements PlaybackHistoryRepository {
   }
 
   @override
+  Future<PlaybackHistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String? userId,
+  }) {
+    return getEntry(seriesId, ContentType.series, userId: userId);
+  }
+
+  @override
   Future<PlaybackHistoryEntry?> getEntry(
     String contentId,
     ContentType type, {

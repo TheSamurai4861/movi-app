@@ -22,11 +22,26 @@ final class _LocalFake implements HistoryLocalRepository {
   }) async {}
 
   @override
-  Future<void> remove(String contentId, ContentType type, {String userId = 'default'}) async {}
+  Future<void> remove(
+    String contentId,
+    ContentType type, {
+    String userId = 'default',
+  }) async {}
 
   @override
-  Future<List<HistoryEntry>> readAll(ContentType type, {String userId = 'default'}) async {
+  Future<List<HistoryEntry>> readAll(
+    ContentType type, {
+    String userId = 'default',
+  }) async {
     return const <HistoryEntry>[];
+  }
+
+  @override
+  Future<HistoryEntry?> getSeriesResumeState(
+    String seriesId, {
+    String userId = 'default',
+  }) async {
+    return null;
   }
 
   @override
@@ -42,38 +57,40 @@ final class _LocalFake implements HistoryLocalRepository {
 }
 
 void main() {
-  test('hybrid persist debug log does not include userId/email/token', () async {
-    final repo = HybridPlaybackHistoryRepository(
-      local: _LocalFake(),
-      defaultUserId: 'user@example.com',
-      remote: null,
-    );
+  test(
+    'hybrid persist debug log does not include userId/email/token',
+    () async {
+      final repo = HybridPlaybackHistoryRepository(
+        local: _LocalFake(),
+        defaultUserId: 'user@example.com',
+        remote: null,
+      );
 
-    final prints = <String>[];
+      final prints = <String>[];
 
-    await runZoned(
-      () async {
-        await repo.upsertPlay(
-          contentId: 'movie-123',
-          type: ContentType.movie,
-          title: 'Test',
-          position: const Duration(seconds: 10),
-          duration: const Duration(minutes: 10),
-          userId: 'user@example.com',
-        );
-      },
-      zoneSpecification: ZoneSpecification(
-        print: (self, parent, zone, line) {
-          prints.add(line);
+      await runZoned(
+        () async {
+          await repo.upsertPlay(
+            contentId: 'movie-123',
+            type: ContentType.movie,
+            title: 'Test',
+            position: const Duration(seconds: 10),
+            duration: const Duration(minutes: 10),
+            userId: 'user@example.com',
+          );
         },
-      ),
-    );
+        zoneSpecification: ZoneSpecification(
+          print: (self, parent, zone, line) {
+            prints.add(line);
+          },
+        ),
+      );
 
-    final blob = prints.join('\n').toLowerCase();
-    expect(blob.contains('userid='), isFalse);
-    expect(blob.contains('@'), isFalse);
-    expect(blob.contains('token'), isFalse);
-    expect(blob.contains('password'), isFalse);
-  });
+      final blob = prints.join('\n').toLowerCase();
+      expect(blob.contains('userid='), isFalse);
+      expect(blob.contains('@'), isFalse);
+      expect(blob.contains('token'), isFalse);
+      expect(blob.contains('password'), isFalse);
+    },
+  );
 }
-

@@ -7,6 +7,7 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/data/services/xtream_stream_url_builder_impl.dart';
+import 'package:movi/src/features/library/domain/repositories/continue_watching_repository.dart';
 import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
 import 'package:movi/src/features/player/application/services/playback_selection_service.dart';
@@ -18,7 +19,10 @@ import 'package:movi/src/features/tv/data/services/episode_playback_variant_reso
 import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/features/tv/domain/services/episode_playback_variant_resolver.dart';
 import 'package:movi/src/features/tv/domain/usecases/ensure_tv_enrichment.dart';
+import 'package:movi/src/features/tv/domain/usecases/mark_series_as_seen.dart';
+import 'package:movi/src/features/tv/domain/usecases/mark_series_as_unseen.dart';
 import 'package:movi/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart';
+import 'package:movi/src/features/tv/domain/usecases/resolve_series_playback_target.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
@@ -127,6 +131,32 @@ class TvDataModule {
           sl<PlaybackHistoryRepository>(),
           sl<AppLogger>(),
           sl<PerformanceDiagnosticLogger>(),
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<ResolveSeriesPlaybackTarget>()) {
+      sl.registerLazySingleton<ResolveSeriesPlaybackTarget>(
+        () => const ResolveSeriesPlaybackTarget(),
+      );
+    }
+
+    if (!sl.isRegistered<MarkSeriesAsSeen>()) {
+      sl.registerLazySingleton<MarkSeriesAsSeen>(
+        () => MarkSeriesAsSeen(
+          sl<SeriesSeenStateRepository>(),
+          sl<ContinueWatchingRepository>(),
+          sl<AppLogger>(),
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<MarkSeriesAsUnseen>()) {
+      sl.registerLazySingleton<MarkSeriesAsUnseen>(
+        () => MarkSeriesAsUnseen(
+          sl<PlaybackHistoryRepository>(),
+          sl<ContinueWatchingRepository>(),
+          sl<SeriesSeenStateRepository>(),
         ),
       );
     }

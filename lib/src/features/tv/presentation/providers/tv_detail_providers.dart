@@ -11,10 +11,12 @@ import 'package:movi/src/features/tv/data/repositories/tv_repository_impl.dart';
 import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
 import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.dart';
+import 'package:movi/src/features/player/domain/entities/playback_launch_plan.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
 import 'package:movi/src/features/iptv/data/datasources/xtream_remote_data_source.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -23,9 +25,13 @@ import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
+import 'package:movi/src/features/library/domain/repositories/playback_history_repository.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/features/tv/domain/usecases/ensure_tv_enrichment.dart';
+import 'package:movi/src/features/tv/domain/usecases/mark_series_as_seen.dart';
+import 'package:movi/src/features/tv/domain/usecases/mark_series_as_unseen.dart';
 import 'package:movi/src/features/tv/domain/usecases/resolve_episode_playback_selection.dart';
+import 'package:movi/src/features/tv/domain/usecases/resolve_series_playback_target.dart';
 import 'package:movi/src/core/network/network.dart';
 
 /// Provider pour TvRepository avec userId actuel
@@ -83,6 +89,51 @@ final resolveEpisodePlaybackSelectionUseCaseProvider =
     Provider<ResolveEpisodePlaybackSelection>(
       (ref) => ref.watch(slProvider)<ResolveEpisodePlaybackSelection>(),
     );
+
+final resolveSeriesPlaybackTargetUseCaseProvider =
+    Provider<ResolveSeriesPlaybackTarget>(
+      (ref) => ref.watch(slProvider)<ResolveSeriesPlaybackTarget>(),
+    );
+
+final seriesPlaybackLaunchPlanProvider =
+    FutureProvider.family<PlaybackLaunchPlan?, String>((ref, seriesId) async {
+      final vm = ref
+          .watch(tvDetailProgressiveControllerProvider(seriesId))
+          .asData
+          ?.value;
+      if (vm == null) {
+        return null;
+      }
+      final userId = ref.watch(currentUserIdProvider);
+      final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
+      final resumeState = await historyRepo.getSeriesResumeState(
+        seriesId,
+        userId: userId,
+      );
+      final useCase = ref.watch(resolveSeriesPlaybackTargetUseCaseProvider);
+      return useCase(
+        seriesId: seriesId,
+        seasonSnapshots: vm.seasons
+            .map(
+              (season) => EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+                seasonNumber: season.seasonNumber,
+                episodeNumbers: season.episodes.map(
+                  (episode) => episode.episodeNumber,
+                ),
+              ),
+            )
+            .toList(growable: false),
+        resumeState: resumeState,
+      );
+    });
+
+final markSeriesAsSeenUseCaseProvider = Provider<MarkSeriesAsSeen>(
+  (ref) => ref.watch(slProvider)<MarkSeriesAsSeen>(),
+);
+
+final markSeriesAsUnseenUseCaseProvider = Provider<MarkSeriesAsUnseen>(
+  (ref) => ref.watch(slProvider)<MarkSeriesAsUnseen>(),
+);
 
 /// Provider qui vérifie et déclenche l'enrichissement d'une série si nécessaire.
 /// Retourne `true` si un enrichissement a été déclenché, `false` si déjà complet.
@@ -512,12 +563,12 @@ class TvDetailProgressiveController
           if (detailLiteNullable != null) {
             // Fallback succeeded, continue.
           } else {
-          logger.warn(
-            'Failed to load TMDB show for id=$_seriesId: $e',
-            category: 'tv_detail',
-          );
-          // Re-throw pour que l'erreur soit gérée par le catch global
-          rethrow;
+            logger.warn(
+              'Failed to load TMDB show for id=$_seriesId: $e',
+              category: 'tv_detail',
+            );
+            // Re-throw pour que l'erreur soit gérée par le catch global
+            rethrow;
           }
         }
       }
@@ -609,8 +660,9 @@ class TvDetailProgressiveController
         poster: poster,
         posterBackground: null,
         backdrop: null,
-        firstAirDate:
-            item.releaseYear != null ? DateTime(item.releaseYear!, 1, 1) : null,
+        firstAirDate: item.releaseYear != null
+            ? DateTime(item.releaseYear!, 1, 1)
+            : null,
         lastAirDate: null,
         status: null,
         rating: null,

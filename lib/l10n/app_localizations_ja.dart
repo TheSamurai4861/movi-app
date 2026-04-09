@@ -599,10 +599,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent. Check your messages and enter it below.';
+      'Code sent to your account email. Check your messages and enter it below.';
 
   @override
   String get pinRecoveryComingSoon => 'この機能は近日公開です。';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'PIN recovery by email is currently unavailable.';
 
   @override
   String get pinRecoveryCodeLabel => '復元コード';
@@ -648,6 +652,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN を更新しました';
+
+  @override
+  String get profilePinSaved => 'PIN saved.';
+
+  @override
+  String get profilePinEditLabel => 'Edit PIN code';
 
   @override
   String get settingsAccountsSection => 'アカウント';

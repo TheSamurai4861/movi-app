@@ -50,6 +50,7 @@ class ShellFocusCoordinator {
       <ShellTab, ShellTabFocusBinding>{};
   final Map<ShellTab, FocusNode> _lastContentNodes = <ShellTab, FocusNode>{};
   FocusNode? _sidebarNode;
+  int? _sidebarFocusedIndex;
 
   void attachSidebar(FocusNode node) {
     _sidebarNode = node;
@@ -58,10 +59,16 @@ class ShellFocusCoordinator {
   void detachSidebar(FocusNode node) {
     if (identical(_sidebarNode, node)) {
       _sidebarNode = null;
+      _sidebarFocusedIndex = null;
     }
   }
 
   bool get isSidebarFocused => _sidebarNode?.hasFocus ?? false;
+  int? get sidebarFocusedIndex => _sidebarFocusedIndex;
+
+  void setSidebarFocusedIndex(int index) {
+    _sidebarFocusedIndex = index;
+  }
 
   void registerTabFocusBinding(ShellTab tab, ShellTabFocusBinding binding) {
     _tabBindings[tab] = binding;
@@ -83,10 +90,7 @@ class ShellFocusCoordinator {
   void registerPreferredNode(ShellTab tab, FocusNode node) {
     registerTabFocusBinding(
       tab,
-      ShellTabFocusBinding(
-        initialFocusNode: node,
-        fallbackFocusNode: node,
-      ),
+      ShellTabFocusBinding(initialFocusNode: node, fallbackFocusNode: node),
     );
   }
 
@@ -126,6 +130,33 @@ class ShellFocusCoordinator {
       return true;
     }
 
+    return false;
+  }
+
+  bool focusTabInitialEntry(ShellTab tab) {
+    final binding = _tabBindings[tab];
+    if (binding == null) return false;
+
+    if (_canRequestFocus(binding.initialFocusNode)) {
+      binding.initialFocusNode.requestFocus();
+      return true;
+    }
+
+    if (_canRequestFocus(binding.fallbackFocusNode)) {
+      binding.fallbackFocusNode!.requestFocus();
+      return true;
+    }
+
+    return false;
+  }
+
+  bool focusTabPrimaryEntry(ShellTab tab) {
+    final binding = _tabBindings[tab];
+    if (binding == null) return false;
+    if (_canRequestFocus(binding.initialFocusNode)) {
+      binding.initialFocusNode.requestFocus();
+      return true;
+    }
     return false;
   }
 

@@ -1,8 +1,8 @@
 // lib/src/features/welcome/presentation/widgets/welcome_header.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
+import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 
@@ -25,11 +25,11 @@ class WelcomeHeader extends ConsumerWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          child: SvgPicture.asset(
+          child: MoviAssetIcon(
             AppAssets.iconAppLogoSvg,
             width: 100,
             height: 100,
-            colorFilter: ColorFilter.mode(accentColor, BlendMode.srcIn),
+            color: accentColor,
           ),
         ),
         Padding(

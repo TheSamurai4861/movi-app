@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
 import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
-import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart';
@@ -27,10 +26,16 @@ class SagaDetailPage extends ConsumerStatefulWidget {
 }
 
 class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
+  static const Color _iconActionFocusedBackground = Color(0x807A7A7A);
   final FocusNode _primaryActionFocusNode = FocusNode(
     debugLabel: 'SagaDetailPrimaryAction',
   );
+  final FocusNode _favoriteActionFocusNode = FocusNode(
+    debugLabel: 'SagaDetailFavoriteAction',
+  );
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'SagaDetailBack');
+  final List<FocusNode> _movieFocusNodes = <FocusNode>[];
+  int? _lastFocusedMovieIndex;
 
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
@@ -81,8 +86,109 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
   @override
   void dispose() {
     _primaryActionFocusNode.dispose();
+    _favoriteActionFocusNode.dispose();
     _backFocusNode.dispose();
+    for (final node in _movieFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
+  }
+
+  void _syncMovieFocusNodes(int count) {
+    while (_movieFocusNodes.length < count) {
+      _movieFocusNodes.add(
+        FocusNode(debugLabel: 'SagaMovie-${_movieFocusNodes.length}'),
+      );
+    }
+    while (_movieFocusNodes.length > count) {
+      _movieFocusNodes.removeLast().dispose();
+    }
+  }
+
+  bool _requestMovieFocusAt(int index) {
+    if (index < 0 || index >= _movieFocusNodes.length) return false;
+    final node = _movieFocusNodes[index];
+    if (node.context == null || !node.canRequestFocus) return false;
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handlePrimaryActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _backFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      final index = _lastFocusedMovieIndex ?? 0;
+      _requestMovieFocusAt(index);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (_favoriteActionFocusNode.context != null &&
+          _favoriteActionFocusNode.canRequestFocus) {
+        _favoriteActionFocusNode.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleFavoriteActionKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _backFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestMovieFocusAt(0);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _primaryActionFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleMovieItemKey(
+    int index,
+    int totalCount,
+    KeyEvent event,
+  ) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (_primaryActionFocusNode.context != null &&
+          _primaryActionFocusNode.canRequestFocus) {
+        _primaryActionFocusNode.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (index == 0) {
+        return KeyEventResult.handled;
+      }
+      _requestMovieFocusAt(index - 1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      final next = index + 1;
+      if (next >= totalCount) {
+        return KeyEventResult.handled;
+      }
+      _requestMovieFocusAt(next);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -158,6 +264,7 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                   final yearB = b.year ?? 0;
                   return yearA.compareTo(yearB);
                 });
+                _syncMovieFocusNodes(movies.length);
 
                 final isWideLayout = _useDesktopDetailLayout(context);
                 final horizontalPadding = _sectionHorizontalPadding(context);
@@ -234,18 +341,23 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                   Expanded(
                                     child: sagaStartTargetAsync.when(
                                       data: (startTarget) {
-                                        return MoviPrimaryButton(
-                                          focusNode: _primaryActionFocusNode,
-                                          label: startTarget.hasInProgress
-                                              ? AppLocalizations.of(
-                                                  context,
-                                                )!.sagaContinue
-                                              : AppLocalizations.of(
-                                                  context,
-                                                )!.sagaStartNow,
-                                          assetIcon: AppAssets.iconPlay,
-                                          onPressed: () =>
-                                              _startSaga(context, ref),
+                                        return Focus(
+                                          canRequestFocus: false,
+                                          onKeyEvent: (_, event) =>
+                                              _handlePrimaryActionKey(event),
+                                          child: MoviPrimaryButton(
+                                            focusNode: _primaryActionFocusNode,
+                                            label: startTarget.hasInProgress
+                                                ? AppLocalizations.of(
+                                                    context,
+                                                  )!.sagaContinue
+                                                : AppLocalizations.of(
+                                                    context,
+                                                  )!.sagaStartNow,
+                                            assetIcon: AppAssets.iconPlay,
+                                            onPressed: () =>
+                                                _startSaga(context, ref),
+                                          ),
                                         );
                                       },
                                       loading: () => MoviPrimaryButton(
@@ -267,34 +379,67 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                   ),
                                   const SizedBox(width: 16),
                                   SizedBox(
-                                    width: 40,
-                                    height: 40,
+                                    width: 44,
+                                    height: 44,
                                     child: isFavoriteAsync.when(
-                                      data: (isFavorite) => MoviFavoriteButton(
-                                        isFavorite: isFavorite,
-                                        onPressed: () async {
-                                          await ref
-                                              .read(
-                                                sagaToggleFavoriteProvider
-                                                    .notifier,
-                                              )
-                                              .toggle(
-                                                widget.sagaId,
-                                                SagaSummary(
-                                                  id: viewModel.saga.id,
-                                                  tmdbId: viewModel.saga.tmdbId,
-                                                  title: viewModel.saga.title,
-                                                  cover: viewModel.poster,
-                                                ),
-                                              );
-                                        },
+                                      data: (isFavorite) => Focus(
+                                        canRequestFocus: false,
+                                        onKeyEvent: (_, event) =>
+                                            _handleFavoriteActionKey(event),
+                                        child: MoviFavoriteButton(
+                                          focusNode: _favoriteActionFocusNode,
+                                          isFavorite: isFavorite,
+                                          size: 44,
+                                          iconSize: 28,
+                                          focusPadding: const EdgeInsets.all(5),
+                                          focusedBackgroundColor:
+                                              _iconActionFocusedBackground,
+                                          focusedBorderColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          borderWidth: 2,
+                                          onPressed: () async {
+                                            await ref
+                                                .read(
+                                                  sagaToggleFavoriteProvider
+                                                      .notifier,
+                                                )
+                                                .toggle(
+                                                  widget.sagaId,
+                                                  SagaSummary(
+                                                    id: viewModel.saga.id,
+                                                    tmdbId: viewModel.saga.tmdbId,
+                                                    title: viewModel.saga.title,
+                                                    cover: viewModel.poster,
+                                                  ),
+                                                );
+                                          },
+                                        ),
                                       ),
                                       loading: () => MoviFavoriteButton(
                                         isFavorite: true,
+                                        size: 44,
+                                        iconSize: 28,
+                                        focusPadding: const EdgeInsets.all(5),
+                                        focusedBackgroundColor:
+                                            _iconActionFocusedBackground,
+                                        focusedBorderColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        borderWidth: 2,
                                         onPressed: () {},
                                       ),
                                       error: (_, __) => MoviFavoriteButton(
                                         isFavorite: true,
+                                        size: 44,
+                                        iconSize: 28,
+                                        focusPadding: const EdgeInsets.all(5),
+                                        focusedBackgroundColor:
+                                            _iconActionFocusedBackground,
+                                        focusedBorderColor: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        borderWidth: 2,
                                         onPressed: () {},
                                       ),
                                     ),
@@ -338,6 +483,7 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                       height: MoviMediaCard.listHeight,
                                       child: ListView.separated(
                                         scrollDirection: Axis.horizontal,
+                                        clipBehavior: Clip.none,
                                         padding: EdgeInsets.zero,
                                         itemCount: movies.length,
                                         separatorBuilder: (_, __) =>
@@ -353,6 +499,18 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                           return _SagaMovieCard(
                                             media: movie,
                                             isAvailable: isAvailable,
+                                            focusNode: _movieFocusNodes[index],
+                                            onKeyEvent: (event) =>
+                                                _handleMovieItemKey(
+                                                  index,
+                                                  movies.length,
+                                                  event,
+                                                ),
+                                            onFocusChange: (hasFocus) {
+                                              if (hasFocus) {
+                                                _lastFocusedMovieIndex = index;
+                                              }
+                                            },
                                           );
                                         },
                                       ),
@@ -368,19 +526,28 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                     height: MoviMediaCard.listHeight,
                                     child: ListView.separated(
                                       scrollDirection: Axis.horizontal,
+                                      clipBehavior: Clip.none,
                                       padding: EdgeInsets.zero,
                                       itemCount: movies.length,
                                       separatorBuilder: (_, __) =>
                                           const SizedBox(width: 16),
                                       itemBuilder: (context, index) {
                                         final movie = movies[index];
-                                        return MoviMediaCard(
+                                        return _SagaMovieCard(
                                           media: movie,
-                                          heroTag: 'saga_movie_${movie.id}',
-                                          onTap: (m) => context.push(
-                                            AppRouteNames.movie,
-                                            extra: m,
-                                          ),
+                                          isAvailable: true,
+                                          focusNode: _movieFocusNodes[index],
+                                          onKeyEvent: (event) =>
+                                              _handleMovieItemKey(
+                                                index,
+                                                movies.length,
+                                                event,
+                                              ),
+                                          onFocusChange: (hasFocus) {
+                                            if (hasFocus) {
+                                              _lastFocusedMovieIndex = index;
+                                            }
+                                          },
                                         );
                                       },
                                     ),
@@ -429,8 +596,14 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
         canRequestFocus: false,
         onKeyEvent: (_, event) {
           if (event is! KeyDownEvent) return KeyEventResult.ignored;
-          if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
-              event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            if (_primaryActionFocusNode.context != null &&
+                _primaryActionFocusNode.canRequestFocus) {
+              _primaryActionFocusNode.requestFocus();
+            }
+            return KeyEventResult.handled;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
             return KeyEventResult.handled;
           }
           return KeyEventResult.ignored;
@@ -519,13 +692,18 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                 width: 320,
                 child: sagaStartTargetAsync.when(
                   data: (startTarget) {
-                    return MoviPrimaryButton(
-                      focusNode: _primaryActionFocusNode,
-                      label: startTarget.hasInProgress
-                          ? AppLocalizations.of(context)!.sagaContinue
-                          : AppLocalizations.of(context)!.sagaStartNow,
-                      assetIcon: AppAssets.iconPlay,
-                      onPressed: () => _startSaga(context, ref),
+                    return Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) =>
+                          _handlePrimaryActionKey(event),
+                      child: MoviPrimaryButton(
+                        focusNode: _primaryActionFocusNode,
+                        label: startTarget.hasInProgress
+                            ? AppLocalizations.of(context)!.sagaContinue
+                            : AppLocalizations.of(context)!.sagaStartNow,
+                        assetIcon: AppAssets.iconPlay,
+                        onPressed: () => _startSaga(context, ref),
+                      ),
                     );
                   },
                   loading: () => MoviPrimaryButton(
@@ -542,29 +720,56 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
               ),
               const SizedBox(width: 16),
               SizedBox(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 child: isFavoriteAsync.when(
-                  data: (isFavorite) => MoviFavoriteButton(
-                    isFavorite: isFavorite,
-                    onPressed: () async {
-                      await ref
-                          .read(sagaToggleFavoriteProvider.notifier)
-                          .toggle(
-                            widget.sagaId,
-                            SagaSummary(
-                              id: viewModel.saga.id,
-                              tmdbId: viewModel.saga.tmdbId,
-                              title: viewModel.saga.title,
-                              cover: viewModel.poster,
-                            ),
-                          );
-                    },
+                  data: (isFavorite) => Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleFavoriteActionKey(event),
+                    child: MoviFavoriteButton(
+                      focusNode: _favoriteActionFocusNode,
+                      isFavorite: isFavorite,
+                      size: 44,
+                      iconSize: 28,
+                      focusPadding: const EdgeInsets.all(5),
+                      focusedBackgroundColor: _iconActionFocusedBackground,
+                      focusedBorderColor: Theme.of(context).colorScheme.primary,
+                      borderWidth: 2,
+                      onPressed: () async {
+                        await ref
+                            .read(sagaToggleFavoriteProvider.notifier)
+                            .toggle(
+                              widget.sagaId,
+                              SagaSummary(
+                                id: viewModel.saga.id,
+                                tmdbId: viewModel.saga.tmdbId,
+                                title: viewModel.saga.title,
+                                cover: viewModel.poster,
+                              ),
+                            );
+                      },
+                    ),
                   ),
-                  loading: () =>
-                      MoviFavoriteButton(isFavorite: true, onPressed: () {}),
-                  error: (_, __) =>
-                      MoviFavoriteButton(isFavorite: true, onPressed: () {}),
+                  loading: () => MoviFavoriteButton(
+                    isFavorite: true,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: _iconActionFocusedBackground,
+                    focusedBorderColor: Theme.of(context).colorScheme.primary,
+                    borderWidth: 2,
+                    onPressed: () {},
+                  ),
+                  error: (_, __) => MoviFavoriteButton(
+                    isFavorite: true,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: _iconActionFocusedBackground,
+                    focusedBorderColor: Theme.of(context).colorScheme.primary,
+                    borderWidth: 2,
+                    onPressed: () {},
+                  ),
                 ),
               ),
             ],
@@ -576,10 +781,19 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
 }
 
 class _SagaMovieCard extends ConsumerWidget {
-  const _SagaMovieCard({required this.media, required this.isAvailable});
+  const _SagaMovieCard({
+    required this.media,
+    required this.isAvailable,
+    this.focusNode,
+    this.onKeyEvent,
+    this.onFocusChange,
+  });
 
   final MoviMedia media;
   final bool isAvailable;
+  final FocusNode? focusNode;
+  final KeyEventResult Function(KeyEvent event)? onKeyEvent;
+  final ValueChanged<bool>? onFocusChange;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -610,16 +824,22 @@ class _SagaMovieCard extends ConsumerWidget {
                 1,
                 0,
               ]),
-        child: MoviMediaCard(
-          media: media,
-          heroTag: 'saga_movie_${media.id}',
-          onTap: isAvailable
-              ? (mm) => navigateToMovieDetail(
-                  context,
-                  ref,
-                  ContentRouteArgs.movie(mm.id),
-                )
-              : null,
+        child: Focus(
+          onKeyEvent: (_, event) =>
+              onKeyEvent?.call(event) ?? KeyEventResult.ignored,
+          onFocusChange: onFocusChange,
+          child: MoviMediaCard(
+            media: media,
+            focusNode: focusNode,
+            heroTag: 'saga_movie_${media.id}',
+            onTap: isAvailable
+                ? (mm) => navigateToMovieDetail(
+                    context,
+                    ref,
+                    ContentRouteArgs.movie(mm.id),
+                  )
+                : null,
+          ),
         ),
       ),
     );

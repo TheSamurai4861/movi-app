@@ -615,10 +615,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent. Check your messages and enter it below.';
+      'Code sent to your account email. Check your messages and enter it below.';
 
   @override
   String get pinRecoveryComingSoon => 'Esta función llegará pronto.';
+
+  @override
+  String get pinRecoveryNotAvailable =>
+      'PIN recovery by email is currently unavailable.';
 
   @override
   String get pinRecoveryCodeLabel => 'Código de recuperación';
@@ -665,6 +669,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get pinRecoveryResetSuccess => 'PIN actualizado';
+
+  @override
+  String get profilePinSaved => 'PIN saved.';
+
+  @override
+  String get profilePinEditLabel => 'Edit PIN code';
 
   @override
   String get settingsAccountsSection => 'Cuentas';

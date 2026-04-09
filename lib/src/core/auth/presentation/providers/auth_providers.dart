@@ -173,19 +173,31 @@ class AuthController extends Notifier<AuthControllerState> {
         snapshot.userId!.trim().isNotEmpty &&
         snapshot.userId != previous.userId;
 
-    if (hasLostSession || hasSwitchedUser) {
+    if (hasSwitchedUser) {
+      unawaited(_handleUserSwitch(snapshot));
+      return;
+    }
+
+    if (hasLostSession) {
       unawaited(
-        _resetSessionDerivedStateBestEffort(
-          reason: hasSwitchedUser ? 'auth_user_changed' : 'auth_session_lost',
-        ),
+        _resetSessionDerivedStateBestEffort(reason: 'auth_session_lost'),
       );
     }
 
     _setResolvedState(_stateFromSnapshot(snapshot));
   }
 
+  Future<void> _handleUserSwitch(AuthSnapshot snapshot) async {
+    await _resetSessionDerivedStateBestEffort(
+      reason: 'auth_user_changed',
+      strictWipe: true,
+    );
+    _setResolvedState(_stateFromSnapshot(snapshot));
+  }
+
   Future<void> _resetSessionDerivedStateBestEffort({
     required String reason,
+    bool strictWipe = false,
   }) {
     final ongoing = _sessionResetInFlight;
     if (ongoing != null) {
@@ -193,9 +205,22 @@ class AuthController extends Notifier<AuthControllerState> {
     }
 
     final future = () async {
+      final locator = ref.read(slProvider);
+      if (strictWipe && locator.isRegistered<LocalDataCleanupService>()) {
+        try {
+          await locator<LocalDataCleanupService>().clearAllLocalData();
+        } catch (error) {
+          if (kDebugMode) {
+            debugPrint(
+              '[AuthController] Failed strict local cleanup '
+              '(reason=$reason): $error',
+            );
+          }
+        }
+      }
+
       ref.read(appStateControllerProvider).setActiveIptvSources(<String>{});
 
-      final locator = ref.read(slProvider);
       if (locator.isRegistered<SelectedIptvSourcePreferences>()) {
         try {
           await locator<SelectedIptvSourcePreferences>().clear();
