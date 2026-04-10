@@ -17,9 +17,16 @@ class SubtitlePlaybackLayout {
     final safeBottom = includeDisplaySafeBottom
         ? MediaQuery.paddingOf(context).bottom
         : 0.0;
-    final isPhone = MediaQuery.sizeOf(context).shortestSide < 600;
+    final mediaQuery = MediaQuery.of(context);
+    final isPhone = mediaQuery.size.shortestSide < 600;
+    final isPhoneLandscape =
+        isPhone && mediaQuery.orientation == Orientation.landscape;
 
     if (isPhone) {
+      if (isPhoneLandscape) {
+        final base = showPlayerControls ? 34.0 : 20.0;
+        return base + safeBottom;
+      }
       final base = showPlayerControls ? 44.0 : 28.0;
       return base + safeBottom;
     }

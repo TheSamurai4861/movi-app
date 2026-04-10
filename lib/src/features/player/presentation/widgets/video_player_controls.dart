@@ -252,6 +252,12 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final isMobileLandscape =
+        mediaQuery.orientation == Orientation.landscape &&
+        mediaQuery.size.shortestSide < 600;
+    final bottomBlockVerticalPadding = isMobileLandscape ? 8.0 : 16.0;
+    final bottomSectionVerticalPadding = isMobileLandscape ? 4.0 : 8.0;
     final progress = widget.duration.inMilliseconds == 0
         ? 0.0
         : widget.position.inMilliseconds / widget.duration.inMilliseconds;
@@ -487,15 +493,17 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
             right: 0,
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: 20,
-                  vertical: 16,
+                  vertical: bottomBlockVerticalPadding,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                        vertical: bottomSectionVerticalPadding,
+                      ),
                       child: SliderTheme(
                         data: SliderTheme.of(context).copyWith(
                           trackHeight: 4,
@@ -515,7 +523,9 @@ class _VideoPlayerControlsState extends ConsumerState<VideoPlayerControls> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                        vertical: bottomSectionVerticalPadding,
+                      ),
                       child: Row(
                         children: [
                           Text(

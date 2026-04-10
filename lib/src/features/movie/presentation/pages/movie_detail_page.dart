@@ -57,7 +57,7 @@ class MovieDetailPage extends ConsumerStatefulWidget {
 
 class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     with TickerProviderStateMixin {
-  static const double _heroFocusVerticalAlignment = 0.08;
+  static const double _heroFocusVerticalAlignment = 0.0;
   bool _isTransitioningFromLoading = true;
   String mediaTitle = '—';
   String yearText = '—';
@@ -424,26 +424,34 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            MoviDetailHeroScene(
-                              isWideLayout: isWideLayout,
-                              background: _buildHeroImage(
-                                poster: poster,
-                                posterBackground: posterBackground,
-                                backdrop: backdrop,
-                              ),
-                              children: [
-                                _buildHeroTopBar(isWideLayout: isWideLayout),
-                                if (isWideLayout)
-                                  _buildDesktopHeroOverlay(
-                                    mediaTitle: mediaTitle,
-                                    logo: logo,
-                                    yearText: yearText,
-                                    durationText: durationText,
-                                    ratingText: ratingText,
-                                    overviewText: overviewText,
-                                    movieId: movieId,
+                            Builder(
+                              builder: (heroContext) =>
+                                  MoviVerticalEnsureVisibleTarget(
+                                    targetContext: heroContext,
+                                    child: MoviDetailHeroScene(
+                                      isWideLayout: isWideLayout,
+                                      background: _buildHeroImage(
+                                        poster: poster,
+                                        posterBackground: posterBackground,
+                                        backdrop: backdrop,
+                                      ),
+                                      children: [
+                                        _buildHeroTopBar(
+                                          isWideLayout: isWideLayout,
+                                        ),
+                                        if (isWideLayout)
+                                          _buildDesktopHeroOverlay(
+                                            mediaTitle: mediaTitle,
+                                            logo: logo,
+                                            yearText: yearText,
+                                            durationText: durationText,
+                                            ratingText: ratingText,
+                                            overviewText: overviewText,
+                                            movieId: movieId,
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                              ],
                             ),
                             if (!isWideLayout)
                               _buildMobileMetaSection(

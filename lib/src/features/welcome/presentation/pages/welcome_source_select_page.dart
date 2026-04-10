@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,6 +15,7 @@ import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/iptv/presentation/providers/iptv_accounts_providers.dart';
@@ -31,13 +33,21 @@ class WelcomeSourceSelectPage extends ConsumerStatefulWidget {
 
 class _WelcomeSourceSelectPageState
     extends ConsumerState<WelcomeSourceSelectPage> {
-  final FocusNode _backFocusNode = FocusNode(debugLabel: 'WelcomeSourceSelectBack');
-  final FocusNode _addSourceFocusNode = FocusNode(debugLabel: 'WelcomeSourceSelectAddSource');
+  final FocusNode _backFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceSelectBack',
+  );
+  final FocusNode _retryFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceSelectRetry',
+  );
+  final FocusNode _addSourceFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceSelectAddSource',
+  );
   final List<FocusNode> _accountFocusNodes = <FocusNode>[];
 
   @override
   void dispose() {
     _backFocusNode.dispose();
+    _retryFocusNode.dispose();
     _addSourceFocusNode.dispose();
     for (final node in _accountFocusNodes) {
       node.dispose();
@@ -75,6 +85,49 @@ class _WelcomeSourceSelectPageState
     } else {
       context.go(fallbackRoute);
     }
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+    FocusNode? up,
+    FocusNode? down,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (moveTo(left)) return KeyEventResult.handled;
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        if (moveTo(right)) return KeyEventResult.handled;
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -122,23 +175,67 @@ class _WelcomeSourceSelectPageState
             child: SettingsContentWidth(
               child: Column(
                 children: [
-                  MoviSubpageBackTitleHeader(
-                    title: l10n.activeSourceTitle,
-                    focusNode: _backFocusNode,
-                    onBack: () => _handleBack(context),
+                  Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleDirectionalKey(
+                      event,
+                      down: launchRecovery?.isRetryable ?? false
+                          ? _retryFocusNode
+                          : asyncAccounts.maybeWhen(
+                              data: (accounts) {
+                                if (accounts.isEmpty) {
+                                  return _addSourceFocusNode;
+                                }
+                                _syncAccountFocusNodes(accounts.length);
+                                return _accountFocusNodes.first;
+                              },
+                              orElse: () => null,
+                            ),
+                      blockLeft: true,
+                      blockRight: true,
+                      blockUp: true,
+                    ),
+                    child: MoviSubpageBackTitleHeader(
+                      title: l10n.activeSourceTitle,
+                      focusNode: _backFocusNode,
+                      onBack: () => _handleBack(context),
+                    ),
                   ),
                   if (launchRecovery?.isRetryable ?? false) ...[
                     const SizedBox(height: 12),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: LaunchRecoveryBanner(
-                        message: launchRecovery!.message,
-                        onRetry: () {
-                          ref
-                              .read(appLaunchOrchestratorProvider.notifier)
-                              .reset();
-                          context.go(AppRouteNames.launch);
-                        },
+                      child: MoviEnsureVisibleOnFocus(
+                        verticalAlignment: 0.18,
+                        child: Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) => _handleDirectionalKey(
+                            event,
+                            up: _backFocusNode,
+                            down: asyncAccounts.maybeWhen(
+                              data: (accounts) {
+                                if (accounts.isEmpty) {
+                                  return _addSourceFocusNode;
+                                }
+                                _syncAccountFocusNodes(accounts.length);
+                                return _accountFocusNodes.first;
+                              },
+                              orElse: () => null,
+                            ),
+                            blockLeft: true,
+                            blockRight: true,
+                          ),
+                          child: LaunchRecoveryBanner(
+                            message: launchRecovery!.message,
+                            retryFocusNode: _retryFocusNode,
+                            onRetry: () {
+                              ref
+                                  .read(appLaunchOrchestratorProvider.notifier)
+                                  .reset();
+                              context.go(AppRouteNames.launch);
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -168,11 +265,31 @@ class _WelcomeSourceSelectPageState
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 12),
-                                  ElevatedButton(
-                                    focusNode: _addSourceFocusNode,
-                                    onPressed: () =>
-                                        context.go(AppRouteNames.welcomeSources),
-                                    child: const Text('Ajouter une source'),
+                                  MoviEnsureVisibleOnFocus(
+                                    verticalAlignment: 0.22,
+                                    child: Focus(
+                                      canRequestFocus: false,
+                                      onKeyEvent: (_, event) =>
+                                          _handleDirectionalKey(
+                                            event,
+                                            up: launchRecovery?.isRetryable ??
+                                                    false
+                                                ? _retryFocusNode
+                                                : _backFocusNode,
+                                            blockLeft: true,
+                                            blockRight: true,
+                                            blockDown: true,
+                                          ),
+                                      child: ElevatedButton(
+                                        focusNode: _addSourceFocusNode,
+                                        onPressed: () => context.go(
+                                          AppRouteNames.welcomeSources,
+                                        ),
+                                        child: const Text(
+                                          'Ajouter une source',
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -184,6 +301,12 @@ class _WelcomeSourceSelectPageState
                           accounts: accounts,
                           selectedId: selectedId,
                           itemFocusNodes: _accountFocusNodes,
+                          onFirstItemUp: () => _requestFocus(
+                            launchRecovery?.isRetryable ?? false
+                                ? _retryFocusNode
+                                : _backFocusNode,
+                          ),
+                          focusVerticalAlignment: 0.22,
                           onSelected: (account) async {
                             final prefs =
                                 locator<SelectedIptvSourcePreferences>();

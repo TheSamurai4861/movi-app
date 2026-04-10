@@ -5,6 +5,8 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/profile/presentation/ui/dialogs/restart_required_dialog.dart';
 import 'package:movi/src/core/widgets/modal_content_width.dart';
 
@@ -40,6 +42,15 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  bool _useDesktopTvLayout(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final screenType = ScreenTypeResolver.instance.resolve(
+      size.width,
+      size.height,
+    );
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 
   ButtonStyle _destructiveCancelButtonStyle() {
@@ -155,6 +166,7 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.primary;
+    final useDesktopTvLayout = _useDesktopTvLayout(context);
 
     final bool canCreate =
         !_isLoading && _nameController.text.trim().isNotEmpty;
@@ -183,12 +195,13 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60),
-                    onPressed: _isLoading
-                        ? null
-                        : () => Navigator.of(context).pop(false),
-                  ),
+                  if (!useDesktopTvLayout)
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white60),
+                      onPressed: _isLoading
+                          ? null
+                          : () => Navigator.of(context).pop(false),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),

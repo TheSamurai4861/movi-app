@@ -29,6 +29,7 @@ class PersonDetailActionsRow extends ConsumerWidget {
   final FocusNode? favoriteActionFocusNode;
   final KeyEventResult Function(KeyEvent event)? onPrimaryActionKeyEvent;
   final KeyEventResult Function(KeyEvent event)? onFavoriteActionKeyEvent;
+  static const double _heroFocusVerticalAlignment = 0.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,27 +37,31 @@ class PersonDetailActionsRow extends ConsumerWidget {
     return Row(
       children: [
         Expanded(
-          child: Focus(
-            canRequestFocus: false,
-            onKeyEvent: (_, event) =>
-                onPrimaryActionKeyEvent?.call(event) ?? KeyEventResult.ignored,
-            child: MoviPrimaryButton(
-              focusNode: primaryActionFocusNode,
-              label: AppLocalizations.of(context)!.personPlayRandomly,
-              assetIcon: AppAssets.iconPlay,
-              onPressed: () {
-                final allMedia = [...movies, ...shows];
-                if (allMedia.isNotEmpty) {
-                  final random = Random();
-                  final randomMedia = allMedia[random.nextInt(allMedia.length)];
-                  context.push(
-                    randomMedia.type == MoviMediaType.movie
-                        ? AppRouteNames.movie
-                        : AppRouteNames.tv,
-                    extra: randomMedia,
-                  );
-                }
-              },
+          child: MoviEnsureVisibleOnFocus(
+            verticalAlignment: _heroFocusVerticalAlignment,
+            child: Focus(
+              canRequestFocus: false,
+              onKeyEvent: (_, event) =>
+                  onPrimaryActionKeyEvent?.call(event) ??
+                  KeyEventResult.ignored,
+              child: MoviPrimaryButton(
+                focusNode: primaryActionFocusNode,
+                label: AppLocalizations.of(context)!.personPlayRandomly,
+                assetIcon: AppAssets.iconPlay,
+                onPressed: () {
+                  final allMedia = [...movies, ...shows];
+                  if (allMedia.isNotEmpty) {
+                    final random = Random();
+                    final randomMedia = allMedia[random.nextInt(allMedia.length)];
+                    context.push(
+                      randomMedia.type == MoviMediaType.movie
+                          ? AppRouteNames.movie
+                          : AppRouteNames.tv,
+                      extra: randomMedia,
+                    );
+                  }
+                },
+              ),
             ),
           ),
         ),
@@ -67,59 +72,68 @@ class PersonDetailActionsRow extends ConsumerWidget {
               personIsFavoriteProvider(personId),
             );
             return isFavoriteAsync.when(
-              data: (isFavorite) => Focus(
-                canRequestFocus: false,
-                onKeyEvent: (_, event) =>
-                    onFavoriteActionKeyEvent?.call(event) ??
-                    KeyEventResult.ignored,
-                child: MoviFavoriteButton(
-                  focusNode: favoriteActionFocusNode,
-                  isFavorite: isFavorite,
-                  size: 44,
-                  iconSize: 28,
-                  focusPadding: const EdgeInsets.all(5),
-                  focusedBackgroundColor: iconActionFocusedBackground,
-                  focusedBorderColor: Theme.of(context).colorScheme.primary,
-                  borderWidth: 2,
-                  onPressed: () async {
-                    await ref
-                        .read(personToggleFavoriteProvider.notifier)
-                        .toggle(personId);
-                  },
+              data: (isFavorite) => MoviEnsureVisibleOnFocus(
+                verticalAlignment: _heroFocusVerticalAlignment,
+                child: Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) =>
+                      onFavoriteActionKeyEvent?.call(event) ??
+                      KeyEventResult.ignored,
+                  child: MoviFavoriteButton(
+                    focusNode: favoriteActionFocusNode,
+                    isFavorite: isFavorite,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: iconActionFocusedBackground,
+                    focusedBorderColor: Theme.of(context).colorScheme.primary,
+                    borderWidth: 2,
+                    onPressed: () async {
+                      await ref
+                          .read(personToggleFavoriteProvider.notifier)
+                          .toggle(personId);
+                    },
+                  ),
                 ),
               ),
-              loading: () => Focus(
-                canRequestFocus: false,
-                onKeyEvent: (_, event) =>
-                    onFavoriteActionKeyEvent?.call(event) ??
-                    KeyEventResult.ignored,
-                child: MoviFavoriteButton(
-                  focusNode: favoriteActionFocusNode,
-                  isFavorite: false,
-                  size: 44,
-                  iconSize: 28,
-                  focusPadding: const EdgeInsets.all(5),
-                  focusedBackgroundColor: iconActionFocusedBackground,
-                  focusedBorderColor: Theme.of(context).colorScheme.primary,
-                  borderWidth: 2,
-                  onPressed: () {},
+              loading: () => MoviEnsureVisibleOnFocus(
+                verticalAlignment: _heroFocusVerticalAlignment,
+                child: Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) =>
+                      onFavoriteActionKeyEvent?.call(event) ??
+                      KeyEventResult.ignored,
+                  child: MoviFavoriteButton(
+                    focusNode: favoriteActionFocusNode,
+                    isFavorite: false,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: iconActionFocusedBackground,
+                    focusedBorderColor: Theme.of(context).colorScheme.primary,
+                    borderWidth: 2,
+                    onPressed: () {},
+                  ),
                 ),
               ),
-              error: (_, __) => Focus(
-                canRequestFocus: false,
-                onKeyEvent: (_, event) =>
-                    onFavoriteActionKeyEvent?.call(event) ??
-                    KeyEventResult.ignored,
-                child: MoviFavoriteButton(
-                  focusNode: favoriteActionFocusNode,
-                  isFavorite: false,
-                  size: 44,
-                  iconSize: 28,
-                  focusPadding: const EdgeInsets.all(5),
-                  focusedBackgroundColor: iconActionFocusedBackground,
-                  focusedBorderColor: Theme.of(context).colorScheme.primary,
-                  borderWidth: 2,
-                  onPressed: () {},
+              error: (_, __) => MoviEnsureVisibleOnFocus(
+                verticalAlignment: _heroFocusVerticalAlignment,
+                child: Focus(
+                  canRequestFocus: false,
+                  onKeyEvent: (_, event) =>
+                      onFavoriteActionKeyEvent?.call(event) ??
+                      KeyEventResult.ignored,
+                  child: MoviFavoriteButton(
+                    focusNode: favoriteActionFocusNode,
+                    isFavorite: false,
+                    size: 44,
+                    iconSize: 28,
+                    focusPadding: const EdgeInsets.all(5),
+                    focusedBackgroundColor: iconActionFocusedBackground,
+                    focusedBorderColor: Theme.of(context).colorScheme.primary,
+                    borderWidth: 2,
+                    onPressed: () {},
+                  ),
                 ),
               ),
             );

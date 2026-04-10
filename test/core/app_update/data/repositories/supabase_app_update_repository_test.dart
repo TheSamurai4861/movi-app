@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movi/src/core/app_update/data/datasources/app_update_cache_data_source.dart';
@@ -28,7 +30,7 @@ void main() {
     logger = _TestLogger();
   });
 
-  test('fails open on remote 500 when no usable cache exists', () async {
+  test('blocks startup on remote 500 when no usable cache exists', () async {
     final repository = SupabaseAppUpdateRepository(
       remoteDataSource: _FakeAppUpdateEdgeService(
         onFetch: (_) async => throw const FunctionException(status: 500),
@@ -39,14 +41,18 @@ void main() {
 
     final decision = await repository.check(context);
 
-    expect(decision.status, AppUpdateStatus.allowed);
+    expect(decision.status, AppUpdateStatus.forceUpdate);
     expect(decision.currentVersion, context.currentVersion);
     expect(decision.platform, context.platform);
-    expect(decision.reasonCode, 'app_update_remote_server_error');
+    expect(decision.reasonCode, 'app_update_check_unavailable_blocked');
+    expect(
+      decision.message,
+      'Connexion requise pour verifier la validite de cette version.',
+    );
     expect(logger.events.last.level, LogLevel.warn);
   });
 
-  test('uses cached decision before fail-open when cache is still usable', () async {
+  test('uses cached decision when cache is still usable', () async {
     await cacheDataSource.write(
       AppUpdateRemoteResponse(
         status: AppUpdateStatus.softUpdate,
@@ -71,17 +77,75 @@ void main() {
     expect(decision.reasonCode, 'cached_soft_update');
   });
 
-  test('rethrows non-retryable app update errors without usable cache', () async {
+  test('uses cached allowed decision while its ttl remains valid', () async {
+    await cacheDataSource.write(
+      AppUpdateRemoteResponse(
+        status: AppUpdateStatus.allowed,
+        reasonCode: 'cached_allowed',
+        currentVersion: context.currentVersion,
+        platform: context.platform,
+        checkedAt: DateTime.now().toUtc(),
+      ),
+    );
+
     final repository = SupabaseAppUpdateRepository(
       remoteDataSource: _FakeAppUpdateEdgeService(
-        onFetch: (_) async => throw const FormatException('bad payload'),
+        onFetch: (_) async => throw TimeoutException('offline'),
       ),
       cacheDataSource: cacheDataSource,
       logger: logger,
     );
 
-    expect(repository.check(context), throwsFormatException);
+    final decision = await repository.check(context);
+
+    expect(decision.status, AppUpdateStatus.allowed);
+    expect(decision.reasonCode, 'cached_allowed');
   });
+
+  test('blocks startup on timeout when no usable cache exists', () async {
+    final repository = SupabaseAppUpdateRepository(
+      remoteDataSource: _FakeAppUpdateEdgeService(
+        onFetch: (_) async => throw TimeoutException('offline'),
+      ),
+      cacheDataSource: cacheDataSource,
+      logger: logger,
+    );
+
+    final decision = await repository.check(context);
+
+    expect(decision.status, AppUpdateStatus.forceUpdate);
+    expect(decision.reasonCode, 'app_update_check_unavailable_blocked');
+  });
+
+  test('blocks startup on network error when no usable cache exists', () async {
+    final repository = SupabaseAppUpdateRepository(
+      remoteDataSource: _FakeAppUpdateEdgeService(
+        onFetch: (_) async => throw _FakeSocketException(),
+      ),
+      cacheDataSource: cacheDataSource,
+      logger: logger,
+    );
+
+    final decision = await repository.check(context);
+
+    expect(decision.status, AppUpdateStatus.forceUpdate);
+    expect(decision.reasonCode, 'app_update_check_unavailable_blocked');
+  });
+
+  test(
+    'rethrows non-retryable app update errors without usable cache',
+    () async {
+      final repository = SupabaseAppUpdateRepository(
+        remoteDataSource: _FakeAppUpdateEdgeService(
+          onFetch: (_) async => throw const FormatException('bad payload'),
+        ),
+        cacheDataSource: cacheDataSource,
+        logger: logger,
+      );
+
+      expect(repository.check(context), throwsFormatException);
+    },
+  );
 }
 
 class _FakeAppUpdateEdgeService extends AppUpdateEdgeService {
@@ -89,13 +153,15 @@ class _FakeAppUpdateEdgeService extends AppUpdateEdgeService {
     : super(SupabaseClient('https://example.com', 'test-anon-key'));
 
   final Future<AppUpdateRemoteResponse> Function(AppUpdateContext context)
-      onFetch;
+  onFetch;
 
   @override
   Future<AppUpdateRemoteResponse> fetchDecision(AppUpdateContext context) {
     return onFetch(context);
   }
 }
+
+class _FakeSocketException implements Exception {}
 
 class _MemorySecureStorage extends FlutterSecureStorage {
   _MemorySecureStorage();

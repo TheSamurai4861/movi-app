@@ -68,6 +68,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   Timer? _historyHideTimer;
   int _providerFocusRequestId = 0;
   int? _providerFocusRequestColumn;
+  int _genreFocusRequestId = 0;
+  int? _genreFocusRequestColumn;
 
   bool get _hasQuery => _textCtrl.text.trim().length >= 3;
 
@@ -206,8 +208,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return true;
   }
 
-  bool _focusSidebar() {
-    return ref.read(shellFocusCoordinatorProvider).focusSidebar();
+  bool _focusSidebarAndRemember() {
+    final coordinator = ref.read(shellFocusCoordinatorProvider);
+    final focusedNode = FocusManager.instance.primaryFocus;
+    if (focusedNode != null &&
+        focusedNode.canRequestFocus &&
+        focusedNode.context != null) {
+      coordinator.rememberContentFocus(ShellTab.search, focusedNode);
+    }
+    return coordinator.focusSidebar();
   }
 
   void _setSearchInputActivated(bool activated) {
@@ -231,6 +240,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     setState(() {
       _providerFocusRequestId++;
       _providerFocusRequestColumn = column;
+    });
+  }
+
+  void _focusNearestGenreFromProviders(int column) {
+    if (!mounted) return;
+    setState(() {
+      _genreFocusRequestId++;
+      _genreFocusRequestColumn = column;
     });
   }
 
@@ -276,7 +293,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _focusSidebar();
+        _focusSidebarAndRemember();
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -360,8 +377,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       _pendingAutoFocusResultsQuery = null;
     }
 
-    // Retention-friendly: si on revient sur la page et que le controller a déjà
-    // une query, on sync le TextField une seule fois.
     if (!_syncedFromState) {
       final existing = state.query.trim();
       if (existing.isNotEmpty && _textCtrl.text.trim() != existing) {
@@ -373,395 +388,386 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       _syncedFromState = true;
     }
 
-    // On ne met pas de Scaffold ici: le Shell fournit l’enveloppe.
-    // On ajoute juste Material pour garantir Ink/Tooltip/Theme ok si besoin.
+    final searchHeaderChildren = <Widget>[
+      SizedBox(height: topSpacing),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: contentMaxWidth),
+            child: Text(
+              l10n.searchTitle,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 16),
+      Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: searchFieldMaxWidth),
+            child: _SearchField(
+              controller: _textCtrl,
+              focusNode: _focusNode,
+              clearFocusNode: _clearFocusNode,
+              hintText: l10n.searchHint,
+              clearTooltip: l10n.clear,
+              onArrowLeft: _focusSidebarAndRemember,
+              onArrowUp: _noop,
+              onArrowDown: () => _focusSearchContentBelow(
+                preferHistory: _searchInputActivated,
+              ),
+              onArrowRight: () {
+                if (_textCtrl.text.isEmpty) return;
+                _tryRequestFocus(_clearFocusNode);
+              },
+              onClearArrowLeft: () {
+                _tryRequestFocus(_focusNode);
+              },
+              onClearArrowUp: _noop,
+              onClearArrowDown: () => _focusSearchContentBelow(
+                preferHistory: _searchInputActivated,
+              ),
+              onActivate: () => _setSearchInputActivated(true),
+              onChanged: (value) {
+                _setSearchInputActivated(true);
+                ctrl.setQuery(value);
+
+                if (value.trim().length < 3) {
+                  _pendingAutoFocusResultsQuery = null;
+                  unawaited(
+                    ref.read(searchHistoryControllerProvider.notifier).refresh(),
+                  );
+                }
+              },
+              onClear: () {
+                _textCtrl.clear();
+                ctrl.setQuery('');
+                _pendingAutoFocusResultsQuery = null;
+                unawaited(
+                  ref.read(searchHistoryControllerProvider.notifier).refresh(),
+                );
+                _focusNode.requestFocus();
+              },
+              onSubmitted: (value) {
+                _setSearchInputActivated(true);
+                _scheduleResultsAutoFocus(value);
+                ctrl.setQueryImmediate(value);
+                FocusScope.of(context).unfocus();
+              },
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 32),
+    ];
+
+    Widget buildResultsList() {
+      return ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          ...searchHeaderChildren,
+          if (state.movies.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            MoviItemsList(
+              title: l10n.moviesTitle,
+              subtitle: l10n.resultsCount(state.movies.length),
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 300,
+              verticalFocusAlignment: _focusVerticalAlignment,
+              titlePadding: horizontalPadding,
+              horizontalPadding: resultsListPadding,
+              items: state.movies
+                  .take(10)
+                  .toList()
+                  .asMap()
+                  .entries
+                  .map(
+                    (entry) => _AnimatedMovieCard(
+                      media: MoviMedia(
+                        id: entry.value.id.value,
+                        title: entry.value.title.display,
+                        poster: entry.value.poster,
+                        year: entry.value.releaseYear,
+                        type: MoviMediaType.movie,
+                      ),
+                      onTap: (mm) => navigateToMovieDetail(
+                        context,
+                        ref,
+                        ContentRouteArgs.movie(mm.id),
+                      ),
+                      focusNode: entry.key == 0
+                          ? _firstMovieResultFocusNode
+                          : null,
+                      onFirstLeft: entry.key == 0
+                          ? _focusSidebarAndRemember
+                          : null,
+                      delay: Duration(milliseconds: entry.key * 100),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
+          if (state.shows.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            MoviItemsList(
+              title: l10n.seriesTitle,
+              subtitle: l10n.resultsCount(state.shows.length),
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 300,
+              verticalFocusAlignment: _focusVerticalAlignment,
+              titlePadding: horizontalPadding,
+              horizontalPadding: resultsListPadding,
+              items: state.shows
+                  .take(10)
+                  .toList()
+                  .asMap()
+                  .entries
+                  .map(
+                    (entry) => _AnimatedMovieCard(
+                      media: MoviMedia(
+                        id: entry.value.id.value,
+                        title: entry.value.title.display,
+                        poster: entry.value.poster,
+                        type: MoviMediaType.series,
+                      ),
+                      onTap: (mm) => navigateToTvDetail(
+                        context,
+                        ref,
+                        ContentRouteArgs.series(mm.id),
+                      ),
+                      focusNode: entry.key == 0
+                          ? _firstShowResultFocusNode
+                          : null,
+                      onFirstLeft: entry.key == 0
+                          ? _focusSidebarAndRemember
+                          : null,
+                      delay: Duration(milliseconds: entry.key * 100),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
+          if (state.people.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            MoviItemsList(
+              title: l10n.searchPeopleTitle,
+              subtitle: l10n.resultsCount(state.people.length),
+              estimatedItemWidth: 150,
+              estimatedItemHeight: 300,
+              verticalFocusAlignment: _focusVerticalAlignment,
+              titlePadding: horizontalPadding,
+              horizontalPadding: resultsListPadding,
+              items: state.people
+                  .take(10)
+                  .toList()
+                  .asMap()
+                  .entries
+                  .map(
+                    (entry) => _AnimatedPersonCard(
+                      person: MoviPerson(
+                        id: entry.value.id.value,
+                        name: entry.value.name,
+                        poster: entry.value.photo,
+                        role: l10n.personRoleActor,
+                      ),
+                      onTap: (p) => context.push(
+                        AppRouteNames.person,
+                        extra: entry.value,
+                      ),
+                      focusNode: entry.key == 0
+                          ? _firstPersonResultFocusNode
+                          : null,
+                      onFirstLeft: entry.key == 0
+                          ? _focusSidebarAndRemember
+                          : null,
+                      delay: Duration(milliseconds: entry.key * 100),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ],
+          if (state.sagas.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Consumer(
+              builder: (context, ref, _) {
+                final filteredSagasAsync = ref.watch(
+                  filteredSagasProvider(state.sagas),
+                );
+                return filteredSagasAsync.when(
+                  data: (filteredSagas) {
+                    if (filteredSagas.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return MoviItemsList(
+                      title: l10n.searchSagasTitle,
+                      subtitle: l10n.resultsCount(filteredSagas.length),
+                      estimatedItemWidth: 150,
+                      estimatedItemHeight: 300,
+                      verticalFocusAlignment: _focusVerticalAlignment,
+                      titlePadding: horizontalPadding,
+                      horizontalPadding: resultsListPadding,
+                      items: filteredSagas
+                          .take(10)
+                          .toList()
+                          .asMap()
+                          .entries
+                          .map(
+                            (entry) => _AnimatedSagaCard(
+                              saga: entry.value,
+                              focusNode: entry.key == 0
+                                  ? _firstSagaResultFocusNode
+                                  : null,
+                              onFirstLeft: entry.key == 0
+                                  ? _focusSidebarAndRemember
+                                  : null,
+                              delay: Duration(milliseconds: entry.key * 100),
+                            ),
+                          )
+                          .toList(growable: false),
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                );
+              },
+            ),
+          ],
+          if (state.movies.isEmpty &&
+              state.shows.isEmpty &&
+              state.people.isEmpty &&
+              state.sagas.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  l10n.noResults,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          const SizedBox(height: 100),
+        ],
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: SizedBox.expand(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Titre (le ShellContentHost gère le padding global)
-            SizedBox(height: topSpacing),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
-                  child: Text(
-                    l10n.searchTitle,
-                    style: Theme.of(context).textTheme.headlineSmall,
+        child: !_hasQuery
+            ? ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  ...searchHeaderChildren,
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 340),
+                    curve: Curves.easeInOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: showHistory
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: 32),
+                            child: _SearchHistoryList(
+                              horizontalPadding: horizontalPadding,
+                              maxContentWidth: historyMaxWidth,
+                              useWideLayout: useDesktopLayout,
+                              firstItemFocusNode: _firstHistoryItemFocusNode,
+                              focusVerticalAlignment:
+                                  _focusVerticalAlignment,
+                              onFocusChange: (hasFocus) {
+                                if (_historySectionHasFocus == hasFocus) {
+                                  return;
+                                }
+                                setState(() {
+                                  _historySectionHasFocus = hasFocus;
+                                });
+                              },
+                              onSelect: (q) {
+                                _textCtrl.text = q;
+                                _textCtrl.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: _textCtrl.text.length),
+                                );
+                                _scheduleResultsAutoFocus(q);
+                                ctrl.setQueryImmediate(q);
+                                FocusScope.of(context).unfocus();
+                              },
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Champ de recherche
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: searchFieldMaxWidth),
-                  child: _SearchField(
-                    controller: _textCtrl,
-                    focusNode: _focusNode,
-                    clearFocusNode: _clearFocusNode,
-                    hintText: l10n.searchHint,
-                    clearTooltip: l10n.clear,
-                    onArrowLeft: _focusSidebar,
-                    onArrowUp: _noop,
-                    onArrowDown: () => _focusSearchContentBelow(
-                      preferHistory: _searchInputActivated,
-                    ),
-                    onArrowRight: () {
-                      if (_textCtrl.text.isEmpty) return;
-                      _tryRequestFocus(_clearFocusNode);
-                    },
-                    onClearArrowLeft: () {
-                      _tryRequestFocus(_focusNode);
-                    },
-                    onClearArrowUp: _noop,
-                    onClearArrowDown: () => _focusSearchContentBelow(
-                      preferHistory: _searchInputActivated,
-                    ),
-                    onActivate: () => _setSearchInputActivated(true),
-                    onChanged: (value) {
-                      _setSearchInputActivated(true);
-                      ctrl.setQuery(value);
-
-                      if (value.trim().length < 3) {
-                        _pendingAutoFocusResultsQuery = null;
-                        unawaited(
-                          ref
-                              .read(searchHistoryControllerProvider.notifier)
-                              .refresh(),
-                        );
-                      }
-                    },
-                    onClear: () {
-                      _textCtrl.clear();
-                      ctrl.setQuery('');
-                      _pendingAutoFocusResultsQuery = null;
-                      unawaited(
-                        ref
-                            .read(searchHistoryControllerProvider.notifier)
-                            .refresh(),
-                      );
-                      _focusNode.requestFocus();
-                    },
-                    onSubmitted: (value) {
-                      _setSearchInputActivated(true);
-                      _scheduleResultsAutoFocus(value);
-                      ctrl.setQueryImmediate(value);
-                      FocusScope.of(context).unfocus();
-                    },
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // ======= HISTORIQUE OU RÉSULTATS =======
-            if (!_hasQuery) ...[
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  children: [
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 340),
-                      curve: Curves.easeInOutCubic,
-                      alignment: Alignment.topCenter,
-                      child: showHistory
-                          ? Padding(
-                              padding: const EdgeInsets.only(bottom: 32),
-                              child: _SearchHistoryList(
-                                horizontalPadding: horizontalPadding,
-                                maxContentWidth: historyMaxWidth,
-                                useWideLayout: useDesktopLayout,
-                                firstItemFocusNode: _firstHistoryItemFocusNode,
-                                focusVerticalAlignment:
-                                    _focusVerticalAlignment,
-                                onFocusChange: (hasFocus) {
-                                  if (_historySectionHasFocus == hasFocus) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    _historySectionHasFocus = hasFocus;
-                                  });
-                                },
-                                onSelect: (q) {
-                                  _textCtrl.text = q;
-                                  _textCtrl
-                                      .selection = TextSelection.fromPosition(
-                                    TextPosition(offset: _textCtrl.text.length),
-                                  );
-                                  _scheduleResultsAutoFocus(q);
-                                  ctrl.setQueryImmediate(q);
-                                  FocusScope.of(context).unfocus();
-                                },
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    if (showWatchProviders)
-                      WatchProvidersGrid(
-                        horizontalPadding: horizontalPadding,
-                        maxContentWidth: gridMaxWidth,
-                        firstItemFocusNode: _firstProviderFocusNode,
-                        onFirstItemLeft: _focusSidebar,
-                        focusVerticalAlignment: _focusVerticalAlignment,
-                        focusRequestId: _providerFocusRequestId,
-                        focusRequestColumn: _providerFocusRequestColumn,
-                      ),
-                    if (showWatchProviders) const SizedBox(height: 32),
-                    GenresGrid(
+                  if (showWatchProviders)
+                    WatchProvidersGrid(
                       horizontalPadding: horizontalPadding,
                       maxContentWidth: gridMaxWidth,
-                      firstItemFocusNode: _firstGenreFocusNode,
-                      onFirstItemLeft: _focusSidebar,
-                      onFirstRowUp: showWatchProviders
-                          ? _focusNearestProviderFromGenres
-                          : null,
+                      firstItemFocusNode: _firstProviderFocusNode,
+                      onFirstItemLeft: _focusSidebarAndRemember,
+                      onLastRowDown: _focusNearestGenreFromProviders,
                       focusVerticalAlignment: _focusVerticalAlignment,
+                      focusRequestId: _providerFocusRequestId,
+                      focusRequestColumn: _providerFocusRequestColumn,
                     ),
-                    const SizedBox(height: 125),
-                  ],
-                ),
-              ),
-            ] else if (state.isLoading) ...[
-              const Expanded(child: Center(child: CircularProgressIndicator())),
-            ] else if (state.error != null) ...[
-              Expanded(
-                child: Center(
-                  child: Text(
-                    state.error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontWeight: FontWeight.w500,
+                  if (showWatchProviders) const SizedBox(height: 32),
+                  GenresGrid(
+                    horizontalPadding: horizontalPadding,
+                    maxContentWidth: gridMaxWidth,
+                    firstItemFocusNode: _firstGenreFocusNode,
+                    onFirstItemLeft: _focusSidebarAndRemember,
+                    onFirstRowUp: showWatchProviders
+                        ? _focusNearestProviderFromGenres
+                        : null,
+                    focusRequestId: _genreFocusRequestId,
+                    focusRequestColumn: _genreFocusRequestColumn,
+                    focusVerticalAlignment: _focusVerticalAlignment,
+                  ),
+                  const SizedBox(height: 125),
+                ],
+              )
+            : state.isLoading
+            ? ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  ...searchHeaderChildren,
+                  const SizedBox(height: 120),
+                  const Center(child: CircularProgressIndicator()),
+                  const SizedBox(height: 100),
+                ],
+              )
+            : state.error != null
+            ? ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  ...searchHeaderChildren,
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: Text(
+                      state.error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ),
+                  const SizedBox(height: 100),
+                ],
+              )
+            : RefreshIndicator(
+                onRefresh: () async {
+                  final q = _textCtrl.text.trim();
+                  if (q.length < 3) {
+                    await ref
+                        .read(searchHistoryControllerProvider.notifier)
+                        .refresh();
+                    return;
+                  }
+                  ctrl.setQuery(q);
+                },
+                child: buildResultsList(),
               ),
-            ] else ...[
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    final q = _textCtrl.text.trim();
-                    if (q.length < 3) {
-                      await ref
-                          .read(searchHistoryControllerProvider.notifier)
-                          .refresh();
-                      return;
-                    }
-                    ctrl.setQuery(q);
-                  },
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      if (state.movies.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        MoviItemsList(
-                          title: l10n.moviesTitle,
-                          subtitle: l10n.resultsCount(state.movies.length),
-                          estimatedItemWidth: 150,
-                          estimatedItemHeight: 300,
-                          verticalFocusAlignment: _focusVerticalAlignment,
-                          titlePadding: horizontalPadding,
-                          horizontalPadding: resultsListPadding,
-                          items: state.movies
-                              .take(10)
-                              .toList()
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => _AnimatedMovieCard(
-                                  media: MoviMedia(
-                                    id: entry.value.id.value,
-                                    title: entry.value.title.display,
-                                    poster: entry.value.poster,
-                                    year: entry.value.releaseYear,
-                                    type: MoviMediaType.movie,
-                                  ),
-                                  onTap: (mm) => navigateToMovieDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.movie(mm.id),
-                                  ),
-                                  focusNode: entry.key == 0
-                                      ? _firstMovieResultFocusNode
-                                      : null,
-                                  onFirstLeft: entry.key == 0
-                                      ? _focusSidebar
-                                      : null,
-                                  delay: Duration(
-                                    milliseconds: entry.key * 100,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (state.shows.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        MoviItemsList(
-                          title: l10n.seriesTitle,
-                          subtitle: l10n.resultsCount(state.shows.length),
-                          estimatedItemWidth: 150,
-                          estimatedItemHeight: 300,
-                          verticalFocusAlignment: _focusVerticalAlignment,
-                          titlePadding: horizontalPadding,
-                          horizontalPadding: resultsListPadding,
-                          items: state.shows
-                              .take(10)
-                              .toList()
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => _AnimatedMovieCard(
-                                  media: MoviMedia(
-                                    id: entry.value.id.value,
-                                    title: entry.value.title.display,
-                                    poster: entry.value.poster,
-                                    type: MoviMediaType.series,
-                                  ),
-                                  onTap: (mm) => navigateToTvDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.series(mm.id),
-                                  ),
-                                  focusNode: entry.key == 0
-                                      ? _firstShowResultFocusNode
-                                      : null,
-                                  onFirstLeft: entry.key == 0
-                                      ? _focusSidebar
-                                      : null,
-                                  delay: Duration(
-                                    milliseconds: entry.key * 100,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (state.people.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        MoviItemsList(
-                          title: l10n.searchPeopleTitle,
-                          subtitle: l10n.resultsCount(state.people.length),
-                          estimatedItemWidth: 150,
-                          estimatedItemHeight: 300,
-                          verticalFocusAlignment: _focusVerticalAlignment,
-                          titlePadding: horizontalPadding,
-                          horizontalPadding: resultsListPadding,
-                          items: state.people
-                              .take(10)
-                              .toList()
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => _AnimatedPersonCard(
-                                  person: MoviPerson(
-                                    id: entry.value.id.value,
-                                    name: entry.value.name,
-                                    poster: entry.value.photo,
-                                    role: l10n.personRoleActor,
-                                  ),
-                                  onTap: (p) => context.push(
-                                    AppRouteNames.person,
-                                    extra: entry.value,
-                                  ),
-                                  focusNode: entry.key == 0
-                                      ? _firstPersonResultFocusNode
-                                      : null,
-                                  onFirstLeft: entry.key == 0
-                                      ? _focusSidebar
-                                      : null,
-                                  delay: Duration(
-                                    milliseconds: entry.key * 100,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                        ),
-                      ],
-                      if (state.sagas.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final filteredSagasAsync = ref.watch(
-                              filteredSagasProvider(state.sagas),
-                            );
-                            return filteredSagasAsync.when(
-                              data: (filteredSagas) {
-                                if (filteredSagas.isEmpty) {
-                                  return const SizedBox.shrink();
-                                }
-                                return MoviItemsList(
-                                  title: l10n.searchSagasTitle,
-                                  subtitle: l10n.resultsCount(
-                                    filteredSagas.length,
-                                  ),
-                                  estimatedItemWidth: 150,
-                                  estimatedItemHeight: 300,
-                                  verticalFocusAlignment:
-                                      _focusVerticalAlignment,
-                                  titlePadding: horizontalPadding,
-                                  horizontalPadding: resultsListPadding,
-                                  items: filteredSagas
-                                      .take(10)
-                                      .toList()
-                                      .asMap()
-                                      .entries
-                                      .map(
-                                        (entry) => _AnimatedSagaCard(
-                                          saga: entry.value,
-                                          focusNode: entry.key == 0
-                                              ? _firstSagaResultFocusNode
-                                              : null,
-                                          onFirstLeft: entry.key == 0
-                                              ? _focusSidebar
-                                              : null,
-                                          delay: Duration(
-                                            milliseconds: entry.key * 100,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(growable: false),
-                                );
-                              },
-                              loading: () => const SizedBox.shrink(),
-                              error: (_, __) => const SizedBox.shrink(),
-                            );
-                          },
-                        ),
-                      ],
-                      if (state.movies.isEmpty &&
-                          state.shows.isEmpty &&
-                          state.people.isEmpty &&
-                          state.sagas.isEmpty)
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            child: Text(
-                              l10n.noResults,
-                              style: Theme.of(context).textTheme.titleMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 100),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

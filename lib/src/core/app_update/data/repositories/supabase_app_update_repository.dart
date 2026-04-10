@@ -21,6 +21,11 @@ class SupabaseAppUpdateRepository implements AppUpdateRepository {
   final AppUpdateCacheDataSource _cacheDataSource;
   final AppLogger? _logger;
 
+  static const String _blockedUnavailableReasonCode =
+      'app_update_check_unavailable_blocked';
+  static const String _blockedUnavailableMessage =
+      'Connexion requise pour verifier la validite de cette version.';
+
   @override
   Future<AppUpdateDecision> check(AppUpdateContext context) async {
     try {
@@ -43,19 +48,20 @@ class SupabaseAppUpdateRepository implements AppUpdateRepository {
         return usableCachedDecision;
       }
 
-      if (_shouldFailOpen(error)) {
-        final decision = AppUpdateDecision.allow(
+      if (_shouldBlockOnRemoteFailure(error)) {
+        final decision = AppUpdateDecision.forceUpdate(
           currentVersion: context.currentVersion,
           platform: context.platform,
           checkedAt: DateTime.now().toUtc(),
-          reasonCode: _fallbackReasonCode(error),
-          message: 'Remote app update check unavailable; startup allowed.',
+          reasonCode: _blockedUnavailableReasonCode,
+          message: _blockedUnavailableMessage,
           cacheTtl: Duration.zero,
         );
         _logger?.warn(
-          '[AppUpdate] remote check failed open '
+          '[AppUpdate] remote check unavailable, blocking startup '
           'status=${decision.status.name} '
-          'reasonCode=${decision.reasonCode ?? 'n/a'}',
+          'reasonCode=${decision.reasonCode ?? 'n/a'} '
+          'failureType=${error.runtimeType}',
           category: 'app_update',
         );
         return decision;
@@ -86,7 +92,7 @@ class SupabaseAppUpdateRepository implements AppUpdateRepository {
     return age <= decision.cacheTtl;
   }
 
-  bool _shouldFailOpen(Object error) {
+  bool _shouldBlockOnRemoteFailure(Object error) {
     if (error is FunctionException) {
       return error.status >= 500;
     }
@@ -95,22 +101,6 @@ class SupabaseAppUpdateRepository implements AppUpdateRepository {
     }
 
     return _looksLikeNetworkError(error);
-  }
-
-  String _fallbackReasonCode(Object error) {
-    if (error is FunctionException) {
-      return error.status >= 500
-          ? 'app_update_remote_server_error'
-          : 'app_update_remote_function_error';
-    }
-    if (error is TimeoutException) {
-      return 'app_update_remote_timeout';
-    }
-    if (_looksLikeNetworkError(error)) {
-      return 'app_update_remote_network_error';
-    }
-
-    return 'app_update_remote_failed_open';
   }
 
   bool _looksLikeNetworkError(Object error) {

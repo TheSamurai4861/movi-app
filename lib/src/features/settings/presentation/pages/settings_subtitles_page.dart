@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -8,8 +9,10 @@ import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/subtitle_appearance_preferences.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/subscription/presentation/widgets/premium_feature_gate.dart';
 import 'package:movi/src/core/playback/media_kit_subtitle_text_scale.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/widgets/subtitle_playback_layout.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
@@ -26,9 +29,57 @@ class SettingsSubtitlesPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
+  static const double _focusVerticalAlignment = 0.22;
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesBack');
-  final FocusNode _sizePresetFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesSizePreset');
+  final List<FocusNode> _sizePresetFocusNodes = List<FocusNode>.generate(
+    SubtitleSizePreset.values.length,
+    (index) => FocusNode(debugLabel: 'SettingsSubtitlesSizePreset$index'),
+  );
+  final List<FocusNode> _textColorFocusNodes = List<FocusNode>.generate(
+    SubtitleAppearancePrefs.subtitleColorChoices.length,
+    (index) => FocusNode(debugLabel: 'SettingsSubtitlesTextColor$index'),
+  );
+  final List<FocusNode> _fontFocusNodes = List<FocusNode>.generate(
+    SubtitleAppearancePrefs.subtitleFontChoices.length,
+    (index) => FocusNode(debugLabel: 'SettingsSubtitlesFont$index'),
+  );
+  final FocusNode _subtitleOffsetSliderFocusNode = FocusNode(
+    debugLabel: 'SettingsSubtitlesSubtitleOffsetSlider',
+  );
+  final List<FocusNode> _subtitleOffsetPresetFocusNodes =
+      List<FocusNode>.generate(
+        _OffsetPresetButtons.presets.length,
+        (index) => FocusNode(
+          debugLabel: 'SettingsSubtitlesSubtitleOffsetPreset$index',
+        ),
+      );
+  final FocusNode _audioOffsetSliderFocusNode = FocusNode(
+    debugLabel: 'SettingsSubtitlesAudioOffsetSlider',
+  );
+  final List<FocusNode> _audioOffsetPresetFocusNodes =
+      List<FocusNode>.generate(
+        _OffsetPresetButtons.presets.length,
+        (index) =>
+            FocusNode(debugLabel: 'SettingsSubtitlesAudioOffsetPreset$index'),
+      );
   final FocusNode _resetOffsetsFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesResetOffsets');
+  final FocusNode _premiumLockedActionFocusNode = FocusNode(
+    debugLabel: 'SettingsSubtitlesPremiumLockedAction',
+  );
+  final List<FocusNode> _backgroundColorFocusNodes = List<FocusNode>.generate(
+    SubtitleAppearancePrefs.subtitleBackgroundColorChoices.length,
+    (index) => FocusNode(debugLabel: 'SettingsSubtitlesBackgroundColor$index'),
+  );
+  final FocusNode _backgroundOpacitySliderFocusNode = FocusNode(
+    debugLabel: 'SettingsSubtitlesBackgroundOpacitySlider',
+  );
+  final List<FocusNode> _shadowPresetFocusNodes = List<FocusNode>.generate(
+    SubtitleShadowPreset.values.length,
+    (index) => FocusNode(debugLabel: 'SettingsSubtitlesShadowPreset$index'),
+  );
+  final FocusNode _fineSizeSliderFocusNode = FocusNode(
+    debugLabel: 'SettingsSubtitlesFineSizeSlider',
+  );
   final FocusNode _resetDefaultsFocusNode = FocusNode(debugLabel: 'SettingsSubtitlesResetDefaults');
 
   double? _previewBackgroundOpacity;
@@ -36,8 +87,33 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
   @override
   void dispose() {
     _backFocusNode.dispose();
-    _sizePresetFocusNode.dispose();
+    for (final node in _sizePresetFocusNodes) {
+      node.dispose();
+    }
+    for (final node in _textColorFocusNodes) {
+      node.dispose();
+    }
+    for (final node in _fontFocusNodes) {
+      node.dispose();
+    }
+    _subtitleOffsetSliderFocusNode.dispose();
+    for (final node in _subtitleOffsetPresetFocusNodes) {
+      node.dispose();
+    }
+    _audioOffsetSliderFocusNode.dispose();
+    for (final node in _audioOffsetPresetFocusNodes) {
+      node.dispose();
+    }
     _resetOffsetsFocusNode.dispose();
+    _premiumLockedActionFocusNode.dispose();
+    for (final node in _backgroundColorFocusNodes) {
+      node.dispose();
+    }
+    _backgroundOpacitySliderFocusNode.dispose();
+    for (final node in _shadowPresetFocusNodes) {
+      node.dispose();
+    }
+    _fineSizeSliderFocusNode.dispose();
     _resetDefaultsFocusNode.dispose();
     super.dispose();
   }
@@ -45,6 +121,153 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
   double? _previewFontScale;
   int? _previewSubtitleOffsetMs;
   int? _previewAudioOffsetMs;
+
+  bool _requestFocus(FocusNode? node) {
+    if (node == null || node.context == null || !node.canRequestFocus) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  int _selectedSizePresetIndex(SubtitleAppearancePrefs prefs) {
+    return SubtitleSizePreset.values.indexOf(prefs.sizePreset).clamp(
+      0,
+      SubtitleSizePreset.values.length - 1,
+    );
+  }
+
+  int _selectedTextColorIndex(SubtitleAppearancePrefs prefs) {
+    final index = SubtitleAppearancePrefs.subtitleColorChoices.indexWhere(
+      (choice) => choice.hex == prefs.textColorHex,
+    );
+    return index >= 0 ? index : 0;
+  }
+
+  int _selectedFontIndex(SubtitleAppearancePrefs prefs) {
+    final index = SubtitleAppearancePrefs.subtitleFontChoices.indexWhere(
+      (choice) => choice.key == prefs.fontFamilyKey,
+    );
+    return index >= 0 ? index : 0;
+  }
+
+  int _nearestPresetIndex(int selectedOffsetMs) {
+    final presets = _OffsetPresetButtons.presets;
+    var bestIndex = 0;
+    var bestDelta = (presets.first - selectedOffsetMs).abs();
+    for (var i = 1; i < presets.length; i++) {
+      final delta = (presets[i] - selectedOffsetMs).abs();
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        bestIndex = i;
+      }
+    }
+    return bestIndex;
+  }
+
+  int _selectedBackgroundColorIndex(SubtitleAppearancePrefs prefs) {
+    final index = SubtitleAppearancePrefs.subtitleBackgroundColorChoices
+        .indexWhere((choice) => choice.hex == prefs.backgroundColorHex);
+    return index >= 0 ? index : 0;
+  }
+
+  int _selectedShadowPresetIndex(SubtitleAppearancePrefs prefs) {
+    return SubtitleShadowPreset.values.indexOf(prefs.shadowPreset).clamp(
+      0,
+      SubtitleShadowPreset.values.length - 1,
+    );
+  }
+
+  KeyEventResult _handleBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestFocus(_sizePresetFocusNodes.first);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleHorizontalGroupKey({
+    required KeyEvent event,
+    required int index,
+    required List<FocusNode> nodes,
+    required FocusNode? upNode,
+    required FocusNode? downNode,
+  }) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (index == 0) return KeyEventResult.handled;
+      _requestFocus(nodes[index - 1]);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      if (index >= nodes.length - 1) return KeyEventResult.handled;
+      _requestFocus(nodes[index + 1]);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _requestFocus(upNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestFocus(downNode);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleVerticalListKey({
+    required KeyEvent event,
+    required int index,
+    required List<FocusNode> nodes,
+    required FocusNode? upNode,
+    required FocusNode? downNode,
+  }) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (index == 0) {
+        _requestFocus(upNode);
+      } else {
+        _requestFocus(nodes[index - 1]);
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (index >= nodes.length - 1) {
+        _requestFocus(downNode);
+      } else {
+        _requestFocus(nodes[index + 1]);
+      }
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleSliderKey({
+    required KeyEvent event,
+    required FocusNode? upNode,
+    required FocusNode? downNode,
+  }) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _requestFocus(upNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestFocus(downNode);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
 
 
   @override
@@ -69,6 +292,13 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
       data: (value) => value,
       orElse: () => false,
     );
+    final hasAdvancedSubtitleStyling = ref
+        .watch(
+          canAccessPremiumFeatureProvider(
+            PremiumFeature.advancedSubtitleStyling,
+          ),
+        )
+        .maybeWhen(data: (value) => value, orElse: () => false);
     final subtitleOffsetMs =
         _previewSubtitleOffsetMs ?? syncOffsets.subtitleOffsetMs;
     final audioOffsetMs = _previewAudioOffsetMs ?? syncOffsets.audioOffsetMs;
@@ -76,11 +306,21 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
       backgroundOpacity: _previewBackgroundOpacity ?? prefs.backgroundOpacity,
       fontScale: _previewFontScale ?? prefs.fontScale,
     );
+    final selectedSizePresetIndex = _selectedSizePresetIndex(prefs);
+    final selectedTextColorIndex = _selectedTextColorIndex(prefs);
+    final selectedFontIndex = _selectedFontIndex(prefs);
+    final selectedSubtitlePresetIndex = _nearestPresetIndex(subtitleOffsetMs);
+    final selectedAudioPresetIndex = _nearestPresetIndex(audioOffsetMs);
+    final selectedBackgroundColorIndex = _selectedBackgroundColorIndex(
+      previewPrefs,
+    );
+    final selectedShadowPresetIndex = _selectedShadowPresetIndex(previewPrefs);
 
     return MoviRouteFocusBoundary(
       restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: _sizePresetFocusNode,
+        initialFocusNode: _sizePresetFocusNodes.first,
         fallbackFocusNode: _backFocusNode,
+        restoreFocusOnReturn: false,
       ),
       requestInitialFocusOnMount: true,
       onUnhandledBack: () {
@@ -98,10 +338,17 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-              MoviSubpageBackTitleHeader(
-                title: l10n.settingsSubtitlesTitle,
-                focusNode: _backFocusNode,
-                onBack: () => context.pop(),
+              Focus(
+                canRequestFocus: false,
+                onKeyEvent: (_, event) => _handleBackKey(event),
+                child: MoviEnsureVisibleOnFocus(
+                  verticalAlignment: _focusVerticalAlignment,
+                  child: MoviSubpageBackTitleHeader(
+                    title: l10n.settingsSubtitlesTitle,
+                    focusNode: _backFocusNode,
+                    onBack: () => context.pop(),
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
               Padding(
@@ -119,25 +366,40 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
-                    children: SubtitleSizePreset.values
-                        .map((preset) {
+                    children: SubtitleSizePreset.values.asMap().entries
+                        .map((entry) {
+                          final index = entry.key;
+                          final preset = entry.value;
                           final selected = prefs.sizePreset == preset;
-                          return ChoiceChip(
-                            focusNode: preset == SubtitleSizePreset.values.first
-                                ? _sizePresetFocusNode
-                                : null,
-                            label: Text(_sizeLabel(l10n, preset)),
-                            selected: selected,
-                            onSelected: (_) => controller.setSizePreset(preset),
-                            selectedColor: accentColor.withValues(alpha: 0.25),
-                            side: BorderSide(
-                              color: selected ? accentColor : Colors.white24,
-                            ),
-                            labelStyle: TextStyle(
-                              color: selected ? Colors.white : Colors.white70,
-                              fontWeight: selected
-                                  ? FontWeight.w700
-                                  : FontWeight.w400,
+                          return MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleHorizontalGroupKey(
+                                event: event,
+                                index: index,
+                                nodes: _sizePresetFocusNodes,
+                                upNode: _backFocusNode,
+                                downNode:
+                                    _textColorFocusNodes[selectedTextColorIndex],
+                              ),
+                              child: ChoiceChip(
+                                focusNode: _sizePresetFocusNodes[index],
+                                label: Text(_sizeLabel(l10n, preset)),
+                                selected: selected,
+                                onSelected: (_) =>
+                                    controller.setSizePreset(preset),
+                                selectedColor: accentColor.withValues(alpha: 0.25),
+                                side: BorderSide(
+                                  color: selected ? accentColor : Colors.white24,
+                                ),
+                                labelStyle: TextStyle(
+                                  color: selected ? Colors.white : Colors.white70,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w400,
+                                ),
+                              ),
                             ),
                           );
                         })
@@ -154,23 +416,44 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                     spacing: 12,
                     runSpacing: 12,
                     children: SubtitleAppearancePrefs.subtitleColorChoices
-                        .map((choice) {
+                        .asMap()
+                        .entries
+                        .map((entry) {
+                          final index = entry.key;
+                          final choice = entry.value;
                           final selected = prefs.textColorHex == choice.hex;
                           final color = _hexToColor(choice.hex);
-                          return GestureDetector(
-                            onTap: () => controller.setTextColorHex(choice.hex),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 160),
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: selected
-                                      ? accentColor
-                                      : Colors.white24,
-                                  width: selected ? 3 : 1,
+                          return MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleHorizontalGroupKey(
+                                event: event,
+                                index: index,
+                                nodes: _textColorFocusNodes,
+                                upNode:
+                                    _sizePresetFocusNodes[selectedSizePresetIndex],
+                                downNode: _fontFocusNodes.first,
+                              ),
+                              child: MoviFocusableAction(
+                                focusNode: _textColorFocusNodes[index],
+                                onPressed: () =>
+                                    controller.setTextColorHex(choice.hex),
+                                semanticLabel: choice.hex,
+                                builder: (context, state) => AnimatedContainer(
+                                  duration: const Duration(milliseconds: 160),
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: selected || state.focused
+                                          ? accentColor
+                                          : Colors.white24,
+                                      width: selected || state.focused ? 3 : 1,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -187,25 +470,74 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                   title: l10n.settingsSubtitlesFontTitle,
                   child: Column(
                     children: SubtitleAppearancePrefs.subtitleFontChoices
-                        .map((choice) {
+                        .asMap()
+                        .entries
+                        .map((entry) {
+                          final index = entry.key;
+                          final choice = entry.value;
                           final selected = prefs.fontFamilyKey == choice.key;
-                          return ListTile(
-                            onTap: () =>
-                                controller.setFontFamilyKey(choice.key),
-                            contentPadding: EdgeInsets.zero,
-                            title: Text(
-                              _fontLabel(l10n, choice.key),
-                              style: TextStyle(
-                                fontFamily: choice.fontFamily,
-                                color: selected ? Colors.white : Colors.white70,
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w400,
+                          return MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleVerticalListKey(
+                                event: event,
+                                index: index,
+                                nodes: _fontFocusNodes,
+                                upNode:
+                                    _textColorFocusNodes[selectedTextColorIndex],
+                                downNode: _subtitleOffsetSliderFocusNode,
+                              ),
+                              child: MoviFocusableAction(
+                                focusNode: _fontFocusNodes[index],
+                                onPressed: () =>
+                                    controller.setFontFamilyKey(choice.key),
+                                semanticLabel: _fontLabel(l10n, choice.key),
+                                builder: (context, state) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: MoviFocusFrame(
+                                    scale: state.focused ? 1.01 : 1,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    backgroundColor: state.focused
+                                        ? accentColor.withValues(alpha: 0.18)
+                                        : Colors.transparent,
+                                    borderColor: state.focused
+                                        ? accentColor
+                                        : Colors.transparent,
+                                    borderWidth: 1.5,
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _fontLabel(l10n, choice.key),
+                                            style: TextStyle(
+                                              fontFamily: choice.fontFamily,
+                                              color: selected
+                                                  ? Colors.white
+                                                  : Colors.white70,
+                                              fontWeight: selected
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w400,
+                                            ),
+                                          ),
+                                        ),
+                                        if (selected)
+                                          Icon(
+                                            Icons.check,
+                                            color: accentColor,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                            trailing: selected
-                                ? Icon(Icons.check, color: accentColor)
-                                : null,
                           );
                         })
                         .toList(growable: false),
@@ -224,32 +556,56 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                         '${l10n.settingsSubtitleOffsetTitle}: ${_formatOffsetLabel(subtitleOffsetMs)}',
                         style: const TextStyle(color: Colors.white70),
                       ),
-                      Slider(
-                        value: subtitleOffsetMs.toDouble(),
-                        min: PlaybackSyncOffsets.minOffsetMs.toDouble(),
-                        max: PlaybackSyncOffsets.maxOffsetMs.toDouble(),
-                        divisions: 40,
-                        onChanged: subtitleOffsetSupported
-                            ? (value) {
-                                setState(
-                                  () =>
-                                      _previewSubtitleOffsetMs = value.round(),
-                                );
-                              }
-                            : null,
-                        onChangeEnd: subtitleOffsetSupported
-                            ? (value) async {
-                                final rounded = value.round();
-                                setState(() => _previewSubtitleOffsetMs = null);
-                                await syncController.setSubtitleOffsetMs(
-                                  rounded,
-                                  source: 'settings_slider_subtitle',
-                                );
-                              }
-                            : null,
+                      Focus(
+                        canRequestFocus: false,
+                        onKeyEvent: (_, event) => _handleSliderKey(
+                          event: event,
+                          upNode: _fontFocusNodes[selectedFontIndex],
+                          downNode: _subtitleOffsetPresetFocusNodes[
+                              selectedSubtitlePresetIndex],
+                        ),
+                        child: MoviEnsureVisibleOnFocus(
+                          verticalAlignment: _focusVerticalAlignment,
+                          child: Slider(
+                            focusNode: _subtitleOffsetSliderFocusNode,
+                            value: subtitleOffsetMs.toDouble(),
+                            min: PlaybackSyncOffsets.minOffsetMs.toDouble(),
+                            max: PlaybackSyncOffsets.maxOffsetMs.toDouble(),
+                            divisions: 40,
+                            onChanged: subtitleOffsetSupported
+                                ? (value) {
+                                    setState(
+                                      () => _previewSubtitleOffsetMs =
+                                          value.round(),
+                                    );
+                                  }
+                                : null,
+                            onChangeEnd: subtitleOffsetSupported
+                                ? (value) async {
+                                    final rounded = value.round();
+                                    setState(
+                                      () => _previewSubtitleOffsetMs = null,
+                                    );
+                                    await syncController.setSubtitleOffsetMs(
+                                      rounded,
+                                      source: 'settings_slider_subtitle',
+                                    );
+                                  }
+                                : null,
+                          ),
+                        ),
                       ),
                       _OffsetPresetButtons(
                         selectedOffsetMs: subtitleOffsetMs,
+                        focusNodes: _subtitleOffsetPresetFocusNodes,
+                        verticalAlignment: _focusVerticalAlignment,
+                        onKeyEvent: (index, event) => _handleHorizontalGroupKey(
+                          event: event,
+                          index: index,
+                          nodes: _subtitleOffsetPresetFocusNodes,
+                          upNode: _subtitleOffsetSliderFocusNode,
+                          downNode: _audioOffsetSliderFocusNode,
+                        ),
                         onPresetSelected: subtitleOffsetSupported
                             ? (offsetMs) => syncController.setSubtitleOffsetMs(
                                 offsetMs,
@@ -272,31 +628,55 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                         '${l10n.settingsAudioOffsetTitle}: ${_formatOffsetLabel(audioOffsetMs)}',
                         style: const TextStyle(color: Colors.white70),
                       ),
-                      Slider(
-                        value: audioOffsetMs.toDouble(),
-                        min: PlaybackSyncOffsets.minOffsetMs.toDouble(),
-                        max: PlaybackSyncOffsets.maxOffsetMs.toDouble(),
-                        divisions: 40,
-                        onChanged: audioOffsetSupported
-                            ? (value) {
-                                setState(
-                                  () => _previewAudioOffsetMs = value.round(),
-                                );
-                              }
-                            : null,
-                        onChangeEnd: audioOffsetSupported
-                            ? (value) async {
-                                final rounded = value.round();
-                                setState(() => _previewAudioOffsetMs = null);
-                                await syncController.setAudioOffsetMs(
-                                  rounded,
-                                  source: 'settings_slider_audio',
-                                );
-                              }
-                            : null,
+                      Focus(
+                        canRequestFocus: false,
+                        onKeyEvent: (_, event) => _handleSliderKey(
+                          event: event,
+                          upNode: _subtitleOffsetPresetFocusNodes[
+                              selectedSubtitlePresetIndex],
+                          downNode:
+                              _audioOffsetPresetFocusNodes[selectedAudioPresetIndex],
+                        ),
+                        child: MoviEnsureVisibleOnFocus(
+                          verticalAlignment: _focusVerticalAlignment,
+                          child: Slider(
+                            focusNode: _audioOffsetSliderFocusNode,
+                            value: audioOffsetMs.toDouble(),
+                            min: PlaybackSyncOffsets.minOffsetMs.toDouble(),
+                            max: PlaybackSyncOffsets.maxOffsetMs.toDouble(),
+                            divisions: 40,
+                            onChanged: audioOffsetSupported
+                                ? (value) {
+                                    setState(
+                                      () => _previewAudioOffsetMs =
+                                          value.round(),
+                                    );
+                                  }
+                                : null,
+                            onChangeEnd: audioOffsetSupported
+                                ? (value) async {
+                                    final rounded = value.round();
+                                    setState(() => _previewAudioOffsetMs = null);
+                                    await syncController.setAudioOffsetMs(
+                                      rounded,
+                                      source: 'settings_slider_audio',
+                                    );
+                                  }
+                                : null,
+                          ),
+                        ),
                       ),
                       _OffsetPresetButtons(
                         selectedOffsetMs: audioOffsetMs,
+                        focusNodes: _audioOffsetPresetFocusNodes,
+                        verticalAlignment: _focusVerticalAlignment,
+                        onKeyEvent: (index, event) => _handleHorizontalGroupKey(
+                          event: event,
+                          index: index,
+                          nodes: _audioOffsetPresetFocusNodes,
+                          upNode: _audioOffsetSliderFocusNode,
+                          downNode: _resetOffsetsFocusNode,
+                        ),
                         onPresetSelected: audioOffsetSupported
                             ? (offsetMs) => syncController.setAudioOffsetMs(
                                 offsetMs,
@@ -317,18 +697,52 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
-                        child: OutlinedButton(
-                          focusNode: _resetOffsetsFocusNode,
-                          onPressed: () async {
-                            setState(() {
-                              _previewSubtitleOffsetMs = null;
-                              _previewAudioOffsetMs = null;
-                            });
-                            await syncController.resetOffsets(
-                              source: 'settings_reset_button',
-                            );
+                        child: Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) {
+                            if (event is! KeyDownEvent) {
+                              return KeyEventResult.ignored;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                              _requestFocus(
+                                _audioOffsetPresetFocusNodes[
+                                    selectedAudioPresetIndex],
+                              );
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                              _requestFocus(
+                                hasAdvancedSubtitleStyling
+                                    ? _backgroundColorFocusNodes[
+                                        selectedBackgroundColorIndex]
+                                    : _premiumLockedActionFocusNode,
+                              );
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey ==
+                                    LogicalKeyboardKey.arrowLeft ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowRight) {
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
                           },
-                          child: Text(l10n.settingsSyncResetOffsets),
+                          child: MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: OutlinedButton(
+                              focusNode: _resetOffsetsFocusNode,
+                              onPressed: () async {
+                                setState(() {
+                                  _previewSubtitleOffsetMs = null;
+                                  _previewAudioOffsetMs = null;
+                                });
+                                await syncController.resetOffsets(
+                                  source: 'settings_reset_button',
+                                );
+                              },
+                              child: Text(l10n.settingsSyncResetOffsets),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -352,18 +766,45 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                               runSpacing: 10,
                               children: SubtitleAppearancePrefs
                                   .subtitleBackgroundColorChoices
-                                  .map((choice) {
+                                  .asMap()
+                                  .entries
+                                  .map((entry) {
+                                    final index = entry.key;
+                                    final choice = entry.value;
                                     final selected =
                                         previewPrefs.backgroundColorHex ==
                                         choice.hex;
-                                    return GestureDetector(
-                                      onTap: () => controller
-                                          .setBackgroundColorHex(choice.hex),
-                                      child: _ColorCircle(
-                                        color: _hexToColor(choice.hex),
-                                        selected: selected,
-                                        accentColor: accentColor,
-                                        size: 26,
+                                    return MoviEnsureVisibleOnFocus(
+                                      verticalAlignment:
+                                          _focusVerticalAlignment,
+                                      child: Focus(
+                                        canRequestFocus: false,
+                                        onKeyEvent: (_, event) =>
+                                            _handleHorizontalGroupKey(
+                                              event: event,
+                                              index: index,
+                                              nodes: _backgroundColorFocusNodes,
+                                              upNode: _resetOffsetsFocusNode,
+                                              downNode:
+                                                  _backgroundOpacitySliderFocusNode,
+                                            ),
+                                        child: MoviFocusableAction(
+                                          focusNode:
+                                              _backgroundColorFocusNodes[index],
+                                          onPressed: () => controller
+                                              .setBackgroundColorHex(
+                                                choice.hex,
+                                              ),
+                                          semanticLabel: choice.hex,
+                                          builder: (context, state) =>
+                                              _ColorCircle(
+                                                color: _hexToColor(choice.hex),
+                                                selected:
+                                                    selected || state.focused,
+                                                accentColor: accentColor,
+                                                size: 26,
+                                              ),
+                                        ),
                                       ),
                                     );
                                   })
@@ -374,22 +815,38 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                               '${l10n.settingsSubtitlesBackgroundOpacityLabel}: ${(previewPrefs.backgroundOpacity * 100).round()}%',
                               style: const TextStyle(color: Colors.white70),
                             ),
-                            Slider(
-                              value: previewPrefs.backgroundOpacity,
-                              min: 0,
-                              max: 1,
-                              divisions: 10,
-                              onChanged: (value) {
-                                setState(
-                                  () => _previewBackgroundOpacity = value,
-                                );
-                              },
-                              onChangeEnd: (value) async {
-                                setState(
-                                  () => _previewBackgroundOpacity = null,
-                                );
-                                await controller.setBackgroundOpacity(value);
-                              },
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleSliderKey(
+                                event: event,
+                                upNode: _backgroundColorFocusNodes[
+                                    selectedBackgroundColorIndex],
+                                downNode: _shadowPresetFocusNodes[
+                                    selectedShadowPresetIndex],
+                              ),
+                              child: MoviEnsureVisibleOnFocus(
+                                verticalAlignment: _focusVerticalAlignment,
+                                child: Slider(
+                                  focusNode: _backgroundOpacitySliderFocusNode,
+                                  value: previewPrefs.backgroundOpacity,
+                                  min: 0,
+                                  max: 1,
+                                  divisions: 10,
+                                  onChanged: (value) {
+                                    setState(
+                                      () => _previewBackgroundOpacity = value,
+                                    );
+                                  },
+                                  onChangeEnd: (value) async {
+                                    setState(
+                                      () => _previewBackgroundOpacity = null,
+                                    );
+                                    await controller.setBackgroundOpacity(
+                                      value,
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -400,30 +857,48 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                         child: Wrap(
                           spacing: 12,
                           runSpacing: 12,
-                          children: SubtitleShadowPreset.values
-                              .map((preset) {
+                          children: SubtitleShadowPreset.values.asMap().entries
+                              .map((entry) {
+                                final index = entry.key;
+                                final preset = entry.value;
                                 final selected =
                                     previewPrefs.shadowPreset == preset;
-                                return ChoiceChip(
-                                  label: Text(_shadowLabel(l10n, preset)),
-                                  selected: selected,
-                                  onSelected: (_) =>
-                                      controller.setShadowPreset(preset),
-                                  selectedColor: accentColor.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  side: BorderSide(
-                                    color: selected
-                                        ? accentColor
-                                        : Colors.white24,
-                                  ),
-                                  labelStyle: TextStyle(
-                                    color: selected
-                                        ? Colors.white
-                                        : Colors.white70,
-                                    fontWeight: selected
-                                        ? FontWeight.w700
-                                        : FontWeight.w400,
+                                return MoviEnsureVisibleOnFocus(
+                                  verticalAlignment: _focusVerticalAlignment,
+                                  child: Focus(
+                                    canRequestFocus: false,
+                                    onKeyEvent: (_, event) =>
+                                        _handleHorizontalGroupKey(
+                                          event: event,
+                                          index: index,
+                                          nodes: _shadowPresetFocusNodes,
+                                          upNode:
+                                              _backgroundOpacitySliderFocusNode,
+                                          downNode: _fineSizeSliderFocusNode,
+                                        ),
+                                    child: ChoiceChip(
+                                      focusNode: _shadowPresetFocusNodes[index],
+                                      label: Text(_shadowLabel(l10n, preset)),
+                                      selected: selected,
+                                      onSelected: (_) =>
+                                          controller.setShadowPreset(preset),
+                                      selectedColor: accentColor.withValues(
+                                        alpha: 0.25,
+                                      ),
+                                      side: BorderSide(
+                                        color: selected
+                                            ? accentColor
+                                            : Colors.white24,
+                                      ),
+                                      labelStyle: TextStyle(
+                                        color: selected
+                                            ? Colors.white
+                                            : Colors.white70,
+                                        fontWeight: selected
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
+                                      ),
+                                    ),
                                   ),
                                 );
                               })
@@ -440,18 +915,31 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                               '${l10n.settingsSubtitlesFineSizeValueLabel}: ${previewPrefs.fontScale.toStringAsFixed(2)}x',
                               style: const TextStyle(color: Colors.white70),
                             ),
-                            Slider(
-                              value: previewPrefs.fontScale,
-                              min: SubtitleAppearancePrefs.minFontScale,
-                              max: SubtitleAppearancePrefs.maxFontScale,
-                              divisions: 18,
-                              onChanged: (value) {
-                                setState(() => _previewFontScale = value);
-                              },
-                              onChangeEnd: (value) async {
-                                setState(() => _previewFontScale = null);
-                                await controller.setFontScale(value);
-                              },
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleSliderKey(
+                                event: event,
+                                upNode: _shadowPresetFocusNodes[
+                                    selectedShadowPresetIndex],
+                                downNode: _resetDefaultsFocusNode,
+                              ),
+                              child: MoviEnsureVisibleOnFocus(
+                                verticalAlignment: _focusVerticalAlignment,
+                                child: Slider(
+                                  focusNode: _fineSizeSliderFocusNode,
+                                  value: previewPrefs.fontScale,
+                                  min: SubtitleAppearancePrefs.minFontScale,
+                                  max: SubtitleAppearancePrefs.maxFontScale,
+                                  divisions: 18,
+                                  onChanged: (value) {
+                                    setState(() => _previewFontScale = value);
+                                  },
+                                  onChangeEnd: (value) async {
+                                    setState(() => _previewFontScale = null);
+                                    await controller.setFontScale(value);
+                                  },
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -459,10 +947,34 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        child: OutlinedButton(
-                          focusNode: _resetDefaultsFocusNode,
-                          onPressed: controller.resetToDefaults,
-                          child: Text(l10n.settingsSubtitlesResetDefaults),
+                        child: Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) {
+                            if (event is! KeyDownEvent) {
+                              return KeyEventResult.ignored;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                              _requestFocus(_fineSizeSliderFocusNode);
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey ==
+                                    LogicalKeyboardKey.arrowDown ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowLeft ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowRight) {
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: OutlinedButton(
+                              focusNode: _resetDefaultsFocusNode,
+                              onPressed: controller.resetToDefaults,
+                              child: Text(l10n.settingsSubtitlesResetDefaults),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -477,10 +989,35 @@ class _SettingsSubtitlesPageState extends ConsumerState<SettingsSubtitlesPage> {
                           style: const TextStyle(color: Colors.white70),
                         ),
                         const SizedBox(height: 12),
-                        MoviPrimaryButton(
-                          label: l10n.settingsSubtitlesPremiumLockedAction,
-                          onPressed: () =>
-                              showPremiumFeatureLockedSheet(context),
+                        Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) {
+                            if (event is! KeyDownEvent) {
+                              return KeyEventResult.ignored;
+                            }
+                            if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                              _requestFocus(_resetOffsetsFocusNode);
+                              return KeyEventResult.handled;
+                            }
+                            if (event.logicalKey ==
+                                    LogicalKeyboardKey.arrowDown ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowLeft ||
+                                event.logicalKey ==
+                                    LogicalKeyboardKey.arrowRight) {
+                              return KeyEventResult.handled;
+                            }
+                            return KeyEventResult.ignored;
+                          },
+                          child: MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: MoviPrimaryButton(
+                              focusNode: _premiumLockedActionFocusNode,
+                              label: l10n.settingsSubtitlesPremiumLockedAction,
+                              onPressed: () =>
+                                  showPremiumFeatureLockedSheet(context),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -549,12 +1086,18 @@ class _OffsetPresetButtons extends StatelessWidget {
   const _OffsetPresetButtons({
     required this.selectedOffsetMs,
     required this.onPresetSelected,
+    this.focusNodes,
+    this.verticalAlignment = 0.22,
+    this.onKeyEvent,
   });
 
   final int selectedOffsetMs;
   final Future<void> Function(int offsetMs)? onPresetSelected;
+  final List<FocusNode>? focusNodes;
+  final double verticalAlignment;
+  final KeyEventResult Function(int index, KeyEvent event)? onKeyEvent;
 
-  static const List<int> _presets = <int>[-500, -250, 0, 250, 500];
+  static const List<int> presets = <int>[-500, -250, 0, 250, 500];
 
 
   @override
@@ -562,15 +1105,30 @@ class _OffsetPresetButtons extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: _presets
-          .map((offsetMs) {
+      children: presets.asMap().entries
+          .map((entry) {
+            final index = entry.key;
+            final offsetMs = entry.value;
             final selected = selectedOffsetMs == offsetMs;
-            return ChoiceChip(
-              label: Text(_label(offsetMs)),
-              selected: selected,
-              onSelected: onPresetSelected == null
-                  ? null
-                  : (_) => onPresetSelected!(offsetMs),
+            return MoviEnsureVisibleOnFocus(
+              verticalAlignment: verticalAlignment,
+              child: Focus(
+                canRequestFocus: false,
+                onKeyEvent: onKeyEvent == null
+                    ? null
+                    : (_, event) => onKeyEvent!(index, event),
+                child: ChoiceChip(
+                  focusNode:
+                      focusNodes != null && index < focusNodes!.length
+                      ? focusNodes![index]
+                      : null,
+                  label: Text(_label(offsetMs)),
+                  selected: selected,
+                  onSelected: onPresetSelected == null
+                      ? null
+                      : (_) => onPresetSelected!(offsetMs),
+                ),
+              ),
             );
           })
           .toList(growable: false),

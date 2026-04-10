@@ -72,7 +72,7 @@ class _AboutPageState extends ConsumerState<AboutPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Version ${const String.fromEnvironment('MOVI_VERSION', defaultValue: '1.0.2')}',
+                  'Version ${const String.fromEnvironment('MOVI_VERSION', defaultValue: '1.0.3')}',
                   style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 32),

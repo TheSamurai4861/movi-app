@@ -23,12 +23,16 @@ class MoviTvActionMenuDialog extends StatefulWidget {
     required this.actions,
     required this.cancelLabel,
     this.triggerFocusNode,
+    this.focusScale = 1.02,
+    this.focusVerticalAlignment = 0.18,
   });
 
   final String? title;
   final List<MoviTvActionMenuAction> actions;
   final String cancelLabel;
   final FocusNode? triggerFocusNode;
+  final double focusScale;
+  final double focusVerticalAlignment;
 
   @override
   State<MoviTvActionMenuDialog> createState() => _MoviTvActionMenuDialogState();
@@ -56,6 +60,9 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+    final maxDialogHeight = viewportHeight * 0.72;
+    final maxActionsHeight = viewportHeight * 0.46;
     final initialFocusNode = _actionFocusNodes.isNotEmpty
         ? _actionFocusNodes.first
         : _cancelFocusNode;
@@ -69,7 +76,10 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
+          constraints: BoxConstraints(
+            maxWidth: 520,
+            maxHeight: maxDialogHeight,
+          ),
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: const Color(0xFF1C1C1E),
@@ -88,7 +98,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: MainAxisSize.max,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (widget.title != null &&
@@ -102,32 +112,52 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                     ),
                     const SizedBox(height: 20),
                   ],
-                  for (var i = 0; i < widget.actions.length; i++) ...[
-                    _MoviTvActionMenuButton(
-                      label: widget.actions[i].label,
-                      destructive: widget.actions[i].destructive,
-                      focusNode: _actionFocusNodes[i],
-                      previousFocusNode: i > 0
-                          ? _actionFocusNodes[i - 1]
-                          : null,
-                      nextFocusNode: i == widget.actions.length - 1
-                          ? _cancelFocusNode
-                          : _actionFocusNodes[i + 1],
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) return;
-                          widget.actions[i].onPressed();
-                        });
-                      },
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: maxActionsHeight),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (var i = 0; i < widget.actions.length; i++) ...[
+                              _MoviTvActionMenuButton(
+                                label: widget.actions[i].label,
+                                destructive: widget.actions[i].destructive,
+                                focusNode: _actionFocusNodes[i],
+                                focusScale: widget.focusScale,
+                                focusVerticalAlignment:
+                                    widget.focusVerticalAlignment,
+                                previousFocusNode: i > 0
+                                    ? _actionFocusNodes[i - 1]
+                                    : null,
+                                nextFocusNode: i == widget.actions.length - 1
+                                    ? _cancelFocusNode
+                                    : _actionFocusNodes[i + 1],
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (!mounted) return;
+                                    widget.actions[i].onPressed();
+                                  });
+                                },
+                              ),
+                              if (i != widget.actions.length - 1)
+                                const SizedBox(height: 12),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                    if (i != widget.actions.length - 1)
-                      const SizedBox(height: 12),
-                  ],
+                  ),
                   if (widget.actions.isNotEmpty) const SizedBox(height: 18),
                   _MoviTvActionMenuButton(
                     label: widget.cancelLabel,
                     focusNode: _cancelFocusNode,
+                    focusScale: widget.focusScale,
+                    focusVerticalAlignment: widget.focusVerticalAlignment,
                     previousFocusNode: _actionFocusNodes.isNotEmpty
                         ? _actionFocusNodes.last
                         : null,
@@ -149,6 +179,8 @@ Future<void> showMoviTvActionMenu({
   String? title,
   required List<MoviTvActionMenuAction> actions,
   required String cancelLabel,
+  double focusScale = 1.02,
+  double focusVerticalAlignment = 0.18,
 }) {
   final triggerFocusNode = FocusManager.instance.primaryFocus;
   return showDialog<void>(
@@ -159,6 +191,8 @@ Future<void> showMoviTvActionMenu({
       actions: actions,
       cancelLabel: cancelLabel,
       triggerFocusNode: triggerFocusNode,
+      focusScale: focusScale,
+      focusVerticalAlignment: focusVerticalAlignment,
     ),
   );
 }
@@ -168,6 +202,8 @@ class _MoviTvActionMenuButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     required this.focusNode,
+    required this.focusScale,
+    required this.focusVerticalAlignment,
     this.previousFocusNode,
     this.nextFocusNode,
     this.destructive = false,
@@ -177,6 +213,8 @@ class _MoviTvActionMenuButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final FocusNode focusNode;
+  final double focusScale;
+  final double focusVerticalAlignment;
   final FocusNode? previousFocusNode;
   final FocusNode? nextFocusNode;
   final bool destructive;
@@ -229,38 +267,41 @@ class _MoviTvActionMenuButton extends StatelessWidget {
 
     return Focus(
       onKeyEvent: (_, event) => _handleKeyEvent(event),
-      child: MoviFocusableAction(
-        focusNode: focusNode,
-        onPressed: onPressed,
-        semanticLabel: label,
-        builder: (context, state) {
-          return MoviFocusFrame(
-            scale: state.focused ? 1.02 : 1,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            borderRadius: BorderRadius.circular(20),
-            backgroundColor: state.focused
-                ? colorScheme.primary.withValues(alpha: 0.16)
-                : colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-            borderColor: state.focused
-                ? focusedBorderColor
-                : restingBorderColor,
-            borderWidth: 2,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style:
-                  Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w600,
-                  ) ??
-                  TextStyle(
-                    color: foreground,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          );
-        },
+      child: MoviEnsureVisibleOnFocus(
+        verticalAlignment: focusVerticalAlignment,
+        child: MoviFocusableAction(
+          focusNode: focusNode,
+          onPressed: onPressed,
+          semanticLabel: label,
+          builder: (context, state) {
+            return MoviFocusFrame(
+              scale: state.focused ? focusScale : 1,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              borderRadius: BorderRadius.circular(20),
+              backgroundColor: state.focused
+                  ? colorScheme.primary.withValues(alpha: 0.16)
+                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+              borderColor: state.focused
+                  ? focusedBorderColor
+                  : restingBorderColor,
+              borderWidth: 2,
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style:
+                    Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: foreground,
+                      fontWeight: FontWeight.w600,
+                    ) ??
+                    TextStyle(
+                      color: foreground,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

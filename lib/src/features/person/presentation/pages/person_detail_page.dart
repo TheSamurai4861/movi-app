@@ -348,11 +348,17 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (isWideLayout)
-                          _buildDesktopHeader(
-                            context,
-                            horizontalPadding: horizontalPadding,
-                            movies: movies,
-                            shows: shows,
+                          Builder(
+                            builder: (headerContext) =>
+                                MoviVerticalEnsureVisibleTarget(
+                                  targetContext: headerContext,
+                                  child: _buildDesktopHeader(
+                                    context,
+                                    horizontalPadding: horizontalPadding,
+                                    movies: movies,
+                                    shows: shows,
+                                  ),
+                                ),
                           )
                         else
                           PersonDetailHeroSection(

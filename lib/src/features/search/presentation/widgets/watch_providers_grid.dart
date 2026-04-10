@@ -21,6 +21,7 @@ class WatchProvidersGrid extends ConsumerStatefulWidget {
     this.maxContentWidth = double.infinity,
     this.firstItemFocusNode,
     this.onFirstItemLeft,
+    this.onLastRowDown,
     this.focusVerticalAlignment = 0.22,
     this.focusRequestId,
     this.focusRequestColumn,
@@ -30,6 +31,7 @@ class WatchProvidersGrid extends ConsumerStatefulWidget {
   final double maxContentWidth;
   final FocusNode? firstItemFocusNode;
   final VoidCallback? onFirstItemLeft;
+  final ValueChanged<int>? onLastRowDown;
   final double focusVerticalAlignment;
   final int? focusRequestId;
   final int? focusRequestColumn;
@@ -40,6 +42,7 @@ class WatchProvidersGrid extends ConsumerStatefulWidget {
 
 class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
   final Map<int, FocusNode> _providerFocusNodes = <int, FocusNode>{};
+  int? _lastAppliedFocusRequestId;
 
   void _syncFocusNodes(List<WatchProvider> providers) {
     final usesExternalFirst = widget.firstItemFocusNode != null;
@@ -69,6 +72,18 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
     );
   }
 
+  bool _requestProviderFocus(
+    WatchProvider provider, {
+    required bool isFirstItem,
+  }) {
+    final node = _focusNodeFor(provider, isFirstItem: isFirstItem);
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
   int _lastRowAlignedIndex({
     required int itemCount,
     required int columns,
@@ -78,13 +93,70 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
     return math.min(lastRowStart + column, itemCount - 1);
   }
 
+  KeyEventResult _handleProviderKey({
+    required KeyEvent event,
+    required int index,
+    required int columns,
+    required List<WatchProvider> providers,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    final column = index % columns;
+
+    bool focusIndex(int targetIndex) {
+      return _requestProviderFocus(
+        providers[targetIndex],
+        isFirstItem: targetIndex == 0,
+      );
+    }
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (column == 0) {
+          widget.onFirstItemLeft?.call();
+          return KeyEventResult.handled;
+        }
+        if (index > 0) {
+          final handled = focusIndex(index - 1);
+          return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+        }
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowRight:
+        if (index + 1 < providers.length) {
+          final handled = focusIndex(index + 1);
+          return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+        }
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowUp:
+        if (index - columns >= 0) {
+          final handled = focusIndex(index - columns);
+          return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+        }
+        return KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (index + columns < providers.length) {
+          final handled = focusIndex(index + columns);
+          return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+        }
+        widget.onLastRowDown?.call(column);
+        return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
   void _applyPendingFocusRequest(
     List<WatchProvider> providers,
     int columns,
-    int? requestColumn,
-  ) {
-    if (widget.focusRequestId == null || requestColumn == null) return;
+    int? requestId,
+    int? requestColumn, {
+    int attempt = 0,
+  }) {
+    if (requestId == null || requestColumn == null) return;
     if (providers.isEmpty) return;
+    if (_lastAppliedFocusRequestId == requestId) return;
 
     final targetIndex = _lastRowAlignedIndex(
       itemCount: providers.length,
@@ -99,10 +171,45 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
         isFirstItem: targetIndex == 0,
       );
       if (!node.canRequestFocus || node.context == null) {
+        if (attempt >= 4) {
+          return;
+        }
+        _applyPendingFocusRequest(
+          providers,
+          columns,
+          requestId,
+          requestColumn,
+          attempt: attempt + 1,
+        );
         return;
       }
       node.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (node.hasFocus) {
+          _lastAppliedFocusRequestId = requestId;
+          return;
+        }
+        if (attempt >= 4) {
+          return;
+        }
+        _applyPendingFocusRequest(
+          providers,
+          columns,
+          requestId,
+          requestColumn,
+          attempt: attempt + 1,
+        );
+      });
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant WatchProvidersGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusRequestId != oldWidget.focusRequestId) {
+      _lastAppliedFocusRequestId = null;
+    }
   }
 
   ScreenType _screenTypeFor(BuildContext context) {
@@ -185,6 +292,7 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
                       _applyPendingFocusRequest(
                         providers,
                         columns,
+                        widget.focusRequestId,
                         widget.focusRequestColumn,
                       );
                       final aspectRatio = switch (screenType) {
@@ -214,26 +322,16 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
                             focusVerticalAlignment:
                                 widget.focusVerticalAlignment,
                           );
-                          final decoratedCard =
-                              index % columns != 0 ||
-                                  widget.onFirstItemLeft == null
-                              ? card
-                              : Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) {
-                                    if (event is! KeyDownEvent) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    if (event.logicalKey !=
-                                        LogicalKeyboardKey.arrowLeft) {
-                                      return KeyEventResult.ignored;
-                                    }
-                                    widget.onFirstItemLeft!.call();
-                                    return KeyEventResult.handled;
-                                  },
-                                  child: card,
-                                );
-                          return decoratedCard;
+                          return Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => _handleProviderKey(
+                              event: event,
+                              index: index,
+                              columns: columns,
+                              providers: providers,
+                            ),
+                            child: card,
+                          );
                         },
                       );
                     },

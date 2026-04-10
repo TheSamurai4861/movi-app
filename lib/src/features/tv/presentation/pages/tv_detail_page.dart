@@ -121,7 +121,8 @@ final _watchedEpisodeKeysProvider = FutureProvider.family<Set<String>, String>((
 class _TvDetailPageState extends ConsumerState<TvDetailPage>
     with TickerProviderStateMixin {
   static void _noop() {}
-  static const double _heroFocusVerticalAlignment = 0.08;
+  static const double _heroFocusVerticalAlignment = 0.0;
+  static const double _heroTopBarFocusVerticalAlignment = 0.0;
   bool _overviewExpanded = false;
   bool _isTransitioningFromLoading = true;
   late TabController _tabController;
@@ -1388,26 +1389,34 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            MoviDetailHeroScene(
-                              isWideLayout: isWideLayout,
-                              background: _buildHeroImage(
-                                posterBackground,
-                                poster,
-                                backdrop,
-                              ),
-                              children: [
-                                _buildHeroTopBar(isWideLayout: isWideLayout),
-                                if (isWideLayout)
-                                  _buildDesktopHeroOverlay(
-                                    mediaTitle: mediaTitle,
-                                    yearText: yearText,
-                                    seasonsCountText: seasonsCountText,
-                                    ratingText: ratingText,
-                                    overviewText: overviewText,
-                                    seasons: seasons,
-                                    logo: logo,
+                            Builder(
+                              builder: (heroContext) =>
+                                  MoviVerticalEnsureVisibleTarget(
+                                    targetContext: heroContext,
+                                    child: MoviDetailHeroScene(
+                                      isWideLayout: isWideLayout,
+                                      background: _buildHeroImage(
+                                        posterBackground,
+                                        poster,
+                                        backdrop,
+                                      ),
+                                      children: [
+                                        _buildHeroTopBar(
+                                          isWideLayout: isWideLayout,
+                                        ),
+                                        if (isWideLayout)
+                                          _buildDesktopHeroOverlay(
+                                            mediaTitle: mediaTitle,
+                                            yearText: yearText,
+                                            seasonsCountText: seasonsCountText,
+                                            ratingText: ratingText,
+                                            overviewText: overviewText,
+                                            seasons: seasons,
+                                            logo: logo,
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                              ],
                             ),
                             if (!isWideLayout)
                               _buildMobileMetaSection(
@@ -1443,15 +1452,18 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return MoviDetailHeroTopBar(
       isWideLayout: isWideLayout,
       horizontalPadding: _sectionHorizontalPadding(context),
-      leading: Focus(
-        canRequestFocus: false,
-        onKeyEvent: (_, event) => _handleHeroBackKey(event),
-        child: MoviDetailHeroActionButton(
-          focusNode: _backFocusNode,
-          iconAsset: AppAssets.iconBack,
-          semanticLabel: l10n.semanticsBack,
-          onPressed: () => context.pop(),
-          isWideLayout: isWideLayout,
+      leading: MoviEnsureVisibleOnFocus(
+        verticalAlignment: _heroTopBarFocusVerticalAlignment,
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleHeroBackKey(event),
+          child: MoviDetailHeroActionButton(
+            focusNode: _backFocusNode,
+            iconAsset: AppAssets.iconBack,
+            semanticLabel: l10n.semanticsBack,
+            onPressed: () => context.pop(),
+            isWideLayout: isWideLayout,
+          ),
         ),
       ),
       trailing: Focus(

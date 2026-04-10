@@ -5,10 +5,12 @@ class LaunchRecoveryBanner extends StatelessWidget {
     super.key,
     required this.message,
     required this.onRetry,
+    this.retryFocusNode,
   });
 
   final String message;
   final VoidCallback onRetry;
+  final FocusNode? retryFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +31,11 @@ class LaunchRecoveryBanner extends StatelessWidget {
           children: [
             Expanded(child: Text(message, style: theme.textTheme.bodyMedium)),
             const SizedBox(width: 12),
-            TextButton(onPressed: onRetry, child: const Text('Reessayer')),
+            TextButton(
+              focusNode: retryFocusNode,
+              onPressed: onRetry,
+              child: const Text('Reessayer'),
+            ),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -13,6 +14,9 @@ class IptvSourceSelectionList extends StatelessWidget {
     required this.onSelected,
     this.padding = const EdgeInsets.all(12),
     this.itemFocusNodes,
+    this.onFirstItemUp,
+    this.onLastItemDown,
+    this.focusVerticalAlignment = 0.22,
   });
 
   final List<AnyIptvAccount> accounts;
@@ -20,6 +24,9 @@ class IptvSourceSelectionList extends StatelessWidget {
   final ValueChanged<AnyIptvAccount> onSelected;
   final EdgeInsetsGeometry padding;
   final List<FocusNode>? itemFocusNodes;
+  final VoidCallback? onFirstItemUp;
+  final VoidCallback? onLastItemDown;
+  final double focusVerticalAlignment;
 
   @override
   Widget build(BuildContext context) {
@@ -30,13 +37,41 @@ class IptvSourceSelectionList extends StatelessWidget {
       itemBuilder: (context, index) {
         final account = accounts[index];
         final isSelected = account.id == selectedId;
-        return _IptvSourceTile(
+        final tile = _IptvSourceTile(
           account: account,
           isSelected: isSelected,
           focusNode: itemFocusNodes != null && index < itemFocusNodes!.length
               ? itemFocusNodes![index]
               : null,
           onTap: () => onSelected(account),
+          focusVerticalAlignment: focusVerticalAlignment,
+        );
+        return Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) {
+            if (event is! KeyDownEvent) {
+              return KeyEventResult.ignored;
+            }
+            switch (event.logicalKey) {
+              case LogicalKeyboardKey.arrowUp:
+                if (index == 0) {
+                  onFirstItemUp?.call();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              case LogicalKeyboardKey.arrowDown:
+                if (index == accounts.length - 1) {
+                  onLastItemDown?.call();
+                  return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              case LogicalKeyboardKey.arrowLeft:
+              case LogicalKeyboardKey.arrowRight:
+                return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: tile,
         );
       },
     );
@@ -49,12 +84,14 @@ class _IptvSourceTile extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.focusNode,
+    required this.focusVerticalAlignment,
   });
 
   final AnyIptvAccount account;
   final bool isSelected;
   final VoidCallback onTap;
   final FocusNode? focusNode;
+  final double focusVerticalAlignment;
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +100,7 @@ class _IptvSourceTile extends StatelessWidget {
 
     return MoviFocusableAction(
       focusNode: focusNode,
+      ensureVisibleVerticalAlignment: focusVerticalAlignment,
       onPressed: onTap,
       semanticLabel: account.alias,
       builder: (context, state) {

@@ -181,6 +181,21 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     });
   }
 
+  void _focusTabEntryWithRetry(
+    ShellFocusCoordinator coordinator,
+    ShellTab tab, {
+    int attempts = 0,
+  }) {
+    if (!mounted) return;
+    final focused = coordinator.focusTabEntry(tab);
+    if (focused || attempts >= 8) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusTabEntryWithRetry(coordinator, tab, attempts: attempts + 1);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(selectedIndexProvider);
@@ -234,9 +249,9 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
             });
             return KeyEventResult.handled;
           }
-          final focused = focusCoordinator.focusTabPrimaryEntry(targetTab);
+          final focused = focusCoordinator.focusTabEntry(targetTab);
           if (!focused) {
-            _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
+            _focusTabEntryWithRetry(focusCoordinator, targetTab);
           }
           return KeyEventResult.handled;
         }

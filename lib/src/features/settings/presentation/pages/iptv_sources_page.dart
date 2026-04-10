@@ -3,15 +3,20 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -20,6 +25,7 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/movi_tv_action_menu.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
@@ -39,12 +45,39 @@ class IptvSourcesPage extends ConsumerStatefulWidget {
 }
 
 class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
+  static const double _focusVerticalAlignment = 0.22;
   String? _selectedAccountId;
   bool _isSearchVisible = false;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'IptvSourcesBack');
+  final FocusNode _searchButtonFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesSearchButton',
+  );
+  final FocusNode _headerAddFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesHeaderAdd',
+  );
+  final FocusNode _changeSourceFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesChangeActive',
+  );
+  final FocusNode _searchFieldFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesSearchField',
+  );
+  final FocusNode _activeDeleteFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesActiveDelete',
+  );
+  final FocusNode _refreshFocusNode = FocusNode(debugLabel: 'IptvSourcesRefresh');
+  final FocusNode _editFocusNode = FocusNode(debugLabel: 'IptvSourcesEdit');
+  final FocusNode _organizeFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesOrganize',
+  );
+  final FocusNode _bottomAddFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesBottomAdd',
+  );
+  final Map<String, FocusNode> _otherDeleteFocusNodes = <String, FocusNode>{};
 
   bool _refreshing = false;
   StreamSubscription<AppEvent>? _eventSub;
+  _PendingSourcesFocusTarget? _pendingFocusTarget;
 
   @override
   void initState() {
@@ -62,6 +95,19 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
   void dispose() {
     _eventSub?.cancel();
     _searchController.dispose();
+    _backFocusNode.dispose();
+    _searchButtonFocusNode.dispose();
+    _headerAddFocusNode.dispose();
+    _changeSourceFocusNode.dispose();
+    _searchFieldFocusNode.dispose();
+    _activeDeleteFocusNode.dispose();
+    _refreshFocusNode.dispose();
+    _editFocusNode.dispose();
+    _organizeFocusNode.dispose();
+    _bottomAddFocusNode.dispose();
+    for (final node in _otherDeleteFocusNodes.values) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -97,6 +143,282 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 
   bool _isAccountActive(AnyIptvAccount account) {
     return account.isActive();
+  }
+
+  ScreenType _screenTypeFor(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    return ScreenTypeResolver.instance.resolve(size.width, size.height);
+  }
+
+  bool _useTvModal(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  void _syncOtherDeleteFocusNodes(List<AnyIptvAccount> accounts) {
+    final activeIds = accounts.map((account) => account.id).toSet();
+    final staleIds = _otherDeleteFocusNodes.keys
+        .where((id) => !activeIds.contains(id))
+        .toList(growable: false);
+    for (final id in staleIds) {
+      _otherDeleteFocusNodes.remove(id)?.dispose();
+    }
+
+    for (final account in accounts) {
+      _otherDeleteFocusNodes.putIfAbsent(
+        account.id,
+        () => FocusNode(debugLabel: 'IptvSourcesDelete_${account.id}'),
+      );
+    }
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  void _setPendingFocusTarget(_PendingSourcesFocusTarget target) {
+    _pendingFocusTarget = target;
+  }
+
+  FocusNode? _focusNodeForPendingTarget({
+    required _PendingSourcesFocusTarget target,
+    required AnyIptvAccount? activeAccount,
+  }) {
+    switch (target.type) {
+      case _PendingSourcesFocusTargetType.searchButton:
+        return _searchButtonFocusNode;
+      case _PendingSourcesFocusTargetType.searchField:
+        return _searchFieldFocusNode;
+      case _PendingSourcesFocusTargetType.activeDelete:
+        return activeAccount == null ? null : _activeDeleteFocusNode;
+      case _PendingSourcesFocusTargetType.refresh:
+        return _refreshFocusNode;
+      case _PendingSourcesFocusTargetType.bottomAdd:
+        return _bottomAddFocusNode;
+      case _PendingSourcesFocusTargetType.otherDelete:
+        return target.accountId == null
+            ? null
+            : _otherDeleteFocusNodes[target.accountId!];
+    }
+  }
+
+  void _applyPendingFocusTarget({required AnyIptvAccount? activeAccount}) {
+    final target = _pendingFocusTarget;
+    if (target == null) return;
+    _pendingFocusTarget = null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final targetNode = _focusNodeForPendingTarget(
+        target: target,
+        activeAccount: activeAccount,
+      );
+      if (targetNode != null && _requestFocus(targetNode)) {
+        return;
+      }
+      _requestFocus(_bottomAddFocusNode);
+    });
+  }
+
+  void _ensureFocusStillVisible({
+    required AnyIptvAccount? activeAccount,
+    required List<AnyIptvAccount> otherAccounts,
+  }) {
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    if (primaryFocus == null || primaryFocus.context != null) {
+      return;
+    }
+
+    final managedNodes = <FocusNode>{
+      _backFocusNode,
+      _searchButtonFocusNode,
+      _headerAddFocusNode,
+      _changeSourceFocusNode,
+      _searchFieldFocusNode,
+      _activeDeleteFocusNode,
+      _refreshFocusNode,
+      _editFocusNode,
+      _organizeFocusNode,
+      _bottomAddFocusNode,
+      ..._otherDeleteFocusNodes.values,
+    };
+    if (!managedNodes.contains(primaryFocus)) {
+      return;
+    }
+
+    if (otherAccounts.isNotEmpty) {
+      _setPendingFocusTarget(
+        _PendingSourcesFocusTarget.otherDelete(otherAccounts.first.id),
+      );
+    } else if (activeAccount != null) {
+      _setPendingFocusTarget(const _PendingSourcesFocusTarget.refresh());
+    } else {
+      _setPendingFocusTarget(const _PendingSourcesFocusTarget.bottomAdd());
+    }
+    _applyPendingFocusTarget(activeAccount: activeAccount);
+  }
+
+  void _openSearch() {
+    setState(() {
+      _isSearchVisible = true;
+      _setPendingFocusTarget(const _PendingSourcesFocusTarget.searchField());
+    });
+  }
+
+  void _closeSearch({bool clearText = true, bool focusSearchButton = true}) {
+    setState(() {
+      if (clearText) {
+        _searchController.clear();
+      }
+      _isSearchVisible = false;
+      if (focusSearchButton) {
+        _setPendingFocusTarget(
+          const _PendingSourcesFocusTarget.searchButton(),
+        );
+      }
+    });
+  }
+
+  void _toggleSearch() {
+    if (_isSearchVisible) {
+      _closeSearch();
+      return;
+    }
+    _openSearch();
+  }
+
+  bool _handleRouteBack() {
+    if (_isSearchVisible && _searchFieldFocusNode.hasFocus) {
+      if (_searchController.text.isNotEmpty) {
+        setState(() => _searchController.clear());
+      } else {
+        _closeSearch();
+      }
+      return true;
+    }
+    if (_isSearchVisible && _searchButtonFocusNode.hasFocus) {
+      _closeSearch();
+      return true;
+    }
+    if (!context.mounted) return false;
+    context.pop();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+    FocusNode? up,
+    FocusNode? down,
+    VoidCallback? onLeft,
+    VoidCallback? onRight,
+    VoidCallback? onUp,
+    VoidCallback? onDown,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (onLeft != null) {
+          onLeft();
+          return KeyEventResult.handled;
+        }
+        if (moveTo(left)) return KeyEventResult.handled;
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        if (onRight != null) {
+          onRight();
+          return KeyEventResult.handled;
+        }
+        if (moveTo(right)) return KeyEventResult.handled;
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (onUp != null) {
+          onUp();
+          return KeyEventResult.handled;
+        }
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (onDown != null) {
+          onDown();
+          return KeyEventResult.handled;
+        }
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  _PendingSourcesFocusTarget _focusTargetAfterDelete({
+    required AnyIptvAccount account,
+    required List<AnyIptvAccount> accounts,
+  }) {
+    final selectedId = _selectedAccountId;
+    final activeAccount = selectedId == null
+        ? null
+        : accounts.where((candidate) => candidate.id == selectedId).firstOrNull;
+    final query = _searchController.text.trim().toLowerCase();
+    final visibleDeleteIds = <String>[
+      if (activeAccount != null) activeAccount.id,
+      ...accounts
+          .where((candidate) => candidate.id != selectedId)
+          .where(
+            (candidate) =>
+                query.isEmpty ||
+                candidate.alias.toLowerCase().contains(query) ||
+                candidate.getUsername().toLowerCase().contains(query) ||
+                candidate.getHost().toLowerCase().contains(query),
+          )
+          .map((candidate) => candidate.id),
+    ];
+
+    final currentIndex = visibleDeleteIds.indexOf(account.id);
+    final remainingAccounts = accounts
+        .where((candidate) => candidate.id != account.id)
+        .toList(growable: false);
+    if (remainingAccounts.isEmpty) {
+      return const _PendingSourcesFocusTarget.bottomAdd();
+    }
+
+    final wasActive = ref
+        .read(asp.activeIptvSourcesProvider)
+        .contains(account.id);
+    final wasSelected = ref.read(slProvider)<SelectedIptvSourcePreferences>().selectedSourceId ==
+        account.id;
+    final nextSelectedId = (wasActive || wasSelected)
+        ? remainingAccounts.first.id
+        : _selectedAccountId;
+
+    final remainingVisibleIds = visibleDeleteIds
+        .where((candidateId) => candidateId != account.id)
+        .toList(growable: false);
+    if (remainingVisibleIds.isEmpty) {
+      return const _PendingSourcesFocusTarget.bottomAdd();
+    }
+
+    final fallbackIndex = currentIndex < 0
+        ? 0
+        : currentIndex.clamp(0, remainingVisibleIds.length - 1);
+    final targetId = remainingVisibleIds[fallbackIndex];
+    if (targetId == nextSelectedId) {
+      return const _PendingSourcesFocusTarget.activeDelete();
+    }
+    return _PendingSourcesFocusTarget.otherDelete(targetId);
   }
 
   Future<RemoteIptvDeleteStatus> _deleteRemoteSourceBestEffort({
@@ -217,17 +539,29 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     return 'Source supprimée localement. Elle peut réapparaître après reconnexion tant que la suppression cloud n’a pas abouti.';
   }
 
-  Future<void> _confirmAndDelete(
-    AnyIptvAccount account,
-    List<AnyIptvAccount> accounts,
-  ) async {
+  Future<bool> _showDeleteConfirmation(AnyIptvAccount account) async {
     final l10n = AppLocalizations.of(context)!;
-    final local = ref.read(slProvider)<IptvLocalRepository>();
-    final vault = ref.read(slProvider)<CredentialsVault>();
-    final appState = ref.read(asp.appStateControllerProvider);
-    final selectedPrefs = ref.read(slProvider)<SelectedIptvSourcePreferences>();
+    if (_useTvModal(context)) {
+      var confirmed = false;
+      await showMoviTvActionMenu(
+        context: context,
+        title: l10n.actionConfirm,
+        actions: [
+          MoviTvActionMenuAction(
+            label: 'Supprimer',
+            destructive: true,
+            onPressed: () {
+              confirmed = true;
+            },
+          ),
+        ],
+        cancelLabel: l10n.actionCancel,
+      );
+      await WidgetsBinding.instance.endOfFrame;
+      return confirmed;
+    }
 
-    final ok = await showCupertinoDialog<bool>(
+    final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
         title: Text(l10n.actionConfirm),
@@ -240,13 +574,28 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('Supprimer'),
+            child: const Text('Supprimer'),
           ),
         ],
       ),
     );
+    return confirmed == true;
+  }
 
-    if (ok != true) return;
+  Future<void> _confirmAndDelete(
+    AnyIptvAccount account,
+    List<AnyIptvAccount> accounts,
+  ) async {
+    final local = ref.read(slProvider)<IptvLocalRepository>();
+    final vault = ref.read(slProvider)<CredentialsVault>();
+    final appState = ref.read(asp.appStateControllerProvider);
+    final selectedPrefs = ref.read(slProvider)<SelectedIptvSourcePreferences>();
+    final focusTargetAfterDelete = _focusTargetAfterDelete(
+      account: account,
+      accounts: accounts,
+    );
+
+    if (!await _showDeleteConfirmation(account)) return;
 
     final wasActive = ref
         .read(asp.activeIptvSourcesProvider)
@@ -277,6 +626,8 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       appState.setActiveIptvSources({fallback.id});
       setState(() => _selectedAccountId = fallback.id);
     }
+
+    _setPendingFocusTarget(focusTargetAfterDelete);
 
     final remoteDeleteStatus = await _deleteRemoteSourceBestEffort(
       localSourceId: account.id,
@@ -407,14 +758,26 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     final accent = ref.watch(asp.currentAccentColorProvider);
     final activeIds = ref.watch(asp.activeIptvSourcesProvider);
     final accountsAsync = ref.watch(allIptvAccountsProvider);
+    final initialFocusNode = accountsAsync.maybeWhen(
+      data: (accounts) => accounts.isEmpty ? _bottomAddFocusNode : _refreshFocusNode,
+      orElse: () => _backFocusNode,
+    );
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        top: true,
-        bottom: true,
-        child: SettingsContentWidth(
-          child: accountsAsync.when(
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _backFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: _handleRouteBack,
+      debugLabel: 'IptvSourcesRouteFocus',
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          top: true,
+          bottom: true,
+          child: SettingsContentWidth(
+            child: accountsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
               child: Text(
@@ -429,10 +792,13 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
               final activeAccount = (selectedId == null)
                   ? null
                   : accounts.where((a) => a.id == selectedId).firstOrNull;
+              final allOtherAccounts = accounts
+                  .where((account) => account.id != selectedId)
+                  .toList(growable: false);
+              _syncOtherDeleteFocusNodes(allOtherAccounts);
 
               final query = _searchController.text.trim().toLowerCase();
-              final otherAccounts = accounts
-                  .where((a) => a.id != selectedId)
+              final otherAccounts = allOtherAccounts
                   .where(
                     (a) =>
                         query.isEmpty ||
@@ -441,6 +807,18 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                         a.getHost().toLowerCase().contains(query),
                   )
                   .toList(growable: false);
+              final firstOtherDeleteNode = otherAccounts.isNotEmpty
+                  ? _otherDeleteFocusNodes[otherAccounts.first.id]
+                  : null;
+              final lastOtherDeleteNode = otherAccounts.isNotEmpty
+                  ? _otherDeleteFocusNodes[otherAccounts.last.id]
+                  : null;
+
+              _applyPendingFocusTarget(activeAccount: activeAccount);
+              _ensureFocusStillVisible(
+                activeAccount: activeAccount,
+                otherAccounts: otherAccounts,
+              );
 
               return Column(
                 children: [
@@ -450,61 +828,120 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                       title: 'Sources',
                       accent: accent,
                       searchActive: _isSearchVisible,
+                      backFocusNode: _backFocusNode,
+                      searchFocusNode: _searchButtonFocusNode,
+                      addFocusNode: _headerAddFocusNode,
                       onBack: () => context.pop(),
-                      onSearch: () {
-                        setState(() {
-                          _isSearchVisible = !_isSearchVisible;
-                          if (!_isSearchVisible) {
-                            _searchController.clear();
-                          }
-                        });
-                      },
+                      onSearch: _toggleSearch,
                       onAdd: _openAddSource,
+                      onBackKeyEvent: (event) => _handleDirectionalKey(
+                        event,
+                        right: _searchButtonFocusNode,
+                        down: _changeSourceFocusNode,
+                        blockLeft: true,
+                        blockUp: true,
+                      ),
+                      onSearchKeyEvent: (event) => _handleDirectionalKey(
+                        event,
+                        left: _backFocusNode,
+                        right: _headerAddFocusNode,
+                        down: _isSearchVisible
+                            ? _searchFieldFocusNode
+                            : _changeSourceFocusNode,
+                        blockUp: true,
+                      ),
+                      onAddKeyEvent: (event) => _handleDirectionalKey(
+                        event,
+                        left: _searchButtonFocusNode,
+                        down: _changeSourceFocusNode,
+                        blockRight: true,
+                        blockUp: true,
+                      ),
                     ),
                   ),
                   Expanded(
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       children: [
-                        SizedBox(
-                          height: 48,
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                context.push(AppRouteNames.iptvSourceSelect),
-                            icon: const Icon(Icons.swap_horiz),
-                            label: const Text('Changer de source active'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accent.withAlpha(51),
-                              foregroundColor: accent,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
+                        Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) => _handleDirectionalKey(
+                            event,
+                            up: _isSearchVisible
+                                ? _searchFieldFocusNode
+                                : _searchButtonFocusNode,
+                            down: activeAccount != null
+                                ? _activeDeleteFocusNode
+                                : firstOtherDeleteNode ?? _bottomAddFocusNode,
+                          ),
+                          child: MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: MoviPrimaryButton(
+                              label: 'Changer de source active',
+                              focusNode: _changeSourceFocusNode,
+                              leading: const Icon(Icons.swap_horiz),
+                              buttonStyle: FilledButton.styleFrom(
+                                backgroundColor: accent.withAlpha(51),
+                                foregroundColor: accent,
                               ),
+                              onPressed: () =>
+                                  context.push(AppRouteNames.iptvSourceSelect),
                             ),
                           ),
                         ),
                         if (_isSearchVisible) ...[
                           const SizedBox(height: 12),
-                          TextField(
-                            controller: _searchController,
-                            onChanged: (_) => setState(() {}),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Rechercher une source…',
-                              hintStyle: const TextStyle(color: Colors.white54),
-                              filled: true,
-                              fillColor: const Color(0xFF1C1C1E),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: const MoviAssetIcon(
-                                  AppAssets.iconSearch,
-                                  width: 20,
-                                  height: 20,
-                                  color: Colors.white70,
+                          Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => _handleDirectionalKey(
+                              event,
+                              left: _searchButtonFocusNode,
+                              up: _searchButtonFocusNode,
+                              down: firstOtherDeleteNode ?? _bottomAddFocusNode,
+                              blockRight: true,
+                            ),
+                            child: MoviEnsureVisibleOnFocus(
+                              verticalAlignment: _focusVerticalAlignment,
+                              child: CallbackShortcuts(
+                                bindings: <ShortcutActivator, VoidCallback>{
+                                  const SingleActivator(
+                                    LogicalKeyboardKey.arrowLeft,
+                                  ): () => _requestFocus(_searchButtonFocusNode),
+                                  const SingleActivator(
+                                    LogicalKeyboardKey.arrowUp,
+                                  ): () => _requestFocus(_searchButtonFocusNode),
+                                  const SingleActivator(
+                                    LogicalKeyboardKey.arrowDown,
+                                  ): () => _requestFocus(
+                                    firstOtherDeleteNode ?? _bottomAddFocusNode,
+                                  ),
+                                },
+                                child: TextField(
+                                  controller: _searchController,
+                                  focusNode: _searchFieldFocusNode,
+                                  onChanged: (_) => setState(() {}),
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: InputDecoration(
+                                    hintText: 'Rechercher une source…',
+                                    hintStyle: const TextStyle(
+                                      color: Colors.white54,
+                                    ),
+                                    filled: true,
+                                    fillColor: const Color(0xFF1C1C1E),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: const MoviAssetIcon(
+                                        AppAssets.iconSearch,
+                                        width: 20,
+                                        height: 20,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -537,44 +974,91 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                             ),
                             onDelete: () =>
                                 _confirmAndDelete(activeAccount, accounts),
-                            onSelect: null,
+                            deleteFocusNode: _activeDeleteFocusNode,
+                            focusVerticalAlignment: _focusVerticalAlignment,
+                            onDeleteKeyEvent: (event) => _handleDirectionalKey(
+                              event,
+                              up: _changeSourceFocusNode,
+                              down: _refreshFocusNode,
+                            ),
                           ),
                         const SizedBox(height: 16),
                         if (activeAccount != null) ...[
-                          MoviPrimaryButton(
-                            label: _refreshing
-                                ? 'Rafraîchissement…'
-                                : 'Rafraîchir',
-                            onPressed: _refreshing
-                                ? null
-                                : () => _refreshSelected(activeAccount),
-                            loading: _refreshing,
+                          Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => _handleDirectionalKey(
+                              event,
+                              up: _activeDeleteFocusNode,
+                              down: activeAccount.isStalker
+                                  ? _organizeFocusNode
+                                  : _editFocusNode,
+                            ),
+                            child: MoviEnsureVisibleOnFocus(
+                              verticalAlignment: _focusVerticalAlignment,
+                              child: MoviPrimaryButton(
+                                label: _refreshing
+                                    ? 'Rafraîchissement…'
+                                    : 'Rafraîchir',
+                                focusNode: _refreshFocusNode,
+                                onPressed: _refreshing
+                                    ? null
+                                    : () => _refreshSelected(activeAccount),
+                                loading: _refreshing,
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 16),
                           if (!activeAccount.isStalker)
-                            MoviPrimaryButton(
-                              label: 'Modifier',
-                              onPressed: () async {
-                                final updated = await context.push<bool>(
-                                  AppRouteNames.iptvSourceEdit,
-                                  extra: activeAccount.id,
-                                );
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleDirectionalKey(
+                                event,
+                                up: _refreshFocusNode,
+                                down: _organizeFocusNode,
+                              ),
+                              child: MoviEnsureVisibleOnFocus(
+                                verticalAlignment: _focusVerticalAlignment,
+                                child: MoviPrimaryButton(
+                                  label: 'Modifier',
+                                  focusNode: _editFocusNode,
+                                  onPressed: () async {
+                                    final updated = await context.push<bool>(
+                                      AppRouteNames.iptvSourceEdit,
+                                      extra: activeAccount.id,
+                                    );
 
-                                if (updated == true) {
-                                  ref.invalidate(allIptvAccountsProvider);
-                                  ref.invalidate(iptvAccountsProvider);
-                                  ref.invalidate(
-                                    iptvSourceStatsProvider(activeAccount.id),
-                                  );
-                                }
-                              },
+                                    if (updated == true) {
+                                      ref.invalidate(allIptvAccountsProvider);
+                                      ref.invalidate(iptvAccountsProvider);
+                                      ref.invalidate(
+                                        iptvSourceStatsProvider(activeAccount.id),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
                             ),
                           const SizedBox(height: 16),
-                          MoviPrimaryButton(
-                            label: 'Organiser les catégories',
-                            onPressed: () => context.push(
-                              AppRouteNames.iptvSourceOrganize,
-                              extra: activeAccount.id,
+                          Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => _handleDirectionalKey(
+                              event,
+                              up: activeAccount.isStalker
+                                  ? _refreshFocusNode
+                                  : _editFocusNode,
+                              down:
+                                  firstOtherDeleteNode ?? _bottomAddFocusNode,
+                            ),
+                            child: MoviEnsureVisibleOnFocus(
+                              verticalAlignment: _focusVerticalAlignment,
+                              child: MoviPrimaryButton(
+                                label: 'Organiser les catégories',
+                                focusNode: _organizeFocusNode,
+                                onPressed: () => context.push(
+                                  AppRouteNames.iptvSourceOrganize,
+                                  extra: activeAccount.id,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -590,27 +1074,61 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        for (final account in otherAccounts) ...[
+                        for (var index = 0; index < otherAccounts.length; index++) ...[
                           _SourceCard(
-                            account: account,
+                            account: otherAccounts[index],
                             accent: accent,
                             locale: locale,
-                            isActive: _isAccountActive(account),
+                            isActive: _isAccountActive(otherAccounts[index]),
                             expirationText: _formatExpiration(
-                              account.getExpiration(),
+                              otherAccounts[index].getExpiration(),
                               locale,
                             ),
                             onDelete: () =>
-                                _confirmAndDelete(account, accounts),
-                            onSelect: null,
+                                _confirmAndDelete(otherAccounts[index], accounts),
+                            deleteFocusNode:
+                                _otherDeleteFocusNodes[otherAccounts[index].id],
+                            focusVerticalAlignment: _focusVerticalAlignment,
+                            onDeleteKeyEvent: (event) => _handleDirectionalKey(
+                              event,
+                              up: index == 0
+                                  ? (activeAccount != null
+                                        ? _organizeFocusNode
+                                        : (_isSearchVisible
+                                              ? _searchFieldFocusNode
+                                              : _changeSourceFocusNode))
+                                  : _otherDeleteFocusNodes[
+                                        otherAccounts[index - 1].id
+                                    ],
+                              down: index == otherAccounts.length - 1
+                                  ? _bottomAddFocusNode
+                                  : _otherDeleteFocusNodes[
+                                        otherAccounts[index + 1].id
+                                    ],
+                            ),
                           ),
                           const SizedBox(height: 16),
                         ],
                         if (otherAccounts.isNotEmpty)
                           const SizedBox(height: 16),
-                        MoviPrimaryButton(
-                          label: 'Ajouter une source',
-                          onPressed: _openAddSource,
+                        Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) => _handleDirectionalKey(
+                            event,
+                            up: lastOtherDeleteNode ??
+                                (activeAccount != null
+                                    ? _organizeFocusNode
+                                    : _changeSourceFocusNode),
+                            blockDown: true,
+                          ),
+                          child: MoviEnsureVisibleOnFocus(
+                            verticalAlignment: _focusVerticalAlignment,
+                            child: MoviPrimaryButton(
+                              label: 'Ajouter une source',
+                              focusNode: _bottomAddFocusNode,
+                              onPressed: _openAddSource,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -621,6 +1139,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
           ),
         ),
       ),
+      ),
     );
   }
 }
@@ -630,17 +1149,29 @@ class _HeaderBar extends StatelessWidget {
     required this.title,
     required this.accent,
     required this.searchActive,
+    required this.backFocusNode,
+    required this.searchFocusNode,
+    required this.addFocusNode,
     required this.onBack,
     required this.onSearch,
     required this.onAdd,
+    required this.onBackKeyEvent,
+    required this.onSearchKeyEvent,
+    required this.onAddKeyEvent,
   });
 
   final String title;
   final Color accent;
   final bool searchActive;
+  final FocusNode backFocusNode;
+  final FocusNode searchFocusNode;
+  final FocusNode addFocusNode;
   final VoidCallback onBack;
   final VoidCallback onSearch;
   final VoidCallback onAdd;
+  final KeyEventResult Function(KeyEvent event) onBackKeyEvent;
+  final KeyEventResult Function(KeyEvent event) onSearchKeyEvent;
+  final KeyEventResult Function(KeyEvent event) onAddKeyEvent;
 
   @override
   Widget build(BuildContext context) {
@@ -653,26 +1184,31 @@ class _HeaderBar extends StatelessWidget {
             child: SizedBox(
               width: 35,
               height: 35,
-              child: MoviFocusableAction(
-                onPressed: onBack,
-                semanticLabel: 'Retour',
-                builder: (context, state) {
-                  return MoviFocusFrame(
-                    scale: state.focused ? 1.04 : 1,
-                    borderRadius: BorderRadius.circular(999),
-                    backgroundColor: state.focused
-                        ? Colors.white.withValues(alpha: 0.14)
-                        : Colors.transparent,
-                    child: const SizedBox(
-                      width: 35,
-                      height: 35,
-                      child: MoviAssetIcon(
-                        AppAssets.iconBack,
-                        color: Colors.white,
+              child: Focus(
+                canRequestFocus: false,
+                onKeyEvent: (_, event) => onBackKeyEvent(event),
+                child: MoviFocusableAction(
+                  focusNode: backFocusNode,
+                  onPressed: onBack,
+                  semanticLabel: 'Retour',
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.04 : 1,
+                      borderRadius: BorderRadius.circular(999),
+                      backgroundColor: state.focused
+                          ? Colors.white.withValues(alpha: 0.14)
+                          : Colors.transparent,
+                      child: const SizedBox(
+                        width: 35,
+                        height: 35,
+                        child: MoviAssetIcon(
+                          AppAssets.iconBack,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -696,14 +1232,18 @@ class _HeaderBar extends StatelessWidget {
                   semanticLabel: 'Rechercher',
                   accent: accent,
                   active: searchActive,
+                  focusNode: searchFocusNode,
                   onPressed: onSearch,
+                  onKeyEvent: onSearchKeyEvent,
                 ),
                 const SizedBox(width: 8),
                 _HeaderActionButton(
                   iconPath: AppAssets.iconPlus,
                   semanticLabel: 'Ajouter',
                   accent: accent,
+                  focusNode: addFocusNode,
                   onPressed: onAdd,
+                  onKeyEvent: onAddKeyEvent,
                 ),
               ],
             ),
@@ -719,14 +1259,18 @@ class _HeaderActionButton extends StatelessWidget {
     required this.iconPath,
     required this.semanticLabel,
     required this.accent,
+    required this.focusNode,
     required this.onPressed,
+    required this.onKeyEvent,
     this.active = false,
   });
 
   final String iconPath;
   final String semanticLabel;
   final Color accent;
+  final FocusNode focusNode;
   final VoidCallback onPressed;
+  final KeyEventResult Function(KeyEvent event) onKeyEvent;
   final bool active;
 
   @override
@@ -734,26 +1278,31 @@ class _HeaderActionButton extends StatelessWidget {
     return SizedBox(
       width: 44,
       height: 44,
-      child: MoviFocusableAction(
-        onPressed: onPressed,
-        semanticLabel: semanticLabel,
-        builder: (context, state) {
-          final backgroundColor = active
-              ? accent.withValues(alpha: state.focused ? 0.28 : 0.20)
-              : Colors.white.withValues(alpha: state.focused ? 0.14 : 0.08);
-          return MoviFocusFrame(
-            scale: state.focused ? 1.04 : 1,
-            padding: const EdgeInsets.all(10),
-            borderRadius: BorderRadius.circular(999),
-            backgroundColor: backgroundColor,
-            child: MoviAssetIcon(
-              iconPath,
-              width: 24,
-              height: 24,
-              color: active ? accent : Colors.white,
-            ),
-          );
-        },
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => onKeyEvent(event),
+        child: MoviFocusableAction(
+          focusNode: focusNode,
+          onPressed: onPressed,
+          semanticLabel: semanticLabel,
+          builder: (context, state) {
+            final backgroundColor = active
+                ? accent.withValues(alpha: state.focused ? 0.28 : 0.20)
+                : Colors.white.withValues(alpha: state.focused ? 0.14 : 0.08);
+            return MoviFocusFrame(
+              scale: state.focused ? 1.04 : 1,
+              padding: const EdgeInsets.all(10),
+              borderRadius: BorderRadius.circular(999),
+              backgroundColor: backgroundColor,
+              child: MoviAssetIcon(
+                iconPath,
+                width: 24,
+                height: 24,
+                color: active ? accent : Colors.white,
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -767,7 +1316,9 @@ class _SourceCard extends ConsumerWidget {
     required this.isActive,
     required this.expirationText,
     required this.onDelete,
-    required this.onSelect,
+    required this.deleteFocusNode,
+    required this.focusVerticalAlignment,
+    required this.onDeleteKeyEvent,
   });
 
   final AnyIptvAccount account;
@@ -776,7 +1327,9 @@ class _SourceCard extends ConsumerWidget {
   final bool isActive;
   final String expirationText;
   final VoidCallback onDelete;
-  final VoidCallback? onSelect;
+  final FocusNode? deleteFocusNode;
+  final double focusVerticalAlignment;
+  final KeyEventResult Function(KeyEvent event) onDeleteKeyEvent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -791,100 +1344,123 @@ class _SourceCard extends ConsumerWidget {
         ? const Color(0xFF339936)
         : const Color(0xFF555555);
 
-    return GestureDetector(
-      onTap: onSelect,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF262626),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF404040), width: 2),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    account.alias,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onDelete,
-                  child: const MoviAssetIcon(
-                    AppAssets.iconTrash,
-                    width: 28,
-                    height: 28,
-                    color: Color(0xFFFF3B30),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _KeyValueRow(
-              label: 'Statut',
-              valueWidget: Container(
-                width: 100,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: pillColor,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                alignment: Alignment.center,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF262626),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF404040), width: 2),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
                 child: Text(
-                  isActive ? l10n.statusActive : 'Inactif',
+                  account.alias,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _KeyValueRow(label: 'Date d\'expiration', value: expirationText),
-            if (account.isStalker) ...[
-              const SizedBox(height: 16),
-              _KeyValueRow(label: 'Type', value: 'Stalker Portal'),
-              const SizedBox(height: 16),
-              _KeyValueRow(label: 'MAC', value: account.getUsername()),
-            ],
-            if (!account.isStalker && statsAsync != null) ...[
-              const SizedBox(height: 16),
-              statsAsync.when(
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-                data: (stats) => Column(
-                  children: [
-                    _KeyValueRow(
-                      label: 'Films',
-                      value:
-                          '${stats.movieCount} (${stats.movieIndexedCount} recensés)',
+              const SizedBox(width: 12),
+              Focus(
+                canRequestFocus: false,
+                onKeyEvent: (_, event) => onDeleteKeyEvent(event),
+                child: MoviEnsureVisibleOnFocus(
+                  verticalAlignment: focusVerticalAlignment,
+                  child: SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: MoviFocusableAction(
+                      focusNode: deleteFocusNode,
+                      onPressed: onDelete,
+                      semanticLabel: 'Supprimer ${account.alias}',
+                      builder: (context, state) {
+                        return MoviFocusFrame(
+                          scale: state.focused ? 1.04 : 1,
+                          padding: const EdgeInsets.all(6),
+                          borderRadius: BorderRadius.circular(999),
+                          backgroundColor: state.focused
+                              ? const Color(0xFFFF3B30).withValues(alpha: 0.18)
+                              : Colors.transparent,
+                          borderColor: state.focused
+                              ? const Color(0xFFFF3B30)
+                              : Colors.transparent,
+                          borderWidth: 2,
+                          child: const MoviAssetIcon(
+                            AppAssets.iconTrash,
+                            width: 28,
+                            height: 28,
+                            color: Color(0xFFFF3B30),
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 16),
-                    _KeyValueRow(
-                      label: 'Séries',
-                      value:
-                          '${stats.seriesCount} (${stats.seriesIndexedCount} recensés)',
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          _KeyValueRow(
+            label: 'Statut',
+            valueWidget: Container(
+              width: 100,
+              height: 30,
+              decoration: BoxDecoration(
+                color: pillColor,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                isActive ? l10n.statusActive : 'Inactif',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _KeyValueRow(label: 'Date d\'expiration', value: expirationText),
+          if (account.isStalker) ...[
+            const SizedBox(height: 16),
+            _KeyValueRow(label: 'Type', value: 'Stalker Portal'),
+            const SizedBox(height: 16),
+            _KeyValueRow(label: 'MAC', value: account.getUsername()),
           ],
-        ),
+          if (!account.isStalker && statsAsync != null) ...[
+            const SizedBox(height: 16),
+            statsAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (stats) => Column(
+                children: [
+                  _KeyValueRow(
+                    label: 'Films',
+                    value:
+                        '${stats.movieCount} (${stats.movieIndexedCount} recensés)',
+                  ),
+                  const SizedBox(height: 16),
+                  _KeyValueRow(
+                    label: 'Séries',
+                    value:
+                        '${stats.seriesCount} (${stats.seriesIndexedCount} recensés)',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -932,3 +1508,38 @@ class _KeyValueRow extends StatelessWidget {
     );
   }
 }
+
+enum _PendingSourcesFocusTargetType {
+  searchButton,
+  searchField,
+  activeDelete,
+  refresh,
+  bottomAdd,
+  otherDelete,
+}
+
+class _PendingSourcesFocusTarget {
+  const _PendingSourcesFocusTarget._(this.type, [this.accountId]);
+
+  const _PendingSourcesFocusTarget.searchButton()
+    : this._(_PendingSourcesFocusTargetType.searchButton);
+
+  const _PendingSourcesFocusTarget.searchField()
+    : this._(_PendingSourcesFocusTargetType.searchField);
+
+  const _PendingSourcesFocusTarget.activeDelete()
+    : this._(_PendingSourcesFocusTargetType.activeDelete);
+
+  const _PendingSourcesFocusTarget.refresh()
+    : this._(_PendingSourcesFocusTargetType.refresh);
+
+  const _PendingSourcesFocusTarget.bottomAdd()
+    : this._(_PendingSourcesFocusTargetType.bottomAdd);
+
+  const _PendingSourcesFocusTarget.otherDelete(String accountId)
+    : this._(_PendingSourcesFocusTargetType.otherDelete, accountId);
+
+  final _PendingSourcesFocusTargetType type;
+  final String? accountId;
+}
+

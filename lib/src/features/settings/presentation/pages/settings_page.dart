@@ -60,6 +60,7 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  static const double _settingsFocusVerticalAlignment = 0.22;
   static final Uri _privacyPolicyUrl = Uri.parse(
     'https://thesamurai4861.github.io/movi-privacy/privacy.html',
   );
@@ -188,6 +189,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     await showMoviTvActionMenu(
       context: context,
       title: l10n.settingsLanguageLabel,
+      focusScale: 1,
+      focusVerticalAlignment: 0.22,
       actions: items
           .map(
             (entry) => MoviTvActionMenuAction(
@@ -201,6 +204,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           .toList(growable: false),
       cancelLabel: l10n.actionCancel,
     );
+  }
+
+  bool _useSettingsActionMenuLayout(BuildContext context) {
+    final screenType = _screenTypeFor(context);
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
   }
 
   Future<void> _openExternalLink(Uri url) async {
@@ -494,6 +502,37 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final accentColor = ref.read(asp.currentAccentColorProvider);
     final l10n = AppLocalizations.of(context)!;
 
+    if (_useSettingsActionMenuLayout(context)) {
+      await showMoviTvActionMenu(
+        context: context,
+        title: l10n.settingsSyncFrequency,
+        actions: _syncIntervalOptions
+            .map(
+              (interval) => MoviTvActionMenuAction(
+                label:
+                    '${_isCurrentSyncInterval(currentInterval, interval) ? '✓ ' : ''}'
+                    '${interval == null ? l10n.settingsSyncDisabled : _formatSyncInterval(interval)}',
+                onPressed: () {
+                  _guard(() async {
+                    if (interval == null) {
+                      const disabled = Duration(days: 365);
+                      await iptvSyncPrefs.setSyncInterval(disabled);
+                      syncService.setInterval(disabled);
+                    } else {
+                      await iptvSyncPrefs.setSyncInterval(interval);
+                      syncService.setInterval(interval);
+                    }
+                    _lockSessionIfUnlocked();
+                  });
+                },
+              ),
+            )
+            .toList(growable: false),
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
@@ -555,6 +594,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   ) async {
     final accentColorPrefs = ref.read(slProvider)<AccentColorPreferences>();
     final l10n = AppLocalizations.of(context)!;
+
+    if (_useSettingsActionMenuLayout(context)) {
+      await showMoviTvActionMenu(
+        context: context,
+        title: l10n.settingsAccentColor,
+        actions: _accentColorOptions
+            .map(
+              (color) => MoviTvActionMenuAction(
+                label:
+                    '${_isCurrentAccentColor(currentColor, color) ? '✓ ' : ''}'
+                    '${_getAccentColorName(color)}',
+                onPressed: () {
+                  _guard(() async {
+                    await accentColorPrefs.setAccentColor(color);
+                    ref.invalidate(asp.accentColorStreamProvider);
+                    ref.invalidate(asp.currentAccentColorProvider);
+                    _lockSessionIfUnlocked();
+                  });
+                },
+              ),
+            )
+            .toList(growable: false),
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
 
     showCupertinoModalPopup<void>(
       context: context,
@@ -830,10 +895,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return ScreenTypeResolver.instance.resolve(size.width, size.height);
   }
 
-  bool _isTvLayout(BuildContext context) {
-    return _screenTypeFor(context) == ScreenType.tv;
-  }
-
   KeyEventResult _handleSettingsHorizontalBoundary(
     KeyEvent event, {
     bool blockDown = false,
@@ -856,7 +917,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     required KeyEvent event,
     required int index,
     required int profileCount,
+    VoidCallback? onLongPress,
   }) {
+    final isLongPressKey =
+        event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.select ||
+        event.logicalKey == LogicalKeyboardKey.space ||
+        event.logicalKey == LogicalKeyboardKey.gameButtonA;
+
+    if (event is KeyRepeatEvent && isLongPressKey && onLongPress != null) {
+      onLongPress();
+      return KeyEventResult.handled;
+    }
+
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -929,62 +1002,72 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final maxValueWidth = screenWidth < 420 ? 112.0 : 168.0;
 
-    return Focus(
-      canRequestFocus: false,
-      onKeyEvent: (_, event) =>
-          _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
-      child: InkWell(
-        onTap: onTap,
-        focusColor: accentColor.withValues(alpha: 0.18),
-        hoverColor: accentColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: false,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              if (value != null) ...[
-                const SizedBox(width: 12),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxValueWidth),
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: valueColor ?? accentColor,
+    return MoviEnsureVisibleOnFocus(
+      verticalAlignment: _settingsFocusVerticalAlignment,
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) =>
+            _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
+        child: InkWell(
+          onTap: onTap,
+          focusColor: accentColor.withValues(alpha: 0.18),
+          hoverColor: accentColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          child: ClipRect(
+            clipBehavior: Clip.none,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-              ],
-              if (trailing != null) ...[const SizedBox(width: 8), trailing],
-              if (showChevronDown) ...[
-                const SizedBox(width: 8),
-                Icon(Icons.keyboard_arrow_down, color: accentColor, size: 20),
-              ] else if (onTap != null && trailing == null) ...[
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.chevron_right,
-                  color: Colors.white70,
-                  size: 20,
-                ),
-              ],
-            ],
+                  if (value != null) ...[
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxValueWidth),
+                      child: Text(
+                        value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: valueColor ?? accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (trailing != null) ...[const SizedBox(width: 8), trailing],
+                  if (showChevronDown) ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      color: accentColor,
+                      size: 20,
+                    ),
+                  ] else if (onTap != null && trailing == null) ...[
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -1030,6 +1113,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     event: event,
                     index: 0,
                     profileCount: 1,
+                    onLongPress: () => _guard(
+                      () => ref
+                          .read(profilesControllerProvider.notifier)
+                          .refresh(),
+                    ),
                   ),
                   child: _buildProfileCircle(
                     name: l10n.errorUnknown,
@@ -1081,6 +1169,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       event: event,
                       index: index,
                       profileCount: profiles.length,
+                      onLongPress: () =>
+                          unawaited(_onManageProfile(profiles[index])),
                     ),
                     child: _buildProfileCircle(
                       name: profiles[index].name,
@@ -1234,6 +1324,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         onPressed: onTap,
         onLongPress: onLongPress,
         focusNode: focusNode,
+        ensureVisibleVerticalAlignment: _settingsFocusVerticalAlignment,
         semanticLabel: name,
         builder: (context, state) {
           final focused = state.focused;
@@ -1359,12 +1450,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Focus(
-      canRequestFocus: false,
-      onKeyEvent: (_, event) =>
-          _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
-      child: OutlinedButton(
-        onPressed: () => _guard(() async {
+    return MoviEnsureVisibleOnFocus(
+      verticalAlignment: _settingsFocusVerticalAlignment,
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) =>
+            _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
+        child: OutlinedButton(
+          onPressed: () => _guard(() async {
           final confirmed = await showCupertinoDialog<bool>(
             context: context,
             builder: (ctx) => CupertinoAlertDialog(
@@ -1408,31 +1501,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             );
           }
-        }),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.red),
-          foregroundColor: Colors.white,
-          backgroundColor: Colors.red.withValues(alpha: 0.18),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          minimumSize: const Size(double.infinity, 48),
-          shape: const StadiumBorder(),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.logout, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                l10n.actionSignOut,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: Colors.white,
+          }),
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Colors.red),
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.red.withValues(alpha: 0.18),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            minimumSize: const Size(double.infinity, 48),
+            shape: const StadiumBorder(),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.logout, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  l10n.actionSignOut,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1508,9 +1602,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   const SizedBox(height: _sectionTitleGap),
                   _buildProfilesSection(),
                   const SizedBox(height: _sectionItemGap),
-                  MoviPremiumSettingsTile(
-                    focusNode: _premiumTileFocusNode,
-                    onKeyEvent: _handlePremiumTileKey,
+                  MoviEnsureVisibleOnFocus(
+                    verticalAlignment: _settingsFocusVerticalAlignment,
+                    child: MoviPremiumSettingsTile(
+                      focusNode: _premiumTileFocusNode,
+                      onKeyEvent: _handlePremiumTileKey,
+                    ),
                   ),
 
                   const SizedBox(height: _sectionGap),
@@ -1580,6 +1677,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           final localePrefs = ref.read(
                             slProvider,
                           )<LocalePreferences>();
+                          final viewportWidth = MediaQuery.sizeOf(context).width;
                           final items = _availableLanguages();
                           final selected = items
                               .where(
@@ -1597,7 +1695,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           final isCupertinoPlatform =
                               platform == TargetPlatform.iOS ||
                               platform == TargetPlatform.macOS;
-                          final isTvLayout = _isTvLayout(context);
+                          final useActionMenuLayout =
+                              _useSettingsActionMenuLayout(context);
 
                           if (isCupertinoPlatform) {
                             return CupertinoButton(
@@ -1621,59 +1720,69 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                             );
                           }
 
-                          if (isTvLayout) {
+                          if (useActionMenuLayout) {
                             final selectedLabel = items
                                 .firstWhere((e) => e.$1 == selected)
                                 .$2;
-                            return SizedBox(
-                              height: 44,
-                              child: MoviFocusableAction(
-                                focusNode: _languageSelectorFocusNode,
-                                onPressed: () => _guard(
-                                  () => _showTvLanguageSelector(
-                                    context,
-                                    currentLangCode,
+                            return ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: 44,
+                                maxWidth: viewportWidth < 420 ? 168 : 220,
+                              ),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: MoviFocusableAction(
+                                  focusNode: _languageSelectorFocusNode,
+                                  ensureVisibleVerticalAlignment:
+                                      _settingsFocusVerticalAlignment,
+                                  onPressed: () => _guard(
+                                    () => _showTvLanguageSelector(
+                                      context,
+                                      currentLangCode,
+                                    ),
                                   ),
-                                ),
-                                semanticLabel: l10n.settingsLanguageLabel,
-                                builder: (context, state) {
-                                  return MoviFocusFrame(
-                                    scale: state.focused ? 1.02 : 1,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    backgroundColor: Colors.white.withValues(
-                                      alpha: state.focused ? 0.16 : 0.08,
-                                    ),
-                                    borderColor: state.focused
-                                        ? currentAccentColor
-                                        : Colors.white.withValues(alpha: 0.14),
-                                    borderWidth: 1.5,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          selectedLabel,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: currentAccentColor,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
+                                  semanticLabel: l10n.settingsLanguageLabel,
+                                  builder: (context, state) {
+                                    return MoviFocusFrame(
+                                      scale: state.focused ? 1.02 : 1,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      borderRadius: BorderRadius.circular(14),
+                                      backgroundColor: Colors.white.withValues(
+                                        alpha: state.focused ? 0.16 : 0.08,
+                                      ),
+                                      borderColor: state.focused
+                                          ? currentAccentColor
+                                          : Colors.white.withValues(alpha: 0.14),
+                                      borderWidth: 1.5,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              selectedLabel,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: currentAccentColor,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          Icons.keyboard_arrow_down,
-                                          size: 18,
-                                          color: currentAccentColor,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                          const SizedBox(width: 8),
+                                          Icon(
+                                            Icons.keyboard_arrow_down,
+                                            size: 18,
+                                            color: currentAccentColor,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             );
                           }

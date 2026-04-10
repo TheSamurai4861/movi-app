@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/modal_content_width.dart';
 
 /// Dialog pour gÃƒÆ’Ã‚Â©rer un profil (rename / delete).
@@ -37,6 +41,14 @@ class ManageProfileDialog extends ConsumerStatefulWidget {
 
 class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
   late final TextEditingController _nameController;
+  late final FocusNode _nameFocusNode;
+  late final FocusNode _kidSwitchFocusNode;
+  late final FocusNode _firstPegiFocusNode;
+  late final List<FocusNode> _pegiFocusNodes;
+  late final FocusNode _pinPrimaryFocusNode;
+  late final FocusNode _pinSecondaryFocusNode;
+  late final FocusNode _deleteFocusNode;
+  late final FocusNode _saveFocusNode;
   late bool _isKid;
   int? _pegiLimit;
   late bool _hasPin;
@@ -49,6 +61,19 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.profile.name);
+    _nameFocusNode = FocusNode(debugLabel: 'ManageProfileName');
+    _kidSwitchFocusNode = FocusNode(debugLabel: 'ManageProfileKidSwitch');
+    _firstPegiFocusNode = FocusNode(debugLabel: 'ManageProfileFirstPegi');
+    _pegiFocusNodes = List<FocusNode>.generate(
+      5,
+      (index) => index == 0
+          ? _firstPegiFocusNode
+          : FocusNode(debugLabel: 'ManageProfilePegi$index'),
+    );
+    _pinPrimaryFocusNode = FocusNode(debugLabel: 'ManageProfilePinPrimary');
+    _pinSecondaryFocusNode = FocusNode(debugLabel: 'ManageProfilePinSecondary');
+    _deleteFocusNode = FocusNode(debugLabel: 'ManageProfileDelete');
+    _saveFocusNode = FocusNode(debugLabel: 'ManageProfileSave');
     _isKid = widget.profile.isKid;
     _pegiLimit = widget.profile.pegiLimit;
     _hasPin = widget.profile.hasPin;
@@ -57,7 +82,71 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
   @override
   void dispose() {
     _nameController.dispose();
+    _nameFocusNode.dispose();
+    _kidSwitchFocusNode.dispose();
+    for (final node in _pegiFocusNodes) {
+      if (!identical(node, _firstPegiFocusNode)) {
+        node.dispose();
+      }
+    }
+    _firstPegiFocusNode.dispose();
+    _pinPrimaryFocusNode.dispose();
+    _pinSecondaryFocusNode.dispose();
+    _deleteFocusNode.dispose();
+    _saveFocusNode.dispose();
     super.dispose();
+  }
+
+  bool _useDesktopTvLayout(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final screenType = ScreenTypeResolver.instance.resolve(
+      size.width,
+      size.height,
+    );
+    return screenType == ScreenType.desktop || screenType == ScreenType.tv;
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+    FocusNode? up,
+    FocusNode? down,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (moveTo(left)) return KeyEventResult.handled;
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        if (moveTo(right)) return KeyEventResult.handled;
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   bool get _requiresPinToDisableKidProfile =>
@@ -386,9 +475,10 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final accentColor = theme.colorScheme.primary;
+    final useDesktopTvLayout = _useDesktopTvLayout(context);
     final canSave = !_busy && !_requiresPinToDisableKidProfile;
 
-    return Dialog(
+    final dialog = Dialog(
       backgroundColor: const Color(0xFF1C1C1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -412,10 +502,12 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       ),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white60),
-                    onPressed: _busy ? null : () => Navigator.of(context).pop(),
-                  ),
+                  if (!useDesktopTvLayout)
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white60),
+                      onPressed:
+                          _busy ? null : () => Navigator.of(context).pop(),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -433,21 +525,41 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _nameController,
-                    enabled: !_busy,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: l10n.hintUsername,
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      filled: true,
-                      fillColor: const Color(0xFF2C2C2E),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                  Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => useDesktopTvLayout
+                        ? _handleDirectionalKey(
+                            event,
+                            down: _kidSwitchFocusNode,
+                            blockUp: true,
+                          )
+                        : KeyEventResult.ignored,
+                    child: CallbackShortcuts(
+                      bindings: useDesktopTvLayout
+                          ? <ShortcutActivator, VoidCallback>{
+                              const SingleActivator(
+                                LogicalKeyboardKey.arrowDown,
+                              ): () => _requestFocus(_kidSwitchFocusNode),
+                            }
+                          : const <ShortcutActivator, VoidCallback>{},
+                      child: TextField(
+                        controller: _nameController,
+                        focusNode: _nameFocusNode,
+                        enabled: !_busy,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: l10n.hintUsername,
+                          hintStyle: const TextStyle(color: Colors.white38),
+                          filled: true,
+                          fillColor: const Color(0xFF2C2C2E),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
-                    onChanged: (_) => setState(() {}),
                   ),
                 ],
               ),
@@ -478,17 +590,52 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Switch(
-                        value: _isKid,
-                        onChanged: _busy
-                            ? null
-                            : (v) {
-                                setState(() {
-                                  _isKid = v;
-                                  if (!v) _pegiLimit = null;
-                                  _error = null;
-                                });
-                              },
+                      Focus(
+                        canRequestFocus: false,
+                        onKeyEvent: (_, event) => useDesktopTvLayout
+                            ? _handleDirectionalKey(
+                                event,
+                                up: _nameFocusNode,
+                                down: _isKid
+                                    ? _firstPegiFocusNode
+                                    : _pinPrimaryFocusNode,
+                              )
+                            : KeyEventResult.ignored,
+                        child: ListenableBuilder(
+                          listenable: _kidSwitchFocusNode,
+                          builder: (context, _) {
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: _kidSwitchFocusNode.hasFocus
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Switch(
+                                focusNode: _kidSwitchFocusNode,
+                                value: _isKid,
+                                onChanged: _busy
+                                    ? null
+                                    : (v) {
+                                        setState(() {
+                                          _isKid = v;
+                                          if (!v) {
+                                            _pegiLimit = null;
+                                          } else {
+                                            _pegiLimit ??= 12;
+                                          }
+                                          _error = null;
+                                        });
+                                      },
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -514,26 +661,47 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.start,
-                      children: [3, 7, 12, 16, 18]
-                          .map((v) {
-                            final selected = _pegiLimit == v;
-                            return ChoiceChip(
-                              label: Text('PEGI $v'),
-                              selected: selected,
-                              onSelected: _busy
-                                  ? null
-                                  : (_) => setState(() {
-                                      _pegiLimit = v;
-                                      _error = null;
-                                    }),
-                              selectedColor: accentColor,
-                              labelStyle: TextStyle(
-                                color: selected ? Colors.white : Colors.white70,
-                              ),
-                              backgroundColor: const Color(0xFF2C2C2E),
-                            );
-                          })
-                          .toList(growable: false),
+                      children: [3, 7, 12, 16, 18].asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final v = entry.value;
+                        final selected = _pegiLimit == v;
+                        final chip = ChoiceChip(
+                          focusNode: _pegiFocusNodes[index],
+                          label: Text('PEGI $v'),
+                          selected: selected,
+                          onSelected: _busy
+                              ? null
+                              : (_) => setState(() {
+                                  _pegiLimit = v;
+                                  _error = null;
+                                }),
+                          selectedColor: accentColor,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.white : Colors.white70,
+                          ),
+                          backgroundColor: const Color(0xFF2C2C2E),
+                        );
+
+                        if (!useDesktopTvLayout) {
+                          return chip;
+                        }
+
+                        return Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) => _handleDirectionalKey(
+                            event,
+                            left: index > 0 ? _pegiFocusNodes[index - 1] : null,
+                            right: index + 1 < _pegiFocusNodes.length
+                                ? _pegiFocusNodes[index + 1]
+                                : null,
+                            up: _kidSwitchFocusNode,
+                            down: _pinPrimaryFocusNode,
+                            blockLeft: index == 0,
+                            blockRight: index == _pegiFocusNodes.length - 1,
+                          ),
+                          child: chip,
+                        );
+                      }).toList(growable: false),
                     ),
                   ],
                 ),
@@ -557,7 +725,19 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                   if (!_hasPin) ...[
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
+                      child: Focus(
+                        canRequestFocus: false,
+                        onKeyEvent: (_, event) => useDesktopTvLayout
+                            ? _handleDirectionalKey(
+                                event,
+                                up: _isKid
+                                    ? _firstPegiFocusNode
+                                    : _kidSwitchFocusNode,
+                                down: _saveFocusNode,
+                              )
+                            : KeyEventResult.ignored,
+                        child: ElevatedButton(
+                          focusNode: _pinPrimaryFocusNode,
                         onPressed: _busy ? null : _setOrChangePin,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accentColor,
@@ -571,6 +751,7 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        ),
                       ),
                     ),
                   ] else ...[
@@ -578,18 +759,32 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       children: [
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _busy ? null : _setOrChangePin,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              'Changer le code PIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                          child: Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => useDesktopTvLayout
+                                ? _handleDirectionalKey(
+                                    event,
+                                    up: _isKid
+                                        ? _firstPegiFocusNode
+                                        : _kidSwitchFocusNode,
+                                    right: _pinSecondaryFocusNode,
+                                    down: _saveFocusNode,
+                                  )
+                                : KeyEventResult.ignored,
+                            child: ElevatedButton(
+                              focusNode: _pinPrimaryFocusNode,
+                              onPressed: _busy ? null : _setOrChangePin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: accentColor,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: const Text(
+                                'Changer le code PIN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -597,22 +792,37 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed:
-                                (_busy || !_hasPin || !_canRemovePinSafely)
-                                ? null
-                                : _removePin,
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.red),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              'Supprimer le code PIN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                          child: Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) => useDesktopTvLayout
+                                ? _handleDirectionalKey(
+                                    event,
+                                    left: _pinPrimaryFocusNode,
+                                    up: _isKid
+                                        ? _firstPegiFocusNode
+                                        : _kidSwitchFocusNode,
+                                    down: _saveFocusNode,
+                                    blockRight: true,
+                                  )
+                                : KeyEventResult.ignored,
+                            child: OutlinedButton(
+                              focusNode: _pinSecondaryFocusNode,
+                              onPressed:
+                                  (_busy || !_hasPin || !_canRemovePinSafely)
+                                  ? null
+                                  : _removePin,
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              child: const Text(
+                                'Supprimer le code PIN',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -662,48 +872,74 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _busy ? null : _delete,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: Text(
-                        l10n.delete,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => useDesktopTvLayout
+                          ? _handleDirectionalKey(
+                              event,
+                              right: _saveFocusNode,
+                              up: _pinPrimaryFocusNode,
+                              blockLeft: true,
+                              blockDown: true,
+                            )
+                          : KeyEventResult.ignored,
+                      child: OutlinedButton(
+                        focusNode: _deleteFocusNode,
+                        onPressed: _busy ? null : _delete,
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.red),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(
+                          l10n.delete,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: canSave ? _save : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accentColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: _busy
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => useDesktopTvLayout
+                          ? _handleDirectionalKey(
+                              event,
+                              left: _deleteFocusNode,
+                              up: _pinPrimaryFocusNode,
+                              blockRight: true,
+                              blockDown: true,
                             )
-                          : Text(
-                              l10n.actionConfirm,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                          : KeyEventResult.ignored,
+                      child: ElevatedButton(
+                        focusNode: _saveFocusNode,
+                        onPressed: canSave ? _save : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: _busy
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.actionConfirm,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                 ],
@@ -712,6 +948,17 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
           ),
         ),
       ),
+    );
+
+    if (!useDesktopTvLayout) {
+      return dialog;
+    }
+
+    return MoviOverlayFocusScope(
+      initialFocusNode: _nameFocusNode,
+      fallbackFocusNode: _saveFocusNode,
+      debugLabel: 'ManageProfileDialogOverlay',
+      child: dialog,
     );
   }
 }

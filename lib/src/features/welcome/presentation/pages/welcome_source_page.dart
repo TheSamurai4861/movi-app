@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,11 +11,14 @@ import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
@@ -37,17 +41,26 @@ class WelcomeSourcePage extends ConsumerStatefulWidget {
 
 class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     with TickerProviderStateMixin {
+  final _retryFocusNode = FocusNode(debugLabel: 'WelcomeSourceRetry');
   String? _selectedSourceId;
 
   final _nameCtrl = TextEditingController();
   final _serverCtrl = TextEditingController();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _refreshFocusNode = FocusNode(debugLabel: 'WelcomeSourceRefresh');
+  final _sourcesErrorRetryFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceErrorRetry',
+  );
   final _nameFocusNode = FocusNode(debugLabel: 'WelcomeSourceName');
   final _serverFocusNode = FocusNode(debugLabel: 'WelcomeSourceServer');
   final _userFocusNode = FocusNode(debugLabel: 'WelcomeSourceUser');
   final _passFocusNode = FocusNode(debugLabel: 'WelcomeSourcePassword');
+  final _passwordToggleFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourcePasswordToggle',
+  );
   final _submitFocusNode = FocusNode(debugLabel: 'WelcomeSourceSubmit');
+  final List<FocusNode> _savedSourceFocusNodes = <FocusNode>[];
 
   bool _loadingSources = false;
   String? _sourcesError;
@@ -93,6 +106,9 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   @override
   void dispose() {
     _refreshAnimationController.dispose();
+    _retryFocusNode.dispose();
+    _refreshFocusNode.dispose();
+    _sourcesErrorRetryFocusNode.dispose();
     _nameCtrl.dispose();
     _serverCtrl.dispose();
     _userCtrl.dispose();
@@ -101,8 +117,66 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     _serverFocusNode.dispose();
     _userFocusNode.dispose();
     _passFocusNode.dispose();
+    _passwordToggleFocusNode.dispose();
     _submitFocusNode.dispose();
+    for (final node in _savedSourceFocusNodes) {
+      node.dispose();
+    }
     super.dispose();
+  }
+
+  void _syncSavedSourceFocusNodes(int count) {
+    while (_savedSourceFocusNodes.length < count) {
+      _savedSourceFocusNodes.add(
+        FocusNode(debugLabel: 'WelcomeSourceSaved${_savedSourceFocusNodes.length}'),
+      );
+    }
+    while (_savedSourceFocusNodes.length > count) {
+      _savedSourceFocusNodes.removeLast().dispose();
+    }
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+    FocusNode? up,
+    FocusNode? down,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (moveTo(left)) return KeyEventResult.handled;
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        if (moveTo(right)) return KeyEventResult.handled;
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   String? _resolveAccountIdOrNull() {
@@ -389,36 +463,75 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     final launchRecovery = ref.watch(appLaunchStateProvider).recovery;
 
     final isBusy = _loadingSources || connectState.isLoading;
+    final hasSavedSources = _shouldDisplaySavedSourcesSection && _sources.isNotEmpty;
+    if (hasSavedSources) {
+      _syncSavedSourceFocusNodes(_sources.length);
+    } else {
+      _syncSavedSourceFocusNodes(0);
+    }
+    final initialFocusNode = hasSavedSources
+        ? _savedSourceFocusNodes.first
+        : _nameFocusNode;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  WelcomeHeader(
-                    title: l10n.welcomeSourceTitle,
-                    subtitle: l10n.welcomeSourceSubtitle,
-                  ),
-                  if (launchRecovery?.isRetryable ?? false) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    LaunchRecoveryBanner(
-                      message: launchRecovery!.message,
-                      onRetry: () {
-                        ref
-                            .read(appLaunchOrchestratorProvider.notifier)
-                            .reset();
-                        context.go(AppRouteNames.launch);
-                      },
+    return MoviRouteFocusBoundary(
+      restorePolicy: MoviFocusRestorePolicy(
+        initialFocusNode: initialFocusNode,
+        fallbackFocusNode: _submitFocusNode,
+      ),
+      requestInitialFocusOnMount: true,
+      onUnhandledBack: () => false,
+      debugLabel: 'WelcomeSourceRouteFocus',
+      child: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.xl,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    WelcomeHeader(
+                      title: l10n.welcomeSourceTitle,
+                      subtitle: l10n.welcomeSourceSubtitle,
                     ),
-                  ],
+                    if (launchRecovery?.isRetryable ?? false) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      MoviEnsureVisibleOnFocus(
+                        verticalAlignment: 0.18,
+                        child: Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) => _handleDirectionalKey(
+                            event,
+                            down: _shouldDisplaySavedSourcesSection
+                                ? (_sourcesError != null
+                                      ? _sourcesErrorRetryFocusNode
+                                      : hasSavedSources
+                                      ? _savedSourceFocusNodes.first
+                                      : _refreshFocusNode)
+                                : _nameFocusNode,
+                            blockLeft: true,
+                            blockRight: true,
+                            blockUp: true,
+                          ),
+                          child: LaunchRecoveryBanner(
+                            message: launchRecovery!.message,
+                            retryFocusNode: _retryFocusNode,
+                            onRetry: () {
+                              ref
+                                  .read(
+                                    appLaunchOrchestratorProvider.notifier,
+                                  )
+                                  .reset();
+                              context.go(AppRouteNames.launch);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   const SizedBox(height: AppSpacing.lg),
 
                   // ---------------- Sources Supabase ----------------
@@ -435,16 +548,31 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                                 _refreshAnimation.value *
                                 2 *
                                 3.14159, // Rotation complète
-                            child: IconButton(
-                              tooltip: 'Rafraîchir',
-                              onPressed: isBusy
-                                  ? null
-                                  : () => unawaited(
-                                      _loadSupabaseSources(
-                                        animateRefreshButton: true,
+                            child: Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleDirectionalKey(
+                                event,
+                                up: launchRecovery?.isRetryable ?? false
+                                    ? _retryFocusNode
+                                    : null,
+                                down: hasSavedSources
+                                    ? _savedSourceFocusNodes.first
+                                    : _nameFocusNode,
+                                blockLeft: true,
+                                blockRight: true,
+                              ),
+                              child: IconButton(
+                                focusNode: _refreshFocusNode,
+                                tooltip: 'Rafraîchir',
+                                onPressed: isBusy
+                                    ? null
+                                    : () => unawaited(
+                                        _loadSupabaseSources(
+                                          animateRefreshButton: true,
+                                        ),
                                       ),
-                                    ),
-                              icon: Icon(Icons.refresh, color: accentColor),
+                                icon: Icon(Icons.refresh, color: accentColor),
+                              ),
                             ),
                           );
                         },
@@ -458,9 +586,25 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                         child: CircularProgressIndicator(),
                       )
                     else if (_sourcesError != null)
-                      _ErrorBox(
-                        message: _sourcesError!,
-                        onRetry: () => unawaited(_loadSupabaseSources()),
+                      MoviEnsureVisibleOnFocus(
+                        verticalAlignment: 0.22,
+                        child: Focus(
+                          canRequestFocus: false,
+                          onKeyEvent: (_, event) => _handleDirectionalKey(
+                            event,
+                            up: launchRecovery?.isRetryable ?? false
+                                ? _retryFocusNode
+                                : _refreshFocusNode,
+                            down: _nameFocusNode,
+                            blockLeft: true,
+                            blockRight: true,
+                          ),
+                          child: _ErrorBox(
+                            message: _sourcesError!,
+                            retryFocusNode: _sourcesErrorRetryFocusNode,
+                            onRetry: () => unawaited(_loadSupabaseSources()),
+                          ),
+                        ),
                       )
                     else if (_sources.isEmpty)
                       const _InfoBox(
@@ -471,6 +615,14 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                       _SourcesList(
                         sources: _sources,
                         selectedId: _selectedSourceId,
+                        focusNodes: _savedSourceFocusNodes,
+                        focusVerticalAlignment: 0.22,
+                        onFirstItemUp: () => _requestFocus(
+                          launchRecovery?.isRetryable ?? false
+                              ? _retryFocusNode
+                              : _refreshFocusNode,
+                        ),
+                        onLastItemDown: () => _requestFocus(_nameFocusNode),
                         onSelect: _selectSource,
                       ),
 
@@ -481,67 +633,176 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                   _SectionHeader(title: 'Activer une source'),
                   const SizedBox(height: AppSpacing.sm),
 
-                  TextField(
-                    controller: _nameCtrl,
-                    focusNode: _nameFocusNode,
-                    enabled: !isBusy,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _serverFocusNode.requestFocus(),
-                    decoration: const InputDecoration(
-                      labelText: 'Nom de la source',
-                      hintText: 'Mon IPTV',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-
-                  TextField(
-                    controller: _serverCtrl,
-                    focusNode: _serverFocusNode,
-                    enabled: !isBusy,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _userFocusNode.requestFocus(),
-                    decoration: const InputDecoration(
-                      labelText: 'Server URL',
-                      hintText: 'https://example.com:port',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-
-                  TextField(
-                    controller: _userCtrl,
-                    focusNode: _userFocusNode,
-                    enabled: !isBusy,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) => _passFocusNode.requestFocus(),
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-
-                  TextField(
-                    controller: _passCtrl,
-                    focusNode: _passFocusNode,
-                    enabled: !isBusy,
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submitFocusNode.requestFocus(),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
+                  MoviEnsureVisibleOnFocus(
+                    verticalAlignment: 0.22,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        up: _shouldDisplaySavedSourcesSection
+                            ? (_sourcesError != null
+                                  ? _sourcesErrorRetryFocusNode
+                                  : hasSavedSources
+                                  ? _savedSourceFocusNodes.last
+                                  : _refreshFocusNode)
+                            : launchRecovery?.isRetryable ?? false
+                            ? _retryFocusNode
+                            : null,
+                        down: _serverFocusNode,
+                        blockLeft: true,
+                        blockRight: true,
+                      ),
+                      child: CallbackShortcuts(
+                        bindings: <ShortcutActivator, VoidCallback>{
+                          const SingleActivator(
+                            LogicalKeyboardKey.arrowDown,
+                          ): () => _requestFocus(_serverFocusNode),
+                        },
+                        child: TextField(
+                          controller: _nameCtrl,
+                          focusNode: _nameFocusNode,
+                          enabled: !isBusy,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _serverFocusNode.requestFocus(),
+                          decoration: const InputDecoration(
+                            labelText: 'Nom de la source',
+                            hintText: 'Mon IPTV',
+                            border: OutlineInputBorder(),
                           ),
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  MoviEnsureVisibleOnFocus(
+                    verticalAlignment: 0.22,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        up: _nameFocusNode,
+                        down: _userFocusNode,
+                        blockLeft: true,
+                        blockRight: true,
+                      ),
+                      child: CallbackShortcuts(
+                        bindings: <ShortcutActivator, VoidCallback>{
+                          const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                              _requestFocus(_nameFocusNode),
+                          const SingleActivator(
+                            LogicalKeyboardKey.arrowDown,
+                          ): () => _requestFocus(_userFocusNode),
+                        },
+                        child: TextField(
+                          controller: _serverCtrl,
+                          focusNode: _serverFocusNode,
+                          enabled: !isBusy,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _userFocusNode.requestFocus(),
+                          decoration: const InputDecoration(
+                            labelText: 'Server URL',
+                            hintText: 'https://example.com:port',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  MoviEnsureVisibleOnFocus(
+                    verticalAlignment: 0.22,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        up: _serverFocusNode,
+                        down: _passFocusNode,
+                        blockLeft: true,
+                        blockRight: true,
+                      ),
+                      child: CallbackShortcuts(
+                        bindings: <ShortcutActivator, VoidCallback>{
+                          const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                              _requestFocus(_serverFocusNode),
+                          const SingleActivator(
+                            LogicalKeyboardKey.arrowDown,
+                          ): () => _requestFocus(_passFocusNode),
+                        },
+                        child: TextField(
+                          controller: _userCtrl,
+                          focusNode: _userFocusNode,
+                          enabled: !isBusy,
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => _passFocusNode.requestFocus(),
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  MoviEnsureVisibleOnFocus(
+                    verticalAlignment: 0.22,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        up: _userFocusNode,
+                        right: _passwordToggleFocusNode,
+                        down: _submitFocusNode,
+                        blockLeft: true,
+                      ),
+                      child: CallbackShortcuts(
+                        bindings: <ShortcutActivator, VoidCallback>{
+                          const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                              _requestFocus(_userFocusNode),
+                          const SingleActivator(
+                            LogicalKeyboardKey.arrowRight,
+                          ): () => _requestFocus(_passwordToggleFocusNode),
+                          const SingleActivator(
+                            LogicalKeyboardKey.arrowDown,
+                          ): () => _requestFocus(_submitFocusNode),
+                        },
+                        child: TextField(
+                          controller: _passCtrl,
+                          focusNode: _passFocusNode,
+                          enabled: !isBusy,
+                          obscureText: _obscurePassword,
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _submitFocusNode.requestFocus(),
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) =>
+                                    _handleDirectionalKey(
+                                      event,
+                                      left: _passFocusNode,
+                                      down: _submitFocusNode,
+                                      up: _userFocusNode,
+                                      blockRight: true,
+                                    ),
+                                child: IconButton(
+                                  focusNode: _passwordToggleFocusNode,
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -557,13 +818,26 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
                     const SizedBox(height: AppSpacing.sm),
                   ],
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: MoviPrimaryButton(
-                      label: 'Activer',
-                      focusNode: _submitFocusNode,
-                      onPressed: isBusy ? null : _activate,
-                      loading: connectState.isLoading,
+                  MoviEnsureVisibleOnFocus(
+                    verticalAlignment: 0.22,
+                    child: Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        up: _passFocusNode,
+                        blockLeft: true,
+                        blockRight: true,
+                        blockDown: true,
+                      ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: MoviPrimaryButton(
+                          label: 'Activer',
+                          focusNode: _submitFocusNode,
+                          onPressed: isBusy ? null : _activate,
+                          loading: connectState.isLoading,
+                        ),
+                      ),
                     ),
                   ),
 
@@ -632,12 +906,20 @@ class _SourcesList extends StatelessWidget {
   const _SourcesList({
     required this.sources,
     required this.selectedId,
+    required this.focusNodes,
+    required this.focusVerticalAlignment,
     required this.onSelect,
+    this.onFirstItemUp,
+    this.onLastItemDown,
   });
 
   final List<SupabaseIptvSourceEntity> sources;
   final String? selectedId;
+  final List<FocusNode> focusNodes;
+  final double focusVerticalAlignment;
   final void Function(SupabaseIptvSourceEntity source) onSelect;
+  final VoidCallback? onFirstItemUp;
+  final VoidCallback? onLastItemDown;
 
   String _formatDateOnly(BuildContext context, DateTime value) {
     final local = value.toLocal();
@@ -649,20 +931,62 @@ class _SourcesList extends StatelessWidget {
     return Card(
       child: Column(
         children: [
-          for (final s in sources)
-            ListTile(
-              onTap: () => onSelect(s),
-              title: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              subtitle: Text(
-                s.expiresAt != null
-                    ? 'Expire: ${_formatDateOnly(context, s.expiresAt!)}'
-                    : 'Aucune date d’expiration',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+          for (var index = 0; index < sources.length; index++)
+            Focus(
+              canRequestFocus: false,
+              onKeyEvent: (_, event) {
+                if (event is! KeyDownEvent) {
+                  return KeyEventResult.ignored;
+                }
+                switch (event.logicalKey) {
+                  case LogicalKeyboardKey.arrowUp:
+                    if (index == 0) {
+                      onFirstItemUp?.call();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  case LogicalKeyboardKey.arrowDown:
+                    if (index == sources.length - 1) {
+                      onLastItemDown?.call();
+                      return KeyEventResult.handled;
+                    }
+                    return KeyEventResult.ignored;
+                  case LogicalKeyboardKey.arrowLeft:
+                  case LogicalKeyboardKey.arrowRight:
+                    return KeyEventResult.handled;
+                }
+                return KeyEventResult.ignored;
+              },
+              child: MoviFocusableAction(
+                focusNode: index < focusNodes.length ? focusNodes[index] : null,
+                ensureVisibleVerticalAlignment: focusVerticalAlignment,
+                onPressed: () => onSelect(sources[index]),
+                semanticLabel: sources[index].name,
+                builder: (context, state) {
+                  return MoviFocusFrame(
+                    scale: state.focused ? 1.01 : 1,
+                    borderRadius: BorderRadius.circular(18),
+                    child: ListTile(
+                      onTap: () => onSelect(sources[index]),
+                      title: Text(
+                        sources[index].name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        sources[index].expiresAt != null
+                            ? 'Expire: ${_formatDateOnly(context, sources[index].expiresAt!)}'
+                            : 'Aucune date d’expiration',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: selectedId == sources[index].id
+                          ? const Icon(Icons.check_circle)
+                          : const Icon(Icons.circle_outlined),
+                    ),
+                  );
+                },
               ),
-              trailing: selectedId == s.id
-                  ? const Icon(Icons.check_circle)
-                  : const Icon(Icons.circle_outlined),
             ),
         ],
       ),
@@ -671,10 +995,15 @@ class _SourcesList extends StatelessWidget {
 }
 
 class _ErrorBox extends StatelessWidget {
-  const _ErrorBox({required this.message, required this.onRetry});
+  const _ErrorBox({
+    required this.message,
+    required this.onRetry,
+    this.retryFocusNode,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final FocusNode? retryFocusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -692,6 +1021,7 @@ class _ErrorBox extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
+                focusNode: retryFocusNode,
                 onPressed: onRetry,
                 child: Text(AppLocalizations.of(context)!.actionRetry),
               ),

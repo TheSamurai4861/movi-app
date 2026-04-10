@@ -27,6 +27,8 @@ class GenresGrid extends ConsumerStatefulWidget {
     this.firstItemFocusNode,
     this.onFirstItemLeft,
     this.onFirstRowUp,
+    this.focusRequestId,
+    this.focusRequestColumn,
     this.focusVerticalAlignment = 0.22,
   });
 
@@ -35,6 +37,8 @@ class GenresGrid extends ConsumerStatefulWidget {
   final FocusNode? firstItemFocusNode;
   final VoidCallback? onFirstItemLeft;
   final ValueChanged<int>? onFirstRowUp;
+  final int? focusRequestId;
+  final int? focusRequestColumn;
   final double focusVerticalAlignment;
 
   @override
@@ -154,6 +158,40 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
   }) {
     final lastRowStart = ((itemCount - 1) ~/ columns) * columns;
     return math.min(lastRowStart + column, itemCount - 1);
+  }
+
+  void _applyPendingFocusRequest({
+    required List<TmdbGenre> movieGenres,
+    required List<TmdbGenre> seriesGenres,
+  }) {
+    final requestColumn = widget.focusRequestColumn;
+    if (widget.focusRequestId == null || requestColumn == null) return;
+    if (movieGenres.isEmpty && seriesGenres.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (movieGenres.isNotEmpty) {
+        final targetIndex = math.min(requestColumn, movieGenres.length - 1);
+        _requestGenreFocus(
+          movieGenres[targetIndex],
+          useExternalFirstFocusNode: _isOverallFirst(
+            _GenreSection.movie,
+            targetIndex,
+            movieGenres,
+          ),
+        );
+        return;
+      }
+      final targetIndex = math.min(requestColumn, seriesGenres.length - 1);
+      _requestGenreFocus(
+        seriesGenres[targetIndex],
+        useExternalFirstFocusNode: _isOverallFirst(
+          _GenreSection.series,
+          targetIndex,
+          movieGenres,
+        ),
+      );
+    });
   }
 
   KeyEventResult _handleGenreKey({
@@ -394,6 +432,10 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
                           constraints.maxWidth,
                           genres.series.length,
                         );
+                  _applyPendingFocusRequest(
+                    movieGenres: genres.movie,
+                    seriesGenres: genres.series,
+                  );
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

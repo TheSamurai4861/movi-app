@@ -27,7 +27,7 @@ class SagaDetailPage extends ConsumerStatefulWidget {
 
 class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
   static const Color _iconActionFocusedBackground = Color(0x807A7A7A);
-  static const double _heroFocusVerticalAlignment = 0.08;
+  static const double _heroFocusVerticalAlignment = 0.0;
   final FocusNode _primaryActionFocusNode = FocusNode(
     debugLabel: 'SagaDetailPrimaryAction',
   );
@@ -274,29 +274,34 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      MoviDetailHeroScene(
-                        isWideLayout: isWideLayout,
-                        background: _buildHeroImage(
-                          context,
-                          poster: viewModel.poster,
-                          backdrop: viewModel.backdrop,
-                        ),
-                        children: [
-                          if (isWideLayout)
-                            _buildDesktopHeroOverlay(
-                              context,
-                              ref,
-                              viewModel,
-                              sagaStartTargetAsync,
-                              isFavoriteAsync,
-                              synopsisText: synopsisText,
-                            ),
-                          _buildHeroTopBar(
-                            context,
+                      Builder(
+                        builder: (heroContext) => MoviVerticalEnsureVisibleTarget(
+                          targetContext: heroContext,
+                          child: MoviDetailHeroScene(
                             isWideLayout: isWideLayout,
-                            horizontalPadding: horizontalPadding,
+                            background: _buildHeroImage(
+                              context,
+                              poster: viewModel.poster,
+                              backdrop: viewModel.backdrop,
+                            ),
+                            children: [
+                              if (isWideLayout)
+                                _buildDesktopHeroOverlay(
+                                  context,
+                                  ref,
+                                  viewModel,
+                                  sagaStartTargetAsync,
+                                  isFavoriteAsync,
+                                  synopsisText: synopsisText,
+                                ),
+                              _buildHeroTopBar(
+                                context,
+                                isWideLayout: isWideLayout,
+                                horizontalPadding: horizontalPadding,
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                       if (!isWideLayout)
                         Padding(
