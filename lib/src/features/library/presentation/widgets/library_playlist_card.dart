@@ -194,7 +194,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
       height: 44,
       child: MoviFocusableAction(
         onPressed: onMorePressed,
-        semanticLabel: l10n?.hc_plus_d_actions_ffe6be2a ?? 'Plus d\'actions',
+        semanticLabel: l10n?.semanticsMoreActions ?? 'More actions',
         builder: (context, state) {
           final backgroundColor = state.focused
               ? Colors.white.withValues(alpha: 0.14)

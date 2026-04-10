@@ -78,6 +78,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final _languageSelectorFocusNode = FocusNode(
     debugLabel: 'SettingsLanguageSelector',
   );
+  final _cloudSyncAutoFocusNode = FocusNode(
+    debugLabel: 'SettingsCloudSyncAuto',
+  );
   late List<FocusNode> _profileFocusNodes;
   late final ShellFocusCoordinator _shellFocusCoordinator;
 
@@ -294,6 +297,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _addProfileFocusNode.dispose();
     _premiumTileFocusNode.dispose();
     _languageSelectorFocusNode.dispose();
+    _cloudSyncAutoFocusNode.dispose();
     _lockSessionIfUnlocked();
     super.dispose();
   }
@@ -506,6 +510,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await showMoviTvActionMenu(
         context: context,
         title: l10n.settingsSyncFrequency,
+        focusScale: 1,
         actions: _syncIntervalOptions
             .map(
               (interval) => MoviTvActionMenuAction(
@@ -599,9 +604,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await showMoviTvActionMenu(
         context: context,
         title: l10n.settingsAccentColor,
+        focusScale: 1,
         actions: _accentColorOptions
             .map(
               (color) => MoviTvActionMenuAction(
+                leadingColor: color,
                 label:
                     '${_isCurrentAccentColor(currentColor, color) ? '✓ ' : ''}'
                     '${_getAccentColorName(color)}',
@@ -697,7 +704,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       context: context,
       title: l10n.settingsPreferredAudioLanguage,
       currentCode: currentCode,
-      nullOptionLabel: l10n.hc_auto_c614ba7c,
+      nullOptionLabel: l10n.settingsAutomaticOption,
       onSelected: prefs.setPreferredAudioLanguage,
     );
   }
@@ -1240,7 +1247,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
       if (!hasCloudSession && client != null)
         _buildSettingItem(
-          title: AppLocalizations.of(context)!.hc_se_connecter_fedf2439,
+          title: AppLocalizations.of(context)!.authOtpPrimarySubmit,
           onTap: () => _guard(
             () => context.push('${AppRoutePaths.authOtp}?return_to=previous'),
           ),
@@ -1268,7 +1275,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _buildSettingItem(
         title: l10n.settingsPreferredAudioLanguage,
         value: preferredAudioLanguage == null
-            ? l10n.hc_auto_c614ba7c
+            ? l10n.settingsAutomaticOption
             : LanguageFormatter.formatLanguageCode(preferredAudioLanguage),
         showChevronDown: true,
         onTap: () => _guard(
@@ -1292,9 +1299,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
       _buildSettingItem(
-        title: l10n.hc_qualite_preferee_776dbeea,
+        title: l10n.settingsPreferredPlaybackQuality,
         value: preferredPlaybackQuality == null
-            ? l10n.hc_auto_c614ba7c
+            ? l10n.settingsAutomaticOption
             : _preferredPlaybackQualityLabel(preferredPlaybackQuality),
         showChevronDown: true,
         onTap: () => _guard(
@@ -1458,49 +1465,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             _handleSettingsHorizontalBoundary(event, blockDown: blockArrowDown),
         child: OutlinedButton(
           onPressed: () => _guard(() async {
-          final confirmed = await showCupertinoDialog<bool>(
-            context: context,
-            builder: (ctx) => CupertinoAlertDialog(
-              title: Text(l10n.actionSignOut),
-              content: Text(l10n.dialogSignOutBody),
-              actions: [
-                CupertinoDialogAction(
-                  isDefaultAction: true,
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: Text(l10n.actionCancel),
-                ),
-                CupertinoDialogAction(
-                  isDestructiveAction: true,
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  child: Text(l10n.actionSignOut),
-                ),
-              ],
-            ),
-          );
-
-          if (confirmed != true) return;
-          if (!mounted) return;
-
-          // Capture context before async gap
-          final navigatorContext = context;
-
-          try {
-            await ref.read(authControllerProvider.notifier).signOut();
-
-            if (!mounted) return;
-            // ✅ utilise un path existant (pas AppRouteNames.about)
-            navigatorContext.go(AppRoutePaths.authOtp);
-          } catch (e) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(navigatorContext).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${l10n.hc_erreur_lors_deconnexion_placeholder_f5a211b4}: $e',
-                ),
-                backgroundColor: Colors.red,
+            final confirmed = await showCupertinoDialog<bool>(
+              context: context,
+              builder: (ctx) => CupertinoAlertDialog(
+                title: Text(l10n.actionSignOut),
+                content: Text(l10n.dialogSignOutBody),
+                actions: [
+                  CupertinoDialogAction(
+                    isDefaultAction: true,
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: Text(l10n.actionCancel),
+                  ),
+                  CupertinoDialogAction(
+                    isDestructiveAction: true,
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: Text(l10n.actionSignOut),
+                  ),
+                ],
               ),
             );
-          }
+
+            if (confirmed != true) return;
+            if (!mounted) return;
+
+            // Capture context before async gap
+            final navigatorContext = context;
+
+            try {
+              await ref.read(authControllerProvider.notifier).signOut();
+
+              if (!mounted) return;
+              // ✅ utilise un path existant (pas AppRouteNames.about)
+              navigatorContext.go(AppRoutePaths.authOtp);
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(navigatorContext).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.settingsSignOutError(e.toString())),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Colors.red),
@@ -1541,6 +1546,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final currentLangCode = ref.watch(asp.currentLanguageCodeProvider);
     final currentSyncInterval = ref.watch(asp.currentIptvSyncIntervalProvider);
     final currentAccentColor = ref.watch(asp.currentAccentColorProvider);
+    final isTvLayout = _screenTypeFor(context) == ScreenType.tv;
     final hasCloudSyncPremium = ref
         .watch(canAccessPremiumFeatureProvider(PremiumFeature.cloudLibrarySync))
         .maybeWhen(data: (value) => value, orElse: () => false);
@@ -1677,7 +1683,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           final localePrefs = ref.read(
                             slProvider,
                           )<LocalePreferences>();
-                          final viewportWidth = MediaQuery.sizeOf(context).width;
+                          final viewportWidth = MediaQuery.sizeOf(
+                            context,
+                          ).width;
                           final items = _availableLanguages();
                           final selected = items
                               .where(
@@ -1755,7 +1763,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                                       ),
                                       borderColor: state.focused
                                           ? currentAccentColor
-                                          : Colors.white.withValues(alpha: 0.14),
+                                          : Colors.white.withValues(
+                                              alpha: 0.14,
+                                            ),
                                       borderWidth: 1.5,
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -1912,7 +1922,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       onTap: () => _openExternalLink(_privacyPolicyUrl),
                     ),
                     _buildSettingItem(
-                      title: l10n.hc_conditions_dutilisation_9074eac7,
+                      title: l10n.settingsTermsOfUseTitle,
                       onTap: () => _openExternalLink(_termsOfUseUrl),
                     ),
                     _buildSettingItem(
@@ -1923,31 +1933,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                   const SizedBox(height: _sectionGap),
 
-                  // --- Aide & diagnostic
-                  Text(
-                    l10n.settingsHelpDiagnosticsSection,
-                    style:
-                        Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: _sectionTitleGap),
-                  _buildSettingsGroup([
-                    _buildSettingItem(
-                      title: l10n.settingsExportErrorLogs,
-                      onTap: () => _guard(
-                        () => ExportDiagnosticsSheet.show(context, ref),
-                      ),
+                  if (!isTvLayout) ...[
+                    // --- Aide & diagnostic
+                    Text(
+                      l10n.settingsHelpDiagnosticsSection,
+                      style:
+                          Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                     ),
-                  ]),
-
-                  const SizedBox(height: _sectionGap),
+                    const SizedBox(height: _sectionTitleGap),
+                    _buildSettingsGroup([
+                      _buildSettingItem(
+                        title: l10n.settingsExportErrorLogs,
+                        onTap: () => _guard(
+                          () => ExportDiagnosticsSheet.show(context, ref),
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: _sectionGap),
+                  ],
 
                   // --- Cloud sync (Library)
                   Text(
@@ -1967,26 +1978,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   _buildSettingsGroup([
                     _buildSettingItem(
                       title: l10n.settingsCloudSyncAuto,
-                      trailing: Switch.adaptive(
-                        value: cloudSync.autoSyncEnabled,
-                        activeThumbColor: currentAccentColor,
-                        onChanged: (value) => unawaited(() async {
-                          if (!value) {
-                            _guard(
-                              () =>
-                                  cloudSyncController.setAutoSyncEnabled(false),
-                            );
-                            return;
-                          }
+                      trailing: ListenableBuilder(
+                        listenable: _cloudSyncAutoFocusNode,
+                        builder: (context, _) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 120),
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: _cloudSyncAutoFocusNode.hasFocus
+                                    ? Colors.white
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: Switch.adaptive(
+                              focusNode: _cloudSyncAutoFocusNode,
+                              value: cloudSync.autoSyncEnabled,
+                              activeThumbColor: currentAccentColor,
+                              onChanged: (value) => unawaited(() async {
+                                if (!value) {
+                                  _guard(
+                                    () => cloudSyncController
+                                        .setAutoSyncEnabled(false),
+                                  );
+                                  return;
+                                }
 
-                          final hasPremium = await _ensurePremiumFeature(
-                            PremiumFeature.cloudLibrarySync,
+                                final hasPremium = await _ensurePremiumFeature(
+                                  PremiumFeature.cloudLibrarySync,
+                                );
+                                if (!hasPremium) return;
+                                _guard(
+                                  () => cloudSyncController.setAutoSyncEnabled(
+                                    true,
+                                  ),
+                                );
+                              }()),
+                            ),
                           );
-                          if (!hasPremium) return;
-                          _guard(
-                            () => cloudSyncController.setAutoSyncEnabled(true),
-                          );
-                        }()),
+                        },
                       ),
                     ),
                     _buildSettingItem(
@@ -2019,7 +2051,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ),
                     if (!hasCloudSyncPremium)
                       Text(
-                        l10n.hc_movi_premium_requis_pour_synchronisation_cloud_15b551df,
+                        l10n.settingsCloudSyncPremiumRequiredMessage,
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 12,

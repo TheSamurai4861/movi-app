@@ -9,11 +9,13 @@ class MoviTvActionMenuAction {
     required this.label,
     required this.onPressed,
     this.destructive = false,
+    this.leadingColor,
   });
 
   final String label;
   final VoidCallback onPressed;
   final bool destructive;
+  final Color? leadingColor;
 }
 
 class MoviTvActionMenuDialog extends StatefulWidget {
@@ -98,7 +100,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
               child: Column(
-                mainAxisSize: MainAxisSize.max,
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (widget.title != null &&
@@ -113,6 +115,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                     const SizedBox(height: 20),
                   ],
                   Flexible(
+                    fit: FlexFit.loose,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxHeight: maxActionsHeight),
                       child: SingleChildScrollView(
@@ -124,6 +127,7 @@ class _MoviTvActionMenuDialogState extends State<MoviTvActionMenuDialog> {
                               _MoviTvActionMenuButton(
                                 label: widget.actions[i].label,
                                 destructive: widget.actions[i].destructive,
+                                leadingColor: widget.actions[i].leadingColor,
                                 focusNode: _actionFocusNodes[i],
                                 focusScale: widget.focusScale,
                                 focusVerticalAlignment:
@@ -208,6 +212,7 @@ class _MoviTvActionMenuButton extends StatelessWidget {
     this.nextFocusNode,
     this.destructive = false,
     this.isCancel = false,
+    this.leadingColor,
   });
 
   final String label;
@@ -219,6 +224,7 @@ class _MoviTvActionMenuButton extends StatelessWidget {
   final FocusNode? nextFocusNode;
   final bool destructive;
   final bool isCancel;
+  final Color? leadingColor;
 
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) {
@@ -285,19 +291,40 @@ class _MoviTvActionMenuButton extends StatelessWidget {
                   ? focusedBorderColor
                   : restingBorderColor,
               borderWidth: 2,
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                style:
-                    Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: foreground,
-                      fontWeight: FontWeight.w600,
-                    ) ??
-                    TextStyle(
-                      color: foreground,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (leadingColor != null) ...[
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: leadingColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.45),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 10),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style:
+                          Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: foreground,
+                            fontWeight: FontWeight.w600,
+                          ) ??
+                          TextStyle(
+                            color: foreground,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ],
               ),
             );
           },

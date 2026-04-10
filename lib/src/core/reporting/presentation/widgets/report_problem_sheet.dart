@@ -165,7 +165,7 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context)!.hc_signalement_envoye_merci_d302e576,
+            AppLocalizations.of(context)!.reportingProblemSentConfirmation,
           ),
         ),
       );
@@ -173,7 +173,9 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = 'Erreur: $e';
+        _error = AppLocalizations.of(
+          context,
+        )!.errorGenericWithMessage(e.toString());
       });
     }
   }
@@ -194,7 +196,10 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
         debugLabel: 'ReportProblemDialog',
         child: Dialog(
           backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 32,
+            vertical: 24,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: DecoratedBox(
@@ -219,15 +224,15 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      l10n.hc_signaler_un_probleme_13183c0f,
+                      l10n.actionReportProblem,
                       textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      l10n.hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436,
+                      l10n.reportingProblemBody,
                       style: const TextStyle(color: Colors.white70),
                     ),
                     const SizedBox(height: 16),
@@ -243,7 +248,7 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
                         enabled: !_busy,
                         maxLines: 4,
                         decoration: InputDecoration(
-                          hintText: 'Ex: “Film d’horreur visible alors que PEGI 12”',
+                          hintText: l10n.reportingProblemExampleHint,
                           hintStyle: const TextStyle(color: Colors.white38),
                           filled: true,
                           fillColor: const Color(0xFF2C2C2E),
@@ -261,11 +266,14 @@ class _ReportProblemSheetState extends ConsumerState<ReportProblemSheet> {
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
-                      Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
                     ],
                     const SizedBox(height: 18),
                     _ReportDialogButton(
-                      label: l10n.hc_envoyer_e9ce243b,
+                      label: l10n.actionSend,
                       focusNode: _submitFocusNode,
                       previousFocusNode: _messageFocusNode,
                       nextFocusNode: _cancelFocusNode,
@@ -367,9 +375,9 @@ class _ReportDialogButton extends StatelessWidget {
                   : Text(
                       label,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: foreground,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        color: foreground,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
             ),
           );

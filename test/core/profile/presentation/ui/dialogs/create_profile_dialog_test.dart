@@ -29,8 +29,10 @@ void main() {
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 
+    final context = tester.element(find.byType(CreateProfileDialog));
+    final l10n = AppLocalizations.of(context)!;
     final confirmButton = tester.widget<ElevatedButton>(
-      find.widgetWithText(ElevatedButton, 'Valider'),
+      find.widgetWithText(ElevatedButton, l10n.actionConfirm),
     );
 
     expect(confirmButton.onPressed, isNotNull);
@@ -50,14 +52,17 @@ void main() {
 
     final pinButton = find.widgetWithText(
       ElevatedButton,
-      l10n.hc_definir_code_pin_53a0bd07,
+      l10n.profilePinSetLabel,
     );
     await tester.ensureVisible(pinButton.first);
     await tester.tap(pinButton.first);
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField).last, '1234');
-    final dialogConfirmButton = find.widgetWithText(ElevatedButton, 'Valider');
+    final dialogConfirmButton = find.widgetWithText(
+      ElevatedButton,
+      l10n.actionConfirm,
+    );
     await tester.ensureVisible(dialogConfirmButton.last);
     await tester.tap(dialogConfirmButton.last);
     await tester.pumpAndSettle();

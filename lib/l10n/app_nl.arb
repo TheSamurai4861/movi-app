@@ -1,4 +1,5 @@
 {
+  "@@locale": "nl",
   "welcomeTitle": "Welkom!",
   "welcomeSubtitle": "Vul je voorkeuren in om Movi te personaliseren.",
   "labelUsername": "Bijnaam",
@@ -19,7 +20,7 @@
   "historyTitle": "Geschiedenis",
   "historyEmpty": "Geen recente zoekopdrachten",
   "delete": "Verwijderen",
-  "resultsCount": "({count} resultaten)",
+  "resultsCount": "{count, plural, =0{(geen resultaten)} one{(1 resultaat)} other{({count} resultaten)}}",
   "@resultsCount": {
     "placeholders": {
       "count": {
@@ -82,8 +83,8 @@
   "semanticsBack": "Terug",
   "semanticsMoreActions": "Meer acties",
   "snackbarLoadingPlaylists": "Playlists laden…",
-  "snackbarNoPlaylistsAvailableCreateOne": "Geen playlist beschikbaar. Maak er één.",
-  "errorAddToPlaylist": "Fout bij toevoegen aan playlist: {error}",
+  "snackbarNoPlaylistsAvailableCreateOne": "Nog geen afspeellijsten. Maak er één aan.",
+  "errorAddToPlaylist": "Fout bij toevoegen aan afspeellijst: {error}",
   "@errorAddToPlaylist": {
     "placeholders": {
       "error": {
@@ -91,8 +92,8 @@
       }
     }
   },
-  "errorAlreadyInPlaylist": "Deze media staat al in deze playlist",
-  "errorLoadingPlaylists": "Fout bij het laden van playlists: {message}",
+  "errorAlreadyInPlaylist": "Deze media staat al in deze afspeellijst.",
+  "errorLoadingPlaylists": "Fout bij het laden van afspeellijsten: {message}",
   "@errorLoadingPlaylists": {
     "placeholders": {
       "message": {
@@ -102,7 +103,7 @@
   },
   "errorReportUnavailableForContent": "Melden is niet beschikbaar voor deze inhoud.",
   "snackbarLoadingEpisodes": "Afleveringen laden…",
-  "snackbarEpisodeUnavailableInPlaylist": "Aflevering niet beschikbaar in playlist",
+  "snackbarEpisodeUnavailableInPlaylist": "Aflevering niet beschikbaar in deze afspeellijst.",
   "snackbarGenericError": "Fout: {error}",
   "@snackbarGenericError": {
     "placeholders": {
@@ -127,11 +128,11 @@
   "actionViewPage": "Pagina bekijken",
   "semanticsSeeSagaPage": "Sagapagina bekijken",
   "libraryTypeSaga": "Saga",
-  "libraryTypeInProgress": "Bezig",
+  "libraryTypeInProgress": "Verderkijken",
   "libraryTypeFavoriteMovies": "Favoriete films",
   "libraryTypeFavoriteSeries": "Favoriete series",
   "libraryTypeHistory": "Geschiedenis",
-  "libraryTypePlaylist": "Playlist",
+  "libraryTypePlaylist": "Afspeellijst",
   "libraryTypeArtist": "Artiest",
   "libraryItemCount": "{count} item",
   "@libraryItemCount": {
@@ -141,7 +142,7 @@
       }
     }
   },
-  "snackbarPlaylistRenamed": "Playlist hernoemd naar \"{name}\"",
+  "snackbarPlaylistRenamed": "Afspeellijst hernoemd naar \"{name}\"",
   "@snackbarPlaylistRenamed": {
     "placeholders": {
       "name": {
@@ -149,7 +150,7 @@
       }
     }
   },
-  "snackbarPlaylistDeleted": "Playlist verwijderd",
+  "snackbarPlaylistDeleted": "Afspeellijst verwijderd",
   "dialogConfirmDeletePlaylist": "Weet je zeker dat je \"{title}\" wilt verwijderen?",
   "@dialogConfirmDeletePlaylist": {
     "placeholders": {
@@ -174,8 +175,8 @@
       }
     }
   },
-  "snackbarMediaAlreadyInPlaylist": "Deze media staat al in de playlist",
-  "snackbarAddedToPlaylist": "Toegevoegd aan de playlist",
+  "snackbarMediaAlreadyInPlaylist": "Deze media staat al in de afspeellijst.",
+  "snackbarAddedToPlaylist": "Toegevoegd aan de afspeellijst",
   "addMediaTitle": "Media toevoegen",
   "searchMinCharsHint": "Typ minstens 3 tekens om te zoeken",
   "badgeAdded": "Toegevoegd",
@@ -260,7 +261,7 @@
   "actionSeeAll": "Alles bekijken",
   "actionExpand": "Uitklappen",
   "actionCollapse": "Inklappen",
-  "providerSearchPlaceholder": "Zoeken op {provider}...",
+  "providerSearchPlaceholder": "{provider} doorzoeken",
   "@providerSearchPlaceholder": {
     "placeholders": {
       "provider": {
@@ -304,14 +305,17 @@
     }
   },
   "addedToPlaylist": "Toegevoegd",
-  "pinRecoveryLink": "Récupérer le code PIN",
-  "pinRecoveryTitle": "PIN-code herstellen",
-  "pinRecoveryDescription": "Herstel de PIN-code van je beveiligde profiel.",
+  "pinRecoveryLink": "PIN herstellen",
+  "pinRecoveryTitle": "PIN herstellen",
+  "pinRecoveryDescription": "Herstel de PIN van je beveiligde profiel.",
+  "pinRecoveryRequestCodeButton": "Code verzenden",
+  "pinRecoveryCodeSentHint": "De code is verzonden naar het e-mailadres van je account. Controleer je berichten en voer hem hieronder in.",
   "pinRecoveryComingSoon": "Deze functie komt binnenkort.",
+  "pinRecoveryNotAvailable": "PIN-herstel via e-mail is momenteel niet beschikbaar.",
   "pinRecoveryCodeLabel": "Herstelcode",
   "pinRecoveryCodeHint": "8 cijfers",
-  "pinRecoveryVerifyButton": "Controleren",
-  "pinRecoveryCodeInvalid": "Voer de 8-cijferige code in",
+  "pinRecoveryVerifyButton": "Code verifiëren",
+  "pinRecoveryCodeInvalid": "Voer de 8-cijferige code in.",
   "pinRecoveryCodeExpired": "De herstelcode is verlopen",
   "pinRecoveryTooManyAttempts": "Te veel pogingen. Probeer het later opnieuw.",
   "pinRecoveryUnknownError": "Er is een onverwachte fout opgetreden",
@@ -319,10 +323,12 @@
   "pinRecoveryNewPinHint": "4-6 cijfers",
   "pinRecoveryConfirmPinLabel": "Bevestig pincode",
   "pinRecoveryConfirmPinHint": "Herhaal de pincode",
-  "pinRecoveryResetButton": "Pincode bijwerken",
-  "pinRecoveryPinInvalid": "Voer een pincode van 4 tot 6 cijfers in",
+  "pinRecoveryResetButton": "PIN opnieuw instellen",
+  "pinRecoveryPinInvalid": "Voer een PIN van 4 tot 6 cijfers in.",
   "pinRecoveryPinMismatch": "De pincodes komen niet overeen",
   "pinRecoveryResetSuccess": "Pincode bijgewerkt",
+  "profilePinSaved": "PIN opgeslagen.",
+  "profilePinEditLabel": "PIN-code bewerken",
   "settingsAccountsSection": "Accounts",
   "settingsIptvSection": "IPTV-instellingen",
   "settingsSourcesManagement": "Bronbeheer",
@@ -330,13 +336,13 @@
   "settingsAppSection": "App-instellingen",
   "settingsAccentColor": "Accentkleur",
   "settingsPlaybackSection": "Afspeelinstellingen",
-  "settingsPreferredAudioLanguage": "Voorkeurstaal",
-  "settingsPreferredSubtitleLanguage": "Voorkeur ondertitels",
+  "settingsPreferredAudioLanguage": "Gewenste audiotaal",
+  "settingsPreferredSubtitleLanguage": "Gewenste ondertitelingstaal",
   "libraryPlaylistsFilter": "Afspeellijsten",
   "librarySagasFilter": "Saga's",
   "libraryArtistsFilter": "Artiesten",
   "librarySearchPlaceholder": "Zoeken in mijn bibliotheek...",
-  "libraryInProgress": "Bezig",
+  "libraryInProgress": "Verderkijken",
   "libraryFavoriteMovies": "Favoriete films",
   "libraryFavoriteSeries": "Favoriete series",
   "libraryWatchHistory": "Kijkgeschiedenis",
@@ -365,7 +371,7 @@
     }
   },
   "tvNoEpisodesAvailable": "Geen afleveringen beschikbaar",
-  "tvResumeSeasonEpisode": "Hervatten S{season} E{episode}",
+  "tvResumeSeasonEpisode": "Verderkijken S{season} · E{episode}",
   "@tvResumeSeasonEpisode": {
     "placeholders": {
       "season": {
@@ -403,7 +409,7 @@
   "personMoviesList": "Filmlijst",
   "personSeriesList": "Serielijst",
   "playlistPlayRandomly": "Willekeurig afspelen",
-  "playlistAddButton": "Toevoegen",
+  "playlistAddButton": "Aan afspeellijst toevoegen",
   "playlistSortButton": "Sorteren",
   "playlistSortByTitle": "Sorteren op",
   "playlistSortByTitleOption": "Titel",
@@ -439,7 +445,7 @@
       }
     }
   },
-  "playlistDeleteTitle": "Verwijderen",
+  "playlistDeleteTitle": "Afspeellijst verwijderen",
   "playlistDeleteConfirm": "Weet je zeker dat je \"{title}\" wilt verwijderen?",
   "@playlistDeleteConfirm": {
     "placeholders": {
@@ -461,7 +467,7 @@
   "categoryLoadFailed": "Fout bij het laden van de categorie.",
   "categoryEmpty": "Geen items in deze categorie.",
   "categoryLoadingMore": "Meer laden…",
-  "movieNoPlaylistsAvailable": "Geen playlist beschikbaar",
+  "movieNoPlaylistsAvailable": "Geen afspeellijsten beschikbaar",
   "playlistAddedTo": "Toegevoegd aan \"{title}\"",
   "@playlistAddedTo": {
     "placeholders": {
@@ -478,7 +484,7 @@
       }
     }
   },
-  "movieNotAvailableInPlaylist": "Film niet beschikbaar in de playlist",
+  "movieNotAvailableInPlaylist": "Film niet beschikbaar in deze afspeellijst",
   "errorPlaybackFailed": "Fout bij het afspelen van de film: {message}",
   "@errorPlaybackFailed": {
     "placeholders": {
@@ -492,9 +498,9 @@
   "personGenericError": "Er is een fout opgetreden bij het laden van deze persoon.",
   "personBiographyTitle": "Biografie",
   "authOtpTitle": "Inloggen",
-  "authOtpSubtitle": "Voer je e-mailadres en de 8-cijferige code in die we je sturen.",
+  "authOtpSubtitle": "Vul je e-mailadres en de 8-cijferige code in die we je sturen.",
   "authOtpEmailLabel": "E-mail",
-  "authOtpEmailHint": "jij@email",
+  "authOtpEmailHint": "naam@voorbeeld.nl",
   "authOtpEmailHelp": "We sturen je een 8-cijferige code. Controleer spam indien nodig.",
   "authOtpCodeLabel": "Verificatiecode",
   "authOtpCodeHint": "8-cijferige code",
@@ -502,7 +508,7 @@
   "authOtpPrimarySend": "Code verzenden",
   "authOtpPrimarySubmit": "Inloggen",
   "authOtpResend": "Code opnieuw verzenden",
-  "authOtpResendDisabled": "Code opnieuw verzenden in {seconds}s",
+  "authOtpResendDisabled": "Code opnieuw verzenden over {seconds}s",
   "@authOtpResendDisabled": {
     "placeholders": {
       "seconds": {
@@ -544,7 +550,7 @@
   },
   "entityProvider": "Provider",
   "entityGenre": "Genre",
-  "entityPlaylist": "Playlist",
+  "entityPlaylist": "Afspeellijst",
   "entitySource": "Bron",
   "entityMovie": "Film",
   "entitySeries": "Serie",
@@ -559,116 +565,18 @@
   "parentalReasonUnknownRating": "De leeftijdsclassificatie voor deze inhoud is niet beschikbaar.",
   "parentalReasonInvalidTmdbId": "Deze inhoud kan niet worden beoordeeld voor ouderlijke controle.",
   "parentalUnlockButton": "Deblokkeren",
-  "hc_arb_dir_4de4827b": "arb-dir",
-  "hc_template_arb_file_eeae5194": "template-arb-file",
-  "hc_output_localization_file_ed018380": "output-localization-file",
-  "hc_output_class_f1ae6b52": "output-class",
-  "hc_applocalizations_878fdc50": "AppLocalizations",
-  "hc_untranslated_messages_file_fa6a22b7": "untranslated-messages-file",
-  "hc_chargement_episodes_en_cours_33fc4ace": "Afleveringen laden…",
-  "hc_aucune_playlist_disponible_creez_en_une_f6b75c90": "Geen afspeellijst beschikbaar. Maak er een aan.",
-  "hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3": "Fout bij het laden van afspeellijsten: $e",
-  "hc_impossible_douvrir_lien_90d0dcaa": "Kan de link niet openen",
-  "hc_qualite_preferee_776dbeea": "Voorkeurskwaliteit",
-  "hc_annuler_49ba3292": "Cancel",
-  "hc_deconnexion_903dca17": "Afmelden",
-  "hc_erreur_lors_deconnexion_placeholder_f5a211b4": "Fout bij afmelden: $e",
-  "hc_choisir_b030d590": "Choose",
-  "hc_avantages_08d7f47c": "Benefits",
-  "hc_signalement_envoye_merci_d302e576": "Melding verzonden. Bedankt.",
-  "hc_plus_tard_1f42ab3b": "Later",
-  "hc_redemarrer_maintenant_053e8e68": "Nu opnieuw starten",
-  "hc_utiliser_cette_source_c6c8bbc5": "Deze bron gebruiken?",
-  "hc_utiliser_fb5e43ce": "Use",
-  "hc_source_ajout_e_e41b01d9": "Bron toegevoegd",
-  "hc_title_0a57b7eb": "title: '...'",
-  "hc_labeltext_469a28db": "labelText: '...'",
-  "hc_hinttext_6fd1d945": "hintText: '...'",
-  "hc_tooltip_db0de3fe": "tooltip: '...'",
-  "hc_parametres_verrouilles_3a9b1b51": "Vergrendelde instellingen",
-  "hc_compte_cloud_2812b31e": "Cloudaccount",
-  "hc_se_connecter_fedf2439": "Inloggen",
-  "hc_propos_5345add5": "Over",
-  "hc_politique_confidentialite_42b0e51e": "Privacybeleid",
-  "hc_conditions_dutilisation_9074eac7": "Gebruiksvoorwaarden",
-  "hc_sources_sauvegardees_9f1382e5": "Opgeslagen bronnen",
-  "hc_rafraichir_be30b7d1": "Vernieuwen",
-  "hc_activer_une_source_749ced38": "Bron activeren",
-  "hc_nom_source_9a3e4156": "Naam van de bron",
-  "hc_mon_iptv_b239352c": "Mijn IPTV",
-  "hc_username_84c29015": "Gebruikersnaam",
-  "hc_password_8be3c943": "Wachtwoord",
-  "hc_server_url_1d5d1eff": "Server-URL",
-  "hc_verification_pin_e17c8fe0": "PIN-verificatie",
-  "hc_definir_un_pin_f9c2178d": "PIN instellen",
-  "hc_pin_3adadd31": "PIN",
-  "hc_message_9ff08507": "message: '...'",
-  "hc_subscription_offer_not_found_placeholder_d07ac9d3": "Subscription offer not found: $offerId.",
-  "hc_subscription_purchase_was_cancelled_by_user_443e1dab": "The subscription purchase was cancelled by the user.",
-  "hc_store_operation_timed_out_placeholder_6c3f9df2": "The store operation timed out: $operation.",
-  "hc_erreur_http_lors_handshake_02db57b2": "HTTP error during handshake",
-  "hc_reponse_non_json_serveur_xtream_e896b8df": "Non-JSON response from Xtream server",
-  "hc_reponse_invalide_serveur_xtream_afc0955f": "Invalid response from Xtream server",
-  "hc_rg_exe_af0d2be6": "rg.exe",
-  "hc_alertdialog_5a747a86": "AlertDialog",
-  "hc_cupertinoalertdialog_3ed27f52": "CupertinoAlertDialog",
-  "hc_pas_disponible_sur_cette_source_fa6e19a7": "Niet beschikbaar op deze bron",
-  "hc_source_supprimee_4bfaa0a1": "Bron verwijderd",
-  "hc_source_modifiee_335ef502": "Bron bijgewerkt",
-  "hc_definir_code_pin_53a0bd07": "PIN-code instellen",
-  "hc_marquer_comme_non_vu_9cf9d3f8": "Markeren als niet bekeken",
-  "hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661": "Weet je zeker dat je wilt afmelden?",
-  "hc_movi_premium_requis_pour_synchronisation_cloud_15b551df": "Movi Premium is vereist voor cloudsynchronisatie.",
-  "hc_auto_c614ba7c": "Auto",
-  "hc_organiser_838a7e57": "Ordenen",
-  "hc_modifier_f260e757": "Bewerken",
-  "hc_ajouter_87c57ed1": "Toevoegen",
-  "hc_source_active_e571305e": "Actieve bron",
-  "hc_autres_sources_e32592a6": "Andere bronnen",
-  "hc_signalement_indisponible_pour_ce_contenu_d9ad88b7": "Melden is niet beschikbaar voor deze content.",
-  "hc_securisation_contenu_e5195111": "Content beveiligen",
-  "hc_verification_classifications_d_age_006eebfe": "Leeftijdsclassificaties controleren…",
-  "hc_voir_tout_7b7d86e8": "Alles bekijken",
-  "hc_signaler_un_probleme_13183c0f": "Een probleem melden",
-  "hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436": "Als deze content niet geschikt is en toch toegankelijk was ondanks beperkingen, beschrijf het probleem kort.",
-  "hc_envoyer_e9ce243b": "Verzenden",
-  "hc_profil_enfant_cree_39f4eb7d": "Kinderprofiel aangemaakt",
-  "hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a": "Er is een kinderprofiel aangemaakt. Om de app te beveiligen en leeftijdsclassificaties vooraf te laden, wordt aangeraden de app opnieuw te starten.",
-  "hc_pseudo_4cf966c0": "Bijnaam",
-  "hc_profil_enfant_2c8a01c0": "Kinderprofiel",
-  "hc_limite_d_age_5b170fc9": "Leeftijdslimiet",
-  "hc_code_pin_e79c48bd": "PIN-code",
-  "hc_changer_code_pin_3b069731": "PIN-code wijzigen",
-  "hc_supprimer_code_pin_0dcf8a48": "PIN-code verwijderen",
-  "hc_supprimer_pin_51850c7b": "PIN verwijderen",
-  "hc_supprimer_1acfc1c7": "Verwijderen",
-  "hc_oblige_un_pin_active_filtre_pegi_8447ac9b": "Vereist een PIN en schakelt het PEGI-filter in.",
-  "hc_voulez_vous_activer_cette_source_maintenant_f2593894": "Wil je deze bron nu activeren?",
-  "hc_application_b291beb8": "App",
-  "hc_version_1_0_0_347e553c": "Version 1.0.0",
-  "hc_credits_293a6081": "Credits",
-  "hc_this_product_uses_tmdb_api_but_is_not_0033d77f": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
-  "hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a": "Dit product gebruikt de TMDB API, maar is niet onderschreven of gecertificeerd door TMDB.",
-  "hc_verification_targets_d51632f8": "Verification targets",
-  "hc_fade_must_eat_frame_5f1bfc77": "The fade must eat the frame",
-  "hc_invalid_xtream_streamid_eb04e9f9": "Invalid Xtream streamId: ...",
-  "hc_series_xtream_missing_poster_065b5103": "Series xtream:... missing poster",
-  "hc_movie_not_found_a7fe72d9": "Movie ... not found ...",
-  "hc_missing_poster_1c9ba558": "... missing poster",
-  "hc_invalid_watchlist_outbox_payload_327ac6c3": "Invalid watchlist outbox payload.",
-  "hc_unknown_watchlist_operation_e9259c07": "Unknown watchlist operation: ...",
-  "hc_invalid_playlist_outbox_payload_2d76e64f": "Invalid playlist outbox payload.",
-  "hc_unknown_playlist_operation_c98cbd41": "Unknown playlist operation: ...",
-  "hc_url_invalide_aa227a66": "Ongeldige URL",
-  "hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3": "Missing legacy IV: cannot decrypt legacy ciphertext.",
-  "hc_tooltip_rafraichir_a22b17e3": "tooltip: 'Vernieuwen'",
-  "hc_tooltip_menu_d8fa6679": "tooltip: 'Menu'",
-  "hc_retour_e5befb1f": "Terug",
-  "hc_semanticlabel_plus_d_actions_1bd19eb6": "semanticLabel: 'Meer acties'",
-  "hc_plus_d_actions_ffe6be2a": "Meer acties",
-  "hc_semanticlabel_rechercher_3ae4e02c": "semanticLabel: 'Zoeken'",
-  "hc_semanticlabel_ajouter_ac362a68": "semanticLabel: 'Toevoegen'",
-  "hc_l10n_86d50bf0": "l10n.*",
+  "@navHome": {
+    "description": "Sidebar navigation label: Home tab"
+  },
+  "@navSearch": {
+    "description": "Sidebar navigation label: Search tab"
+  },
+  "@navLibrary": {
+    "description": "Sidebar navigation label: Library tab"
+  },
+  "@navSettings": {
+    "description": "Sidebar navigation label: Settings tab"
+  },
   "actionOk": "OK",
   "actionSignOut": "Afmelden",
   "dialogSignOutBody": "Weet je zeker dat je je wilt afmelden?",
@@ -719,8 +627,26 @@
   "settingsSyncSectionTitle": "Audio/ondertitels synchronisatie",
   "settingsSubtitleOffsetTitle": "Ondertitelvertraging",
   "settingsAudioOffsetTitle": "Audiovertraging",
-  "settingsOffsetUnsupported": "Niet ondersteund op deze backend of dit platform.",
+  "settingsOffsetUnsupported": "Niet ondersteund door deze backend of op dit platform.",
   "settingsSyncResetOffsets": "Synchronisatie-offsets resetten",
   "aboutTmdbDisclaimer": "Dit product gebruikt de TMDB-API, maar wordt niet onderschreven of gecertificeerd door TMDB.",
   "aboutCreditsSectionTitle": "Credits"
+,
+  "actionSend": "Verzenden",
+  "profilePinSetLabel": "Pincode instellen",
+  "reportingProblemSentConfirmation": "Melding verzonden. Bedankt.",
+  "reportingProblemBody": "Als deze inhoud niet geschikt is en ondanks de beperkingen toch toegankelijk was, beschrijf het probleem dan kort.",
+  "reportingProblemExampleHint": "Voorbeeld: horrorfilm zichtbaar ondanks PEGI 12",
+  "settingsAutomaticOption": "Automatisch",
+  "settingsPreferredPlaybackQuality": "Voorkeurskwaliteit voor afspelen",
+  "settingsSignOutError": "Fout bij uitloggen: {error}",
+  "@settingsSignOutError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTermsOfUseTitle": "Gebruiksvoorwaarden",
+  "settingsCloudSyncPremiumRequiredMessage": "Movi Premium is vereist voor cloudsynchronisatie."
 }

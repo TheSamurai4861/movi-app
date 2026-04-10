@@ -8,6 +8,7 @@ import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/domain/repositories/profile_repository.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
+import 'package:movi/src/core/profile/presentation/ui/dialogs/profile_dialog_focus_border.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/modal_content_width.dart';
@@ -505,8 +506,9 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                   if (!useDesktopTvLayout)
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.white60),
-                      onPressed:
-                          _busy ? null : () => Navigator.of(context).pop(),
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).pop(),
                     ),
                 ],
               ),
@@ -539,7 +541,8 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                           ? <ShortcutActivator, VoidCallback>{
                               const SingleActivator(
                                 LogicalKeyboardKey.arrowDown,
-                              ): () => _requestFocus(_kidSwitchFocusNode),
+                              ): () =>
+                                  _requestFocus(_kidSwitchFocusNode),
                             }
                           : const <ShortcutActivator, VoidCallback>{},
                       child: TextField(
@@ -661,47 +664,53 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                       spacing: 8,
                       runSpacing: 8,
                       alignment: WrapAlignment.start,
-                      children: [3, 7, 12, 16, 18].asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final v = entry.value;
-                        final selected = _pegiLimit == v;
-                        final chip = ChoiceChip(
-                          focusNode: _pegiFocusNodes[index],
-                          label: Text('PEGI $v'),
-                          selected: selected,
-                          onSelected: _busy
-                              ? null
-                              : (_) => setState(() {
-                                  _pegiLimit = v;
-                                  _error = null;
-                                }),
-                          selectedColor: accentColor,
-                          labelStyle: TextStyle(
-                            color: selected ? Colors.white : Colors.white70,
-                          ),
-                          backgroundColor: const Color(0xFF2C2C2E),
-                        );
+                      children: [3, 7, 12, 16, 18]
+                          .asMap()
+                          .entries
+                          .map((entry) {
+                            final index = entry.key;
+                            final v = entry.value;
+                            final selected = _pegiLimit == v;
+                            final chip = ChoiceChip(
+                              focusNode: _pegiFocusNodes[index],
+                              label: Text('PEGI $v'),
+                              selected: selected,
+                              onSelected: _busy
+                                  ? null
+                                  : (_) => setState(() {
+                                      _pegiLimit = v;
+                                      _error = null;
+                                    }),
+                              selectedColor: accentColor,
+                              labelStyle: TextStyle(
+                                color: selected ? Colors.white : Colors.white70,
+                              ),
+                              backgroundColor: const Color(0xFF2C2C2E),
+                            );
 
-                        if (!useDesktopTvLayout) {
-                          return chip;
-                        }
+                            if (!useDesktopTvLayout) {
+                              return chip;
+                            }
 
-                        return Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            left: index > 0 ? _pegiFocusNodes[index - 1] : null,
-                            right: index + 1 < _pegiFocusNodes.length
-                                ? _pegiFocusNodes[index + 1]
-                                : null,
-                            up: _kidSwitchFocusNode,
-                            down: _pinPrimaryFocusNode,
-                            blockLeft: index == 0,
-                            blockRight: index == _pegiFocusNodes.length - 1,
-                          ),
-                          child: chip,
-                        );
-                      }).toList(growable: false),
+                            return Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleDirectionalKey(
+                                event,
+                                left: index > 0
+                                    ? _pegiFocusNodes[index - 1]
+                                    : null,
+                                right: index + 1 < _pegiFocusNodes.length
+                                    ? _pegiFocusNodes[index + 1]
+                                    : null,
+                                up: _kidSwitchFocusNode,
+                                down: _pinPrimaryFocusNode,
+                                blockLeft: index == 0,
+                                blockRight: index == _pegiFocusNodes.length - 1,
+                              ),
+                              child: chip,
+                            );
+                          })
+                          .toList(growable: false),
                     ),
                   ],
                 ),
@@ -736,21 +745,24 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                 down: _saveFocusNode,
                               )
                             : KeyEventResult.ignored,
-                        child: ElevatedButton(
+                        child: ProfileDialogFocusBorder(
                           focusNode: _pinPrimaryFocusNode,
-                        onPressed: _busy ? null : _setOrChangePin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accentColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text(
-                          'Définir code PIN',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                          child: ElevatedButton(
+                            focusNode: _pinPrimaryFocusNode,
+                            onPressed: _busy ? null : _setOrChangePin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accentColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text(
+                              'Définir code PIN',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
-                        ),
                         ),
                       ),
                     ),
@@ -771,19 +783,24 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                     down: _saveFocusNode,
                                   )
                                 : KeyEventResult.ignored,
-                            child: ElevatedButton(
+                            child: ProfileDialogFocusBorder(
                               focusNode: _pinPrimaryFocusNode,
-                              onPressed: _busy ? null : _setOrChangePin,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: accentColor,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                              child: const Text(
-                                'Changer le code PIN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                              child: ElevatedButton(
+                                focusNode: _pinPrimaryFocusNode,
+                                onPressed: _busy ? null : _setOrChangePin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: accentColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Changer le code PIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
@@ -805,23 +822,28 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                                     blockRight: true,
                                   )
                                 : KeyEventResult.ignored,
-                            child: OutlinedButton(
+                            child: ProfileDialogFocusBorder(
                               focusNode: _pinSecondaryFocusNode,
-                              onPressed:
-                                  (_busy || !_hasPin || !_canRemovePinSafely)
-                                  ? null
-                                  : _removePin,
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.red),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                              child: const Text(
-                                'Supprimer le code PIN',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                              child: OutlinedButton(
+                                focusNode: _pinSecondaryFocusNode,
+                                onPressed:
+                                    (_busy || !_hasPin || !_canRemovePinSafely)
+                                    ? null
+                                    : _removePin,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.red),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Supprimer le code PIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
@@ -883,20 +905,23 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                               blockDown: true,
                             )
                           : KeyEventResult.ignored,
-                      child: OutlinedButton(
+                      child: ProfileDialogFocusBorder(
                         focusNode: _deleteFocusNode,
-                        onPressed: _busy ? null : _delete,
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.red),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(
-                          l10n.delete,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        child: OutlinedButton(
+                          focusNode: _deleteFocusNode,
+                          onPressed: _busy ? null : _delete,
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Text(
+                            l10n.delete,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -915,30 +940,33 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
                               blockDown: true,
                             )
                           : KeyEventResult.ignored,
-                      child: ElevatedButton(
+                      child: ProfileDialogFocusBorder(
                         focusNode: _saveFocusNode,
-                        onPressed: canSave ? _save : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accentColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: ElevatedButton(
+                          focusNode: _saveFocusNode,
+                          onPressed: canSave ? _save : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentColor,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: _busy
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  l10n.actionConfirm,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
-                        child: _busy
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Text(
-                                l10n.actionConfirm,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                       ),
                     ),
                   ),

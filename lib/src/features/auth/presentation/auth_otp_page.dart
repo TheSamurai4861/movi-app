@@ -91,6 +91,18 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
     return KeyEventResult.ignored;
   }
 
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted) {
+      return false;
+    }
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) {
+      return false;
+    }
+    navigator.maybePop();
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -136,350 +148,372 @@ class _AuthOtpPageState extends ConsumerState<AuthOtpPage> {
         isVerifying ||
         state.cooldownRemaining > 0;
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: isCodeStepVisible ? _codeFocusNode : _emailFocusNode,
-        fallbackFocusNode: _primaryActionFocusNode,
-      ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!context.mounted) return false;
-        if (GoRouter.of(context).canPop()) {
-          context.pop();
-          return true;
-        }
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
       },
-      debugLabel: 'AuthOtpRouteFocus',
-      child: Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  WelcomeHeader(
-                    title: l10n.authOtpTitle,
-                    subtitle: l10n.authOtpSubtitle,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: isCodeStepVisible
+              ? _codeFocusNode
+              : _emailFocusNode,
+          fallbackFocusNode: _primaryActionFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () => _handleBack(context),
+        debugLabel: 'AuthOtpRouteFocus',
+        child: Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Step 1 — Email
-                      LabeledField(
-                        label: l10n.authOtpEmailLabel,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            MoviEnsureVisibleOnFocus(
+                      WelcomeHeader(
+                        title: l10n.authOtpTitle,
+                        subtitle: l10n.authOtpSubtitle,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Step 1 — Email
+                          LabeledField(
+                            label: l10n.authOtpEmailLabel,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                MoviEnsureVisibleOnFocus(
+                                  verticalAlignment: 0.22,
+                                  child: Focus(
+                                    canRequestFocus: false,
+                                    onKeyEvent: (_, event) =>
+                                        _handleDirectionalKey(
+                                          event,
+                                          down: isCodeStepVisible
+                                              ? _codeFocusNode
+                                              : _primaryActionFocusNode,
+                                          blockUp: true,
+                                        ),
+                                    child: CallbackShortcuts(
+                                      bindings:
+                                          <ShortcutActivator, VoidCallback>{
+                                            const SingleActivator(
+                                              LogicalKeyboardKey.arrowDown,
+                                            ): () => _requestFocus(
+                                              isCodeStepVisible
+                                                  ? _codeFocusNode
+                                                  : _primaryActionFocusNode,
+                                            ),
+                                          },
+                                      child: TextFormField(
+                                        controller: _emailController,
+                                        focusNode: _emailFocusNode,
+                                        enabled: !isBusy,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
+                                        textInputAction: TextInputAction.next,
+                                        autofillHints: const [
+                                          AutofillHints.email,
+                                        ],
+                                        onChanged: (value) {
+                                          ref
+                                              .read(
+                                                authOtpControllerProvider
+                                                    .notifier,
+                                              )
+                                              .setEmail(value);
+                                        },
+                                        onFieldSubmitted: (_) {
+                                          if (!isCodeStepVisible) {
+                                            _onSendCode();
+                                          } else {
+                                            _codeFocusNode.requestFocus();
+                                          }
+                                        },
+                                        decoration: InputDecoration(
+                                          hintText: l10n.authOtpEmailHint,
+                                          errorText: emailErrorText,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (emailErrorText == null) ...[
+                                  const SizedBox(height: 4),
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 12,
+                                      right: 12,
+                                    ),
+                                    child: Text(
+                                      l10n.authOtpEmailHelp,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.6),
+                                          ),
+                                      softWrap: true,
+                                      maxLines: 3,
+                                      overflow: TextOverflow.visible,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
+
+                          // Step 2 — Code OTP
+                          if (isCodeStepVisible) ...[
+                            LabeledField(
+                              label: l10n.authOtpCodeLabel,
+                              child: MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: _emailFocusNode,
+                                        down: _primaryActionFocusNode,
+                                      ),
+                                  child: CallbackShortcuts(
+                                    bindings: <ShortcutActivator, VoidCallback>{
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowUp,
+                                      ): () =>
+                                          _requestFocus(_emailFocusNode),
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowDown,
+                                      ): () => _requestFocus(
+                                        _primaryActionFocusNode,
+                                      ),
+                                    },
+                                    child: TextFormField(
+                                      controller: _codeController,
+                                      focusNode: _codeFocusNode,
+                                      enabled: !isBusy,
+                                      keyboardType: TextInputType.number,
+                                      textInputAction: TextInputAction.done,
+                                      maxLength: 8,
+                                      autofillHints: const [
+                                        AutofillHints.oneTimeCode,
+                                      ],
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      onChanged: (value) {
+                                        ref
+                                            .read(
+                                              authOtpControllerProvider
+                                                  .notifier,
+                                            )
+                                            .setCode(value);
+                                      },
+                                      onFieldSubmitted: (_) => _onVerifyCode(),
+                                      decoration: InputDecoration(
+                                        counterText: '',
+                                        hintText: l10n.authOtpCodeHint,
+                                        helperText: l10n.authOtpCodeHelp,
+                                        errorText: state.codeError,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                          ],
+
+                          if (globalErrorText != null) ...[
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                              ),
+                              child: Text(
+                                globalErrorText,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                          ],
+
+                          // 32px d'espacement entre le champ email et le bouton
+                          const SizedBox(height: 32),
+
+                          // Primary action button
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                            ),
+                            child: MoviEnsureVisibleOnFocus(
                               verticalAlignment: 0.22,
                               child: Focus(
                                 canRequestFocus: false,
                                 onKeyEvent: (_, event) => _handleDirectionalKey(
                                   event,
-                                  down: isCodeStepVisible
+                                  up: isCodeStepVisible
                                       ? _codeFocusNode
-                                      : _primaryActionFocusNode,
-                                  blockUp: true,
+                                      : _emailFocusNode,
+                                  down: isCodeStepVisible
+                                      ? _resendFocusNode
+                                      : null,
+                                  blockDown: !isCodeStepVisible,
+                                  blockLeft: true,
+                                  blockRight: true,
                                 ),
-                                child: CallbackShortcuts(
-                                  bindings: <ShortcutActivator, VoidCallback>{
-                                    const SingleActivator(
-                                      LogicalKeyboardKey.arrowDown,
-                                    ): () => _requestFocus(
-                                      isCodeStepVisible
-                                          ? _codeFocusNode
-                                          : _primaryActionFocusNode,
-                                    ),
-                                  },
-                                  child: TextFormField(
-                                    controller: _emailController,
-                                    focusNode: _emailFocusNode,
-                                    enabled: !isBusy,
-                                    keyboardType: TextInputType.emailAddress,
-                                    textInputAction: TextInputAction.next,
-                                    autofillHints: const [AutofillHints.email],
-                                    onChanged: (value) {
-                                      ref
-                                          .read(
-                                            authOtpControllerProvider.notifier,
-                                          )
-                                          .setEmail(value);
-                                    },
-                                    onFieldSubmitted: (_) {
-                                      if (!isCodeStepVisible) {
-                                        _onSendCode();
-                                      } else {
-                                        _codeFocusNode.requestFocus();
-                                      }
-                                    },
-                                    decoration: InputDecoration(
-                                      hintText: l10n.authOtpEmailHint,
-                                      errorText: emailErrorText,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (emailErrorText == null) ...[
-                              const SizedBox(height: 4),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 12,
-                                  right: 12,
-                                ),
-                                child: Text(
-                                  l10n.authOtpEmailHelp,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.6),
-                                      ),
-                                  softWrap: true,
-                                  maxLines: 3,
-                                  overflow: TextOverflow.visible,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // Step 2 — Code OTP
-                      if (isCodeStepVisible) ...[
-                        LabeledField(
-                          label: l10n.authOtpCodeLabel,
-                          child: MoviEnsureVisibleOnFocus(
-                            verticalAlignment: 0.22,
-                            child: Focus(
-                              canRequestFocus: false,
-                              onKeyEvent: (_, event) => _handleDirectionalKey(
-                                event,
-                                up: _emailFocusNode,
-                                down: _primaryActionFocusNode,
-                              ),
-                              child: CallbackShortcuts(
-                                bindings: <ShortcutActivator, VoidCallback>{
-                                  const SingleActivator(
-                                    LogicalKeyboardKey.arrowUp,
-                                  ): () => _requestFocus(_emailFocusNode),
-                                  const SingleActivator(
-                                    LogicalKeyboardKey.arrowDown,
-                                  ): () => _requestFocus(
-                                    _primaryActionFocusNode,
-                                  ),
-                                },
-                                child: TextFormField(
-                                  controller: _codeController,
-                                  focusNode: _codeFocusNode,
-                                  enabled: !isBusy,
-                                  keyboardType: TextInputType.number,
-                                  textInputAction: TextInputAction.done,
-                                  maxLength: 8,
-                                  autofillHints: const [
-                                    AutofillHints.oneTimeCode,
-                                  ],
-                                  inputFormatters: [
-                                    FilteringTextInputFormatter.digitsOnly,
-                                  ],
-                                  onChanged: (value) {
-                                    ref
-                                        .read(
-                                          authOtpControllerProvider.notifier,
-                                        )
-                                        .setCode(value);
-                                  },
-                                  onFieldSubmitted: (_) => _onVerifyCode(),
-                                  decoration: InputDecoration(
-                                    counterText: '',
-                                    hintText: l10n.authOtpCodeHint,
-                                    helperText: l10n.authOtpCodeHelp,
-                                    errorText: state.codeError,
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: MoviPrimaryButton(
+                                    focusNode: _primaryActionFocusNode,
+                                    label: isCodeStepVisible
+                                        ? l10n.authOtpPrimarySubmit
+                                        : l10n.authOtpPrimarySend,
+                                    loading: isBusy,
+                                    onPressed: isBusy
+                                        ? null
+                                        : () {
+                                            if (isCodeStepVisible) {
+                                              _onVerifyCode();
+                                            } else {
+                                              _onSendCode();
+                                            }
+                                          },
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
 
-                      if (globalErrorText != null) ...[
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: Text(
-                            globalErrorText,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-
-                      // 32px d'espacement entre le champ email et le bouton
-                      const SizedBox(height: 32),
-
-                      // Primary action button
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
-                        child: MoviEnsureVisibleOnFocus(
-                          verticalAlignment: 0.22,
-                          child: Focus(
-                            canRequestFocus: false,
-                            onKeyEvent: (_, event) => _handleDirectionalKey(
-                              event,
-                              up: isCodeStepVisible
-                                  ? _codeFocusNode
-                                  : _emailFocusNode,
-                              down: isCodeStepVisible ? _resendFocusNode : null,
-                              blockDown: !isCodeStepVisible,
-                              blockLeft: true,
-                              blockRight: true,
-                            ),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: MoviPrimaryButton(
-                                focusNode: _primaryActionFocusNode,
-                                label: isCodeStepVisible
-                                    ? l10n.authOtpPrimarySubmit
-                                    : l10n.authOtpPrimarySend,
-                                loading: isBusy,
-                                onPressed: isBusy
-                                    ? null
-                                    : () {
-                                        if (isCodeStepVisible) {
-                                          _onVerifyCode();
-                                        } else {
-                                          _onSendCode();
-                                        }
-                                      },
+                          if (isCodeStepVisible) ...[
+                            const SizedBox(height: AppSpacing.md),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
                               ),
-                            ),
-                          ),
-                        ),
-                      ),
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final bool isNarrow =
+                                      constraints.maxWidth < 360;
 
-                      if (isCodeStepVisible) ...[
-                        const SizedBox(height: AppSpacing.md),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final bool isNarrow = constraints.maxWidth < 360;
-
-                              final resendButton = SizedBox(
-                                width: double.infinity,
-                                child: MoviEnsureVisibleOnFocus(
-                                  verticalAlignment: 0.22,
-                                  child: Focus(
-                                    canRequestFocus: false,
-                                    onKeyEvent: (_, event) =>
-                                        _handleDirectionalKey(
-                                          event,
-                                          right: isNarrow
-                                              ? null
-                                              : _changeEmailFocusNode,
-                                          up: _primaryActionFocusNode,
-                                          down: isNarrow
-                                              ? _changeEmailFocusNode
+                                  final resendButton = SizedBox(
+                                    width: double.infinity,
+                                    child: MoviEnsureVisibleOnFocus(
+                                      verticalAlignment: 0.22,
+                                      child: Focus(
+                                        canRequestFocus: false,
+                                        onKeyEvent: (_, event) =>
+                                            _handleDirectionalKey(
+                                              event,
+                                              right: isNarrow
+                                                  ? null
+                                                  : _changeEmailFocusNode,
+                                              up: _primaryActionFocusNode,
+                                              down: isNarrow
+                                                  ? _changeEmailFocusNode
+                                                  : null,
+                                              blockLeft: true,
+                                              blockDown: !isNarrow,
+                                            ),
+                                        child: TextButton(
+                                          focusNode: _resendFocusNode,
+                                          onPressed:
+                                              state.cooldownRemaining == 0 &&
+                                                  !isBusy
+                                              ? _onResendCode
                                               : null,
-                                          blockLeft: true,
-                                          blockDown: !isNarrow,
+                                          child: Text(
+                                            state.cooldownRemaining > 0
+                                                ? l10n.authOtpResendDisabled(
+                                                    state.cooldownRemaining,
+                                                  )
+                                                : l10n.authOtpResend,
+                                          ),
                                         ),
-                                    child: TextButton(
-                                      focusNode: _resendFocusNode,
-                                      onPressed:
-                                          state.cooldownRemaining == 0 &&
-                                              !isBusy
-                                          ? _onResendCode
-                                          : null,
-                                      child: Text(
-                                        state.cooldownRemaining > 0
-                                            ? l10n.authOtpResendDisabled(
-                                                state.cooldownRemaining,
-                                              )
-                                            : l10n.authOtpResend,
                                       ),
                                     ),
-                                  ),
-                                ),
-                              );
+                                  );
 
-                              final changeEmailButton = SizedBox(
-                                width: double.infinity,
-                                child: MoviEnsureVisibleOnFocus(
-                                  verticalAlignment: 0.22,
-                                  child: Focus(
-                                    canRequestFocus: false,
-                                    onKeyEvent: (_, event) =>
-                                        _handleDirectionalKey(
-                                          event,
-                                          left: isNarrow
+                                  final changeEmailButton = SizedBox(
+                                    width: double.infinity,
+                                    child: MoviEnsureVisibleOnFocus(
+                                      verticalAlignment: 0.22,
+                                      child: Focus(
+                                        canRequestFocus: false,
+                                        onKeyEvent: (_, event) =>
+                                            _handleDirectionalKey(
+                                              event,
+                                              left: isNarrow
+                                                  ? null
+                                                  : _resendFocusNode,
+                                              up: isNarrow
+                                                  ? _resendFocusNode
+                                                  : _primaryActionFocusNode,
+                                              blockRight: true,
+                                              blockDown: true,
+                                              blockLeft: !isNarrow,
+                                            ),
+                                        child: TextButton(
+                                          focusNode: _changeEmailFocusNode,
+                                          onPressed: isBusy
                                               ? null
-                                              : _resendFocusNode,
-                                          up: isNarrow
-                                              ? _resendFocusNode
-                                              : _primaryActionFocusNode,
-                                          blockRight: true,
-                                          blockDown: true,
-                                          blockLeft: !isNarrow,
+                                              : _onChangeEmail,
+                                          child: Text(l10n.authOtpChangeEmail),
                                         ),
-                                    child: TextButton(
-                                      focusNode: _changeEmailFocusNode,
-                                      onPressed: isBusy ? null : _onChangeEmail,
-                                      child: Text(l10n.authOtpChangeEmail),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              );
+                                  );
 
-                              if (isNarrow) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    resendButton,
-                                    const SizedBox(height: AppSpacing.xs),
-                                    changeEmailButton,
-                                  ],
-                                );
-                              }
+                                  if (isNarrow) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        resendButton,
+                                        const SizedBox(height: AppSpacing.xs),
+                                        changeEmailButton,
+                                      ],
+                                    );
+                                  }
 
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: resendButton),
-                                  const SizedBox(width: AppSpacing.md),
-                                  Expanded(child: changeEmailButton),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ],
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(child: resendButton),
+                                      const SizedBox(width: AppSpacing.md),
+                                      Expanded(child: changeEmailButton),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
       ),
-      )
     );
   }
 

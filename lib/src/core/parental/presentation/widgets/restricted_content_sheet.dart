@@ -7,6 +7,8 @@ import 'package:movi/src/core/parental/presentation/providers/parental_access_pr
 import 'package:movi/src/core/parental/presentation/utils/parental_reason_localizer.dart';
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 
@@ -30,20 +32,34 @@ class RestrictedContentSheet extends ConsumerStatefulWidget {
     required Profile profile,
     String? title,
     String? reason,
-  }) async {
+  }) {
     final triggerFocusNode = FocusManager.instance.primaryFocus;
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => RestrictedContentSheet(
-        profile: profile,
-        title: title,
-        reason: reason,
-        triggerFocusNode: triggerFocusNode,
-      ),
+    final size = MediaQuery.sizeOf(context);
+    final screenType = ScreenTypeResolver.instance.resolve(
+      size.width,
+      size.height,
     );
-    return ok ?? false;
+    final isDesktopLike =
+        screenType == ScreenType.desktop || screenType == ScreenType.tv;
+    final dialog = RestrictedContentSheet(
+      profile: profile,
+      title: title,
+      reason: reason,
+      triggerFocusNode: triggerFocusNode,
+    );
+    final future = isDesktopLike
+        ? showDialog<bool>(
+            context: context,
+            barrierDismissible: true,
+            builder: (ctx) => dialog,
+          )
+        : showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (ctx) => dialog,
+          );
+    return future.then((ok) => ok ?? false);
   }
 
   @override
@@ -129,135 +145,175 @@ class _RestrictedContentSheetState
     final mediaQuery = MediaQuery.of(context);
     final bottomInset = mediaQuery.viewInsets.bottom;
     final l10n = AppLocalizations.of(context)!;
-    final accentColor = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final accentColor = colorScheme.primary;
+    final size = MediaQuery.sizeOf(context);
+    final screenType = ScreenTypeResolver.instance.resolve(
+      size.width,
+      size.height,
+    );
+    final isDesktopLike =
+        screenType == ScreenType.desktop || screenType == ScreenType.tv;
 
     final localizedReason = getLocalizedParentalReason(context, widget.reason);
     final displayReason =
         localizedReason ?? l10n.parentalContentRestrictedDefault;
     final displayTitle = widget.title ?? l10n.parentalContentRestricted;
 
+    final sheetCard = DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(20),
+        border: isDesktopLike
+            ? Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+              )
+            : null,
+        boxShadow: isDesktopLike
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 32,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: ScrollConfiguration(
+          behavior: const _RestrictedContentSheetScrollBehavior(),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayTitle,
+                        textAlign: isDesktopLike
+                            ? TextAlign.center
+                            : TextAlign.start,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      focusNode: _closeFocusNode,
+                      autofocus: false,
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).pop(false),
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  displayReason,
+                  textAlign: isDesktopLike ? TextAlign.center : TextAlign.start,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  focusNode: _pinFocusNode,
+                  autofocus: false,
+                  controller: _pinController,
+                  enabled: !_busy,
+                  keyboardType: TextInputType.number,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'PIN',
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: const Color(0xFF2C2C2E),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  onSubmitted: (_) => _unlock(),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: isDesktopLike
+                      ? Alignment.center
+                      : Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: _busy ? null : _openPinRecovery,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: accentColor,
+                    ),
+                    child: Text(
+                      l10n.pinRecoveryLink,
+                      style: const TextStyle(
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.redAccent),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                MoviPrimaryButton(
+                  label: l10n.parentalUnlockButton,
+                  onPressed: _busy ? null : _unlock,
+                  loading: _busy,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
     return MoviOverlayFocusScope(
       triggerFocusNode: widget.triggerFocusNode,
       initialFocusNode: _pinFocusNode,
       fallbackFocusNode: _closeFocusNode,
       debugLabel: 'RestrictedContentSheet',
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            _sheetHorizontalPadding,
-            _sheetVerticalPadding,
-            _sheetHorizontalPadding,
-            bottomInset + _sheetVerticalPadding,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _sheetMaxWidth),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(20),
+      child: isDesktopLike
+          ? Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 32,
+                vertical: 24,
               ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: _sheetMaxWidth),
+                child: sheetCard,
+              ),
+            )
+          : SafeArea(
+              top: false,
               child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: ScrollConfiguration(
-                  behavior: const _RestrictedContentSheetScrollBehavior(),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                displayTitle,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              focusNode: _closeFocusNode,
-                              autofocus: false,
-                              onPressed: _busy
-                                  ? null
-                                  : () => Navigator.of(context).pop(false),
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          displayReason,
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        const SizedBox(height: 16),
-                        TextField(
-                          focusNode: _pinFocusNode,
-                          autofocus: false,
-                          controller: _pinController,
-                          enabled: !_busy,
-                          keyboardType: TextInputType.number,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            labelText: 'PIN',
-                            labelStyle: const TextStyle(color: Colors.white70),
-                            filled: true,
-                            fillColor: const Color(0xFF2C2C2E),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          style: const TextStyle(color: Colors.white),
-                          onSubmitted: (_) => _unlock(),
-                        ),
-                        const SizedBox(height: 8),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton(
-                            onPressed: _busy ? null : _openPinRecovery,
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              foregroundColor: accentColor,
-                            ),
-                            child: Text(
-                              l10n.pinRecoveryLink,
-                              style: const TextStyle(
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            _error!,
-                            style: const TextStyle(color: Colors.redAccent),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        MoviPrimaryButton(
-                          label: l10n.parentalUnlockButton,
-                          onPressed: _busy ? null : _unlock,
-                          loading: _busy,
-                        ),
-                      ],
-                    ),
-                  ),
+                padding: EdgeInsets.fromLTRB(
+                  _sheetHorizontalPadding,
+                  _sheetVerticalPadding,
+                  _sheetHorizontalPadding,
+                  bottomInset + _sheetVerticalPadding,
+                ),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _sheetMaxWidth),
+                  child: sheetCard,
                 ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

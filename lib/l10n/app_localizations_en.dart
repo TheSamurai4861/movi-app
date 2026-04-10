@@ -71,7 +71,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String resultsCount(int count) {
-    return '($count results)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results',
+      one: '1 result',
+      zero: 'No results',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -207,7 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get snackbarNoPlaylistsAvailableCreateOne =>
-      'No playlist available. Create one.';
+      'No playlists yet. Create one.';
 
   @override
   String errorAddToPlaylist(String error) {
@@ -518,7 +525,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String providerSearchPlaceholder(String provider) {
-    return 'Search on $provider...';
+    return 'Search $provider';
   }
 
   @override
@@ -591,17 +598,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get addedToPlaylist => 'Added';
+  String get addedToPlaylist => 'Added to playlist';
 
   @override
-  String get pinRecoveryLink => 'Récupérer le code PIN';
+  String get pinRecoveryLink => 'Recover PIN';
 
   @override
-  String get pinRecoveryTitle => 'Recover PIN code';
+  String get pinRecoveryTitle => 'Recover PIN';
 
   @override
   String get pinRecoveryDescription =>
-      'We will send an 8-digit code to your account email to reset this profile PIN.';
+      'We will send an 8-digit code to your account email address so you can reset this profile PIN.';
 
   @override
   String get pinRecoveryRequestCodeButton => 'Send code';
@@ -627,7 +634,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinRecoveryVerifyButton => 'Verify';
 
   @override
-  String get pinRecoveryCodeInvalid => 'Enter the 8-digit code';
+  String get pinRecoveryCodeInvalid => 'Enter the 8-digit recovery code';
 
   @override
   String get pinRecoveryCodeExpired => 'Recovery code expired';
@@ -652,7 +659,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinRecoveryConfirmPinHint => 'Repeat the PIN';
 
   @override
-  String get pinRecoveryResetButton => 'Update PIN';
+  String get pinRecoveryResetButton => 'Reset PIN';
 
   @override
   String get pinRecoveryPinInvalid => 'Enter a 4 to 6 digit PIN';
@@ -691,10 +698,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPlaybackSection => 'Playback Settings';
 
   @override
-  String get settingsPreferredAudioLanguage => 'Preferred Language';
+  String get settingsPreferredAudioLanguage => 'Preferred audio language';
 
   @override
-  String get settingsPreferredSubtitleLanguage => 'Preferred Subtitles';
+  String get settingsPreferredSubtitleLanguage => 'Preferred subtitle language';
 
   @override
   String get libraryPlaylistsFilter => 'Playlists';
@@ -709,7 +716,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get librarySearchPlaceholder => 'Search in my library...';
 
   @override
-  String get libraryInProgress => 'In Progress';
+  String get libraryInProgress => 'Continue Watching';
 
   @override
   String get libraryFavoriteMovies => 'Favorite Movies';
@@ -759,7 +766,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return 'Resume S$season E$episode';
+    return 'Resume S$season · E$episode';
   }
 
   @override
@@ -794,16 +801,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get personSeriesList => 'Series List';
 
   @override
-  String get playlistPlayRandomly => 'Play Randomly';
+  String get playlistPlayRandomly => 'Play randomly';
 
   @override
-  String get playlistAddButton => 'Add';
+  String get playlistAddButton => 'Add to playlist';
 
   @override
   String get playlistSortButton => 'Sort';
 
   @override
-  String get playlistSortByTitle => 'Sort By';
+  String get playlistSortByTitle => 'Sort by';
 
   @override
   String get playlistSortByTitleOption => 'Title';
@@ -837,10 +844,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playlistSeasonPlural => 'seasons';
 
   @override
-  String get playlistRenameTitle => 'Rename Playlist';
+  String get playlistRenameTitle => 'Rename playlist';
 
   @override
-  String get playlistNamePlaceholder => 'Playlist Name';
+  String get playlistNamePlaceholder => 'Playlist name';
 
   @override
   String playlistRenamedSuccess(String name) {
@@ -848,7 +855,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get playlistDeleteTitle => 'Delete';
+  String get playlistDeleteTitle => 'Delete playlist';
 
   @override
   String playlistDeleteConfirm(String title) {
@@ -876,7 +883,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryLoadingMore => 'Loading more…';
 
   @override
-  String get movieNoPlaylistsAvailable => 'No playlist available';
+  String get movieNoPlaylistsAvailable => 'No playlists available';
 
   @override
   String playlistAddedTo(String title) {
@@ -921,11 +928,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authOtpEmailLabel => 'Email';
 
   @override
-  String get authOtpEmailHint => 'your@email';
+  String get authOtpEmailHint => 'name@example.com';
 
   @override
   String get authOtpEmailHelp =>
-      'We will send you an 8-digit code. Check spam if needed.';
+      'We will send you an 8-digit code. Check your spam folder if needed.';
 
   @override
   String get authOtpCodeLabel => 'Verification code';
@@ -957,7 +964,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resumePlayback => 'Resume playback';
 
   @override
-  String get settingsCloudSyncSection => 'Cloud Sync';
+  String get settingsCloudSyncSection => 'Cloud sync';
 
   @override
   String get settingsCloudSyncAuto => 'Auto sync';
@@ -1040,366 +1047,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get parentalUnlockButton => 'Unlock';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => 'Loading episodes…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      'No playlist available. Create one.';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      'Error while loading playlists: \$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => 'Unable to open the link';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => 'Preferred quality';
-
-  @override
-  String get hc_annuler_49ba3292 => 'Cancel';
-
-  @override
-  String get hc_deconnexion_903dca17 => 'Sign out';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 =>
-      'Error while signing out: \$e';
-
-  @override
-  String get hc_choisir_b030d590 => 'Choose';
-
-  @override
-  String get hc_avantages_08d7f47c => 'Benefits';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 => 'Report sent. Thank you.';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => 'Later';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => 'Restart now';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => 'Use this source?';
-
-  @override
-  String get hc_utiliser_fb5e43ce => 'Use';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => 'Source added';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => 'Locked settings';
-
-  @override
-  String get hc_compte_cloud_2812b31e => 'Cloud account';
-
-  @override
-  String get hc_se_connecter_fedf2439 => 'Sign in';
-
-  @override
-  String get hc_propos_5345add5 => 'About';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => 'Privacy policy';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => 'Terms of use';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => 'Saved sources';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => 'Refresh';
-
-  @override
-  String get hc_activer_une_source_749ced38 => 'Activate a source';
-
-  @override
-  String get hc_nom_source_9a3e4156 => 'Source name';
-
-  @override
-  String get hc_mon_iptv_b239352c => 'My IPTV';
-
-  @override
-  String get hc_username_84c29015 => 'Username';
-
-  @override
-  String get hc_password_8be3c943 => 'Password';
-
-  @override
-  String get hc_server_url_1d5d1eff => 'Server URL';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'PIN verification';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => 'Set a PIN';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      'Subscription offer not found: \$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      'The subscription purchase was cancelled by the user.';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      'The store operation timed out: \$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 =>
-      'HTTP error during handshake';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'Non-JSON response from Xtream server';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f =>
-      'Invalid response from Xtream server';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 =>
-      'Not available on this source';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => 'Source removed';
-
-  @override
-  String get hc_source_modifiee_335ef502 => 'Source updated';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => 'Set PIN code';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => 'Mark as unwatched';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 =>
-      'Are you sure you want to sign out?';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      'Movi Premium is required for cloud sync.';
-
-  @override
-  String get hc_auto_c614ba7c => 'Auto';
-
-  @override
-  String get hc_organiser_838a7e57 => 'Organize';
-
-  @override
-  String get hc_modifier_f260e757 => 'Edit';
-
-  @override
-  String get hc_ajouter_87c57ed1 => 'Add';
-
-  @override
-  String get hc_source_active_e571305e => 'Active source';
-
-  @override
-  String get hc_autres_sources_e32592a6 => 'Other sources';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      'Reporting is unavailable for this content.';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => 'Securing content';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe =>
-      'Checking age ratings…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => 'See all';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => 'Report a problem';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      'If this content is not appropriate and was accessible despite restrictions, briefly describe the issue.';
-
-  @override
-  String get hc_envoyer_e9ce243b => 'Send';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => 'Child profile created';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      'A child profile was created. To secure the app and preload age ratings, restarting the app is recommended.';
-
-  @override
-  String get hc_pseudo_4cf966c0 => 'Nickname';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => 'Child profile';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => 'Age limit';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'PIN code';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => 'Change PIN code';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => 'Remove PIN code';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => 'Remove PIN';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => 'Delete';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      'Requires a PIN and enables the PEGI filter.';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      'Do you want to activate this source now?';
-
-  @override
-  String get hc_application_b291beb8 => 'App';
-
-  @override
-  String get hc_version_1_0_0_347e553c => 'Version 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => 'Credits';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
-
-  @override
-  String get hc_verification_targets_d51632f8 => 'Verification targets';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 => 'The fade must eat the frame';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 =>
-      'Invalid Xtream streamId: ...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'Series xtream:... missing poster';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'Movie ... not found ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... missing poster';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'Invalid watchlist outbox payload.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'Unknown watchlist operation: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'Invalid playlist outbox payload.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'Unknown playlist operation: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => 'Invalid URL';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'Missing legacy IV: cannot decrypt legacy ciphertext.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'Refresh\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'Menu\'';
-
-  @override
-  String get hc_retour_e5befb1f => 'Back';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'More actions\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => 'More actions';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c =>
-      'semanticLabel: \'Search\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'Add\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
 
   @override
   String get actionOk => 'OK';
@@ -1567,4 +1214,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutCreditsSectionTitle => 'Credits';
+
+  @override
+  String get actionSend => 'Send';
+
+  @override
+  String get profilePinSetLabel => 'Set PIN code';
+
+  @override
+  String get reportingProblemSentConfirmation => 'Report sent. Thank you.';
+
+  @override
+  String get reportingProblemBody =>
+      'If this content is inappropriate and was accessible despite restrictions, briefly describe the issue.';
+
+  @override
+  String get reportingProblemExampleHint =>
+      'Example: Horror movie visible despite PEGI 12';
+
+  @override
+  String get settingsAutomaticOption => 'Auto';
+
+  @override
+  String get settingsPreferredPlaybackQuality => 'Preferred playback quality';
+
+  @override
+  String settingsSignOutError(String error) {
+    return 'Error signing out: $error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => 'Terms of use';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage =>
+      'Movi Premium is required for cloud sync.';
 }

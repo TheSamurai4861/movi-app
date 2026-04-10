@@ -70,7 +70,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String resultsCount(int count) {
-    return '（$count 件）';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 件',
+      one: '1 件',
+      zero: '結果なし',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -263,7 +270,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get libraryTypeSaga => 'サーガ';
 
   @override
-  String get libraryTypeInProgress => '視聴中';
+  String get libraryTypeInProgress => '視聴を続ける';
 
   @override
   String get libraryTypeFavoriteMovies => 'お気に入りの映画';
@@ -512,7 +519,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String providerSearchPlaceholder(String provider) {
-    return '$provider で検索…';
+    return '$providerを検索';
   }
 
   @override
@@ -586,27 +593,26 @@ class AppLocalizationsJa extends AppLocalizations {
   String get addedToPlaylist => '追加済み';
 
   @override
-  String get pinRecoveryLink => 'PIN コードを復元';
+  String get pinRecoveryLink => 'PINを再設定';
 
   @override
-  String get pinRecoveryTitle => 'PIN コードを復元';
+  String get pinRecoveryTitle => 'PINを再設定';
 
   @override
-  String get pinRecoveryDescription => '保護されたプロフィールの PIN コードを取得します。';
+  String get pinRecoveryDescription => '保護されたプロフィールのPINを再設定します。';
 
   @override
-  String get pinRecoveryRequestCodeButton => 'Send code';
+  String get pinRecoveryRequestCodeButton => 'コードを送信';
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent to your account email. Check your messages and enter it below.';
+      'アカウントのメールアドレスにコードを送信しました。メッセージを確認して、下に入力してください。';
 
   @override
   String get pinRecoveryComingSoon => 'この機能は近日公開です。';
 
   @override
-  String get pinRecoveryNotAvailable =>
-      'PIN recovery by email is currently unavailable.';
+  String get pinRecoveryNotAvailable => 'メールによるPINコードの復旧は現在利用できません。';
 
   @override
   String get pinRecoveryCodeLabel => '復元コード';
@@ -615,10 +621,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pinRecoveryCodeHint => '8 桁';
 
   @override
-  String get pinRecoveryVerifyButton => '確認';
+  String get pinRecoveryVerifyButton => 'コードを確認';
 
   @override
-  String get pinRecoveryCodeInvalid => '8 桁のコードを入力してください';
+  String get pinRecoveryCodeInvalid => '8桁のコードを入力してください。';
 
   @override
   String get pinRecoveryCodeExpired => '復元コードの有効期限が切れています';
@@ -642,10 +648,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pinRecoveryConfirmPinHint => 'PIN を再入力';
 
   @override
-  String get pinRecoveryResetButton => 'PIN を更新';
+  String get pinRecoveryResetButton => 'PINを再設定';
 
   @override
-  String get pinRecoveryPinInvalid => '4〜6 桁の PIN を入力してください';
+  String get pinRecoveryPinInvalid => '4〜6桁のPINを入力してください。';
 
   @override
   String get pinRecoveryPinMismatch => 'PIN が一致しません';
@@ -654,10 +660,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pinRecoveryResetSuccess => 'PIN を更新しました';
 
   @override
-  String get profilePinSaved => 'PIN saved.';
+  String get profilePinSaved => 'PINコードを保存しました。';
 
   @override
-  String get profilePinEditLabel => 'Edit PIN code';
+  String get profilePinEditLabel => 'PINコードを編集';
 
   @override
   String get settingsAccountsSection => 'アカウント';
@@ -681,10 +687,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsPlaybackSection => '再生設定';
 
   @override
-  String get settingsPreferredAudioLanguage => '優先言語';
+  String get settingsPreferredAudioLanguage => '優先する音声言語';
 
   @override
-  String get settingsPreferredSubtitleLanguage => '優先字幕';
+  String get settingsPreferredSubtitleLanguage => '優先する字幕言語';
 
   @override
   String get libraryPlaylistsFilter => 'プレイリスト';
@@ -699,7 +705,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get librarySearchPlaceholder => 'ライブラリ内を検索…';
 
   @override
-  String get libraryInProgress => '視聴中';
+  String get libraryInProgress => '視聴を続ける';
 
   @override
   String get libraryFavoriteMovies => 'お気に入りの映画';
@@ -749,7 +755,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return '続きから S$season E$episode';
+    return '続きから再生 S$season・E$episode';
   }
 
   @override
@@ -793,13 +799,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get playlistSortButton => '並べ替え';
 
   @override
-  String get playlistSortByTitle => '並べ替え';
+  String get playlistSortByTitle => '並び替え';
 
   @override
   String get playlistSortByTitleOption => 'タイトル';
 
   @override
-  String get playlistSortRecentAdditions => '追加順（新しい）';
+  String get playlistSortRecentAdditions => '最近追加した順';
 
   @override
   String get playlistSortOldestFirst => '追加順（古い）';
@@ -838,7 +844,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get playlistDeleteTitle => '削除';
+  String get playlistDeleteTitle => 'プレイリストを削除';
 
   @override
   String playlistDeleteConfirm(String title) {
@@ -902,13 +908,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authOtpTitle => 'サインイン';
 
   @override
-  String get authOtpSubtitle => 'メールアドレスと送信された 8 桁のコードを入力してください。';
+  String get authOtpSubtitle => 'メールアドレスと、送信された8桁のコードを入力してください。';
 
   @override
   String get authOtpEmailLabel => 'メール';
 
   @override
-  String get authOtpEmailHint => 'your@email';
+  String get authOtpEmailHint => 'name@example.com';
 
   @override
   String get authOtpEmailHelp => '8 桁のコードを送信します。必要に応じて迷惑メールも確認してください。';
@@ -920,7 +926,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get authOtpCodeHint => '8 桁のコード';
 
   @override
-  String get authOtpCodeHelp => 'メールで受け取った 8 桁のコードを入力してください。';
+  String get authOtpCodeHelp => 'メールで受け取った8桁のコードを入力してください。';
 
   @override
   String get authOtpPrimarySend => 'コードを送信';
@@ -933,7 +939,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return '$seconds 秒後に再送';
+    return '$seconds 秒後に再送できます';
   }
 
   @override
@@ -1023,361 +1029,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get parentalUnlockButton => '解除';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => 'エピソードを読み込み中…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      '利用可能なプレイリストがありません。作成してください。';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      'プレイリストの読み込み中にエラー: \$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => 'リンクを開けません';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => '優先品質';
-
-  @override
-  String get hc_annuler_49ba3292 => 'キャンセル';
-
-  @override
-  String get hc_deconnexion_903dca17 => 'サインアウト';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 =>
-      'サインアウト中にエラー: \$e';
-
-  @override
-  String get hc_choisir_b030d590 => '選択';
-
-  @override
-  String get hc_avantages_08d7f47c => '特典';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 => '報告を送信しました。ありがとうございます。';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => '後で';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => '今すぐ再起動';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => 'このソースを使用しますか？';
-
-  @override
-  String get hc_utiliser_fb5e43ce => '使用する';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => 'ソースを追加しました';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => 'ロックされた設定';
-
-  @override
-  String get hc_compte_cloud_2812b31e => 'クラウドアカウント';
-
-  @override
-  String get hc_se_connecter_fedf2439 => 'サインイン';
-
-  @override
-  String get hc_propos_5345add5 => 'このアプリについて';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => 'プライバシーポリシー';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => '利用規約';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => '保存済みソース';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => '更新';
-
-  @override
-  String get hc_activer_une_source_749ced38 => 'ソースを有効化';
-
-  @override
-  String get hc_nom_source_9a3e4156 => 'ソース名';
-
-  @override
-  String get hc_mon_iptv_b239352c => 'マイ IPTV';
-
-  @override
-  String get hc_username_84c29015 => 'ユーザー名';
-
-  @override
-  String get hc_password_8be3c943 => 'パスワード';
-
-  @override
-  String get hc_server_url_1d5d1eff => 'サーバー URL';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'PIN の確認';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => 'PIN を設定';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      'サブスクリプションのオファーが見つかりません: \$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      'サブスクリプション購入はユーザーによりキャンセルされました。';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      'ストア操作がタイムアウトしました: \$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 => 'ハンドシェイク中の HTTP エラー';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'Xtream サーバーから JSON ではない応答';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f =>
-      'Xtream サーバーから無効な応答';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 => 'このソースでは利用できません';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => 'ソースを削除しました';
-
-  @override
-  String get hc_source_modifiee_335ef502 => 'ソースを更新しました';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => 'PIN コードを設定';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => '未視聴にする';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 =>
-      'サインアウトしますか？';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      'クラウド同期には Movi Premium が必要です。';
-
-  @override
-  String get hc_auto_c614ba7c => '自動';
-
-  @override
-  String get hc_organiser_838a7e57 => '並べ替え';
-
-  @override
-  String get hc_modifier_f260e757 => '編集';
-
-  @override
-  String get hc_ajouter_87c57ed1 => '追加';
-
-  @override
-  String get hc_source_active_e571305e => '有効なソース';
-
-  @override
-  String get hc_autres_sources_e32592a6 => 'その他のソース';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      'このコンテンツでは報告機能を利用できません。';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => 'コンテンツを保護中';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe => '年齢レーティングを確認中…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => 'すべて表示';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => '問題を報告';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      '不適切なコンテンツが制限にもかかわらず表示された場合、問題を簡単に説明してください。';
-
-  @override
-  String get hc_envoyer_e9ce243b => '送信';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => '子どもプロフィールを作成しました';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      '子どもプロフィールを作成しました。アプリの保護と年齢レーティングの事前読み込みのため、アプリの再起動をおすすめします。';
-
-  @override
-  String get hc_pseudo_4cf966c0 => 'ニックネーム';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => '子どもプロフィール';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => '年齢上限';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'PIN コード';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => 'PIN コードを変更';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => 'PIN コードを削除';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => 'PIN を削除';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => '削除';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      'PIN が必須になり、PEGI フィルターが有効になります。';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      'このソースを今すぐ有効にしますか？';
-
-  @override
-  String get hc_application_b291beb8 => 'アプリ';
-
-  @override
-  String get hc_version_1_0_0_347e553c => 'バージョン 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => 'クレジット';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      '本製品は TMDB API を使用していますが、TMDB によって承認または認定されていません。';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      '本製品は TMDB API を使用していますが、TMDB によって承認または認定されていません。';
-
-  @override
-  String get hc_verification_targets_d51632f8 => '検証対象';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 => 'フェードはフレームに溶け込む必要があります';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 => '無効な Xtream streamId: ...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'Series xtream:... missing poster';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'Movie ... not found ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... missing poster';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'Invalid watchlist outbox payload.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'Unknown watchlist operation: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'Invalid playlist outbox payload.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'Unknown playlist operation: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => '無効な URL';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'Missing legacy IV: cannot decrypt legacy ciphertext.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'更新\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'メニュー\'';
-
-  @override
-  String get hc_retour_e5befb1f => '戻る';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'その他の操作\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => 'その他の操作';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c => 'semanticLabel: \'検索\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'追加\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
 
   @override
   String get actionOk => 'OK';
@@ -1532,7 +1183,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAudioOffsetTitle => '音声オフセット';
 
   @override
-  String get settingsOffsetUnsupported => 'このバックエンドまたはプラットフォームでは未対応です。';
+  String get settingsOffsetUnsupported =>
+      'このバックエンドまたはプラットフォームではオフセット調整に対応していません。';
 
   @override
   String get settingsSyncResetOffsets => '同期オフセットをリセット';
@@ -1543,4 +1195,38 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aboutCreditsSectionTitle => 'クレジット';
+
+  @override
+  String get actionSend => '送信';
+
+  @override
+  String get profilePinSetLabel => 'PINコードを設定';
+
+  @override
+  String get reportingProblemSentConfirmation => '報告を送信しました。ありがとうございます。';
+
+  @override
+  String get reportingProblemBody =>
+      'このコンテンツが不適切で、制限があるにもかかわらずアクセスできた場合は、問題を簡潔に説明してください。';
+
+  @override
+  String get reportingProblemExampleHint => '例: PEGI 12なのにホラー映画が表示される';
+
+  @override
+  String get settingsAutomaticOption => '自動';
+
+  @override
+  String get settingsPreferredPlaybackQuality => '優先する再生品質';
+
+  @override
+  String settingsSignOutError(String error) {
+    return 'サインアウト中にエラーが発生しました: $error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => '利用規約';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage =>
+      'クラウド同期にはMovi Premiumが必要です。';
 }

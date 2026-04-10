@@ -37,6 +37,7 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'SagaDetailBack');
   final List<FocusNode> _movieFocusNodes = <FocusNode>[];
   int? _lastFocusedMovieIndex;
+  bool _didRequestEntryPrimaryFocus = false;
 
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
@@ -112,6 +113,19 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
     if (node.context == null || !node.canRequestFocus) return false;
     node.requestFocus();
     return true;
+  }
+
+  void _requestPrimaryEntryFocusIfNeeded() {
+    if (_didRequestEntryPrimaryFocus) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_primaryActionFocusNode.context == null ||
+          !_primaryActionFocusNode.canRequestFocus) {
+        return;
+      }
+      _didRequestEntryPrimaryFocus = true;
+      _primaryActionFocusNode.requestFocus();
+    });
   }
 
   KeyEventResult _handlePrimaryActionKey(KeyEvent event) {
@@ -245,6 +259,7 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                 ),
               ),
               data: (viewModel) {
+                _requestPrimaryEntryFocusIfNeeded();
                 final movies = viewModel.saga.timeline
                     .where((entry) => entry.reference.type == ContentType.movie)
                     .map((entry) {
@@ -275,33 +290,34 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Builder(
-                        builder: (heroContext) => MoviVerticalEnsureVisibleTarget(
-                          targetContext: heroContext,
-                          child: MoviDetailHeroScene(
-                            isWideLayout: isWideLayout,
-                            background: _buildHeroImage(
-                              context,
-                              poster: viewModel.poster,
-                              backdrop: viewModel.backdrop,
-                            ),
-                            children: [
-                              if (isWideLayout)
-                                _buildDesktopHeroOverlay(
-                                  context,
-                                  ref,
-                                  viewModel,
-                                  sagaStartTargetAsync,
-                                  isFavoriteAsync,
-                                  synopsisText: synopsisText,
-                                ),
-                              _buildHeroTopBar(
-                                context,
+                        builder: (heroContext) =>
+                            MoviVerticalEnsureVisibleTarget(
+                              targetContext: heroContext,
+                              child: MoviDetailHeroScene(
                                 isWideLayout: isWideLayout,
-                                horizontalPadding: horizontalPadding,
+                                background: _buildHeroImage(
+                                  context,
+                                  poster: viewModel.poster,
+                                  backdrop: viewModel.backdrop,
+                                ),
+                                children: [
+                                  if (isWideLayout)
+                                    _buildDesktopHeroOverlay(
+                                      context,
+                                      ref,
+                                      viewModel,
+                                      sagaStartTargetAsync,
+                                      isFavoriteAsync,
+                                      synopsisText: synopsisText,
+                                    ),
+                                  _buildHeroTopBar(
+                                    context,
+                                    isWideLayout: isWideLayout,
+                                    horizontalPadding: horizontalPadding,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
                       ),
                       if (!isWideLayout)
                         Padding(
@@ -414,7 +430,8 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                                   widget.sagaId,
                                                   SagaSummary(
                                                     id: viewModel.saga.id,
-                                                    tmdbId: viewModel.saga.tmdbId,
+                                                    tmdbId:
+                                                        viewModel.saga.tmdbId,
                                                     title: viewModel.saga.title,
                                                     cover: viewModel.poster,
                                                   ),
@@ -492,7 +509,8 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                                             MoviVerticalEnsureVisibleTarget(
                                               targetContext: listContext,
                                               child: ListView.separated(
-                                                scrollDirection: Axis.horizontal,
+                                                scrollDirection:
+                                                    Axis.horizontal,
                                                 clipBehavior: Clip.none,
                                                 padding: EdgeInsets.zero,
                                                 itemCount: movies.length,
@@ -772,7 +790,9 @@ class _SagaDetailPageState extends ConsumerState<SagaDetailPage> {
                         iconSize: 28,
                         focusPadding: const EdgeInsets.all(5),
                         focusedBackgroundColor: _iconActionFocusedBackground,
-                        focusedBorderColor: Theme.of(context).colorScheme.primary,
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
                         borderWidth: 2,
                         onPressed: () async {
                           await ref

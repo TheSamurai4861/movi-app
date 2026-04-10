@@ -10,6 +10,8 @@ class LaunchErrorPanel extends StatelessWidget {
     required this.onRetry,
     this.details,
     this.showDetails = false,
+    this.retryFocusNode,
+    this.retryAutofocus = false,
   });
 
   final String message;
@@ -17,6 +19,8 @@ class LaunchErrorPanel extends StatelessWidget {
   final VoidCallback onRetry;
   final String? details;
   final bool showDetails;
+  final FocusNode? retryFocusNode;
+  final bool retryAutofocus;
 
   static const int _detailsMaxChars = 300;
   static const int _detailsMaxLines = 4;
@@ -49,7 +53,12 @@ class LaunchErrorPanel extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 24),
-            MoviPrimaryButton(label: retryLabel, onPressed: onRetry),
+            MoviPrimaryButton(
+              label: retryLabel,
+              onPressed: onRetry,
+              focusNode: retryFocusNode,
+              autofocus: retryAutofocus,
+            ),
           ],
         ),
       ),

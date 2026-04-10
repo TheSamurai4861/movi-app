@@ -11,6 +11,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
 import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
@@ -65,7 +66,9 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
   final FocusNode _activeDeleteFocusNode = FocusNode(
     debugLabel: 'IptvSourcesActiveDelete',
   );
-  final FocusNode _refreshFocusNode = FocusNode(debugLabel: 'IptvSourcesRefresh');
+  final FocusNode _refreshFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesRefresh',
+  );
   final FocusNode _editFocusNode = FocusNode(debugLabel: 'IptvSourcesEdit');
   final FocusNode _organizeFocusNode = FocusNode(
     debugLabel: 'IptvSourcesOrganize',
@@ -276,9 +279,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
       }
       _isSearchVisible = false;
       if (focusSearchButton) {
-        _setPendingFocusTarget(
-          const _PendingSourcesFocusTarget.searchButton(),
-        );
+        _setPendingFocusTarget(const _PendingSourcesFocusTarget.searchButton());
       }
     });
   }
@@ -398,7 +399,10 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     final wasActive = ref
         .read(asp.activeIptvSourcesProvider)
         .contains(account.id);
-    final wasSelected = ref.read(slProvider)<SelectedIptvSourcePreferences>().selectedSourceId ==
+    final wasSelected =
+        ref
+            .read(slProvider)<SelectedIptvSourcePreferences>()
+            .selectedSourceId ==
         account.id;
     final nextSelectedId = (wasActive || wasSelected)
         ? remainingAccounts.first.id
@@ -541,6 +545,7 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 
   Future<bool> _showDeleteConfirmation(AnyIptvAccount account) async {
     final l10n = AppLocalizations.of(context)!;
+    final triggerFocusNode = FocusManager.instance.primaryFocus;
     if (_useTvModal(context)) {
       var confirmed = false;
       await showMoviTvActionMenu(
@@ -563,20 +568,12 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
 
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: Text(l10n.actionConfirm),
-        content: Text('Supprimer la source "${account.alias}" ?'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.actionCancel),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Supprimer'),
-          ),
-        ],
+      builder: (ctx) => _DeleteSourceCupertinoDialog(
+        title: l10n.actionConfirm,
+        message: 'Supprimer la source "${account.alias}" ?',
+        cancelLabel: l10n.actionCancel,
+        confirmLabel: 'Supprimer',
+        triggerFocusNode: triggerFocusNode,
       ),
     );
     return confirmed == true;
@@ -759,7 +756,8 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
     final activeIds = ref.watch(asp.activeIptvSourcesProvider);
     final accountsAsync = ref.watch(allIptvAccountsProvider);
     final initialFocusNode = accountsAsync.maybeWhen(
-      data: (accounts) => accounts.isEmpty ? _bottomAddFocusNode : _refreshFocusNode,
+      data: (accounts) =>
+          accounts.isEmpty ? _bottomAddFocusNode : _refreshFocusNode,
       orElse: () => _backFocusNode,
     );
 
@@ -778,367 +776,385 @@ class _IptvSourcesPageState extends ConsumerState<IptvSourcesPage> {
           bottom: true,
           child: SettingsContentWidth(
             child: accountsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(
-              child: Text(
-                e.toString(),
-                style: const TextStyle(color: Colors.white),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(
+                child: Text(
+                  e.toString(),
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
-            ),
-            data: (accounts) {
-              _ensureDefaultSelection(accounts, activeIds);
+              data: (accounts) {
+                _ensureDefaultSelection(accounts, activeIds);
 
-              final selectedId = _selectedAccountId;
-              final activeAccount = (selectedId == null)
-                  ? null
-                  : accounts.where((a) => a.id == selectedId).firstOrNull;
-              final allOtherAccounts = accounts
-                  .where((account) => account.id != selectedId)
-                  .toList(growable: false);
-              _syncOtherDeleteFocusNodes(allOtherAccounts);
+                final selectedId = _selectedAccountId;
+                final activeAccount = (selectedId == null)
+                    ? null
+                    : accounts.where((a) => a.id == selectedId).firstOrNull;
+                final allOtherAccounts = accounts
+                    .where((account) => account.id != selectedId)
+                    .toList(growable: false);
+                _syncOtherDeleteFocusNodes(allOtherAccounts);
 
-              final query = _searchController.text.trim().toLowerCase();
-              final otherAccounts = allOtherAccounts
-                  .where(
-                    (a) =>
-                        query.isEmpty ||
-                        a.alias.toLowerCase().contains(query) ||
-                        a.getUsername().toLowerCase().contains(query) ||
-                        a.getHost().toLowerCase().contains(query),
-                  )
-                  .toList(growable: false);
-              final firstOtherDeleteNode = otherAccounts.isNotEmpty
-                  ? _otherDeleteFocusNodes[otherAccounts.first.id]
-                  : null;
-              final lastOtherDeleteNode = otherAccounts.isNotEmpty
-                  ? _otherDeleteFocusNodes[otherAccounts.last.id]
-                  : null;
+                final query = _searchController.text.trim().toLowerCase();
+                final otherAccounts = allOtherAccounts
+                    .where(
+                      (a) =>
+                          query.isEmpty ||
+                          a.alias.toLowerCase().contains(query) ||
+                          a.getUsername().toLowerCase().contains(query) ||
+                          a.getHost().toLowerCase().contains(query),
+                    )
+                    .toList(growable: false);
+                final firstOtherDeleteNode = otherAccounts.isNotEmpty
+                    ? _otherDeleteFocusNodes[otherAccounts.first.id]
+                    : null;
+                final lastOtherDeleteNode = otherAccounts.isNotEmpty
+                    ? _otherDeleteFocusNodes[otherAccounts.last.id]
+                    : null;
 
-              _applyPendingFocusTarget(activeAccount: activeAccount);
-              _ensureFocusStillVisible(
-                activeAccount: activeAccount,
-                otherAccounts: otherAccounts,
-              );
+                _applyPendingFocusTarget(activeAccount: activeAccount);
+                _ensureFocusStillVisible(
+                  activeAccount: activeAccount,
+                  otherAccounts: otherAccounts,
+                );
 
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                    child: _HeaderBar(
-                      title: 'Sources',
-                      accent: accent,
-                      searchActive: _isSearchVisible,
-                      backFocusNode: _backFocusNode,
-                      searchFocusNode: _searchButtonFocusNode,
-                      addFocusNode: _headerAddFocusNode,
-                      onBack: () => context.pop(),
-                      onSearch: _toggleSearch,
-                      onAdd: _openAddSource,
-                      onBackKeyEvent: (event) => _handleDirectionalKey(
-                        event,
-                        right: _searchButtonFocusNode,
-                        down: _changeSourceFocusNode,
-                        blockLeft: true,
-                        blockUp: true,
-                      ),
-                      onSearchKeyEvent: (event) => _handleDirectionalKey(
-                        event,
-                        left: _backFocusNode,
-                        right: _headerAddFocusNode,
-                        down: _isSearchVisible
-                            ? _searchFieldFocusNode
-                            : _changeSourceFocusNode,
-                        blockUp: true,
-                      ),
-                      onAddKeyEvent: (event) => _handleDirectionalKey(
-                        event,
-                        left: _searchButtonFocusNode,
-                        down: _changeSourceFocusNode,
-                        blockRight: true,
-                        blockUp: true,
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: _HeaderBar(
+                        title: 'Sources',
+                        accent: accent,
+                        searchActive: _isSearchVisible,
+                        backFocusNode: _backFocusNode,
+                        searchFocusNode: _searchButtonFocusNode,
+                        addFocusNode: _headerAddFocusNode,
+                        onBack: () => context.pop(),
+                        onSearch: _toggleSearch,
+                        onAdd: _openAddSource,
+                        onBackKeyEvent: (event) => _handleDirectionalKey(
+                          event,
+                          right: _searchButtonFocusNode,
+                          down: _changeSourceFocusNode,
+                          blockLeft: true,
+                          blockUp: true,
+                        ),
+                        onSearchKeyEvent: (event) => _handleDirectionalKey(
+                          event,
+                          left: _backFocusNode,
+                          right: _headerAddFocusNode,
+                          down: _isSearchVisible
+                              ? _searchFieldFocusNode
+                              : _changeSourceFocusNode,
+                          blockUp: true,
+                        ),
+                        onAddKeyEvent: (event) => _handleDirectionalKey(
+                          event,
+                          left: _searchButtonFocusNode,
+                          down: _changeSourceFocusNode,
+                          blockRight: true,
+                          blockUp: true,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      children: [
-                        Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _isSearchVisible
-                                ? _searchFieldFocusNode
-                                : _searchButtonFocusNode,
-                            down: activeAccount != null
-                                ? _activeDeleteFocusNode
-                                : firstOtherDeleteNode ?? _bottomAddFocusNode,
-                          ),
-                          child: MoviEnsureVisibleOnFocus(
-                            verticalAlignment: _focusVerticalAlignment,
-                            child: MoviPrimaryButton(
-                              label: 'Changer de source active',
-                              focusNode: _changeSourceFocusNode,
-                              leading: const Icon(Icons.swap_horiz),
-                              buttonStyle: FilledButton.styleFrom(
-                                backgroundColor: accent.withAlpha(51),
-                                foregroundColor: accent,
-                              ),
-                              onPressed: () =>
-                                  context.push(AppRouteNames.iptvSourceSelect),
-                            ),
-                          ),
-                        ),
-                        if (_isSearchVisible) ...[
-                          const SizedBox(height: 12),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        children: [
                           Focus(
                             canRequestFocus: false,
                             onKeyEvent: (_, event) => _handleDirectionalKey(
                               event,
-                              left: _searchButtonFocusNode,
-                              up: _searchButtonFocusNode,
-                              down: firstOtherDeleteNode ?? _bottomAddFocusNode,
-                              blockRight: true,
+                              up: _isSearchVisible
+                                  ? _searchFieldFocusNode
+                                  : _searchButtonFocusNode,
+                              down: activeAccount != null
+                                  ? _activeDeleteFocusNode
+                                  : firstOtherDeleteNode ?? _bottomAddFocusNode,
                             ),
                             child: MoviEnsureVisibleOnFocus(
                               verticalAlignment: _focusVerticalAlignment,
-                              child: CallbackShortcuts(
-                                bindings: <ShortcutActivator, VoidCallback>{
-                                  const SingleActivator(
-                                    LogicalKeyboardKey.arrowLeft,
-                                  ): () => _requestFocus(_searchButtonFocusNode),
-                                  const SingleActivator(
-                                    LogicalKeyboardKey.arrowUp,
-                                  ): () => _requestFocus(_searchButtonFocusNode),
-                                  const SingleActivator(
-                                    LogicalKeyboardKey.arrowDown,
-                                  ): () => _requestFocus(
+                              child: MoviPrimaryButton(
+                                label: 'Changer de source active',
+                                focusNode: _changeSourceFocusNode,
+                                leading: const Icon(Icons.swap_horiz),
+                                buttonStyle: FilledButton.styleFrom(
+                                  backgroundColor: accent.withAlpha(51),
+                                  foregroundColor: accent,
+                                ),
+                                onPressed: () => context.push(
+                                  AppRouteNames.iptvSourceSelect,
+                                ),
+                              ),
+                            ),
+                          ),
+                          if (_isSearchVisible) ...[
+                            const SizedBox(height: 12),
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleDirectionalKey(
+                                event,
+                                left: _searchButtonFocusNode,
+                                up: _searchButtonFocusNode,
+                                down:
                                     firstOtherDeleteNode ?? _bottomAddFocusNode,
-                                  ),
-                                },
-                                child: TextField(
-                                  controller: _searchController,
-                                  focusNode: _searchFieldFocusNode,
-                                  onChanged: (_) => setState(() {}),
-                                  style: const TextStyle(color: Colors.white),
-                                  decoration: InputDecoration(
-                                    hintText: 'Rechercher une source…',
-                                    hintStyle: const TextStyle(
-                                      color: Colors.white54,
+                                blockRight: true,
+                              ),
+                              child: MoviEnsureVisibleOnFocus(
+                                verticalAlignment: _focusVerticalAlignment,
+                                child: CallbackShortcuts(
+                                  bindings: <ShortcutActivator, VoidCallback>{
+                                    const SingleActivator(
+                                      LogicalKeyboardKey.arrowLeft,
+                                    ): () =>
+                                        _requestFocus(_searchButtonFocusNode),
+                                    const SingleActivator(
+                                      LogicalKeyboardKey.arrowUp,
+                                    ): () =>
+                                        _requestFocus(_searchButtonFocusNode),
+                                    const SingleActivator(
+                                      LogicalKeyboardKey.arrowDown,
+                                    ): () => _requestFocus(
+                                      firstOtherDeleteNode ??
+                                          _bottomAddFocusNode,
                                     ),
-                                    filled: true,
-                                    fillColor: const Color(0xFF1C1C1E),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: const MoviAssetIcon(
-                                        AppAssets.iconSearch,
-                                        width: 20,
-                                        height: 20,
-                                        color: Colors.white70,
+                                  },
+                                  child: TextField(
+                                    controller: _searchController,
+                                    focusNode: _searchFieldFocusNode,
+                                    onChanged: (_) => setState(() {}),
+                                    style: const TextStyle(color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: 'Rechercher une source…',
+                                      hintStyle: const TextStyle(
+                                        color: Colors.white54,
+                                      ),
+                                      filled: true,
+                                      fillColor: const Color(0xFF1C1C1E),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                      prefixIcon: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: const MoviAssetIcon(
+                                          AppAssets.iconSearch,
+                                          width: 20,
+                                          height: 20,
+                                          color: Colors.white70,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                        const SizedBox(height: 32),
-                        const Text(
-                          'Source active',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (activeAccount == null)
-                          Text(
-                            AppLocalizations.of(context)!.statusNoActiveSource,
-                            style: const TextStyle(color: Colors.white70),
-                          )
-                        else
-                          _SourceCard(
-                            account: activeAccount,
-                            accent: accent,
-                            locale: locale,
-                            isActive: _isAccountActive(activeAccount),
-                            expirationText: _formatExpiration(
-                              activeAccount.getExpiration(),
-                              locale,
-                            ),
-                            onDelete: () =>
-                                _confirmAndDelete(activeAccount, accounts),
-                            deleteFocusNode: _activeDeleteFocusNode,
-                            focusVerticalAlignment: _focusVerticalAlignment,
-                            onDeleteKeyEvent: (event) => _handleDirectionalKey(
-                              event,
-                              up: _changeSourceFocusNode,
-                              down: _refreshFocusNode,
-                            ),
-                          ),
-                        const SizedBox(height: 16),
-                        if (activeAccount != null) ...[
-                          Focus(
-                            canRequestFocus: false,
-                            onKeyEvent: (_, event) => _handleDirectionalKey(
-                              event,
-                              up: _activeDeleteFocusNode,
-                              down: activeAccount.isStalker
-                                  ? _organizeFocusNode
-                                  : _editFocusNode,
-                            ),
-                            child: MoviEnsureVisibleOnFocus(
-                              verticalAlignment: _focusVerticalAlignment,
-                              child: MoviPrimaryButton(
-                                label: _refreshing
-                                    ? 'Rafraîchissement…'
-                                    : 'Rafraîchir',
-                                focusNode: _refreshFocusNode,
-                                onPressed: _refreshing
-                                    ? null
-                                    : () => _refreshSelected(activeAccount),
-                                loading: _refreshing,
-                              ),
+                          ],
+                          const SizedBox(height: 32),
+                          const Text(
+                            'Source active',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (!activeAccount.isStalker)
+                          if (activeAccount == null)
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.statusNoActiveSource,
+                              style: const TextStyle(color: Colors.white70),
+                            )
+                          else
+                            _SourceCard(
+                              account: activeAccount,
+                              accent: accent,
+                              locale: locale,
+                              isActive: _isAccountActive(activeAccount),
+                              expirationText: _formatExpiration(
+                                activeAccount.getExpiration(),
+                                locale,
+                              ),
+                              onDelete: () =>
+                                  _confirmAndDelete(activeAccount, accounts),
+                              deleteFocusNode: _activeDeleteFocusNode,
+                              focusVerticalAlignment: _focusVerticalAlignment,
+                              onDeleteKeyEvent: (event) =>
+                                  _handleDirectionalKey(
+                                    event,
+                                    up: _changeSourceFocusNode,
+                                    down: _refreshFocusNode,
+                                  ),
+                            ),
+                          const SizedBox(height: 16),
+                          if (activeAccount != null) ...[
                             Focus(
                               canRequestFocus: false,
                               onKeyEvent: (_, event) => _handleDirectionalKey(
                                 event,
-                                up: _refreshFocusNode,
-                                down: _organizeFocusNode,
+                                up: _activeDeleteFocusNode,
+                                down: activeAccount.isStalker
+                                    ? _organizeFocusNode
+                                    : _editFocusNode,
                               ),
                               child: MoviEnsureVisibleOnFocus(
                                 verticalAlignment: _focusVerticalAlignment,
                                 child: MoviPrimaryButton(
-                                  label: 'Modifier',
-                                  focusNode: _editFocusNode,
-                                  onPressed: () async {
-                                    final updated = await context.push<bool>(
-                                      AppRouteNames.iptvSourceEdit,
-                                      extra: activeAccount.id,
-                                    );
-
-                                    if (updated == true) {
-                                      ref.invalidate(allIptvAccountsProvider);
-                                      ref.invalidate(iptvAccountsProvider);
-                                      ref.invalidate(
-                                        iptvSourceStatsProvider(activeAccount.id),
-                                      );
-                                    }
-                                  },
+                                  label: _refreshing
+                                      ? 'Rafraîchissement…'
+                                      : 'Rafraîchir',
+                                  focusNode: _refreshFocusNode,
+                                  onPressed: _refreshing
+                                      ? null
+                                      : () => _refreshSelected(activeAccount),
+                                  loading: _refreshing,
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 16),
+                            if (!activeAccount.isStalker)
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _refreshFocusNode,
+                                  down: _organizeFocusNode,
+                                ),
+                                child: MoviEnsureVisibleOnFocus(
+                                  verticalAlignment: _focusVerticalAlignment,
+                                  child: MoviPrimaryButton(
+                                    label: 'Modifier',
+                                    focusNode: _editFocusNode,
+                                    onPressed: () async {
+                                      final updated = await context.push<bool>(
+                                        AppRouteNames.iptvSourceEdit,
+                                        extra: activeAccount.id,
+                                      );
+
+                                      if (updated == true) {
+                                        ref.invalidate(allIptvAccountsProvider);
+                                        ref.invalidate(iptvAccountsProvider);
+                                        ref.invalidate(
+                                          iptvSourceStatsProvider(
+                                            activeAccount.id,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 16),
+                            Focus(
+                              canRequestFocus: false,
+                              onKeyEvent: (_, event) => _handleDirectionalKey(
+                                event,
+                                up: activeAccount.isStalker
+                                    ? _refreshFocusNode
+                                    : _editFocusNode,
+                                down:
+                                    firstOtherDeleteNode ?? _bottomAddFocusNode,
+                              ),
+                              child: MoviEnsureVisibleOnFocus(
+                                verticalAlignment: _focusVerticalAlignment,
+                                child: MoviPrimaryButton(
+                                  label: 'Organiser les catégories',
+                                  focusNode: _organizeFocusNode,
+                                  onPressed: () => context.push(
+                                    AppRouteNames.iptvSourceOrganize,
+                                    extra: activeAccount.id,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 32),
+                          Container(height: 1, color: const Color(0xFF262626)),
+                          const SizedBox(height: 32),
+                          const Text(
+                            'Autres sources',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                           const SizedBox(height: 16),
+                          for (
+                            var index = 0;
+                            index < otherAccounts.length;
+                            index++
+                          ) ...[
+                            _SourceCard(
+                              account: otherAccounts[index],
+                              accent: accent,
+                              locale: locale,
+                              isActive: _isAccountActive(otherAccounts[index]),
+                              expirationText: _formatExpiration(
+                                otherAccounts[index].getExpiration(),
+                                locale,
+                              ),
+                              onDelete: () => _confirmAndDelete(
+                                otherAccounts[index],
+                                accounts,
+                              ),
+                              deleteFocusNode:
+                                  _otherDeleteFocusNodes[otherAccounts[index]
+                                      .id],
+                              focusVerticalAlignment: _focusVerticalAlignment,
+                              onDeleteKeyEvent: (event) => _handleDirectionalKey(
+                                event,
+                                up: index == 0
+                                    ? (activeAccount != null
+                                          ? _organizeFocusNode
+                                          : (_isSearchVisible
+                                                ? _searchFieldFocusNode
+                                                : _changeSourceFocusNode))
+                                    : _otherDeleteFocusNodes[otherAccounts[index -
+                                              1]
+                                          .id],
+                                down: index == otherAccounts.length - 1
+                                    ? _bottomAddFocusNode
+                                    : _otherDeleteFocusNodes[otherAccounts[index +
+                                              1]
+                                          .id],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (otherAccounts.isNotEmpty)
+                            const SizedBox(height: 16),
                           Focus(
                             canRequestFocus: false,
                             onKeyEvent: (_, event) => _handleDirectionalKey(
                               event,
-                              up: activeAccount.isStalker
-                                  ? _refreshFocusNode
-                                  : _editFocusNode,
-                              down:
-                                  firstOtherDeleteNode ?? _bottomAddFocusNode,
+                              up:
+                                  lastOtherDeleteNode ??
+                                  (activeAccount != null
+                                      ? _organizeFocusNode
+                                      : _changeSourceFocusNode),
+                              blockDown: true,
                             ),
                             child: MoviEnsureVisibleOnFocus(
                               verticalAlignment: _focusVerticalAlignment,
                               child: MoviPrimaryButton(
-                                label: 'Organiser les catégories',
-                                focusNode: _organizeFocusNode,
-                                onPressed: () => context.push(
-                                  AppRouteNames.iptvSourceOrganize,
-                                  extra: activeAccount.id,
-                                ),
+                                label: 'Ajouter une source',
+                                focusNode: _bottomAddFocusNode,
+                                onPressed: _openAddSource,
                               ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: 32),
-                        Container(height: 1, color: const Color(0xFF262626)),
-                        const SizedBox(height: 32),
-                        const Text(
-                          'Autres sources',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        for (var index = 0; index < otherAccounts.length; index++) ...[
-                          _SourceCard(
-                            account: otherAccounts[index],
-                            accent: accent,
-                            locale: locale,
-                            isActive: _isAccountActive(otherAccounts[index]),
-                            expirationText: _formatExpiration(
-                              otherAccounts[index].getExpiration(),
-                              locale,
-                            ),
-                            onDelete: () =>
-                                _confirmAndDelete(otherAccounts[index], accounts),
-                            deleteFocusNode:
-                                _otherDeleteFocusNodes[otherAccounts[index].id],
-                            focusVerticalAlignment: _focusVerticalAlignment,
-                            onDeleteKeyEvent: (event) => _handleDirectionalKey(
-                              event,
-                              up: index == 0
-                                  ? (activeAccount != null
-                                        ? _organizeFocusNode
-                                        : (_isSearchVisible
-                                              ? _searchFieldFocusNode
-                                              : _changeSourceFocusNode))
-                                  : _otherDeleteFocusNodes[
-                                        otherAccounts[index - 1].id
-                                    ],
-                              down: index == otherAccounts.length - 1
-                                  ? _bottomAddFocusNode
-                                  : _otherDeleteFocusNodes[
-                                        otherAccounts[index + 1].id
-                                    ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (otherAccounts.isNotEmpty)
-                          const SizedBox(height: 16),
-                        Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: lastOtherDeleteNode ??
-                                (activeAccount != null
-                                    ? _organizeFocusNode
-                                    : _changeSourceFocusNode),
-                            blockDown: true,
-                          ),
-                          child: MoviEnsureVisibleOnFocus(
-                            verticalAlignment: _focusVerticalAlignment,
-                            child: MoviPrimaryButton(
-                              label: 'Ajouter une source',
-                              focusNode: _bottomAddFocusNode,
-                              onPressed: _openAddSource,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -1303,6 +1319,111 @@ class _HeaderActionButton extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _DeleteSourceCupertinoDialog extends StatefulWidget {
+  const _DeleteSourceCupertinoDialog({
+    required this.title,
+    required this.message,
+    required this.cancelLabel,
+    required this.confirmLabel,
+    this.triggerFocusNode,
+  });
+
+  final String title;
+  final String message;
+  final String cancelLabel;
+  final String confirmLabel;
+  final FocusNode? triggerFocusNode;
+
+  @override
+  State<_DeleteSourceCupertinoDialog> createState() =>
+      _DeleteSourceCupertinoDialogState();
+}
+
+class _DeleteSourceCupertinoDialogState
+    extends State<_DeleteSourceCupertinoDialog> {
+  late final FocusNode _cancelFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesDeleteCancel',
+  );
+  late final FocusNode _confirmFocusNode = FocusNode(
+    debugLabel: 'IptvSourcesDeleteConfirm',
+  );
+
+  @override
+  void dispose() {
+    _cancelFocusNode.dispose();
+    _confirmFocusNode.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _handleKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (left != null && left.canRequestFocus && left.context != null) {
+          left.requestFocus();
+        }
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowRight:
+        if (right != null && right.canRequestFocus && right.context != null) {
+          right.requestFocus();
+        }
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowUp:
+      case LogicalKeyboardKey.arrowDown:
+        return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MoviOverlayFocusScope(
+      triggerFocusNode: widget.triggerFocusNode,
+      initialFocusNode: _confirmFocusNode,
+      fallbackFocusNode: _cancelFocusNode,
+      debugLabel: 'IptvSourcesDeleteCupertinoDialog',
+      child: CupertinoAlertDialog(
+        title: Text(widget.title),
+        content: Text(widget.message),
+        actions: [
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) =>
+                _handleKey(event, right: _confirmFocusNode),
+            child: CupertinoButton(
+              focusNode: _cancelFocusNode,
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(widget.cancelLabel),
+            ),
+          ),
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleKey(event, left: _cancelFocusNode),
+            child: CupertinoButton(
+              focusNode: _confirmFocusNode,
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(
+                widget.confirmLabel,
+                style: const TextStyle(color: CupertinoColors.systemRed),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1542,4 +1663,3 @@ class _PendingSourcesFocusTarget {
   final _PendingSourcesFocusTargetType type;
   final String? accountId;
 }
-

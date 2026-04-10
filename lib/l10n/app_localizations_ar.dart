@@ -12,7 +12,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get welcomeTitle => 'مرحبًا!';
 
   @override
-  String get welcomeSubtitle => 'املأ تفضيلاتك لتخصيص Movi.';
+  String get welcomeSubtitle => 'أدخل تفضيلاتك لتخصيص تجربة Movi.';
 
   @override
   String get labelUsername => 'الاسم المستعار';
@@ -70,7 +70,17 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String resultsCount(int count) {
-    return '($count نتيجة)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '($count نتيجة)',
+      many: '($count نتيجة)',
+      few: '($count نتائج)',
+      two: '(نتيجتان)',
+      one: '(نتيجة واحدة)',
+      zero: '(لا نتائج)',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -141,10 +151,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsProfileInfoSubtitle => 'الاسم، الصورة، التفضيلات';
 
   @override
-  String get settingsAboutTitle => 'حول';
+  String get settingsAboutTitle => 'حول التطبيق';
 
   @override
-  String get settingsLegalMentionsTitle => 'إشعارات قانونية';
+  String get settingsLegalMentionsTitle => 'الإشعارات القانونية';
 
   @override
   String get settingsPrivacyPolicyTitle => 'سياسة الخصوصية';
@@ -169,7 +179,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get diagnosticsExportDescription =>
-      'يتضمن التشخيص فقط سجلات WARN/ERROR الأخيرة ومعرّفات الحساب/الملف الشخصي المُجزّأة (إن كانت مفعّلة). لا ينبغي أن تظهر أي مفاتيح/رموز.';
+      'يتضمن ملف التشخيص فقط أحدث سجلات WARN/ERROR ومعرّفات الحساب/الملف الشخصي المُجزّأة عند تفعيلها. يجب ألا تظهر أي مفاتيح أو رموز وصول.';
 
   @override
   String get diagnosticsIncludeHashedIdsTitle =>
@@ -360,7 +370,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يوجد مصدر IPTV نشط. أضف مصدرًا من الإعدادات لرؤية الفئات.';
 
   @override
-  String get homeNoTrends => 'لا يوجد محتوى رائج متاح';
+  String get homeNoTrends => 'لا يوجد محتوى رائج حاليًا';
 
   @override
   String get actionRefreshMetadata => 'تحديث البيانات الوصفية';
@@ -387,7 +397,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get actionReportProblem => 'الإبلاغ عن مشكلة';
 
   @override
-  String get featureComingSoon => 'الميزة قريبًا';
+  String get featureComingSoon => 'الميزة ستتوفر قريبًا';
 
   @override
   String get subtitlesMenuTitle => 'الترجمات';
@@ -443,7 +453,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get iptvServerUrlLabel => 'رابط الخادم';
 
   @override
-  String get iptvServerUrlHint => 'رابط خادم Xtream';
+  String get iptvServerUrlHint => 'عنوان خادم Xtream';
 
   @override
   String get iptvPasswordLabel => 'كلمة المرور';
@@ -452,7 +462,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get iptvPasswordHint => 'كلمة مرور Xtream';
 
   @override
-  String get actionConnect => 'اتصال';
+  String get actionConnect => 'اتصل';
 
   @override
   String get settingsRefreshIptvPlaylistsTitle => 'تحديث قوائم تشغيل IPTV';
@@ -467,7 +477,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get statusNoActiveSource => 'لا يوجد مصدر نشط';
 
   @override
-  String get overlayPreparingHome => 'جارٍ تحضير الصفحة الرئيسية…';
+  String get overlayPreparingHome => 'جارٍ تجهيز الصفحة الرئيسية…';
 
   @override
   String get overlayLoadingMoviesAndSeries => 'جارٍ تحميل الأفلام والمسلسلات…';
@@ -479,10 +489,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get bootstrapRefreshing => 'جارٍ تحديث قوائم IPTV…';
 
   @override
-  String get bootstrapEnriching => 'جارٍ تحضير البيانات الوصفية…';
+  String get bootstrapEnriching => 'جارٍ تجهيز البيانات الوصفية…';
 
   @override
-  String get errorPrepareHome => 'تعذر تحضير الصفحة الرئيسية';
+  String get errorPrepareHome => 'تعذر تجهيز الصفحة الرئيسية';
 
   @override
   String get overlayOpeningHome => 'جارٍ فتح الصفحة الرئيسية…';
@@ -491,7 +501,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get overlayRefreshingIptvLists => 'جارٍ تحديث قوائم IPTV…';
 
   @override
-  String get overlayPreparingMetadata => 'جارٍ تحضير البيانات الوصفية…';
+  String get overlayPreparingMetadata => 'جارٍ تجهيز البيانات الوصفية…';
 
   @override
   String get errorHomeLoadTimeout => 'انتهت مهلة تحميل الصفحة الرئيسية';
@@ -509,7 +519,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get actionBack => 'رجوع';
 
   @override
-  String get actionSeeAll => 'عرض الكل';
+  String get actionSeeAll => 'عرض الجميع';
 
   @override
   String get actionExpand => 'توسيع';
@@ -519,7 +529,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String providerSearchPlaceholder(String provider) {
-    return 'ابحث على $provider...';
+    return 'ابحث في $provider…';
   }
 
   @override
@@ -536,7 +546,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get libraryDataInfo =>
-      'سيتم عرض البيانات عند تنفيذ طبقة البيانات/النطاق.';
+      'ستظهر البيانات عند اكتمال تنفيذ طبقتَي البيانات والنطاق.';
 
   @override
   String get libraryEmpty => 'أعجب بأفلام أو مسلسلات أو ممثلين لتظهر هنا.';
@@ -600,21 +610,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pinRecoveryTitle => 'استعادة رمز PIN';
 
   @override
-  String get pinRecoveryDescription => 'استرجع رمز PIN لملفك الشخصي المحمي.';
+  String get pinRecoveryDescription =>
+      'سنرسل رمزًا مكوّنًا من 8 أرقام إلى البريد الإلكتروني المرتبط بحسابك لإعادة تعيين رمز PIN لهذا الملف الشخصي.';
 
   @override
-  String get pinRecoveryRequestCodeButton => 'Send code';
+  String get pinRecoveryRequestCodeButton => 'إرسال الرمز';
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent to your account email. Check your messages and enter it below.';
+      'تم إرسال الرمز إلى البريد الإلكتروني المرتبط بحسابك. تحقّق من رسائلك وأدخله أدناه.';
 
   @override
   String get pinRecoveryComingSoon => 'هذه الميزة قادمة قريبًا.';
 
   @override
   String get pinRecoveryNotAvailable =>
-      'PIN recovery by email is currently unavailable.';
+      'استعادة رمز PIN عبر البريد الإلكتروني غير متاحة حاليًا.';
 
   @override
   String get pinRecoveryCodeLabel => 'رمز الاستعادة';
@@ -638,34 +649,34 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pinRecoveryUnknownError => 'حدث خطأ غير متوقع';
 
   @override
-  String get pinRecoveryNewPinLabel => 'PIN جديد';
+  String get pinRecoveryNewPinLabel => 'رمز PIN جديد';
 
   @override
   String get pinRecoveryNewPinHint => '4-6 أرقام';
 
   @override
-  String get pinRecoveryConfirmPinLabel => 'تأكيد PIN';
+  String get pinRecoveryConfirmPinLabel => 'تأكيد رمز PIN';
 
   @override
-  String get pinRecoveryConfirmPinHint => 'أعد إدخال PIN';
+  String get pinRecoveryConfirmPinHint => 'أعد إدخال رمز PIN';
 
   @override
-  String get pinRecoveryResetButton => 'تحديث PIN';
+  String get pinRecoveryResetButton => 'تحديث رمز PIN';
 
   @override
-  String get pinRecoveryPinInvalid => 'أدخل PIN من 4 إلى 6 أرقام';
+  String get pinRecoveryPinInvalid => 'أدخل رمز PIN مكوّنًا من 4 إلى 6 أرقام';
 
   @override
   String get pinRecoveryPinMismatch => 'رمزا PIN غير متطابقين';
 
   @override
-  String get pinRecoveryResetSuccess => 'تم تحديث PIN';
+  String get pinRecoveryResetSuccess => 'تم تحديث رمز PIN';
 
   @override
-  String get profilePinSaved => 'PIN saved.';
+  String get profilePinSaved => 'تم حفظ رمز PIN.';
 
   @override
-  String get profilePinEditLabel => 'Edit PIN code';
+  String get profilePinEditLabel => 'تعديل رمز PIN';
 
   @override
   String get settingsAccountsSection => 'الحسابات';
@@ -689,10 +700,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsPlaybackSection => 'إعدادات التشغيل';
 
   @override
-  String get settingsPreferredAudioLanguage => 'اللغة المفضلة';
+  String get settingsPreferredAudioLanguage => 'اللغة الصوتية المفضلة';
 
   @override
-  String get settingsPreferredSubtitleLanguage => 'الترجمات المفضلة';
+  String get settingsPreferredSubtitleLanguage => 'لغة الترجمة المفضلة';
 
   @override
   String get libraryPlaylistsFilter => 'قوائم التشغيل';
@@ -742,7 +753,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get personRoleDirector => 'مخرج';
 
   @override
-  String get personRoleCreator => 'منشئ';
+  String get personRoleCreator => 'منشئ العمل';
 
   @override
   String get tvDistribution => 'طاقم العمل';
@@ -757,7 +768,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return 'متابعة S$season E$episode';
+    return 'متابعة الموسم $season الحلقة $episode';
   }
 
   @override
@@ -779,7 +790,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String personMoviesCount(int movies, int shows) {
-    return '$movies أفلام - $shows مسلسلات';
+    return '$movies أفلام · $shows مسلسلات';
   }
 
   @override
@@ -917,7 +928,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get authOtpEmailLabel => 'البريد الإلكتروني';
 
   @override
-  String get authOtpEmailHint => 'you@email';
+  String get authOtpEmailHint => 'name@example.com';
 
   @override
   String get authOtpEmailHelp =>
@@ -944,7 +955,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return 'إعادة الإرسال بعد $secondsث';
+    return 'إعادة إرسال الرمز خلال $seconds ث';
   }
 
   @override
@@ -960,7 +971,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsCloudSyncAuto => 'مزامنة تلقائية';
 
   @override
-  String get settingsCloudSyncNow => 'زامن الآن';
+  String get settingsCloudSyncNow => 'المزامنة الآن';
 
   @override
   String get settingsCloudSyncInProgress => 'جارٍ المزامنة…';
@@ -1036,368 +1047,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يمكن تقييم هذا المحتوى للرقابة الأبوية.';
 
   @override
-  String get parentalUnlockButton => 'فتح';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => 'جارٍ تحميل الحلقات…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      'لا توجد قائمة تشغيل متاحة. أنشئ واحدة.';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      'خطأ عند تحميل قوائم التشغيل: \$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => 'تعذر فتح الرابط';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => 'الجودة المفضلة';
-
-  @override
-  String get hc_annuler_49ba3292 => 'إلغاء';
-
-  @override
-  String get hc_deconnexion_903dca17 => 'تسجيل الخروج';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 =>
-      'خطأ عند تسجيل الخروج: \$e';
-
-  @override
-  String get hc_choisir_b030d590 => 'اختيار';
-
-  @override
-  String get hc_avantages_08d7f47c => 'المزايا';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 =>
-      'تم إرسال البلاغ. شكرًا لك.';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => 'لاحقًا';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => 'إعادة التشغيل الآن';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => 'استخدام هذا المصدر؟';
-
-  @override
-  String get hc_utiliser_fb5e43ce => 'استخدام';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => 'تمت إضافة المصدر';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => 'إعدادات مقفلة';
-
-  @override
-  String get hc_compte_cloud_2812b31e => 'حساب سحابي';
-
-  @override
-  String get hc_se_connecter_fedf2439 => 'تسجيل الدخول';
-
-  @override
-  String get hc_propos_5345add5 => 'حول';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => 'سياسة الخصوصية';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => 'شروط الاستخدام';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => 'مصادر محفوظة';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => 'تحديث';
-
-  @override
-  String get hc_activer_une_source_749ced38 => 'تفعيل مصدر';
-
-  @override
-  String get hc_nom_source_9a3e4156 => 'اسم المصدر';
-
-  @override
-  String get hc_mon_iptv_b239352c => 'IPTV الخاص بي';
-
-  @override
-  String get hc_username_84c29015 => 'اسم المستخدم';
-
-  @override
-  String get hc_password_8be3c943 => 'كلمة المرور';
-
-  @override
-  String get hc_server_url_1d5d1eff => 'رابط الخادم';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'التحقق من PIN';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => 'تعيين PIN';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      'لم يتم العثور على عرض الاشتراك: \$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      'تم إلغاء عملية شراء الاشتراك بواسطة المستخدم.';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      'انتهت مهلة عملية المتجر: \$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 =>
-      'خطأ HTTP أثناء المصافحة';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'استجابة غير JSON من خادم Xtream';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f =>
-      'استجابة غير صالحة من خادم Xtream';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 =>
-      'غير متاح على هذا المصدر';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => 'تمت إزالة المصدر';
-
-  @override
-  String get hc_source_modifiee_335ef502 => 'تم تحديث المصدر';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => 'تعيين رمز PIN';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => 'وضع علامة كغير مشاهد';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 =>
-      'هل أنت متأكد أنك تريد تسجيل الخروج؟';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      'يلزم Movi Premium للمزامنة السحابية.';
-
-  @override
-  String get hc_auto_c614ba7c => 'تلقائي';
-
-  @override
-  String get hc_organiser_838a7e57 => 'تنظيم';
-
-  @override
-  String get hc_modifier_f260e757 => 'تعديل';
-
-  @override
-  String get hc_ajouter_87c57ed1 => 'إضافة';
-
-  @override
-  String get hc_source_active_e571305e => 'المصدر النشط';
-
-  @override
-  String get hc_autres_sources_e32592a6 => 'مصادر أخرى';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      'ميزة الإبلاغ غير متاحة لهذا المحتوى.';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => 'تأمين المحتوى';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe =>
-      'جارٍ التحقق من التصنيفات العمرية…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => 'عرض الكل';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => 'الإبلاغ عن مشكلة';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      'إذا كان هذا المحتوى غير مناسب وكان متاحًا رغم القيود، فصف المشكلة بإيجاز.';
-
-  @override
-  String get hc_envoyer_e9ce243b => 'إرسال';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => 'تم إنشاء ملف طفل';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      'تم إنشاء ملف طفل. لتأمين التطبيق وتحميل التصنيفات العمرية مسبقًا، يُنصح بإعادة تشغيل التطبيق.';
-
-  @override
-  String get hc_pseudo_4cf966c0 => 'الاسم المستعار';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => 'ملف طفل';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => 'الحد العمري';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'رمز PIN';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => 'تغيير رمز PIN';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => 'إزالة رمز PIN';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => 'إزالة PIN';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => 'حذف';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      'يتطلب PIN ويفعّل فلتر PEGI.';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      'هل تريد تفعيل هذا المصدر الآن؟';
-
-  @override
-  String get hc_application_b291beb8 => 'التطبيق';
-
-  @override
-  String get hc_version_1_0_0_347e553c => 'الإصدار 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => 'الاعتمادات';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      'يستخدم هذا المنتج واجهة TMDB البرمجية لكنه غير معتمد أو مُصادق عليه من TMDB.';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      'يستخدم هذا المنتج واجهة TMDB البرمجية لكنه غير معتمد أو مُصادق عليه من TMDB.';
-
-  @override
-  String get hc_verification_targets_d51632f8 => 'أهداف التحقق';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 =>
-      'يجب أن يندمج التدرّج مع الإطار';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 =>
-      'معرّف بث Xtream غير صالح: ...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'مسلسل xtream:... صورة الملصق مفقودة';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'فيلم ... غير موجود ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... صورة الملصق مفقودة';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'حمولة outbox لقائمة المشاهدة غير صالحة.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'عملية قائمة مشاهدة غير معروفة: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'حمولة outbox لقائمة التشغيل غير صالحة.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'عملية قائمة تشغيل غير معروفة: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => 'رابط غير صالح';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'IV قديم مفقود: لا يمكن فك تشفير النص المشفّر القديم.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'تحديث\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'القائمة\'';
-
-  @override
-  String get hc_retour_e5befb1f => 'رجوع';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'مزيد من الإجراءات\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => 'مزيد من الإجراءات';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c => 'semanticLabel: \'بحث\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'إضافة\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
+  String get parentalUnlockButton => 'إلغاء القفل';
 
   @override
   String get actionOk => 'موافق';
@@ -1469,10 +1119,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsAccountLocalMode => 'الوضع المحلي';
 
   @override
-  String get settingsAccountCloudUnavailable => 'السحابة غير متاحة';
+  String get settingsAccountCloudUnavailable => 'السحابة غير متوفرة';
 
   @override
-  String get settingsSubtitlesTitle => 'الترجمة';
+  String get settingsSubtitlesTitle => 'الترجمات';
 
   @override
   String get settingsSubtitlesSizeTitle => 'حجم النص';
@@ -1533,7 +1183,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsSubtitlesResetDefaults => 'إعادة الضبط الافتراضي';
 
   @override
-  String get settingsSubtitlesPremiumLockedTitle => 'نمط ترجمة متقدم (Premium)';
+  String get settingsSubtitlesPremiumLockedTitle =>
+      'نمط ترجمة متقدّم (Premium)';
 
   @override
   String get settingsSubtitlesPremiumLockedBody =>
@@ -1553,7 +1204,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settingsOffsetUnsupported =>
-      'غير مدعوم في هذا الـ backend أو المنصة.';
+      'غير مدعوم في هذه الواجهة الخلفية أو على هذه المنصة.';
 
   @override
   String get settingsSyncResetOffsets => 'إعادة ضبط إزاحات المزامنة';
@@ -1564,4 +1215,39 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aboutCreditsSectionTitle => 'الشكر والتقدير';
+
+  @override
+  String get actionSend => 'إرسال';
+
+  @override
+  String get profilePinSetLabel => 'تعيين رمز PIN';
+
+  @override
+  String get reportingProblemSentConfirmation => 'تم إرسال البلاغ. شكرًا لك.';
+
+  @override
+  String get reportingProblemBody =>
+      'إذا كان هذا المحتوى غير مناسب وكان متاحًا رغم القيود، فصف المشكلة باختصار.';
+
+  @override
+  String get reportingProblemExampleHint =>
+      'مثال: فيلم رعب ظاهر رغم تصنيف PEGI 12';
+
+  @override
+  String get settingsAutomaticOption => 'تلقائي';
+
+  @override
+  String get settingsPreferredPlaybackQuality => 'جودة التشغيل المفضلة';
+
+  @override
+  String settingsSignOutError(String error) {
+    return 'خطأ أثناء تسجيل الخروج: $error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => 'شروط الاستخدام';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage =>
+      'يتطلب مزامنة السحابة Movi Premium.';
 }

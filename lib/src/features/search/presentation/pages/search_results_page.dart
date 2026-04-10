@@ -24,15 +24,11 @@ class SearchResultsPage extends ConsumerStatefulWidget {
 
 class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
   late final SearchResultsPageArgs _args;
-  final FocusNode _backFocusNode = FocusNode(
-    debugLabel: 'SearchResultsBack',
-  );
+  final FocusNode _backFocusNode = FocusNode(debugLabel: 'SearchResultsBack');
   final FocusNode _firstResultFocusNode = FocusNode(
     debugLabel: 'SearchResultsFirstResult',
   );
-  final FocusNode _retryFocusNode = FocusNode(
-    debugLabel: 'SearchResultsRetry',
-  );
+  final FocusNode _retryFocusNode = FocusNode(debugLabel: 'SearchResultsRetry');
 
   @override
   void initState() {
@@ -61,6 +57,18 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
     ref.invalidate(searchResultsControllerProvider(_args));
   }
 
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted) {
+      return false;
+    }
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) {
+      return false;
+    }
+    navigator.maybePop();
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(searchResultsControllerProvider(_args));
@@ -74,44 +82,45 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
         ? _firstResultFocusNode
         : _backFocusNode;
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: initialFocusNode,
-        fallbackFocusNode: _backFocusNode,
-      ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!mounted) {
-          return false;
-        }
-        Navigator.of(context).maybePop();
-        return true;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
       },
-      debugLabel: 'SearchResultsRouteFocus',
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
-            children: [
-              MoviSubpageBackTitleHeader(
-                title: 'Résultats — $title',
-                onBack: () => Navigator.of(context).maybePop(),
-              ),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refreshResults,
-                  child: _SearchResultsBody(
-                    state: state,
-                    query: _args.query,
-                    backFocusNode: _backFocusNode,
-                    firstResultFocusNode: _firstResultFocusNode,
-                    retryFocusNode: _retryFocusNode,
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: initialFocusNode,
+          fallbackFocusNode: _backFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () => _handleBack(context),
+        debugLabel: 'SearchResultsRouteFocus',
+        child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                MoviSubpageBackTitleHeader(
+                  title: 'Résultats - $title',
+                  onBack: () => _handleBack(context),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshResults,
+                    child: _SearchResultsBody(
+                      state: state,
+                      query: _args.query,
+                      backFocusNode: _backFocusNode,
+                      firstResultFocusNode: _firstResultFocusNode,
+                      retryFocusNode: _retryFocusNode,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -159,17 +168,16 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
         children: [
           Text('Requête: "$query"'),
           const SizedBox(height: AppSpacing.lg),
-          Text(
-            state.error!,
-            style: const TextStyle(color: Colors.redAccent),
-          ),
+          Text(state.error!, style: const TextStyle(color: Colors.redAccent)),
           const SizedBox(height: AppSpacing.lg),
           Center(
             child: MoviPrimaryButton(
               label: l10n.actionRetry,
-              onPressed: () => ref.invalidate(searchResultsControllerProvider(
-                SearchResultsPageArgs(query: state.query, type: state.type),
-              )),
+              onPressed: () => ref.invalidate(
+                searchResultsControllerProvider(
+                  SearchResultsPageArgs(query: state.query, type: state.type),
+                ),
+              ),
               focusNode: retryFocusNode,
               expand: false,
             ),
@@ -240,7 +248,10 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
                 ref
                     .read(
                       searchResultsControllerProvider(
-                        SearchResultsPageArgs(query: state.query, type: state.type),
+                        SearchResultsPageArgs(
+                          query: state.query,
+                          type: state.type,
+                        ),
                       ).notifier,
                     )
                     .fetchNextPage();

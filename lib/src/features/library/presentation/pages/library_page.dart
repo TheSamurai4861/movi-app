@@ -315,7 +315,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
     if (targetIndex == null) return KeyEventResult.ignored;
     _requestPlaylistFocus(targetIndex, ensureVisible: true);
-    if (event.logicalKey == LogicalKeyboardKey.arrowUp && targetIndex < columns) {
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+        targetIndex < columns) {
       final scrollController = PrimaryScrollController.maybeOf(context);
       if (scrollController != null &&
           scrollController.hasClients &&
@@ -397,168 +398,235 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       showDialog<void>(
         context: context,
         builder: (dialogContext) {
+          final theme = Theme.of(dialogContext);
+          final colorScheme = theme.colorScheme;
           return FocusTraversalGroup(
             policy: WidgetOrderTraversalPolicy(),
-            child: AlertDialog(
-              title: Text(l10n.createPlaylistTitle),
-              content: SizedBox(
-                width: 420,
-                child: FocusTraversalOrder(
-                  order: const NumericFocusOrder(1),
-                  child: TextFormField(
-                    controller: nameController,
-                    focusNode: nameFocusNode,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => submitFocusNode.requestFocus(),
-                    decoration: InputDecoration(
-                      hintText: l10n.playlistName,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                ),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 32,
+                vertical: 24,
               ),
-              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              buttonPadding: EdgeInsets.zero,
-              actions: [
-                SizedBox(
-                  width: double.infinity,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: FocusTraversalOrder(
-                          order: const NumericFocusOrder(2),
-                          child: Focus(
-                            canRequestFocus: false,
-                            onKeyEvent: (_, event) {
-                              if (event is! KeyDownEvent) {
-                                return KeyEventResult.ignored;
-                              }
-
-                              if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowUp) {
-                                nameFocusNode.requestFocus();
-                                return KeyEventResult.handled;
-                              }
-
-                              if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowRight) {
-                                submitFocusNode.requestFocus();
-                                return KeyEventResult.handled;
-                              }
-
-                              return KeyEventResult.ignored;
-                            },
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(minHeight: 52),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: ListenableBuilder(
-                                  listenable: cancelFocusNode,
-                                  builder: (context, _) {
-                                    final isFocused = cancelFocusNode.hasFocus;
-                                    return AnimatedScale(
-                                      scale: isFocused ? 1.03 : 1,
-                                      duration: const Duration(milliseconds: 160),
-                                      curve: Curves.easeOutCubic,
-                                      child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 160),
-                                        curve: Curves.easeOutCubic,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(999),
-                                          boxShadow: isFocused
-                                              ? [
-                                                  BoxShadow(
-                                                    color: Colors.black.withValues(
-                                                      alpha: 0.28,
-                                                    ),
-                                                    blurRadius: 14,
-                                                    spreadRadius: 0.5,
-                                                    offset: const Offset(0, 4),
-                                                  ),
-                                                ]
-                                              : null,
-                                        ),
-                                        child: OutlinedButton(
-                                          focusNode: cancelFocusNode,
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Theme.of(
-                                              dialogContext,
-                                            ).colorScheme.onSurface,
-                                            side: const BorderSide(
-                                              color: Colors.red,
-                                            ),
-                                            minimumSize: const Size.fromHeight(
-                                              52,
-                                            ),
-                                            alignment: Alignment.center,
-                                            textStyle: Theme.of(dialogContext)
-                                                .textTheme
-                                                .labelLarge
-                                                ?.copyWith(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 30,
-                                              vertical: 16,
-                                            ),
-                                            shape: const StadiumBorder(),
-                                            overlayColor: Colors.transparent,
-                                          ),
-                                          onPressed: () =>
-                                              Navigator.of(dialogContext).pop(),
-                                          child: Text(
-                                            l10n.actionCancel,
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1C1C1E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 32,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.createPlaylistTitle,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        FocusTraversalOrder(
+                          order: const NumericFocusOrder(1),
+                          child: TextFormField(
+                            controller: nameController,
+                            focusNode: nameFocusNode,
+                            autofocus: true,
+                            style: const TextStyle(color: Colors.white),
+                            cursorColor: colorScheme.primary,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) =>
+                                submitFocusNode.requestFocus(),
+                            decoration: InputDecoration(
+                              hintText: l10n.playlistName,
+                              hintStyle: const TextStyle(color: Colors.white38),
+                              filled: true,
+                              fillColor: const Color(0xFF2C2C2E),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outlineVariant,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.65,
+                                  ),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide(
+                                  color: colorScheme.primary,
+                                  width: 2,
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: FocusTraversalOrder(
-                          order: const NumericFocusOrder(3),
-                          child: Focus(
-                            canRequestFocus: false,
-                            onKeyEvent: (_, event) {
-                              if (event is! KeyDownEvent) {
-                                return KeyEventResult.ignored;
-                              }
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FocusTraversalOrder(
+                                order: const NumericFocusOrder(2),
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) {
+                                    if (event is! KeyDownEvent) {
+                                      return KeyEventResult.ignored;
+                                    }
 
-                              if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowUp) {
-                                nameFocusNode.requestFocus();
-                                return KeyEventResult.handled;
-                              }
+                                    if (event.logicalKey ==
+                                        LogicalKeyboardKey.arrowUp) {
+                                      nameFocusNode.requestFocus();
+                                      return KeyEventResult.handled;
+                                    }
 
-                              if (event.logicalKey ==
-                                  LogicalKeyboardKey.arrowLeft) {
-                                cancelFocusNode.requestFocus();
-                                return KeyEventResult.handled;
-                              }
+                                    if (event.logicalKey ==
+                                        LogicalKeyboardKey.arrowRight) {
+                                      submitFocusNode.requestFocus();
+                                      return KeyEventResult.handled;
+                                    }
 
-                              return KeyEventResult.ignored;
-                            },
-                            child: MoviPrimaryButton(
-                              label: l10n.actionConfirm,
-                              focusNode: submitFocusNode,
-                              onPressed: () => submitCreate(dialogContext),
+                                    return KeyEventResult.ignored;
+                                  },
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      minHeight: 52,
+                                    ),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: ListenableBuilder(
+                                        listenable: cancelFocusNode,
+                                        builder: (context, _) {
+                                          final isFocused =
+                                              cancelFocusNode.hasFocus;
+                                          return AnimatedContainer(
+                                            duration: const Duration(
+                                              milliseconds: 160,
+                                            ),
+                                            curve: Curves.easeOutCubic,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              border: Border.all(
+                                                color: isFocused
+                                                    ? colorScheme.error
+                                                    : colorScheme.error
+                                                          .withValues(
+                                                            alpha: 0.8,
+                                                          ),
+                                                width: 2,
+                                              ),
+                                              color: isFocused
+                                                  ? colorScheme.error
+                                                        .withValues(alpha: 0.14)
+                                                  : colorScheme
+                                                        .surfaceContainerHighest
+                                                        .withValues(alpha: 0.2),
+                                            ),
+                                            child: OutlinedButton(
+                                              focusNode: cancelFocusNode,
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    colorScheme.error,
+                                                side: BorderSide.none,
+                                                minimumSize:
+                                                    const Size.fromHeight(52),
+                                                alignment: Alignment.center,
+                                                textStyle: theme
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 20,
+                                                      vertical: 16,
+                                                    ),
+                                                shape: const StadiumBorder(),
+                                                overlayColor:
+                                                    Colors.transparent,
+                                              ),
+                                              onPressed: () => Navigator.of(
+                                                dialogContext,
+                                              ).pop(),
+                                              child: Text(
+                                                l10n.actionCancel,
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: FocusTraversalOrder(
+                                order: const NumericFocusOrder(3),
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) {
+                                    if (event is! KeyDownEvent) {
+                                      return KeyEventResult.ignored;
+                                    }
+
+                                    if (event.logicalKey ==
+                                        LogicalKeyboardKey.arrowUp) {
+                                      nameFocusNode.requestFocus();
+                                      return KeyEventResult.handled;
+                                    }
+
+                                    if (event.logicalKey ==
+                                        LogicalKeyboardKey.arrowLeft) {
+                                      cancelFocusNode.requestFocus();
+                                      return KeyEventResult.handled;
+                                    }
+
+                                    return KeyEventResult.ignored;
+                                  },
+                                  child: MoviPrimaryButton(
+                                    label: l10n.actionConfirm,
+                                    focusNode: submitFocusNode,
+                                    onPressed: () =>
+                                        submitCreate(dialogContext),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
           );
         },
@@ -613,44 +681,74 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     final accentColor = Theme.of(context).colorScheme.primary;
     if (playlist.playlistId == null) return;
 
+    final actions = <MoviTvActionMenuAction>[
+      MoviTvActionMenuAction(
+        label: playlist.isPinned ? l10n.unpinPlaylist : l10n.pinPlaylist,
+        onPressed: () async {
+          try {
+            final setPinned = ref.read(setPlaylistPinnedUseCaseProvider);
+            await setPinned.call(
+              id: PlaylistId(playlist.playlistId!),
+              isPinned: !playlist.isPinned,
+            );
+            ref.invalidate(libraryPlaylistsProvider);
+
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  !playlist.isPinned
+                      ? l10n.playlistPinned
+                      : l10n.playlistUnpinned,
+                ),
+              ),
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.errorGenericWithMessage(e.toString()),
+                ),
+              ),
+            );
+          }
+        },
+      ),
+      MoviTvActionMenuAction(
+        label: l10n.renamePlaylist,
+        onPressed: () => _showRenameDialog(context, ref, playlist),
+      ),
+      MoviTvActionMenuAction(
+        label: l10n.deletePlaylist,
+        destructive: true,
+        onPressed: () => _showDeleteDialog(context, ref, playlist),
+      ),
+    ];
+
+    final dialogScreenType = _screenType(context);
+    if (dialogScreenType == ScreenType.desktop ||
+        dialogScreenType == ScreenType.tv) {
+      showMoviTvActionMenu(
+        context: context,
+        title: playlist.title,
+        actions: actions,
+        cancelLabel: l10n.actionCancel,
+      );
+      return;
+    }
+
     showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         title: Text(playlist.title),
         actions: [
           CupertinoActionSheetAction(
-            onPressed: () async {
+            onPressed: () {
               Navigator.of(ctx).pop();
-              try {
-                final setPinned = ref.read(setPlaylistPinnedUseCaseProvider);
-                await setPinned.call(
-                  id: PlaylistId(playlist.playlistId!),
-                  isPinned: !playlist.isPinned,
-                );
-                ref.invalidate(libraryPlaylistsProvider);
-
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      !playlist.isPinned
-                          ? l10n.playlistPinned
-                          : l10n.playlistUnpinned,
-                    ),
-                  ),
-                );
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.errorGenericWithMessage(e.toString()),
-                    ),
-                  ),
-                );
-              }
+              actions.first.onPressed();
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -668,7 +766,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(ctx).pop();
-              _showRenameDialog(context, ref, playlist);
+              actions[1].onPressed();
             },
             child: Text(l10n.renamePlaylist),
           ),
@@ -676,7 +774,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
             isDestructiveAction: true,
             onPressed: () {
               Navigator.of(ctx).pop();
-              _showDeleteDialog(context, ref, playlist);
+              actions[2].onPressed();
             },
             child: Text(l10n.deletePlaylist),
           ),
@@ -1052,7 +1150,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
                       }
                     },
                     onFilterChanged: (newFilter) {
-                      ref.read(libraryFilterProvider.notifier).setFilter(newFilter);
+                      ref
+                          .read(libraryFilterProvider.notifier)
+                          .setFilter(newFilter);
                     },
                   ),
                 ),

@@ -270,7 +270,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get libraryTypeSaga => 'Saga';
 
   @override
-  String get libraryTypeInProgress => 'Devam ediyor';
+  String get libraryTypeInProgress => 'İzlemeye devam et';
 
   @override
   String get libraryTypeFavoriteMovies => 'Favori filmler';
@@ -522,7 +522,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String providerSearchPlaceholder(String provider) {
-    return '$provider üzerinde ara...';
+    return '$provider içinde ara';
   }
 
   @override
@@ -598,27 +598,28 @@ class AppLocalizationsTr extends AppLocalizations {
   String get addedToPlaylist => 'Eklendi';
 
   @override
-  String get pinRecoveryLink => 'PIN kodunu kurtar';
+  String get pinRecoveryLink => 'PIN’i kurtar';
 
   @override
-  String get pinRecoveryTitle => 'PIN kodunu kurtar';
+  String get pinRecoveryTitle => 'PIN’i kurtar';
 
   @override
-  String get pinRecoveryDescription => 'Korumalı profilinizin PIN kodunu alın.';
+  String get pinRecoveryDescription =>
+      'Korumalı profiliniz için PIN’i sıfırlama kodunu alın.';
 
   @override
-  String get pinRecoveryRequestCodeButton => 'Send code';
+  String get pinRecoveryRequestCodeButton => 'Kodu gönder';
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent to your account email. Check your messages and enter it below.';
+      'Kod, hesap e-posta adresinize gönderildi. Mesajlarınızı kontrol edin ve aşağıya girin.';
 
   @override
   String get pinRecoveryComingSoon => 'Bu özellik yakında geliyor.';
 
   @override
   String get pinRecoveryNotAvailable =>
-      'PIN recovery by email is currently unavailable.';
+      'E-posta ile PIN kurtarma şu anda kullanılamıyor.';
 
   @override
   String get pinRecoveryCodeLabel => 'Kurtarma kodu';
@@ -627,10 +628,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get pinRecoveryCodeHint => '8 hane';
 
   @override
-  String get pinRecoveryVerifyButton => 'Doğrula';
+  String get pinRecoveryVerifyButton => 'Kodu doğrula';
 
   @override
-  String get pinRecoveryCodeInvalid => '8 haneli kodu girin';
+  String get pinRecoveryCodeInvalid => '8 haneli kodu girin.';
 
   @override
   String get pinRecoveryCodeExpired => 'Kurtarma kodunun süresi doldu';
@@ -655,10 +656,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get pinRecoveryConfirmPinHint => 'PIN’i tekrar girin';
 
   @override
-  String get pinRecoveryResetButton => 'PIN’i güncelle';
+  String get pinRecoveryResetButton => 'PIN’i sıfırla';
 
   @override
-  String get pinRecoveryPinInvalid => '4-6 haneli PIN girin';
+  String get pinRecoveryPinInvalid => '4 ila 6 haneli bir PIN girin.';
 
   @override
   String get pinRecoveryPinMismatch => 'PIN’ler eşleşmiyor';
@@ -667,10 +668,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get pinRecoveryResetSuccess => 'PIN güncellendi';
 
   @override
-  String get profilePinSaved => 'PIN saved.';
+  String get profilePinSaved => 'PIN kaydedildi.';
 
   @override
-  String get profilePinEditLabel => 'Edit PIN code';
+  String get profilePinEditLabel => 'PIN kodunu düzenle';
 
   @override
   String get settingsAccountsSection => 'Hesaplar';
@@ -694,10 +695,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get settingsPlaybackSection => 'Oynatma ayarları';
 
   @override
-  String get settingsPreferredAudioLanguage => 'Tercih edilen dil';
+  String get settingsPreferredAudioLanguage => 'Tercih edilen ses dili';
 
   @override
-  String get settingsPreferredSubtitleLanguage => 'Tercih edilen altyazılar';
+  String get settingsPreferredSubtitleLanguage => 'Tercih edilen altyazı dili';
 
   @override
   String get libraryPlaylistsFilter => 'Oynatma listeleri';
@@ -712,7 +713,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get librarySearchPlaceholder => 'Kütüphanemde ara...';
 
   @override
-  String get libraryInProgress => 'Devam ediyor';
+  String get libraryInProgress => 'İzlemeye devam et';
 
   @override
   String get libraryFavoriteMovies => 'Favori filmler';
@@ -762,7 +763,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return 'Devam et S$season B$episode';
+    return 'Devam et S$season · B$episode';
   }
 
   @override
@@ -800,7 +801,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get playlistPlayRandomly => 'Rastgele oynat';
 
   @override
-  String get playlistAddButton => 'Ekle';
+  String get playlistAddButton => 'Çalma listesine ekle';
 
   @override
   String get playlistSortButton => 'Sırala';
@@ -851,7 +852,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get playlistDeleteTitle => 'Sil';
+  String get playlistDeleteTitle => 'Çalma listesini sil';
 
   @override
   String playlistDeleteConfirm(String title) {
@@ -917,7 +918,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get authOtpSubtitle =>
-      'E‑posta adresinizi ve size gönderdiğimiz 8 haneli kodu girin.';
+      'E-posta adresinizi ve size gönderdiğimiz 8 haneli kodu girin.';
 
   @override
   String get authOtpEmailLabel => 'E‑posta';
@@ -936,7 +937,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get authOtpCodeHint => '8 haneli kod';
 
   @override
-  String get authOtpCodeHelp => 'E‑posta ile gelen 8 haneli kodu girin.';
+  String get authOtpCodeHelp => 'E-posta ile gönderilen 8 haneli kodu girin.';
 
   @override
   String get authOtpPrimarySend => 'Kodu gönder';
@@ -949,7 +950,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return '$seconds sn sonra tekrar gönder';
+    return '$seconds sn sonra yeniden gönder';
   }
 
   @override
@@ -1042,367 +1043,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get parentalUnlockButton => 'Kilidi aç';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => 'Bölümler yükleniyor…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      'Oynatma listesi yok. Bir tane oluşturun.';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      'Oynatma listeleri yüklenirken hata: \$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => 'Bağlantı açılamıyor';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => 'Tercih edilen kalite';
-
-  @override
-  String get hc_annuler_49ba3292 => 'İptal';
-
-  @override
-  String get hc_deconnexion_903dca17 => 'Çıkış yap';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 =>
-      'Çıkış yapılırken hata: \$e';
-
-  @override
-  String get hc_choisir_b030d590 => 'Seç';
-
-  @override
-  String get hc_avantages_08d7f47c => 'Avantajlar';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 =>
-      'Bildirim gönderildi. Teşekkürler.';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => 'Daha sonra';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => 'Şimdi yeniden başlat';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => 'Bu kaynak kullanılsın mı?';
-
-  @override
-  String get hc_utiliser_fb5e43ce => 'Kullan';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => 'Kaynak eklendi';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => 'Kilitli ayarlar';
-
-  @override
-  String get hc_compte_cloud_2812b31e => 'Bulut hesabı';
-
-  @override
-  String get hc_se_connecter_fedf2439 => 'Giriş yap';
-
-  @override
-  String get hc_propos_5345add5 => 'Hakkında';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => 'Gizlilik politikası';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => 'Kullanım koşulları';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => 'Kayıtlı kaynaklar';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => 'Yenile';
-
-  @override
-  String get hc_activer_une_source_749ced38 => 'Bir kaynak etkinleştir';
-
-  @override
-  String get hc_nom_source_9a3e4156 => 'Kaynak adı';
-
-  @override
-  String get hc_mon_iptv_b239352c => 'IPTV’m';
-
-  @override
-  String get hc_username_84c29015 => 'Kullanıcı adı';
-
-  @override
-  String get hc_password_8be3c943 => 'Şifre';
-
-  @override
-  String get hc_server_url_1d5d1eff => 'Sunucu URL’si';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'PIN doğrulaması';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => 'PIN belirle';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      'Abonelik teklifi bulunamadı: \$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      'Abonelik satın alma işlemi kullanıcı tarafından iptal edildi.';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      'Mağaza işlemi zaman aşımına uğradı: \$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 =>
-      'Handshake sırasında HTTP hatası';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'Xtream sunucusundan JSON olmayan yanıt';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f =>
-      'Xtream sunucusundan geçersiz yanıt';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 =>
-      'Bu kaynakta mevcut değil';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => 'Kaynak kaldırıldı';
-
-  @override
-  String get hc_source_modifiee_335ef502 => 'Kaynak güncellendi';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => 'PIN kodu belirle';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => 'İzlenmedi olarak işaretle';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 =>
-      'Çıkış yapmak istediğinize emin misiniz?';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      'Bulut senkronizasyonu için Movi Premium gerekir.';
-
-  @override
-  String get hc_auto_c614ba7c => 'Otomatik';
-
-  @override
-  String get hc_organiser_838a7e57 => 'Düzenle';
-
-  @override
-  String get hc_modifier_f260e757 => 'Düzenle';
-
-  @override
-  String get hc_ajouter_87c57ed1 => 'Ekle';
-
-  @override
-  String get hc_source_active_e571305e => 'Etkin kaynak';
-
-  @override
-  String get hc_autres_sources_e32592a6 => 'Diğer kaynaklar';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      'Bu içerik için bildirim kullanılamıyor.';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => 'İçerik güvenliği';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe =>
-      'Yaş derecelendirmeleri kontrol ediliyor…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => 'Tümünü gör';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => 'Bir sorun bildir';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      'Bu içerik uygun değilse ve kısıtlamalara rağmen erişilebildiyse, sorunu kısaca açıklayın.';
-
-  @override
-  String get hc_envoyer_e9ce243b => 'Gönder';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => 'Çocuk profili oluşturuldu';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      'Bir çocuk profili oluşturuldu. Uygulamayı güvene almak ve yaş derecelendirmelerini önceden yüklemek için uygulamayı yeniden başlatmanız önerilir.';
-
-  @override
-  String get hc_pseudo_4cf966c0 => 'Takma ad';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => 'Çocuk profili';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => 'Yaş sınırı';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'PIN kodu';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => 'PIN kodunu değiştir';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => 'PIN kodunu kaldır';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => 'PIN’i kaldır';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => 'Sil';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      'PIN gerektirir ve PEGI filtresini etkinleştirir.';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      'Bu kaynağı şimdi etkinleştirmek istiyor musunuz?';
-
-  @override
-  String get hc_application_b291beb8 => 'Uygulama';
-
-  @override
-  String get hc_version_1_0_0_347e553c => 'Sürüm 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => 'Katkıda bulunanlar';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      'Bu ürün TMDB API’sini kullanır ancak TMDB tarafından onaylanmamış veya sertifikalandırılmamıştır.';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      'Bu ürün TMDB API’sini kullanır ancak TMDB tarafından onaylanmamış veya sertifikalandırılmamıştır.';
-
-  @override
-  String get hc_verification_targets_d51632f8 => 'Doğrulama hedefleri';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 =>
-      'Geçiş efekti çerçeveyi yutmalı';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 =>
-      'Geçersiz Xtream streamId: ...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'Dizi xtream:... afiş eksik';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'Film ... bulunamadı ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... afiş eksik';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'İzleme listesi outbox yükü geçersiz.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'Bilinmeyen izleme listesi işlemi: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'Oynatma listesi outbox yükü geçersiz.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'Bilinmeyen oynatma listesi işlemi: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => 'Geçersiz URL';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'Eski IV eksik: eski şifreli metin çözülemiyor.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'Yenile\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'Menü\'';
-
-  @override
-  String get hc_retour_e5befb1f => 'Geri';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'Daha fazla işlem\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => 'Daha fazla işlem';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c => 'semanticLabel: \'Ara\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'Ekle\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
 
   @override
   String get actionOk => 'Tamam';
@@ -1559,7 +1199,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get settingsOffsetUnsupported =>
-      'Bu backend veya platformda desteklenmiyor.';
+      'Bu arka uçta veya platformda desteklenmiyor.';
 
   @override
   String get settingsSyncResetOffsets => 'Senkron gecikmelerini sıfırla';
@@ -1570,4 +1210,41 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get aboutCreditsSectionTitle => 'Katkıda bulunanlar';
+
+  @override
+  String get actionSend => 'Gönder';
+
+  @override
+  String get profilePinSetLabel => 'PIN kodu belirle';
+
+  @override
+  String get reportingProblemSentConfirmation =>
+      'Bildirim gönderildi. Teşekkürler.';
+
+  @override
+  String get reportingProblemBody =>
+      'Bu içerik uygun değilse ve kısıtlamalara rağmen erişilebildiyse, sorunu kısaca açıklayın.';
+
+  @override
+  String get reportingProblemExampleHint =>
+      'Örnek: PEGI 12 olmasına rağmen korku filmi görünüyor';
+
+  @override
+  String get settingsAutomaticOption => 'Otomatik';
+
+  @override
+  String get settingsPreferredPlaybackQuality =>
+      'Tercih edilen oynatma kalitesi';
+
+  @override
+  String settingsSignOutError(String error) {
+    return 'Oturum kapatılırken hata: $error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => 'Kullanım koşulları';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage =>
+      'Bulut senkronizasyonu için Movi Premium gerekir.';
 }

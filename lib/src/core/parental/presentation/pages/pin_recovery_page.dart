@@ -34,6 +34,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
   );
   final FocusNode _verifyFocusNode = FocusNode(debugLabel: 'PinRecoveryVerify');
   final FocusNode _resetFocusNode = FocusNode(debugLabel: 'PinRecoveryReset');
+  final FocusNode _resendFocusNode = FocusNode(debugLabel: 'PinRecoveryResend');
   ProviderSubscription<PinRecoveryUiState>? _pinRecoverySub;
 
   @override
@@ -71,7 +72,63 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
     _confirmPinFocusNode.dispose();
     _verifyFocusNode.dispose();
     _resetFocusNode.dispose();
+    _resendFocusNode.dispose();
     super.dispose();
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+    FocusNode? up,
+    FocusNode? down,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (moveTo(left)) return KeyEventResult.handled;
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        if (moveTo(right)) return KeyEventResult.handled;
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted) {
+      return false;
+    }
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) {
+      return false;
+    }
+    navigator.maybePop();
+    return true;
   }
 
   String? _statusErrorText(AppLocalizations l10n, PinRecoveryStatus? error) {
@@ -124,193 +181,280 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
         ? (isVerified ? _newPinFocusNode : _codeFocusNode)
         : _requestCodeFocusNode;
     final fallbackFocusNode = isVerified ? _resetFocusNode : _verifyFocusNode;
+    final firstContentFocusNode = showCodeStep
+        ? (isVerified ? _newPinFocusNode : _codeFocusNode)
+        : _requestCodeFocusNode;
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: initialFocusNode,
-        fallbackFocusNode: fallbackFocusNode,
-      ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!context.mounted) return false;
-        Navigator.of(context).maybePop();
-        return true;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
       },
-      debugLabel: 'PinRecoveryRouteFocus',
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                child: MoviSubpageBackTitleHeader(
-                  title: l10n.pinRecoveryTitle,
-                  focusNode: _backFocusNode,
-                  onBack: () => Navigator.of(context).maybePop(),
-                  pageHorizontalPadding: 0,
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    0,
-                    20,
-                    _contentBottomPadding,
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: initialFocusNode,
+          fallbackFocusNode: fallbackFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () => _handleBack(context),
+        debugLabel: 'PinRecoveryRouteFocus',
+        child: Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                  child: Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) => _handleDirectionalKey(
+                      event,
+                      down: firstContentFocusNode,
+                      blockUp: true,
+                    ),
+                    child: MoviSubpageBackTitleHeader(
+                      title: l10n.pinRecoveryTitle,
+                      focusNode: _backFocusNode,
+                      onBack: () => _handleBack(context),
+                      pageHorizontalPadding: 0,
+                    ),
                   ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: _formMaxWidth,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            l10n.pinRecoveryDescription,
-                            style: theme.textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          if (!showCodeStep)
-                            MoviPrimaryButton(
-                              label: l10n.pinRecoveryRequestCodeButton,
-                              focusNode: _requestCodeFocusNode,
-                              onPressed: controller.canRequestCode()
-                                  ? () => controller.requestCode(
-                                      profileId: widget.profileId,
-                                    )
-                                  : null,
-                              loading: isSending,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(
+                      20,
+                      0,
+                      20,
+                      _contentBottomPadding,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: _formMaxWidth,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              l10n.pinRecoveryDescription,
+                              style: theme.textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
                             ),
-                          if (showCodeStep) ...[
-                            if (state.status ==
-                                PinRecoveryUiStatus.codeSent) ...[
+                            const SizedBox(height: AppSpacing.lg),
+                            if (!showCodeStep)
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _backFocusNode,
+                                  blockDown: true,
+                                ),
+                                child: MoviPrimaryButton(
+                                  label: l10n.pinRecoveryRequestCodeButton,
+                                  focusNode: _requestCodeFocusNode,
+                                  onPressed: controller.canRequestCode()
+                                      ? () => controller.requestCode(
+                                          profileId: widget.profileId,
+                                        )
+                                      : null,
+                                  loading: isSending,
+                                ),
+                              ),
+                            if (showCodeStep) ...[
+                              if (state.status ==
+                                  PinRecoveryUiStatus.codeSent) ...[
+                                Text(
+                                  l10n.pinRecoveryCodeSentHint,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                              ],
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _backFocusNode,
+                                  down: isVerified
+                                      ? _newPinFocusNode
+                                      : _verifyFocusNode,
+                                ),
+                                child: TextField(
+                                  focusNode: _codeFocusNode,
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: isVerified
+                                      ? TextInputAction.next
+                                      : TextInputAction.done,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(8),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: l10n.pinRecoveryCodeLabel,
+                                    hintText: l10n.pinRecoveryCodeHint,
+                                  ),
+                                  onChanged: controller.setCode,
+                                  onSubmitted: (_) {
+                                    if (isVerified) {
+                                      _requestFocus(_newPinFocusNode);
+                                      return;
+                                    }
+                                    controller.verify();
+                                  },
+                                  enabled: !isVerifying && !isVerified,
+                                ),
+                              ),
+                            ],
+                            if (isVerified) ...[
+                              const SizedBox(height: AppSpacing.lg),
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _backFocusNode,
+                                  down: _confirmPinFocusNode,
+                                ),
+                                child: TextField(
+                                  focusNode: _newPinFocusNode,
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.next,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(6),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: l10n.pinRecoveryNewPinLabel,
+                                    hintText: l10n.pinRecoveryNewPinHint,
+                                  ),
+                                  onChanged: controller.setNewPin,
+                                  onSubmitted: (_) =>
+                                      _requestFocus(_confirmPinFocusNode),
+                                  enabled:
+                                      !isResetting &&
+                                      state.status !=
+                                          PinRecoveryUiStatus.resetSuccess,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _newPinFocusNode,
+                                  down: _resetFocusNode,
+                                ),
+                                child: TextField(
+                                  focusNode: _confirmPinFocusNode,
+                                  keyboardType: TextInputType.number,
+                                  textInputAction: TextInputAction.done,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                    LengthLimitingTextInputFormatter(6),
+                                  ],
+                                  decoration: InputDecoration(
+                                    labelText: l10n.pinRecoveryConfirmPinLabel,
+                                    hintText: l10n.pinRecoveryConfirmPinHint,
+                                  ),
+                                  onChanged: controller.setConfirmPin,
+                                  onSubmitted: (_) => controller.resetPin(),
+                                  enabled:
+                                      !isResetting &&
+                                      state.status !=
+                                          PinRecoveryUiStatus.resetSuccess,
+                                ),
+                              ),
+                            ],
+                            if (errorText != null) ...[
+                              const SizedBox(height: AppSpacing.md),
                               Text(
-                                l10n.pinRecoveryCodeSentHint,
+                                errorText,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                  color: theme.colorScheme.error,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: AppSpacing.md),
                             ],
-                            TextField(
-                              focusNode: _codeFocusNode,
-                              keyboardType: TextInputType.number,
-                              textInputAction: TextInputAction.done,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(8),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: l10n.pinRecoveryCodeLabel,
-                                hintText: l10n.pinRecoveryCodeHint,
-                              ),
-                              onChanged: controller.setCode,
-                              onSubmitted: (_) => controller.verify(),
-                              enabled: !isVerifying && !isVerified,
-                            ),
-                          ],
-                          if (isVerified) ...[
-                            const SizedBox(height: AppSpacing.lg),
-                            TextField(
-                              focusNode: _newPinFocusNode,
-                              keyboardType: TextInputType.number,
-                              textInputAction: TextInputAction.next,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(6),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: l10n.pinRecoveryNewPinLabel,
-                                hintText: l10n.pinRecoveryNewPinHint,
-                              ),
-                              onChanged: controller.setNewPin,
-                              onSubmitted: (_) =>
-                                  _confirmPinFocusNode.requestFocus(),
-                              enabled:
-                                  !isResetting &&
-                                  state.status !=
-                                      PinRecoveryUiStatus.resetSuccess,
-                            ),
                             const SizedBox(height: AppSpacing.md),
-                            TextField(
-                              focusNode: _confirmPinFocusNode,
-                              keyboardType: TextInputType.number,
-                              textInputAction: TextInputAction.done,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(6),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: l10n.pinRecoveryConfirmPinLabel,
-                                hintText: l10n.pinRecoveryConfirmPinHint,
+                            if (showCodeStep && !isVerified)
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _codeFocusNode,
+                                  down: _resendFocusNode,
+                                  blockLeft: true,
+                                  blockRight: true,
+                                ),
+                                child: MoviPrimaryButton(
+                                  label: l10n.pinRecoveryVerifyButton,
+                                  focusNode: _verifyFocusNode,
+                                  onPressed: controller.canVerify()
+                                      ? controller.verify
+                                      : null,
+                                  loading: isVerifying,
+                                ),
                               ),
-                              onChanged: controller.setConfirmPin,
-                              onSubmitted: (_) => controller.resetPin(),
-                              enabled:
-                                  !isResetting &&
-                                  state.status !=
-                                      PinRecoveryUiStatus.resetSuccess,
-                            ),
-                          ],
-                          if (errorText != null) ...[
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              errorText,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.error,
+                            if (showCodeStep && !isVerified) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _verifyFocusNode,
+                                  blockDown: true,
+                                  blockLeft: true,
+                                  blockRight: true,
+                                ),
+                                child: TextButton(
+                                  focusNode: _resendFocusNode,
+                                  onPressed:
+                                      state.cooldownRemaining == 0 &&
+                                          controller.canRequestCode()
+                                      ? () => controller.resendCode(
+                                          profileId: widget.profileId,
+                                        )
+                                      : null,
+                                  child: Text(
+                                    state.cooldownRemaining > 0
+                                        ? l10n.authOtpResendDisabled(
+                                            state.cooldownRemaining,
+                                          )
+                                        : l10n.authOtpResend,
+                                  ),
+                                ),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                          const SizedBox(height: AppSpacing.md),
-                          if (showCodeStep && !isVerified)
-                            MoviPrimaryButton(
-                              label: l10n.pinRecoveryVerifyButton,
-                              focusNode: _verifyFocusNode,
-                              onPressed: controller.canVerify()
-                                  ? controller.verify
-                                  : null,
-                              loading: isVerifying,
-                            ),
-                          if (showCodeStep && !isVerified) ...[
-                            const SizedBox(height: AppSpacing.xs),
-                            TextButton(
-                              onPressed:
-                                  state.cooldownRemaining == 0 &&
-                                      controller.canRequestCode()
-                                  ? () => controller.resendCode(
-                                      profileId: widget.profileId,
-                                    )
-                                  : null,
-                              child: Text(
-                                state.cooldownRemaining > 0
-                                    ? l10n.authOtpResendDisabled(
-                                        state.cooldownRemaining,
-                                      )
-                                    : l10n.authOtpResend,
+                            ],
+                            if (isVerified)
+                              Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: _confirmPinFocusNode,
+                                  blockDown: true,
+                                  blockLeft: true,
+                                  blockRight: true,
+                                ),
+                                child: MoviPrimaryButton(
+                                  label: l10n.pinRecoveryResetButton,
+                                  focusNode: _resetFocusNode,
+                                  onPressed: controller.canReset()
+                                      ? controller.resetPin
+                                      : null,
+                                  loading: isResetting,
+                                ),
                               ),
-                            ),
                           ],
-                          if (isVerified)
-                            MoviPrimaryButton(
-                              label: l10n.pinRecoveryResetButton,
-                              focusNode: _resetFocusNode,
-                              onPressed: controller.canReset()
-                                  ? controller.resetPin
-                                  : null,
-                              loading: isResetting,
-                            ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

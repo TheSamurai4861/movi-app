@@ -5,6 +5,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/profiles_providers.dart';
+import 'package:movi/src/core/profile/presentation/ui/dialogs/profile_dialog_focus_border.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/profile/presentation/ui/dialogs/restart_required_dialog.dart';
@@ -31,6 +32,9 @@ class CreateProfileDialog extends ConsumerStatefulWidget {
 
 class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
   final _nameController = TextEditingController();
+  late final FocusNode _pinButtonFocusNode;
+  late final FocusNode _cancelButtonFocusNode;
+  late final FocusNode _confirmButtonFocusNode;
   bool _isLoading = false;
   String? _error;
   bool _isKid = false;
@@ -39,8 +43,19 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
   String? _pinConfirmationMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _pinButtonFocusNode = FocusNode(debugLabel: 'CreateProfilePin');
+    _cancelButtonFocusNode = FocusNode(debugLabel: 'CreateProfileCancel');
+    _confirmButtonFocusNode = FocusNode(debugLabel: 'CreateProfileConfirm');
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
+    _pinButtonFocusNode.dispose();
+    _cancelButtonFocusNode.dispose();
+    _confirmButtonFocusNode.dispose();
     super.dispose();
   }
 
@@ -340,40 +355,46 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () async {
-                                if (!mounted) return;
-                                final pin = await showDialog<String>(
-                                  context: context,
-                                  builder: (ctx) => const _PinPromptDialog(
-                                    title: 'Définir un PIN',
-                                    confirmLabel: 'Valider',
-                                  ),
-                                );
-                                if (!mounted) return;
-                                final trimmed = pin?.trim();
-                                if (trimmed == null || trimmed.isEmpty) return;
-                                setState(() {
-                                  _pin = trimmed;
-                                  _error = null;
-                                  _pinConfirmationMessage =
-                                      l10n.profilePinSaved;
-                                });
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accentColor,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: Text(
-                          _pin == null
-                              ? l10n.hc_definir_code_pin_53a0bd07
-                              : l10n.profilePinEditLabel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                      child: ProfileDialogFocusBorder(
+                        focusNode: _pinButtonFocusNode,
+                        child: ElevatedButton(
+                          focusNode: _pinButtonFocusNode,
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  if (!mounted) return;
+                                  final pin = await showDialog<String>(
+                                    context: context,
+                                    builder: (ctx) => _PinPromptDialog(
+                                      title: l10n.profilePinSetLabel,
+                                      confirmLabel: l10n.actionConfirm,
+                                    ),
+                                  );
+                                  if (!mounted) return;
+                                  final trimmed = pin?.trim();
+                                  if (trimmed == null || trimmed.isEmpty) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _pin = trimmed;
+                                    _error = null;
+                                    _pinConfirmationMessage =
+                                        l10n.profilePinSaved;
+                                  });
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentColor,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: Text(
+                            _pin == null
+                                ? l10n.profilePinSetLabel
+                                : l10n.profilePinEditLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -407,46 +428,54 @@ class _CreateProfileDialogState extends ConsumerState<CreateProfileDialog> {
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => Navigator.of(context).pop(false),
-                      style: _destructiveCancelButtonStyle(),
-                      child: Text(
-                        l10n.actionCancel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                    child: ProfileDialogFocusBorder(
+                      focusNode: _cancelButtonFocusNode,
+                      child: OutlinedButton(
+                        focusNode: _cancelButtonFocusNode,
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.of(context).pop(false),
+                        style: _destructiveCancelButtonStyle(),
+                        child: Text(
+                          l10n.actionCancel,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: canCreate ? _createProfile : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accentColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: ProfileDialogFocusBorder(
+                      focusNode: _confirmButtonFocusNode,
+                      child: ElevatedButton(
+                        focusNode: _confirmButtonFocusNode,
+                        onPressed: canCreate ? _createProfile : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.actionConfirm,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              l10n.actionConfirm,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                     ),
                   ),
                 ],

@@ -196,9 +196,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
     if (!resolution.isAvailable || resolution.resolvedContentId == null) {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.hc_pas_disponible_sur_cette_source_fa6e19a7),
-        ),
+        SnackBar(content: Text(l10n.snackbarNotAvailableOnSource)),
       );
       return;
     }

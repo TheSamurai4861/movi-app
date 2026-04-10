@@ -136,6 +136,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       ShellTab.search,
       ShellTabFocusBinding(
         initialFocusNode: _focusNode,
+        fallbackFocusNode: _focusNode,
       ),
     );
 
@@ -182,7 +183,10 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void dispose() {
     final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    shellFocusCoordinator.unregisterTabFocusBinding(ShellTab.search, _focusNode);
+    shellFocusCoordinator.unregisterTabFocusBinding(
+      ShellTab.search,
+      _focusNode,
+    );
     HardwareKeyboard.instance.removeHandler(_handleSearchKeyboard);
     _historyHideTimer?.cancel();
     _textCtrl.removeListener(_onTextChangedLocal);
@@ -264,6 +268,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return _tryRequestFocus(_firstSagaResultFocusNode);
   }
 
+  bool _hasHistoryItems() {
+    return ref
+        .read(searchHistoryControllerProvider)
+        .maybeWhen(data: (items) => items.isNotEmpty, orElse: () => false);
+  }
+
   void _focusSearchContentBelow({bool preferHistory = false}) {
     if (!_hasQuery) {
       if (preferHistory && _tryRequestFocus(_firstHistoryItemFocusNode)) {
@@ -302,7 +312,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        _focusSearchContentBelow(preferHistory: _searchInputActivated);
+        _focusSearchContentBelow(preferHistory: _hasHistoryItems());
         return true;
       }
       return false;
@@ -320,7 +330,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        _focusSearchContentBelow(preferHistory: _searchInputActivated);
+        _focusSearchContentBelow();
         return true;
       }
     }
@@ -340,19 +350,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final historyMaxWidth = useDesktopLayout
         ? double.infinity
         : _historyMaxWidth(context);
+    final hasHistoryItems = ref
+        .watch(searchHistoryControllerProvider)
+        .maybeWhen(data: (items) => items.isNotEmpty, orElse: () => false);
     final showHistory =
         !_hasQuery &&
-        ((_focusNode.hasFocus && _searchInputActivated) ||
+        ((_focusNode.hasFocus && hasHistoryItems) ||
             _historySectionHasFocus ||
             _historyVisibilityLock);
-    final showWatchProviders =
-        ref
-            .watch(
-              canAccessPremiumFeatureProvider(
-                PremiumFeature.extendedDiscoveryDetails,
-              ),
-            )
-            .maybeWhen(data: (value) => value, orElse: () => false);
+    final showWatchProviders = ref
+        .watch(
+          canAccessPremiumFeatureProvider(
+            PremiumFeature.extendedDiscoveryDetails,
+          ),
+        )
+        .maybeWhen(data: (value) => value, orElse: () => false);
     final resultsListPadding = EdgeInsets.symmetric(
       horizontal: horizontalPadding,
     );
@@ -418,9 +430,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               clearTooltip: l10n.clear,
               onArrowLeft: _focusSidebarAndRemember,
               onArrowUp: _noop,
-              onArrowDown: () => _focusSearchContentBelow(
-                preferHistory: _searchInputActivated,
-              ),
+              onArrowDown: () =>
+                  _focusSearchContentBelow(preferHistory: hasHistoryItems),
               onArrowRight: () {
                 if (_textCtrl.text.isEmpty) return;
                 _tryRequestFocus(_clearFocusNode);
@@ -429,9 +440,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 _tryRequestFocus(_focusNode);
               },
               onClearArrowUp: _noop,
-              onClearArrowDown: () => _focusSearchContentBelow(
-                preferHistory: _searchInputActivated,
-              ),
+              onClearArrowDown: () => _focusSearchContentBelow(),
               onActivate: () => _setSearchInputActivated(true),
               onChanged: (value) {
                 _setSearchInputActivated(true);
@@ -440,7 +449,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 if (value.trim().length < 3) {
                   _pendingAutoFocusResultsQuery = null;
                   unawaited(
-                    ref.read(searchHistoryControllerProvider.notifier).refresh(),
+                    ref
+                        .read(searchHistoryControllerProvider.notifier)
+                        .refresh(),
                   );
                 }
               },
@@ -676,8 +687,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               maxContentWidth: historyMaxWidth,
                               useWideLayout: useDesktopLayout,
                               firstItemFocusNode: _firstHistoryItemFocusNode,
-                              focusVerticalAlignment:
-                                  _focusVerticalAlignment,
+                              focusVerticalAlignment: _focusVerticalAlignment,
                               onFocusChange: (hasFocus) {
                                 if (_historySectionHasFocus == hasFocus) {
                                   return;
@@ -688,7 +698,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                               },
                               onSelect: (q) {
                                 _textCtrl.text = q;
-                                _textCtrl.selection = TextSelection.fromPosition(
+                                _textCtrl
+                                    .selection = TextSelection.fromPosition(
                                   TextPosition(offset: _textCtrl.text.length),
                                 );
                                 _scheduleResultsAutoFocus(q);
@@ -742,7 +753,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 children: [
                   ...searchHeaderChildren,
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                    ),
                     child: Text(
                       state.error!,
                       style: TextStyle(
@@ -1416,10 +1429,7 @@ class _AnimatedSagaCardState extends State<_AnimatedSagaCard>
                 onFirstLeft();
                 return KeyEventResult.handled;
               },
-              child: _SagaCard(
-                saga: widget.saga,
-                focusNode: widget.focusNode,
-              ),
+              child: _SagaCard(saga: widget.saga, focusNode: widget.focusNode),
             ),
           ),
         );
@@ -1444,11 +1454,8 @@ class _SagaCard extends ConsumerWidget {
 
     return MoviFocusableAction(
       focusNode: focusNode,
-      onPressed: () => navigateToSagaDetail(
-        context,
-        ref,
-        sagaId: saga.id.value,
-      ),
+      onPressed: () =>
+          navigateToSagaDetail(context, ref, sagaId: saga.id.value),
       semanticLabel: saga.title.display,
       builder: (context, state) {
         return MoviFocusFrame(

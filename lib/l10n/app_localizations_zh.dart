@@ -70,7 +70,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String resultsCount(int count) {
-    return '（$count 个结果）';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条结果',
+      zero: '无结果',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -261,7 +267,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get libraryTypeSaga => '系列';
 
   @override
-  String get libraryTypeInProgress => '进行中';
+  String get libraryTypeInProgress => '继续观看';
 
   @override
   String get libraryTypeFavoriteMovies => '喜欢的电影';
@@ -509,7 +515,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String providerSearchPlaceholder(String provider) {
-    return '在 $provider 中搜索…';
+    return '搜索 $provider';
   }
 
   @override
@@ -589,21 +595,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinRecoveryTitle => '找回 PIN 码';
 
   @override
-  String get pinRecoveryDescription => '找回受保护资料的 PIN 码。';
+  String get pinRecoveryDescription => '通过你的账户邮箱接收验证码，以重设受保护个人资料的 PIN 码。';
 
   @override
-  String get pinRecoveryRequestCodeButton => 'Send code';
+  String get pinRecoveryRequestCodeButton => '傳送代碼';
 
   @override
-  String get pinRecoveryCodeSentHint =>
-      'Code sent to your account email. Check your messages and enter it below.';
+  String get pinRecoveryCodeSentHint => '代碼已傳送到你帳戶的電子郵件地址。請檢查訊息並在下方輸入。';
 
   @override
   String get pinRecoveryComingSoon => '该功能即将推出。';
 
   @override
-  String get pinRecoveryNotAvailable =>
-      'PIN recovery by email is currently unavailable.';
+  String get pinRecoveryNotAvailable => '目前無法透過電子郵件找回 PIN 碼。';
 
   @override
   String get pinRecoveryCodeLabel => '找回码';
@@ -612,10 +616,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinRecoveryCodeHint => '8 位数字';
 
   @override
-  String get pinRecoveryVerifyButton => '验证';
+  String get pinRecoveryVerifyButton => '验证代码';
 
   @override
-  String get pinRecoveryCodeInvalid => '请输入 8 位数字代码';
+  String get pinRecoveryCodeInvalid => '请输入 8 位数字验证码';
 
   @override
   String get pinRecoveryCodeExpired => '找回码已过期';
@@ -639,10 +643,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinRecoveryConfirmPinHint => '再次输入 PIN';
 
   @override
-  String get pinRecoveryResetButton => '更新 PIN';
+  String get pinRecoveryResetButton => '重设 PIN 码';
 
   @override
-  String get pinRecoveryPinInvalid => '请输入 4 到 6 位数字的 PIN';
+  String get pinRecoveryPinInvalid => '请输入 4 到 6 位数字 PIN 码';
 
   @override
   String get pinRecoveryPinMismatch => '两次输入的 PIN 不一致';
@@ -651,10 +655,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinRecoveryResetSuccess => 'PIN 已更新';
 
   @override
-  String get profilePinSaved => 'PIN saved.';
+  String get profilePinSaved => 'PIN 碼已儲存。';
 
   @override
-  String get profilePinEditLabel => 'Edit PIN code';
+  String get profilePinEditLabel => '編輯 PIN 碼';
 
   @override
   String get settingsAccountsSection => '账户';
@@ -678,10 +682,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsPlaybackSection => '播放设置';
 
   @override
-  String get settingsPreferredAudioLanguage => '首选语言';
+  String get settingsPreferredAudioLanguage => '首选音频语言';
 
   @override
-  String get settingsPreferredSubtitleLanguage => '首选字幕';
+  String get settingsPreferredSubtitleLanguage => '首选字幕语言';
 
   @override
   String get libraryPlaylistsFilter => '播放列表';
@@ -696,7 +700,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get librarySearchPlaceholder => '在我的资料库中搜索…';
 
   @override
-  String get libraryInProgress => '进行中';
+  String get libraryInProgress => '继续观看';
 
   @override
   String get libraryFavoriteMovies => '喜欢的电影';
@@ -746,7 +750,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return '继续播放 S$season E$episode';
+    return '继续观看 S$season · E$episode';
   }
 
   @override
@@ -784,7 +788,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playlistPlayRandomly => '随机播放';
 
   @override
-  String get playlistAddButton => '添加';
+  String get playlistAddButton => '添加到播放列表';
 
   @override
   String get playlistSortButton => '排序';
@@ -835,7 +839,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get playlistDeleteTitle => '删除';
+  String get playlistDeleteTitle => '删除播放列表';
 
   @override
   String playlistDeleteConfirm(String title) {
@@ -899,13 +903,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authOtpTitle => '登录';
 
   @override
-  String get authOtpSubtitle => '请输入邮箱和我们发送给你的 8 位验证码。';
+  String get authOtpSubtitle => '请输入邮箱地址以及我们发送给你的 8 位验证码。';
 
   @override
   String get authOtpEmailLabel => '邮箱';
 
   @override
-  String get authOtpEmailHint => 'your@email';
+  String get authOtpEmailHint => 'name@example.com';
 
   @override
   String get authOtpEmailHelp => '我们将发送 8 位验证码。如有需要请检查垃圾邮件。';
@@ -917,7 +921,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authOtpCodeHint => '8 位验证码';
 
   @override
-  String get authOtpCodeHelp => '请输入通过邮件收到的 8 位验证码。';
+  String get authOtpCodeHelp => '请输入通过电子邮件收到的 8 位验证码。';
 
   @override
   String get authOtpPrimarySend => '发送验证码';
@@ -930,7 +934,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return '$seconds 秒后可重发';
+    return '请在 $seconds 秒后重试';
   }
 
   @override
@@ -1019,358 +1023,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get parentalUnlockButton => '解锁';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => '正在加载剧集…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      '没有可用的播放列表。创建一个吧。';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      '加载播放列表失败：\$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => '无法打开链接';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => '首选画质';
-
-  @override
-  String get hc_annuler_49ba3292 => '取消';
-
-  @override
-  String get hc_deconnexion_903dca17 => '退出登录';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 => '退出登录失败：\$e';
-
-  @override
-  String get hc_choisir_b030d590 => '选择';
-
-  @override
-  String get hc_avantages_08d7f47c => '权益';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 => '举报已发送。谢谢。';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => '稍后';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => '立即重启';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => '使用此源？';
-
-  @override
-  String get hc_utiliser_fb5e43ce => '使用';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => '源已添加';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => '已锁定的设置';
-
-  @override
-  String get hc_compte_cloud_2812b31e => '云账户';
-
-  @override
-  String get hc_se_connecter_fedf2439 => '登录';
-
-  @override
-  String get hc_propos_5345add5 => '关于';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => '隐私政策';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => '使用条款';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => '已保存的源';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => '刷新';
-
-  @override
-  String get hc_activer_une_source_749ced38 => '启用源';
-
-  @override
-  String get hc_nom_source_9a3e4156 => '源名称';
-
-  @override
-  String get hc_mon_iptv_b239352c => '我的 IPTV';
-
-  @override
-  String get hc_username_84c29015 => '用户名';
-
-  @override
-  String get hc_password_8be3c943 => '密码';
-
-  @override
-  String get hc_server_url_1d5d1eff => '服务器 URL';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'PIN 验证';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => '设置 PIN';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      '未找到订阅商品：\$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      '订阅购买已被用户取消。';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      '商店操作超时：\$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 => '握手期间发生 HTTP 错误';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'Xtream 服务器返回非 JSON 响应';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f => 'Xtream 服务器返回无效响应';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 => '此源不可用';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => '源已移除';
-
-  @override
-  String get hc_source_modifiee_335ef502 => '源已更新';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => '设置 PIN 码';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => '标记为未看';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 => '确定要退出登录吗？';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      '云同步需要 Movi Premium。';
-
-  @override
-  String get hc_auto_c614ba7c => '自动';
-
-  @override
-  String get hc_organiser_838a7e57 => '整理';
-
-  @override
-  String get hc_modifier_f260e757 => '编辑';
-
-  @override
-  String get hc_ajouter_87c57ed1 => '添加';
-
-  @override
-  String get hc_source_active_e571305e => '活动源';
-
-  @override
-  String get hc_autres_sources_e32592a6 => '其他源';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      '此内容无法使用举报功能。';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => '正在保护内容';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe => '正在检查年龄分级…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => '查看全部';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => '举报问题';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      '如果内容不适宜且在限制下仍可访问，请简要描述问题。';
-
-  @override
-  String get hc_envoyer_e9ce243b => '发送';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => '已创建儿童资料';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      '已创建儿童资料。为保护应用并预加载年龄分级，建议重启应用。';
-
-  @override
-  String get hc_pseudo_4cf966c0 => '昵称';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => '儿童资料';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => '年龄限制';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'PIN 码';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => '更改 PIN 码';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => '移除 PIN 码';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => '移除 PIN';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => '删除';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      '需要 PIN 并启用 PEGI 过滤器。';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      '现在启用此源吗？';
-
-  @override
-  String get hc_application_b291beb8 => '应用';
-
-  @override
-  String get hc_version_1_0_0_347e553c => '版本 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => '致谢';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      '本产品使用 TMDB API，但未获得 TMDB 的认可或认证。';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      '本产品使用 TMDB API，但未获得 TMDB 的认可或认证。';
-
-  @override
-  String get hc_verification_targets_d51632f8 => '验证目标';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 => '渐变必须与画面自然融合';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 => '无效的 Xtream streamId：...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'Series xtream:... missing poster';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'Movie ... not found ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... missing poster';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'Invalid watchlist outbox payload.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'Unknown watchlist operation: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'Invalid playlist outbox payload.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'Unknown playlist operation: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => '无效的 URL';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'Missing legacy IV: cannot decrypt legacy ciphertext.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'刷新\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'菜单\'';
-
-  @override
-  String get hc_retour_e5befb1f => '返回';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'更多操作\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => '更多操作';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c => 'semanticLabel: \'搜索\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'添加\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
 
   @override
   String get actionOk => '确定';
@@ -1524,7 +1176,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsAudioOffsetTitle => '音频偏移';
 
   @override
-  String get settingsOffsetUnsupported => '此后端或平台不支持该功能。';
+  String get settingsOffsetUnsupported => '此后端或平台暂不支持此功能。';
 
   @override
   String get settingsSyncResetOffsets => '重置同步偏移';
@@ -1534,6 +1186,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aboutCreditsSectionTitle => '致谢';
+
+  @override
+  String get actionSend => '发送';
+
+  @override
+  String get profilePinSetLabel => '设置 PIN 码';
+
+  @override
+  String get reportingProblemSentConfirmation => '举报已发送。谢谢。';
+
+  @override
+  String get reportingProblemBody => '如果此内容不适宜且在限制下仍可访问，请简要描述问题。';
+
+  @override
+  String get reportingProblemExampleHint => '示例：PEGI 12 下仍能看到恐怖片';
+
+  @override
+  String get settingsAutomaticOption => '自动';
+
+  @override
+  String get settingsPreferredPlaybackQuality => '首选播放画质';
+
+  @override
+  String settingsSignOutError(String error) {
+    return '退出登录失败：$error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => '使用条款';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage => '云同步需要 Movi Premium。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1793,7 +1477,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get libraryTypeSaga => '系列';
 
   @override
-  String get libraryTypeInProgress => '进行中';
+  String get libraryTypeInProgress => '继续观看';
 
   @override
   String get libraryTypeFavoriteMovies => '喜欢的电影';
@@ -2121,10 +1805,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get pinRecoveryTitle => '找回 PIN 码';
 
   @override
-  String get pinRecoveryDescription => '找回受保护资料的 PIN 码。';
+  String get pinRecoveryDescription => '通过你的账户邮箱接收验证码，以重设受保护个人资料的 PIN 码。';
+
+  @override
+  String get pinRecoveryRequestCodeButton => '发送代码';
+
+  @override
+  String get pinRecoveryCodeSentHint => '代码已发送到你账户的电子邮箱。请检查消息并在下方输入。';
 
   @override
   String get pinRecoveryComingSoon => '该功能即将推出。';
+
+  @override
+  String get pinRecoveryNotAvailable => '当前无法通过电子邮件找回 PIN 码。';
 
   @override
   String get pinRecoveryCodeLabel => '找回码';
@@ -2133,10 +1826,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get pinRecoveryCodeHint => '8 位数字';
 
   @override
-  String get pinRecoveryVerifyButton => '验证';
+  String get pinRecoveryVerifyButton => '验证代码';
 
   @override
-  String get pinRecoveryCodeInvalid => '请输入 8 位数字代码';
+  String get pinRecoveryCodeInvalid => '请输入 8 位数字验证码';
 
   @override
   String get pinRecoveryCodeExpired => '找回码已过期';
@@ -2160,16 +1853,22 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get pinRecoveryConfirmPinHint => '再次输入 PIN';
 
   @override
-  String get pinRecoveryResetButton => '更新 PIN';
+  String get pinRecoveryResetButton => '重设 PIN 码';
 
   @override
-  String get pinRecoveryPinInvalid => '请输入 4 到 6 位数字的 PIN';
+  String get pinRecoveryPinInvalid => '请输入 4 到 6 位数字 PIN 码';
 
   @override
   String get pinRecoveryPinMismatch => '两次输入的 PIN 不一致';
 
   @override
   String get pinRecoveryResetSuccess => 'PIN 已更新';
+
+  @override
+  String get profilePinSaved => 'PIN 码已保存。';
+
+  @override
+  String get profilePinEditLabel => '编辑 PIN 码';
 
   @override
   String get settingsAccountsSection => '账户';
@@ -2193,10 +1892,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get settingsPlaybackSection => '播放设置';
 
   @override
-  String get settingsPreferredAudioLanguage => '首选语言';
+  String get settingsPreferredAudioLanguage => '首选音频语言';
 
   @override
-  String get settingsPreferredSubtitleLanguage => '首选字幕';
+  String get settingsPreferredSubtitleLanguage => '首选字幕语言';
 
   @override
   String get libraryPlaylistsFilter => '播放列表';
@@ -2211,7 +1910,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get librarySearchPlaceholder => '在我的资料库中搜索…';
 
   @override
-  String get libraryInProgress => '进行中';
+  String get libraryInProgress => '继续观看';
 
   @override
   String get libraryFavoriteMovies => '喜欢的电影';
@@ -2261,7 +1960,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return '继续播放 S$season E$episode';
+    return '继续观看 S$season · E$episode';
   }
 
   @override
@@ -2299,7 +1998,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get playlistPlayRandomly => '随机播放';
 
   @override
-  String get playlistAddButton => '添加';
+  String get playlistAddButton => '添加到播放列表';
 
   @override
   String get playlistSortButton => '排序';
@@ -2350,7 +2049,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String get playlistDeleteTitle => '删除';
+  String get playlistDeleteTitle => '删除播放列表';
 
   @override
   String playlistDeleteConfirm(String title) {
@@ -2414,7 +2113,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get authOtpTitle => '登录';
 
   @override
-  String get authOtpSubtitle => '请输入邮箱和我们发送给你的 8 位验证码。';
+  String get authOtpSubtitle => '请输入邮箱地址以及我们发送给你的 8 位验证码。';
 
   @override
   String get authOtpEmailLabel => '邮箱';
@@ -2432,7 +2131,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get authOtpCodeHint => '8 位验证码';
 
   @override
-  String get authOtpCodeHelp => '请输入通过邮件收到的 8 位验证码。';
+  String get authOtpCodeHelp => '请输入通过电子邮件收到的 8 位验证码。';
 
   @override
   String get authOtpPrimarySend => '发送验证码';
@@ -2445,7 +2144,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return '$seconds 秒后可重发';
+    return '请在 $seconds 秒后重试';
   }
 
   @override
@@ -2534,358 +2233,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get parentalUnlockButton => '解锁';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => '正在加载剧集…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      '没有可用的播放列表。创建一个吧。';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      '加载播放列表失败：\$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => '无法打开链接';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => '首选画质';
-
-  @override
-  String get hc_annuler_49ba3292 => '取消';
-
-  @override
-  String get hc_deconnexion_903dca17 => '退出登录';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 => '退出登录失败：\$e';
-
-  @override
-  String get hc_choisir_b030d590 => '选择';
-
-  @override
-  String get hc_avantages_08d7f47c => '权益';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 => '举报已发送。谢谢。';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => '稍后';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => '立即重启';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => '使用此源？';
-
-  @override
-  String get hc_utiliser_fb5e43ce => '使用';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => '源已添加';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => '已锁定的设置';
-
-  @override
-  String get hc_compte_cloud_2812b31e => '云账户';
-
-  @override
-  String get hc_se_connecter_fedf2439 => '登录';
-
-  @override
-  String get hc_propos_5345add5 => '关于';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => '隐私政策';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => '使用条款';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => '已保存的源';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => '刷新';
-
-  @override
-  String get hc_activer_une_source_749ced38 => '启用源';
-
-  @override
-  String get hc_nom_source_9a3e4156 => '源名称';
-
-  @override
-  String get hc_mon_iptv_b239352c => '我的 IPTV';
-
-  @override
-  String get hc_username_84c29015 => '用户名';
-
-  @override
-  String get hc_password_8be3c943 => '密码';
-
-  @override
-  String get hc_server_url_1d5d1eff => '服务器 URL';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'PIN 验证';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => '设置 PIN';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      '未找到订阅商品：\$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      '订阅购买已被用户取消。';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      '商店操作超时：\$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 => '握手期间发生 HTTP 错误';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'Xtream 服务器返回非 JSON 响应';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f => 'Xtream 服务器返回无效响应';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 => '此源不可用';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => '源已移除';
-
-  @override
-  String get hc_source_modifiee_335ef502 => '源已更新';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => '设置 PIN 码';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => '标记为未看';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 => '确定要退出登录吗？';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      '云同步需要 Movi Premium。';
-
-  @override
-  String get hc_auto_c614ba7c => '自动';
-
-  @override
-  String get hc_organiser_838a7e57 => '整理';
-
-  @override
-  String get hc_modifier_f260e757 => '编辑';
-
-  @override
-  String get hc_ajouter_87c57ed1 => '添加';
-
-  @override
-  String get hc_source_active_e571305e => '活动源';
-
-  @override
-  String get hc_autres_sources_e32592a6 => '其他源';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      '此内容无法使用举报功能。';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => '正在保护内容';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe => '正在检查年龄分级…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => '查看全部';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => '举报问题';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      '如果内容不适宜且在限制下仍可访问，请简要描述问题。';
-
-  @override
-  String get hc_envoyer_e9ce243b => '发送';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => '已创建儿童资料';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      '已创建儿童资料。为保护应用并预加载年龄分级，建议重启应用。';
-
-  @override
-  String get hc_pseudo_4cf966c0 => '昵称';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => '儿童资料';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => '年龄限制';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'PIN 码';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => '更改 PIN 码';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => '移除 PIN 码';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => '移除 PIN';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => '删除';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      '需要 PIN 并启用 PEGI 过滤器。';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      '现在启用此源吗？';
-
-  @override
-  String get hc_application_b291beb8 => '应用';
-
-  @override
-  String get hc_version_1_0_0_347e553c => '版本 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => '致谢';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      '本产品使用 TMDB API，但未获得 TMDB 的认可或认证。';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      '本产品使用 TMDB API，但未获得 TMDB 的认可或认证。';
-
-  @override
-  String get hc_verification_targets_d51632f8 => '验证目标';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 => '渐变必须与画面自然融合';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 => '无效的 Xtream streamId：...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'Series xtream:... missing poster';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'Movie ... not found ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... missing poster';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'Invalid watchlist outbox payload.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'Unknown watchlist operation: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'Invalid playlist outbox payload.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'Unknown playlist operation: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => '无效的 URL';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'Missing legacy IV: cannot decrypt legacy ciphertext.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'刷新\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'菜单\'';
-
-  @override
-  String get hc_retour_e5befb1f => '返回';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'更多操作\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => '更多操作';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c => 'semanticLabel: \'搜索\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'添加\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
 
   @override
   String get actionOk => '确定';
@@ -3039,7 +2386,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get settingsAudioOffsetTitle => '音频偏移';
 
   @override
-  String get settingsOffsetUnsupported => '此后端或平台不支持该功能。';
+  String get settingsOffsetUnsupported => '此后端或平台暂不支持此功能。';
 
   @override
   String get settingsSyncResetOffsets => '重置同步偏移';
@@ -3049,4 +2396,36 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get aboutCreditsSectionTitle => '致谢';
+
+  @override
+  String get actionSend => '发送';
+
+  @override
+  String get profilePinSetLabel => '设置 PIN 码';
+
+  @override
+  String get reportingProblemSentConfirmation => '举报已发送。谢谢。';
+
+  @override
+  String get reportingProblemBody => '如果此内容不适宜且在限制下仍可访问，请简要描述问题。';
+
+  @override
+  String get reportingProblemExampleHint => '示例：PEGI 12 下仍能看到恐怖片';
+
+  @override
+  String get settingsAutomaticOption => '自动';
+
+  @override
+  String get settingsPreferredPlaybackQuality => '首选播放画质';
+
+  @override
+  String settingsSignOutError(String error) {
+    return '退出登录失败：$error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => '使用条款';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage => '云同步需要 Movi Premium。';
 }

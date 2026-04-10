@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,7 +14,8 @@ import 'package:movi/src/core/state/app_event_bus.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
-import 'package:movi/src/features/home/presentation/providers/home_providers.dart' as hp;
+import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
+    as hp;
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/presentation/widgets/iptv_source_selection_list.dart';
@@ -31,7 +33,9 @@ class IptvSourceSelectPage extends ConsumerStatefulWidget {
 
 class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
   String? _switchingAccountId;
-  final FocusNode _backFocusNode = FocusNode(debugLabel: 'IptvSourceSelectBack');
+  final FocusNode _backFocusNode = FocusNode(
+    debugLabel: 'IptvSourceSelectBack',
+  );
   final List<FocusNode> _accountFocusNodes = <FocusNode>[];
 
   bool get _isSwitching => _switchingAccountId != null;
@@ -48,12 +52,53 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
   void _syncAccountFocusNodes(int count) {
     while (_accountFocusNodes.length < count) {
       _accountFocusNodes.add(
-        FocusNode(debugLabel: 'IptvSourceSelectItem${_accountFocusNodes.length}'),
+        FocusNode(
+          debugLabel: 'IptvSourceSelectItem${_accountFocusNodes.length}',
+        ),
       );
     }
     while (_accountFocusNodes.length > count) {
       _accountFocusNodes.removeLast().dispose();
     }
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? up,
+    FocusNode? down,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
   }
 
   Future<void> _activateSource(AnyIptvAccount account) async {
@@ -181,10 +226,29 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 16),
-                    MoviSubpageBackTitleHeader(
-                      title: l10n.activeSourceTitle,
-                      focusNode: _backFocusNode,
-                      onBack: _isSwitching ? null : () => context.pop(),
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        down: accountsAsync.maybeWhen(
+                          data: (accounts) {
+                            if (accounts.isEmpty) {
+                              return null;
+                            }
+                            _syncAccountFocusNodes(accounts.length);
+                            return _accountFocusNodes.first;
+                          },
+                          orElse: () => null,
+                        ),
+                        blockLeft: true,
+                        blockRight: true,
+                        blockUp: true,
+                      ),
+                      child: MoviSubpageBackTitleHeader(
+                        title: l10n.activeSourceTitle,
+                        focusNode: _backFocusNode,
+                        onBack: _isSwitching ? null : () => context.pop(),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Expanded(
@@ -218,6 +282,8 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
                             accounts: accounts,
                             selectedId: selectedId,
                             itemFocusNodes: _accountFocusNodes,
+                            onFirstItemUp: () => _requestFocus(_backFocusNode),
+                            onLastItemDown: () {},
                             onSelected: _activateSource,
                           );
                         },
@@ -230,10 +296,9 @@ class _IptvSourceSelectPageState extends ConsumerState<IptvSourceSelectPage> {
             if (_isSwitching)
               Positioned.fill(
                 child: ColoredBox(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .surface
-                      .withValues(alpha: 0.82),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.82),
                   child: const Center(child: CircularProgressIndicator()),
                 ),
               ),

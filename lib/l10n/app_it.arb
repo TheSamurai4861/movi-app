@@ -1,4 +1,5 @@
 {
+  "@@locale": "it",
   "welcomeTitle": "Benvenuto!",
   "welcomeSubtitle": "Compila le tue preferenze per personalizzare Movi.",
   "labelUsername": "Nickname",
@@ -19,7 +20,7 @@
   "historyTitle": "Cronologia",
   "historyEmpty": "Nessuna ricerca recente",
   "delete": "Elimina",
-  "resultsCount": "({count} risultati)",
+  "resultsCount": "{count, plural, =0{Nessun risultato} =1{1 risultato} other{{count} risultati}}",
   "@resultsCount": {
     "placeholders": {
       "count": {
@@ -127,7 +128,7 @@
   "actionViewPage": "Vedi pagina",
   "semanticsSeeSagaPage": "Vedi la pagina della saga",
   "libraryTypeSaga": "Saga",
-  "libraryTypeInProgress": "In corso",
+  "libraryTypeInProgress": "Continua a guardare",
   "libraryTypeFavoriteMovies": "Film preferiti",
   "libraryTypeFavoriteSeries": "Serie preferite",
   "libraryTypeHistory": "Cronologia",
@@ -260,7 +261,7 @@
   "actionSeeAll": "Vedi tutto",
   "actionExpand": "Espandi",
   "actionCollapse": "Riduci",
-  "providerSearchPlaceholder": "Cerca su {provider}...",
+  "providerSearchPlaceholder": "Cerca in {provider}",
   "@providerSearchPlaceholder": {
     "placeholders": {
       "provider": {
@@ -287,32 +288,6 @@
   "playlistPinned": "Playlist fissata",
   "playlistUnpinned": "Playlist non fissata",
   "playlistDeleted": "Playlist eliminata",
-  "movieNoPlaylistsAvailable": "Nessuna playlist disponibile",
-  "playlistAddedTo": "Aggiunto a \"{title}\"",
-  "@playlistAddedTo": {
-    "placeholders": {
-      "title": {
-        "type": "String"
-      }
-    }
-  },
-  "errorWithMessage": "Errore: {message}",
-  "@errorWithMessage": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
-  "movieNotAvailableInPlaylist": "Film non disponibile nella playlist",
-  "errorPlaybackFailed": "Errore durante la riproduzione del film: {message}",
-  "@errorPlaybackFailed": {
-    "placeholders": {
-      "message": {
-        "type": "String"
-      }
-    }
-  },
   "playlistCreatedSuccess": "Playlist \"{name}\" creata",
   "@playlistCreatedSuccess": {
     "placeholders": {
@@ -330,14 +305,17 @@
     }
   },
   "addedToPlaylist": "Aggiunto",
-  "pinRecoveryLink": "Récupérer le code PIN",
-  "pinRecoveryTitle": "Recupera codice PIN",
-  "pinRecoveryDescription": "Recupera il codice PIN del tuo profilo protetto.",
+  "pinRecoveryLink": "Recupera il PIN",
+  "pinRecoveryTitle": "Recupera il PIN",
+  "pinRecoveryDescription": "Ti invieremo un codice di 8 cifre all'indirizzo email del tuo account per reimpostare il PIN di questo profilo.",
+  "pinRecoveryRequestCodeButton": "Invia codice",
+  "pinRecoveryCodeSentHint": "Codice inviato all'e-mail del tuo account. Controlla i messaggi e inseriscilo qui sotto.",
   "pinRecoveryComingSoon": "Questa funzione arriverà presto.",
+  "pinRecoveryNotAvailable": "Il recupero del PIN tramite e-mail non è attualmente disponibile.",
   "pinRecoveryCodeLabel": "Codice di recupero",
   "pinRecoveryCodeHint": "8 cifre",
   "pinRecoveryVerifyButton": "Verifica",
-  "pinRecoveryCodeInvalid": "Inserisci il codice a 8 cifre",
+  "pinRecoveryCodeInvalid": "Inserisci il codice di recupero di 8 cifre",
   "pinRecoveryCodeExpired": "Il codice di recupero è scaduto",
   "pinRecoveryTooManyAttempts": "Troppi tentativi. Riprova più tardi.",
   "pinRecoveryUnknownError": "Si è verificato un errore imprevisto",
@@ -345,10 +323,12 @@
   "pinRecoveryNewPinHint": "4-6 cifre",
   "pinRecoveryConfirmPinLabel": "Conferma PIN",
   "pinRecoveryConfirmPinHint": "Ripeti il PIN",
-  "pinRecoveryResetButton": "Aggiorna PIN",
-  "pinRecoveryPinInvalid": "Inserisci un PIN di 4-6 cifre",
+  "pinRecoveryResetButton": "Reimposta PIN",
+  "pinRecoveryPinInvalid": "Inserisci un PIN da 4 a 6 cifre",
   "pinRecoveryPinMismatch": "I PIN non coincidono",
   "pinRecoveryResetSuccess": "PIN aggiornato",
+  "profilePinSaved": "PIN salvato.",
+  "profilePinEditLabel": "Modifica codice PIN",
   "settingsAccountsSection": "Account",
   "settingsIptvSection": "Impostazioni IPTV",
   "settingsSourcesManagement": "Gestione sorgenti",
@@ -356,13 +336,13 @@
   "settingsAppSection": "Impostazioni app",
   "settingsAccentColor": "Colore di accento",
   "settingsPlaybackSection": "Impostazioni di riproduzione",
-  "settingsPreferredAudioLanguage": "Lingua preferita",
-  "settingsPreferredSubtitleLanguage": "Sottotitoli preferiti",
+  "settingsPreferredAudioLanguage": "Lingua audio preferita",
+  "settingsPreferredSubtitleLanguage": "Lingua dei sottotitoli preferita",
   "libraryPlaylistsFilter": "Playlist",
   "librarySagasFilter": "Saghe",
   "libraryArtistsFilter": "Artisti",
   "librarySearchPlaceholder": "Cerca nella mia libreria...",
-  "libraryInProgress": "In corso",
+  "libraryInProgress": "Continua a guardare",
   "libraryFavoriteMovies": "Film preferiti",
   "libraryFavoriteSeries": "Serie preferite",
   "libraryWatchHistory": "Cronologia di visualizzazione",
@@ -391,7 +371,7 @@
     }
   },
   "tvNoEpisodesAvailable": "Nessun episodio disponibile",
-  "tvResumeSeasonEpisode": "Riprendi S{season} E{episode}",
+  "tvResumeSeasonEpisode": "Riprendi S{season} · E{episode}",
   "@tvResumeSeasonEpisode": {
     "placeholders": {
       "season": {
@@ -433,7 +413,7 @@
   "playlistSortButton": "Ordina",
   "playlistSortByTitle": "Ordina per",
   "playlistSortByTitleOption": "Titolo",
-  "playlistSortRecentAdditions": "Aggiunte recenti",
+  "playlistSortRecentAdditions": "Aggiunti di recente",
   "playlistSortOldestFirst": "Più vecchi prima",
   "playlistSortNewestFirst": "Più recenti prima",
   "playlistEmptyMessage": "Nessun elemento in questa playlist",
@@ -465,7 +445,7 @@
       }
     }
   },
-  "playlistDeleteTitle": "Elimina",
+  "playlistDeleteTitle": "Elimina playlist",
   "playlistDeleteConfirm": "Sei sicuro di voler eliminare \"{title}\"?",
   "@playlistDeleteConfirm": {
     "placeholders": {
@@ -487,22 +467,48 @@
   "categoryLoadFailed": "Errore nel caricamento della categoria.",
   "categoryEmpty": "Nessun elemento in questa categoria.",
   "categoryLoadingMore": "Caricamento in corso…",
+  "movieNoPlaylistsAvailable": "Nessuna playlist disponibile",
+  "playlistAddedTo": "Aggiunto a \"{title}\"",
+  "@playlistAddedTo": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWithMessage": "Errore: {message}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "movieNotAvailableInPlaylist": "Film non disponibile nella playlist",
+  "errorPlaybackFailed": "Errore durante la riproduzione del film: {message}",
+  "@errorPlaybackFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "movieNoMedia": "Nessun contenuto da mostrare",
   "personNoData": "Nessuna persona da mostrare.",
   "personGenericError": "Si è verificato un errore durante il caricamento di questa persona.",
   "personBiographyTitle": "Biografia",
   "authOtpTitle": "Accedi",
-  "authOtpSubtitle": "Inserisci la tua email e il codice a 8 cifre che ti inviamo.",
+  "authOtpSubtitle": "Inserisci il tuo indirizzo email e il codice di 8 cifre che ti invieremo.",
   "authOtpEmailLabel": "Email",
-  "authOtpEmailHint": "tu@email",
+  "authOtpEmailHint": "nome@esempio.com",
   "authOtpEmailHelp": "Ti invieremo un codice a 8 cifre. Controlla lo spam se necessario.",
   "authOtpCodeLabel": "Codice di verifica",
   "authOtpCodeHint": "Codice a 8 cifre",
-  "authOtpCodeHelp": "Inserisci il codice a 8 cifre ricevuto via email.",
+  "authOtpCodeHelp": "Inserisci il codice di 8 cifre ricevuto via email.",
   "authOtpPrimarySend": "Invia codice",
   "authOtpPrimarySubmit": "Accedi",
   "authOtpResend": "Reinvia codice",
-  "authOtpResendDisabled": "Reinvia codice tra {seconds}s",
+  "authOtpResendDisabled": "Reinvia il codice tra {seconds} s",
   "@authOtpResendDisabled": {
     "placeholders": {
       "seconds": {
@@ -559,116 +565,18 @@
   "parentalReasonUnknownRating": "La classificazione per età di questo contenuto non è disponibile.",
   "parentalReasonInvalidTmdbId": "Questo contenuto non può essere valutato per il controllo parentale.",
   "parentalUnlockButton": "Sblocca",
-  "hc_arb_dir_4de4827b": "arb-dir",
-  "hc_template_arb_file_eeae5194": "template-arb-file",
-  "hc_output_localization_file_ed018380": "output-localization-file",
-  "hc_output_class_f1ae6b52": "output-class",
-  "hc_applocalizations_878fdc50": "AppLocalizations",
-  "hc_untranslated_messages_file_fa6a22b7": "untranslated-messages-file",
-  "hc_chargement_episodes_en_cours_33fc4ace": "Caricamento episodi…",
-  "hc_aucune_playlist_disponible_creez_en_une_f6b75c90": "Nessuna playlist disponibile. Creane una.",
-  "hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3": "Errore durante il caricamento delle playlist: $e",
-  "hc_impossible_douvrir_lien_90d0dcaa": "Impossibile aprire il link",
-  "hc_qualite_preferee_776dbeea": "Qualità preferita",
-  "hc_annuler_49ba3292": "Cancel",
-  "hc_deconnexion_903dca17": "Disconnetti",
-  "hc_erreur_lors_deconnexion_placeholder_f5a211b4": "Errore durante la disconnessione: $e",
-  "hc_choisir_b030d590": "Choose",
-  "hc_avantages_08d7f47c": "Benefits",
-  "hc_signalement_envoye_merci_d302e576": "Segnalazione inviata. Grazie.",
-  "hc_plus_tard_1f42ab3b": "Più tardi",
-  "hc_redemarrer_maintenant_053e8e68": "Riavvia ora",
-  "hc_utiliser_cette_source_c6c8bbc5": "Usare questa sorgente?",
-  "hc_utiliser_fb5e43ce": "Use",
-  "hc_source_ajout_e_e41b01d9": "Sorgente aggiunta",
-  "hc_title_0a57b7eb": "title: '...'",
-  "hc_labeltext_469a28db": "labelText: '...'",
-  "hc_hinttext_6fd1d945": "hintText: '...'",
-  "hc_tooltip_db0de3fe": "tooltip: '...'",
-  "hc_parametres_verrouilles_3a9b1b51": "Impostazioni bloccate",
-  "hc_compte_cloud_2812b31e": "Account cloud",
-  "hc_se_connecter_fedf2439": "Accedi",
-  "hc_propos_5345add5": "Informazioni",
-  "hc_politique_confidentialite_42b0e51e": "Informativa sulla privacy",
-  "hc_conditions_dutilisation_9074eac7": "Termini di utilizzo",
-  "hc_sources_sauvegardees_9f1382e5": "Sorgenti salvate",
-  "hc_rafraichir_be30b7d1": "Aggiorna",
-  "hc_activer_une_source_749ced38": "Attiva una sorgente",
-  "hc_nom_source_9a3e4156": "Nome della sorgente",
-  "hc_mon_iptv_b239352c": "Il mio IPTV",
-  "hc_username_84c29015": "Nome utente",
-  "hc_password_8be3c943": "Password",
-  "hc_server_url_1d5d1eff": "URL del server",
-  "hc_verification_pin_e17c8fe0": "Verifica PIN",
-  "hc_definir_un_pin_f9c2178d": "Imposta un PIN",
-  "hc_pin_3adadd31": "PIN",
-  "hc_message_9ff08507": "message: '...'",
-  "hc_subscription_offer_not_found_placeholder_d07ac9d3": "Subscription offer not found: $offerId.",
-  "hc_subscription_purchase_was_cancelled_by_user_443e1dab": "The subscription purchase was cancelled by the user.",
-  "hc_store_operation_timed_out_placeholder_6c3f9df2": "The store operation timed out: $operation.",
-  "hc_erreur_http_lors_handshake_02db57b2": "HTTP error during handshake",
-  "hc_reponse_non_json_serveur_xtream_e896b8df": "Non-JSON response from Xtream server",
-  "hc_reponse_invalide_serveur_xtream_afc0955f": "Invalid response from Xtream server",
-  "hc_rg_exe_af0d2be6": "rg.exe",
-  "hc_alertdialog_5a747a86": "AlertDialog",
-  "hc_cupertinoalertdialog_3ed27f52": "CupertinoAlertDialog",
-  "hc_pas_disponible_sur_cette_source_fa6e19a7": "Non disponibile su questa sorgente",
-  "hc_source_supprimee_4bfaa0a1": "Sorgente rimossa",
-  "hc_source_modifiee_335ef502": "Sorgente aggiornata",
-  "hc_definir_code_pin_53a0bd07": "Imposta codice PIN",
-  "hc_marquer_comme_non_vu_9cf9d3f8": "Segna come non visto",
-  "hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661": "Vuoi davvero disconnetterti?",
-  "hc_movi_premium_requis_pour_synchronisation_cloud_15b551df": "Movi Premium è richiesto per la sincronizzazione cloud.",
-  "hc_auto_c614ba7c": "Auto",
-  "hc_organiser_838a7e57": "Organizza",
-  "hc_modifier_f260e757": "Modifica",
-  "hc_ajouter_87c57ed1": "Aggiungi",
-  "hc_source_active_e571305e": "Sorgente attiva",
-  "hc_autres_sources_e32592a6": "Altre sorgenti",
-  "hc_signalement_indisponible_pour_ce_contenu_d9ad88b7": "La segnalazione non è disponibile per questo contenuto.",
-  "hc_securisation_contenu_e5195111": "Protezione del contenuto",
-  "hc_verification_classifications_d_age_006eebfe": "Verifica delle classificazioni d'età…",
-  "hc_voir_tout_7b7d86e8": "Vedi tutto",
-  "hc_signaler_un_probleme_13183c0f": "Segnala un problema",
-  "hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436": "Se questo contenuto non è appropriato ed è stato accessibile nonostante le restrizioni, descrivi brevemente il problema.",
-  "hc_envoyer_e9ce243b": "Invia",
-  "hc_profil_enfant_cree_39f4eb7d": "Profilo bambino creato",
-  "hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a": "È stato creato un profilo bambino. Per proteggere l’app e pre-caricare le classificazioni d’età, si consiglia di riavviare l’app.",
-  "hc_pseudo_4cf966c0": "Soprannome",
-  "hc_profil_enfant_2c8a01c0": "Profilo bambino",
-  "hc_limite_d_age_5b170fc9": "Limite di età",
-  "hc_code_pin_e79c48bd": "Codice PIN",
-  "hc_changer_code_pin_3b069731": "Cambia codice PIN",
-  "hc_supprimer_code_pin_0dcf8a48": "Rimuovi codice PIN",
-  "hc_supprimer_pin_51850c7b": "Rimuovi PIN",
-  "hc_supprimer_1acfc1c7": "Elimina",
-  "hc_oblige_un_pin_active_filtre_pegi_8447ac9b": "Richiede un PIN e attiva il filtro PEGI.",
-  "hc_voulez_vous_activer_cette_source_maintenant_f2593894": "Vuoi attivare questa sorgente adesso?",
-  "hc_application_b291beb8": "App",
-  "hc_version_1_0_0_347e553c": "Version 1.0.0",
-  "hc_credits_293a6081": "Crediti",
-  "hc_this_product_uses_tmdb_api_but_is_not_0033d77f": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
-  "hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a": "Questo prodotto utilizza l’API di TMDB ma non è approvato né certificato da TMDB.",
-  "hc_verification_targets_d51632f8": "Verification targets",
-  "hc_fade_must_eat_frame_5f1bfc77": "The fade must eat the frame",
-  "hc_invalid_xtream_streamid_eb04e9f9": "Invalid Xtream streamId: ...",
-  "hc_series_xtream_missing_poster_065b5103": "Series xtream:... missing poster",
-  "hc_movie_not_found_a7fe72d9": "Movie ... not found ...",
-  "hc_missing_poster_1c9ba558": "... missing poster",
-  "hc_invalid_watchlist_outbox_payload_327ac6c3": "Invalid watchlist outbox payload.",
-  "hc_unknown_watchlist_operation_e9259c07": "Unknown watchlist operation: ...",
-  "hc_invalid_playlist_outbox_payload_2d76e64f": "Invalid playlist outbox payload.",
-  "hc_unknown_playlist_operation_c98cbd41": "Unknown playlist operation: ...",
-  "hc_url_invalide_aa227a66": "URL non valido",
-  "hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3": "Missing legacy IV: cannot decrypt legacy ciphertext.",
-  "hc_tooltip_rafraichir_a22b17e3": "tooltip: 'Aggiorna'",
-  "hc_tooltip_menu_d8fa6679": "tooltip: 'Menu'",
-  "hc_retour_e5befb1f": "Indietro",
-  "hc_semanticlabel_plus_d_actions_1bd19eb6": "semanticLabel: 'Altre azioni'",
-  "hc_plus_d_actions_ffe6be2a": "Altre azioni",
-  "hc_semanticlabel_rechercher_3ae4e02c": "semanticLabel: 'Cerca'",
-  "hc_semanticlabel_ajouter_ac362a68": "semanticLabel: 'Aggiungi'",
-  "hc_l10n_86d50bf0": "l10n.*",
+  "@navHome": {
+    "description": "Sidebar navigation label: Home tab"
+  },
+  "@navSearch": {
+    "description": "Sidebar navigation label: Search tab"
+  },
+  "@navLibrary": {
+    "description": "Sidebar navigation label: Library tab"
+  },
+  "@navSettings": {
+    "description": "Sidebar navigation label: Settings tab"
+  },
   "actionOk": "OK",
   "actionSignOut": "Disconnetti",
   "dialogSignOutBody": "Vuoi davvero disconnetterti?",
@@ -719,8 +627,26 @@
   "settingsSyncSectionTitle": "Sincronizzazione audio/sottotitoli",
   "settingsSubtitleOffsetTitle": "Offset sottotitoli",
   "settingsAudioOffsetTitle": "Offset audio",
-  "settingsOffsetUnsupported": "Non supportato su questo backend o piattaforma.",
+  "settingsOffsetUnsupported": "Non supportato da questo backend o da questa piattaforma.",
   "settingsSyncResetOffsets": "Reimposta offset di sincronizzazione",
   "aboutTmdbDisclaimer": "Questo prodotto utilizza l'API di TMDB ma non è approvato né certificato da TMDB.",
   "aboutCreditsSectionTitle": "Crediti"
+,
+  "actionSend": "Invia",
+  "profilePinSetLabel": "Imposta codice PIN",
+  "reportingProblemSentConfirmation": "Segnalazione inviata. Grazie.",
+  "reportingProblemBody": "Se questo contenuto non è appropriato ed è stato accessibile nonostante le restrizioni, descrivi brevemente il problema.",
+  "reportingProblemExampleHint": "Esempio: film horror visibile nonostante PEGI 12",
+  "settingsAutomaticOption": "Automatico",
+  "settingsPreferredPlaybackQuality": "Qualità di riproduzione preferita",
+  "settingsSignOutError": "Errore durante la disconnessione: {error}",
+  "@settingsSignOutError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsTermsOfUseTitle": "Condizioni d'uso",
+  "settingsCloudSyncPremiumRequiredMessage": "Movi Premium è richiesto per la sincronizzazione cloud."
 }

@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
@@ -38,6 +41,15 @@ class WelcomeSourceLoadingPage extends ConsumerStatefulWidget {
 class _WelcomeSourceLoadingPageState
     extends ConsumerState<WelcomeSourceLoadingPage> {
   static const Duration _catalogRefreshTimeout = Duration(seconds: 20);
+  final FocusNode _loadingFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceLoadingSurface',
+  );
+  final FocusNode _retryFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceLoadingRetry',
+  );
+  final FocusNode _selectSourceFocusNode = FocusNode(
+    debugLabel: 'WelcomeSourceLoadingSelectSource',
+  );
   String? _error;
   bool _isLoading = true;
   bool _showSourceSelectionAction = false;
@@ -52,6 +64,41 @@ class _WelcomeSourceLoadingPageState
   void initState() {
     super.initState();
     unawaited(_loadCatalog());
+  }
+
+  @override
+  void dispose() {
+    _loadingFocusNode.dispose();
+    _retryFocusNode.dispose();
+    _selectSourceFocusNode.dispose();
+    super.dispose();
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  void _requestErrorEntryFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_requestFocus(_retryFocusNode)) {
+        return;
+      }
+      if (_showSourceSelectionAction) {
+        _requestFocus(_selectSourceFocusNode);
+      }
+    });
+  }
+
+  void _handleBack() {
+    final targetRoute = _showSourceSelectionAction
+        ? AppRouteNames.welcomeSourceSelect
+        : AppRouteNames.welcomeSources;
+    context.go(targetRoute);
   }
 
   Future<void> _loadCatalog() async {
@@ -111,6 +158,7 @@ class _WelcomeSourceLoadingPageState
           _showSourceSelectionAction =
               sourceResolution.showSourceSelectionAction;
         });
+        _requestErrorEntryFocus();
         return;
       }
 
@@ -328,6 +376,7 @@ class _WelcomeSourceLoadingPageState
               activeSourceIds: activeSources,
             );
       });
+      _requestErrorEntryFocus();
     }
   }
 
@@ -385,28 +434,58 @@ class _WelcomeSourceLoadingPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          const Center(child: WelcomeSourceLoadingLogo()),
-          WelcomeSourceLoadingContent(
-            isLoading: _isLoading,
-            statusMessage: _statusMessage,
-            error: _error,
-            onRetry: () {
-              setState(() {
-                _error = null;
-              });
-              unawaited(_loadCatalog());
-            },
-            onSelectSource: _showSourceSelectionAction
-                ? () => context.go(AppRouteNames.welcomeSourceSelect)
-                : null,
-            showHeader: false,
-            mainAxisAlignment: MainAxisAlignment.end,
-            bottomPadding: AppSpacing.lg,
+    final initialFocusNode = _error != null
+        ? _retryFocusNode
+        : _loadingFocusNode;
+    final fallbackFocusNode = _error != null && _showSourceSelectionAction
+        ? _selectSourceFocusNode
+        : initialFocusNode;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack();
+      },
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: initialFocusNode,
+          fallbackFocusNode: fallbackFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () {
+          if (!mounted) return false;
+          _handleBack();
+          return true;
+        },
+        debugLabel: 'WelcomeSourceLoadingRouteFocus',
+        child: Scaffold(
+          body: Stack(
+            children: [
+              const Center(child: WelcomeSourceLoadingLogo()),
+              WelcomeSourceLoadingContent(
+                isLoading: _isLoading,
+                statusMessage: _statusMessage,
+                error: _error,
+                loadingFocusNode: _loadingFocusNode,
+                retryFocusNode: _retryFocusNode,
+                selectSourceFocusNode: _selectSourceFocusNode,
+                onRetry: () {
+                  setState(() {
+                    _error = null;
+                  });
+                  unawaited(_loadCatalog());
+                },
+                onSelectSource: _showSourceSelectionAction
+                    ? () => context.go(AppRouteNames.welcomeSourceSelect)
+                    : null,
+                showHeader: false,
+                mainAxisAlignment: MainAxisAlignment.end,
+                bottomPadding: AppSpacing.lg,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -542,6 +621,9 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
     required this.isLoading,
     required this.statusMessage,
     required this.error,
+    this.loadingFocusNode,
+    this.retryFocusNode,
+    this.selectSourceFocusNode,
     this.onRetry,
     this.onSelectSource,
     this.onContinueAnyway,
@@ -553,6 +635,9 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
   final bool isLoading;
   final String statusMessage;
   final String? error;
+  final FocusNode? loadingFocusNode;
+  final FocusNode? retryFocusNode;
+  final FocusNode? selectSourceFocusNode;
   final VoidCallback? onRetry;
   final VoidCallback? onSelectSource;
   final VoidCallback? onContinueAnyway;
@@ -566,7 +651,10 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
 
     if (isLoading) {
       // Unifier le rendu avec le splash de lancement (logo + spinner + message en bas).
-      return OverlaySplash(message: statusMessage);
+      return Focus(
+        focusNode: loadingFocusNode,
+        child: OverlaySplash(message: statusMessage),
+      );
     }
 
     return SafeArea(
@@ -605,19 +693,63 @@ class WelcomeSourceLoadingContent extends ConsumerWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  ElevatedButton.icon(
-                    onPressed: onRetry,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Réessayer'),
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: accentColor,
+                  Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) {
+                      if (event is! KeyDownEvent) {
+                        return KeyEventResult.ignored;
+                      }
+                      if (event.logicalKey == LogicalKeyboardKey.arrowDown &&
+                          onSelectSource != null &&
+                          selectSourceFocusNode != null &&
+                          selectSourceFocusNode!.canRequestFocus &&
+                          selectSourceFocusNode!.context != null) {
+                        selectSourceFocusNode!.requestFocus();
+                        return KeyEventResult.handled;
+                      }
+                      if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                          event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                        return KeyEventResult.handled;
+                      }
+                      return KeyEventResult.ignored;
+                    },
+                    child: ElevatedButton.icon(
+                      focusNode: retryFocusNode,
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Réessayer'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: accentColor,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   if (onSelectSource != null)
-                    OutlinedButton(
-                      onPressed: onSelectSource,
-                      child: const Text('Choisir une autre source'),
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) {
+                        if (event is! KeyDownEvent) {
+                          return KeyEventResult.ignored;
+                        }
+                        if (event.logicalKey == LogicalKeyboardKey.arrowUp &&
+                            retryFocusNode != null &&
+                            retryFocusNode!.canRequestFocus &&
+                            retryFocusNode!.context != null) {
+                          retryFocusNode!.requestFocus();
+                          return KeyEventResult.handled;
+                        }
+                        if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                            event.logicalKey == LogicalKeyboardKey.arrowRight ||
+                            event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: OutlinedButton(
+                        focusNode: selectSourceFocusNode,
+                        onPressed: onSelectSource,
+                        child: const Text('Choisir une autre source'),
+                      ),
                     ),
                   if (onSelectSource != null)
                     const SizedBox(height: AppSpacing.md),

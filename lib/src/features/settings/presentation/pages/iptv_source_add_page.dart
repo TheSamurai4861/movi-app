@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
+import 'package:movi/src/core/focus/movi_overlay_focus_scope.dart';
+import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
-import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/core/widgets/movi_asset_icon.dart';
-import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
 import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 import 'package:movi/src/features/settings/presentation/pages/xtream_source_test_page.dart';
@@ -39,6 +41,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   final _serverFocusNode = FocusNode(debugLabel: 'AddSourceServer');
   final _userFocusNode = FocusNode(debugLabel: 'AddSourceUser');
   final _passFocusNode = FocusNode(debugLabel: 'AddSourcePassword');
+  final _backFocusNode = FocusNode(debugLabel: 'AddSourceBack');
   final _submitFocusNode = FocusNode(debugLabel: 'AddSourceSubmit');
 
   bool _hasSubmitted = false;
@@ -67,8 +70,64 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     _serverFocusNode.dispose();
     _userFocusNode.dispose();
     _passFocusNode.dispose();
+    _backFocusNode.dispose();
     _submitFocusNode.dispose();
     super.dispose();
+  }
+
+  bool _requestFocus(FocusNode node) {
+    if (!node.canRequestFocus || node.context == null) {
+      return false;
+    }
+    node.requestFocus();
+    return true;
+  }
+
+  KeyEventResult _handleDirectionalKey(
+    KeyEvent event, {
+    FocusNode? left,
+    FocusNode? right,
+    FocusNode? up,
+    FocusNode? down,
+    bool blockLeft = true,
+    bool blockRight = true,
+    bool blockUp = true,
+    bool blockDown = true,
+  }) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+
+    bool moveTo(FocusNode? node) => node != null && _requestFocus(node);
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+        if (moveTo(left)) return KeyEventResult.handled;
+        return blockLeft ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowRight:
+        if (moveTo(right)) return KeyEventResult.handled;
+        return blockRight ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowUp:
+        if (moveTo(up)) return KeyEventResult.handled;
+        return blockUp ? KeyEventResult.handled : KeyEventResult.ignored;
+      case LogicalKeyboardKey.arrowDown:
+        if (moveTo(down)) return KeyEventResult.handled;
+        return blockDown ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted) {
+      return false;
+    }
+    final navigator = Navigator.of(context);
+    if (!navigator.canPop()) {
+      return false;
+    }
+    navigator.maybePop();
+    return true;
   }
 
   Future<void> _submit() async {
@@ -98,23 +157,8 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
       if (!mounted) return;
       final useNow = await showDialog<bool>(
         context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text('Utiliser cette source ?'),
-            content: const Text(
-              'Voulez-vous activer cette source maintenant ?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Plus tard'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Utiliser'),
-              ),
-            ],
-          );
+        builder: (dialogContext) {
+          return _UseSourceNowDialog(triggerFocusNode: _submitFocusNode);
         },
       );
 
@@ -172,7 +216,9 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
         _passCtrl.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Saisis URL, utilisateur et mot de passe avant le test.'),
+          content: Text(
+            'Saisis URL, utilisateur et mot de passe avant le test.',
+          ),
         ),
       );
       return;
@@ -198,54 +244,11 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
         .toList(growable: false);
     final selected = await showDialog<List<String>>(
       context: context,
-      builder: (context) {
-        final temp = Set<String>.from(current);
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Profils de secours'),
-              content: SizedBox(
-                width: 420,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final profile in candidates)
-                        CheckboxListTile(
-                          value: temp.contains(profile.id),
-                          title: Text(profile.name),
-                          subtitle: Text(
-                            profile.kind == RouteProfileKind.defaultRoute
-                                ? 'systeme'
-                                : '${profile.proxyHost ?? '-'}:${profile.proxyPort ?? '-'}',
-                          ),
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked == true) {
-                                temp.add(profile.id);
-                              } else {
-                                temp.remove(profile.id);
-                              }
-                            });
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Annuler'),
-                ),
-                FilledButton(
-                  onPressed: () =>
-                      Navigator.of(context).pop(temp.toList(growable: false)),
-                  child: const Text('Valider'),
-                ),
-              ],
-            );
-          },
+      builder: (dialogContext) {
+        return _FallbackProfilesDialog(
+          candidates: candidates,
+          initialSelectedIds: current,
+          triggerFocusNode: FocusManager.instance.primaryFocus,
         );
       },
     );
@@ -278,39 +281,68 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(iptvConnectControllerProvider);
-    final routeProfiles = ref.watch(routeProfilesProvider).maybeWhen(
-      data: (profiles) => profiles,
-      orElse: () => <RouteProfile>[RouteProfile.defaultProfile()],
-    );
+    final routeProfiles = ref
+        .watch(routeProfilesProvider)
+        .maybeWhen(
+          data: (profiles) => profiles,
+          orElse: () => <RouteProfile>[RouteProfile.defaultProfile()],
+        );
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: SafeArea(
-        child: SettingsContentWidth(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                const SizedBox(height: 16),
-                IptvSourceAddHeader(onBack: () => context.pop()),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Form(
-                                key: _formKey,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    /*
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _handleBack(context);
+      },
+      child: MoviRouteFocusBoundary(
+        restorePolicy: MoviFocusRestorePolicy(
+          initialFocusNode: _nameFocusNode,
+          fallbackFocusNode: _backFocusNode,
+        ),
+        requestInitialFocusOnMount: true,
+        onUnhandledBack: () => _handleBack(context),
+        debugLabel: 'IptvSourceAddRouteFocus',
+        child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: SafeArea(
+            child: SettingsContentWidth(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleDirectionalKey(
+                        event,
+                        down: _nameFocusNode,
+                        blockUp: true,
+                      ),
+                      child: MoviSubpageBackTitleHeader(
+                        title: 'Ajouter',
+                        focusNode: _backFocusNode,
+                        onBack: () => _handleBack(context),
+                      ),
+                    ),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        /*
                                   // Selecteur de type de source (masque)
                                   Text(
                                     'Type de source',
@@ -352,192 +384,178 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                   ),
                                   const SizedBox(height: 20),
                                   */
-                                    IptvSourceAddFieldBlock(
-                                      label: 'Nom de la source',
-                                      controller: _nameCtrl,
-                                      focusNode: _nameFocusNode,
-                                      enabled: !state.isLoading,
-                                      hintText: 'Mon IPTV',
-                                      textInputAction: TextInputAction.next,
-                                      onSubmitted: () =>
-                                          _serverFocusNode.requestFocus(),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    IptvSourceAddFieldBlock(
-                                      label: 'URL du serveur',
-                                      controller: _serverCtrl,
-                                      focusNode: _serverFocusNode,
-                                      enabled: !state.isLoading,
-                                      keyboardType: TextInputType.url,
-                                      hintText:
-                                          _sourceType == IptvSourceType.xtream
-                                          ? 'http://server.com:80/'
-                                          : 'http://server.com:80/portal.php',
-                                      textInputAction: TextInputAction.next,
-                                      onSubmitted: () =>
-                                          _userFocusNode.requestFocus(),
-                                      validator: (v) =>
-                                          (v == null || v.trim().isEmpty)
-                                          ? l10n.validationRequired
-                                          : null,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    IptvSourceAddFieldBlock(
-                                      label: l10n.labelUsername,
-                                      controller: _userCtrl,
-                                      focusNode: _userFocusNode,
-                                      enabled: !state.isLoading,
-                                      hintText: 'Nom d\'utilisateur',
-                                      autofillHints: const [
-                                        AutofillHints.username,
-                                      ],
-                                      textInputAction: TextInputAction.next,
-                                      onSubmitted: () =>
-                                          _passFocusNode.requestFocus(),
-                                      validator: (v) =>
-                                          (v == null || v.trim().isEmpty)
-                                          ? l10n.validationRequired
-                                          : null,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    IptvSourceAddFieldBlock(
-                                      label: l10n.iptvPasswordLabel,
-                                      controller: _passCtrl,
-                                      focusNode: _passFocusNode,
-                                      enabled: !state.isLoading,
-                                      hintText: 'Mot de passe',
-                                      obscureText: _obscurePassword,
-                                      onToggleObscure: () => setState(
-                                        () => _obscurePassword =
-                                            !_obscurePassword,
-                                      ),
-                                      autofillHints: const [
-                                        AutofillHints.password,
-                                      ],
-                                      textInputAction: TextInputAction.done,
-                                      onSubmitted: () =>
-                                          _submitFocusNode.requestFocus(),
-                                      validator: (v) => (v == null || v.isEmpty)
-                                          ? l10n.validationRequired
-                                          : null,
-                                    ),
-
-                                    const SizedBox(height: 32),
-                                    XtreamRoutePolicyFormSection(
-                                      profiles: routeProfiles,
-                                      preferredRouteProfileId:
-                                          _preferredRouteProfileId,
-                                      fallbackRouteProfileIds:
-                                          _fallbackRouteProfileIds,
-                                      onPreferredChanged: (value) {
-                                        final next =
-                                            value ?? RouteProfile.defaultId;
-                                        setState(() {
-                                          _preferredRouteProfileId = next;
-                                          _fallbackRouteProfileIds =
-                                              _fallbackRouteProfileIds
-                                                  .where((id) => id != next)
-                                                  .toList(growable: false);
-                                        });
-                                      },
-                                      onEditFallbacks: () =>
-                                          _pickFallbackProfiles(routeProfiles),
-                                      onOpenNetworkProfiles:
-                                          _openNetworkProfiles,
-                                      onTestSource: _openSourceTest,
-                                      enabled: !state.isLoading,
-                                    ),
-                                    const SizedBox(height: 32),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: MoviPrimaryButton(
-                                        label: 'Ajouter la source',
-                                        focusNode: _submitFocusNode,
-                                        onPressed: state.isLoading
-                                            ? null
-                                            : _submit,
-                                        loading: state.isLoading,
-                                      ),
-                                    ),
-                                    if (_hasSubmitted &&
-                                        state.error != null) ...[
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        state.error!,
-                                        style: const TextStyle(
-                                          color: Colors.red,
+                                        IptvSourceAddFieldBlock(
+                                          label: 'Nom de la source',
+                                          controller: _nameCtrl,
+                                          focusNode: _nameFocusNode,
+                                          enabled: !state.isLoading,
+                                          hintText: 'Mon IPTV',
+                                          textInputAction: TextInputAction.next,
+                                          onKeyEvent: (event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up: _backFocusNode,
+                                                down: _serverFocusNode,
+                                              ),
+                                          onSubmitted: () =>
+                                              _serverFocusNode.requestFocus(),
                                         ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                                        const SizedBox(height: 20),
+                                        IptvSourceAddFieldBlock(
+                                          label: 'URL du serveur',
+                                          controller: _serverCtrl,
+                                          focusNode: _serverFocusNode,
+                                          enabled: !state.isLoading,
+                                          keyboardType: TextInputType.url,
+                                          hintText:
+                                              _sourceType ==
+                                                  IptvSourceType.xtream
+                                              ? 'http://server.com:80/'
+                                              : 'http://server.com:80/portal.php',
+                                          textInputAction: TextInputAction.next,
+                                          onKeyEvent: (event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up: _nameFocusNode,
+                                                down: _userFocusNode,
+                                              ),
+                                          onSubmitted: () =>
+                                              _userFocusNode.requestFocus(),
+                                          validator: (v) =>
+                                              (v == null || v.trim().isEmpty)
+                                              ? l10n.validationRequired
+                                              : null,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        IptvSourceAddFieldBlock(
+                                          label: l10n.labelUsername,
+                                          controller: _userCtrl,
+                                          focusNode: _userFocusNode,
+                                          enabled: !state.isLoading,
+                                          hintText: 'Nom d\'utilisateur',
+                                          autofillHints: const [
+                                            AutofillHints.username,
+                                          ],
+                                          textInputAction: TextInputAction.next,
+                                          onKeyEvent: (event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up: _serverFocusNode,
+                                                down: _passFocusNode,
+                                              ),
+                                          onSubmitted: () =>
+                                              _passFocusNode.requestFocus(),
+                                          validator: (v) =>
+                                              (v == null || v.trim().isEmpty)
+                                              ? l10n.validationRequired
+                                              : null,
+                                        ),
+                                        const SizedBox(height: 20),
+                                        IptvSourceAddFieldBlock(
+                                          label: l10n.iptvPasswordLabel,
+                                          controller: _passCtrl,
+                                          focusNode: _passFocusNode,
+                                          enabled: !state.isLoading,
+                                          hintText: 'Mot de passe',
+                                          obscureText: _obscurePassword,
+                                          onToggleObscure: () => setState(
+                                            () => _obscurePassword =
+                                                !_obscurePassword,
+                                          ),
+                                          autofillHints: const [
+                                            AutofillHints.password,
+                                          ],
+                                          textInputAction: TextInputAction.done,
+                                          onKeyEvent: (event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up: _userFocusNode,
+                                                down: _submitFocusNode,
+                                              ),
+                                          onSubmitted: () =>
+                                              _submitFocusNode.requestFocus(),
+                                          validator: (v) =>
+                                              (v == null || v.isEmpty)
+                                              ? l10n.validationRequired
+                                              : null,
+                                        ),
+
+                                        const SizedBox(height: 32),
+                                        XtreamRoutePolicyFormSection(
+                                          profiles: routeProfiles,
+                                          preferredRouteProfileId:
+                                              _preferredRouteProfileId,
+                                          fallbackRouteProfileIds:
+                                              _fallbackRouteProfileIds,
+                                          onPreferredChanged: (value) {
+                                            final next =
+                                                value ?? RouteProfile.defaultId;
+                                            setState(() {
+                                              _preferredRouteProfileId = next;
+                                              _fallbackRouteProfileIds =
+                                                  _fallbackRouteProfileIds
+                                                      .where((id) => id != next)
+                                                      .toList(growable: false);
+                                            });
+                                          },
+                                          onEditFallbacks: () =>
+                                              _pickFallbackProfiles(
+                                                routeProfiles,
+                                              ),
+                                          onOpenNetworkProfiles:
+                                              _openNetworkProfiles,
+                                          onTestSource: _openSourceTest,
+                                          enabled: !state.isLoading,
+                                        ),
+                                        const SizedBox(height: 32),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: Focus(
+                                            canRequestFocus: false,
+                                            onKeyEvent: (_, event) =>
+                                                _handleDirectionalKey(
+                                                  event,
+                                                  up: _passFocusNode,
+                                                  blockDown: true,
+                                                  blockLeft: true,
+                                                  blockRight: true,
+                                                ),
+                                            child: MoviPrimaryButton(
+                                              label: 'Ajouter la source',
+                                              focusNode: _submitFocusNode,
+                                              onPressed: state.isLoading
+                                                  ? null
+                                                  : _submit,
+                                              loading: state.isLoading,
+                                            ),
+                                          ),
+                                        ),
+                                        if (_hasSubmitted &&
+                                            state.error != null) ...[
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            state.error!,
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class IptvSourceAddHeader extends StatelessWidget {
-  const IptvSourceAddHeader({super.key, required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Stack(
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: 35,
-              height: 35,
-              child: MoviFocusableAction(
-                onPressed: onBack,
-                semanticLabel: 'Retour',
-                builder: (context, state) {
-                  return MoviFocusFrame(
-                    scale: state.focused ? 1.04 : 1,
-                    borderRadius: BorderRadius.circular(999),
-                    backgroundColor: state.focused
-                        ? Colors.white.withValues(alpha: 0.14)
-                        : Colors.transparent,
-                    child: const SizedBox(
-                      width: 35,
-                      height: 35,
-                      child: MoviAssetIcon(
-                        AppAssets.iconBack,
-                        color: Colors.white,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const Center(
-            child: Text(
-              'Ajouter',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -558,6 +576,7 @@ class IptvSourceAddFieldBlock extends StatelessWidget {
     this.validator,
     this.textInputAction,
     this.onSubmitted,
+    this.onKeyEvent,
   });
 
   final String label;
@@ -572,6 +591,7 @@ class IptvSourceAddFieldBlock extends StatelessWidget {
   final String? Function(String?)? validator;
   final TextInputAction? textInputAction;
   final VoidCallback? onSubmitted;
+  final KeyEventResult Function(KeyEvent event)? onKeyEvent;
 
   @override
   Widget build(BuildContext context) {
@@ -589,52 +609,206 @@ class IptvSourceAddFieldBlock extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(
           height: 44,
-          child: TextFormField(
-            controller: controller,
-            focusNode: focusNode,
-            enabled: enabled,
-            keyboardType: keyboardType,
-            obscureText: obscureText,
-            autofillHints: autofillHints,
-            textInputAction: textInputAction,
-            onFieldSubmitted: (_) => onSubmitted?.call(),
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-            textAlignVertical: TextAlignVertical.center,
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: const TextStyle(color: Colors.white54),
-              filled: true,
-              fillColor: const Color(0xFF3D3D3D),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(22),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(22),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(22),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              suffixIcon: onToggleObscure != null
-                  ? Padding(
-                      padding: const EdgeInsets.only(right: 12),
-                      child: IconButton(
-                        icon: Icon(
-                          obscureText ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.white70,
+          child: Focus(
+            canRequestFocus: false,
+            onKeyEvent: onKeyEvent == null
+                ? null
+                : (_, event) => onKeyEvent!(event),
+            child: TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: enabled,
+              keyboardType: keyboardType,
+              obscureText: obscureText,
+              autofillHints: autofillHints,
+              textInputAction: textInputAction,
+              onFieldSubmitted: (_) => onSubmitted?.call(),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlignVertical: TextAlignVertical.center,
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: const TextStyle(color: Colors.white54),
+                filled: true,
+                fillColor: const Color(0xFF3D3D3D),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(22),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                suffixIcon: onToggleObscure != null
+                    ? Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: IconButton(
+                          icon: Icon(
+                            obscureText
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.white70,
+                          ),
+                          onPressed: onToggleObscure,
                         ),
-                        onPressed: onToggleObscure,
-                      ),
-                    )
-                  : null,
+                      )
+                    : null,
+              ),
+              validator: validator,
             ),
-            validator: validator,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _UseSourceNowDialog extends StatefulWidget {
+  const _UseSourceNowDialog({this.triggerFocusNode});
+
+  final FocusNode? triggerFocusNode;
+
+  @override
+  State<_UseSourceNowDialog> createState() => _UseSourceNowDialogState();
+}
+
+class _UseSourceNowDialogState extends State<_UseSourceNowDialog> {
+  late final FocusNode _laterFocusNode = FocusNode(
+    debugLabel: 'AddSourceUseNowLater',
+  );
+  late final FocusNode _useFocusNode = FocusNode(
+    debugLabel: 'AddSourceUseNowUse',
+  );
+
+  @override
+  void dispose() {
+    _laterFocusNode.dispose();
+    _useFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MoviOverlayFocusScope(
+      triggerFocusNode: widget.triggerFocusNode,
+      initialFocusNode: _useFocusNode,
+      fallbackFocusNode: _laterFocusNode,
+      debugLabel: 'IptvSourceAddUseNowDialog',
+      child: AlertDialog(
+        title: const Text('Utiliser cette source ?'),
+        content: const Text('Voulez-vous activer cette source maintenant ?'),
+        actions: [
+          TextButton(
+            focusNode: _laterFocusNode,
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Plus tard'),
+          ),
+          FilledButton(
+            focusNode: _useFocusNode,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Utiliser'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FallbackProfilesDialog extends StatefulWidget {
+  const _FallbackProfilesDialog({
+    required this.candidates,
+    required this.initialSelectedIds,
+    this.triggerFocusNode,
+  });
+
+  final List<RouteProfile> candidates;
+  final Set<String> initialSelectedIds;
+  final FocusNode? triggerFocusNode;
+
+  @override
+  State<_FallbackProfilesDialog> createState() =>
+      _FallbackProfilesDialogState();
+}
+
+class _FallbackProfilesDialogState extends State<_FallbackProfilesDialog> {
+  late final Set<String> _selectedIds = Set<String>.from(
+    widget.initialSelectedIds,
+  );
+  late final FocusNode _cancelFocusNode = FocusNode(
+    debugLabel: 'AddSourceFallbackCancel',
+  );
+  late final FocusNode _confirmFocusNode = FocusNode(
+    debugLabel: 'AddSourceFallbackConfirm',
+  );
+
+  @override
+  void dispose() {
+    _cancelFocusNode.dispose();
+    _confirmFocusNode.dispose();
+    super.dispose();
+  }
+
+  String _subtitle(RouteProfile profile) {
+    return profile.kind == RouteProfileKind.defaultRoute
+        ? 'systeme'
+        : '${profile.proxyHost ?? '-'}:${profile.proxyPort ?? '-'}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initialFocusNode = widget.candidates.isNotEmpty
+        ? _confirmFocusNode
+        : _cancelFocusNode;
+    return MoviOverlayFocusScope(
+      triggerFocusNode: widget.triggerFocusNode,
+      initialFocusNode: initialFocusNode,
+      fallbackFocusNode: _cancelFocusNode,
+      debugLabel: 'IptvSourceAddFallbackProfilesDialog',
+      child: AlertDialog(
+        title: const Text('Profils de secours'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final profile in widget.candidates)
+                  CheckboxListTile(
+                    value: _selectedIds.contains(profile.id),
+                    title: Text(profile.name),
+                    subtitle: Text(_subtitle(profile)),
+                    onChanged: (checked) {
+                      setState(() {
+                        if (checked == true) {
+                          _selectedIds.add(profile.id);
+                        } else {
+                          _selectedIds.remove(profile.id);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            focusNode: _cancelFocusNode,
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            focusNode: _confirmFocusNode,
+            onPressed: () =>
+                Navigator.of(context).pop(_selectedIds.toList(growable: false)),
+            child: const Text('Valider'),
+          ),
+        ],
+      ),
     );
   }
 }

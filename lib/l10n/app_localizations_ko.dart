@@ -70,7 +70,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String resultsCount(int count) {
-    return '($count개 결과)';
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '결과 $count개',
+      zero: '결과 없음',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -264,7 +270,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get libraryTypeSaga => '사가';
 
   @override
-  String get libraryTypeInProgress => '시청 중';
+  String get libraryTypeInProgress => '진행 중';
 
   @override
   String get libraryTypeFavoriteMovies => '즐겨찾는 영화';
@@ -513,7 +519,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String providerSearchPlaceholder(String provider) {
-    return '$provider에서 검색…';
+    return '$provider 검색';
   }
 
   @override
@@ -587,27 +593,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get addedToPlaylist => '추가됨';
 
   @override
-  String get pinRecoveryLink => 'PIN 코드 복구';
+  String get pinRecoveryLink => 'PIN 재설정';
 
   @override
-  String get pinRecoveryTitle => 'PIN 코드 복구';
+  String get pinRecoveryTitle => 'PIN 재설정';
 
   @override
-  String get pinRecoveryDescription => '보호된 프로필의 PIN 코드를 복구합니다.';
+  String get pinRecoveryDescription =>
+      '계정 이메일 주소로 8자리 코드를 보내드립니다. 이 코드를 사용해 이 프로필의 PIN을 재설정할 수 있습니다.';
 
   @override
-  String get pinRecoveryRequestCodeButton => 'Send code';
+  String get pinRecoveryRequestCodeButton => '코드 보내기';
 
   @override
   String get pinRecoveryCodeSentHint =>
-      'Code sent to your account email. Check your messages and enter it below.';
+      '계정 이메일로 코드가 전송되었습니다. 메시지를 확인한 뒤 아래에 입력하세요.';
 
   @override
   String get pinRecoveryComingSoon => '이 기능은 곧 제공됩니다.';
 
   @override
-  String get pinRecoveryNotAvailable =>
-      'PIN recovery by email is currently unavailable.';
+  String get pinRecoveryNotAvailable => '이메일을 통한 PIN 복구는 현재 사용할 수 없습니다.';
 
   @override
   String get pinRecoveryCodeLabel => '복구 코드';
@@ -616,10 +622,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pinRecoveryCodeHint => '8자리';
 
   @override
-  String get pinRecoveryVerifyButton => '확인';
+  String get pinRecoveryVerifyButton => '코드 확인';
 
   @override
-  String get pinRecoveryCodeInvalid => '8자리 코드를 입력하세요';
+  String get pinRecoveryCodeInvalid => '8자리 복구 코드를 입력하세요';
 
   @override
   String get pinRecoveryCodeExpired => '복구 코드가 만료되었습니다';
@@ -640,10 +646,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pinRecoveryConfirmPinLabel => 'PIN 확인';
 
   @override
-  String get pinRecoveryConfirmPinHint => 'PIN을 다시 입력';
+  String get pinRecoveryConfirmPinHint => 'PIN을 다시 입력하세요';
 
   @override
-  String get pinRecoveryResetButton => 'PIN 업데이트';
+  String get pinRecoveryResetButton => 'PIN 재설정';
 
   @override
   String get pinRecoveryPinInvalid => '4~6자리 PIN을 입력하세요';
@@ -655,10 +661,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pinRecoveryResetSuccess => 'PIN을 업데이트했습니다';
 
   @override
-  String get profilePinSaved => 'PIN saved.';
+  String get profilePinSaved => 'PIN이 저장되었습니다.';
 
   @override
-  String get profilePinEditLabel => 'Edit PIN code';
+  String get profilePinEditLabel => 'PIN 코드 수정';
 
   @override
   String get settingsAccountsSection => '계정';
@@ -682,10 +688,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsPlaybackSection => '재생 설정';
 
   @override
-  String get settingsPreferredAudioLanguage => '선호 언어';
+  String get settingsPreferredAudioLanguage => '선호 오디오 언어';
 
   @override
-  String get settingsPreferredSubtitleLanguage => '선호 자막';
+  String get settingsPreferredSubtitleLanguage => '선호 자막 언어';
 
   @override
   String get libraryPlaylistsFilter => '재생목록';
@@ -700,7 +706,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get librarySearchPlaceholder => '내 라이브러리에서 검색…';
 
   @override
-  String get libraryInProgress => '시청 중';
+  String get libraryInProgress => '이어 보기';
 
   @override
   String get libraryFavoriteMovies => '즐겨찾는 영화';
@@ -750,7 +756,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String tvResumeSeasonEpisode(int season, int episode) {
-    return '계속 보기 S$season E$episode';
+    return '이어 보기 S$season · E$episode';
   }
 
   @override
@@ -788,7 +794,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get playlistPlayRandomly => '무작위 재생';
 
   @override
-  String get playlistAddButton => '추가';
+  String get playlistAddButton => '재생목록에 추가';
 
   @override
   String get playlistSortButton => '정렬';
@@ -800,7 +806,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get playlistSortByTitleOption => '제목';
 
   @override
-  String get playlistSortRecentAdditions => '최근 추가';
+  String get playlistSortRecentAdditions => '최근 추가순';
 
   @override
   String get playlistSortOldestFirst => '오래된 순';
@@ -839,7 +845,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get playlistDeleteTitle => '삭제';
+  String get playlistDeleteTitle => '재생목록 삭제';
 
   @override
   String playlistDeleteConfirm(String title) {
@@ -903,13 +909,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authOtpTitle => '로그인';
 
   @override
-  String get authOtpSubtitle => '이메일과 전송된 8자리 코드를 입력하세요.';
+  String get authOtpSubtitle => '이메일 주소와 전송된 8자리 코드를 입력하세요.';
 
   @override
   String get authOtpEmailLabel => '이메일';
 
   @override
-  String get authOtpEmailHint => 'your@email';
+  String get authOtpEmailHint => 'name@example.com';
 
   @override
   String get authOtpEmailHelp => '8자리 코드를 전송합니다. 필요하면 스팸함을 확인하세요.';
@@ -934,7 +940,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String authOtpResendDisabled(int seconds) {
-    return '$seconds초 후 재전송';
+    return '코드 재전송까지 $seconds초';
   }
 
   @override
@@ -1024,360 +1030,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get parentalUnlockButton => '잠금 해제';
-
-  @override
-  String get hc_arb_dir_4de4827b => 'arb-dir';
-
-  @override
-  String get hc_template_arb_file_eeae5194 => 'template-arb-file';
-
-  @override
-  String get hc_output_localization_file_ed018380 => 'output-localization-file';
-
-  @override
-  String get hc_output_class_f1ae6b52 => 'output-class';
-
-  @override
-  String get hc_applocalizations_878fdc50 => 'AppLocalizations';
-
-  @override
-  String get hc_untranslated_messages_file_fa6a22b7 =>
-      'untranslated-messages-file';
-
-  @override
-  String get hc_chargement_episodes_en_cours_33fc4ace => '에피소드 불러오는 중…';
-
-  @override
-  String get hc_aucune_playlist_disponible_creez_en_une_f6b75c90 =>
-      '사용 가능한 재생목록이 없습니다. 새로 만들어 주세요.';
-
-  @override
-  String get hc_erreur_lors_chargement_playlists_placeholder_97e5c1c3 =>
-      '재생목록 불러오기 오류: \$e';
-
-  @override
-  String get hc_impossible_douvrir_lien_90d0dcaa => '링크를 열 수 없습니다';
-
-  @override
-  String get hc_qualite_preferee_776dbeea => '선호 품질';
-
-  @override
-  String get hc_annuler_49ba3292 => '취소';
-
-  @override
-  String get hc_deconnexion_903dca17 => '로그아웃';
-
-  @override
-  String get hc_erreur_lors_deconnexion_placeholder_f5a211b4 =>
-      '로그아웃 중 오류: \$e';
-
-  @override
-  String get hc_choisir_b030d590 => '선택';
-
-  @override
-  String get hc_avantages_08d7f47c => '혜택';
-
-  @override
-  String get hc_signalement_envoye_merci_d302e576 => '신고가 전송되었습니다. 감사합니다.';
-
-  @override
-  String get hc_plus_tard_1f42ab3b => '나중에';
-
-  @override
-  String get hc_redemarrer_maintenant_053e8e68 => '지금 다시 시작';
-
-  @override
-  String get hc_utiliser_cette_source_c6c8bbc5 => '이 소스를 사용할까요?';
-
-  @override
-  String get hc_utiliser_fb5e43ce => '사용';
-
-  @override
-  String get hc_source_ajout_e_e41b01d9 => '소스를 추가했습니다';
-
-  @override
-  String get hc_title_0a57b7eb => 'title: \'...\'';
-
-  @override
-  String get hc_labeltext_469a28db => 'labelText: \'...\'';
-
-  @override
-  String get hc_hinttext_6fd1d945 => 'hintText: \'...\'';
-
-  @override
-  String get hc_tooltip_db0de3fe => 'tooltip: \'...\'';
-
-  @override
-  String get hc_parametres_verrouilles_3a9b1b51 => '잠긴 설정';
-
-  @override
-  String get hc_compte_cloud_2812b31e => '클라우드 계정';
-
-  @override
-  String get hc_se_connecter_fedf2439 => '로그인';
-
-  @override
-  String get hc_propos_5345add5 => '정보';
-
-  @override
-  String get hc_politique_confidentialite_42b0e51e => '개인정보처리방침';
-
-  @override
-  String get hc_conditions_dutilisation_9074eac7 => '이용 약관';
-
-  @override
-  String get hc_sources_sauvegardees_9f1382e5 => '저장된 소스';
-
-  @override
-  String get hc_rafraichir_be30b7d1 => '새로고침';
-
-  @override
-  String get hc_activer_une_source_749ced38 => '소스 활성화';
-
-  @override
-  String get hc_nom_source_9a3e4156 => '소스 이름';
-
-  @override
-  String get hc_mon_iptv_b239352c => '내 IPTV';
-
-  @override
-  String get hc_username_84c29015 => '사용자 이름';
-
-  @override
-  String get hc_password_8be3c943 => '비밀번호';
-
-  @override
-  String get hc_server_url_1d5d1eff => '서버 URL';
-
-  @override
-  String get hc_verification_pin_e17c8fe0 => 'PIN 확인';
-
-  @override
-  String get hc_definir_un_pin_f9c2178d => 'PIN 설정';
-
-  @override
-  String get hc_pin_3adadd31 => 'PIN';
-
-  @override
-  String get hc_message_9ff08507 => 'message: \'...\'';
-
-  @override
-  String get hc_subscription_offer_not_found_placeholder_d07ac9d3 =>
-      '구독 상품을 찾을 수 없습니다: \$offerId.';
-
-  @override
-  String get hc_subscription_purchase_was_cancelled_by_user_443e1dab =>
-      '사용자가 구독 구매를 취소했습니다.';
-
-  @override
-  String get hc_store_operation_timed_out_placeholder_6c3f9df2 =>
-      '스토어 작업 시간이 초과되었습니다: \$operation.';
-
-  @override
-  String get hc_erreur_http_lors_handshake_02db57b2 => '핸드셰이크 중 HTTP 오류';
-
-  @override
-  String get hc_reponse_non_json_serveur_xtream_e896b8df =>
-      'Xtream 서버의 JSON이 아닌 응답';
-
-  @override
-  String get hc_reponse_invalide_serveur_xtream_afc0955f => 'Xtream 서버의 잘못된 응답';
-
-  @override
-  String get hc_rg_exe_af0d2be6 => 'rg.exe';
-
-  @override
-  String get hc_alertdialog_5a747a86 => 'AlertDialog';
-
-  @override
-  String get hc_cupertinoalertdialog_3ed27f52 => 'CupertinoAlertDialog';
-
-  @override
-  String get hc_pas_disponible_sur_cette_source_fa6e19a7 =>
-      '이 소스에서는 사용할 수 없습니다';
-
-  @override
-  String get hc_source_supprimee_4bfaa0a1 => '소스를 제거했습니다';
-
-  @override
-  String get hc_source_modifiee_335ef502 => '소스를 업데이트했습니다';
-
-  @override
-  String get hc_definir_code_pin_53a0bd07 => 'PIN 코드 설정';
-
-  @override
-  String get hc_marquer_comme_non_vu_9cf9d3f8 => '미시청으로 표시';
-
-  @override
-  String get hc_etes_vous_sur_vouloir_vous_deconnecter_1a096661 => '로그아웃하시겠어요?';
-
-  @override
-  String get hc_movi_premium_requis_pour_synchronisation_cloud_15b551df =>
-      '클라우드 동기화에는 Movi Premium이 필요합니다.';
-
-  @override
-  String get hc_auto_c614ba7c => '자동';
-
-  @override
-  String get hc_organiser_838a7e57 => '정리';
-
-  @override
-  String get hc_modifier_f260e757 => '편집';
-
-  @override
-  String get hc_ajouter_87c57ed1 => '추가';
-
-  @override
-  String get hc_source_active_e571305e => '활성 소스';
-
-  @override
-  String get hc_autres_sources_e32592a6 => '다른 소스';
-
-  @override
-  String get hc_signalement_indisponible_pour_ce_contenu_d9ad88b7 =>
-      '이 콘텐츠에서는 신고 기능을 사용할 수 없습니다.';
-
-  @override
-  String get hc_securisation_contenu_e5195111 => '콘텐츠 보호';
-
-  @override
-  String get hc_verification_classifications_d_age_006eebfe => '연령 등급 확인 중…';
-
-  @override
-  String get hc_voir_tout_7b7d86e8 => '모두 보기';
-
-  @override
-  String get hc_signaler_un_probleme_13183c0f => '문제 신고';
-
-  @override
-  String get hc_si_ce_contenu_nest_pas_approprie_ete_accessible_320c2436 =>
-      '이 콘텐츠가 부적절하며 제한에도 불구하고 접근 가능했다면, 문제를 간단히 설명해 주세요.';
-
-  @override
-  String get hc_envoyer_e9ce243b => '보내기';
-
-  @override
-  String get hc_profil_enfant_cree_39f4eb7d => '어린이 프로필을 만들었습니다';
-
-  @override
-  String get hc_un_profil_enfant_ete_cree_pour_securiser_l_40e15a0a =>
-      '어린이 프로필이 생성되었습니다. 앱을 보호하고 연령 등급을 미리 불러오기 위해 앱을 다시 시작하는 것을 권장합니다.';
-
-  @override
-  String get hc_pseudo_4cf966c0 => '닉네임';
-
-  @override
-  String get hc_profil_enfant_2c8a01c0 => '어린이 프로필';
-
-  @override
-  String get hc_limite_d_age_5b170fc9 => '연령 제한';
-
-  @override
-  String get hc_code_pin_e79c48bd => 'PIN 코드';
-
-  @override
-  String get hc_changer_code_pin_3b069731 => 'PIN 코드 변경';
-
-  @override
-  String get hc_supprimer_code_pin_0dcf8a48 => 'PIN 코드 제거';
-
-  @override
-  String get hc_supprimer_pin_51850c7b => 'PIN 제거';
-
-  @override
-  String get hc_supprimer_1acfc1c7 => '삭제';
-
-  @override
-  String get hc_oblige_un_pin_active_filtre_pegi_8447ac9b =>
-      'PIN이 필요하며 PEGI 필터를 활성화합니다.';
-
-  @override
-  String get hc_voulez_vous_activer_cette_source_maintenant_f2593894 =>
-      '지금 이 소스를 활성화할까요?';
-
-  @override
-  String get hc_application_b291beb8 => '앱';
-
-  @override
-  String get hc_version_1_0_0_347e553c => '버전 1.0.0';
-
-  @override
-  String get hc_credits_293a6081 => '크레딧';
-
-  @override
-  String get hc_this_product_uses_tmdb_api_but_is_not_0033d77f =>
-      '이 제품은 TMDB API를 사용하지만 TMDB에서 보증하거나 인증하지 않았습니다.';
-
-  @override
-  String get hc_ce_produit_utilise_l_api_tmdb_mais_n_0b55273a =>
-      '이 제품은 TMDB API를 사용하지만 TMDB에서 보증하거나 인증하지 않았습니다.';
-
-  @override
-  String get hc_verification_targets_d51632f8 => '검증 대상';
-
-  @override
-  String get hc_fade_must_eat_frame_5f1bfc77 => '페이드는 프레임과 자연스럽게 이어져야 합니다';
-
-  @override
-  String get hc_invalid_xtream_streamid_eb04e9f9 => '잘못된 Xtream streamId: ...';
-
-  @override
-  String get hc_series_xtream_missing_poster_065b5103 =>
-      'Series xtream:... missing poster';
-
-  @override
-  String get hc_movie_not_found_a7fe72d9 => 'Movie ... not found ...';
-
-  @override
-  String get hc_missing_poster_1c9ba558 => '... missing poster';
-
-  @override
-  String get hc_invalid_watchlist_outbox_payload_327ac6c3 =>
-      'Invalid watchlist outbox payload.';
-
-  @override
-  String get hc_unknown_watchlist_operation_e9259c07 =>
-      'Unknown watchlist operation: ...';
-
-  @override
-  String get hc_invalid_playlist_outbox_payload_2d76e64f =>
-      'Invalid playlist outbox payload.';
-
-  @override
-  String get hc_unknown_playlist_operation_c98cbd41 =>
-      'Unknown playlist operation: ...';
-
-  @override
-  String get hc_url_invalide_aa227a66 => '잘못된 URL';
-
-  @override
-  String get hc_legacy_iv_missing_cannot_decrypt_legacy_ciphertext_7c7b39c3 =>
-      'Missing legacy IV: cannot decrypt legacy ciphertext.';
-
-  @override
-  String get hc_tooltip_rafraichir_a22b17e3 => 'tooltip: \'새로고침\'';
-
-  @override
-  String get hc_tooltip_menu_d8fa6679 => 'tooltip: \'메뉴\'';
-
-  @override
-  String get hc_retour_e5befb1f => '뒤로';
-
-  @override
-  String get hc_semanticlabel_plus_d_actions_1bd19eb6 =>
-      'semanticLabel: \'추가 작업\'';
-
-  @override
-  String get hc_plus_d_actions_ffe6be2a => '추가 작업';
-
-  @override
-  String get hc_semanticlabel_rechercher_3ae4e02c => 'semanticLabel: \'검색\'';
-
-  @override
-  String get hc_semanticlabel_ajouter_ac362a68 => 'semanticLabel: \'추가\'';
-
-  @override
-  String get hc_l10n_86d50bf0 => 'l10n.*';
 
   @override
   String get actionOk => '확인';
@@ -1531,7 +1183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get settingsAudioOffsetTitle => '오디오 오프셋';
 
   @override
-  String get settingsOffsetUnsupported => '이 백엔드 또는 플랫폼에서는 지원되지 않습니다.';
+  String get settingsOffsetUnsupported => '현재 백엔드 또는 플랫폼에서는 지원되지 않습니다.';
 
   @override
   String get settingsSyncResetOffsets => '동기화 오프셋 초기화';
@@ -1542,4 +1194,38 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aboutCreditsSectionTitle => '크레딧';
+
+  @override
+  String get actionSend => '보내기';
+
+  @override
+  String get profilePinSetLabel => 'PIN 코드 설정';
+
+  @override
+  String get reportingProblemSentConfirmation => '신고가 전송되었습니다. 감사합니다.';
+
+  @override
+  String get reportingProblemBody =>
+      '이 콘텐츠가 부적절한데도 제한에도 불구하고 접근할 수 있었다면 문제를 간단히 설명해 주세요.';
+
+  @override
+  String get reportingProblemExampleHint => '예: PEGI 12인데 공포 영화가 표시됨';
+
+  @override
+  String get settingsAutomaticOption => '자동';
+
+  @override
+  String get settingsPreferredPlaybackQuality => '선호 재생 화질';
+
+  @override
+  String settingsSignOutError(String error) {
+    return '로그아웃 중 오류: $error';
+  }
+
+  @override
+  String get settingsTermsOfUseTitle => '이용 약관';
+
+  @override
+  String get settingsCloudSyncPremiumRequiredMessage =>
+      '클라우드 동기화에는 Movi Premium이 필요합니다.';
 }

@@ -118,7 +118,7 @@ void main() {
       expect(find.text(l10n.settingsPlaybackSection), findsNothing);
       expect(find.text(l10n.settingsPreferredAudioLanguage), findsNothing);
       expect(find.text(l10n.settingsPreferredSubtitleLanguage), findsNothing);
-      expect(find.text(l10n.hc_qualite_preferee_776dbeea), findsNothing);
+      expect(find.text(l10n.settingsPreferredPlaybackQuality), findsNothing);
       expect(find.text(l10n.settingsRefreshIptvPlaylistsTitle), findsNothing);
       expect(find.text(l10n.settingsSourcesManagement), findsOneWidget);
       expect(find.text(l10n.settingsSubtitlesTitle), findsOneWidget);
