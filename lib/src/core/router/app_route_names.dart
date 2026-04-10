@@ -50,6 +50,8 @@ class AppRouteNames {
   static const iptvSourceAdd = AppRoutePaths.iptvSourceAdd;
   static const iptvSourceEdit = AppRoutePaths.iptvSourceEdit;
   static const iptvSourceOrganize = AppRoutePaths.iptvSourceOrganize;
+  static const iptvNetworkProfiles = AppRoutePaths.iptvNetworkProfiles;
+  static const xtreamSourceTest = AppRoutePaths.xtreamSourceTest;
 
   static const movie = AppRoutePaths.movie;
   static const movieById = AppRoutePaths.movieById;

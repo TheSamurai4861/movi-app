@@ -12,31 +12,38 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_catalog_snapshot.d
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_item.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_settings.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_probe_models.dart';
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
+import 'package:movi/src/features/iptv/domain/repositories/source_connection_policy_repository.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart';
 import 'package:movi/src/features/iptv/data/datasources/xtream_remote_data_source.dart';
 import 'package:movi/src/features/iptv/application/services/playlist_mapper.dart';
 import 'package:movi/src/features/iptv/data/datasources/xtream_cache_data_source.dart';
+import 'package:movi/src/features/iptv/data/services/xtream_route_execution_service.dart';
 
 class IptvRepositoryImpl implements IptvRepository {
   IptvRepositoryImpl(
     this._local,
     this._vault,
-    this._remote,
+    XtreamRemoteDataSource _,
     this._mapper,
     this._cache,
     this._logger,
     this._tuning,
+    this._routeExecution,
+    this._policies,
   );
 
   final IptvLocalRepository _local;
   final CredentialsVault _vault;
-  final XtreamRemoteDataSource _remote;
   final PlaylistMapper _mapper;
   final XtreamCacheDataSource _cache;
   final AppLogger _logger;
   final PerformanceTuning _tuning;
+  final XtreamRouteExecutionService _routeExecution;
+  final SourceConnectionPolicyRepository _policies;
 
   @override
   Future<XtreamAccount> addSource({
@@ -44,13 +51,38 @@ class IptvRepositoryImpl implements IptvRepository {
     required String username,
     required String password,
     required String alias,
+    String preferredRouteProfileId = RouteProfile.defaultId,
+    List<String> fallbackRouteProfileIds = const <String>[],
   }) async {
-    final auth = await _remote.authenticate(
+    final id = '${endpoint.host}_$username'.toLowerCase();
+    final authResult = await _routeExecution.execute(
       endpoint: endpoint,
       username: username,
       password: password,
+      action: 'authenticate',
+      accountId: id,
+      preferredRouteProfileId: preferredRouteProfileId,
+      fallbackRouteProfileIds: fallbackRouteProfileIds,
+      overrideStoredPolicy: true,
+      useStoredPolicy: false,
+      operation: (remote, request) => remote.authenticate(
+        endpoint: request.endpoint,
+        username: request.username,
+        password: request.password,
+      ),
+      isTerminalFailureResult: (auth) => !auth.isAuthorized,
+      terminalFailureFactory: (auth, profile) => XtreamRouteExecutionFailure(
+        'Xtream authentication failed: ${auth.message}',
+        errorKind: SourceProbeErrorKind.authInvalidCredentials,
+        code: 'xtream_auth_invalid_credentials',
+        context: <String, Object?>{
+          'routeProfileId': profile.id,
+          'routeProfileKind': profile.kind.name,
+          'host': endpoint.host,
+        },
+      ),
     );
-    final id = '${endpoint.host}_$username'.toLowerCase();
+    final auth = authResult.value;
     final status = auth.isAuthorized
         ? XtreamAccountStatus.active
         : XtreamAccountStatus.error;
@@ -66,9 +98,18 @@ class IptvRepositoryImpl implements IptvRepository {
     );
     await _local.saveAccount(account);
     await _vault.storePassword(id, password);
-    if (!auth.isAuthorized) {
-      throw AuthFailure('Xtream authentication failed: ${auth.message}');
-    }
+    await _policies.savePolicy(
+      SourceConnectionPolicy.defaults(
+        ownerId: 'device_local',
+        accountId: id,
+        sourceKind: SourceKind.xtream,
+      ).copyWith(
+        preferredRouteProfileId: preferredRouteProfileId,
+        fallbackRouteProfileIds: fallbackRouteProfileIds,
+        lastWorkingRouteProfileId: authResult.routeProfile.id,
+        updatedAt: DateTime.now(),
+      ),
+    );
     return account;
   }
 
@@ -84,7 +125,11 @@ class IptvRepositoryImpl implements IptvRepository {
     final password = await _resolvePasswordForAccount(account, accountId);
 
     // Met à jour les infos du compte (expiration / statut) dès le rafraîchissement.
-    await _refreshAccountAuthInfo(account: account, password: password);
+    await _refreshAccountAuthInfo(
+      account: account,
+      accountId: accountId,
+      password: password,
+    );
 
     if (_tuning.isLowResources) {
       return _refreshCatalogLowResources(
@@ -115,18 +160,39 @@ class IptvRepositoryImpl implements IptvRepository {
     required XtreamAccount account,
     required String password,
   }) async {
-    final request = XtreamAccountRequest(
-      endpoint: account.endpoint,
-      username: account.username,
-      password: password,
-    );
-
-    final moviesCategories = await _remote.getVodCategories(request);
-    final seriesCategories = await _remote.getSeriesCategories(request);
+    final moviesCategories = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_vod_categories',
+          accountId: accountId,
+          operation: (remote, request) => remote.getVodCategories(request),
+        )
+        .then((result) => result.value);
+    final seriesCategories = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_series_categories',
+          accountId: accountId,
+          operation: (remote, request) => remote.getSeriesCategories(request),
+        )
+        .then((result) => result.value);
 
     final playlistsMeta = <XtreamPlaylist>[];
 
-    List<XtreamStreamDto> movies = await _remote.getVodStreams(request);
+    List<XtreamStreamDto> movies = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_vod_streams',
+          accountId: accountId,
+          operation: (remote, request) => remote.getVodStreams(request),
+        )
+        .then((result) => result.value);
     final movieCount = movies.length;
     List<XtreamPlaylist> moviePlaylists = _mapper.buildPlaylists(
       accountId: accountId,
@@ -153,7 +219,16 @@ class IptvRepositoryImpl implements IptvRepository {
     movies = const <XtreamStreamDto>[];
     moviePlaylists = const <XtreamPlaylist>[];
 
-    List<XtreamStreamDto> series = await _remote.getSeries(request);
+    List<XtreamStreamDto> series = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_series',
+          accountId: accountId,
+          operation: (remote, request) => remote.getSeries(request),
+        )
+        .then((result) => result.value);
     final seriesCount = series.length;
     List<XtreamPlaylist> seriesPlaylists = _mapper.buildPlaylists(
       accountId: accountId,
@@ -186,13 +261,35 @@ class IptvRepositoryImpl implements IptvRepository {
 
   Future<void> _refreshAccountAuthInfo({
     required XtreamAccount account,
+    required String accountId,
     required String password,
   }) async {
-    final auth = await _remote.authenticate(
-      endpoint: account.endpoint,
-      username: account.username,
-      password: password,
-    );
+    final auth = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'authenticate',
+          accountId: accountId,
+          operation: (remote, request) => remote.authenticate(
+            endpoint: request.endpoint,
+            username: request.username,
+            password: request.password,
+          ),
+          isTerminalFailureResult: (result) => !result.isAuthorized,
+          terminalFailureFactory: (result, profile) =>
+              XtreamRouteExecutionFailure(
+                'Xtream authentication failed: ${result.message}',
+                errorKind: SourceProbeErrorKind.authInvalidCredentials,
+                code: 'xtream_auth_invalid_credentials',
+                context: <String, Object?>{
+                  'routeProfileId': profile.id,
+                  'routeProfileKind': profile.kind.name,
+                  'host': account.endpoint.host,
+                },
+              ),
+        )
+        .then((result) => result.value);
 
     final now = DateTime.now();
     XtreamAccountStatus nextStatus;
@@ -210,10 +307,6 @@ class IptvRepositoryImpl implements IptvRepository {
       lastError: auth.isAuthorized ? null : auth.message,
     );
     await _local.saveAccount(updated);
-
-    if (!auth.isAuthorized) {
-      throw AuthFailure('Xtream authentication failed: ${auth.message}');
-    }
   }
 
   @override
@@ -266,16 +359,54 @@ class IptvRepositoryImpl implements IptvRepository {
     required String accountId,
     required String password,
   }) async {
-    final request = XtreamAccountRequest(
-      endpoint: account.endpoint,
-      username: account.username,
-      password: password,
-    );
+    final moviesCategories = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_vod_categories',
+          accountId: accountId,
+          operation: (remote, request) => remote.getVodCategories(request),
+        )
+        .then((result) => result.value);
+    final seriesCategories = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_series_categories',
+          accountId: accountId,
+          operation: (remote, request) => remote.getSeriesCategories(request),
+        )
+        .then((result) => result.value);
+    final movies = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_vod_streams',
+          accountId: accountId,
+          operation: (remote, request) => remote.getVodStreams(request),
+        )
+        .then((result) => result.value);
+    final series = await _routeExecution
+        .execute(
+          endpoint: account.endpoint,
+          username: account.username,
+          password: password,
+          action: 'get_series',
+          accountId: accountId,
+          operation: (remote, request) => remote.getSeries(request),
+        )
+        .then((result) => result.value);
 
-    final moviesCategories = await _remote.getVodCategories(request);
-    final seriesCategories = await _remote.getSeriesCategories(request);
-    final movies = await _remote.getVodStreams(request);
-    final series = await _remote.getSeries(request);
+    _logger.info(
+      'Xtream catalog summary host=${account.endpoint.host} '
+      'movieCategories=${moviesCategories.length} '
+      'seriesCategories=${seriesCategories.length} movies=${movies.length} '
+      'series=${series.length}',
+      category: 'IPTV',
+    );
 
     _logger.debug(
       'Series recuperees depuis l\'API: ${series.length} (accountId=$accountId)',

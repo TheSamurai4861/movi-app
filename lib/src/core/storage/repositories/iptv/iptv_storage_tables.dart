@@ -12,4 +12,7 @@ final class IptvStorageTables {
   static const String playlistItems = 'iptv_playlist_items_v2';
   static const String episodes = 'iptv_episodes';
   static const String playlistSettings = 'iptv_playlist_settings';
+  static const String routeProfiles = 'iptv_route_profiles';
+  static const String sourceConnectionPolicies =
+      'iptv_source_connection_policies';
 }

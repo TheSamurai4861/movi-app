@@ -36,12 +36,14 @@ import 'package:movi/src/features/search/presentation/pages/provider_results_pag
 import 'package:movi/src/features/search/presentation/pages/search_results_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/about_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_connect_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/iptv_network_profiles_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_add_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_edit_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_organize_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_source_select_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/iptv_sources_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/settings_subtitles_page.dart';
+import 'package:movi/src/features/settings/presentation/pages/xtream_source_test_page.dart';
 import 'package:movi/src/features/tv/presentation/pages/tv_detail_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/splash_bootstrap_page.dart';
 import 'package:movi/src/features/welcome/presentation/pages/welcome_source_page.dart';
@@ -364,6 +366,30 @@ List<RouteBase> buildAppRoutes(LaunchRedirectGuard launchGuard) {
         return MaterialPage(
           child: IptvSourceOrganizePage(accountId: accountId),
         );
+      },
+    ),
+    GoRoute(
+      path: AppRoutePaths.iptvNetworkProfiles,
+      name: AppRouteIds.iptvNetworkProfiles,
+      pageBuilder: (context, state) =>
+          const MaterialPage(child: IptvNetworkProfilesPage()),
+    ),
+    GoRoute(
+      path: AppRoutePaths.xtreamSourceTest,
+      name: AppRouteIds.xtreamSourceTest,
+      pageBuilder: (context, state) {
+        final args = state.extra is XtreamSourceTestPageArgs
+            ? state.extra as XtreamSourceTestPageArgs
+            : null;
+        if (args == null) {
+          final l10n = AppLocalizations.of(context)!;
+          return MaterialPage(
+            child: NotFoundPage(
+              message: l10n.notFoundWithEntity(l10n.entitySource),
+            ),
+          );
+        }
+        return MaterialPage(child: XtreamSourceTestPage(args: args));
       },
     ),
 

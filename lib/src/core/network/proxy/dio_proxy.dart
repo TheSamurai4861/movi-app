@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/proxy/proxy_configuration.dart';
 
 import 'package:movi/src/core/network/proxy/dio_proxy_stub.dart'
     if (dart.library.io) 'package:movi/src/core/network/proxy/dio_proxy_io.dart'
@@ -13,4 +14,12 @@ import 'package:movi/src/core/network/proxy/dio_proxy_stub.dart'
 /// - `NO_PROXY`    (comma-separated hosts/domain suffixes)
 void configureDioProxyFromEnvironment(Dio dio, {AppLogger? logger}) {
   impl.configureDioProxyFromEnvironment(dio, logger: logger);
+}
+
+void configureDioProxy(
+  Dio dio, {
+  required DioProxyConfiguration configuration,
+  AppLogger? logger,
+}) {
+  impl.configureDioProxy(dio, configuration: configuration, logger: logger);
 }

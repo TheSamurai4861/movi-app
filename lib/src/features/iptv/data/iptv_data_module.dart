@@ -1,4 +1,6 @@
+import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/auth/domain/repositories/auth_repository.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/parental/domain/repositories/parental_content_candidate_repository.dart';
@@ -7,6 +9,7 @@ import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/storage/database/iptv_owner_scope.dart';
 import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/features/iptv/application/services/iptv_playlist_analysis_service.dart';
 import 'package:movi/src/features/iptv/application/services/playlist_mapper.dart';
@@ -22,11 +25,21 @@ import 'package:movi/src/features/iptv/data/datasources/xtream_cache_data_source
 import 'package:movi/src/features/iptv/data/datasources/xtream_remote_data_source.dart';
 import 'package:movi/src/features/iptv/data/mappers/iptv_parental_content_candidate_mapper.dart';
 import 'package:movi/src/features/iptv/data/mappers/stalker_playlist_mapper.dart';
+import 'package:movi/src/features/iptv/data/repositories/local_route_profile_repository.dart';
+import 'package:movi/src/features/iptv/data/repositories/local_source_connection_policy_repository.dart';
 import 'package:movi/src/features/iptv/data/repositories/iptv_content_candidate_repository_adapter.dart';
 import 'package:movi/src/features/iptv/data/repositories/iptv_repository_impl.dart';
 import 'package:movi/src/features/iptv/data/repositories/stalker_repository_impl.dart';
+import 'package:movi/src/features/iptv/data/services/public_ip_echo_service.dart';
+import 'package:movi/src/features/iptv/data/services/route_profile_credentials_store.dart';
+import 'package:movi/src/features/iptv/data/services/xtream_route_execution_service.dart';
+import 'package:movi/src/features/iptv/data/services/xtream_source_probe_service_impl.dart';
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
+import 'package:movi/src/features/iptv/domain/repositories/route_profile_repository.dart';
+import 'package:movi/src/features/iptv/domain/repositories/source_connection_policy_repository.dart';
+import 'package:movi/src/features/iptv/domain/repositories/source_probe_service.dart';
 import 'package:movi/src/features/iptv/domain/repositories/stalker_repository.dart';
+import 'package:sqflite/sqflite.dart';
 
 class IptvDataModule {
   static void register() {
@@ -46,7 +59,69 @@ class IptvDataModule {
 
     if (!sl.isRegistered<XtreamRemoteDataSource>()) {
       sl.registerLazySingleton<XtreamRemoteDataSource>(
-        () => XtreamRemoteDataSource(sl<NetworkExecutor>()),
+        () => XtreamRemoteDataSource(
+          sl<NetworkExecutor>(),
+          logger: sl<AppLogger>(),
+          userAgent:
+              'MOVI/${sl<AppConfig>().metadata.version} XtreamCatalog',
+        ),
+      );
+    }
+
+    String? resolveOwnerId() {
+      if (!sl.isRegistered<AuthRepository>()) {
+        return IptvOwnerScope.localOwnerId;
+      }
+      return IptvOwnerScope.normalize(sl<AuthRepository>().currentSession?.userId);
+    }
+
+    if (!sl.isRegistered<RouteProfileRepository>()) {
+      sl.registerLazySingleton<RouteProfileRepository>(
+        () => LocalRouteProfileRepository(
+          sl<Database>(),
+          ownerIdProvider: resolveOwnerId,
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<SourceConnectionPolicyRepository>()) {
+      sl.registerLazySingleton<SourceConnectionPolicyRepository>(
+        () => LocalSourceConnectionPolicyRepository(
+          sl<Database>(),
+          ownerIdProvider: resolveOwnerId,
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<RouteProfileCredentialsStore>()) {
+      sl.registerLazySingleton<RouteProfileCredentialsStore>(
+        () => RouteProfileCredentialsStore(sl<CredentialsVault>()),
+      );
+    }
+
+    if (!sl.isRegistered<PublicIpEchoService>()) {
+      sl.registerLazySingleton<PublicIpEchoService>(() => const PublicIpEchoService());
+    }
+
+    if (!sl.isRegistered<XtreamRouteExecutionService>()) {
+      sl.registerLazySingleton<XtreamRouteExecutionService>(
+        () => XtreamRouteExecutionService(
+          sl<AppConfig>(),
+          sl<AppLogger>(),
+          sl<RouteProfileRepository>(),
+          sl<SourceConnectionPolicyRepository>(),
+          sl<RouteProfileCredentialsStore>(),
+        ),
+      );
+    }
+
+    if (!sl.isRegistered<SourceProbeService>()) {
+      sl.registerLazySingleton<SourceProbeService>(
+        () => XtreamSourceProbeServiceImpl(
+          sl<XtreamRouteExecutionService>(),
+          sl<PublicIpEchoService>(),
+          sl<AppLogger>(),
+        ),
       );
     }
 
@@ -90,6 +165,8 @@ class IptvDataModule {
           sl<XtreamCacheDataSource>(),
           sl<AppLogger>(),
           sl<PerformanceTuning>(),
+          sl<XtreamRouteExecutionService>(),
+          sl<SourceConnectionPolicyRepository>(),
         ),
       );
     }

@@ -8,7 +8,9 @@ import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/core/preferences/suppressed_remote_iptv_sources_preferences.dart';
 import 'package:movi/src/core/preferences/selected_iptv_source_preferences.dart';
 import 'package:movi/src/core/preferences/selected_profile_preferences.dart';
@@ -37,7 +39,9 @@ import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_cata
 import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_probe_models.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
+import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart';
 import 'package:movi/src/features/welcome/domain/enum.dart';
 
 typedef AppStartupRunner = Future<void> Function();
@@ -1678,8 +1682,23 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
           if (kDebugMode) {
             debugPrint('[BOOTSTRAP] Refresh Xtream');
           }
-          await _refreshXtreamCatalog(id);
-          refreshed = true;
+          final result = await _refreshXtreamCatalog(id);
+          result.fold(
+            ok: (snapshot) {
+              refreshed = true;
+              unawaited(
+                LoggingService.log(
+                  '[IptvSync] source=${_redactIptvSourceId(id)} action=refresh_xtream '
+                  'result=success movies=${snapshot.movieCount} '
+                  'series=${snapshot.seriesCount}',
+                  category: 'startup',
+                ),
+              );
+            },
+            err: (failure) {
+              throw _mapIptvFailureToLaunchStep(failure, sourceId: id);
+            },
+          );
         } else if (stalkerIds.contains(id)) {
           if (kDebugMode) {
             debugPrint('[BOOTSTRAP] Refresh Stalker');
@@ -1707,6 +1726,9 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
         if (kDebugMode) {
           debugPrint('[BOOTSTRAP] Refresh error: $e');
         }
+        if (e is _LaunchStepException) {
+          rethrow;
+        }
       }
     }
 
@@ -1729,6 +1751,75 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     _logIptvSyncDecision(reason: reason, action: 'run', detail: 'refresh_done');
     _appEventBus.emit(const AppEvent(AppEventType.iptvSynced));
     return _IptvPreloadResult(catalogReady: true, refreshed: refreshed);
+  }
+
+  _LaunchStepException _mapIptvFailureToLaunchStep(
+    Failure failure, {
+    required String sourceId,
+  }) {
+    final context = failure.context ?? const <String, Object?>{};
+    final details = <String>[
+      'source=${_redactIptvSourceId(sourceId)}',
+      'failure=${failure.code ?? failure.runtimeType}',
+      for (final entry in context.entries) '${entry.key}=${entry.value}',
+    ].join(' ');
+    unawaited(
+      LoggingService.log(
+        '[IptvSync] action=refresh_xtream result=failure $details',
+        category: 'startup',
+        level: LogLevel.warn,
+      ),
+    );
+
+    if (failure is TimeoutFailure ||
+        failure is ConnectionFailure ||
+        failure is BadCertificateFailure) {
+      return _LaunchStepException(
+        AppLaunchErrorCode.iptvNetworkTimeout,
+        'IPTV network failure: ${failure.code ?? failure.runtimeType}',
+      );
+    }
+
+    if (failure is XtreamRouteExecutionFailure) {
+      final code = switch (failure.errorKind) {
+        SourceProbeErrorKind.dnsNotFound => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.dnsTimeout => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.tcpRefused => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.tcpTimeout => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.tlsError => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.httpTimeout => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.routeBlocked => AppLaunchErrorCode.iptvNetworkTimeout,
+        _ => AppLaunchErrorCode.iptvProviderError,
+      };
+      return _LaunchStepException(
+        code,
+        'IPTV route failure: ${failure.errorKind.name}',
+      );
+    }
+
+    if (failure is CancelledFailure) {
+      return _LaunchStepException(
+        AppLaunchErrorCode.iptvProviderError,
+        'IPTV request cancelled: ${failure.code ?? failure.runtimeType}',
+      );
+    }
+
+    return _LaunchStepException(
+      AppLaunchErrorCode.iptvProviderError,
+      'IPTV provider failure: ${failure.code ?? failure.runtimeType}',
+    );
+  }
+
+  String _redactIptvSourceId(String sourceId) {
+    final trimmed = sourceId.trim();
+    if (trimmed.isEmpty) {
+      return 'unknown';
+    }
+    final separator = trimmed.indexOf('_');
+    if (separator > 0) {
+      return trimmed.substring(0, separator);
+    }
+    return trimmed;
   }
 
   Future<void> _runIptvBackgroundSync(AppLaunchMeta meta) async {

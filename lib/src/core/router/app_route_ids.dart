@@ -37,6 +37,8 @@ class AppRouteIds {
   static const iptvSourceAdd = 'iptv_source_add';
   static const iptvSourceEdit = 'iptv_source_edit';
   static const iptvSourceOrganize = 'iptv_source_organize';
+  static const iptvNetworkProfiles = 'iptv_network_profiles';
+  static const xtreamSourceTest = 'xtream_source_test';
 
   static const movie = 'movie_detail';
   static const movieById = 'movie_detail_by_id';

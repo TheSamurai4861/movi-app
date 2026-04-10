@@ -48,6 +48,7 @@ import 'package:movi/src/features/iptv/data/datasources/xtream_cache_data_source
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_catalog_snapshot.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_catalog_snapshot.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_playlist.dart';
@@ -1832,6 +1833,8 @@ class _FakeIptvRepository implements IptvRepository {
     required String username,
     required String password,
     required String alias,
+    String preferredRouteProfileId = RouteProfile.defaultId,
+    List<String> fallbackRouteProfileIds = const <String>[],
   }) {
     throw UnimplementedError();
   }

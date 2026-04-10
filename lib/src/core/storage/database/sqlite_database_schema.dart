@@ -71,6 +71,35 @@ final class LocalDatabaseSchema {
     ''');
 
     await db.execute('''
+      CREATE TABLE IF NOT EXISTS iptv_route_profiles (
+        id TEXT NOT NULL,
+        owner_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        proxy_scheme TEXT,
+        proxy_host TEXT,
+        proxy_port INTEGER,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (owner_id, id)
+      );
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS iptv_source_connection_policies (
+        owner_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        source_kind TEXT NOT NULL,
+        preferred_route_profile_id TEXT NOT NULL,
+        fallback_route_profile_ids_json TEXT NOT NULL DEFAULT '[]',
+        last_working_route_profile_id TEXT,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (owner_id, account_id, source_kind)
+      );
+    ''');
+
+    await db.execute('''
       CREATE TABLE iptv_playlists (
         owner_id TEXT NOT NULL,
         account_id TEXT NOT NULL,
@@ -144,6 +173,13 @@ final class LocalDatabaseSchema {
         PRIMARY KEY (owner_id, account_id, playlist_id)
       );
     ''');
+
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_route_profiles_owner_enabled ON iptv_route_profiles(owner_id, enabled, updated_at);',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_iptv_source_connection_policies_owner_account ON iptv_source_connection_policies(owner_id, account_id);',
+    );
 
     await db.execute('''
       CREATE TABLE continue_watching (

@@ -46,6 +46,8 @@ class AppRoutePaths {
   static const iptvSourceAdd = '/settings/iptv/sources/add';
   static const iptvSourceEdit = '/settings/iptv/sources/edit';
   static const iptvSourceOrganize = '/settings/iptv/sources/organize';
+  static const iptvNetworkProfiles = '/settings/iptv/network-profiles';
+  static const xtreamSourceTest = '/settings/iptv/source-test';
 
   static const movie = '/movie';
   static const movieById = '/movie/:id';

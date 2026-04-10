@@ -3,6 +3,7 @@ class XtreamAuthDto {
     required this.status,
     required this.message,
     required this.expiration,
+    this.auth,
   });
 
   factory XtreamAuthDto.fromJson(Map<String, dynamic> json) {
@@ -25,14 +26,21 @@ class XtreamAuthDto {
       status: statusRaw?.toString() ?? 'Unknown',
       message: message,
       expiration: _parseDate(userInfo['exp_date'] ?? json['exp_date']),
+      auth: _parseAuthFlag(userInfo['auth'] ?? json['auth']),
     );
   }
 
   final String status;
   final String message;
   final DateTime? expiration;
+  final bool? auth;
 
-  bool get isAuthorized => status.toLowerCase() == 'active';
+  bool get isAuthorized {
+    if (auth != null) {
+      return auth!;
+    }
+    return status.toLowerCase() == 'active';
+  }
 
   static DateTime? _parseDate(dynamic timestamp) {
     if (timestamp == null) return null;
@@ -42,5 +50,13 @@ class XtreamAuthDto {
       value * 1000,
       isUtc: true,
     ).toLocal();
+  }
+
+  static bool? _parseAuthFlag(dynamic raw) {
+    if (raw == null) return null;
+    final value = raw.toString().trim().toLowerCase();
+    if (value == '1' || value == 'true') return true;
+    if (value == '0' || value == 'false') return false;
+    return null;
   }
 }

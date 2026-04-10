@@ -9,6 +9,8 @@ abstract class IptvRepository {
     required String username,
     required String password,
     required String alias,
+    String preferredRouteProfileId,
+    List<String> fallbackRouteProfileIds,
   });
 
   Future<XtreamCatalogSnapshot> refreshCatalog(String accountId);

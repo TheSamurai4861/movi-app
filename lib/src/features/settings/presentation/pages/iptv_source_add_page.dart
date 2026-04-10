@@ -10,10 +10,14 @@ import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
+import 'package:movi/src/features/settings/presentation/pages/xtream_source_test_page.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
+import 'package:movi/src/features/settings/presentation/providers/iptv_network_profile_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
+import 'package:movi/src/features/settings/presentation/widgets/xtream_route_policy_form_section.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 
@@ -40,6 +44,8 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   bool _hasSubmitted = false;
   bool _obscurePassword = true;
   final IptvSourceType _sourceType = IptvSourceType.xtream;
+  String _preferredRouteProfileId = RouteProfile.defaultId;
+  List<String> _fallbackRouteProfileIds = const <String>[];
 
   @override
   void initState() {
@@ -68,6 +74,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _hasSubmitted = true);
+    final routeSelection = await _normalizeRouteSelection();
 
     final notifier = ref.read(iptvConnectControllerProvider.notifier);
     final ok = await notifier.connect(
@@ -79,6 +86,8 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
           ? _macCtrl.text.trim()
           : null,
       alias: _nameCtrl.text.trim(),
+      preferredRouteProfileId: routeSelection.$1,
+      fallbackRouteProfileIds: routeSelection.$2,
     );
 
     if (!mounted) return;
@@ -151,10 +160,128 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     }
   }
 
+  Future<void> _openNetworkProfiles() async {
+    await context.push(AppRouteNames.iptvNetworkProfiles);
+    if (!mounted) return;
+    ref.invalidate(routeProfilesProvider);
+  }
+
+  Future<void> _openSourceTest() async {
+    if (_serverCtrl.text.trim().isEmpty ||
+        _userCtrl.text.trim().isEmpty ||
+        _passCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Saisis URL, utilisateur et mot de passe avant le test.'),
+        ),
+      );
+      return;
+    }
+    final routeSelection = await _normalizeRouteSelection();
+    if (!mounted) return;
+    await context.push(
+      AppRouteNames.xtreamSourceTest,
+      extra: XtreamSourceTestPageArgs(
+        serverUrl: _serverCtrl.text.trim(),
+        username: _userCtrl.text.trim(),
+        password: _passCtrl.text,
+        preferredRouteProfileId: routeSelection.$1,
+        fallbackRouteProfileIds: routeSelection.$2,
+      ),
+    );
+  }
+
+  Future<void> _pickFallbackProfiles(List<RouteProfile> profiles) async {
+    final current = Set<String>.from(_fallbackRouteProfileIds);
+    final candidates = profiles
+        .where((profile) => profile.id != _preferredRouteProfileId)
+        .toList(growable: false);
+    final selected = await showDialog<List<String>>(
+      context: context,
+      builder: (context) {
+        final temp = Set<String>.from(current);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Profils de secours'),
+              content: SizedBox(
+                width: 420,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final profile in candidates)
+                        CheckboxListTile(
+                          value: temp.contains(profile.id),
+                          title: Text(profile.name),
+                          subtitle: Text(
+                            profile.kind == RouteProfileKind.defaultRoute
+                                ? 'systeme'
+                                : '${profile.proxyHost ?? '-'}:${profile.proxyPort ?? '-'}',
+                          ),
+                          onChanged: (checked) {
+                            setState(() {
+                              if (checked == true) {
+                                temp.add(profile.id);
+                              } else {
+                                temp.remove(profile.id);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Annuler'),
+                ),
+                FilledButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop(temp.toList(growable: false)),
+                  child: const Text('Valider'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _fallbackRouteProfileIds = selected;
+    });
+  }
+
+  Future<(String, List<String>)> _normalizeRouteSelection() async {
+    final profiles = await ref.read(routeProfilesProvider.future);
+    final ids = profiles.map((profile) => profile.id).toSet();
+    final preferred = ids.contains(_preferredRouteProfileId)
+        ? _preferredRouteProfileId
+        : RouteProfile.defaultId;
+    final fallbacks = _fallbackRouteProfileIds
+        .where((id) => id != preferred && ids.contains(id))
+        .toList(growable: false);
+    if (!mounted) {
+      return (preferred, fallbacks);
+    }
+    setState(() {
+      _preferredRouteProfileId = preferred;
+      _fallbackRouteProfileIds = fallbacks;
+    });
+    return (preferred, fallbacks);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(iptvConnectControllerProvider);
+    final routeProfiles = ref.watch(routeProfilesProvider).maybeWhen(
+      data: (profiles) => profiles,
+      orElse: () => <RouteProfile>[RouteProfile.defaultProfile()],
+    );
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -295,6 +422,31 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                           : null,
                                     ),
 
+                                    const SizedBox(height: 32),
+                                    XtreamRoutePolicyFormSection(
+                                      profiles: routeProfiles,
+                                      preferredRouteProfileId:
+                                          _preferredRouteProfileId,
+                                      fallbackRouteProfileIds:
+                                          _fallbackRouteProfileIds,
+                                      onPreferredChanged: (value) {
+                                        final next =
+                                            value ?? RouteProfile.defaultId;
+                                        setState(() {
+                                          _preferredRouteProfileId = next;
+                                          _fallbackRouteProfileIds =
+                                              _fallbackRouteProfileIds
+                                                  .where((id) => id != next)
+                                                  .toList(growable: false);
+                                        });
+                                      },
+                                      onEditFallbacks: () =>
+                                          _pickFallbackProfiles(routeProfiles),
+                                      onOpenNetworkProfiles:
+                                          _openNetworkProfiles,
+                                      onTestSource: _openSourceTest,
+                                      enabled: !state.isLoading,
+                                    ),
                                     const SizedBox(height: 32),
                                     SizedBox(
                                       width: double.infinity,

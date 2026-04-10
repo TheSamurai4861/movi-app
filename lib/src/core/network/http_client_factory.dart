@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:movi/src/core/config/config.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/network/network.dart';
+import 'package:movi/src/core/network/proxy/proxy_configuration.dart';
 import 'package:movi/src/core/network/proxy/dio_proxy.dart' as dio_proxy;
 
 class HttpClientFactory {
@@ -12,12 +13,16 @@ class HttpClientFactory {
     required this.logger,
     this.localeProvider,
     this.authTokenProvider,
+    this.useEnvironmentProxy = true,
+    this.proxyConfiguration,
   });
 
   final AppConfig config;
   final AppLogger logger;
   final LocaleCodeProvider? localeProvider;
   final AuthTokenProvider? authTokenProvider;
+  final bool useEnvironmentProxy;
+  final DioProxyConfiguration? proxyConfiguration;
 
   Dio create() {
     final baseUrl = config.network.restBaseUrl.trim();
@@ -41,8 +46,16 @@ class HttpClientFactory {
 
     final dio = Dio(options);
 
-    // Optional proxy support (useful on corporate networks / restricted devices).
-    dio_proxy.configureDioProxyFromEnvironment(dio, logger: logger);
+    if (proxyConfiguration != null && proxyConfiguration!.isConfigured) {
+      dio_proxy.configureDioProxy(
+        dio,
+        configuration: proxyConfiguration!,
+        logger: logger,
+      );
+    } else if (useEnvironmentProxy) {
+      // Optional proxy support (useful on corporate networks / restricted devices).
+      dio_proxy.configureDioProxyFromEnvironment(dio, logger: logger);
+    }
 
     dio.interceptors.addAll(<Interceptor>[
       if (authTokenProvider != null)

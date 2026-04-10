@@ -12,7 +12,9 @@ import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_re
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
+import 'package:movi/src/features/iptv/domain/repositories/source_connection_policy_repository.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
 
 final iptvAccountByIdProvider = FutureProvider.family<XtreamAccount?, String>((
@@ -57,6 +59,7 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
   late final AppStateController _appState;
   late final IptvLocalRepository _local;
   late final CredentialsVault _vault;
+  late final SourceConnectionPolicyRepository _policies;
   late final SupabaseIptvSourcesRepository? _supaSources;
   late final IptvCredentialsEdgeService? _edgeCipher;
 
@@ -67,6 +70,7 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
     _refresh = sl<RefreshXtreamCatalog>();
     _local = sl<IptvLocalRepository>();
     _vault = sl<CredentialsVault>();
+    _policies = sl<SourceConnectionPolicyRepository>();
     _supaSources = sl.isRegistered<SupabaseIptvSourcesRepository>()
         ? sl<SupabaseIptvSourcesRepository>()
         : null;
@@ -87,6 +91,8 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
     required String username,
     required String password,
     String? alias,
+    String preferredRouteProfileId = RouteProfile.defaultId,
+    List<String> fallbackRouteProfileIds = const <String>[],
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -95,6 +101,8 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
         username: username,
         password: password,
         alias: alias,
+        preferredRouteProfileId: preferredRouteProfileId,
+        fallbackRouteProfileIds: fallbackRouteProfileIds,
       );
 
       if (res.isErr()) {
@@ -119,6 +127,10 @@ class IptvSourceEditController extends Notifier<IptvSourceEditState> {
         }
         await _local.removeAccount(oldId);
         await _vault.removePassword(oldId);
+        await _policies.deletePolicy(
+          accountId: oldId,
+          sourceKind: SourceKind.xtream,
+        );
       } else if (wasActive) {
         _appState.addIptvSource(newId);
       }

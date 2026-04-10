@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/network/proxy/proxy_configuration.dart';
 
 class _ProxySettings {
   const _ProxySettings({
@@ -58,6 +59,27 @@ class _ProxySettings {
 
 void configureDioProxyFromEnvironment(Dio dio, {AppLogger? logger}) {
   final settings = _ProxySettings.fromEnvironment();
+  configureDioProxy(
+    dio,
+    configuration: DioProxyConfiguration(
+      httpProxy: settings.httpProxy,
+      httpsProxy: settings.httpsProxy,
+      noProxy: settings.noProxy,
+    ),
+    logger: logger,
+  );
+}
+
+void configureDioProxy(
+  Dio dio, {
+  required DioProxyConfiguration configuration,
+  AppLogger? logger,
+}) {
+  final settings = _ProxySettings(
+    httpProxy: configuration.httpProxy,
+    httpsProxy: configuration.httpsProxy,
+    noProxy: configuration.noProxy,
+  );
   if (!settings.isConfigured) return;
 
   final adapter = dio.httpClientAdapter;

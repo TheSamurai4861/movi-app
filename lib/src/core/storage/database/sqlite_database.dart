@@ -44,7 +44,7 @@ class LocalDatabase {
     final path = await LocalDatabasePaths.resolvePath();
 
     debugPrint(
-      '[DEBUG][Startup] LocalDatabase.instance: opening database (version 23)',
+      '[DEBUG][Startup] LocalDatabase.instance: opening database (version 24)',
     );
     _instance = await openDatabase(
       path,

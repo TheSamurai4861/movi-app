@@ -16,6 +16,7 @@ import 'package:movi/src/features/iptv/application/usecases/add_xtream_source.da
 import 'package:movi/src/features/iptv/application/usecases/add_stalker_source.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_xtream_catalog.dart';
 import 'package:movi/src/features/iptv/application/usecases/refresh_stalker_catalog.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/entities/stalker_account.dart';
 import 'package:movi/src/core/storage/storage.dart';
@@ -171,6 +172,8 @@ class IptvConnectController extends Notifier<IptvConnectState> {
     String? password,
     String? macAddress,
     String? alias,
+    String preferredRouteProfileId = RouteProfile.defaultId,
+    List<String> fallbackRouteProfileIds = const <String>[],
     bool runCatalogSyncInBackground = true,
   }) async {
     final rawUrl = serverUrl.trim();
@@ -198,6 +201,8 @@ class IptvConnectController extends Notifier<IptvConnectState> {
           username: rawUser,
           password: rawPass,
           alias: (rawAlias == null || rawAlias.isEmpty) ? null : rawAlias,
+          preferredRouteProfileId: preferredRouteProfileId,
+          fallbackRouteProfileIds: fallbackRouteProfileIds,
         );
 
         if (res.isErr()) {

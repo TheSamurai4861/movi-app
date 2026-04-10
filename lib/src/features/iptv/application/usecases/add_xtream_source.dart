@@ -1,5 +1,6 @@
 import 'package:movi/src/core/shared/failure.dart';
 import 'package:movi/src/core/utils/result.dart';
+import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/entities/xtream_account.dart';
 import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart';
 import 'package:movi/src/features/iptv/domain/repositories/iptv_repository.dart';
@@ -15,6 +16,8 @@ class AddXtreamSource {
     required String username,
     required String password,
     String? alias,
+    String preferredRouteProfileId = RouteProfile.defaultId,
+    List<String> fallbackRouteProfileIds = const <String>[],
   }) async {
     final rawUrl = serverUrl.trim();
     final rawUser = username.trim();
@@ -40,6 +43,8 @@ class AddXtreamSource {
         username: rawUser,
         password: rawPass,
         alias: resolvedAlias,
+        preferredRouteProfileId: preferredRouteProfileId,
+        fallbackRouteProfileIds: fallbackRouteProfileIds,
       );
 
       return Ok(account);

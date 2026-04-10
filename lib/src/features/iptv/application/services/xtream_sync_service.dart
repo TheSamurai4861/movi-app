@@ -184,19 +184,36 @@ class XtreamSyncService {
 
       for (final accountId in sources) {
         totalAccounts += 1;
+        final safeAccountId = _redactAccountId(accountId);
         try {
           final snapshot = await _cache.getSnapshot(
             accountId,
             policy: XtreamCacheDataSource.snapshotPolicy,
           );
           if (snapshot == null) {
-            _logger.info('Xtream sync: refreshing account $accountId');
-            await _refresh(accountId);
-            _refreshCount += 1;
+            _logger.info('Xtream sync: refreshing account $safeAccountId');
+            final result = await _refresh(accountId);
+            result.fold(
+              ok: (_) {
+                _refreshCount += 1;
+              },
+              err: (failure) {
+                failedAccounts += 1;
+                _logger.warn(
+                  'Xtream sync refresh rejected for $safeAccountId '
+                  'code=${failure.code ?? failure.runtimeType} '
+                  'message=${failure.message}',
+                );
+              },
+            );
           }
         } catch (error, stack) {
           failedAccounts += 1;
-          _logger.error('Xtream sync failed for $accountId', error, stack);
+          _logger.error(
+            'Xtream sync failed for $safeAccountId',
+            error,
+            stack,
+          );
         }
       }
 
@@ -259,5 +276,17 @@ class XtreamSyncService {
       'XtreamSync summary ts=$ts initial=$_initialSyncCount '
       'periodic=$_periodicSyncCount total=$total',
     );
+  }
+
+  String _redactAccountId(String accountId) {
+    final trimmed = accountId.trim();
+    if (trimmed.isEmpty) {
+      return 'unknown';
+    }
+    final separator = trimmed.indexOf('_');
+    if (separator > 0) {
+      return trimmed.substring(0, separator);
+    }
+    return trimmed;
   }
 }
