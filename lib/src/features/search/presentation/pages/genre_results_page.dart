@@ -4,12 +4,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/router/not_found_page.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/router/router.dart';
@@ -322,6 +326,18 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
         .toList(growable: false);
   }
 
+  KeyEventResult _handleBackKeyEvent(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!mounted) return KeyEventResult.ignored;
+      Navigator.of(context).maybePop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final args = widget.args;
@@ -335,187 +351,202 @@ class _GenreResultsPageState extends ConsumerState<GenreResultsPage> {
     final itemCount = _isMovie ? _movies.length : _shows.length;
     _requestInitialMediaFocusIfNeeded(context);
 
-    final initialFocusNode = itemCount > 0 ? _firstMediaFocusNode : _backFocusNode;
+    final initialFocusNode = itemCount > 0
+        ? _firstMediaFocusNode
+        : _backFocusNode;
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: initialFocusNode,
-        fallbackFocusNode: _backFocusNode,
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.genreResultsPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => initialFocusNode,
+        resolveFallbackEntryNode: () => _backFocusNode,
       ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!mounted) return false;
-        Navigator.of(context).maybePop();
-        return true;
-      },
-      debugLabel: 'GenreResultsRouteFocus',
-      child: Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        top: true,
-        bottom: false,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  MoviFocusableAction(
-                    focusNode: _backFocusNode,
-                    onPressed: () => context.pop(),
-                    semanticLabel: 'Retour',
-                    builder: (context, state) {
-                      return MoviFocusFrame(
-                        scale: state.focused ? 1.04 : 1,
-                        padding: const EdgeInsets.all(8),
-                        borderRadius: BorderRadius.circular(999),
-                        backgroundColor: state.focused
-                            ? Colors.white.withValues(alpha: 0.14)
-                            : Colors.transparent,
-                        child: SizedBox(
-                          width: 35,
-                          height: 35,
-                          child: const MoviAssetIcon(
-                            AppAssets.iconBack,
-                            color: Colors.white,
-                          ),
-                        ),
-                      );
-                    },
+      exitMap: FocusRegionExitMap({
+        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+      }),
+      requestFocusOnMount: true,
+      debugLabel: 'GenreResultsRegion',
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => _handleBackKeyEvent(event, context),
+        child: Scaffold(
+          backgroundColor: colorScheme.surface,
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
                   ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        args.genreName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 35 + 8 + 50),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  MoviItemsList(
-                    title: _isMovie
-                        ? AppLocalizations.of(context)!.moviesTitle
-                        : AppLocalizations.of(context)!.seriesTitle,
-                    subtitle: itemCount > 0
-                        ? AppLocalizations.of(context)!.resultsCount(itemCount)
-                        : null,
-                    estimatedItemWidth: 150,
-                    estimatedItemHeight: MoviMediaCard.listHeight,
-                    titlePadding: 20,
-                    horizontalPadding: const EdgeInsetsDirectional.only(
-                      start: 20,
-                      end: 20,
-                    ),
-                    action: itemCount > 10
-                        ? TextButton(
-                            onPressed: () {
-                              context.push(
-                                AppRouteNames.genreAllResults,
-                                extra: GenreAllResultsArgs(
-                                  genreId: args.genreId,
-                                  genreName: args.genreName,
-                                  type: args.type,
-                                ),
-                              );
-                            },
-                            child: Text(
-                              AppLocalizations.of(context)!.actionSeeAll,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                  child: Row(
+                    children: [
+                      MoviFocusableAction(
+                        focusNode: _backFocusNode,
+                        onPressed: () => context.pop(),
+                        semanticLabel: 'Retour',
+                        builder: (context, state) {
+                          return MoviFocusFrame(
+                            scale: state.focused ? 1.04 : 1,
+                            padding: const EdgeInsets.all(8),
+                            borderRadius: BorderRadius.circular(999),
+                            backgroundColor: state.focused
+                                ? Colors.white.withValues(alpha: 0.14)
+                                : Colors.transparent,
+                            child: SizedBox(
+                              width: 35,
+                              height: 35,
+                              child: const MoviAssetIcon(
+                                AppAssets.iconBack,
                                 color: Colors.white,
                               ),
                             ),
-                          )
-                        : null,
-                    items: _isMovie
-                        ? _movies
-                              .take(10)
-                              .map((mm) {
-                                final media = MoviMedia(
-                                  id: mm.id.toString(),
-                                  title: mm.title,
-                                  poster: imageResolver.poster(mm.posterPath),
-                                  year:
-                                      mm.releaseDate != null &&
-                                          mm.releaseDate!.length >= 4
-                                      ? int.tryParse(
-                                          mm.releaseDate!.substring(0, 4),
-                                        )
-                                      : null,
-                                  type: MoviMediaType.movie,
-                                );
-                                return MoviMediaCard(
-                                  media: media,
-                                  focusNode: identical(mm, _movies.first)
-                                      ? _firstMediaFocusNode
-                                      : null,
-                                  onTap: (x) => navigateToMovieDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.movie(x.id),
-                                  ),
-                                );
-                              })
-                              .toList(growable: false)
-                        : _shows
-                              .take(10)
-                              .map((ss) {
-                                final media = MoviMedia(
-                                  id: ss.id.toString(),
-                                  title: ss.name,
-                                  poster: imageResolver.poster(ss.posterPath),
-                                  type: MoviMediaType.series,
-                                );
-                                return MoviMediaCard(
-                                  media: media,
-                                  focusNode: identical(ss, _shows.first)
-                                      ? _firstMediaFocusNode
-                                      : null,
-                                  onTap: (x) => navigateToTvDetail(
-                                    context,
-                                    ref,
-                                    ContentRouteArgs.series(x.id),
-                                  ),
-                                );
-                              })
-                              .toList(growable: false),
-                  ),
-                  if (_isLoading)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                  if (!_isLoading && itemCount == 0)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          AppLocalizations.of(context)!.noResults,
-                          style: const TextStyle(fontSize: 16),
+                          );
+                        },
+                      ),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            args.genreName,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
+                      const SizedBox(width: 35 + 8 + 50),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      MoviItemsList(
+                        title: _isMovie
+                            ? AppLocalizations.of(context)!.moviesTitle
+                            : AppLocalizations.of(context)!.seriesTitle,
+                        subtitle: itemCount > 0
+                            ? AppLocalizations.of(
+                                context,
+                              )!.resultsCount(itemCount)
+                            : null,
+                        estimatedItemWidth: 150,
+                        estimatedItemHeight: MoviMediaCard.listHeight,
+                        titlePadding: 20,
+                        horizontalPadding: const EdgeInsetsDirectional.only(
+                          start: 20,
+                          end: 20,
+                        ),
+                        action: itemCount > 10
+                            ? TextButton(
+                                onPressed: () {
+                                  context.push(
+                                    AppRouteNames.genreAllResults,
+                                    extra: GenreAllResultsArgs(
+                                      genreId: args.genreId,
+                                      genreName: args.genreName,
+                                      type: args.type,
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  AppLocalizations.of(context)!.actionSeeAll,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        items: _isMovie
+                            ? _movies
+                                  .take(10)
+                                  .map((mm) {
+                                    final media = MoviMedia(
+                                      id: mm.id.toString(),
+                                      title: mm.title,
+                                      poster: imageResolver.poster(
+                                        mm.posterPath,
+                                      ),
+                                      year:
+                                          mm.releaseDate != null &&
+                                              mm.releaseDate!.length >= 4
+                                          ? int.tryParse(
+                                              mm.releaseDate!.substring(0, 4),
+                                            )
+                                          : null,
+                                      type: MoviMediaType.movie,
+                                    );
+                                    return MoviMediaCard(
+                                      media: media,
+                                      focusNode: identical(mm, _movies.first)
+                                          ? _firstMediaFocusNode
+                                          : null,
+                                      onTap: (x) => navigateToMovieDetail(
+                                        context,
+                                        ref,
+                                        ContentRouteArgs.movie(x.id),
+                                      ),
+                                    );
+                                  })
+                                  .toList(growable: false)
+                            : _shows
+                                  .take(10)
+                                  .map((ss) {
+                                    final media = MoviMedia(
+                                      id: ss.id.toString(),
+                                      title: ss.name,
+                                      poster: imageResolver.poster(
+                                        ss.posterPath,
+                                      ),
+                                      type: MoviMediaType.series,
+                                    );
+                                    return MoviMediaCard(
+                                      media: media,
+                                      focusNode: identical(ss, _shows.first)
+                                          ? _firstMediaFocusNode
+                                          : null,
+                                      onTap: (x) => navigateToTvDetail(
+                                        context,
+                                        ref,
+                                        ContentRouteArgs.series(x.id),
+                                      ),
+                                    );
+                                  })
+                                  .toList(growable: false),
+                      ),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      if (!_isLoading && itemCount == 0)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              AppLocalizations.of(context)!.noResults,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),)
+      ),
     );
   }
 }

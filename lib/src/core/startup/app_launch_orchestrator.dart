@@ -1782,13 +1782,19 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
 
     if (failure is XtreamRouteExecutionFailure) {
       final code = switch (failure.errorKind) {
-        SourceProbeErrorKind.dnsNotFound => AppLaunchErrorCode.iptvNetworkTimeout,
-        SourceProbeErrorKind.dnsTimeout => AppLaunchErrorCode.iptvNetworkTimeout,
-        SourceProbeErrorKind.tcpRefused => AppLaunchErrorCode.iptvNetworkTimeout,
-        SourceProbeErrorKind.tcpTimeout => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.dnsNotFound =>
+          AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.dnsTimeout =>
+          AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.tcpRefused =>
+          AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.tcpTimeout =>
+          AppLaunchErrorCode.iptvNetworkTimeout,
         SourceProbeErrorKind.tlsError => AppLaunchErrorCode.iptvNetworkTimeout,
-        SourceProbeErrorKind.httpTimeout => AppLaunchErrorCode.iptvNetworkTimeout,
-        SourceProbeErrorKind.routeBlocked => AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.httpTimeout =>
+          AppLaunchErrorCode.iptvNetworkTimeout,
+        SourceProbeErrorKind.routeBlocked =>
+          AppLaunchErrorCode.iptvNetworkTimeout,
         _ => AppLaunchErrorCode.iptvProviderError,
       };
       return _LaunchStepException(
@@ -2170,11 +2176,12 @@ class AppLaunchOrchestrator extends Notifier<AppLaunchState> {
     if (ids == null) {
       return 'none';
     }
-    final normalized = ids
-        .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
-        .toList(growable: false)
-      ..sort();
+    final normalized =
+        ids
+            .map((id) => id.trim())
+            .where((id) => id.isNotEmpty)
+            .toList(growable: false)
+          ..sort();
     if (normalized.isEmpty) {
       return 'none';
     }

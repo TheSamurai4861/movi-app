@@ -60,7 +60,9 @@ class _SeriesTrackingBootstrapperState
 
   Future<void> _initialize() async {
     final hasPremium = await ref.read(
-      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      canAccessPremiumFeatureProvider(
+        PremiumFeature.seriesEpisodeTracking,
+      ).future,
     );
     if (!hasPremium || !mounted) return;
 
@@ -106,7 +108,9 @@ class _SeriesTrackingBootstrapperState
     if (_refreshing) return;
 
     final hasPremium = await ref.read(
-      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      canAccessPremiumFeatureProvider(
+        PremiumFeature.seriesEpisodeTracking,
+      ).future,
     );
     if (!hasPremium) return;
 

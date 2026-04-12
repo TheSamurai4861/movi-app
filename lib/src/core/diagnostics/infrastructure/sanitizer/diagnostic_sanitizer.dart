@@ -19,7 +19,8 @@ final class DiagnosticSanitizer {
         continue;
       }
 
-      if (keepFollowingStack && (isErrorAttachment || _looksLikeStackLine(line))) {
+      if (keepFollowingStack &&
+          (isErrorAttachment || _looksLikeStackLine(line))) {
         kept.add(line);
         continue;
       }
@@ -40,11 +41,16 @@ final class DiagnosticSanitizer {
 
     // Redact obvious secrets/tokens.
     s = s.replaceAll(
-      RegExp(r'eyJ[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,}'),
+      RegExp(
+        r'eyJ[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,}\.[a-zA-Z0-9_\-]{10,}',
+      ),
       '<jwt>',
     );
     s = s.replaceAll(
-      RegExp(r'(SUPABASE_ANON_KEY|TMDB_API_KEY|PASSWORD|TOKEN)\s*=\s*[^ \n\r\t]+', caseSensitive: false),
+      RegExp(
+        r'(SUPABASE_ANON_KEY|TMDB_API_KEY|PASSWORD|TOKEN)\s*=\s*[^ \n\r\t]+',
+        caseSensitive: false,
+      ),
       '<secret>',
     );
 
@@ -52,11 +58,17 @@ final class DiagnosticSanitizer {
     s = s.replaceAll(RegExp(r'https?://\S+'), '<url>');
 
     // Redact internal package paths (keep only package name).
-    s = s.replaceAll(RegExp(r'package:movi/[^ )\n\r\t]+'), 'package:movi/<path>');
+    s = s.replaceAll(
+      RegExp(r'package:movi/[^ )\n\r\t]+'),
+      'package:movi/<path>',
+    );
 
     // Redact file paths (windows + unix).
     s = s.replaceAll(RegExp(r'[A-Za-z]:\\[^ \n\r\t]+'), '<path>');
-    s = s.replaceAll(RegExp(r'/(Users|home|var|opt|data)/[^ \n\r\t]+'), '<path>');
+    s = s.replaceAll(
+      RegExp(r'/(Users|home|var|opt|data)/[^ \n\r\t]+'),
+      '<path>',
+    );
 
     // Trim overly long lines (avoid huge dumps).
     const max = 1000;
@@ -66,4 +78,3 @@ final class DiagnosticSanitizer {
     return s;
   }
 }
-

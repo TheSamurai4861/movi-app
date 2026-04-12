@@ -1,43 +1,59 @@
+import 'package:flutter/foundation.dart';
 import 'package:movi/src/core/responsive/domain/entities/breakpoints.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
+import 'package:movi/src/core/responsive/application/services/windows_host_detector.dart';
 
-/// Service de résolution du type d'écran basé sur les dimensions.
-///
-/// Logique métier pure, testable sans dépendances Flutter.
-/// Détermine le type d'écran (mobile, tablet, desktop, tv) en fonction
-/// de la largeur, hauteur et ratio d'aspect.
+/// Resolves a [ScreenType] from logical viewport dimensions.
 class ScreenTypeResolver {
   ScreenTypeResolver._();
 
   static final ScreenTypeResolver instance = ScreenTypeResolver._();
 
-  /// Résout le type d'écran à partir des dimensions fournies.
-  ///
-  /// [width] : Largeur de l'écran en pixels logiques
-  /// [height] : Hauteur de l'écran en pixels logiques
-  ///
-  /// Retourne le [ScreenType] correspondant aux dimensions.
-  ScreenType resolve(double width, double height) {
-    // Calcul du ratio d'aspect
-    final aspectRatio = width / height;
+  ScreenType resolve(double width, double height, {TargetPlatform? platform}) {
+    if (width <= 0 || height <= 0) return ScreenType.mobile;
+    final effectivePlatform = platform ?? defaultTargetPlatform;
 
-    // Détection TV : très large écran avec ratio >= 16/9
-    if (width > Breakpoints.desktopMax &&
-        aspectRatio >= Breakpoints.tvAspectRatio) {
+    if (_isForcedWindowsTv(effectivePlatform)) {
       return ScreenType.tv;
     }
 
-    // Détection desktop : largeur > tabletMax et <= desktopMax
-    if (width > Breakpoints.tabletMax && width <= Breakpoints.desktopMax) {
+    final shortestSide = width < height ? width : height;
+    final longestSide = width > height ? width : height;
+    final aspectRatio = longestSide / shortestSide;
+    final isTabletBand =
+        shortestSide > Breakpoints.mobileMax &&
+        shortestSide <= Breakpoints.tabletMaxShortestSide;
+
+    if (isTabletBand) {
+      if (_supportsTabletOrientationRule(effectivePlatform)) {
+        return width > height ? ScreenType.tv : ScreenType.mobile;
+      }
       return ScreenType.desktop;
     }
 
-    // Détection tablet : largeur > mobileMax et <= tabletMax
-    if (width > Breakpoints.mobileMax && width <= Breakpoints.tabletMax) {
-      return ScreenType.tablet;
+    // TV detection:
+    // - wide aspect ratio,
+    // - enough logical size to exclude phones in landscape.
+    if (aspectRatio >= Breakpoints.tvAspectRatio &&
+        shortestSide >= Breakpoints.tvMinShortestSide &&
+        longestSide >= Breakpoints.tvMinLongestSide) {
+      return ScreenType.tv;
     }
 
-    // Par défaut : mobile (largeur <= mobileMax)
+    if (shortestSide > Breakpoints.tabletMaxShortestSide) {
+      return ScreenType.desktop;
+    }
+
     return ScreenType.mobile;
+  }
+
+  bool _supportsTabletOrientationRule(TargetPlatform platform) {
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+  }
+
+  bool _isForcedWindowsTv(TargetPlatform platform) {
+    if (platform == TargetPlatform.windows) return true;
+    if (!kIsWeb) return false;
+    return isWindowsWebHost();
   }
 }

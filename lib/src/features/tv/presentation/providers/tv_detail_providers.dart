@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:movi/src/core/di/di.dart';
@@ -13,7 +14,6 @@ import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source
 import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.dart';
 import 'package:movi/src/features/player/domain/entities/playback_launch_plan.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
-import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/features/tv/domain/entities/episode_playback_season_snapshot.dart';
@@ -22,6 +22,7 @@ import 'package:movi/src/core/security/credentials_vault.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
@@ -45,6 +46,7 @@ final tvRepositoryProvider = Provider<TvRepository>((ref) {
     ref.watch(slProvider)<ContinueWatchingLocalRepository>(),
     ref.watch(slProvider)<AppStateController>(),
     ref.watch(slProvider)<TmdbCacheDataSource>(),
+    detailCache: ref.watch(slProvider)<TmdbDetailCacheDataSource>(),
     userId: userId,
   );
 });
@@ -95,34 +97,45 @@ final resolveSeriesPlaybackTargetUseCaseProvider =
       (ref) => ref.watch(slProvider)<ResolveSeriesPlaybackTarget>(),
     );
 
-final seriesPlaybackLaunchPlanProvider =
-    FutureProvider.family<PlaybackLaunchPlan?, String>((ref, seriesId) async {
+final seriesLoadedSeasonSnapshotsProvider =
+    Provider.family<List<EpisodePlaybackSeasonSnapshot>, String>((
+      ref,
+      seriesId,
+    ) {
       final vm = ref
           .watch(tvDetailProgressiveControllerProvider(seriesId))
           .asData
           ?.value;
       if (vm == null) {
-        return null;
+        return const <EpisodePlaybackSeasonSnapshot>[];
       }
+      return vm.seasons
+          .map(
+            (season) => EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+              seasonNumber: season.seasonNumber,
+              episodeNumbers: season.episodes.map(
+                (episode) => episode.episodeNumber,
+              ),
+            ),
+          )
+          .toList(growable: false);
+    });
+
+final seriesPlaybackLaunchPlanProvider =
+    FutureProvider.family<PlaybackLaunchPlan?, String>((ref, seriesId) async {
       final userId = ref.watch(currentUserIdProvider);
       final historyRepo = ref.watch(slProvider)<PlaybackHistoryRepository>();
       final resumeState = await historyRepo.getSeriesResumeState(
         seriesId,
         userId: userId,
       );
+      final seasonSnapshots = ref.watch(
+        seriesLoadedSeasonSnapshotsProvider(seriesId),
+      );
       final useCase = ref.watch(resolveSeriesPlaybackTargetUseCaseProvider);
       return useCase(
         seriesId: seriesId,
-        seasonSnapshots: vm.seasons
-            .map(
-              (season) => EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
-                seasonNumber: season.seasonNumber,
-                episodeNumbers: season.episodes.map(
-                  (episode) => episode.episodeNumber,
-                ),
-              ),
-            )
-            .toList(growable: false),
+        seasonSnapshots: seasonSnapshots,
         resumeState: resumeState,
       );
     });
@@ -187,7 +200,7 @@ class TvDetailProgressiveController
 
   final String _seriesId;
 
-  static const int _prioritySeasonsCount = 3;
+  static const int _prioritySeasonsCount = 1;
 
   @override
   AsyncValue<TvDetailViewModel> build() {
@@ -577,17 +590,38 @@ class TvDetailProgressiveController
       final detailLite = detailLiteNullable!;
 
       // Créer le ViewModel initial avec saisons sans épisodes
-      final vm = TvDetailViewModel.fromDomain(
+      var effectiveDetail = detailLite;
+      var vm = TvDetailViewModel.fromDomain(
         detail: detailLite,
         language: lang,
         isAvailableInPlaylist: isSeriesAvailable,
       );
       state = AsyncValue.data(vm);
 
+      if (vm.cast.isEmpty && detailLite.tmdbId != null) {
+        try {
+          final fullDetail = await repo.getShow(
+            SeriesId(detailLite.tmdbId.toString()),
+          );
+          effectiveDetail = fullDetail;
+          vm = TvDetailViewModel.fromDomain(
+            detail: fullDetail,
+            language: lang,
+            isAvailableInPlaylist: isSeriesAvailable,
+          );
+          state = AsyncValue.data(vm);
+        } catch (e) {
+          logger.warn(
+            'tv_detail full enrichment skipped for id=$_seriesId (tmdbId=${detailLite.tmdbId}): $e',
+            category: 'tv_detail',
+          );
+        }
+      }
+
       // Charger les épisodes seulement si la série a des saisons et un tmdbId
       // (les séries Xtream sans tmdbId n'ont pas de saisons chargées depuis TMDB)
-      if (vm.seasons.isNotEmpty && detailLite.tmdbId != null) {
-        // Charger immédiatement les épisodes des premières saisons en priorité
+      if (vm.seasons.isNotEmpty && effectiveDetail.tmdbId != null) {
+        // Charger uniquement la première saison utile à l'ouverture.
         final prioritySeasons = vm.seasons.take(_prioritySeasonsCount).toList();
         if (prioritySeasons.isNotEmpty) {
           await _loadPrioritySeasons(
@@ -596,21 +630,6 @@ class TvDetailProgressiveController
             vm,
             prioritySeasons,
             isSeriesAvailable,
-          );
-        }
-
-        // Charger les autres saisons progressivement en arrière-plan
-        final remainingSeasons = vm.seasons
-            .skip(_prioritySeasonsCount)
-            .toList();
-        if (remainingSeasons.isNotEmpty) {
-          unawaited(
-            _loadRemainingSeasons(
-              repo,
-              id,
-              remainingSeasons,
-              isSeriesAvailable,
-            ),
           );
         }
       }
@@ -1395,117 +1414,30 @@ class TvDetailProgressiveController
     }
   }
 
-  Future<void> _loadRemainingSeasons(
-    TvRepository repo,
-    SeriesId id,
-    List<SeasonViewModel> remainingSeasons,
-    bool isSeriesAvailable,
-  ) async {
-    final currentState = state;
-    if (!currentState.hasValue) return;
-
-    final vm = currentState.value!;
-    final updatedSeasons = List<SeasonViewModel>.from(vm.seasons);
-
-    for (final season in remainingSeasons) {
-      try {
-        // Trouver l'index de la saison dans la liste
-        final seasonIndex = updatedSeasons.indexWhere(
-          (s) => s.seasonNumber == season.seasonNumber,
-        );
-        if (seasonIndex == -1) continue;
-
-        // Marquer comme en cours de chargement
-        updatedSeasons[seasonIndex] = updatedSeasons[seasonIndex].copyWith(
-          isLoadingEpisodes: true,
-        );
-        _updateViewModelWithSeasons(vm, updatedSeasons);
-
-        // Charger les épisodes
-        final seasonId = SeasonId(season.seasonNumber.toString());
-        final episodes = await repo.getEpisodes(id, seasonId);
-        final now = DateTime.now();
-        final episodesVm = episodes
-            .map((e) {
-              // Un épisode est disponible seulement si :
-              // 1. La série est disponible dans la playlist ET
-              // 2. La date de diffusion n'est pas dans le futur
-              final isAvailable =
-                  isSeriesAvailable &&
-                  (e.airDate == null ||
-                      e.airDate!.isBefore(now) ||
-                      e.airDate!.isAtSameMomentAs(now));
-              return EpisodeViewModel(
-                id: e.id.value,
-                episodeNumber: e.episodeNumber,
-                title: e.title.display,
-                overview: e.overview?.value,
-                runtime: e.runtime,
-                airDate: e.airDate,
-                still: e.still,
-                voteAverage: e.voteAverage,
-                isAvailableInPlaylist: isAvailable,
-              );
-            })
-            .toList(growable: false);
-
-        // Mettre à jour avec les épisodes chargés
-        updatedSeasons[seasonIndex] = updatedSeasons[seasonIndex].copyWith(
-          episodes: episodesVm,
-          isLoadingEpisodes: false,
-        );
-        _updateViewModelWithSeasons(vm, updatedSeasons);
-      } catch (e) {
-        // En cas d'erreur, garder la saison sans épisodes
-        final seasonIndex = updatedSeasons.indexWhere(
-          (s) => s.seasonNumber == season.seasonNumber,
-        );
-        if (seasonIndex != -1) {
-          updatedSeasons[seasonIndex] = updatedSeasons[seasonIndex].copyWith(
-            isLoadingEpisodes: false,
-          );
-          _updateViewModelWithSeasons(vm, updatedSeasons);
-        }
-      }
-    }
-  }
-
   void _updateViewModelWithSeasons(
     TvDetailViewModel vm,
     List<SeasonViewModel> updatedSeasons,
   ) {
-    // Filtrer les saisons : garder seulement celles qui :
-    // 1. Sont en cours de chargement, OU
-    // 2. N'ont pas encore été chargées (épisodes vides mais saison initiale), OU
-    // 3. Ont au moins un épisode disponible dans la playlist
-    final availableSeasons = updatedSeasons
-        .where((season) {
-          if (season.isLoadingEpisodes) return true;
-          // Si la saison n'a pas encore été chargée (épisodes vides), la garder
-          if (season.episodes.isEmpty) return true;
-          // Si la saison a été chargée, vérifier qu'elle a au moins un épisode disponible
-          return season.episodes.any(
-            (episode) => episode.isAvailableInPlaylist,
-          );
-        })
-        .toList(growable: false);
-
-    final updatedVm = TvDetailViewModel(
-      title: vm.title,
-      yearText: vm.yearText,
-      seasonsCountText: vm.seasonsCountText,
-      ratingText: vm.ratingText,
-      overviewText: vm.overviewText,
-      cast: vm.cast,
-      seasons: availableSeasons,
-      poster: vm.poster,
-      posterBackground: vm.posterBackground,
-      backdrop: vm.backdrop,
-      language: vm.language,
+    state = AsyncValue.data(
+      rebuildTvDetailViewModelWithUpdatedSeasons(vm, updatedSeasons),
     );
-
-    state = AsyncValue.data(updatedVm);
   }
+}
+
+@visibleForTesting
+TvDetailViewModel rebuildTvDetailViewModelWithUpdatedSeasons(
+  TvDetailViewModel vm,
+  List<SeasonViewModel> updatedSeasons,
+) {
+  final availableSeasons = updatedSeasons
+      .where((season) {
+        if (season.isLoadingEpisodes) return true;
+        if (season.episodes.isEmpty) return true;
+        return season.episodes.any((episode) => episode.isAvailableInPlaylist);
+      })
+      .toList(growable: false);
+
+  return vm.copyWith(seasons: availableSeasons);
 }
 
 final episodesBySeasonProvider =

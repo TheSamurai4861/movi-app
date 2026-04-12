@@ -14,9 +14,7 @@ enum ResumeReasonCode {
 
 @immutable
 sealed class ResumeDecision {
-  const ResumeDecision({
-    required this.reasonCode,
-  });
+  const ResumeDecision({required this.reasonCode});
 
   final ResumeReasonCode reasonCode;
 
@@ -27,10 +25,7 @@ sealed class ResumeDecision {
 }
 
 final class ResumeApply extends ResumeDecision {
-  const ResumeApply({
-    required this.position,
-    required super.reasonCode,
-  });
+  const ResumeApply({required this.position, required super.reasonCode});
 
   final Duration position;
 }
@@ -88,4 +83,3 @@ ResumeDecision decideResume({
 
   return ResumeApply(position: clamped, reasonCode: ResumeReasonCode.applied);
 }
-

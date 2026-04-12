@@ -10,6 +10,9 @@ class FeatureFlags {
     this.enableNewSearch = false,
     this.allowAuthStubFallback = false,
     this.allowInMemoryStorageFallback = false,
+    this.enableImageDiskCache = true,
+    this.enableImageCachedNetworkPath = true,
+    this.forceImageNetworkFallbackOnly = false,
   });
 
   final bool useRemoteHome;
@@ -35,6 +38,9 @@ class FeatureFlags {
   ///
   /// Doit rester désactivé en exécution normale.
   final bool allowInMemoryStorageFallback;
+  final bool enableImageDiskCache;
+  final bool enableImageCachedNetworkPath;
+  final bool forceImageNetworkFallbackOnly;
 
   FeatureFlags copyWith({
     bool? useRemoteHome,
@@ -47,6 +53,9 @@ class FeatureFlags {
     bool? enableNewSearch,
     bool? allowAuthStubFallback,
     bool? allowInMemoryStorageFallback,
+    bool? enableImageDiskCache,
+    bool? enableImageCachedNetworkPath,
+    bool? forceImageNetworkFallbackOnly,
   }) {
     return FeatureFlags(
       useRemoteHome: useRemoteHome ?? this.useRemoteHome,
@@ -64,6 +73,11 @@ class FeatureFlags {
           allowAuthStubFallback ?? this.allowAuthStubFallback,
       allowInMemoryStorageFallback:
           allowInMemoryStorageFallback ?? this.allowInMemoryStorageFallback,
+      enableImageDiskCache: enableImageDiskCache ?? this.enableImageDiskCache,
+      enableImageCachedNetworkPath:
+          enableImageCachedNetworkPath ?? this.enableImageCachedNetworkPath,
+      forceImageNetworkFallbackOnly:
+          forceImageNetworkFallbackOnly ?? this.forceImageNetworkFallbackOnly,
     );
   }
 
@@ -71,6 +85,11 @@ class FeatureFlags {
   TelemetryFlags get telemetry => TelemetryFlags(enableTelemetry);
   DownloadFlags get downloads => DownloadFlags(enableDownloads);
   SearchFlags get search => SearchFlags(enableNewSearch);
+  ImageFlags get images => ImageFlags(
+    enableDiskCache: enableImageDiskCache,
+    enableCachedNetworkPath: enableImageCachedNetworkPath,
+    forceNetworkFallbackOnly: forceImageNetworkFallbackOnly,
+  );
 
   @override
   bool operator ==(Object other) {
@@ -86,7 +105,10 @@ class FeatureFlags {
         enableDownloads == other.enableDownloads &&
         enableNewSearch == other.enableNewSearch &&
         allowAuthStubFallback == other.allowAuthStubFallback &&
-        allowInMemoryStorageFallback == other.allowInMemoryStorageFallback;
+        allowInMemoryStorageFallback == other.allowInMemoryStorageFallback &&
+        enableImageDiskCache == other.enableImageDiskCache &&
+        enableImageCachedNetworkPath == other.enableImageCachedNetworkPath &&
+        forceImageNetworkFallbackOnly == other.forceImageNetworkFallbackOnly;
   }
 
   @override
@@ -101,6 +123,9 @@ class FeatureFlags {
     enableNewSearch,
     allowAuthStubFallback,
     allowInMemoryStorageFallback,
+    enableImageDiskCache,
+    enableImageCachedNetworkPath,
+    forceImageNetworkFallbackOnly,
   );
 
   @override
@@ -115,7 +140,10 @@ class FeatureFlags {
         'enableDownloads: $enableDownloads, '
         'enableNewSearch: $enableNewSearch, '
         'allowAuthStubFallback: $allowAuthStubFallback, '
-        'allowInMemoryStorageFallback: $allowInMemoryStorageFallback'
+        'allowInMemoryStorageFallback: $allowInMemoryStorageFallback, '
+        'enableImageDiskCache: $enableImageDiskCache, '
+        'enableImageCachedNetworkPath: $enableImageCachedNetworkPath, '
+        'forceImageNetworkFallbackOnly: $forceImageNetworkFallbackOnly'
         ')';
   }
 }
@@ -139,4 +167,16 @@ class DownloadFlags {
 class SearchFlags {
   const SearchFlags(this.enableNewSearch);
   final bool enableNewSearch;
+}
+
+class ImageFlags {
+  const ImageFlags({
+    required this.enableDiskCache,
+    required this.enableCachedNetworkPath,
+    required this.forceNetworkFallbackOnly,
+  });
+
+  final bool enableDiskCache;
+  final bool enableCachedNetworkPath;
+  final bool forceNetworkFallbackOnly;
 }

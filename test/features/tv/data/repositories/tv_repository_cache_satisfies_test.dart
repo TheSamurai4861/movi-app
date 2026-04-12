@@ -6,6 +6,7 @@ Map<String, dynamic> _minimalTvJson({
   required List<Map<String, Object?>> logos,
   List<Map<String, Object?>> cast = const [],
   bool logoPngExhausted = false,
+  bool castExhausted = false,
 }) {
   return {
     'id': 42,
@@ -36,6 +37,7 @@ Map<String, dynamic> _minimalTvJson({
     'images': {'logos': logos},
     '__movi_preferred_image_lang': 'en',
     if (logoPngExhausted) '__movi_logo_png_exhausted': true,
+    if (castExhausted) '__movi_cast_exhausted': true,
   };
 }
 
@@ -62,7 +64,7 @@ void main() {
       expect(TvRepositoryImpl.cacheSatisfiesFullShowLoad(dto), isFalse);
     });
 
-    test('true when logoPath is set', () {
+    test('false when logoPath is set but cast is empty', () {
       final dto = TmdbTvDetailDto.fromJson(
         _minimalTvJson(
           logos: [
@@ -77,13 +79,22 @@ void main() {
         ),
       );
       expect(dto.logoPath, isNotNull);
-      expect(TvRepositoryImpl.cacheSatisfiesFullShowLoad(dto), isTrue);
+      expect(dto.cast, isEmpty);
+      expect(TvRepositoryImpl.cacheSatisfiesFullShowLoad(dto), isFalse);
     });
 
-    test('true when logoPngExhausted (stops refetch loop)', () {
+    test('true when logoPath is set and cast is present', () {
       final dto = TmdbTvDetailDto.fromJson(
         _minimalTvJson(
-          logos: const [],
+          logos: [
+            {
+              'file_path': '/l.png',
+              'iso_639_1': 'en',
+              'vote_average': 1.0,
+              'width': 300,
+              'height': 100,
+            },
+          ],
           cast: [
             {
               'id': 1,
@@ -92,10 +103,23 @@ void main() {
               'profile_path': null,
             },
           ],
+        ),
+      );
+      expect(dto.logoPath, isNotNull);
+      expect(dto.cast, isNotEmpty);
+      expect(TvRepositoryImpl.cacheSatisfiesFullShowLoad(dto), isTrue);
+    });
+
+    test('true when logo and cast are both exhausted (stops refetch loop)', () {
+      final dto = TmdbTvDetailDto.fromJson(
+        _minimalTvJson(
+          logos: const [],
           logoPngExhausted: true,
+          castExhausted: true,
         ),
       );
       expect(dto.logoPath, isNull);
+      expect(dto.cast, isEmpty);
       expect(TvRepositoryImpl.cacheSatisfiesFullShowLoad(dto), isTrue);
     });
   });

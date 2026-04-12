@@ -116,10 +116,7 @@ class LocalDataCleanupService {
       errorContext: 'clearing IPTV data',
       action: () async {
         for (final accountId in targets.xtreamAccountIds) {
-          await iptvRepository.removeAccount(
-            accountId,
-            includeAllOwners: true,
-          );
+          await iptvRepository.removeAccount(accountId, includeAllOwners: true);
         }
         for (final accountId in targets.stalkerAccountIds) {
           await iptvRepository.removeStalkerAccount(
@@ -168,7 +165,8 @@ class LocalDataCleanupService {
   }
 
   Future<void> _clearCache() async {
-    final cacheRepository = _getOptional<content_cache_repo.ContentCacheRepository>();
+    final cacheRepository =
+        _getOptional<content_cache_repo.ContentCacheRepository>();
     if (cacheRepository == null) {
       return;
     }
@@ -232,9 +230,7 @@ class LocalDataCleanupService {
           try {
             await credentialsVault.removePassword(accountId);
           } catch (error) {
-            _log(
-              'Skipped credential removal for account "$accountId": $error',
-            );
+            _log('Skipped credential removal for account "$accountId": $error');
           }
         }
 

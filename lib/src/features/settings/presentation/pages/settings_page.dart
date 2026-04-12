@@ -14,8 +14,12 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
-import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/parental/presentation/widgets/restricted_content_sheet.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
@@ -34,6 +38,8 @@ import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
+import 'package:movi/src/core/subscription/domain/entities/premium_feature.dart';
+import 'package:movi/src/core/subscription/presentation/providers/subscription_providers.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
@@ -42,9 +48,7 @@ import 'package:movi/src/features/iptv/application/services/xtream_sync_service.
 import 'package:movi/src/features/library/presentation/providers/library_cloud_sync_providers.dart';
 import 'package:movi/src/features/player/domain/value_objects/preferred_playback_quality.dart';
 import 'package:movi/src/features/player/domain/utils/language_formatter.dart';
-import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/layouts/app_shell_mobile_layout.dart';
-import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/movi_premium_settings_tile.dart';
 import 'package:movi/src/features/settings/presentation/widgets/premium_feature_locked_sheet.dart';
 import 'package:movi/src/features/settings/presentation/widgets/export_diagnostics_sheet.dart';
@@ -82,7 +86,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     debugLabel: 'SettingsCloudSyncAuto',
   );
   late List<FocusNode> _profileFocusNodes;
-  late final ShellFocusCoordinator _shellFocusCoordinator;
 
   static const Map<String, String> _languageNativeNames = {
     'ar': 'العربية',
@@ -265,11 +268,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   void initState() {
     super.initState();
     _profileFocusNodes = <FocusNode>[_firstProfileFocusNode];
-    _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    _shellFocusCoordinator.registerTabFocusBinding(
-      ShellTab.settings,
-      ShellTabFocusBinding(initialFocusNode: _firstProfileFocusNode),
-    );
 
     // Utiliser listenManual dans initState (ref.listen ne peut être utilisé que dans build)
     _authStatusSub = ref.listenManual<SupabaseAuthStatus>(
@@ -288,10 +286,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   void dispose() {
     _authStatusSub?.close();
-    _shellFocusCoordinator.unregisterTabFocusBinding(
-      ShellTab.settings,
-      _firstProfileFocusNode,
-    );
     _disposeOwnedProfileFocusNodes();
     _firstProfileFocusNode.dispose();
     _addProfileFocusNode.dispose();
@@ -902,6 +896,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return ScreenTypeResolver.instance.resolve(size.width, size.height);
   }
 
+  bool _focusSidebarFromRegionExit() {
+    return ref
+        .read(focusOrchestratorProvider)
+        .resolveExit(AppFocusRegionId.settingsPrimary, DirectionalEdge.left);
+  }
+
   KeyEventResult _handleSettingsHorizontalBoundary(
     KeyEvent event, {
     bool blockDown = false,
@@ -911,8 +911,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      ref.read(shellFocusCoordinatorProvider).focusSidebar();
-      return KeyEventResult.handled;
+      final handled = _focusSidebarFromRegionExit();
+      return handled ? KeyEventResult.handled : KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
       return KeyEventResult.handled;
@@ -945,7 +945,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       if (index == 0) {
-        ref.read(shellFocusCoordinatorProvider).focusSidebar();
+        _focusSidebarFromRegionExit();
       } else {
         _profileFocusNodes[index - 1].requestFocus();
       }
@@ -1327,55 +1327,59 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Focus(
       canRequestFocus: false,
       onKeyEvent: onKeyEvent == null ? null : (_, event) => onKeyEvent(event),
-      child: MoviFocusableAction(
-        onPressed: onTap,
-        onLongPress: onLongPress,
-        focusNode: focusNode,
-        ensureVisibleVerticalAlignment: _settingsFocusVerticalAlignment,
-        semanticLabel: name,
-        builder: (context, state) {
-          final focused = state.focused;
-          return MoviFocusFrame(
-            scale: focused ? 1.04 : 1,
-            borderRadius: BorderRadius.circular(999),
-            child: Column(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: focused
-                        ? Border.all(color: Colors.white, width: 3)
-                        : isSelected
-                        ? Border.all(color: Colors.white, width: 2)
-                        : null,
-                    boxShadow: isSelected || focused
-                        ? [
-                            BoxShadow(
-                              color: color.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : null,
+      child: MoviEnsureVisibleOnFocus(
+        verticalAlignment: _settingsFocusVerticalAlignment,
+        child: MoviFocusableAction(
+          onPressed: onTap,
+          onLongPress: onLongPress,
+          focusNode: focusNode,
+          semanticLabel: name,
+          builder: (context, state) {
+            final focused = state.focused;
+            return MoviFocusFrame(
+              scale: focused ? 1.04 : 1,
+              borderRadius: BorderRadius.circular(999),
+              child: Column(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: focused
+                          ? Border.all(color: Colors.white, width: 3)
+                          : isSelected
+                          ? Border.all(color: Colors.white, width: 2)
+                          : null,
+                      boxShadow: isSelected || focused
+                          ? [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 30),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 30),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: Colors.white,
+                  const SizedBox(height: 8),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w500,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -1556,387 +1560,79 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       libraryCloudSyncControllerProvider.notifier,
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.maxWidth > 800
-              ? 800.0
-              : constraints.maxWidth;
-          final isMobileShell = MediaQuery.sizeOf(context).width < 900;
-          final bottomPadding = isMobileShell
-              ? 24 + moviNavBarHeight() + moviNavBarBottomOffset(context)
-              : 24.0;
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.settingsPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => _firstProfileFocusNode,
+        resolveFallbackEntryNode: () => _firstProfileFocusNode,
+      ),
+      exitMap: FocusRegionExitMap({
+        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+      }),
+      debugLabel: 'SettingsFocusRegion',
+      child: Material(
+        color: Colors.transparent,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth > 800
+                ? 800.0
+                : constraints.maxWidth;
+            final isMobileShell = MediaQuery.sizeOf(context).width < 900;
+            final bottomPadding = isMobileShell
+                ? 24 + moviNavBarHeight() + moviNavBarBottomOffset(context)
+                : 24.0;
 
-          return Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              width: width,
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPadding),
-                children: [
-                  Text(
-                    l10n.settingsTitle,
-                    style:
-                        Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // --- Comptes
-                  Text(
-                    l10n.settingsAccountsSection,
-                    style:
-                        Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: _sectionTitleGap),
-                  _buildProfilesSection(),
-                  const SizedBox(height: _sectionItemGap),
-                  MoviEnsureVisibleOnFocus(
-                    verticalAlignment: _settingsFocusVerticalAlignment,
-                    child: MoviPremiumSettingsTile(
-                      focusNode: _premiumTileFocusNode,
-                      onKeyEvent: _handlePremiumTileKey,
-                    ),
-                  ),
-
-                  const SizedBox(height: _sectionGap),
-
-                  // --- IPTV
-                  Text(
-                    l10n.settingsIptvSection,
-                    style:
-                        Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: _sectionTitleGap),
-                  _buildSettingsGroup([
-                    _buildSettingItem(
-                      title: l10n.settingsSourcesManagement,
-                      onTap: () =>
-                          _guard(() => context.push(AppRoutePaths.iptvSources)),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsSyncFrequency,
-                      value: _formatSyncInterval(currentSyncInterval),
-                      showChevronDown: true,
-                      onTap: () => _guard(
-                        () => _showSyncIntervalSelector(
-                          context,
-                          currentSyncInterval,
-                        ),
-                      ),
-                    ),
-                  ]),
-
-                  const SizedBox(height: _sectionGap),
-
-                  // --- App settings
-                  Text(
-                    l10n.settingsAppSection,
-                    style:
-                        Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                  ),
-                  const SizedBox(height: _sectionTitleGap),
-                  _buildSettingsGroup([
-                    _buildSettingItem(
-                      title: l10n.settingsSubtitlesTitle,
-                      onTap: () => _guard(
-                        () => context.push(AppRoutePaths.settingsSubtitles),
-                      ),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsLanguageLabel,
-                      trailing: Builder(
-                        builder: (context) {
-                          final localePrefs = ref.read(
-                            slProvider,
-                          )<LocalePreferences>();
-                          final viewportWidth = MediaQuery.sizeOf(
-                            context,
-                          ).width;
-                          final items = _availableLanguages();
-                          final selected = items
-                              .where(
-                                (e) =>
-                                    _isCurrentLanguage(currentLangCode, e.$1),
-                              )
-                              .map((e) => e.$1)
-                              .cast<String?>()
-                              .firstWhere(
-                                (_) => true,
-                                orElse: () => items.first.$1,
-                              );
-
-                          final platform = Theme.of(context).platform;
-                          final isCupertinoPlatform =
-                              platform == TargetPlatform.iOS ||
-                              platform == TargetPlatform.macOS;
-                          final useActionMenuLayout =
-                              _useSettingsActionMenuLayout(context);
-
-                          if (isCupertinoPlatform) {
-                            return CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () => _guard(
-                                () => _showCupertinoLanguageSelector(
-                                  context,
-                                  currentLangCode,
-                                ),
-                              ),
-                              child: Text(
-                                items.firstWhere((e) => e.$1 == selected).$2,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: currentAccentColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            );
-                          }
-
-                          if (useActionMenuLayout) {
-                            final selectedLabel = items
-                                .firstWhere((e) => e.$1 == selected)
-                                .$2;
-                            return ConstrainedBox(
-                              constraints: BoxConstraints(
-                                minHeight: 44,
-                                maxWidth: viewportWidth < 420 ? 168 : 220,
-                              ),
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: MoviFocusableAction(
-                                  focusNode: _languageSelectorFocusNode,
-                                  ensureVisibleVerticalAlignment:
-                                      _settingsFocusVerticalAlignment,
-                                  onPressed: () => _guard(
-                                    () => _showTvLanguageSelector(
-                                      context,
-                                      currentLangCode,
-                                    ),
-                                  ),
-                                  semanticLabel: l10n.settingsLanguageLabel,
-                                  builder: (context, state) {
-                                    return MoviFocusFrame(
-                                      scale: state.focused ? 1.02 : 1,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      borderRadius: BorderRadius.circular(14),
-                                      backgroundColor: Colors.white.withValues(
-                                        alpha: state.focused ? 0.16 : 0.08,
-                                      ),
-                                      borderColor: state.focused
-                                          ? currentAccentColor
-                                          : Colors.white.withValues(
-                                              alpha: 0.14,
-                                            ),
-                                      borderWidth: 1.5,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              selectedLabel,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                color: currentAccentColor,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Icon(
-                                            Icons.keyboard_arrow_down,
-                                            size: 18,
-                                            color: currentAccentColor,
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          }
-
-                          return DropdownButtonHideUnderline(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.06),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.10),
-                                  width: 1,
-                                ),
-                              ),
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final screenW = MediaQuery.sizeOf(
-                                    context,
-                                  ).width;
-                                  final maxW = math.min(220.0, screenW * 0.45);
-
-                                  return ConstrainedBox(
-                                    constraints: BoxConstraints(maxWidth: maxW),
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      child: DropdownButton<String>(
-                                        value: selected,
-                                        isDense: true,
-                                        menuMaxHeight: 48.0 * 5,
-                                        borderRadius: BorderRadius.circular(14),
-                                        dropdownColor: const Color(0xFF1E1E1E),
-                                        style: TextStyle(
-                                          color: currentAccentColor,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        selectedItemBuilder: (context) => [
-                                          for (final (_, label) in items)
-                                            Align(
-                                              alignment: Alignment.centerLeft,
-                                              child: Text(
-                                                label,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: currentAccentColor,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                        icon: Transform.rotate(
-                                          angle: -math.pi / 2,
-                                          child: SvgPicture.asset(
-                                            'assets/icons/actions/back.svg',
-                                            width: 18,
-                                            height: 18,
-                                            colorFilter: ColorFilter.mode(
-                                              currentAccentColor,
-                                              BlendMode.srcIn,
-                                            ),
-                                          ),
-                                        ),
-                                        items: [
-                                          for (final (code, label) in items)
-                                            DropdownMenuItem<String>(
-                                              value: code,
-                                              child: Text(
-                                                label,
-                                                style: TextStyle(
-                                                  color: code == selected
-                                                      ? currentAccentColor
-                                                      : Colors.white,
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                        onChanged: (value) {
-                                          if (value == null) return;
-                                          _guard(() async {
-                                            await localePrefs.setLanguageCode(
-                                              value,
-                                            );
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsAccentColor,
-                      value: _getAccentColorName(currentAccentColor),
-                      showChevronDown: true,
-                      trailing: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: currentAccentColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      onTap: () => _guard(
-                        () => _showAccentColorSelector(
-                          context,
-                          currentAccentColor,
-                        ),
-                      ),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsPrivacyPolicyTitle,
-                      onTap: () => _openExternalLink(_privacyPolicyUrl),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsTermsOfUseTitle,
-                      onTap: () => _openExternalLink(_termsOfUseUrl),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsAboutTitle,
-                      onTap: () => context.push(AppRoutePaths.about),
-                    ),
-                  ]),
-
-                  const SizedBox(height: _sectionGap),
-
-                  if (!isTvLayout) ...[
-                    // --- Aide & diagnostic
+            return Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                width: width,
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(20, 24, 20, bottomPadding),
+                  children: [
                     Text(
-                      l10n.settingsHelpDiagnosticsSection,
+                      l10n.settingsTitle,
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // --- Comptes
+                    Text(
+                      l10n.settingsAccountsSection,
+                      style:
+                          Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                    ),
+                    const SizedBox(height: _sectionTitleGap),
+                    _buildProfilesSection(),
+                    const SizedBox(height: _sectionItemGap),
+                    MoviEnsureVisibleOnFocus(
+                      verticalAlignment: _settingsFocusVerticalAlignment,
+                      child: MoviPremiumSettingsTile(
+                        focusNode: _premiumTileFocusNode,
+                        onKeyEvent: _handlePremiumTileKey,
+                      ),
+                    ),
+
+                    const SizedBox(height: _sectionGap),
+
+                    // --- IPTV
+                    Text(
+                      l10n.settingsIptvSection,
                       style:
                           Theme.of(context).textTheme.titleLarge?.copyWith(
                             color: Colors.white,
@@ -1951,130 +1647,446 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     const SizedBox(height: _sectionTitleGap),
                     _buildSettingsGroup([
                       _buildSettingItem(
-                        title: l10n.settingsExportErrorLogs,
+                        title: l10n.settingsSourcesManagement,
                         onTap: () => _guard(
-                          () => ExportDiagnosticsSheet.show(context, ref),
+                          () => context.push(AppRoutePaths.iptvSources),
+                        ),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsSyncFrequency,
+                        value: _formatSyncInterval(currentSyncInterval),
+                        showChevronDown: true,
+                        onTap: () => _guard(
+                          () => _showSyncIntervalSelector(
+                            context,
+                            currentSyncInterval,
+                          ),
                         ),
                       ),
                     ]),
-                    const SizedBox(height: _sectionGap),
-                  ],
 
-                  // --- Cloud sync (Library)
-                  Text(
-                    l10n.settingsCloudSyncSection,
-                    style:
-                        Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                    const SizedBox(height: _sectionGap),
+
+                    // --- App settings
+                    Text(
+                      l10n.settingsAppSection,
+                      style:
+                          Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                    ),
+                    const SizedBox(height: _sectionTitleGap),
+                    _buildSettingsGroup([
+                      _buildSettingItem(
+                        title: l10n.settingsSubtitlesTitle,
+                        onTap: () => _guard(
+                          () => context.push(AppRoutePaths.settingsSubtitles),
                         ),
-                  ),
-                  const SizedBox(height: _sectionTitleGap),
-                  _buildSettingsGroup([
-                    _buildSettingItem(
-                      title: l10n.settingsCloudSyncAuto,
-                      trailing: ListenableBuilder(
-                        listenable: _cloudSyncAutoFocusNode,
-                        builder: (context, _) {
-                          return AnimatedContainer(
-                            duration: const Duration(milliseconds: 120),
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                color: _cloudSyncAutoFocusNode.hasFocus
-                                    ? Colors.white
-                                    : Colors.transparent,
-                                width: 2,
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsLanguageLabel,
+                        trailing: Builder(
+                          builder: (context) {
+                            final localePrefs = ref.read(
+                              slProvider,
+                            )<LocalePreferences>();
+                            final viewportWidth = MediaQuery.sizeOf(
+                              context,
+                            ).width;
+                            final items = _availableLanguages();
+                            final selected = items
+                                .where(
+                                  (e) =>
+                                      _isCurrentLanguage(currentLangCode, e.$1),
+                                )
+                                .map((e) => e.$1)
+                                .cast<String?>()
+                                .firstWhere(
+                                  (_) => true,
+                                  orElse: () => items.first.$1,
+                                );
+
+                            final platform = Theme.of(context).platform;
+                            final isCupertinoPlatform =
+                                platform == TargetPlatform.iOS ||
+                                platform == TargetPlatform.macOS;
+                            final useActionMenuLayout =
+                                _useSettingsActionMenuLayout(context);
+
+                            if (isCupertinoPlatform) {
+                              return CupertinoButton(
+                                padding: EdgeInsets.zero,
+                                onPressed: () => _guard(
+                                  () => _showCupertinoLanguageSelector(
+                                    context,
+                                    currentLangCode,
+                                  ),
+                                ),
+                                child: Text(
+                                  items.firstWhere((e) => e.$1 == selected).$2,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: currentAccentColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (useActionMenuLayout) {
+                              final selectedLabel = items
+                                  .firstWhere((e) => e.$1 == selected)
+                                  .$2;
+                              return ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: 44,
+                                ),
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: MoviEnsureVisibleOnFocus(
+                                    verticalAlignment:
+                                        _settingsFocusVerticalAlignment,
+                                    child: MoviFocusableAction(
+                                      focusNode: _languageSelectorFocusNode,
+                                      onPressed: () => _guard(
+                                        () => _showTvLanguageSelector(
+                                          context,
+                                          currentLangCode,
+                                        ),
+                                      ),
+                                      semanticLabel: l10n.settingsLanguageLabel,
+                                      builder: (context, state) {
+                                        return MoviFocusFrame(
+                                          scale: state.focused ? 1.02 : 1,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  selectedLabel,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: currentAccentColor,
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                Icons.keyboard_arrow_down,
+                                                size: 18,
+                                                color: currentAccentColor,
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return DropdownButtonHideUnderline(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.10),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final screenW = MediaQuery.sizeOf(
+                                      context,
+                                    ).width;
+                                    final maxW = math.min(
+                                      220.0,
+                                      screenW * 0.45,
+                                    );
+
+                                    return ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth: maxW,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        child: DropdownButton<String>(
+                                          value: selected,
+                                          isDense: true,
+                                          menuMaxHeight: 48.0 * 5,
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                          dropdownColor: const Color(
+                                            0xFF1E1E1E,
+                                          ),
+                                          style: TextStyle(
+                                            color: currentAccentColor,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          selectedItemBuilder: (context) => [
+                                            for (final (_, label) in items)
+                                              Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Text(
+                                                  label,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: currentAccentColor,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                          icon: Transform.rotate(
+                                            angle: -math.pi / 2,
+                                            child: SvgPicture.asset(
+                                              'assets/icons/actions/back.svg',
+                                              width: 18,
+                                              height: 18,
+                                              colorFilter: ColorFilter.mode(
+                                                currentAccentColor,
+                                                BlendMode.srcIn,
+                                              ),
+                                            ),
+                                          ),
+                                          items: [
+                                            for (final (code, label) in items)
+                                              DropdownMenuItem<String>(
+                                                value: code,
+                                                child: Text(
+                                                  label,
+                                                  style: TextStyle(
+                                                    color: code == selected
+                                                        ? currentAccentColor
+                                                        : Colors.white,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                          onChanged: (value) {
+                                            if (value == null) return;
+                                            _guard(() async {
+                                              await localePrefs.setLanguageCode(
+                                                value,
+                                              );
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
+                            );
+                          },
+                        ),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsAccentColor,
+                        value: _getAccentColorName(currentAccentColor),
+                        showChevronDown: true,
+                        trailing: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: currentAccentColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 1,
                             ),
-                            child: Switch.adaptive(
-                              focusNode: _cloudSyncAutoFocusNode,
-                              value: cloudSync.autoSyncEnabled,
-                              activeThumbColor: currentAccentColor,
-                              onChanged: (value) => unawaited(() async {
-                                if (!value) {
+                          ),
+                        ),
+                        onTap: () => _guard(
+                          () => _showAccentColorSelector(
+                            context,
+                            currentAccentColor,
+                          ),
+                        ),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsPrivacyPolicyTitle,
+                        onTap: () => _openExternalLink(_privacyPolicyUrl),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsTermsOfUseTitle,
+                        onTap: () => _openExternalLink(_termsOfUseUrl),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsAboutTitle,
+                        onTap: () => context.push(AppRoutePaths.about),
+                      ),
+                    ]),
+
+                    const SizedBox(height: _sectionGap),
+
+                    if (!isTvLayout) ...[
+                      // --- Aide & diagnostic
+                      Text(
+                        l10n.settingsHelpDiagnosticsSection,
+                        style:
+                            Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ) ??
+                            const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                      ),
+                      const SizedBox(height: _sectionTitleGap),
+                      _buildSettingsGroup([
+                        _buildSettingItem(
+                          title: l10n.settingsExportErrorLogs,
+                          onTap: () => _guard(
+                            () => ExportDiagnosticsSheet.show(context, ref),
+                          ),
+                        ),
+                      ]),
+                      const SizedBox(height: _sectionGap),
+                    ],
+
+                    // --- Cloud sync (Library)
+                    Text(
+                      l10n.settingsCloudSyncSection,
+                      style:
+                          Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                    ),
+                    const SizedBox(height: _sectionTitleGap),
+                    _buildSettingsGroup([
+                      _buildSettingItem(
+                        title: l10n.settingsCloudSyncAuto,
+                        trailing: ListenableBuilder(
+                          listenable: _cloudSyncAutoFocusNode,
+                          builder: (context, _) {
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(
+                                  color: _cloudSyncAutoFocusNode.hasFocus
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Switch.adaptive(
+                                focusNode: _cloudSyncAutoFocusNode,
+                                value: cloudSync.autoSyncEnabled,
+                                activeThumbColor: currentAccentColor,
+                                onChanged: (value) => unawaited(() async {
+                                  if (!value) {
+                                    _guard(
+                                      () => cloudSyncController
+                                          .setAutoSyncEnabled(false),
+                                    );
+                                    return;
+                                  }
+
+                                  final hasPremium =
+                                      await _ensurePremiumFeature(
+                                        PremiumFeature.cloudLibrarySync,
+                                      );
+                                  if (!hasPremium) return;
                                   _guard(
                                     () => cloudSyncController
-                                        .setAutoSyncEnabled(false),
+                                        .setAutoSyncEnabled(true),
                                   );
-                                  return;
-                                }
-
+                                }()),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      _buildSettingItem(
+                        title: l10n.settingsCloudSyncNow,
+                        value: cloudSync.isSyncing
+                            ? l10n.settingsCloudSyncInProgress
+                            : _formatCloudSyncLast(
+                                context,
+                                cloudSync.lastSuccessAtUtc,
+                              ),
+                        trailing: cloudSync.isSyncing
+                            ? SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: currentAccentColor,
+                                ),
+                              )
+                            : null,
+                        onTap: cloudSync.isSyncing
+                            ? null
+                            : () => unawaited(() async {
                                 final hasPremium = await _ensurePremiumFeature(
                                   PremiumFeature.cloudLibrarySync,
                                 );
                                 if (!hasPremium) return;
-                                _guard(
-                                  () => cloudSyncController.setAutoSyncEnabled(
-                                    true,
-                                  ),
-                                );
+                                _guard(() => cloudSyncController.syncNow());
                               }()),
-                            ),
-                          );
-                        },
                       ),
-                    ),
-                    _buildSettingItem(
-                      title: l10n.settingsCloudSyncNow,
-                      value: cloudSync.isSyncing
-                          ? l10n.settingsCloudSyncInProgress
-                          : _formatCloudSyncLast(
-                              context,
-                              cloudSync.lastSuccessAtUtc,
-                            ),
-                      trailing: cloudSync.isSyncing
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: currentAccentColor,
-                              ),
-                            )
-                          : null,
-                      onTap: cloudSync.isSyncing
-                          ? null
-                          : () => unawaited(() async {
-                              final hasPremium = await _ensurePremiumFeature(
-                                PremiumFeature.cloudLibrarySync,
-                              );
-                              if (!hasPremium) return;
-                              _guard(() => cloudSyncController.syncNow());
-                            }()),
-                    ),
-                    if (!hasCloudSyncPremium)
-                      Text(
-                        l10n.settingsCloudSyncPremiumRequiredMessage,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
+                      if (!hasCloudSyncPremium)
+                        Text(
+                          l10n.settingsCloudSyncPremiumRequiredMessage,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    if (cloudSync.lastError != null &&
-                        cloudSync.lastError!.trim().isNotEmpty)
-                      Text(
-                        l10n.settingsCloudSyncError(cloudSync.lastError!),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
+                      if (cloudSync.lastError != null &&
+                          cloudSync.lastError!.trim().isNotEmpty)
+                        Text(
+                          l10n.settingsCloudSyncError(cloudSync.lastError!),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    _buildCloudAccountSection(context),
-                  ]),
+                      _buildCloudAccountSection(context),
+                    ]),
 
-                  const SizedBox(height: _sectionGap),
-                ],
+                    const SizedBox(height: _sectionGap),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

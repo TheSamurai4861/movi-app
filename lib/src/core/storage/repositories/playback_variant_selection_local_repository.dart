@@ -30,17 +30,13 @@ final class PlaybackVariantSelectionLocalRepository {
     String userId = 'default',
   }) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    return _db.insert(
-      'playback_variant_selection',
-      <String, Object?>{
-        'content_id': contentId,
-        'content_type': contentType.name,
-        'variant_id': variantId,
-        'updated_at': now,
-        'user_id': userId,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    return _db.insert('playback_variant_selection', <String, Object?>{
+      'content_id': contentId,
+      'content_type': contentType.name,
+      'variant_id': variantId,
+      'updated_at': now,
+      'user_id': userId,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> removeSelection(
@@ -55,4 +51,3 @@ final class PlaybackVariantSelectionLocalRepository {
     );
   }
 }
-

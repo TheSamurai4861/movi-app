@@ -1,21 +1,24 @@
 import 'dart:developer' as dev;
+
+import 'package:movi/src/core/shared/failure.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
+import 'package:movi/src/core/storage/storage.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
+import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
+import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
+import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
 import 'package:movi/src/features/movie/domain/entities/movie.dart';
 import 'package:movi/src/features/movie/domain/entities/movie_summary.dart';
 import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
+import 'package:movi/src/features/saga/domain/entities/saga.dart';
+import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
-import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
-import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
-import 'package:movi/src/features/saga/domain/entities/saga.dart';
-import 'package:movi/src/core/storage/storage.dart';
-import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
-import 'package:movi/src/features/movie/data/datasources/movie_local_data_source.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
-import 'package:movi/src/features/movie/data/dtos/tmdb_movie_detail_dto.dart';
-import 'package:movi/src/core/shared/failure.dart';
 
 class MovieRepositoryImpl implements MovieRepository {
   MovieRepositoryImpl(
@@ -24,7 +27,8 @@ class MovieRepositoryImpl implements MovieRepository {
     this._watchlist,
     this._local,
     this._continueWatching,
-    this._appState, {
+    this._appState,
+    this._detailCache, {
     String? userId,
   }) : _userId = userId ?? 'default';
 
@@ -34,9 +38,11 @@ class MovieRepositoryImpl implements MovieRepository {
   final MovieLocalDataSource _local;
   final ContinueWatchingLocalRepository _continueWatching;
   final AppStateController _appState;
+  final TmdbDetailCacheDataSource _detailCache;
   final String _userId;
+  final Map<String, Future<void>> _backgroundRefreshes =
+      <String, Future<void>>{};
 
-  /// Code de langue basé sur la locale courante (`fr-FR`, `en-US`, ou `en`).
   String get _languageCode {
     final locale = _appState.preferredLocale;
     final country = locale.countryCode;
@@ -48,77 +54,19 @@ class MovieRepositoryImpl implements MovieRepository {
 
   @override
   Future<Movie> getMovie(MovieId id) async {
-    final movieId = int.parse(id.value);
-    final lang = _appState.preferredLocale;
-    final cached = await _local.getMovieDetailLang(
-      movieId,
-      lang: _languageCode,
-    );
-    if (cached != null) {
-      return _mapDetail(cached);
-    }
-    try {
-      final dto = await _remote.fetchMovieFull(
-        movieId,
-        language: _languageCode,
-      );
-      await _local.saveMovieDetailLang(dto: dto, lang: _languageCode);
-      if (dto.recommendations.isNotEmpty) {
-        await _local.saveRecommendationsLang(
-          movieId: movieId,
-          lang: _languageCode,
-          summaries: dto.recommendations,
-        );
-      }
-      dev.log('movie_detail_saved', name: 'MovieRepositoryImpl', error: null);
-      return _mapDetail(dto);
-    } catch (e, st) {
-      dev.log(
-        'getMovie_failed',
-        name: 'MovieRepositoryImpl',
-        error: e,
-        stackTrace: st,
-      );
-      throw Failure.fromException(
-        e,
-        stackTrace: st,
-        code: 'movie_detail_fetch_failed',
-        context: <String, Object?>{
-          'operation': 'getMovie',
-          'movieId': movieId,
-          'lang': lang,
-        },
-      );
-    }
+    final dto = await _loadMovieDetailFullDto(int.parse(id.value));
+    return _mapDetail(dto);
   }
 
   @override
   Future<List<PersonSummary>> getCredits(MovieId id) async {
-    final detail = await getMovie(id);
-    final combined = <PersonSummary>[...detail.directors, ...detail.cast];
-    return combined.take(10).toList(growable: false);
+    final dto = await _loadMovieDetailFullDto(int.parse(id.value));
+    return _buildCredits(_mapDetail(dto));
   }
 
   @override
   Future<List<MovieSummary>> getRecommendations(MovieId id) async {
-    final movieId = int.parse(id.value);
-    final cached = await _local.getRecommendationsLang(
-      movieId,
-      lang: _languageCode,
-    );
-    if (cached != null && cached.isNotEmpty) {
-      return cached.map(_mapSummary).whereType<MovieSummary>().toList();
-    }
-    final dto = await _remote.fetchMovieFull(movieId, language: _languageCode);
-    final recommendations = dto.recommendations;
-    if (recommendations.isNotEmpty) {
-      await _local.saveRecommendationsLang(
-        movieId: movieId,
-        lang: _languageCode,
-        summaries: recommendations,
-      );
-    }
-    return recommendations.map(_mapSummary).whereType<MovieSummary>().toList();
+    return _loadRecommendations(int.parse(id.value));
   }
 
   @override
@@ -172,6 +120,195 @@ class MovieRepositoryImpl implements MovieRepository {
     await _local.clearRecommendations(movieId);
     await _local.clearMovieDetailLang(movieId, _languageCode);
     await _local.clearRecommendationsLang(movieId, _languageCode);
+    await _detailCache.clearMovie(movieId, language: _languageCode);
+  }
+
+  Future<MovieDetailBundle> loadMovieDetailBundle(MovieId id) async {
+    final movieId = int.parse(id.value);
+    final dto = await _loadMovieDetailFullDto(movieId);
+    final detail = _mapDetail(dto);
+    final recommendations = await _loadRecommendations(
+      movieId,
+      fallback: dto.recommendations,
+    );
+    return MovieDetailBundle(
+      detail: detail,
+      credits: _buildCredits(detail),
+      recommendations: recommendations,
+    );
+  }
+
+  Future<TmdbMovieDetailDto> _loadMovieDetailFullDto(int movieId) async {
+    final cached = await _detailCache.getCachedMovieDetailFull(
+      movieId: movieId,
+      language: _languageCode,
+    );
+    if (cached.isFresh) {
+      _logCache('movie_detail_full', 'cache_hit_fresh', movieId);
+      return cached.value!;
+    }
+    if (cached.isStale) {
+      _logCache('movie_detail_full', 'cache_hit_stale', movieId);
+      _scheduleBackgroundRefresh(movieId);
+      return cached.value!;
+    }
+
+    final migrated = await _local.getMovieDetailLang(
+      movieId,
+      lang: _languageCode,
+    );
+    if (migrated != null) {
+      _logCache(
+        'movie_detail_full',
+        'cache_hit_fresh',
+        movieId,
+        source: 'legacy',
+      );
+      await _persistMoviePayload(movieId, migrated);
+      return migrated;
+    }
+
+    _logCache('movie_detail_full', 'cache_miss', movieId);
+    return _fetchAndPersistMovieFull(movieId);
+  }
+
+  Future<List<MovieSummary>> _loadRecommendations(
+    int movieId, {
+    List<TmdbMovieSummaryDto>? fallback,
+  }) async {
+    final cached = await _detailCache.getCachedMovieRecommendations(
+      movieId: movieId,
+      language: _languageCode,
+    );
+    if (cached.isFresh) {
+      _logCache('movie_recommendations', 'cache_hit_fresh', movieId);
+      return cached.value!.map(_mapSummary).whereType<MovieSummary>().toList();
+    }
+    if (cached.isStale) {
+      _logCache('movie_recommendations', 'cache_hit_stale', movieId);
+      _scheduleBackgroundRefresh(movieId);
+      return cached.value!.map(_mapSummary).whereType<MovieSummary>().toList();
+    }
+
+    final migrated = await _local.getRecommendationsLang(
+      movieId,
+      lang: _languageCode,
+    );
+    if (migrated != null && migrated.isNotEmpty) {
+      _logCache(
+        'movie_recommendations',
+        'cache_hit_fresh',
+        movieId,
+        source: 'legacy',
+      );
+      await _persistRecommendations(movieId, migrated);
+      return migrated.map(_mapSummary).whereType<MovieSummary>().toList();
+    }
+
+    final source =
+        fallback ?? (await _loadMovieDetailFullDto(movieId)).recommendations;
+    if (source.isEmpty) {
+      return const <MovieSummary>[];
+    }
+    _logCache('movie_recommendations', 'cache_miss', movieId);
+    await _persistRecommendations(movieId, source);
+    return source.map(_mapSummary).whereType<MovieSummary>().toList();
+  }
+
+  Future<TmdbMovieDetailDto> _fetchAndPersistMovieFull(int movieId) async {
+    final locale = _appState.preferredLocale;
+    try {
+      final dto = await _remote.fetchMovieFull(
+        movieId,
+        language: _languageCode,
+      );
+      await _persistMoviePayload(movieId, dto);
+      dev.log('movie_detail_saved', name: 'MovieRepositoryImpl');
+      return dto;
+    } catch (e, st) {
+      dev.log(
+        'getMovie_failed',
+        name: 'MovieRepositoryImpl',
+        error: e,
+        stackTrace: st,
+      );
+      throw Failure.fromException(
+        e,
+        stackTrace: st,
+        code: 'movie_detail_fetch_failed',
+        context: <String, Object?>{
+          'operation': 'getMovie',
+          'movieId': movieId,
+          'lang': locale,
+        },
+      );
+    }
+  }
+
+  Future<void> _persistMoviePayload(int movieId, TmdbMovieDetailDto dto) async {
+    await _detailCache.putMovieDetailLite(dto, language: _languageCode);
+    await _detailCache.putMovieDetailFull(dto, language: _languageCode);
+    await _local.saveMovieDetailLang(dto: dto, lang: _languageCode);
+    await _persistRecommendations(movieId, dto.recommendations);
+  }
+
+  Future<void> _persistRecommendations(
+    int movieId,
+    List<TmdbMovieSummaryDto> recommendations,
+  ) async {
+    await _detailCache.putMovieRecommendations(
+      recommendations,
+      movieId: movieId,
+      language: _languageCode,
+    );
+    if (recommendations.isNotEmpty) {
+      await _local.saveRecommendationsLang(
+        movieId: movieId,
+        lang: _languageCode,
+        summaries: recommendations,
+      );
+    }
+  }
+
+  void _scheduleBackgroundRefresh(int movieId) {
+    final key = 'movie:$movieId:$_languageCode';
+    if (_backgroundRefreshes.containsKey(key)) return;
+
+    _logCache('movie_detail_full', 'background_refresh_started', movieId);
+    final refresh = _fetchAndPersistMovieFull(movieId)
+        .then((_) {
+          _logCache(
+            'movie_detail_full',
+            'background_refresh_completed',
+            movieId,
+          );
+        })
+        .catchError((Object error, StackTrace stackTrace) {
+          dev.log(
+            'background_refresh_failed resource=movie_detail_full movieId=$movieId lang=$_languageCode',
+            name: 'MovieRepositoryImpl',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        })
+        .whenComplete(() {
+          _backgroundRefreshes.remove(key);
+        });
+    _backgroundRefreshes[key] = refresh;
+    unawaited(refresh);
+  }
+
+  List<PersonSummary> _buildCredits(Movie detail) {
+    final combined = <PersonSummary>[...detail.directors, ...detail.cast];
+    return combined.take(10).toList(growable: false);
+  }
+
+  void _logCache(String resource, String event, int movieId, {String? source}) {
+    dev.log(
+      '$event resource=$resource movieId=$movieId lang=$_languageCode'
+      '${source == null ? '' : ' source=$source'}',
+      name: 'MovieRepositoryImpl',
+    );
   }
 
   Movie _mapDetail(TmdbMovieDetailDto dto) {
@@ -185,9 +322,9 @@ class MovieRepositoryImpl implements MovieRepository {
     }
 
     final posterBackground =
-        _images.poster(dto.posterBackground, size: 'original') ?? poster;
+        _images.poster(dto.posterBackground, size: 'w780') ?? poster;
 
-    final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'w1280');
     final logo = _images.logo(dto.logoPath, size: 'w500');
 
     return Movie(
@@ -212,7 +349,7 @@ class MovieRepositoryImpl implements MovieRepository {
               id: PersonId(crew.id.toString()),
               tmdbId: crew.id,
               name: crew.name,
-              role: 'Director', // Will be localized in presentation layer
+              role: 'Director',
               photo: _images.poster(crew.profilePath),
             ),
           )
@@ -272,4 +409,16 @@ class MovieRepositoryImpl implements MovieRepository {
     if (voteAverage >= 5.0) return ContentRating.pg;
     return ContentRating.unrated;
   }
+}
+
+class MovieDetailBundle {
+  const MovieDetailBundle({
+    required this.detail,
+    required this.credits,
+    required this.recommendations,
+  });
+
+  final Movie detail;
+  final List<PersonSummary> credits;
+  final List<MovieSummary> recommendations;
 }

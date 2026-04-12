@@ -67,7 +67,8 @@ class _MoviRouteFocusBoundaryState extends State<MoviRouteFocusBoundary> {
 
   void requestEntryFocus() {
     final policy = widget.restorePolicy;
-    if (policy.restoreFocusOnReturn && _requestFocusIfValid(_lastFocusedDescendant)) {
+    if (policy.restoreFocusOnReturn &&
+        _requestFocusIfValid(_lastFocusedDescendant)) {
       return;
     }
     if (_requestFocusIfValid(policy.initialFocusNode)) {

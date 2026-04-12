@@ -25,11 +25,11 @@ final class NewEpisodeNotificationRequest {
       Object.hash(seriesId, seasonNumber, episodeNumber) & 0x7fffffff;
 
   String toPayload() => jsonEncode({
-        'kind': 'series_new_episode',
-        'seriesId': seriesId,
-        'seasonNumber': seasonNumber,
-        'episodeNumber': episodeNumber,
-      });
+    'kind': 'series_new_episode',
+    'seriesId': seriesId,
+    'seasonNumber': seasonNumber,
+    'episodeNumber': episodeNumber,
+  });
 }
 
 final class SeriesNotificationNavigationIntent {

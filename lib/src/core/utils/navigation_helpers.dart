@@ -155,15 +155,15 @@ Future<void> navigateToMovieDetail(
         .read(mdp.movieDetailEnrichmentProvider(args.id).future)
         .timeout(const Duration(seconds: 20))
         .catchError((e, st) {
-      logger.log(
-        LogLevel.warn,
-        '🔵 [NAV] Enrichissement (background) movie.id=${args.id} a échoué: $e',
-        category: 'navigation',
-        error: e,
-        stackTrace: st is StackTrace ? st : null,
-      );
-      return false;
-    }),
+          logger.log(
+            LogLevel.warn,
+            '🔵 [NAV] Enrichissement (background) movie.id=${args.id} a échoué: $e',
+            category: 'navigation',
+            error: e,
+            stackTrace: st is StackTrace ? st : null,
+          );
+          return false;
+        }),
   );
 
   // Naviguer vers la page de détails
@@ -209,15 +209,15 @@ Future<void> navigateToTvDetail(
         .read(tvdp.tvDetailEnrichmentProvider(args.id).future)
         .timeout(const Duration(seconds: 20))
         .catchError((e, st) {
-      logger.log(
-        LogLevel.warn,
-        '🟢 [NAV] Enrichissement (background) tv.id=${args.id} a échoué: $e',
-        category: 'navigation',
-        error: e,
-        stackTrace: st is StackTrace ? st : null,
-      );
-      return false;
-    }),
+          logger.log(
+            LogLevel.warn,
+            '🟢 [NAV] Enrichissement (background) tv.id=${args.id} a échoué: $e',
+            category: 'navigation',
+            error: e,
+            stackTrace: st is StackTrace ? st : null,
+          );
+          return false;
+        }),
   );
 
   // Naviguer vers la page de détails

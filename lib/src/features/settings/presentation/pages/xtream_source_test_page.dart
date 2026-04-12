@@ -94,7 +94,9 @@ class _XtreamSourceTestPageState extends ConsumerState<XtreamSourceTestPage> {
                   result: result,
                   error: state.error,
                 ),
-                if (result != null && result.isValid && widget.args.accountId != null)
+                if (result != null &&
+                    result.isValid &&
+                    widget.args.accountId != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: Align(
@@ -131,7 +133,9 @@ class _XtreamSourceTestPageState extends ConsumerState<XtreamSourceTestPage> {
   }
 
   Future<void> _runProbe() async {
-    await ref.read(xtreamSourceProbeControllerProvider.notifier).probeXtream(
+    await ref
+        .read(xtreamSourceProbeControllerProvider.notifier)
+        .probeXtream(
           serverUrl: widget.args.serverUrl,
           username: widget.args.username,
           password: widget.args.password,
@@ -151,16 +155,18 @@ class _XtreamSourceTestPageState extends ConsumerState<XtreamSourceTestPage> {
             id != widget.args.preferredRouteProfileId,
       ),
     ];
-    await ref.read(networkProfileEditControllerProvider.notifier).saveSourcePolicy(
+    await ref
+        .read(networkProfileEditControllerProvider.notifier)
+        .saveSourcePolicy(
           accountId: widget.args.accountId!,
           preferredRouteProfileId: result.routeProfileId,
           fallbackRouteProfileIds: fallbackIds,
           lastWorkingRouteProfileId: result.routeProfileId,
         );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil prefere enregistre')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Profil prefere enregistre')));
   }
 }
 
@@ -214,15 +220,15 @@ class _SummaryCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(color: statusColor),
-                ),
+                child: Text(statusLabel, style: TextStyle(color: statusColor)),
               ),
             ],
           ),
@@ -245,10 +251,7 @@ class _SummaryCard extends StatelessWidget {
           ],
           if (error != null) ...[
             const SizedBox(height: 10),
-            Text(
-              error!,
-              style: const TextStyle(color: Colors.redAccent),
-            ),
+            Text(error!, style: const TextStyle(color: Colors.redAccent)),
           ] else if (result?.errorMessage != null) ...[
             const SizedBox(height: 10),
             Text(
@@ -297,10 +300,7 @@ class _AttemptCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                attempt.status.name,
-                style: TextStyle(color: statusColor),
-              ),
+              Text(attempt.status.name, style: TextStyle(color: statusColor)),
             ],
           ),
           const SizedBox(height: 8),
@@ -382,10 +382,7 @@ class _RawResponseCard extends StatelessWidget {
         children: [
           const Text(
             'Reponse brute redacted',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 10),
           SelectableText(

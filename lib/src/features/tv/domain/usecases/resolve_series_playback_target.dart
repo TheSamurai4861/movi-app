@@ -12,23 +12,9 @@ class ResolveSeriesPlaybackTarget {
     required List<EpisodePlaybackSeasonSnapshot> seasonSnapshots,
     PlaybackHistoryEntry? resumeState,
   }) {
-    final sortedSnapshots = seasonSnapshots.toList(growable: true)
-      ..sort((left, right) => left.seasonNumber.compareTo(right.seasonNumber));
-
-    final firstTarget = _firstAvailableTarget(sortedSnapshots);
-    if (firstTarget == null) {
-      return null;
-    }
-
     final resumeSeason = resumeState?.season;
     final resumeEpisode = resumeState?.episode;
-    if (resumeSeason != null &&
-        resumeEpisode != null &&
-        _containsEpisode(
-          snapshots: sortedSnapshots,
-          seasonNumber: resumeSeason,
-          episodeNumber: resumeEpisode,
-        )) {
+    if (resumeSeason != null && resumeEpisode != null) {
       return PlaybackLaunchPlan.fromPlaybackProgress(
         contentType: ContentType.series,
         targetContentId: seriesId,
@@ -37,6 +23,13 @@ class ResolveSeriesPlaybackTarget {
         position: resumeState?.lastPosition,
         duration: resumeState?.duration,
       );
+    }
+
+    final sortedSnapshots = seasonSnapshots.toList(growable: true)
+      ..sort((left, right) => left.seasonNumber.compareTo(right.seasonNumber));
+    final firstTarget = _firstAvailableTarget(sortedSnapshots);
+    if (firstTarget == null) {
+      return null;
     }
 
     return PlaybackLaunchPlan(
@@ -62,25 +55,5 @@ class ResolveSeriesPlaybackTarget {
       }
     }
     return null;
-  }
-
-  bool _containsEpisode({
-    required List<EpisodePlaybackSeasonSnapshot> snapshots,
-    required int seasonNumber,
-    required int episodeNumber,
-  }) {
-    for (final season in snapshots) {
-      if (season.seasonNumber != seasonNumber) {
-        continue;
-      }
-      final firstEpisodeNumber = season.firstEpisodeNumber;
-      final lastEpisodeNumber = season.lastEpisodeNumber;
-      if (firstEpisodeNumber == null || lastEpisodeNumber == null) {
-        return false;
-      }
-      return episodeNumber >= firstEpisodeNumber &&
-          episodeNumber <= lastEpisodeNumber;
-    }
-    return false;
   }
 }

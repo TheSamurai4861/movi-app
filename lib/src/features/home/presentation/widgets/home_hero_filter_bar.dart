@@ -29,10 +29,7 @@ class HomeHeroFilterBar extends ConsumerWidget {
     );
   }
 
-  KeyEventResult _handleSeriesKey(
-    BuildContext context,
-    KeyEvent event,
-  ) {
+  KeyEventResult _handleSeriesKey(BuildContext context, KeyEvent event) {
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
     }

@@ -7,8 +7,11 @@ import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_discovery_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/core/storage/services/cache_policy.dart';
+import 'package:movi/src/core/logging/logging.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/shared/domain/services/tmdb_image_selector_service.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
@@ -34,6 +37,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
     this._images,
     this._appState,
     this._tmdbCache,
+    this._discoveryCache,
     this._continueWatching,
   );
 
@@ -43,6 +47,7 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   final TmdbImageResolver _images;
   final AppStateController _appState;
   final TmdbCacheDataSource _tmdbCache;
+  final TmdbDiscoveryCacheDataSource _discoveryCache;
   final LoadContinueWatchingMedia _continueWatching;
 
   final Set<String> _enrichedKeys = <String>{};
@@ -61,6 +66,13 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
       return locale.languageCode;
     }
     return '${locale.languageCode}-$country';
+  }
+
+  String get _sourceFingerprint {
+    final ids = _appState.preferredIptvSourceIds.toList(growable: false)
+      ..sort();
+    if (ids.isEmpty) return 'none';
+    return ids.join('__');
   }
 
   @override
@@ -325,18 +337,81 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
   }
 
   Future<List<_MovieLiteDto>> _fetchTrendingMoviesPage(int page) async {
-    final languageCode = _languageCode;
+    return _loadTrendingMoviesPage(page);
+  }
 
+  Future<List<_TvLiteDto>> _fetchTrendingShowsPage(int page) async {
+    return _loadTrendingShowsPage(page);
+  }
+
+  Future<List<_MovieLiteDto>> _loadTrendingMoviesPage(int page) async {
+    final languageCode = _languageCode;
+    final cache = await _discoveryCache.getCachedTrendingMovies(
+      language: languageCode,
+      sourceFingerprint: _sourceFingerprint,
+      page: page,
+    );
+    if (cache.isFresh && cache.value != null) {
+      _logCacheEvent('home_trending_movies', 'cache_hit_fresh', page: page);
+      return _parseMovieDtos(cache.value!);
+    }
+    if (cache.isStale && cache.value != null) {
+      _logCacheEvent('home_trending_movies', 'cache_hit_stale', page: page);
+      unawaited(_refreshTrendingMoviesPage(page));
+      return _parseMovieDtos(cache.value!);
+    }
+    _logCacheEvent('home_trending_movies', 'cache_miss', page: page);
+    return _refreshTrendingMoviesPage(page);
+  }
+
+  Future<List<_TvLiteDto>> _loadTrendingShowsPage(int page) async {
+    final languageCode = _languageCode;
+    final cache = await _discoveryCache.getCachedTrendingShows(
+      language: languageCode,
+      sourceFingerprint: _sourceFingerprint,
+      page: page,
+    );
+    if (cache.isFresh && cache.value != null) {
+      _logCacheEvent('home_trending_tv', 'cache_hit_fresh', page: page);
+      return _parseTvDtos(cache.value!);
+    }
+    if (cache.isStale && cache.value != null) {
+      _logCacheEvent('home_trending_tv', 'cache_hit_stale', page: page);
+      unawaited(_refreshTrendingShowsPage(page));
+      return _parseTvDtos(cache.value!);
+    }
+    _logCacheEvent('home_trending_tv', 'cache_miss', page: page);
+    return _refreshTrendingShowsPage(page);
+  }
+
+  Future<List<_MovieLiteDto>> _refreshTrendingMoviesPage(int page) async {
+    final languageCode = _languageCode;
+    _logCacheEvent(
+      'home_trending_movies',
+      'background_refresh_started',
+      page: page,
+    );
     try {
       final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
         window: _trendingWindow,
         page: page,
         language: languageCode,
       );
-      return res
-          .map(_MovieLiteDto.tryParse)
-          .whereType<_MovieLiteDto>()
-          .toList(growable: false);
+      final parsed = res.whereType<Map<String, dynamic>>().toList(
+        growable: false,
+      );
+      await _discoveryCache.putTrendingMovies(
+        parsed,
+        language: languageCode,
+        sourceFingerprint: _sourceFingerprint,
+        page: page,
+      );
+      _logCacheEvent(
+        'home_trending_movies',
+        'background_refresh_completed',
+        page: page,
+      );
+      return _parseMovieDtos(parsed);
     } catch (e, st) {
       assert(() {
         debugPrint(
@@ -344,35 +419,38 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         );
         return true;
       }());
-      if (page == 1) {
-        try {
-          final List<dynamic> res = await _moviesRemote.fetchTrendingMovies(
-            window: _trendingWindow,
-            language: languageCode,
-          );
-          return res
-              .map(_MovieLiteDto.tryParse)
-              .whereType<_MovieLiteDto>()
-              .toList(growable: false);
-        } catch (_) {}
-      }
       return const <_MovieLiteDto>[];
     }
   }
 
-  Future<List<_TvLiteDto>> _fetchTrendingShowsPage(int page) async {
+  Future<List<_TvLiteDto>> _refreshTrendingShowsPage(int page) async {
     final languageCode = _languageCode;
-
+    _logCacheEvent(
+      'home_trending_tv',
+      'background_refresh_started',
+      page: page,
+    );
     try {
       final List<dynamic> res = await _tvRemote.fetchTrendingShows(
         window: _trendingWindow,
         page: page,
         language: languageCode,
       );
-      return res
-          .map(_TvLiteDto.tryParse)
-          .whereType<_TvLiteDto>()
-          .toList(growable: false);
+      final parsed = res.whereType<Map<String, dynamic>>().toList(
+        growable: false,
+      );
+      await _discoveryCache.putTrendingShows(
+        parsed,
+        language: languageCode,
+        sourceFingerprint: _sourceFingerprint,
+        page: page,
+      );
+      _logCacheEvent(
+        'home_trending_tv',
+        'background_refresh_completed',
+        page: page,
+      );
+      return _parseTvDtos(parsed);
     } catch (e, st) {
       assert(() {
         debugPrint(
@@ -380,20 +458,32 @@ class HomeFeedRepositoryImpl implements HomeFeedRepository {
         );
         return true;
       }());
-      if (page == 1) {
-        try {
-          final List<dynamic> res = await _tvRemote.fetchTrendingShows(
-            window: _trendingWindow,
-            language: languageCode,
-          );
-          return res
-              .map(_TvLiteDto.tryParse)
-              .whereType<_TvLiteDto>()
-              .toList(growable: false);
-        } catch (_) {}
-      }
       return const <_TvLiteDto>[];
     }
+  }
+
+  List<_MovieLiteDto> _parseMovieDtos(List<Map<String, dynamic>> res) {
+    return res
+        .map(_MovieLiteDto.tryParse)
+        .whereType<_MovieLiteDto>()
+        .toList(growable: false);
+  }
+
+  List<_TvLiteDto> _parseTvDtos(List<Map<String, dynamic>> res) {
+    return res
+        .map(_TvLiteDto.tryParse)
+        .whereType<_TvLiteDto>()
+        .toList(growable: false);
+  }
+
+  void _logCacheEvent(String scope, String action, {required int page}) {
+    unawaited(
+      LoggingService.log(
+        '[TmdbDiscoveryCache] scope=$scope action=$action lang=$_languageCode '
+        'page=$page source=$_sourceFingerprint',
+        category: 'tmdb_cache',
+      ),
+    );
   }
 
   List<ContentReference> _mapMovieDtosToHeroCandidates(

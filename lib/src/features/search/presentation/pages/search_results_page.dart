@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -69,6 +73,18 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
     return true;
   }
 
+  KeyEventResult _handleBackKeyEvent(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(searchResultsControllerProvider(_args));
@@ -88,38 +104,46 @@ class _SearchResultsPageState extends ConsumerState<SearchResultsPage> {
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: _backFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.searchResultsPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'SearchResultsRouteFocus',
-        child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: SafeArea(
-            top: true,
-            bottom: false,
-            child: Column(
-              children: [
-                MoviSubpageBackTitleHeader(
-                  title: 'Résultats - $title',
-                  onBack: () => _handleBack(context),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _refreshResults,
-                    child: _SearchResultsBody(
-                      state: state,
-                      query: _args.query,
-                      backFocusNode: _backFocusNode,
-                      firstResultFocusNode: _firstResultFocusNode,
-                      retryFocusNode: _retryFocusNode,
+        exitMap: FocusRegionExitMap({
+          DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        }),
+        requestFocusOnMount: true,
+        debugLabel: 'SearchResultsRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleBackKeyEvent(event, context),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: SafeArea(
+              top: true,
+              bottom: false,
+              child: Column(
+                children: [
+                  MoviSubpageBackTitleHeader(
+                    title: 'RÃ©sultats - $title',
+                    focusNode: _backFocusNode,
+                    onBack: () => _handleBack(context),
+                  ),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _refreshResults,
+                      child: _SearchResultsBody(
+                        state: state,
+                        query: _args.query,
+                        backFocusNode: _backFocusNode,
+                        firstResultFocusNode: _firstResultFocusNode,
+                        retryFocusNode: _retryFocusNode,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -166,7 +190,7 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
       return ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          Text('Requête: "$query"'),
+          Text('RequÃªte: "$query"'),
           const SizedBox(height: AppSpacing.lg),
           Text(state.error!, style: const TextStyle(color: Colors.redAccent)),
           const SizedBox(height: AppSpacing.lg),
@@ -190,7 +214,7 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
       return ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          Text('Requête: "$query"'),
+          Text('RequÃªte: "$query"'),
           const SizedBox(height: AppSpacing.xl),
           Center(
             child: Text(
@@ -212,7 +236,7 @@ class _SearchResultsBodyState extends ConsumerState<_SearchResultsBody> {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
-          child: Text('Requête: "$query"'),
+          child: Text('RequÃªte: "$query"'),
         ),
         NotificationListener<ScrollNotification>(
           onNotification: (notification) {

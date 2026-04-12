@@ -1,14 +1,18 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
@@ -22,6 +26,7 @@ import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.d
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
+import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/features/movie/presentation/providers/movie_detail_providers.dart'
@@ -30,7 +35,6 @@ import 'package:movi/src/features/settings/presentation/providers/user_settings_
 import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
-import 'package:movi/src/features/library/presentation/widgets/add_to_playlist_action_sheet.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/features/movie/presentation/widgets/movie_hero_image.dart';
@@ -91,12 +95,20 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   int? _castFocusRequestIndex;
   OverlayEntry? _markUnseenToastEntry;
   AnimationController? _markUnseenToastController;
+  final ScrollController _pageScrollController = ScrollController(
+    keepScrollOffset: false,
+  );
+  bool _mobileEntryTopApplied = false;
 
   @override
   void initState() {
     super.initState();
     _isTransitioningFromLoading = true;
+    _mobileEntryTopApplied = false;
     _startAutoRefreshTimer();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _resetScrollToTopForMobile();
+    });
   }
 
   @override
@@ -110,7 +122,33 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     _heroMoreFocusNode.dispose();
     _markUnseenToastController?.dispose();
     _markUnseenToastEntry?.remove();
+    _pageScrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MovieDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.movieId != widget.movieId) {
+      _mobileEntryTopApplied = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _resetScrollToTopForMobile();
+      });
+    }
+  }
+
+  void _resetScrollToTopForMobile() {
+    if (!mounted) return;
+    if (_useDesktopDetailLayout(context)) return;
+    if (_mobileEntryTopApplied) return;
+    if (!_pageScrollController.hasClients) return;
+    final position = _pageScrollController.position;
+    if (position.pixels <= 0) {
+      _mobileEntryTopApplied = true;
+      return;
+    }
+    position.jumpTo(0);
+    _mobileEntryTopApplied = true;
   }
 
   void _startAutoRefreshTimer() {
@@ -241,6 +279,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       ),
       error: (e, st) => _buildErrorScaffold(e),
       data: (vm) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _resetScrollToTopForMobile();
+        });
         // Démarrer la transition d'opacité après un court délai
         if (_isTransitioningFromLoading) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -283,6 +324,18 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     _heroMoreFocusNode.canRequestFocus = true;
     _heroMoreFocusNode.requestFocus();
     return KeyEventResult.handled;
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!mounted || !context.mounted) return KeyEventResult.ignored;
+      context.pop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   KeyEventResult _handleHeroMoreKey(KeyEvent event) {
@@ -388,140 +441,175 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   }) {
     final cs = Theme.of(context).colorScheme;
     final isWideLayout = _useDesktopDetailLayout(context);
+    final mobileHeroHeight =
+        MediaQuery.of(context).size.height *
+        HomeLayoutConstants.heroMobileStackHeightFactor;
     return SwipeBackWrapper(
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: _primaryActionFocusNode,
-          fallbackFocusNode: _heroBackFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.movieDetailPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => _primaryActionFocusNode,
+          resolveFallbackEntryNode: () => _heroBackFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () {
-          if (!mounted || !context.mounted) return false;
-          context.pop();
-          return true;
-        },
-        debugLabel: 'MovieDetailRouteFocus',
-        child: Scaffold(
-          backgroundColor: cs.surface,
-          body: SafeArea(
-            top: true,
-            bottom: true,
-            child: AnimatedOpacity(
-              opacity: isLoading ? 0.0 : 1.0,
-              duration: const Duration(milliseconds: 300),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SyncableRefreshIndicator(
-                      onRefresh: () async {
-                        // Rafraîchir aussi le contenu local après la sync
-                        ref.invalidate(
-                          mdp.movieDetailControllerProvider(movieId),
-                        );
-                      },
-                      child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Builder(
-                              builder: (heroContext) =>
-                                  MoviVerticalEnsureVisibleTarget(
-                                    targetContext: heroContext,
-                                    child: MoviDetailHeroScene(
-                                      isWideLayout: isWideLayout,
-                                      background: _buildHeroImage(
-                                        poster: poster,
-                                        posterBackground: posterBackground,
-                                        backdrop: backdrop,
-                                      ),
-                                      children: [
-                                        _buildHeroTopBar(
-                                          isWideLayout: isWideLayout,
+        exitMap: FocusRegionExitMap({
+          DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        }),
+        requestFocusOnMount: isWideLayout,
+        debugLabel: 'MovieDetailRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: cs.surface,
+            body: SafeArea(
+              top: true,
+              bottom: true,
+              child: AnimatedOpacity(
+                opacity: isLoading ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SyncableRefreshIndicator(
+                        onRefresh: () async {
+                          // Rafraîchir aussi le contenu local après la sync
+                          ref.invalidate(
+                            mdp.movieDetailControllerProvider(movieId),
+                          );
+                        },
+                        child: SingleChildScrollView(
+                          controller: _pageScrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Builder(
+                                builder: (heroContext) =>
+                                    MoviVerticalEnsureVisibleTarget(
+                                      targetContext: heroContext,
+                                      child: MoviDetailHeroScene(
+                                        isWideLayout: isWideLayout,
+                                        mobileHeight: mobileHeroHeight,
+                                        overlaySpec: isWideLayout
+                                            ? null
+                                            : MoviHeroOverlaySpec.home(
+                                                isWideLayout: false,
+                                              ).copyWith(
+                                                globalTintOpacity: 52 / 255,
+                                                topOpacities: const <double>[
+                                                  1.0,
+                                                  0.96,
+                                                  0.72,
+                                                  0.28,
+                                                  0.0,
+                                                ],
+                                                bottomOpacities: const <double>[
+                                                  0.0,
+                                                  0.28,
+                                                  0.42,
+                                                  0.60,
+                                                  0.80,
+                                                  1.0,
+                                                ],
+                                              ),
+                                        background: _buildHeroImage(
+                                          poster: poster,
+                                          posterBackground: posterBackground,
+                                          backdrop: backdrop,
                                         ),
-                                        if (isWideLayout)
-                                          _buildDesktopHeroOverlay(
-                                            mediaTitle: mediaTitle,
-                                            logo: logo,
-                                            yearText: yearText,
-                                            durationText: durationText,
-                                            ratingText: ratingText,
-                                            overviewText: overviewText,
-                                            movieId: movieId,
+                                        children: [
+                                          _buildHeroTopBar(
+                                            isWideLayout: isWideLayout,
                                           ),
-                                      ],
+                                          if (!isWideLayout)
+                                            _buildMobileHeroOverlay(
+                                              mediaTitle: mediaTitle,
+                                              logo: logo,
+                                              yearText: yearText,
+                                              durationText: durationText,
+                                              ratingText: ratingText,
+                                              movieId: movieId,
+                                            ),
+                                          if (isWideLayout)
+                                            _buildDesktopHeroOverlay(
+                                              mediaTitle: mediaTitle,
+                                              logo: logo,
+                                              yearText: yearText,
+                                              durationText: durationText,
+                                              ratingText: ratingText,
+                                              overviewText: overviewText,
+                                              movieId: movieId,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                              ),
+                              if (!isWideLayout)
+                                _buildMobileDynamicPanel(
+                                  mediaTitle: mediaTitle,
+                                  overviewText: overviewText,
+                                  movieId: movieId,
+                                ),
+                              const SizedBox(height: AppSpacing.xl),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsetsDirectional.only(
+                                      start: _sectionHorizontalPadding(context),
+                                      end: _sectionHorizontalPadding(context),
+                                    ),
+                                    child: Text(
+                                      AppLocalizations.of(context)!.castTitle,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
                                     ),
                                   ),
-                            ),
-                            if (!isWideLayout)
-                              _buildMobileMetaSection(
-                                mediaTitle: mediaTitle,
-                                logo: logo,
-                                yearText: yearText,
-                                durationText: durationText,
-                                ratingText: ratingText,
-                                overviewText: overviewText,
-                                movieId: movieId,
-                              ),
-                            const SizedBox(height: AppSpacing.xl),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Padding(
-                                  padding: EdgeInsetsDirectional.only(
-                                    start: _sectionHorizontalPadding(context),
-                                    end: _sectionHorizontalPadding(context),
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.of(context)!.castTitle,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.s),
-                                MovieDetailCastSection(
-                                  cast: cast,
-                                  firstItemFocusNode: _firstCastItemFocusNode,
-                                  focusRequestId: _castFocusRequestId,
-                                  focusRequestIndex: _castFocusRequestIndex,
-                                  onRequestPrimaryActionFocus: () {
-                                    if (_primaryActionFocusNode.context != null &&
-                                        _primaryActionFocusNode.canRequestFocus) {
-                                      _primaryActionFocusNode.requestFocus();
-                                    }
-                                  },
-                                  onFocusedActorIndexChanged:
-                                      _handleCastFocusChanged,
-                                  horizontalPadding: _sectionHorizontalPadding(
-                                    context,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.l),
-                                // Section saga (si le film fait partie d'une saga)
-                                if (sagaLink != null)
-                                  MovieDetailSagaSection(
-                                    sagaLink: sagaLink,
-                                    currentMovieId: widget.movieId,
+                                  const SizedBox(height: AppSpacing.s),
+                                  MovieDetailCastSection(
+                                    cast: cast,
+                                    firstItemFocusNode: _firstCastItemFocusNode,
+                                    focusRequestId: _castFocusRequestId,
+                                    focusRequestIndex: _castFocusRequestIndex,
+                                    onRequestPrimaryActionFocus: () {
+                                      if (_primaryActionFocusNode.context !=
+                                              null &&
+                                          _primaryActionFocusNode
+                                              .canRequestFocus) {
+                                        _primaryActionFocusNode.requestFocus();
+                                      }
+                                    },
+                                    onFocusedActorIndexChanged:
+                                        _handleCastFocusChanged,
                                     horizontalPadding:
                                         _sectionHorizontalPadding(context),
                                   ),
-                                // Section recommandations
-                                MovieDetailRecommendationsSection(
-                                  items: recommendations,
-                                  horizontalPadding: _sectionHorizontalPadding(
-                                    context,
+                                  const SizedBox(height: AppSpacing.l),
+                                  // Section saga (si le film fait partie d'une saga)
+                                  if (sagaLink != null)
+                                    MovieDetailSagaSection(
+                                      sagaLink: sagaLink,
+                                      currentMovieId: widget.movieId,
+                                      horizontalPadding:
+                                          _sectionHorizontalPadding(context),
+                                    ),
+                                  // Section recommandations
+                                  MovieDetailRecommendationsSection(
+                                    items: recommendations,
+                                    horizontalPadding:
+                                        _sectionHorizontalPadding(context),
                                   ),
-                                ),
-                                const SizedBox(height: 70),
-                              ],
-                            ),
-                          ],
+                                  const SizedBox(height: 70),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -669,43 +757,66 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
   }
 
-  Widget _buildMobileMetaSection({
+  Widget _buildMobileHeroOverlay({
     required String mediaTitle,
     Uri? logo,
     required String yearText,
     required String durationText,
     required String ratingText,
-    required String overviewText,
     required String movieId,
   }) {
-    final titleStyle = Theme.of(context).textTheme.headlineSmall;
+    final titleStyle =
+        Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        );
     final screenWidth = MediaQuery.of(context).size.width;
+    const heroPillBackground = Color(0x80383838);
 
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(start: 20, end: 20),
+    return Positioned(
+      left: AppSpacing.lg,
+      right: AppSpacing.lg,
+      bottom: HomeLayoutConstants.heroMobileContentBottomInset,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: AppSpacing.m),
           Semantics(
             header: true,
             label: mediaTitle,
             child: logo == null
-                ? Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left)
+                ? Text(
+                    mediaTitle,
+                    style: titleStyle,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  )
                 : Transform.translate(
                     offset: const Offset(0, -16),
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxWidth: (screenWidth * 0.82).clamp(220.0, 420.0),
-                        maxHeight: 56,
+                        maxWidth: screenWidth * 0.8,
+                        maxHeight: 100,
                       ),
-                      child: Image.network(
+                      child: MoviNetworkImage(
                         logo.toString(),
                         fit: BoxFit.contain,
                         alignment: Alignment.center,
                         filterQuality: FilterQuality.high,
-                        errorBuilder: (_, __, ___) =>
-                            Text(mediaTitle, style: titleStyle),
+                        cacheWidth: 900,
+                        errorBuilder: (_, __, ___) => Text(
+                          mediaTitle,
+                          style: titleStyle,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
                   ),
@@ -716,17 +827,44 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             durationText: durationText,
             ratingText: ratingText,
             alignment: WrapAlignment.center,
-            pillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+            pillColor: heroPillBackground,
           ),
-          const SizedBox(height: AppSpacing.m),
-          _buildActionButtons(
-            mediaTitle: mediaTitle,
-            movieId: movieId,
-            expandPrimary: true,
-          ),
-          const SizedBox(height: AppSpacing.s),
-          MovieDetailSynopsisSection(text: overviewText),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMobileDynamicPanel({
+    required String mediaTitle,
+    required String overviewText,
+    required String movieId,
+  }) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          12,
+          AppSpacing.lg,
+          HomeLayoutConstants.heroMobileContentBottomInset,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (overviewText.trim().isNotEmpty)
+              MovieDetailSynopsisSection(text: overviewText)
+            else
+              const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.m),
+            _buildActionButtons(
+              mediaTitle: mediaTitle,
+              movieId: movieId,
+              expandPrimary: true,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1033,77 +1171,78 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       final logger = ref.read(slProvider)<AppLogger>();
       final addPlaylistItem = AddPlaylistItem(playlistRepository);
 
-      showAddToPlaylistActionSheet(
-        context: context,
+      _showPlaylistActionSheet(
         l10n: l10n,
         playlists: availablePlaylists,
-        onSelect: (playlist) async {
-          final canNotify = mounted && messenger != null;
-          final playlistIdToInvalidate = playlist.playlistId;
+        onSelect: (playlist) {
+          unawaited(() async {
+            final canNotify = mounted && messenger != null;
+            final playlistIdToInvalidate = playlist.playlistId;
 
-          try {
-            final year = yearTextValue != '—'
-                ? int.tryParse(yearTextValue)
-                : null;
+            try {
+              final year = yearTextValue != '—'
+                  ? int.tryParse(yearTextValue)
+                  : null;
 
-            await addPlaylistItem.call(
-              playlistId: PlaylistId(playlist.playlistId!),
-              item: PlaylistItem(
-                reference: ContentReference(
-                  id: movieId,
-                  title: MediaTitle(title),
-                  type: ContentType.movie,
-                  poster: poster,
-                  year: year,
+              await addPlaylistItem.call(
+                playlistId: PlaylistId(playlist.playlistId!),
+                item: PlaylistItem(
+                  reference: ContentReference(
+                    id: movieId,
+                    title: MediaTitle(title),
+                    type: ContentType.movie,
+                    poster: poster,
+                    year: year,
+                  ),
+                  addedAt: DateTime.now(),
                 ),
-                addedAt: DateTime.now(),
-              ),
-            );
-
-            container.invalidate(
-              playlistItemsProvider(playlistIdToInvalidate!),
-            );
-            container.invalidate(
-              playlistContentReferencesProvider(playlistIdToInvalidate),
-            );
-            container.invalidate(libraryPlaylistsProvider);
-
-            if (canNotify) {
-              _showTopNotification(
-                l10n,
-                messenger,
-                l10n.playlistAddedTo(playlist.title),
               );
-            }
-          } catch (e, stackTrace) {
-            if (!mounted || !context.mounted) return;
-            logger.log(
-              LogLevel.error,
-              AppLocalizations.of(context)!.errorAddToPlaylist(e.toString()),
-              error: e,
-              stackTrace: stackTrace,
-              category: 'movie_detail',
-            );
 
-            if (canNotify) {
-              String errorMessage;
-              if (e is StateError &&
-                  e.message.contains('déjà dans cette playlist')) {
-                errorMessage = AppLocalizations.of(
-                  context,
-                )!.errorAlreadyInPlaylist;
-              } else {
-                errorMessage = l10n.errorWithMessage(e.toString());
+              container.invalidate(
+                playlistItemsProvider(playlistIdToInvalidate!),
+              );
+              container.invalidate(
+                playlistContentReferencesProvider(playlistIdToInvalidate),
+              );
+              container.invalidate(libraryPlaylistsProvider);
+
+              if (canNotify) {
+                _showTopNotification(
+                  l10n,
+                  messenger,
+                  l10n.playlistAddedTo(playlist.title),
+                );
               }
-
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(errorMessage),
-                  duration: const Duration(seconds: 5),
-                ),
+            } catch (e, stackTrace) {
+              if (!mounted || !context.mounted) return;
+              logger.log(
+                LogLevel.error,
+                AppLocalizations.of(context)!.errorAddToPlaylist(e.toString()),
+                error: e,
+                stackTrace: stackTrace,
+                category: 'movie_detail',
               );
+
+              if (canNotify) {
+                String errorMessage;
+                if (e is StateError &&
+                    e.message.contains('déjà dans cette playlist')) {
+                  errorMessage = AppLocalizations.of(
+                    context,
+                  )!.errorAlreadyInPlaylist;
+                } else {
+                  errorMessage = l10n.errorWithMessage(e.toString());
+                }
+
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(errorMessage),
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
             }
-          }
+          }());
         },
       );
     } catch (e) {
@@ -1119,6 +1258,62 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         );
       }
     }
+  }
+
+  void _showPlaylistActionSheet({
+    required AppLocalizations l10n,
+    required List<LibraryPlaylistItem> playlists,
+    required void Function(LibraryPlaylistItem playlist) onSelect,
+  }) {
+    if (!mounted) return;
+    if (_useDesktopDetailLayout(context)) {
+      final actions = playlists
+          .map(
+            (playlist) => MoviTvActionMenuAction(
+              label: playlist.title,
+              onPressed: () => onSelect(playlist),
+            ),
+          )
+          .toList(growable: false);
+      unawaited(
+        showMoviTvActionMenu(
+          context: context,
+          title: l10n.actionAddToList,
+          actions: actions,
+          cancelLabel: l10n.actionCancel,
+        ),
+      );
+      return;
+    }
+    unawaited(
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (sheetContext) {
+          return CupertinoActionSheet(
+            title: Text(l10n.actionAddToList),
+            actions: playlists
+                .map(
+                  (playlist) => CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      onSelect(playlist);
+                    },
+                    child: Text(
+                      playlist.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop(),
+              child: Text(l10n.actionCancel),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showTopNotification(
@@ -1249,70 +1444,139 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final isSeen = ref.read(mdp.movieSeenProvider(movieId)).value ?? false;
     final l10n = AppLocalizations.of(context)!;
 
-    final actions = <MoviTvActionMenuAction>[
-      MoviTvActionMenuAction(
-        label: l10n.actionChangeMetadata,
-        onPressed: _onChangeMetadata,
-      ),
-      MoviTvActionMenuAction(
-        label: l10n.actionAddToList,
-        onPressed: () => _showAddToListDialog(context, ref, movieId),
-      ),
-    ];
-
-    if (isAvailable) {
+    if (_useDesktopDetailLayout(context)) {
+      final actions = <MoviTvActionMenuAction>[
+        MoviTvActionMenuAction(
+          label: l10n.actionChangeMetadata,
+          onPressed: _onChangeMetadata,
+        ),
+        MoviTvActionMenuAction(
+          label: l10n.actionAddToList,
+          onPressed: () => _showAddToListDialog(context, ref, movieId),
+        ),
+      ];
+      if (isAvailable) {
+        actions.add(
+          MoviTvActionMenuAction(
+            label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+            onPressed: () {
+              if (isSeen) {
+                _markAsUnseen(movieId);
+              } else {
+                _markAsSeen(movieId, mediaTitle);
+              }
+            },
+          ),
+        );
+      }
       actions.add(
         MoviTvActionMenuAction(
-          label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+          label: l10n.actionReportProblem,
           onPressed: () {
-            if (isSeen) {
-              _markAsUnseen(movieId);
-            } else {
-              _markAsSeen(movieId, mediaTitle);
+            final tmdbId = int.tryParse(movieId);
+            if (tmdbId == null || tmdbId <= 0) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.errorReportUnavailableForContent),
+                  ),
+                );
+              }
+              return;
             }
+            unawaited(
+              ReportProblemSheet.show(
+                context,
+                ref,
+                contentType: ContentType.movie,
+                tmdbId: tmdbId,
+                contentTitle: mediaTitle,
+              ),
+            );
           },
         ),
       );
+      unawaited(
+        showMoviTvActionMenu(
+          context: context,
+          title: 'Options',
+          actions: actions,
+          cancelLabel: l10n.actionCancel,
+        ),
+      );
+      return;
     }
 
-    actions.add(
-      MoviTvActionMenuAction(
-        label: l10n.actionReportProblem,
-        onPressed: () {
-          final tmdbId = int.tryParse(movieId);
-          if (tmdbId == null || tmdbId <= 0) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorReportUnavailableForContent,
-                  ),
+    unawaited(
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (sheetContext) {
+          final actions = <Widget>[
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                _onChangeMetadata();
+              },
+              child: Text(l10n.actionChangeMetadata),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                _showAddToListDialog(context, ref, movieId);
+              },
+              child: Text(l10n.actionAddToList),
+            ),
+            if (isAvailable)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  if (isSeen) {
+                    _markAsUnseen(movieId);
+                  } else {
+                    _markAsSeen(movieId, mediaTitle);
+                  }
+                },
+                child: Text(
+                  isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
                 ),
-              );
-            }
-            return;
-          }
-          unawaited(
-            ReportProblemSheet.show(
-              context,
-              ref,
-              contentType: ContentType.movie,
-              tmdbId: tmdbId,
-              contentTitle: mediaTitle,
+              ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                final tmdbId = int.tryParse(movieId);
+                if (tmdbId == null || tmdbId <= 0) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.errorReportUnavailableForContent),
+                      ),
+                    );
+                  }
+                  return;
+                }
+                unawaited(
+                  ReportProblemSheet.show(
+                    context,
+                    ref,
+                    contentType: ContentType.movie,
+                    tmdbId: tmdbId,
+                    contentTitle: mediaTitle,
+                  ),
+                );
+              },
+              child: Text(l10n.actionReportProblem),
+            ),
+          ];
+
+          return CupertinoActionSheet(
+            title: const Text('Options'),
+            actions: actions,
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop(),
+              child: Text(l10n.actionCancel),
             ),
           );
         },
-      ),
-    );
-
-    unawaited(
-      showMoviTvActionMenu(
-        context: context,
-        title: 'Options',
-        actions: actions,
-        cancelLabel: l10n.actionCancel,
       ),
     );
   }

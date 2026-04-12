@@ -3,6 +3,7 @@ import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_discovery_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/features/movie/data/datasources/tmdb_movie_remote_data_source.dart';
 import 'package:movi/src/features/movie/domain/repositories/movie_repository.dart';
@@ -100,6 +101,7 @@ class HomeFeedDataModule {
         sl<TmdbImageResolver>(),
         sl<AppStateController>(),
         sl<TmdbCacheDataSource>(),
+        sl<TmdbDiscoveryCacheDataSource>(),
         sl<LoadContinueWatchingMedia>(),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
+import 'package:movi/src/core/widgets/movi_network_image.dart';
 
 enum MoviHeroImageStrategy { adaptive, backdropFirst }
 
@@ -154,7 +155,7 @@ class MoviHeroBackground extends StatelessWidget {
       );
     }
 
-    return Image.network(
+    return MoviNetworkImage(
       url,
       fit: fit,
       alignment: alignment,

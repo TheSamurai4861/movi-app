@@ -1,7 +1,7 @@
 name: movi
 description: "Application Flutter de streaming et de gestion de bibliotheque media."
 publish_to: "none"
-version: 1.0.2+10
+version: 1.0.3+13
 
 environment:
   sdk: ^3.9.2
@@ -30,6 +30,8 @@ dependencies:
   encrypt: ^5.0.3
   clock: ^1.1.2
   flutter_svg: ^2.0.10+1
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
   flutter_local_notifications: ^21.0.0
   media_kit: ^1.2.2
   media_kit_video: ^2.0.0
@@ -46,6 +48,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  msix: ^3.16.13
 
 flutter:
   uses-material-design: true
@@ -63,3 +66,14 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   adaptive_icon_background: "#000000"
   adaptive_icon_foreground: assets/branding/app_icon.png
+
+msix_config:
+  display_name: Movi
+  msix_version: 1.0.3.0
+  logo_path: C:\Users\berny\DEV\Flutter\movi\windows\runner\resources\app_icon.png
+  publisher_display_name: TheSamurai
+  identity_name: TheSamurai.Movi
+  publisher: CN=TheSamurai
+  certificate_path: C:\Users\berny\DEV\Flutter\movi\movi-signing.pfx
+  certificate_password: RunnerBlade2049#
+  build_windows: false

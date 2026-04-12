@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_track_series_button.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -19,7 +23,6 @@ import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
 import 'package:movi/src/features/tv/presentation/models/tv_detail_view_model.dart';
 import 'package:movi/src/features/tv/presentation/services/episode_playback_page_telemetry.dart';
-import 'package:movi/src/features/tv/presentation/services/series_viewed_percent_resolver.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
@@ -42,11 +45,11 @@ import 'package:movi/src/core/network/network.dart';
 import 'package:movi/src/features/welcome/presentation/utils/error_presenter.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
+import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
-import 'package:movi/src/features/library/presentation/widgets/add_to_playlist_action_sheet.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/playlist/playlist.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -75,7 +78,48 @@ enum EpisodeSortOrder { ascending, descending }
 
 enum _TvHeroAction { primary, changeVersion, tracking, favorite }
 
-/// ClÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s "saison:ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisode" considÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es comme terminÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es (>= 95%).
+@visibleForTesting
+Widget buildTvDetailMobileHeroLogo({
+  required String mediaTitle,
+  required TextStyle titleStyle,
+  required double maxWidth,
+  Uri? logo,
+}) {
+  return Semantics(
+    header: true,
+    label: mediaTitle,
+    child: logo == null
+        ? Text(
+            mediaTitle,
+            style: titleStyle,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          )
+        : MoviResponsiveLogo(
+            imageUrl: logo.toString(),
+            semanticLabel: mediaTitle,
+            alignment: Alignment.center,
+            maxWidth: maxWidth,
+            reservedHeight: 84,
+            wideMaxHeight: 84,
+            tallMaxHeight: 112,
+            blockyMaxHeight: 132,
+            blockyRatioThreshold: 1.45,
+            overflowUpFactor: 1.0,
+            extraUpOffset: 16,
+            onErrorFallback: (_) => Text(
+              mediaTitle,
+              style: titleStyle,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+  );
+}
+
+/// ClÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©s "saison:ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©pisode" considÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©es comme terminÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©es (>= 95%).
 final _seriesSeenStateProvider =
     FutureProvider.family<SeriesSeenState?, String>((ref, seriesId) async {
       final locator = ref.watch(slProvider);
@@ -127,14 +171,19 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   bool _isTransitioningFromLoading = true;
   late TabController _tabController;
   EpisodeSortOrder _episodeSortOrder = EpisodeSortOrder.ascending;
-  String mediaTitle = 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â';
-  String yearText = 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â';
-  String seasonsCountText = 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â';
-  String ratingText = 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â';
+  String mediaTitle =
+      'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â';
+  String yearText =
+      'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â';
+  String seasonsCountText =
+      'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â';
+  String ratingText =
+      'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â';
   String overviewText = '';
   List<MoviPerson> cast = const [];
   List<SeasonViewModel> seasons = const [];
   TvDetailViewModel? _lastVm;
+  String? _lastHeroLogoDiagnosticSignature;
   bool _changeVersionFocused = false;
   Timer? _autoRefreshTimer;
   Timer? _seasonsCheckTimer;
@@ -143,11 +192,15 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   int _retryCount = 0;
   bool _seasonTabListenerAttached = false;
   bool _seasonTabsFocused = false;
+  bool _desktopEntryFocusApplied = false;
+  bool _mobileEntryTopApplied = false;
   final Map<int, DateTime> _seasonLoadingStartTimes = {};
   final Map<String, FocusNode> _seasonEpisodeFocusNodes = {};
   final Map<int, int> _lastFocusedEpisodeIndexBySeason = {};
   final Map<int, FocusNode> _castFocusNodes = {};
-  final ScrollController _pageScrollController = ScrollController();
+  final ScrollController _pageScrollController = ScrollController(
+    keepScrollOffset: false,
+  );
   final FocusNode _primaryActionFocusNode = FocusNode(
     debugLabel: 'TvDetailPrimaryAction',
   );
@@ -195,7 +248,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     _lastReloadAt = now;
     ref.invalidate(tvDetailProgressiveControllerProvider(mediaId));
 
-    // LibÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨re le verrou aprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s un court dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lai pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter les rafales.
+    // LibÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨re le verrou aprÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨s un court dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©lai pour ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©viter les rafales.
     Future<void>.delayed(const Duration(milliseconds: 350), () {
       if (!mounted) return;
       _reloadInFlight = false;
@@ -206,11 +259,37 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   void initState() {
     super.initState();
     _isTransitioningFromLoading = true;
+    _mobileEntryTopApplied = false;
+    _pendingEpisodeFocusSeasonNumber = null;
+    _pendingEpisodeFocusVisibleIndex = null;
+    _lastFocusedCastIndex = null;
+    _lastFocusedEpisodeIndexBySeason.clear();
     _tabController = TabController(length: 1, vsync: this);
     _startAutoRefreshTimer();
     _startSeasonsCheckTimer();
     unawaited(_loadSpoilerMode());
     unawaited(_refreshSeriesTrackingState());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _resetScrollToTopForMobile();
+      _ensureDesktopTopAndPrimaryFocus();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant TvDetailPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.seriesId != widget.seriesId) {
+      _desktopEntryFocusApplied = false;
+      _mobileEntryTopApplied = false;
+      _pendingEpisodeFocusSeasonNumber = null;
+      _pendingEpisodeFocusVisibleIndex = null;
+      _lastFocusedCastIndex = null;
+      _lastFocusedEpisodeIndexBySeason.clear();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _resetScrollToTopForMobile();
+        _ensureDesktopTopAndPrimaryFocus();
+      });
+    }
   }
 
   Future<void> _loadSpoilerMode() async {
@@ -287,8 +366,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     if (index < 0 || index >= seasonsList.length) return;
 
     final season = seasonsList[index];
-    // Si la saison affichÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e n'a pas encore d'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes et n'est pas en chargement,
-    // on la charge immÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©diatement (prioritÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© UX).
+    // Si la saison affichÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e n'a pas encore d'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©pisodes et n'est pas en chargement,
+    // on la charge immÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©diatement (prioritÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© UX).
     if (!season.isLoadingEpisodes && season.episodes.isEmpty) {
       unawaited(
         ref
@@ -311,8 +390,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   KeyEventResult _handleHeroBackKey(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      _moreFocusNode.canRequestFocus = true;
-      _moreFocusNode.requestFocus();
+      if (_trackSeriesFocusNode.context != null &&
+          _trackSeriesFocusNode.canRequestFocus) {
+        _trackSeriesFocusNode.requestFocus();
+      } else {
+        _moreFocusNode.canRequestFocus = true;
+        _moreFocusNode.requestFocus();
+      }
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -326,10 +410,48 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return KeyEventResult.ignored;
   }
 
-  KeyEventResult _handleHeroMoreKey(KeyEvent event) {
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!mounted || !context.mounted) return KeyEventResult.ignored;
+      context.pop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleHeroTrackingTopBarKey(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
       _backFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _moreFocusNode.canRequestFocus = true;
+      _moreFocusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _requestNearestHeroActionFocusFrom(_trackSeriesFocusNode);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleHeroMoreKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      if (_trackSeriesFocusNode.context != null &&
+          _trackSeriesFocusNode.canRequestFocus) {
+        _trackSeriesFocusNode.requestFocus();
+      } else {
+        _backFocusNode.requestFocus();
+      }
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -389,6 +511,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   }
 
   void _scrollPageToEpisodeSection() {
+    if (!_useDesktopDetailLayout(context)) return;
     if (!_pageScrollController.hasClients) return;
     final position = _pageScrollController.position;
     final targetOffset = position.maxScrollExtent;
@@ -399,6 +522,47 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       position.jumpTo(targetOffset);
     } catch (_) {
       // Best effort: focus can move while the page scrollable is detaching.
+    }
+  }
+
+  void _resetScrollToTopForMobile() {
+    if (!mounted) return;
+    if (_useDesktopDetailLayout(context)) return;
+    if (_mobileEntryTopApplied) return;
+    if (!_pageScrollController.hasClients) return;
+    final position = _pageScrollController.position;
+    if (position.pixels <= 0) {
+      _mobileEntryTopApplied = true;
+      return;
+    }
+    try {
+      position.jumpTo(0);
+      _mobileEntryTopApplied = true;
+    } catch (_) {
+      // Best effort while the scrollable is attaching.
+    }
+  }
+
+  void _ensureDesktopTopAndPrimaryFocus() {
+    if (!mounted) return;
+    if (!_useDesktopDetailLayout(context)) return;
+    if (_desktopEntryFocusApplied) return;
+
+    if (_pageScrollController.hasClients) {
+      final position = _pageScrollController.position;
+      if (position.pixels > 0) {
+        try {
+          position.jumpTo(0);
+        } catch (_) {
+          // Best effort while the scrollable is attaching.
+        }
+      }
+    }
+
+    if (_primaryActionFocusNode.context != null &&
+        _primaryActionFocusNode.canRequestFocus) {
+      _primaryActionFocusNode.requestFocus();
+      _desktopEntryFocusApplied = true;
     }
   }
 
@@ -568,7 +732,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
   bool _requestNearestTopBarFocusFrom(FocusNode source) {
     _moreFocusNode.canRequestFocus = true;
-    return _requestClosestFocusFrom(source, [_backFocusNode, _moreFocusNode]);
+    return _requestClosestFocusFrom(source, [
+      _backFocusNode,
+      _trackSeriesFocusNode,
+      _moreFocusNode,
+    ]);
   }
 
   bool _requestNearestCastFocusFrom(FocusNode source) {
@@ -783,7 +951,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     final mediaId = widget.seriesId;
 
     _autoRefreshTimer = Timer(_loadingTimeout, () {
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier mounted AVANT d'utiliser ref
+      // VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rifier mounted AVANT d'utiliser ref
       if (!mounted) return;
       if (_retryCount >= _maxRetries) return;
 
@@ -791,7 +959,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         final vmAsync = ref.read(
           tvDetailProgressiveControllerProvider(mediaId),
         );
-        // Si toujours en chargement aprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s le timeout, relancer
+        // Si toujours en chargement aprÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨s le timeout, relancer
         if (vmAsync.isLoading && mounted) {
           _retryCount++;
           _requestReload(mediaId);
@@ -800,7 +968,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           }
         }
       } catch (e) {
-        // Ignorer les erreurs si le widget est dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©montÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
+        // Ignorer les erreurs si le widget est dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©montÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©
         if (mounted) {
           rethrow;
         }
@@ -810,10 +978,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
   void _startSeasonsCheckTimer() {
     _seasonsCheckTimer?.cancel();
-    final mediaId = widget.seriesId;
 
     _seasonsCheckTimer = Timer.periodic(_seasonsCheckInterval, (timer) {
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier mounted AVANT d'utiliser ref
       if (!mounted) {
         timer.cancel();
         return;
@@ -821,183 +987,53 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
       try {
         final vmAsync = ref.read(
-          tvDetailProgressiveControllerProvider(mediaId),
+          tvDetailProgressiveControllerProvider(widget.seriesId),
         );
         final vm = vmAsync.value;
-
         if (vm == null) return;
 
-        bool shouldReload = false;
-
-        // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier chaque saison
         for (final season in vm.seasons) {
           final seasonKey = season.seasonNumber;
 
-          // Si la saison est en chargement
           if (season.isLoadingEpisodes) {
-            // Enregistrer le moment oÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¹ le chargement a commencÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
             if (!_seasonLoadingStartTimes.containsKey(seasonKey)) {
               _seasonLoadingStartTimes[seasonKey] = DateTime.now();
-            } else {
-              // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si le chargement prend trop de temps
-              final loadingStart = _seasonLoadingStartTimes[seasonKey]!;
-              final loadingDuration = DateTime.now().difference(loadingStart);
-              if (loadingDuration > _seasonLoadingTimeout && mounted) {
-                // Le chargement prend trop de temps, relancer
-                try {
-                  final logger = ref.read(slProvider)<AppLogger>();
-                  logger.debug(
-                    'Saison ${season.seasonNumber} en chargement depuis ${loadingDuration.inSeconds}s, relance automatique',
-                    category: 'tv_detail',
-                  );
-                  _seasonLoadingStartTimes.remove(seasonKey);
-                  shouldReload = true;
-                } catch (e) {
-                  // Ignorer les erreurs si le widget est dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©montÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
-                  if (mounted) {
-                    rethrow;
-                  }
-                }
-              }
+              continue;
             }
-          } else {
-            // La saison n'est plus en chargement, retirer du tracking
-            _seasonLoadingStartTimes.remove(seasonKey);
 
-            // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si la saison devrait avoir des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes mais n'en a pas
-            // (saisons normales sauf saison 0 qui peut ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªtre vide)
-            // Ne vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier qu'une seule fois par saison pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter les relances multiples
-            if (season.episodes.isEmpty &&
-                season.seasonNumber > 0 &&
-                !season.isLoadingEpisodes &&
-                !_seasonLoadingStartTimes.containsKey(seasonKey)) {
-              // Marquer cette saison comme vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter les vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifications multiples
-              _seasonLoadingStartTimes[seasonKey] = DateTime.now();
-
-              // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes Xtream existent pour cette saison
-              _checkIfSeasonShouldHaveEpisodes(season.seasonNumber).then((
-                shouldHave,
-              ) {
-                // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier mounted AVANT d'utiliser ref
-                if (!mounted) return;
-                if (shouldHave) {
-                  try {
-                    final logger = ref.read(slProvider)<AppLogger>();
-                    logger.debug(
-                      'Saison ${season.seasonNumber} devrait avoir des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes (trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©s dans le cache Xtream) mais n\'en a pas, relance automatique',
-                      category: 'tv_detail',
-                    );
-                    _seasonLoadingStartTimes.remove(seasonKey);
-                    if (mounted) {
-                      _requestReload(mediaId);
-                    }
-                  } catch (e) {
-                    // Ignorer les erreurs si le widget est dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©montÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
-                    if (mounted) {
-                      rethrow;
-                    }
-                  }
-                } else {
-                  // Retirer du tracking si pas d'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes attendus
-                  if (mounted) {
-                    _seasonLoadingStartTimes.remove(seasonKey);
-                  }
-                }
-              });
+            final loadingStart = _seasonLoadingStartTimes[seasonKey]!;
+            final loadingDuration = DateTime.now().difference(loadingStart);
+            if (loadingDuration <= _seasonLoadingTimeout) {
+              continue;
             }
+
+            final logger = ref.read(slProvider)<AppLogger>();
+            logger.debug(
+              'Saison ${season.seasonNumber} en chargement depuis ${loadingDuration.inSeconds}s, relance ciblée',
+              category: 'tv_detail',
+            );
+
+            _seasonLoadingStartTimes[seasonKey] = DateTime.now();
+            unawaited(
+              ref
+                  .read(
+                    tvDetailProgressiveControllerProvider(
+                      widget.seriesId,
+                    ).notifier,
+                  )
+                  .reloadSeasonEpisodes(season.seasonNumber),
+            );
+            continue;
           }
-        }
 
-        // Relancer le chargement si nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cessaire
-        if (shouldReload && mounted) {
-          _requestReload(mediaId);
+          _seasonLoadingStartTimes.remove(seasonKey);
         }
       } catch (e) {
-        // Ignorer les erreurs si le widget est dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©montÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
         if (mounted) {
           rethrow;
         }
       }
     });
-  }
-
-  /// VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifie si une saison devrait avoir des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes en vÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifiant le cache Xtream
-  Future<bool> _checkIfSeasonShouldHaveEpisodes(int seasonNumber) async {
-    try {
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier mounted AVANT d'utiliser ref
-      if (!mounted) return false;
-
-      final locator = ref.read(slProvider);
-      final iptvLocal = locator<IptvLocalRepository>();
-
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si c'est un ID Xtream
-      String? seriesId;
-      String? accountId;
-
-      if (widget.seriesId.startsWith('xtream:')) {
-        final streamIdStr = widget.seriesId.substring(7);
-        final streamId = int.tryParse(streamIdStr);
-        if (streamId == null) return false;
-
-        final accounts = await iptvLocal.getAccounts();
-        for (final account in accounts) {
-          final playlists = await iptvLocal.getPlaylists(account.id);
-          for (final playlist in playlists) {
-            final found = playlist.items.firstWhere(
-              (item) =>
-                  item.streamId == streamId &&
-                  item.type == XtreamPlaylistItemType.series,
-              orElse: () => playlist.items.first,
-            );
-            if (found.streamId == streamId) {
-              seriesId = streamId.toString();
-              accountId = account.id;
-              break;
-            }
-          }
-          if (accountId != null) break;
-        }
-      } else {
-        // Chercher par tmdbId
-        final tmdbId = int.tryParse(widget.seriesId);
-        if (tmdbId == null) return false;
-
-        final accounts = await iptvLocal.getAccounts();
-        for (final account in accounts) {
-          final playlists = await iptvLocal.getPlaylists(account.id);
-          for (final playlist in playlists) {
-            final found = playlist.items.firstWhere(
-              (item) =>
-                  item.tmdbId == tmdbId &&
-                  item.type == XtreamPlaylistItemType.series &&
-                  item.streamId > 0,
-              orElse: () => playlist.items.first,
-            );
-            if (found.tmdbId == tmdbId && found.streamId > 0) {
-              seriesId = found.streamId.toString();
-              accountId = account.id;
-              break;
-            }
-          }
-          if (accountId != null) break;
-        }
-      }
-
-      if (seriesId == null || accountId == null) return false;
-
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes existent dans le cache pour cette saison
-      final allEpisodes = await iptvLocal.getAllEpisodesForSeries(
-        accountId: accountId,
-        seriesId: int.parse(seriesId),
-      );
-
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier si cette saison a des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes dans le cache
-      return allEpisodes.containsKey(seasonNumber) &&
-          allEpisodes[seasonNumber]!.isNotEmpty;
-    } catch (e) {
-      // En cas d'erreur, ne pas relancer
-      return false;
-    }
   }
 
   @override
@@ -1077,7 +1113,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
   Widget _buildAllowedDetail(BuildContext context, String mediaId) {
     final vmAsync = ref.watch(tvDetailProgressiveControllerProvider(mediaId));
 
-    // IMPORTANT: pas d'auto-retry. L'utilisateur relance via ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©essayerÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â.
+    // IMPORTANT: pas d'auto-retry. L'utilisateur relance via ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œRÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©essayerÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â.
     vmAsync.whenOrNull(
       error: (_, __) {
         if (mounted) {
@@ -1104,8 +1140,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           );
         }
 
-        // ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°vite le flicker "dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tails -> placeholder -> dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tails" quand le provider est invalidÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©
-        // (ex: saisons longues ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  charger). On garde l'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cran de dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©tails affichÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.
+        // ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°vite le flicker "dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tails -> placeholder -> dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tails" quand le provider est invalidÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©
+        // (ex: saisons longues ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  charger). On garde l'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©cran de dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©tails affichÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©.
         final seasonsLength = cached.seasons.isEmpty
             ? 1
             : cached.seasons.length;
@@ -1130,8 +1166,12 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       },
       error: (e, st) => _buildErrorScaffold(e),
       data: (vm) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _resetScrollToTopForMobile();
+          _ensureDesktopTopAndPrimaryFocus();
+        });
         _lastVm = vm;
-        // DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©marrer la transition d'opacitÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© aprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s un court dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lai
+        // DÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©marrer la transition d'opacitÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© aprÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨s un court dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©lai
         if (_isTransitioningFromLoading) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
@@ -1146,7 +1186,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           });
         }
 
-        // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier les saisons qui sont en chargement et les tracker
+        // VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rifier les saisons qui sont en chargement et les tracker
         for (final season in vm.seasons) {
           if (season.isLoadingEpisodes) {
             if (!_seasonLoadingStartTimes.containsKey(season.seasonNumber)) {
@@ -1189,7 +1229,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
     final bool isNotFound = e is NotFoundFailure;
     final String title = isNotFound
-        ? 'Infos de la sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie indisponibles'
+        ? 'Infos de la sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rie indisponibles'
         : l10n.errorConnectionGeneric;
     final String message = e is NetworkFailure
         ? presentFailure(context, e)
@@ -1238,7 +1278,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                           const SizedBox(height: 12),
                           Text(
                             isNotFound
-                                ? 'Certaines informations (synopsis, casting, images) ne sont pas disponibles pour cette sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie.'
+                                ? 'Certaines informations (synopsis, casting, images) ne sont pas disponibles pour cette sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rie.'
                                 : message,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: cs.onSurface.withValues(alpha: 0.8),
@@ -1324,6 +1364,27 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return _useDesktopDetailLayout(context) ? 36 : 20;
   }
 
+  void _logHeroLogoDiagnostic(Uri? logo) {
+    final url = logo?.toString();
+    final path = Uri.tryParse(url ?? '')?.path.toLowerCase() ?? '';
+    final bool isSvg = path.endsWith('.svg');
+    final String extension = path.contains('.')
+        ? path.split('.').last
+        : (path.isEmpty ? 'none' : 'unknown');
+    final signature = '$url|$isSvg|$extension';
+    if (_lastHeroLogoDiagnosticSignature == signature) {
+      return;
+    }
+    _lastHeroLogoDiagnosticSignature = signature;
+
+    ref
+        .read(slProvider)<AppLogger>()
+        .debug(
+          'tv_detail_hero_logo logoPresent=${logo != null} isSvg=$isSvg extension=$extension url=${url ?? 'none'}',
+          category: 'tv_detail',
+        );
+  }
+
   Widget _buildWithValues({
     required String mediaTitle,
     required String yearText,
@@ -1345,100 +1406,133 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     this.overviewText = overviewText;
     this.cast = cast;
     this.seasons = seasons;
+    _logHeroLogoDiagnostic(logo);
 
     final cs = Theme.of(context).colorScheme;
     final isWideLayout = _useDesktopDetailLayout(context);
+    final mobileHeroHeight =
+        MediaQuery.of(context).size.height *
+        HomeLayoutConstants.heroMobileStackHeightFactor;
     return SwipeBackWrapper(
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: _primaryActionFocusNode,
-          fallbackFocusNode: seasons.isNotEmpty
-              ? _episodeFocusNode(seasons.first.seasonNumber, 0)
-              : _backFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.tvDetailPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => _primaryActionFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () {
-          if (!mounted || !context.mounted) return false;
-          context.pop();
-          return true;
-        },
-        debugLabel: 'TvDetailRouteFocus',
-        child: Scaffold(
-          backgroundColor: cs.surface,
-          body: SafeArea(
-            top: true,
-            bottom: true,
-            child: AnimatedOpacity(
-              opacity: isLoading ? 0.0 : 1.0,
-              duration: const Duration(milliseconds: 300),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SyncableRefreshIndicator(
-                      onRefresh: () async {
-                        // RafraÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â®chir aussi le contenu local aprÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨s la sync
-                        ref.invalidate(
-                          tvDetailProgressiveControllerProvider(
-                            widget.seriesId,
-                          ),
-                        );
-                      },
-                      child: SingleChildScrollView(
-                        controller: _pageScrollController,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Builder(
-                              builder: (heroContext) =>
-                                  MoviVerticalEnsureVisibleTarget(
-                                    targetContext: heroContext,
-                                    child: MoviDetailHeroScene(
-                                      isWideLayout: isWideLayout,
-                                      background: _buildHeroImage(
-                                        posterBackground,
-                                        poster,
-                                        backdrop,
-                                      ),
-                                      children: [
-                                        _buildHeroTopBar(
-                                          isWideLayout: isWideLayout,
-                                        ),
-                                        if (isWideLayout)
-                                          _buildDesktopHeroOverlay(
-                                            mediaTitle: mediaTitle,
-                                            yearText: yearText,
-                                            seasonsCountText: seasonsCountText,
-                                            ratingText: ratingText,
-                                            overviewText: overviewText,
-                                            seasons: seasons,
-                                            logo: logo,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+        exitMap: FocusRegionExitMap({
+          DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        }),
+        requestFocusOnMount: isWideLayout,
+        debugLabel: 'TvDetailRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: cs.surface,
+            body: SafeArea(
+              top: true,
+              bottom: true,
+              child: AnimatedOpacity(
+                opacity: isLoading ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SyncableRefreshIndicator(
+                        onRefresh: () async {
+                          // RafraÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â®chir aussi le contenu local aprÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨s la sync
+                          ref.invalidate(
+                            tvDetailProgressiveControllerProvider(
+                              widget.seriesId,
                             ),
-                            if (!isWideLayout)
-                              _buildMobileMetaSection(
-                                mediaTitle: mediaTitle,
-                                yearText: yearText,
-                                seasonsCountText: seasonsCountText,
-                                ratingText: ratingText,
-                                overviewText: overviewText,
-                                seasons: seasons,
-                                logo: logo,
+                          );
+                        },
+                        child: SingleChildScrollView(
+                          controller: _pageScrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Builder(
+                                builder: (heroContext) =>
+                                    MoviVerticalEnsureVisibleTarget(
+                                      targetContext: heroContext,
+                                      child: MoviDetailHeroScene(
+                                        isWideLayout: isWideLayout,
+                                        mobileHeight: mobileHeroHeight,
+                                        overlaySpec: isWideLayout
+                                            ? null
+                                            : MoviHeroOverlaySpec.home(
+                                                isWideLayout: false,
+                                              ).copyWith(
+                                                globalTintOpacity: 52 / 255,
+                                                topOpacities: const <double>[
+                                                  1.0,
+                                                  0.96,
+                                                  0.72,
+                                                  0.28,
+                                                  0.0,
+                                                ],
+                                                bottomOpacities: const <double>[
+                                                  0.0,
+                                                  0.28,
+                                                  0.42,
+                                                  0.60,
+                                                  0.80,
+                                                  1.0,
+                                                ],
+                                              ),
+                                        background: _buildHeroImage(
+                                          posterBackground,
+                                          poster,
+                                          backdrop,
+                                        ),
+                                        children: [
+                                          _buildHeroTopBar(
+                                            isWideLayout: isWideLayout,
+                                          ),
+                                          if (!isWideLayout)
+                                            _buildMobileHeroOverlay(
+                                              mediaTitle: mediaTitle,
+                                              yearText: yearText,
+                                              seasonsCountText:
+                                                  seasonsCountText,
+                                              ratingText: ratingText,
+                                              logo: logo,
+                                            ),
+                                          if (isWideLayout)
+                                            _buildDesktopHeroOverlay(
+                                              mediaTitle: mediaTitle,
+                                              yearText: yearText,
+                                              seasonsCountText:
+                                                  seasonsCountText,
+                                              ratingText: ratingText,
+                                              overviewText: overviewText,
+                                              logo: logo,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                               ),
-                            const SizedBox(height: 32),
-                            _buildDistribution(cast),
-                            const SizedBox(height: 32),
-                            if (seasons.isNotEmpty) _buildSeasonsTabs(seasons),
-                            const SizedBox(height: 70),
-                          ],
+                              if (!isWideLayout)
+                                _buildMobileDynamicPanel(
+                                  mediaTitle: mediaTitle,
+                                  overviewText: overviewText,
+                                ),
+                              const SizedBox(height: 32),
+                              _buildDistribution(cast),
+                              const SizedBox(height: 32),
+                              if (seasons.isNotEmpty)
+                                _buildSeasonsTabs(seasons),
+                              const SizedBox(height: 70),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1466,22 +1560,108 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           ),
         ),
       ),
-      trailing: Focus(
-        canRequestFocus: false,
-        onKeyEvent: (_, event) => _handleHeroMoreKey(event),
-        onFocusChange: (hasFocus) {
-          if (!hasFocus) {
-            _moreFocusNode.canRequestFocus = false;
-          }
-        },
-        child: MoviDetailHeroActionButton(
-          focusNode: _moreFocusNode,
-          iconAsset: AppAssets.iconMore,
-          semanticLabel: l10n.semanticsMoreActions,
-          onPressed: _showMoreMenu,
-          isWideLayout: isWideLayout,
-          iconWidth: 25,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final hasPremiumAsync = ref.watch(
+                canAccessPremiumFeatureProvider(
+                  PremiumFeature.seriesEpisodeTracking,
+                ),
+              );
+              return hasPremiumAsync.when(
+                data: (hasPremium) {
+                  if (!hasPremium) {
+                    return const SizedBox.shrink();
+                  }
+                  final seriesId = widget.seriesId;
+                  final isTrackedAsync = ref.watch(
+                    seriesIsTrackedProvider(seriesId),
+                  );
+                  return Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) =>
+                        _handleHeroTrackingTopBarKey(event),
+                    onFocusChange: (focused) {
+                      _markHeroActionFocused(_TvHeroAction.tracking, focused);
+                    },
+                    child: isTrackedAsync.when(
+                      data: (isTracked) => MoviTrackSeriesButton(
+                        focusNode: _trackSeriesFocusNode,
+                        isTracked: isTracked,
+                        size: 44,
+                        iconSize: 28,
+                        focusPadding: const EdgeInsets.all(5),
+                        focusedBackgroundColor: const Color(0x807A7A7A),
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
+                        borderWidth: 2,
+                        onPressed: () async {
+                          final poster = _lastVm?.poster;
+                          await ref
+                              .read(seriesTrackingToggleProvider.notifier)
+                              .toggle(
+                                seriesId: seriesId,
+                                title: mediaTitle,
+                                poster: poster,
+                              );
+                        },
+                      ),
+                      loading: () => MoviTrackSeriesButton(
+                        focusNode: _trackSeriesFocusNode,
+                        isTracked: false,
+                        size: 44,
+                        iconSize: 28,
+                        focusPadding: const EdgeInsets.all(5),
+                        focusedBackgroundColor: const Color(0x807A7A7A),
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
+                        borderWidth: 2,
+                        onPressed: _noop,
+                      ),
+                      error: (_, __) => MoviTrackSeriesButton(
+                        focusNode: _trackSeriesFocusNode,
+                        isTracked: false,
+                        size: 44,
+                        iconSize: 28,
+                        focusPadding: const EdgeInsets.all(5),
+                        focusedBackgroundColor: const Color(0x807A7A7A),
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
+                        borderWidth: 2,
+                        onPressed: _noop,
+                      ),
+                    ),
+                  );
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          Focus(
+            canRequestFocus: false,
+            onKeyEvent: (_, event) => _handleHeroMoreKey(event),
+            onFocusChange: (hasFocus) {
+              if (!hasFocus) {
+                _moreFocusNode.canRequestFocus = false;
+              }
+            },
+            child: MoviDetailHeroActionButton(
+              focusNode: _moreFocusNode,
+              iconAsset: AppAssets.iconMore,
+              semanticLabel: l10n.semanticsMoreActions,
+              onPressed: _showMoreMenu,
+              isWideLayout: isWideLayout,
+              iconWidth: 25,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1492,34 +1672,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required String seasonsCountText,
     required String ratingText,
     required String overviewText,
-    required List<SeasonViewModel> seasons,
     Uri? logo,
   }) {
-    final l10n = AppLocalizations.of(context)!;
-    final inProgressAsync = ref.watch(
-      inProgressHistoryEntryProvider((
-        contentId: widget.seriesId,
-        type: ContentType.series,
-      )),
-    );
-    final latestHistoryAsync = ref.watch(
-      latestPlaybackHistoryEntryProvider((
-        contentId: widget.seriesId,
-        type: ContentType.series,
-      )),
-    );
-    final seenStateAsync = ref.watch(_seriesSeenStateProvider(widget.seriesId));
-    final seenState = seenStateAsync.value;
-    final latestHistoryEntry = latestHistoryAsync.value;
-    final percent = resolveSeriesViewedPercent(
-      seasons: seasons,
-      seasonNumber: seenState?.seasonNumber ?? latestHistoryEntry?.season,
-      episodeNumber: seenState?.episodeNumber ?? latestHistoryEntry?.episode,
-      position: seenState == null ? latestHistoryEntry?.lastPosition : null,
-      duration: seenState == null ? latestHistoryEntry?.duration : null,
-      isMarkedSeen: seenState != null,
-    );
-
     return MoviDetailHeroDesktopOverlay(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1578,46 +1732,11 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                   ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              inProgressAsync.when(
-                data: (entry) {
-                  final s = entry?.season;
-                  final e = entry?.episode;
-                  if (s == null || e == null) return const SizedBox.shrink();
-                  return MoviPill(
-                    l10n.tvResumeSeasonEpisode(s, e),
-                    large: true,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
           _buildMetaPills(
             yearText: yearText,
             seasonsCountText: seasonsCountText,
             ratingText: ratingText,
             alignment: WrapAlignment.start,
-            leading: [
-              if (percent != null)
-                MoviPill(
-                  '${(percent * 100).round()}% vu',
-                  large: true,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                ),
-            ],
           ),
           if (overviewText.trim().isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -1647,97 +1766,39 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     );
   }
 
-  Widget _buildMobileMetaSection({
+  Widget _buildMobileHeroOverlay({
     required String mediaTitle,
     required String yearText,
     required String seasonsCountText,
     required String ratingText,
-    required String overviewText,
-    required List<SeasonViewModel> seasons,
     Uri? logo,
   }) {
-    final l10n = AppLocalizations.of(context)!;
-    final inProgressAsync = ref.watch(
-      inProgressHistoryEntryProvider((
-        contentId: widget.seriesId,
-        type: ContentType.series,
-      )),
-    );
-    final latestHistoryAsync = ref.watch(
-      latestPlaybackHistoryEntryProvider((
-        contentId: widget.seriesId,
-        type: ContentType.series,
-      )),
-    );
-    final seenStateAsync = ref.watch(_seriesSeenStateProvider(widget.seriesId));
-    final seenState = seenStateAsync.value;
-    final latestHistoryEntry = latestHistoryAsync.value;
-    final percent = resolveSeriesViewedPercent(
-      seasons: seasons,
-      seasonNumber: seenState?.seasonNumber ?? latestHistoryEntry?.season,
-      episodeNumber: seenState?.episodeNumber ?? latestHistoryEntry?.episode,
-      position: seenState == null ? latestHistoryEntry?.lastPosition : null,
-      duration: seenState == null ? latestHistoryEntry?.duration : null,
-      isMarkedSeen: seenState != null,
-    );
-
-    final titleStyle = Theme.of(context).textTheme.headlineSmall;
+    final titleStyle =
+        Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ) ??
+        const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        );
     final screenWidth = MediaQuery.of(context).size.width;
+    const heroPillBackground = Color(0x80383838);
 
-    return Padding(
-      padding: const EdgeInsetsDirectional.only(start: 20, end: 20),
+    return Positioned(
+      left: 20,
+      right: 20,
+      bottom: HomeLayoutConstants.heroMobileContentBottomInset,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 16),
-          Semantics(
-            header: true,
-            label: mediaTitle,
-            child: logo == null
-                ? Text(mediaTitle, style: titleStyle, textAlign: TextAlign.left)
-                : Transform.translate(
-                    offset: const Offset(0, -16),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: (screenWidth * 0.82).clamp(220.0, 420.0),
-                        maxHeight: 56,
-                      ),
-                      child: Image.network(
-                        logo.toString(),
-                        fit: BoxFit.contain,
-                        alignment: Alignment.center,
-                        filterQuality: FilterQuality.high,
-                        errorBuilder: (_, __, ___) =>
-                            Text(mediaTitle, style: titleStyle),
-                      ),
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              inProgressAsync.when(
-                data: (entry) {
-                  final s = entry?.season;
-                  final e = entry?.episode;
-                  if (s == null || e == null) return const SizedBox.shrink();
-                  return MoviPill(
-                    l10n.tvResumeSeasonEpisode(s, e),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest
-                        .withValues(alpha: 0.55),
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ],
+          buildTvDetailMobileHeroLogo(
+            mediaTitle: mediaTitle,
+            titleStyle: titleStyle,
+            maxWidth: screenWidth * 0.8,
+            logo: logo,
           ),
           const SizedBox(height: 16),
           _buildMetaPills(
@@ -1745,29 +1806,39 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
             seasonsCountText: seasonsCountText,
             ratingText: ratingText,
             alignment: WrapAlignment.center,
-            pillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-            leading: [
-              if (percent != null)
-                MoviPill(
-                  '${(percent * 100).round()}% vu',
-                  large: true,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-                ),
-            ],
+            pillColor: heroPillBackground,
           ),
-          const SizedBox(height: 16),
-          _buildActionButtons(mediaTitle: mediaTitle, expandPrimary: true),
-          if (overviewText.trim().isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _buildMobileOverview(overviewText),
-          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildMobileDynamicPanel({
+    required String mediaTitle,
+    required String overviewText,
+  }) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      alignment: Alignment.topCenter,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          HomeLayoutConstants.heroMobileContentBottomInset,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (overviewText.trim().isNotEmpty)
+              _buildMobileOverview(overviewText)
+            else
+              const SizedBox(height: 8),
+            const SizedBox(height: 16),
+            _buildActionButtons(mediaTitle: mediaTitle, expandPrimary: true),
+          ],
+        ),
       ),
     );
   }
@@ -1854,7 +1925,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         )
                         .maybeWhen(data: (value) => value, orElse: () => false);
                     if (hasContinueWatchingPremium) {
-                      return AppLocalizations.of(context)!.tvResumeSeasonEpisode(
+                      return AppLocalizations.of(
+                        context,
+                      )!.tvResumeSeasonEpisode(
                         launchPlan.season!,
                         launchPlan.episode!,
                       );
@@ -1914,14 +1987,6 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           const SizedBox(width: 12),
           Consumer(
             builder: (context, ref, _) {
-              final hasPremium = ref
-                  .watch(
-                    canAccessPremiumFeatureProvider(
-                      PremiumFeature.seriesEpisodeTracking,
-                    ),
-                  )
-                  .maybeWhen(data: (value) => value, orElse: () => false);
-
               return MoviEnsureVisibleOnFocus(
                 verticalAlignment: _heroFocusVerticalAlignment,
                 child: Focus(
@@ -1940,9 +2005,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     _changeVersionFocusNode,
                     event,
                     leftNode: _primaryActionFocusNode,
-                    rightNode: hasPremium
-                        ? _trackSeriesFocusNode
-                        : _favoriteActionFocusNode,
+                    rightNode: _favoriteActionFocusNode,
                   ),
                   child: Semantics(
                     button: true,
@@ -1995,112 +2058,6 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
               );
             },
           ),
-          Consumer(
-            builder: (context, ref, _) {
-              final hasPremiumAsync = ref.watch(
-                canAccessPremiumFeatureProvider(
-                  PremiumFeature.seriesEpisodeTracking,
-                ),
-              );
-
-              return hasPremiumAsync.when(
-                data: (hasPremium) {
-                  if (!hasPremium) {
-                    return const SizedBox.shrink();
-                  }
-
-                  final seriesId = widget.seriesId;
-                  final isTrackedAsync = ref.watch(
-                    seriesIsTrackedProvider(seriesId),
-                  );
-
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: MoviEnsureVisibleOnFocus(
-                          verticalAlignment: _heroFocusVerticalAlignment,
-                          child: Focus(
-                            canRequestFocus: false,
-                            onFocusChange: (focused) {
-                              _markHeroActionFocused(
-                                _TvHeroAction.tracking,
-                                focused,
-                              );
-                            },
-                            onKeyEvent: (_, event) => _handleHeroActionKey(
-                              _trackSeriesFocusNode,
-                              event,
-                              leftNode: _changeVersionFocusNode,
-                              rightNode: _favoriteActionFocusNode,
-                            ),
-                            child: isTrackedAsync.when(
-                              data: (isTracked) => MoviTrackSeriesButton(
-                                focusNode: _trackSeriesFocusNode,
-                                isTracked: isTracked,
-                                size: 44,
-                                iconSize: 28,
-                                focusPadding: const EdgeInsets.all(5),
-                                focusedBackgroundColor:
-                                    iconActionFocusedBackground,
-                                focusedBorderColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                borderWidth: 2,
-                                onPressed: () async {
-                                  final poster = _lastVm?.poster;
-                                  await ref
-                                      .read(seriesTrackingToggleProvider.notifier)
-                                      .toggle(
-                                        seriesId: seriesId,
-                                        title: mediaTitle,
-                                        poster: poster,
-                                      );
-                                },
-                              ),
-                              loading: () => MoviTrackSeriesButton(
-                                focusNode: _trackSeriesFocusNode,
-                                isTracked: false,
-                                size: 44,
-                                iconSize: 28,
-                                focusPadding: const EdgeInsets.all(5),
-                                focusedBackgroundColor:
-                                    iconActionFocusedBackground,
-                                focusedBorderColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                borderWidth: 2,
-                                onPressed: _noop,
-                              ),
-                              error: (_, __) => MoviTrackSeriesButton(
-                                focusNode: _trackSeriesFocusNode,
-                                isTracked: false,
-                                size: 44,
-                                iconSize: 28,
-                                focusPadding: const EdgeInsets.all(5),
-                                focusedBackgroundColor:
-                                    iconActionFocusedBackground,
-                                focusedBorderColor: Theme.of(
-                                  context,
-                                ).colorScheme.primary,
-                                borderWidth: 2,
-                                onPressed: _noop,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              );
-            },
-          ),
           const SizedBox(width: 12),
           SizedBox(
             width: 44,
@@ -2123,9 +2080,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       onKeyEvent: (_, event) => _handleHeroActionKey(
                         _favoriteActionFocusNode,
                         event,
-                        leftNode: _trackSeriesFocusNode.context != null
-                            ? _trackSeriesFocusNode
-                            : _changeVersionFocusNode,
+                        leftNode: _changeVersionFocusNode,
                       ),
                       child: MoviFavoriteButton(
                         focusNode: _favoriteActionFocusNode,
@@ -2134,8 +2089,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         iconSize: 28,
                         focusPadding: const EdgeInsets.all(5),
                         focusedBackgroundColor: iconActionFocusedBackground,
-                        focusedBorderColor:
-                            Theme.of(context).colorScheme.primary,
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
                         borderWidth: 2,
                         onPressed: () async {
                           await ref
@@ -2155,9 +2111,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       onKeyEvent: (_, event) => _handleHeroActionKey(
                         _favoriteActionFocusNode,
                         event,
-                        leftNode: _trackSeriesFocusNode.context != null
-                            ? _trackSeriesFocusNode
-                            : _changeVersionFocusNode,
+                        leftNode: _changeVersionFocusNode,
                       ),
                       child: MoviFavoriteButton(
                         focusNode: _favoriteActionFocusNode,
@@ -2166,8 +2120,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         iconSize: 28,
                         focusPadding: const EdgeInsets.all(5),
                         focusedBackgroundColor: iconActionFocusedBackground,
-                        focusedBorderColor:
-                            Theme.of(context).colorScheme.primary,
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
                         borderWidth: 2,
                         onPressed: _noop,
                       ),
@@ -2183,9 +2138,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                       onKeyEvent: (_, event) => _handleHeroActionKey(
                         _favoriteActionFocusNode,
                         event,
-                        leftNode: _trackSeriesFocusNode.context != null
-                            ? _trackSeriesFocusNode
-                            : _changeVersionFocusNode,
+                        leftNode: _changeVersionFocusNode,
                       ),
                       child: MoviFavoriteButton(
                         focusNode: _favoriteActionFocusNode,
@@ -2194,8 +2147,9 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                         iconSize: 28,
                         focusPadding: const EdgeInsets.all(5),
                         focusedBackgroundColor: iconActionFocusedBackground,
-                        focusedBorderColor:
-                            Theme.of(context).colorScheme.primary,
+                        focusedBorderColor: Theme.of(
+                          context,
+                        ).colorScheme.primary,
                         borderWidth: 2,
                         onPressed: _noop,
                       ),
@@ -2415,7 +2369,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     if (!_seasonTabListenerAttached) {
       _tabController.addListener(_onSeasonTabChanged);
       _seasonTabListenerAttached = true;
-      // Charger immÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©diatement la saison sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©lectionnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e si elle n'est pas prÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âªte.
+      // Charger immÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©diatement la saison sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©lectionnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e si elle n'est pas prÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªte.
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _onSeasonTabChanged(),
       );
@@ -2571,12 +2525,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return Focus(
       canRequestFocus: false,
       skipTraversal: true,
-      onKeyEvent: (_, event) => _handleEpisodeItemKey(
-        seasonNumber,
-        visibleIndex,
-        itemCount,
-        event,
-      ),
+      onKeyEvent: (_, event) =>
+          _handleEpisodeItemKey(seasonNumber, visibleIndex, itemCount, event),
       onFocusChange: (focused) {
         _handleEpisodeFocusChanged(seasonNumber, visibleIndex, focused);
       },
@@ -2585,7 +2535,6 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         horizontalAlignment: enableVerticalScroll ? null : 0.18,
         verticalAlignment: 0.38,
         child: MoviFocusableAction(
-          ensureVisibleOnFocus: false,
           focusNode: _episodeFocusNode(seasonNumber, visibleIndex),
           onPressed: () => _openEpisodePlayer(episode, seasonNumber),
           semanticLabel: hideSpoilers
@@ -2734,12 +2683,24 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     return LayoutBuilder(
       builder: (context, constraints) {
         // La vignette doit laisser de la place au texte (titre + pills).
-        // On garde un ratio 178:100 (~16:9) mais la largeur est auto-ajustÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e.
+        // On garde un ratio 178:100 (~16:9) mais la largeur est auto-ajustÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e.
         // La hauteur est volontairement stable (comme si le titre faisait 2 lignes),
-        // pour ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©viter que la vignette "saute" entre 1 et 2 lignes.
+        // pour ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©viter que la vignette "saute" entre 1 et 2 lignes.
         final thumbHeight = (constraints.maxWidth * 0.22).clamp(78.0, 92.0);
         const thumbAspectRatio = 178 / 100;
         final thumbWidth = (thumbHeight * thumbAspectRatio).clamp(120.0, 164.0);
+        final thumbCacheWidth = _decodeDimensionForSize(
+          context,
+          thumbWidth,
+          min: 240,
+          max: 900,
+        );
+        final thumbCacheHeight = _decodeDimensionForSize(
+          context,
+          thumbHeight,
+          min: 135,
+          max: 506,
+        );
 
         Widget thumbnail() {
           final url = _episodeStillUrl(episode.still, highQuality: false);
@@ -2761,10 +2722,12 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                     ),
                   ),
                 )
-              : Image.network(
+              : MoviNetworkImage(
                   url,
                   fit: BoxFit.cover,
                   filterQuality: FilterQuality.medium,
+                  cacheWidth: thumbCacheWidth,
+                  cacheHeight: thumbCacheHeight,
                   errorBuilder: (_, __, ___) =>
                       Container(color: cs.surfaceContainerHighest),
                 );
@@ -2849,7 +2812,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
                 children: [
                   Text(
                     hideSpoilers
-                        ? 'ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°pisode ${episode.episodeNumber}'
+                        ? 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°pisode ${episode.episodeNumber}'
                         : '${episode.episodeNumber}. ${episode.title}',
                     style:
                         Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -2976,7 +2939,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         const SizedBox(height: 12),
         Text(
           hideSpoilers
-              ? 'ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°pisode ${episode.episodeNumber}'
+              ? 'ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â°pisode ${episode.episodeNumber}'
               : '${episode.episodeNumber}. ${episode.title}',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
@@ -3028,13 +2991,31 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     required bool highQuality,
   }) {
     final url = _episodeStillUrl(episode.still, highQuality: highQuality);
+    final resolvedCacheWidth = width.isFinite
+        ? _decodeDimensionForSize(
+            context,
+            width,
+            min: highQuality ? 640 : 320,
+            max: highQuality ? 1280 : 780,
+          )
+        : (highQuality ? 1280 : 780);
+    final resolvedCacheHeight = height.isFinite
+        ? _decodeDimensionForSize(
+            context,
+            height,
+            min: highQuality ? 360 : 180,
+            max: highQuality ? 720 : 440,
+          )
+        : (highQuality ? 720 : 440);
 
-    return Image.network(
+    return MoviNetworkImage(
       url,
       width: width,
       height: height,
       fit: BoxFit.cover,
       filterQuality: highQuality ? FilterQuality.high : FilterQuality.medium,
+      cacheWidth: resolvedCacheWidth,
+      cacheHeight: resolvedCacheHeight,
       errorBuilder: (_, __, ___) => _buildEpisodeImagePlaceholder(
         width: width,
         height: height,
@@ -3045,11 +3026,22 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
   String _episodeStillUrl(Uri? still, {required bool highQuality}) {
     final url = still?.toString() ?? '';
-    if (!highQuality || url.isEmpty) {
+    if (url.isEmpty) {
       return url;
     }
 
-    return url.replaceFirst('/w185/', '/original/');
+    return url.replaceFirst('/w185/', highQuality ? '/w780/' : '/w300/');
+  }
+
+  int _decodeDimensionForSize(
+    BuildContext context,
+    double logicalSize, {
+    required int min,
+    required int max,
+  }) {
+    final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 1.0;
+    final physical = (logicalSize * dpr).round();
+    return physical.clamp(min, max);
   }
 
   Widget _buildEpisodeImagePlaceholder({
@@ -3239,6 +3231,97 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       return null;
     }
     return null;
+  }
+
+  ({SeasonViewModel season, EpisodeViewModel episode})?
+  _findSeasonEpisodeTarget({
+    required List<SeasonViewModel> seasons,
+    required int seasonNumber,
+    required int episodeNumber,
+  }) {
+    for (final season in seasons) {
+      if (season.seasonNumber != seasonNumber) {
+        continue;
+      }
+      for (final episode in season.episodes) {
+        if (episode.episodeNumber == episodeNumber) {
+          return (season: season, episode: episode);
+        }
+      }
+      return null;
+    }
+    return null;
+  }
+
+  List<SeasonViewModel> _currentSeriesSeasonsSnapshot() {
+    final vmAsync = ref.read(
+      tvDetailProgressiveControllerProvider(widget.seriesId),
+    );
+    final vm = vmAsync.value;
+    return (vm?.seasons ?? seasons).toList(growable: false);
+  }
+
+  Future<void> _waitForSeasonLoadingToFinish({
+    required int seasonNumber,
+    Duration timeout = const Duration(seconds: 2),
+  }) async {
+    final startedAt = DateTime.now();
+    while (DateTime.now().difference(startedAt) < timeout) {
+      final seasonsSnapshot = _currentSeriesSeasonsSnapshot();
+      SeasonViewModel? seasonSnapshot;
+      for (final season in seasonsSnapshot) {
+        if (season.seasonNumber == seasonNumber) {
+          seasonSnapshot = season;
+          break;
+        }
+      }
+      if (seasonSnapshot == null || !seasonSnapshot.isLoadingEpisodes) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+    }
+  }
+
+  Future<({SeasonViewModel season, EpisodeViewModel episode})?>
+  _resolveSeriesPlaybackTargetWithLazyLoad({
+    required int seasonNumber,
+    required int episodeNumber,
+  }) async {
+    var seasonsSnapshot = _currentSeriesSeasonsSnapshot();
+    var target = _findSeasonEpisodeTarget(
+      seasons: seasonsSnapshot,
+      seasonNumber: seasonNumber,
+      episodeNumber: episodeNumber,
+    );
+    if (target != null) {
+      return target;
+    }
+
+    SeasonViewModel? seasonSnapshot;
+    for (final season in seasonsSnapshot) {
+      if (season.seasonNumber == seasonNumber) {
+        seasonSnapshot = season;
+        break;
+      }
+    }
+    if (seasonSnapshot == null) {
+      return null;
+    }
+
+    if (seasonSnapshot.isLoadingEpisodes) {
+      await _waitForSeasonLoadingToFinish(seasonNumber: seasonNumber);
+    } else if (seasonSnapshot.episodes.isEmpty) {
+      await ref
+          .read(tvDetailProgressiveControllerProvider(widget.seriesId).notifier)
+          .reloadSeasonEpisodes(seasonNumber);
+    }
+
+    seasonsSnapshot = _currentSeriesSeasonsSnapshot();
+    return _findSeasonEpisodeTarget(
+      seasons: seasonsSnapshot,
+      seasonNumber: seasonNumber,
+      episodeNumber: episodeNumber,
+    );
   }
 
   Future<void> _openFirstEpisode({required bool startFromBeginning}) async {
@@ -3461,7 +3544,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         return;
       }
 
-      // On choisit une rÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©fÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rence stable (ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisode de reprise si dispo, sinon S1E1).
+      // On choisit une rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©fÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rence stable (ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©pisode de reprise si dispo, sinon S1E1).
       final launchPlan = await _loadSeriesPlaybackLaunchPlan();
       final target = _resolveSeriesPlaybackTarget(
         seasons: vm.seasons,
@@ -3547,17 +3630,26 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Chargement des ÃƒÆ’Ã‚Â©pisodes en cours...'),
+            content: Text(
+              'Chargement des ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes en cours...',
+            ),
           ),
         );
         return;
       }
 
       final launchPlan = await _loadSeriesPlaybackLaunchPlan();
-      final target = _resolveSeriesPlaybackTarget(
-        seasons: vm.seasons,
-        launchPlan: launchPlan,
-      );
+      final launchSeason = launchPlan?.season;
+      final launchEpisode = launchPlan?.episode;
+      final target = launchSeason != null && launchEpisode != null
+          ? await _resolveSeriesPlaybackTargetWithLazyLoad(
+              seasonNumber: launchSeason,
+              episodeNumber: launchEpisode,
+            )
+          : _resolveSeriesPlaybackTarget(
+              seasons: vm.seasons,
+              launchPlan: launchPlan,
+            );
       if (target == null) {
         await _openFirstEpisode(startFromBeginning: startFromBeginning);
         return;
@@ -3570,7 +3662,10 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       );
     } catch (e) {
       final logger = ref.read(slProvider)<AppLogger>();
-      logger.error('Erreur lors de la reprise de la sÃƒÆ’Ã‚Â©rie: $e', e);
+      logger.error(
+        'Erreur lors de la reprise de la sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie: $e',
+        e,
+      );
       if (!mounted) return;
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -3598,8 +3693,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
 
       final playlists = await ref.read(libraryPlaylistsProvider.future);
 
-      // RÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rer les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es de la sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie depuis le provider
-      // VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rifier que le widget est encore montÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© avant d'utiliser ref
+      // RÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©cupÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rer les donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©es de la sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rie depuis le provider
+      // VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rifier que le widget est encore montÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© avant d'utiliser ref
       if (!mounted || !context.mounted) {
         messenger?.hideCurrentSnackBar();
         return;
@@ -3608,7 +3703,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final vmAsync = ref.read(tvDetailProgressiveControllerProvider(seriesId));
       final vm = vmAsync.value;
 
-      // Utiliser les donnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es du widget si le view model n'est pas disponible
+      // Utiliser les donnÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©es du widget si le view model n'est pas disponible
       final title = vm?.title ?? mediaTitle;
       final yearTextValue = vm?.yearText ?? yearText;
       final poster = vm?.poster;
@@ -3634,7 +3729,7 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         messenger?.showSnackBar(
           const SnackBar(
             content: Text(
-              'Aucune playlist disponible. CrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ez en une',
+              'Aucune playlist disponible. CrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ez en une',
             ),
           ),
         );
@@ -3649,78 +3744,80 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final logger = ref.read(slProvider)<AppLogger>();
       final addPlaylistItem = AddPlaylistItem(playlistRepository);
 
-      showAddToPlaylistActionSheet(
-        context: context,
+      _showPlaylistActionSheet(
         l10n: l10n,
         playlists: availablePlaylists,
-        onSelect: (playlist) async {
-          final canNotify = mounted && messenger != null;
-          final playlistIdToInvalidate = playlist.playlistId;
+        onSelect: (playlist) {
+          unawaited(() async {
+            final canNotify = mounted && messenger != null;
+            final playlistIdToInvalidate = playlist.playlistId;
 
-          try {
-            final year =
-                yearTextValue != 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â'
-                ? int.tryParse(yearTextValue)
-                : null;
+            try {
+              final year =
+                  yearTextValue !=
+                      'ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â'
+                  ? int.tryParse(yearTextValue)
+                  : null;
 
-            await addPlaylistItem.call(
-              playlistId: PlaylistId(playlist.playlistId!),
-              item: PlaylistItem(
-                reference: ContentReference(
-                  id: seriesId,
-                  title: MediaTitle(title),
-                  type: ContentType.series,
-                  poster: poster,
-                  year: year,
+              await addPlaylistItem.call(
+                playlistId: PlaylistId(playlist.playlistId!),
+                item: PlaylistItem(
+                  reference: ContentReference(
+                    id: seriesId,
+                    title: MediaTitle(title),
+                    type: ContentType.series,
+                    poster: poster,
+                    year: year,
+                  ),
+                  addedAt: DateTime.now(),
                 ),
-                addedAt: DateTime.now(),
-              ),
-            );
-
-            container.invalidate(
-              playlistItemsProvider(playlistIdToInvalidate!),
-            );
-            container.invalidate(
-              playlistContentReferencesProvider(playlistIdToInvalidate),
-            );
-            container.invalidate(libraryPlaylistsProvider);
-
-            if (canNotify) {
-              _showTopNotification(
-                l10n,
-                messenger,
-                l10n.playlistAddedTo(playlist.title),
               );
-            }
-          } catch (e, stackTrace) {
-            logger.log(
-              LogLevel.error,
-              'Erreur lors de l\'ajout ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  la playlist: $e',
-              error: e,
-              stackTrace: stackTrace,
-              category: 'tv_detail',
-            );
 
-            if (canNotify) {
-              String errorMessage;
-              if (e is StateError &&
-                  e.message.contains(
-                    'dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  dans cette playlist',
-                  )) {
-                errorMessage =
-                    'Ce mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©dia est dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  dans cette playlist';
-              } else {
-                errorMessage = l10n.errorWithMessage(e.toString());
+              container.invalidate(
+                playlistItemsProvider(playlistIdToInvalidate!),
+              );
+              container.invalidate(
+                playlistContentReferencesProvider(playlistIdToInvalidate),
+              );
+              container.invalidate(libraryPlaylistsProvider);
+
+              if (canNotify) {
+                _showTopNotification(
+                  l10n,
+                  messenger,
+                  l10n.playlistAddedTo(playlist.title),
+                );
               }
-
-              messenger.showSnackBar(
-                SnackBar(
-                  content: Text(errorMessage),
-                  duration: const Duration(seconds: 5),
-                ),
+            } catch (e, stackTrace) {
+              logger.log(
+                LogLevel.error,
+                'Erreur lors de l\'ajout ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  la playlist: $e',
+                error: e,
+                stackTrace: stackTrace,
+                category: 'tv_detail',
               );
+
+              if (canNotify) {
+                String errorMessage;
+                if (e is StateError &&
+                    e.message.contains(
+                      'dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  dans cette playlist',
+                    )) {
+                  errorMessage =
+                      'Ce mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©dia est dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©jÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  dans cette playlist';
+                } else {
+                  errorMessage = l10n.errorWithMessage(e.toString());
+                }
+
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(errorMessage),
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
             }
-          }
+          }());
         },
       );
     } catch (e) {
@@ -3734,6 +3831,62 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
         );
       }
     }
+  }
+
+  void _showPlaylistActionSheet({
+    required AppLocalizations l10n,
+    required List<LibraryPlaylistItem> playlists,
+    required void Function(LibraryPlaylistItem playlist) onSelect,
+  }) {
+    if (!mounted) return;
+    if (_useDesktopDetailLayout(context)) {
+      final actions = playlists
+          .map(
+            (playlist) => MoviTvActionMenuAction(
+              label: playlist.title,
+              onPressed: () => onSelect(playlist),
+            ),
+          )
+          .toList(growable: false);
+      unawaited(
+        showMoviTvActionMenu(
+          context: context,
+          title: l10n.actionAddToList,
+          actions: actions,
+          cancelLabel: l10n.actionCancel,
+        ),
+      );
+      return;
+    }
+    unawaited(
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (sheetContext) {
+          return CupertinoActionSheet(
+            title: Text(l10n.actionAddToList),
+            actions: playlists
+                .map(
+                  (playlist) => CupertinoActionSheetAction(
+                    onPressed: () {
+                      Navigator.of(sheetContext).pop();
+                      onSelect(playlist);
+                    },
+                    child: Text(
+                      playlist.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop(),
+              child: Text(l10n.actionCancel),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showTopNotification(
@@ -3767,72 +3920,161 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
     final isSeen = ref.read(_seriesSeenProvider(seriesId)).value ?? false;
     final l10n = AppLocalizations.of(context)!;
 
-    final actions = <MoviTvActionMenuAction>[
-      MoviTvActionMenuAction(
-        label: l10n.actionRefreshMetadata,
-        onPressed: _onRefreshMetadata,
-      ),
-      MoviTvActionMenuAction(
-        label: _spoilerModeEnabled
-            ? 'DÃƒÂ©sactiver le mode spoiler'
-            : 'Activer le mode spoiler',
-        onPressed: () {
-          unawaited(_setSpoilerMode(!_spoilerModeEnabled));
-        },
-      ),
-      MoviTvActionMenuAction(
-        label: l10n.actionAddToList,
-        onPressed: () => _showAddToListDialog(context, ref, seriesId),
-      ),
-    ];
+    if (_useDesktopDetailLayout(context)) {
+      final actions = <MoviTvActionMenuAction>[
+        MoviTvActionMenuAction(
+          label: l10n.actionRefreshMetadata,
+          onPressed: _onRefreshMetadata,
+        ),
+        MoviTvActionMenuAction(
+          label: _spoilerModeEnabled
+              ? 'DÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©sactiver le mode spoiler'
+              : 'Activer le mode spoiler',
+          onPressed: () {
+            unawaited(_setSpoilerMode(!_spoilerModeEnabled));
+          },
+        ),
+        MoviTvActionMenuAction(
+          label: l10n.actionAddToList,
+          onPressed: () => _showAddToListDialog(context, ref, seriesId),
+        ),
+      ];
 
-    if (isAvailable) {
+      if (isAvailable) {
+        actions.add(
+          MoviTvActionMenuAction(
+            label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+            onPressed: () {
+              if (isSeen) {
+                _markAsUnseen(seriesId);
+              } else {
+                _markAsSeen(seriesId);
+              }
+            },
+          ),
+        );
+      }
+
       actions.add(
         MoviTvActionMenuAction(
-          label: isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+          label: l10n.actionReportProblem,
           onPressed: () {
-            if (isSeen) {
-              _markAsUnseen(seriesId);
-            } else {
-              _markAsSeen(seriesId);
+            final tmdbId = int.tryParse(seriesId);
+            if (tmdbId == null || tmdbId <= 0) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.errorReportUnavailableForContent),
+                  ),
+                );
+              }
+              return;
             }
+            unawaited(
+              ReportProblemSheet.show(
+                context,
+                ref,
+                contentType: ContentType.series,
+                tmdbId: tmdbId,
+                contentTitle: mediaTitle,
+              ),
+            );
           },
         ),
       );
+
+      unawaited(
+        showMoviTvActionMenu(
+          context: context,
+          title: 'Options',
+          actions: actions,
+          cancelLabel: l10n.actionCancel,
+        ),
+      );
+      return;
     }
 
-    actions.add(
-      MoviTvActionMenuAction(
-        label: l10n.actionReportProblem,
-        onPressed: () {
-          final tmdbId = int.tryParse(seriesId);
-          if (tmdbId == null || tmdbId <= 0) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.errorReportUnavailableForContent)),
-              );
-            }
-            return;
-          }
-          unawaited(
-            ReportProblemSheet.show(
-              context,
-              ref,
-              contentType: ContentType.series,
-              tmdbId: tmdbId,
-              contentTitle: mediaTitle,
+    unawaited(
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (sheetContext) {
+          final actions = <Widget>[
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                _onRefreshMetadata();
+              },
+              child: Text(l10n.actionRefreshMetadata),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                unawaited(_setSpoilerMode(!_spoilerModeEnabled));
+              },
+              child: Text(
+                _spoilerModeEnabled
+                    ? 'DÃƒÆ’Ã‚Â©sactiver le mode spoiler'
+                    : 'Activer le mode spoiler',
+              ),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                _showAddToListDialog(context, ref, seriesId);
+              },
+              child: Text(l10n.actionAddToList),
+            ),
+            if (isAvailable)
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  if (isSeen) {
+                    _markAsUnseen(seriesId);
+                  } else {
+                    _markAsSeen(seriesId);
+                  }
+                },
+                child: Text(
+                  isSeen ? l10n.actionMarkUnseen : l10n.actionMarkSeen,
+                ),
+              ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                final tmdbId = int.tryParse(seriesId);
+                if (tmdbId == null || tmdbId <= 0) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(l10n.errorReportUnavailableForContent),
+                      ),
+                    );
+                  }
+                  return;
+                }
+                unawaited(
+                  ReportProblemSheet.show(
+                    context,
+                    ref,
+                    contentType: ContentType.series,
+                    tmdbId: tmdbId,
+                    contentTitle: mediaTitle,
+                  ),
+                );
+              },
+              child: Text(l10n.actionReportProblem),
+            ),
+          ];
+
+          return CupertinoActionSheet(
+            title: const Text('Options'),
+            actions: actions,
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop(),
+              child: Text(l10n.actionCancel),
             ),
           );
         },
-      ),
-    );
-
-    unawaited(
-      showMoviTvActionMenu(
-        context: context,
-        title: 'Options',
-        actions: actions,
-        cancelLabel: l10n.actionCancel,
       ),
     );
   }
@@ -3849,8 +4091,8 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
           ? vm!.title
           : mediaTitle;
 
-      // Pour une sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie, on marque comme vu en ajoutant une entrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e avec progression 100%
-      // La durÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e par dÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©faut est de 45 minutes par ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisode
+      // Pour une sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rie, on marque comme vu en ajoutant une entrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e avec progression 100%
+      // La durÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©e par dÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©faut est de 45 minutes par ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©pisode
       List<Season> seasons = const <Season>[];
       try {
         seasons = await ref
@@ -3893,13 +4135,13 @@ class _TvDetailPageState extends ConsumerState<TvDetailPage>
       final useCase = ref.read(markSeriesAsUnseenUseCaseProvider);
       final userId = ref.read(currentUserIdProvider);
 
-      // Retirer de l'historique (retire tous les ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes de la sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie)
+      // Retirer de l'historique (retire tous les ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©pisodes de la sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rie)
       await useCase(seriesId, userId: userId);
 
-      // Retirer de continue watching (retire tous les ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©pisodes de la sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rie)
+      // Retirer de continue watching (retire tous les ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©pisodes de la sÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©rie)
       _invalidateSeriesPlaybackState(seriesId);
 
-      // Invalider les providers pour mettre ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â  jour l'UI
+      // Invalider les providers pour mettre ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  jour l'UI
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

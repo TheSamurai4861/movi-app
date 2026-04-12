@@ -15,11 +15,7 @@ enum AuthFailureCode {
 
 @immutable
 class AuthFailure {
-  const AuthFailure({
-    required this.code,
-    required this.message,
-    this.original,
-  });
+  const AuthFailure({required this.code, required this.message, this.original});
 
   final AuthFailureCode code;
   final String message;
@@ -28,4 +24,3 @@ class AuthFailure {
   @override
   String toString() => 'AuthFailure(code: $code, message: $message)';
 }
-

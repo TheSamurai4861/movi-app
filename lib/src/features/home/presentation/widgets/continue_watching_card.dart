@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/theme/app_colors.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
+import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/core/widgets/movi_pill.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 
@@ -144,7 +145,9 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
                 height: height,
                 child: Stack(
                   children: [
-                    Positioned.fill(child: _buildBackdropImage(widget.backdrop)),
+                    Positioned.fill(
+                      child: _buildBackdropImage(widget.backdrop),
+                    ),
                     Positioned(
                       left: 0,
                       right: 0,
@@ -314,9 +317,11 @@ class _ContinueWatchingCardState extends ConsumerState<ContinueWatchingCard> {
 
   Widget _buildBackdropImage(String? source) {
     if (source != null && source.isNotEmpty && source.startsWith('http')) {
-      return Image.network(
+      return MoviNetworkImage(
         source,
         fit: BoxFit.cover,
+        cacheWidth: 900,
+        cacheHeight: 495,
         errorBuilder: (_, __, ___) => MoviPlaceholderCard(
           type: PlaceholderType.movie,
           fit: BoxFit.cover,

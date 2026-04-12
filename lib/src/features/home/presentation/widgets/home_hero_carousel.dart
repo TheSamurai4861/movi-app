@@ -82,10 +82,6 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
   static const double _totalHeight = HomeLayoutConstants.heroTotalHeight;
   static const double _desktopVisualBleed =
       HomeLayoutConstants.heroDesktopVisualBleed;
-  // Mobile hero details need a minimum room for pills, synopsis and actions.
-  // The container itself may grow when the synopsis is expanded.
-  static const double _mobileDetailsMinHeight = 224;
-
   // Timings
   static const Duration _rotation = HomeLayoutConstants.heroRotationDuration;
   static const Duration _fade = HomeLayoutConstants.heroFadeDuration;
@@ -450,9 +446,11 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     final int len = widget.items.length;
     if (len <= 1) return;
     final oldIndex = _index;
-    debugPrint(
-      '[DEBUG][HomeHeroCarousel] _triggerNext: index $oldIndex -> ${(_index + 1) % len}',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[DEBUG][HomeHeroCarousel] _triggerNext: index $oldIndex -> ${(_index + 1) % len}',
+      );
+    }
 
     // Mise à jour de l'état
     _invalidateHeroWorkGeneration();
@@ -586,26 +584,22 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       _screenType == ScreenType.tablet ||
       _screenType == ScreenType.tv;
 
-  bool get _useConservativeWindowsHeroImages =>
-      defaultTargetPlatform == TargetPlatform.windows &&
-      (_screenType == ScreenType.desktop || _screenType == ScreenType.tv);
-
   bool get _disableHeroPrecacheOnCurrentPlatform =>
       defaultTargetPlatform == TargetPlatform.windows;
 
   String get _heroPosterSize {
     if (!_useLargeHeroImages) return 'w500';
-    return _useConservativeWindowsHeroImages ? 'w780' : 'original';
+    return 'w780';
   }
 
   String get _heroPosterBackgroundSize {
     if (!_useLargeHeroImages) return 'w780';
-    return _useConservativeWindowsHeroImages ? 'w1280' : 'original';
+    return 'w1280';
   }
 
   String get _heroBackdropSize {
     if (!_useLargeHeroImages) return 'w780';
-    return _useConservativeWindowsHeroImages ? 'w1280' : 'original';
+    return 'w1280';
   }
 
   String get _heroPrecachePosterSize => _useLargeHeroImages ? 'w780' : 'w500';
@@ -617,7 +611,9 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       _useLargeHeroImages ? 'w1280' : 'w780';
 
   bool get _isWideHeroLayout =>
-      _screenType == ScreenType.desktop || _screenType == ScreenType.tablet;
+      _screenType == ScreenType.desktop ||
+      _screenType == ScreenType.tablet ||
+      _screenType == ScreenType.tv;
 
   bool get _shouldExtendDesktopHero =>
       _screenType == ScreenType.desktop || _screenType == ScreenType.tv;
@@ -1330,7 +1326,8 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         : 0;
     final double heroHeight = isWideHero
         ? layoutHeight + visualBleed
-        : (layoutHeight - _mobileDetailsMinHeight).clamp(0.0, double.infinity);
+        : MediaQuery.of(context).size.height *
+              HomeLayoutConstants.heroMobileStackHeightFactor;
     final overlaySpec = MoviHeroOverlaySpec.home(isWideLayout: isWideHero);
     final buildSignature = [
       widget.items.length,
@@ -1357,70 +1354,57 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: heroHeight,
-          width: double.infinity,
-          child: (widget.items.isEmpty)
-              ? _HeroEmpty(heroHeight: heroHeight, isWideHero: isWideHero)
-              : item == null || tmdbId == null
-              ? _HeroSkeleton(heroHeight: heroHeight, isWideHero: isWideHero)
-              : FutureBuilder<_HeroMeta?>(
-                  future: _metaFutures[tmdbId],
-                  builder: (context, snap) {
-                    final bool isLoadingMeta =
-                        snap.connectionState == ConnectionState.waiting &&
-                        snap.data == null;
+    final Widget heroBody = SizedBox(
+      width: double.infinity,
+      child: (widget.items.isEmpty)
+          ? _HeroEmpty(heroHeight: heroHeight, isWideHero: isWideHero)
+          : item == null || tmdbId == null
+          ? _HeroSkeleton(heroHeight: heroHeight, isWideHero: isWideHero)
+          : FutureBuilder<_HeroMeta?>(
+              future: _metaFutures[tmdbId],
+              builder: (context, snap) {
+                final bool isLoadingMeta =
+                    snap.connectionState == ConnectionState.waiting &&
+                    snap.data == null;
 
-                    // Notifier le changement de loading state (débounced)
-                    _notifyLoadingStateIfChanged(isLoadingMeta);
+                _notifyLoadingStateIfChanged(isLoadingMeta);
 
-                    final _HeroMeta? meta = snap.data;
+                final _HeroMeta? meta = snap.data;
+                final posterBackground = _coerceHttpUrl(meta?.posterBg);
+                final poster =
+                    _coerceHttpUrl(meta?.poster) ??
+                    _coerceHttpUrl(item.poster?.toString());
+                final backdrop = _coerceHttpUrl(meta?.backdrop);
+                final resolvedMediaSignature = [
+                  tmdbId,
+                  snap.connectionState.name,
+                  isLoadingMeta,
+                  posterBackground,
+                  poster,
+                  backdrop,
+                ].join('|');
+                if (_lastLoggedResolvedMediaSignature !=
+                    resolvedMediaSignature) {
+                  _lastLoggedResolvedMediaSignature = resolvedMediaSignature;
+                  _logHeroDebug(
+                    'future_builder_state',
+                    context: <String, Object?>{
+                      'tmdbId': tmdbId,
+                      'connectionState': snap.connectionState.name,
+                      'isLoadingMeta': isLoadingMeta,
+                      'hasMeta': meta != null,
+                      'posterBackground': posterBackground,
+                      'poster': poster,
+                      'backdrop': backdrop,
+                    },
+                  );
+                }
 
-                    // Si meta est null après completion, afficher un skeleton
-                    // Le retry est déjà géré dans _hydrateMetaFull et _loadMetaWithRetry
-                    // Ne PAS ajouter de retry ici car cela crée une boucle infinie de rebuilds
-
-                    // Ordre de préférence du fond :
-                    // 1) Poster TMDB (no-lang → en → best)
-                    // 2) Poster playlist
-                    // 3) Backdrop TMDB
-                    // 4) Backdrop playlist
-                    final posterBackground = _coerceHttpUrl(meta?.posterBg);
-                    final poster =
-                        _coerceHttpUrl(meta?.poster) ??
-                        _coerceHttpUrl(item.poster?.toString());
-                    final backdrop = _coerceHttpUrl(meta?.backdrop);
-                    final resolvedMediaSignature = [
-                      tmdbId,
-                      snap.connectionState.name,
-                      isLoadingMeta,
-                      posterBackground,
-                      poster,
-                      backdrop,
-                    ].join('|');
-                    if (_lastLoggedResolvedMediaSignature !=
-                        resolvedMediaSignature) {
-                      _lastLoggedResolvedMediaSignature =
-                          resolvedMediaSignature;
-                      _logHeroDebug(
-                        'future_builder_state',
-                        context: <String, Object?>{
-                          'tmdbId': tmdbId,
-                          'connectionState': snap.connectionState.name,
-                          'isLoadingMeta': isLoadingMeta,
-                          'hasMeta': meta != null,
-                          'posterBackground': posterBackground,
-                          'poster': poster,
-                          'backdrop': backdrop,
-                        },
-                      );
-                    }
-
-                    Widget buildBackground() {
-                      final image = MoviHeroBackground(
+                Widget buildBackground() {
+                  final image = Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      MoviHeroBackground(
                         key: ValueKey(
                           '${posterBackground ?? ''}|${poster ?? ''}|${backdrop ?? ''}',
                         ),
@@ -1430,816 +1414,652 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                         placeholderType: item.type == ContentType.series
                             ? PlaceholderType.series
                             : PlaceholderType.movie,
-                      );
-
-                      return AnimatedSwitcher(
-                        duration: _fade,
-                        switchInCurve: Curves.easeInOut,
-                        switchOutCurve: Curves.easeInOut,
-                        transitionBuilder: (child, animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                        layoutBuilder: (currentChild, previousChildren) {
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ...previousChildren,
-                              if (currentChild != null) currentChild,
-                            ],
-                          );
-                        },
-                        child: image,
-                      );
-                    }
-
-                    final bool hasTitle = meta?.title?.isNotEmpty ?? false;
-                    final String displayTitle = hasTitle
-                        ? meta!.title!
-                        : item.title.value;
-                    final String? logoUrl = _coerceHttpUrl(meta?.logo);
-                    final int? year = meta?.year ?? item.year;
-                    final String yearText = (year ?? '—').toString();
-                    final double? rating = meta?.rating;
-                    final String? ratingText = (rating == null)
-                        ? null
-                        : (rating >= 10
-                              ? rating.toStringAsFixed(0)
-                              : rating.toStringAsFixed(1));
-                    final bool isTv =
-                        meta?.isTv ?? (item.type == ContentType.series);
-                    final String? durationText = isTv
-                        ? null
-                        : _formatDuration(meta?.runtime);
-                    final int? seasons = meta?.seasons;
-                    final String? seasonsText =
-                        (isTv && seasons != null && seasons > 0)
-                        ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
-                        : null;
-
-                    return MoviHeroScene(
-                      background: buildBackground(),
-                      imageHeight: heroHeight,
-                      overlaySpec: overlaySpec,
-                      children: [
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          top: MediaQuery.of(context).padding.top + 12,
-                          child: HomeHeroFilterBar(
-                            moviesFocusNode: widget.moviesFilterFocusNode,
-                          ),
+                      ),
+                      IgnorePointer(
+                        child: ColoredBox(
+                          color: Colors.black.withValues(alpha: 0.25),
                         ),
-                        if (isWideHero)
-                          Positioned.fill(
-                            bottom: visualBleed,
-                            child: Padding(
-                              padding: const EdgeInsetsDirectional.only(
-                                start: 50,
-                                end: 50,
-                              ),
-                              child: Align(
-                                alignment: heroContentAlignment,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 560,
-                                  ),
-                                  child: _HeroTextScope(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        AnimatedSwitcher(
-                                          duration: _fade,
-                                          transitionBuilder:
-                                              (child, animation) =>
-                                                  FadeTransition(
-                                                    opacity: animation,
-                                                    child: child,
-                                                  ),
-                                          layoutBuilder: (current, previous) =>
-                                              Stack(
-                                                alignment: Alignment.centerLeft,
-                                                children: [
-                                                  ...previous,
-                                                  if (current != null) current,
-                                                ],
-                                              ),
-                                          child: Semantics(
-                                            header: true,
-                                            label: displayTitle,
-                                            child: logoUrl == null
-                                                ? Text(
-                                                    displayTitle,
-                                                    key: ValueKey(
-                                                      hasTitle
-                                                          ? '${tmdbId}_title_wide'
-                                                          : '${tmdbId}_titleFallback_wide',
-                                                    ),
-                                                    textAlign: TextAlign.left,
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 24,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: Colors.white,
-                                                    ),
-                                                  )
-                                                : MoviResponsiveLogo(
-                                                    imageUrl: logoUrl,
-                                                    semanticLabel: displayTitle,
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    maxWidth: 520,
-                                                    reservedHeight: 60,
-                                                    wideMaxHeight: 60,
-                                                    tallMaxHeight: 104,
-                                                    blockyMaxHeight: 132,
-                                                    blockyRatioThreshold: 1.45,
-                                                    onErrorFallback: (_) =>
-                                                        Text(
-                                                          displayTitle,
-                                                          maxLines: 2,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 24,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w600,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                        ),
-                                                  ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Wrap(
-                                          spacing: 8,
-                                          runSpacing: 8,
-                                          alignment: WrapAlignment.start,
-                                          children: [
-                                            if (durationText != null)
-                                              MoviPill(
-                                                durationText,
-                                                large: true,
-                                              ),
-                                            if (seasonsText != null)
-                                              MoviPill(
-                                                seasonsText,
-                                                large: true,
-                                              ),
-                                            if (year != null)
-                                              MoviPill(yearText, large: true),
-                                            if (ratingText != null)
-                                              MoviPill(
-                                                ratingText,
-                                                trailingIcon:
-                                                    const MoviAssetIcon(
-                                                      AppAssets.iconStarFilled,
-                                                      width: 18,
-                                                      height: 18,
-                                                      color: AppColors
-                                                          .ratingAccent,
-                                                    ),
-                                                large: true,
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                          height: 72,
-                                          child: Align(
-                                            alignment: Alignment.topLeft,
-                                            child: Text(
-                                              meta?.overview ?? '',
-                                              maxLines: 3,
-                                              overflow: TextOverflow.ellipsis,
-                                              textAlign: TextAlign.left,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            SizedBox(
-                                              width: 320,
-                                              child: Focus(
-                                                canRequestFocus: false,
-                                                onKeyEvent: (_, event) =>
-                                                    _handlePrimaryActionKey(
-                                                      event,
-                                                    ),
-                                                child: MoviPrimaryButton(
-                                                  label: AppLocalizations.of(
-                                                    context,
-                                                  )!.homeWatchNow,
-                                                  focusNode: widget
-                                                      .primaryActionFocusNode,
-                                                  assetIcon: AppAssets.iconPlay,
-                                                  onPressed: () =>
-                                                      _openDetails(context),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Focus(
-                                              canRequestFocus: false,
-                                              onKeyEvent: (_, event) =>
-                                                  _handleFavoriteActionKey(
-                                                    event,
-                                                  ),
-                                              child: Consumer(
-                                                builder: (context, ref, _) {
-                                                final current = _currentItem;
-                                                if (current == null) {
-                                                  return MoviFavoriteButton(
-                                                    isFavorite: false,
-                                                    size: 44,
-                                                    iconSize: 28,
-                                                    focusPadding:
-                                                        const EdgeInsets.all(5),
-                                                    focusedBackgroundColor:
-                                                        iconActionFocusedBackground,
-                                                    focusedBorderColor: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                    borderWidth: 2,
-                                                    onPressed: () {},
-                                                  );
-                                                }
-                                                final id = current.id.trim();
-                                                if (id.isEmpty) {
-                                                  return MoviFavoriteButton(
-                                                    isFavorite: false,
-                                                    size: 44,
-                                                    iconSize: 28,
-                                                    focusPadding:
-                                                        const EdgeInsets.all(5),
-                                                    focusedBackgroundColor:
-                                                        iconActionFocusedBackground,
-                                                    focusedBorderColor: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                    borderWidth: 2,
-                                                    onPressed: () {},
-                                                  );
-                                                }
+                      ),
+                    ],
+                  );
 
-                                                if (current.type ==
-                                                    ContentType.series) {
-                                                  final isFavoriteAsync = ref
-                                                      .watch(
-                                                        tvIsFavoriteProvider(
-                                                          id,
-                                                        ),
-                                                      );
-                                                  return isFavoriteAsync.when(
-                                                    data: (isFavorite) =>
-                                                        MoviFavoriteButton(
-                                                          isFavorite:
-                                                              isFavorite,
-                                                          size: 44,
-                                                          iconSize: 28,
-                                                          focusPadding:
-                                                              const EdgeInsets.all(
-                                                                5,
-                                                              ),
-                                                          focusedBackgroundColor:
-                                                              iconActionFocusedBackground,
-                                                          focusedBorderColor: Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary,
-                                                          borderWidth: 2,
-                                                          onPressed: () async {
-                                                            await ref
-                                                                .read(
-                                                                  tvToggleFavoriteProvider
-                                                                      .notifier,
-                                                                )
-                                                                .toggle(id);
-                                                          },
-                                                        ),
-                                                    loading: () =>
-                                                        MoviFavoriteButton(
-                                                          isFavorite: false,
-                                                          size: 44,
-                                                          iconSize: 28,
-                                                          focusPadding:
-                                                              const EdgeInsets.all(
-                                                                5,
-                                                              ),
-                                                          focusedBackgroundColor:
-                                                              iconActionFocusedBackground,
-                                                          focusedBorderColor: Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary,
-                                                          borderWidth: 2,
-                                                          onPressed: () {},
-                                                        ),
-                                                    error: (_, __) =>
-                                                        MoviFavoriteButton(
-                                                          isFavorite: false,
-                                                          size: 44,
-                                                          iconSize: 28,
-                                                          focusPadding:
-                                                              const EdgeInsets.all(
-                                                                5,
-                                                              ),
-                                                          focusedBackgroundColor:
-                                                              iconActionFocusedBackground,
-                                                          focusedBorderColor: Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary,
-                                                          borderWidth: 2,
-                                                          onPressed: () {},
-                                                        ),
-                                                  );
-                                                }
+                  return AnimatedSwitcher(
+                    duration: _fade,
+                    switchInCurve: Curves.easeInOut,
+                    switchOutCurve: Curves.easeInOut,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ...previousChildren,
+                          if (currentChild != null) currentChild,
+                        ],
+                      );
+                    },
+                    child: image,
+                  );
+                }
 
-                                                final isFavoriteAsync = ref
-                                                    .watch(
-                                                      movieIsFavoriteProvider(
-                                                        id,
-                                                      ),
-                                                    );
-                                                return isFavoriteAsync.when(
-                                                  data: (isFavorite) =>
-                                                      MoviFavoriteButton(
-                                                        isFavorite: isFavorite,
-                                                        size: 44,
-                                                        iconSize: 28,
-                                                        focusPadding:
-                                                            const EdgeInsets.all(
-                                                              5,
-                                                            ),
-                                                        focusedBackgroundColor:
-                                                            iconActionFocusedBackground,
-                                                        focusedBorderColor: Theme.of(
-                                                          context,
-                                                        ).colorScheme.primary,
-                                                        borderWidth: 2,
-                                                        onPressed: () async {
-                                                          await ref
-                                                              .read(
-                                                                movieToggleFavoriteProvider
-                                                                    .notifier,
-                                                              )
-                                                              .toggle(id);
-                                                        },
-                                                      ),
-                                                  loading: () =>
-                                                      MoviFavoriteButton(
-                                                        isFavorite: false,
-                                                        size: 44,
-                                                        iconSize: 28,
-                                                        focusPadding:
-                                                            const EdgeInsets.all(
-                                                              5,
-                                                            ),
-                                                        focusedBackgroundColor:
-                                                            iconActionFocusedBackground,
-                                                        focusedBorderColor: Theme.of(
-                                                          context,
-                                                        ).colorScheme.primary,
-                                                        borderWidth: 2,
-                                                        onPressed: () {},
-                                                      ),
-                                                  error: (_, __) =>
-                                                      MoviFavoriteButton(
-                                                        isFavorite: false,
-                                                        size: 44,
-                                                        iconSize: 28,
-                                                        focusPadding:
-                                                            const EdgeInsets.all(
-                                                              5,
-                                                            ),
-                                                        focusedBackgroundColor:
-                                                            iconActionFocusedBackground,
-                                                        focusedBorderColor: Theme.of(
-                                                          context,
-                                                        ).colorScheme.primary,
-                                                        borderWidth: 2,
-                                                        onPressed: () {},
-                                                      ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 16,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              child: _HeroTextScope(
-                                child: AnimatedSwitcher(
-                                  duration: _fade,
-                                  transitionBuilder: (child, animation) =>
-                                      FadeTransition(
-                                        opacity: animation,
-                                        child: child,
-                                      ),
-                                  layoutBuilder: (current, previous) => Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      ...previous,
-                                      if (current != null) current,
-                                    ],
-                                  ),
-                                  child: Semantics(
-                                    header: true,
-                                    label: displayTitle,
-                                    child: logoUrl == null
-                                        ? Text(
-                                            displayTitle,
-                                            key: ValueKey(
-                                              hasTitle
-                                                  ? '${tmdbId}_title'
-                                                  : '${tmdbId}_titleFallback',
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                        : ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: 420,
-                                              maxHeight: 56,
-                                            ),
-                                            child: Image.network(
-                                              logoUrl,
-                                              key: ValueKey('${tmdbId}_logo'),
-                                              fit: BoxFit.contain,
-                                              alignment: Alignment.center,
-                                              filterQuality: FilterQuality.high,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Text(
-                                                    displayTitle,
-                                                    textAlign: TextAlign.center,
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 24,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
+                final bool hasTitle = meta?.title?.isNotEmpty ?? false;
+                final String displayTitle = hasTitle
+                    ? meta!.title!
+                    : item.title.value;
+                final String? logoUrl = _coerceHttpUrl(meta?.logo);
+                final int? year = meta?.year ?? item.year;
+                final String yearText = (year ?? '—').toString();
+                final double? rating = meta?.rating;
+                final String? ratingText = (rating == null)
+                    ? null
+                    : (rating >= 10
+                          ? rating.toStringAsFixed(0)
+                          : rating.toStringAsFixed(1));
+                final bool isTv =
+                    meta?.isTv ?? (item.type == ContentType.series);
+                final String? durationText = isTv
+                    ? null
+                    : _formatDuration(meta?.runtime);
+                final int? seasons = meta?.seasons;
+                final String? seasonsText =
+                    (isTv && seasons != null && seasons > 0)
+                    ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
+                    : null;
+
+                if (isWideHero) {
+                  return _buildWideHeroScene(
+                    context: context,
+                    tmdbId: tmdbId,
+                    displayTitle: displayTitle,
+                    hasTitle: hasTitle,
+                    logoUrl: logoUrl,
+                    year: year,
+                    yearText: yearText,
+                    ratingText: ratingText,
+                    durationText: durationText,
+                    seasonsText: seasonsText,
+                    heroHeight: heroHeight,
+                    visualBleed: visualBleed,
+                    overlaySpec: overlaySpec,
+                    heroContentAlignment: heroContentAlignment,
+                    iconActionFocusedBackground: iconActionFocusedBackground,
+                    background: buildBackground(),
+                    meta: meta,
+                  );
+                }
+
+                return _buildMobileHeroScene(
+                  context: context,
+                  tmdbId: tmdbId,
+                  displayTitle: displayTitle,
+                  hasTitle: hasTitle,
+                  logoUrl: logoUrl,
+                  year: year,
+                  yearText: yearText,
+                  ratingText: ratingText,
+                  durationText: durationText,
+                  seasonsText: seasonsText,
+                  heroHeight: heroHeight,
+                  overlaySpec: overlaySpec,
+                  iconActionFocusedBackground: iconActionFocusedBackground,
+                  background: buildBackground(),
+                  meta: meta,
+                );
+              },
+            ),
+    );
+
+    if (isWideHero) {
+      return SizedBox(
+        height: heroHeight,
+        width: double.infinity,
+        child: heroBody,
+      );
+    }
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: heroHeight),
+        child: heroBody,
+      ),
+    );
+  }
+
+  Widget _buildWideHeroScene({
+    required BuildContext context,
+    required int tmdbId,
+    required String displayTitle,
+    required bool hasTitle,
+    required String? logoUrl,
+    required int? year,
+    required String yearText,
+    required String? ratingText,
+    required String? durationText,
+    required String? seasonsText,
+    required double heroHeight,
+    required double visualBleed,
+    required MoviHeroOverlaySpec overlaySpec,
+    required Alignment heroContentAlignment,
+    required Color iconActionFocusedBackground,
+    required Widget background,
+    required _HeroMeta? meta,
+  }) {
+    return MoviHeroScene(
+      background: background,
+      imageHeight: heroHeight,
+      overlaySpec: overlaySpec,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: MediaQuery.of(context).padding.top + 12,
+          child: HomeHeroFilterBar(
+            moviesFocusNode: widget.moviesFilterFocusNode,
+          ),
         ),
-        if (!isWideHero)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minHeight: _mobileDetailsMinHeight,
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 16 + visualBleed,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.only(start: 50, end: 50),
+            child: Align(
+              alignment: Alignment(
+                heroContentAlignment.x,
+                Alignment.bottomCenter.y,
               ),
-              child: SizedBox(
-                width: double.infinity,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: _HeroTextScope(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Pills collées au Stack
-                      if (item != null && tmdbId != null)
-                        FutureBuilder<_HeroMeta?>(
-                          future: _metaFutures[tmdbId],
-                          builder: (context, snap) {
-                            final _HeroMeta? meta = snap.data;
-
-                            final int? year = meta?.year ?? item.year;
-                            final String yearText = (year ?? '—').toString();
-
-                            final double? rating = meta?.rating;
-                            final String? ratingText = (rating == null)
-                                ? null
-                                : (rating >= 10
-                                      ? rating.toStringAsFixed(0)
-                                      : rating.toStringAsFixed(1));
-
-                            final bool isTv =
-                                meta?.isTv ?? (item.type == ContentType.series);
-                            final String? durationText = isTv
-                                ? null
-                                : _formatDuration(meta?.runtime);
-
-                            final int? seasons = meta?.seasons;
-                            final String? seasonsText =
-                                (isTv && seasons != null && seasons > 0)
-                                ? '$seasons ${seasons == 1 ? AppLocalizations.of(context)!.playlistSeasonSingular : AppLocalizations.of(context)!.playlistSeasonPlural}'
-                                : null;
-
-                            return AnimatedSwitcher(
-                              duration: _fade,
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                    opacity: animation,
-                                    child: child,
+                      AnimatedSwitcher(
+                        duration: _fade,
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [...previous, if (current != null) current],
+                        ),
+                        child: Semantics(
+                          header: true,
+                          label: displayTitle,
+                          child: logoUrl == null
+                              ? Text(
+                                  displayTitle,
+                                  key: ValueKey(
+                                    hasTitle
+                                        ? '${tmdbId}_title_wide'
+                                        : '${tmdbId}_titleFallback_wide',
                                   ),
-                              layoutBuilder: (current, previous) => Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  ...previous,
-                                  if (current != null) current,
-                                ],
-                              ),
-                              child: Row(
-                                key: ValueKey('${tmdbId}_pills'),
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (durationText != null)
-                                    MoviPill(durationText, large: true),
-                                  if (durationText != null && year != null)
-                                    const SizedBox(width: 8),
-                                  if (seasonsText != null)
-                                    MoviPill(seasonsText, large: true),
-                                  if (seasonsText != null && year != null)
-                                    const SizedBox(width: 8),
-                                  if (year != null)
-                                    MoviPill(yearText, large: true),
-                                  if (year != null && ratingText != null)
-                                    const SizedBox(width: 8),
-                                  if (ratingText != null)
-                                    MoviPill(
-                                      ratingText,
-                                      trailingIcon: const MoviAssetIcon(
-                                        AppAssets.iconStarFilled,
-                                        width: 18,
-                                        height: 18,
-                                        color: AppColors.ratingAccent,
-                                      ),
-                                      large: true,
+                                  textAlign: TextAlign.left,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : MoviResponsiveLogo(
+                                  imageUrl: logoUrl,
+                                  semanticLabel: displayTitle,
+                                  alignment: Alignment.centerLeft,
+                                  maxWidth: 520,
+                                  reservedHeight: 60,
+                                  wideMaxHeight: 60,
+                                  tallMaxHeight: 104,
+                                  blockyMaxHeight: 132,
+                                  blockyRatioThreshold: 1.45,
+                                  onErrorFallback: (_) => Text(
+                                    displayTitle,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                                     ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      const SizedBox(height: 16),
-                      // Synopsis après les pills
-                      if (tmdbId != null)
-                        FutureBuilder<_HeroMeta?>(
-                          future: _metaFutures[tmdbId],
-                          builder: (context, snap) {
-                            final _HeroMeta? meta = snap.data;
-                            final bool hasSynopsis =
-                                meta?.overview?.isNotEmpty ?? false;
-
-                            if (!hasSynopsis) {
-                              return SizedBox(
-                                height: _synopsisHeight,
-                                child: const SizedBox.shrink(),
-                              );
-                            }
-
-                            return AnimatedSwitcher(
-                              duration: _fade,
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                    opacity: animation,
-                                    child: child,
-                                  ),
-                              child: _buildSynopsis(
-                                key: ValueKey('${tmdbId}_synopsis'),
-                                overview: meta!.overview!,
-                                tmdbId: tmdbId,
-                              ),
-                            );
-                          },
-                        )
-                      else
-                        SizedBox(
-                          height: _synopsisHeight,
-                          child: const SizedBox.shrink(),
-                        ),
-                      const SizedBox(height: 16),
-                      if (tmdbId != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) =>
-                                      _handlePrimaryActionKey(event),
-                                  child: MoviPrimaryButton(
-                                    label: AppLocalizations.of(
-                                      context,
-                                    )!.homeWatchNow,
-                                    focusNode: widget.primaryActionFocusNode,
-                                    assetIcon: AppAssets.iconPlay,
-                                    onPressed: () => _openDetails(context),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Focus(
-                                canRequestFocus: false,
-                                onKeyEvent: (_, event) =>
-                                    _handleFavoriteActionKey(event),
-                                child: Consumer(
-                                  builder: (context, ref, _) {
-                                  final current = _currentItem;
-                                  if (current == null) {
-                                    return MoviFavoriteButton(
-                                      isFavorite: false,
-                                      size: 44,
-                                      iconSize: 28,
-                                      focusPadding: const EdgeInsets.all(5),
-                                      focusedBackgroundColor:
-                                          iconActionFocusedBackground,
-                                      focusedBorderColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      borderWidth: 2,
-                                      onPressed: () {},
-                                    );
-                                  }
-                                  final id = current.id.trim();
-                                  if (id.isEmpty) {
-                                    return MoviFavoriteButton(
-                                      isFavorite: false,
-                                      size: 44,
-                                      iconSize: 28,
-                                      focusPadding: const EdgeInsets.all(5),
-                                      focusedBackgroundColor:
-                                          iconActionFocusedBackground,
-                                      focusedBorderColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      borderWidth: 2,
-                                      onPressed: () {},
-                                    );
-                                  }
-
-                                  if (current.type == ContentType.series) {
-                                    final isFavoriteAsync = ref.watch(
-                                      tvIsFavoriteProvider(id),
-                                    );
-                                    return isFavoriteAsync.when(
-                                      data: (isFavorite) => MoviFavoriteButton(
-                                        isFavorite: isFavorite,
-                                        size: 44,
-                                        iconSize: 28,
-                                        focusPadding: const EdgeInsets.all(5),
-                                        focusedBackgroundColor:
-                                            iconActionFocusedBackground,
-                                        focusedBorderColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        borderWidth: 2,
-                                        onPressed: () async {
-                                          await ref
-                                              .read(
-                                                tvToggleFavoriteProvider
-                                                    .notifier,
-                                              )
-                                              .toggle(id);
-                                        },
-                                      ),
-                                      loading: () => MoviFavoriteButton(
-                                        isFavorite: false,
-                                        size: 44,
-                                        iconSize: 28,
-                                        focusPadding: const EdgeInsets.all(5),
-                                        focusedBackgroundColor:
-                                            iconActionFocusedBackground,
-                                        focusedBorderColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        borderWidth: 2,
-                                        onPressed: () {},
-                                      ),
-                                      error: (_, __) => MoviFavoriteButton(
-                                        isFavorite: false,
-                                        size: 44,
-                                        iconSize: 28,
-                                        focusPadding: const EdgeInsets.all(5),
-                                        focusedBackgroundColor:
-                                            iconActionFocusedBackground,
-                                        focusedBorderColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        borderWidth: 2,
-                                        onPressed: () {},
-                                      ),
-                                    );
-                                  }
-
-                                  final isFavoriteAsync = ref.watch(
-                                    movieIsFavoriteProvider(id),
-                                  );
-                                  return isFavoriteAsync.when(
-                                    data: (isFavorite) => MoviFavoriteButton(
-                                      isFavorite: isFavorite,
-                                      size: 44,
-                                      iconSize: 28,
-                                      focusPadding: const EdgeInsets.all(5),
-                                      focusedBackgroundColor:
-                                          iconActionFocusedBackground,
-                                      focusedBorderColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      borderWidth: 2,
-                                      onPressed: () async {
-                                        await ref
-                                            .read(
-                                              movieToggleFavoriteProvider
-                                                  .notifier,
-                                            )
-                                            .toggle(id);
-                                      },
-                                    ),
-                                    loading: () => MoviFavoriteButton(
-                                      isFavorite: false,
-                                      size: 44,
-                                      iconSize: 28,
-                                      focusPadding: const EdgeInsets.all(5),
-                                      focusedBackgroundColor:
-                                          iconActionFocusedBackground,
-                                      focusedBorderColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      borderWidth: 2,
-                                      onPressed: () {},
-                                    ),
-                                    error: (_, __) => MoviFavoriteButton(
-                                      isFavorite: false,
-                                      size: 44,
-                                      iconSize: 28,
-                                      focusPadding: const EdgeInsets.all(5),
-                                      focusedBackgroundColor:
-                                          iconActionFocusedBackground,
-                                      focusedBorderColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      borderWidth: 2,
-                                      onPressed: () {},
-                                    ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildHeroPills(
+                        tmdbId: tmdbId,
+                        year: year,
+                        yearText: yearText,
+                        ratingText: ratingText,
+                        durationText: durationText,
+                        seasonsText: seasonsText,
+                        centered: false,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 72,
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            meta?.overview ?? '',
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.left,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                      const SizedBox(height: 12),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildHeroActionsRow(
+                        context: context,
+                        iconActionFocusedBackground:
+                            iconActionFocusedBackground,
+                        primaryButtonWidth: 320,
+                      ),
                     ],
                   ),
                 ),
               ),
             ),
           ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildMobileHeroScene({
+    required BuildContext context,
+    required int tmdbId,
+    required String displayTitle,
+    required bool hasTitle,
+    required String? logoUrl,
+    required int? year,
+    required String yearText,
+    required String? ratingText,
+    required String? durationText,
+    required String? seasonsText,
+    required double heroHeight,
+    required MoviHeroOverlaySpec overlaySpec,
+    required Color iconActionFocusedBackground,
+    required Widget background,
+    required _HeroMeta? meta,
+  }) {
+    final mobileTextWidth = MediaQuery.of(context).size.width * 0.8;
+    final Widget synopsis = SizedBox(
+      width: mobileTextWidth,
+      child: (meta?.overview?.isNotEmpty ?? false)
+          ? AnimatedSwitcher(
+              duration: _fade,
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
+              child: _buildSynopsis(
+                key: ValueKey('${tmdbId}_synopsis'),
+                overview: meta!.overview!,
+                tmdbId: tmdbId,
+                horizontalPadding: 0,
+              ),
+            )
+          : SizedBox(height: _synopsisHeight, child: const SizedBox.shrink()),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Evite les overflows en mode mobile lorsque le parent contraint la
+        // hauteur totale du hero (cas observé sur Windows desktop compact).
+        const mobileBottomSectionMinHeight = 180.0;
+        double resolvedHeroHeight = heroHeight;
+        if (constraints.hasBoundedHeight) {
+          final availableForHero =
+              constraints.maxHeight - mobileBottomSectionMinHeight;
+          resolvedHeroHeight = availableForHero.clamp(260.0, heroHeight);
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: resolvedHeroHeight,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  Positioned.fill(child: background),
+                  Positioned.fill(
+                    child: MoviHeroOverlays(
+                      imageHeight: resolvedHeroHeight,
+                      spec: overlaySpec,
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: HomeLayoutConstants.heroMobileTopActionsTopInset,
+                    child: HomeHeroFilterBar(
+                      moviesFocusNode: widget.moviesFilterFocusNode,
+                    ),
+                  ),
+                  Positioned(
+                    left: AppSpacing.lg,
+                    right: AppSpacing.lg,
+                    bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                    child: _HeroTextScope(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildMobileHeroLogo(
+                            tmdbId: tmdbId,
+                            displayTitle: displayTitle,
+                            hasTitle: hasTitle,
+                            logoUrl: logoUrl,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildHeroPills(
+                            tmdbId: tmdbId,
+                            year: year,
+                            yearText: yearText,
+                            ratingText: ratingText,
+                            durationText: durationText,
+                            seasonsText: seasonsText,
+                            centered: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  16,
+                  AppSpacing.lg,
+                  HomeLayoutConstants.heroMobileContentBottomInset,
+                ),
+                child: _HeroTextScope(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      synopsis,
+                      const SizedBox(height: 16),
+                      _buildHeroActionsRow(
+                        context: context,
+                        iconActionFocusedBackground:
+                            iconActionFocusedBackground,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileHeroLogo({
+    required int tmdbId,
+    required String displayTitle,
+    required bool hasTitle,
+    required String? logoUrl,
+  }) {
+    return AnimatedSwitcher(
+      duration: _fade,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.center,
+        children: [...previous, if (current != null) current],
+      ),
+      child: Semantics(
+        header: true,
+        label: displayTitle,
+        child: FractionallySizedBox(
+          widthFactor: HomeLayoutConstants.heroMobileLogoWidthFactor,
+          child: SizedBox(
+            height: HomeLayoutConstants.heroMobileLogoHeight,
+            child: Center(
+              child: logoUrl == null
+                  ? Text(
+                      displayTitle,
+                      key: ValueKey(
+                        hasTitle
+                            ? '${tmdbId}_title_mobile'
+                            : '${tmdbId}_titleFallback_mobile',
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    )
+                  : MoviNetworkImage(
+                      logoUrl,
+                      key: ValueKey('${tmdbId}_logo_mobile'),
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                      filterQuality: FilterQuality.high,
+                      cacheWidth: 900,
+                      errorBuilder: (_, __, ___) => Text(
+                        displayTitle,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroPills({
+    required int tmdbId,
+    required int? year,
+    required String yearText,
+    required String? ratingText,
+    required String? durationText,
+    required String? seasonsText,
+    required bool centered,
+  }) {
+    const heroPillBackground = Color(0x80383838);
+    final List<Widget> pills = [
+      if (durationText != null)
+        MoviPill(durationText, large: true, color: heroPillBackground),
+      if (seasonsText != null)
+        MoviPill(seasonsText, large: true, color: heroPillBackground),
+      if (year != null)
+        MoviPill(yearText, large: true, color: heroPillBackground),
+      if (ratingText != null)
+        MoviPill(
+          ratingText,
+          trailingIcon: const MoviAssetIcon(
+            AppAssets.iconStarFilled,
+            width: 18,
+            height: 18,
+            color: AppColors.ratingAccent,
+          ),
+          large: true,
+          color: heroPillBackground,
+        ),
+    ];
+
+    return AnimatedSwitcher(
+      duration: _fade,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
+      layoutBuilder: (current, previous) => Stack(
+        alignment: centered ? Alignment.center : Alignment.centerLeft,
+        children: [...previous, if (current != null) current],
+      ),
+      child: Wrap(
+        key: ValueKey('${tmdbId}_${centered ? 'centered' : 'wide'}_pills'),
+        spacing: 8,
+        runSpacing: 8,
+        alignment: centered ? WrapAlignment.center : WrapAlignment.start,
+        children: pills,
+      ),
+    );
+  }
+
+  Widget _buildHeroActionsRow({
+    required BuildContext context,
+    required Color iconActionFocusedBackground,
+    double? primaryButtonWidth,
+  }) {
+    final Widget primaryButton = Focus(
+      canRequestFocus: false,
+      onKeyEvent: (_, event) => _handlePrimaryActionKey(event),
+      child: MoviPrimaryButton(
+        label: AppLocalizations.of(context)!.homeWatchNow,
+        focusNode: widget.primaryActionFocusNode,
+        assetIcon: AppAssets.iconPlay,
+        onPressed: () => _openDetails(context),
+      ),
+    );
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: primaryButtonWidth == null
+          ? MainAxisSize.max
+          : MainAxisSize.min,
+      children: [
+        if (primaryButtonWidth == null)
+          Expanded(child: primaryButton)
+        else
+          SizedBox(width: primaryButtonWidth, child: primaryButton),
+        const SizedBox(width: 16),
+        Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleFavoriteActionKey(event),
+          child: Consumer(
+            builder: (context, ref, _) => _buildFavoriteActionButton(
+              context: context,
+              ref: ref,
+              iconActionFocusedBackground: iconActionFocusedBackground,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFavoriteActionButton({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Color iconActionFocusedBackground,
+  }) {
+    final current = _currentItem;
+    if (current == null) {
+      return _buildFavoritePlaceholderButton(
+        context: context,
+        iconActionFocusedBackground: iconActionFocusedBackground,
+      );
+    }
+    final id = current.id.trim();
+    if (id.isEmpty) {
+      return _buildFavoritePlaceholderButton(
+        context: context,
+        iconActionFocusedBackground: iconActionFocusedBackground,
+      );
+    }
+
+    if (current.type == ContentType.series) {
+      final isFavoriteAsync = ref.watch(tvIsFavoriteProvider(id));
+      return isFavoriteAsync.when(
+        data: (isFavorite) => _buildFavoriteResolvedButton(
+          context: context,
+          iconActionFocusedBackground: iconActionFocusedBackground,
+          isFavorite: isFavorite,
+          onPressed: () async {
+            await ref.read(tvToggleFavoriteProvider.notifier).toggle(id);
+          },
+        ),
+        loading: () => _buildFavoritePlaceholderButton(
+          context: context,
+          iconActionFocusedBackground: iconActionFocusedBackground,
+        ),
+        error: (_, __) => _buildFavoritePlaceholderButton(
+          context: context,
+          iconActionFocusedBackground: iconActionFocusedBackground,
+        ),
+      );
+    }
+
+    final isFavoriteAsync = ref.watch(movieIsFavoriteProvider(id));
+    return isFavoriteAsync.when(
+      data: (isFavorite) => _buildFavoriteResolvedButton(
+        context: context,
+        iconActionFocusedBackground: iconActionFocusedBackground,
+        isFavorite: isFavorite,
+        onPressed: () async {
+          await ref.read(movieToggleFavoriteProvider.notifier).toggle(id);
+        },
+      ),
+      loading: () => _buildFavoritePlaceholderButton(
+        context: context,
+        iconActionFocusedBackground: iconActionFocusedBackground,
+      ),
+      error: (_, __) => _buildFavoritePlaceholderButton(
+        context: context,
+        iconActionFocusedBackground: iconActionFocusedBackground,
+      ),
+    );
+  }
+
+  Widget _buildFavoriteResolvedButton({
+    required BuildContext context,
+    required Color iconActionFocusedBackground,
+    required bool isFavorite,
+    required Future<void> Function() onPressed,
+  }) {
+    return MoviFavoriteButton(
+      isFavorite: isFavorite,
+      size: 44,
+      iconSize: 28,
+      focusPadding: const EdgeInsets.all(5),
+      focusedBackgroundColor: iconActionFocusedBackground,
+      focusedBorderColor: Theme.of(context).colorScheme.primary,
+      borderWidth: 2,
+      onPressed: () => unawaited(onPressed()),
+    );
+  }
+
+  Widget _buildFavoritePlaceholderButton({
+    required BuildContext context,
+    required Color iconActionFocusedBackground,
+  }) {
+    return MoviFavoriteButton(
+      isFavorite: false,
+      size: 44,
+      iconSize: 28,
+      focusPadding: const EdgeInsets.all(5),
+      focusedBackgroundColor: iconActionFocusedBackground,
+      focusedBorderColor: Theme.of(context).colorScheme.primary,
+      borderWidth: 2,
+      onPressed: () {},
     );
   }
 
@@ -2433,6 +2253,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
     required Key key,
     required String overview,
     required int tmdbId,
+    double horizontalPadding = AppSpacing.lg,
   }) {
     final bool isExpanded = _synopsisExpanded[tmdbId] ?? false;
 
@@ -2443,7 +2264,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
         final bool needsExpansion = _needsExpansion(overview, maxWidth);
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: _HeroTextScope(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2451,6 +2272,7 @@ class _HomeHeroCarouselState extends ConsumerState<HomeHeroCarousel>
                 AnimatedSize(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
+                  alignment: Alignment.topLeft,
                   child: Text(
                     overview,
                     maxLines: isExpanded ? null : 3,
@@ -2603,24 +2425,86 @@ class _HeroSkeleton extends StatelessWidget {
       isWideLayout: isWideHero,
     );
 
+    if (isWideHero) {
+      return Column(
+        children: [
+          Expanded(
+            child: MoviHeroScene(
+              background: const ColoredBox(color: Color(0xFF222222)),
+              imageHeight: heroHeight,
+              overlaySpec: overlaySpec,
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: MediaQuery.of(context).padding.top + 12,
+                  child: const HomeHeroFilterBar(),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                  child: Center(
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width - 40,
+                      height: 120,
+                      child: FittedBox(
+                        fit: BoxFit.contain,
+                        child: Consumer(
+                          builder: (context, ref, _) {
+                            final accentColor = ref.watch(
+                              asp.currentAccentColorProvider,
+                            );
+                            return MoviAssetIcon(
+                              AppAssets.iconAppLogoSvg,
+                              color: accentColor,
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+          ),
+          const SizedBox(height: 12),
+        ],
+      );
+    }
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: MoviHeroScene(
-            background: const ColoredBox(color: Color(0xFF222222)),
-            imageHeight: heroHeight,
-            overlaySpec: overlaySpec,
+        SizedBox(
+          height: heroHeight,
+          width: double.infinity,
+          child: Stack(
             children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                top: MediaQuery.of(context).padding.top + 12,
-                child: const HomeHeroFilterBar(),
+              Positioned.fill(
+                child: MoviHeroScene(
+                  background: const ColoredBox(color: Color(0xFF222222)),
+                  imageHeight: heroHeight,
+                  overlaySpec: overlaySpec,
+                  children: const [],
+                ),
               ),
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: overlaySpec.bottomHeightFor(heroHeight) - 100,
+                top: HomeLayoutConstants.heroMobileTopActionsTopInset,
+                child: const HomeHeroFilterBar(),
+              ),
+              Positioned(
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                bottom: HomeLayoutConstants.heroMobileContentBottomInset,
                 child: Center(
                   child: SizedBox(
                     width: MediaQuery.of(context).size.width - 40,
@@ -2645,13 +2529,27 @@ class _HeroSkeleton extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        const SizedBox(height: 16),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: const Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              16,
+              AppSpacing.lg,
+              HomeLayoutConstants.heroMobileContentBottomInset,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(height: 80),
+                SizedBox(height: 16),
+                Row(children: [Expanded(child: SizedBox(height: 48))]),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }
@@ -2668,50 +2566,108 @@ class _HeroEmpty extends StatelessWidget {
       isWideLayout: isWideHero,
     );
 
+    if (isWideHero) {
+      return Column(
+        children: [
+          Expanded(
+            child: MoviHeroScene(
+              background: const ColoredBox(color: Color(0xFF222222)),
+              imageHeight: heroHeight,
+              overlaySpec: overlaySpec,
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: MediaQuery.of(context).padding.top + 12,
+                  child: const HomeHeroFilterBar(),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context)!.homeNoTrends,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+          ),
+          const SizedBox(height: 12),
+        ],
+      );
+    }
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: MoviHeroScene(
-            background: const ColoredBox(color: Color(0xFF222222)),
-            imageHeight: heroHeight,
-            overlaySpec: overlaySpec,
+        SizedBox(
+          height: heroHeight,
+          width: double.infinity,
+          child: Stack(
             children: [
-              Positioned(
-                left: 0,
-                right: 0,
-                top: MediaQuery.of(context).padding.top + 12,
-                child: const HomeHeroFilterBar(),
+              Positioned.fill(
+                child: MoviHeroScene(
+                  background: const ColoredBox(color: Color(0xFF222222)),
+                  imageHeight: heroHeight,
+                  overlaySpec: overlaySpec,
+                  children: const [],
+                ),
               ),
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: overlaySpec.bottomHeightFor(heroHeight) - 100,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Text(
-                      AppLocalizations.of(context)!.homeNoTrends,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                top: HomeLayoutConstants.heroMobileTopActionsTopInset,
+                child: const HomeHeroFilterBar(),
+              ),
+              Positioned(
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
+                bottom: HomeLayoutConstants.heroMobileContentBottomInset,
+                child: Text(
+                  AppLocalizations.of(context)!.homeNoTrends,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: const Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              16,
+              AppSpacing.lg,
+              HomeLayoutConstants.heroMobileContentBottomInset,
+            ),
+            child: Row(children: [Expanded(child: SizedBox(height: 48))]),
+          ),
         ),
-        const SizedBox(height: 12),
       ],
     );
   }

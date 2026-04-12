@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/images/image_loading_policy.dart';
+import 'package:movi/src/core/images/safe_image_cache_manager.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -26,7 +28,7 @@ import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 
 /// Section affichant les médias en cours de lecture.
-class HomeContinueWatchingSection extends ConsumerWidget {
+class HomeContinueWatchingSection extends ConsumerStatefulWidget {
   const HomeContinueWatchingSection({
     super.key,
     required this.onMarkAsUnwatched,
@@ -43,7 +45,36 @@ class HomeContinueWatchingSection extends ConsumerWidget {
   final bool applyHeroTransition;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeContinueWatchingSection> createState() =>
+      _HomeContinueWatchingSectionState();
+}
+
+class _HomeContinueWatchingSectionState
+    extends ConsumerState<HomeContinueWatchingSection> {
+  static const Duration _prefetchTimeout = Duration(seconds: 8);
+  static const int _maxPrefetchItems = 14;
+  static const int _maxPrefetchedUrlMemory = 500;
+
+  final Set<String> _prefetchedBackdrops = <String>{};
+  ProviderSubscription<AsyncValue<List<domain.InProgressMedia>>>?
+  _inProgressSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _inProgressSub = ref.listenManual(hp.homeInProgressProvider, (_, next) {
+      next.whenData(_schedulePrefetch);
+    }, fireImmediately: true);
+  }
+
+  @override
+  void dispose() {
+    _inProgressSub?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final inProgressAsync = ref.watch(hp.homeInProgressProvider);
     final screenType = ScreenTypeResolver.instance.resolve(
       MediaQuery.of(context).size.width,
@@ -69,7 +100,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
 
             return SliverToBoxAdapter(
               child: HomeFirstSectionTransition(
-                enabled: applyHeroTransition,
+                enabled: widget.applyHeroTransition,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                   child: Card(
@@ -130,7 +161,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
 
             return SliverToBoxAdapter(
               child: HomeFirstSectionTransition(
-                enabled: applyHeroTransition,
+                enabled: widget.applyHeroTransition,
                 child: section,
               ),
             );
@@ -157,7 +188,7 @@ class HomeContinueWatchingSection extends ConsumerWidget {
         rating: media.rating,
         onTap: () => unawaited(_openMedia(context, ref, media)),
         onLongPress: () =>
-            onMarkAsUnwatched(context, ref, media.contentId, media.type),
+            widget.onMarkAsUnwatched(context, ref, media.contentId, media.type),
       );
     } else {
       final seasonEpisode = media.season != null && media.episode != null
@@ -172,8 +203,58 @@ class HomeContinueWatchingSection extends ConsumerWidget {
         progress: media.progress,
         onTap: () => unawaited(_openMedia(context, ref, media)),
         onLongPress: () =>
-            onMarkAsUnwatched(context, ref, media.contentId, media.type),
+            widget.onMarkAsUnwatched(context, ref, media.contentId, media.type),
       );
+    }
+  }
+
+  void _schedulePrefetch(List<domain.InProgressMedia> items) {
+    final policy = ImageLoadingPolicyService.resolve();
+    final useDiskCachePath =
+        policy.enableDiskCache &&
+        policy.enableCachedNetworkPath &&
+        !policy.forceNetworkFallbackOnly;
+    final candidates = items
+        .map((item) => item.backdrop?.toString().trim())
+        .whereType<String>()
+        .where(
+          (url) =>
+              url.isNotEmpty &&
+              (url.startsWith('https://') || url.startsWith('http://')),
+        )
+        .take(_maxPrefetchItems);
+
+    for (final url in candidates) {
+      if (_prefetchedBackdrops.length > _maxPrefetchedUrlMemory) {
+        _prefetchedBackdrops.clear();
+      }
+      if (_prefetchedBackdrops.add(url)) {
+        unawaited(_prefetchImage(url, useDiskCachePath: useDiskCachePath));
+      }
+    }
+  }
+
+  Future<void> _prefetchImage(
+    String url, {
+    required bool useDiskCachePath,
+  }) async {
+    if (useDiskCachePath) {
+      final cacheManager = SafeImageCacheManager.tryGet(enabled: true);
+      if (cacheManager != null) {
+        try {
+          await cacheManager.getSingleFile(url).timeout(_prefetchTimeout);
+          return;
+        } catch (_) {
+          // Fallback mémoire si le cache disque échoue.
+        }
+      }
+    }
+
+    if (!mounted) return;
+    try {
+      await precacheImage(NetworkImage(url), context).timeout(_prefetchTimeout);
+    } catch (_) {
+      // Aucune propagation: le rendu principal garde ses fallbacks.
     }
   }
 

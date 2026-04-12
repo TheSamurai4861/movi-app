@@ -1,5 +1,6 @@
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:volume_controller/volume_controller.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:movi/src/features/player/domain/repositories/system_control_repository.dart';
 
@@ -9,15 +10,26 @@ class SystemControlRepositoryImpl implements SystemControlRepository {
     // Initialisation lazy pour éviter les erreurs au démarrage sur certaines plateformes
     // (ex: Windows peut afficher "Problem getting monitor brightness")
     _volumeController = VolumeController();
-    // Initialiser le listener pour obtenir le volume actuel
-    _volumeController.listener((volume) {
-      _currentVolume = volume;
-    });
+    if (_supportsVolumeListener) {
+      try {
+        // Certaines plateformes desktop n'implementent pas l'EventChannel listener.
+        _volumeController.listener((volume) {
+          _currentVolume = volume;
+        });
+      } catch (e) {
+        // Best effort: on conserve la derniere valeur cachee.
+      }
+    }
   }
 
   ScreenBrightness? _screenBrightness;
   late final VolumeController _volumeController;
   double _currentVolume = 0.5;
+  bool get _supportsVolumeListener {
+    if (kIsWeb) return false;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
 
   ScreenBrightness get _brightness {
     _screenBrightness ??= ScreenBrightness();

@@ -22,10 +22,7 @@ class PlayerOffsetUnsupportedException implements Exception {
 }
 
 class PlayerSubtitleSelectionException implements Exception {
-  const PlayerSubtitleSelectionException({
-    required this.kind,
-    this.reason,
-  });
+  const PlayerSubtitleSelectionException({required this.kind, this.reason});
 
   final PlayerSubtitleFailureKind kind;
   final String? reason;

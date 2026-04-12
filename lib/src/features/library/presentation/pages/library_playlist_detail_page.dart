@@ -56,7 +56,9 @@ class _LibraryPlaylistDetailPageState
   }
 
   Future<void> _refreshTrackedFavoriteSeriesStatuses() async {
-    await ref.read(seriesTrackingToggleProvider.notifier).refreshFavoriteSeriesStatuses();
+    await ref
+        .read(seriesTrackingToggleProvider.notifier)
+        .refreshFavoriteSeriesStatuses();
   }
 
   LibraryPlaylistSortType? _sortType;
@@ -67,11 +69,10 @@ class _LibraryPlaylistDetailPageState
   final FocusNode _playRandomFocusNode = FocusNode(
     debugLabel: 'LibraryPlaylistPlayRandom',
   );
-  final FocusNode _sortFocusNode = FocusNode(
-    debugLabel: 'LibraryPlaylistSort',
-  );
+  final FocusNode _sortFocusNode = FocusNode(debugLabel: 'LibraryPlaylistSort');
   final List<FocusNode> _itemFocusNodes = <FocusNode>[];
   final List<FocusNode> _itemMoreFocusNodes = <FocusNode>[];
+  final ScrollController _itemsScrollController = ScrollController();
   bool _didRequestInitialActionFocus = false;
 
   @override
@@ -85,6 +86,7 @@ class _LibraryPlaylistDetailPageState
     for (final node in _itemMoreFocusNodes) {
       node.dispose();
     }
+    _itemsScrollController.dispose();
     super.dispose();
   }
 
@@ -110,11 +112,13 @@ class _LibraryPlaylistDetailPageState
   }
 
   void _requestInitialActionFocus() {
+    if (!_isLargeScreen(context)) return;
     if (_didRequestInitialActionFocus) return;
     _didRequestInitialActionFocus = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (_playRandomFocusNode.context != null && _playRandomFocusNode.canRequestFocus) {
+      if (_playRandomFocusNode.context != null &&
+          _playRandomFocusNode.canRequestFocus) {
         _playRandomFocusNode.requestFocus();
       }
     });
@@ -127,20 +131,83 @@ class _LibraryPlaylistDetailPageState
     first.requestFocus();
   }
 
-  void _requestItemFocusAt(int index, {bool ensureVisible = false}) {
-    if (index < 0 || index >= _itemFocusNodes.length) return;
-    final node = _itemFocusNodes[index];
-    if (node.context == null || !node.canRequestFocus) return;
-    node.requestFocus();
-    if (!ensureVisible) return;
-    unawaited(
-      Scrollable.ensureVisible(
-        node.context!,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
-      ),
+  double _focusedItemScrollStep() {
+    final focusedContext = FocusManager.instance.primaryFocus?.context;
+    final renderObject = focusedContext?.findRenderObject();
+    if (renderObject is RenderBox && renderObject.hasSize) {
+      return renderObject.size.height + 8;
+    }
+    return 128;
+  }
+
+  Future<void> _scrollTowardTarget({required bool goingDown}) async {
+    if (!_itemsScrollController.hasClients) return;
+    final position = _itemsScrollController.position;
+    final step = _focusedItemScrollStep();
+    final nextOffset = goingDown
+        ? position.pixels + step
+        : position.pixels - step;
+    final clampedOffset = nextOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
     );
+    if ((clampedOffset - position.pixels).abs() < 1) return;
+    await _itemsScrollController.animateTo(
+      clampedOffset,
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  bool _requestItemFocusAt(
+    int index, {
+    bool ensureVisible = false,
+    bool goingDown = true,
+  }) {
+    if (index < 0 || index >= _itemFocusNodes.length) return false;
+    final node = _itemFocusNodes[index];
+    if (!node.canRequestFocus) return false;
+
+    final nodeContext = node.context;
+    if (nodeContext != null) {
+      node.requestFocus();
+      if (!ensureVisible) return true;
+      unawaited(
+        Scrollable.ensureVisible(
+          nodeContext,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          alignmentPolicy: goingDown
+              ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+              : ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+        ),
+      );
+      return true;
+    }
+
+    if (!ensureVisible) return false;
+
+    unawaited(() async {
+      await _scrollTowardTarget(goingDown: goingDown);
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final contextAfterScroll = node.context;
+        if (contextAfterScroll == null || !node.canRequestFocus) return;
+        node.requestFocus();
+        unawaited(
+          Scrollable.ensureVisible(
+            contextAfterScroll,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            alignmentPolicy: goingDown
+                ? ScrollPositionAlignmentPolicy.keepVisibleAtEnd
+                : ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+          ),
+        );
+      });
+    }());
+    return true;
   }
 
   KeyEventResult _handleHeroBackKey(KeyEvent event) {
@@ -542,9 +609,7 @@ class _LibraryPlaylistDetailPageState
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         AppLocalizations.of(
@@ -604,9 +669,7 @@ class _LibraryPlaylistDetailPageState
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
                         AppLocalizations.of(
@@ -689,101 +752,188 @@ class _LibraryPlaylistDetailPageState
           top: true,
           bottom: false,
           child: Column(
-          children: [
-            // Hero section (350px)
-            itemsAsync.when(
-              loading: () => const SizedBox(height: 350),
-              error: (error, stackTrace) {
-                // Afficher l'erreur pour le débogage
-                return SizedBox(
-                  height: 350,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.white70,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(
-                            context,
-                          )!.errorGenericWithMessage(error.toString()),
-                          style: const TextStyle(
+            children: [
+              // Hero section (350px)
+              itemsAsync.when(
+                loading: () => const SizedBox(height: 350),
+                error: (error, stackTrace) {
+                  // Afficher l'erreur pour le débogage
+                  return SizedBox(
+                    height: 350,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
                             color: Colors.white70,
-                            fontSize: 14,
+                            size: 48,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(
+                              context,
+                            )!.errorGenericWithMessage(error.toString()),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                data: (items) => LibraryPlaylistHero(
+                  playlist: widget.playlist,
+                  accentColor: accentColor,
+                  itemCount: items.length,
+                  backdrop: items.isEmpty
+                      ? null
+                      : ref
+                            .watch(
+                              isLargeScreen
+                                  ? playlistItemHeroBackdropProvider(
+                                      items.first,
+                                    )
+                                  : playlistItemBackdropProvider(items.first),
+                            )
+                            .maybeWhen(
+                              data: (uri) => uri?.toString(),
+                              orElse: () => null,
+                            ),
+                  isLargeScreen: isLargeScreen,
+                  horizontalPadding: pagePadding,
+                  backFocusNode: _heroBackFocusNode,
+                  onBackKeyEvent: _handleHeroBackKey,
+                  actions: isLargeScreen
+                      ? Builder(
+                          builder: (context) {
+                            final isEmpty = items.isEmpty;
+                            final playlistItems = playlistItemsAsync?.value;
+                            final sortedItems = LibraryPlaylistSorter.sort(
+                              items,
+                              sortType: _sortType,
+                              playlistItems: playlistItems,
+                            );
+                            return LibraryPlaylistActionsBar(
+                              compact: true,
+                              isEmpty: isEmpty,
+                              playRandomFocusNode: _playRandomFocusNode,
+                              sortFocusNode: _sortFocusNode,
+                              onPlayRandomKeyEvent: _handlePlayRandomKey,
+                              onSortKeyEvent: _handleSortKey,
+                              onPlayRandom: isEmpty
+                                  ? null
+                                  : () => _playRandomly(context, sortedItems),
+                              onSortPressed: isEmpty
+                                  ? null
+                                  : () => _showSortMenu(context, ref),
+                            );
+                          },
+                        )
+                      : null,
+                  onBack: () => context.pop(),
+                  onMore:
+                      widget.playlist.type == LibraryPlaylistType.userPlaylist
+                      ? () => _showPlaylistMenu(context, ref)
+                      : null,
+                ),
+              ),
+              // Boutons d'action (collés sous le hero)
+              if (!isLargeScreen) ...[
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: pagePadding),
+                  child: itemsAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (items) {
+                      final isEmpty = items.isEmpty;
+                      final playlistItems = playlistItemsAsync?.value;
+                      final sortedItems = LibraryPlaylistSorter.sort(
+                        items,
+                        sortType: _sortType,
+                        playlistItems: playlistItems,
+                      );
+
+                      return LibraryPlaylistActionsBar(
+                        isEmpty: isEmpty,
+                        playRandomFocusNode: _playRandomFocusNode,
+                        sortFocusNode: _sortFocusNode,
+                        onPlayRandomKeyEvent: _handlePlayRandomKey,
+                        onSortKeyEvent: _handleSortKey,
+                        onPlayRandom: isEmpty
+                            ? null
+                            : () => _playRandomly(context, sortedItems),
+                        onSortPressed: isEmpty
+                            ? null
+                            : () => _showSortMenu(context, ref),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ] else
+                const SizedBox(height: 20),
+              // Liste des médias
+              Expanded(
+                child: itemsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stackTrace) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.white70,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            AppLocalizations.of(context)!.errorLoadingTitle,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            error.toString(),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                );
-              },
-              data: (items) => LibraryPlaylistHero(
-                playlist: widget.playlist,
-                accentColor: accentColor,
-                itemCount: items.length,
-                backdrop: items.isEmpty
-                    ? null
-                    : ref
-                          .watch(
-                            isLargeScreen
-                                ? playlistItemHeroBackdropProvider(items.first)
-                                : playlistItemBackdropProvider(items.first),
-                          )
-                          .maybeWhen(
-                            data: (uri) => uri?.toString(),
-                            orElse: () => null,
-                          ),
-                isLargeScreen: isLargeScreen,
-                horizontalPadding: pagePadding,
-                backFocusNode: _heroBackFocusNode,
-                onBackKeyEvent: _handleHeroBackKey,
-                actions: isLargeScreen
-                    ? Builder(
-                        builder: (context) {
-                          final isEmpty = items.isEmpty;
-                          final playlistItems = playlistItemsAsync?.value;
-                          final sortedItems = LibraryPlaylistSorter.sort(
-                            items,
-                            sortType: _sortType,
-                            playlistItems: playlistItems,
-                          );
-                          return LibraryPlaylistActionsBar(
-                            compact: true,
-                            isEmpty: isEmpty,
-                            playRandomFocusNode: _playRandomFocusNode,
-                            sortFocusNode: _sortFocusNode,
-                            onPlayRandomKeyEvent: _handlePlayRandomKey,
-                            onSortKeyEvent: _handleSortKey,
-                            onPlayRandom: isEmpty
-                                ? null
-                                : () => _playRandomly(context, sortedItems),
-                            onSortPressed: isEmpty
-                                ? null
-                                : () => _showSortMenu(context, ref),
-                          );
-                        },
-                      )
-                    : null,
-                onBack: () => context.pop(),
-                onMore: widget.playlist.type == LibraryPlaylistType.userPlaylist
-                    ? () => _showPlaylistMenu(context, ref)
-                    : null,
-              ),
-            ),
-            // Boutons d'action (collés sous le hero)
-            if (!isLargeScreen) ...[
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: pagePadding),
-                child: itemsAsync.when(
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
                   data: (items) {
-                    final isEmpty = items.isEmpty;
+                    _syncItemFocusNodes(items.length);
+                    if (items.isNotEmpty && isLargeScreen) {
+                      _requestInitialActionFocus();
+                    }
+                    if (items.isEmpty) {
+                      return Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.playlistEmptyMessage,
+                          style:
+                              Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Colors.white70,
+                              ) ??
+                              const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white70,
+                              ),
+                        ),
+                      );
+                    }
+
+                    // Pour les playlists utilisateur, récupérer les items complets pour le tri
                     final playlistItems = playlistItemsAsync?.value;
                     final sortedItems = LibraryPlaylistSorter.sort(
                       items,
@@ -791,146 +941,64 @@ class _LibraryPlaylistDetailPageState
                       playlistItems: playlistItems,
                     );
 
-                    return LibraryPlaylistActionsBar(
-                      isEmpty: isEmpty,
-                      playRandomFocusNode: _playRandomFocusNode,
-                      sortFocusNode: _sortFocusNode,
-                      onPlayRandomKeyEvent: _handlePlayRandomKey,
-                      onSortKeyEvent: _handleSortKey,
-                      onPlayRandom: isEmpty
-                          ? null
-                          : () => _playRandomly(context, sortedItems),
-                      onSortPressed: isEmpty
-                          ? null
-                          : () => _showSortMenu(context, ref),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 32),
-            ] else
-              const SizedBox(height: 20),
-            // Liste des médias
-            Expanded(
-              child: itemsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stackTrace) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          color: Colors.white70,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppLocalizations.of(context)!.errorLoadingTitle,
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(color: Colors.white),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          error.toString(),
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                data: (items) {
-                  _syncItemFocusNodes(items.length);
-                  if (items.isNotEmpty) {
-                    _requestInitialActionFocus();
-                  }
-                  if (items.isEmpty) {
-                    return Center(
-                      child: Text(
-                        AppLocalizations.of(context)!.playlistEmptyMessage,
-                        style:
-                            Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.white70,
-                            ) ??
-                            const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white70,
-                            ),
-                      ),
-                    );
-                  }
-
-                  // Pour les playlists utilisateur, récupérer les items complets pour le tri
-                  final playlistItems = playlistItemsAsync?.value;
-                  final sortedItems = LibraryPlaylistSorter.sort(
-                    items,
-                    sortType: _sortType,
-                    playlistItems: playlistItems,
-                  );
-
-                  return ListView.separated(
-                    key: ValueKey(_sortType?.name ?? 'default'),
-                    padding: EdgeInsets.symmetric(horizontal: pagePadding),
-                    itemCount: sortedItems.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final item = sortedItems[index];
-                      // Pour les playlists utilisateur, récupérer l'item complet avec position
-                      if (widget.playlist.type ==
-                              LibraryPlaylistType.userPlaylist &&
-                          widget.playlist.playlistId != null &&
-                          playlistItemsAsync != null) {
-                        return playlistItemsAsync.when(
-                          loading: () => _buildMediaItem(
-                            context,
-                            ref,
-                            item,
-                            index: index,
-                            itemCount: sortedItems.length,
-                          ),
-                          error: (_, __) => _buildMediaItem(
-                            context,
-                            ref,
-                            item,
-                            index: index,
-                            itemCount: sortedItems.length,
-                          ),
-                          data: (playlistItems) {
-                            final playlistItem = playlistItems.firstWhere(
-                              (pi) => pi.reference.id == item.id,
-                              orElse: () => PlaylistItem(reference: item),
-                            );
-                            return _buildMediaItem(
+                    return ListView.separated(
+                      key: ValueKey(_sortType?.name ?? 'default'),
+                      controller: _itemsScrollController,
+                      padding: EdgeInsets.symmetric(horizontal: pagePadding),
+                      itemCount: sortedItems.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final item = sortedItems[index];
+                        // Pour les playlists utilisateur, récupérer l'item complet avec position
+                        if (widget.playlist.type ==
+                                LibraryPlaylistType.userPlaylist &&
+                            widget.playlist.playlistId != null &&
+                            playlistItemsAsync != null) {
+                          return playlistItemsAsync.when(
+                            loading: () => _buildMediaItem(
                               context,
                               ref,
                               item,
                               index: index,
                               itemCount: sortedItems.length,
-                              playlistItem: playlistItem,
-                              playlistId: widget.playlist.playlistId,
-                            );
-                          },
+                            ),
+                            error: (_, __) => _buildMediaItem(
+                              context,
+                              ref,
+                              item,
+                              index: index,
+                              itemCount: sortedItems.length,
+                            ),
+                            data: (playlistItems) {
+                              final playlistItem = playlistItems.firstWhere(
+                                (pi) => pi.reference.id == item.id,
+                                orElse: () => PlaylistItem(reference: item),
+                              );
+                              return _buildMediaItem(
+                                context,
+                                ref,
+                                item,
+                                index: index,
+                                itemCount: sortedItems.length,
+                                playlistItem: playlistItem,
+                                playlistId: widget.playlist.playlistId,
+                              );
+                            },
+                          );
+                        }
+                        return _buildMediaItem(
+                          context,
+                          ref,
+                          item,
+                          index: index,
+                          itemCount: sortedItems.length,
                         );
-                      }
-                      return _buildMediaItem(
-                        context,
-                        ref,
-                        item,
-                        index: index,
-                        itemCount: sortedItems.length,
-                      );
-                    },
-                  );
-                },
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
           ),
         ),
       ),
@@ -979,16 +1047,24 @@ class _LibraryPlaylistDetailPageState
               _playRandomFocusNode.requestFocus();
               return KeyEventResult.handled;
             }
-            _requestItemFocusAt(index - 1, ensureVisible: true);
-            return KeyEventResult.handled;
+            final moved = _requestItemFocusAt(
+              index - 1,
+              ensureVisible: true,
+              goingDown: false,
+            );
+            return moved ? KeyEventResult.handled : KeyEventResult.ignored;
           }
           if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
             final nextIndex = index + 1;
             if (nextIndex >= itemCount) {
               return KeyEventResult.handled;
             }
-            _requestItemFocusAt(nextIndex, ensureVisible: true);
-            return KeyEventResult.handled;
+            final moved = _requestItemFocusAt(
+              nextIndex,
+              ensureVisible: true,
+              goingDown: true,
+            );
+            return moved ? KeyEventResult.handled : KeyEventResult.ignored;
           }
           if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
             if (canDelete) {
@@ -1017,6 +1093,10 @@ class _LibraryPlaylistDetailPageState
           return KeyEventResult.ignored;
         }
 
+        const episodeThumbAspectRatio = 178 / 100;
+        const episodeThumbHeight = 80.0;
+        const episodeThumbWidth = episodeThumbHeight * episodeThumbAspectRatio;
+
         Widget content = Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -1044,7 +1124,11 @@ class _LibraryPlaylistDetailPageState
                                 playlistId,
                               );
                             } else {
-                              _showDeleteOtherItemDialog(context, ref, reference);
+                              _showDeleteOtherItemDialog(
+                                context,
+                                ref,
+                                reference,
+                              );
                             }
                           }
                         : null,
@@ -1059,210 +1143,223 @@ class _LibraryPlaylistDetailPageState
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                // Backdrop paysage (180x100) + badge durée/saisons en stack (flou)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 180,
-                    height: 100,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Positioned.fill(
-                          child: backdropAsync.when(
-                            loading: () => Container(
-                              color: const Color(0xFF222222),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ),
-                            error: (_, __) => Container(
-                              color: const Color(0xFF222222),
-                              child: const Icon(
-                                Icons.broken_image,
-                                color: Colors.white54,
-                                size: 32,
-                              ),
-                            ),
-                            data: (backdropUri) {
-                              if (backdropUri != null) {
-                                return Image.network(
-                                  backdropUri.toString(),
-                                  width: 180,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      color: const Color(0xFF222222),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  loadingProgress
-                                                      .expectedTotalBytes!
-                                              : null,
-                                          strokeWidth: 2,
-                                          color: Colors.white54,
+                            // Backdrop paysage (180x100) + badge durée/saisons en stack (flou)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: episodeThumbWidth,
+                                height: episodeThumbHeight,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Positioned.fill(
+                                      child: backdropAsync.when(
+                                        loading: () => Container(
+                                          color: const Color(0xFF222222),
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white54,
+                                            ),
+                                          ),
+                                        ),
+                                        error: (_, __) => Container(
+                                          color: const Color(0xFF222222),
+                                          child: const Icon(
+                                            Icons.broken_image,
+                                            color: Colors.white54,
+                                            size: 32,
+                                          ),
+                                        ),
+                                        data: (backdropUri) {
+                                          if (backdropUri != null) {
+                                            return MoviNetworkImage(
+                                              backdropUri.toString(),
+                                              width: episodeThumbWidth,
+                                              height: episodeThumbHeight,
+                                              fit: BoxFit.cover,
+                                              cacheWidth:
+                                                  (episodeThumbWidth * 2)
+                                                      .toInt(),
+                                              cacheHeight:
+                                                  (episodeThumbHeight * 2)
+                                                      .toInt(),
+                                              placeholder: Container(
+                                                color: const Color(0xFF222222),
+                                                child: const Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white54,
+                                                      ),
+                                                ),
+                                              ),
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Container(
+                                                      color: const Color(
+                                                        0xFF222222,
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.broken_image,
+                                                        color: Colors.white54,
+                                                        size: 32,
+                                                      ),
+                                                    );
+                                                  },
+                                            );
+                                          }
+                                          return Container(
+                                            color: const Color(0xFF222222),
+                                            child: const Icon(
+                                              Icons.movie,
+                                              color: Colors.white54,
+                                              size: 32,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    if (reference.type == ContentType.series)
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Consumer(
+                                          builder: (context, ref, _) {
+                                            final hasNewAsync = ref.watch(
+                                              seriesHasNewEpisodeProvider(
+                                                reference.id,
+                                              ),
+                                            );
+                                            return hasNewAsync.when(
+                                              data: (hasNewEpisode) =>
+                                                  hasNewEpisode
+                                                  ? SeriesNewBadge(
+                                                      backgroundColor: ref.watch(
+                                                        asp.currentAccentColorProvider,
+                                                      ),
+                                                    )
+                                                  : const SizedBox.shrink(),
+                                              loading: () =>
+                                                  const SizedBox.shrink(),
+                                              error: (_, __) =>
+                                                  const SizedBox.shrink(),
+                                            );
+                                          },
                                         ),
                                       ),
-                                    );
-                                  },
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: const Color(0xFF222222),
-                                      child: const Icon(
-                                        Icons.broken_image,
-                                        color: Colors.white54,
-                                        size: 32,
-                                      ),
-                                    );
-                                  },
-                                );
-                              }
-                              return Container(
-                                color: const Color(0xFF222222),
-                                child: const Icon(
-                                  Icons.movie,
-                                  color: Colors.white54,
-                                  size: 32,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        if (reference.type == ContentType.series)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Consumer(
-                              builder: (context, ref, _) {
-                                final hasNewAsync = ref.watch(
-                                  seriesHasNewEpisodeProvider(reference.id),
-                                );
-                                return hasNewAsync.when(
-                                  data: (hasNewEpisode) => hasNewEpisode
-                                      ? SeriesNewBadge(
-                                          backgroundColor: ref.watch(
-                                            asp.currentAccentColorProvider,
+                                    if (secondaryLabel != null)
+                                      Positioned(
+                                        right: 8,
+                                        bottom: 8,
+                                        child: MoviPill(
+                                          secondaryLabel,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
                                           ),
-                                        )
-                                      : const SizedBox.shrink(),
-                                  loading: () => const SizedBox.shrink(),
-                                  error: (_, __) => const SizedBox.shrink(),
-                                );
-                              },
-                            ),
-                          ),
-                        if (secondaryLabel != null)
-                          Positioned(
-                            right: 8,
-                            bottom: 8,
-                            child: MoviPill(
-                              secondaryLabel,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                          color: Colors.black.withValues(
+                                            alpha: 0.45,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                              color: Colors.black.withValues(alpha: 0.45),
                             ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Informations
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Titre avec bouton more
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              displayReference.title.value,
-                              style:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodyLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ) ??
-                                  const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
+                            const SizedBox(width: 16),
+                            // Informations
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Titre avec bouton more
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          displayReference.title.value,
+                                          style:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.bodyLarge?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                              ) ??
+                                              const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (canDelete) const SizedBox(width: 12),
+                                    ],
                                   ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                                  const SizedBox(height: 12),
+                                  // Pills: année, rating, durée
+                                  // Utiliser IntrinsicWidth pour que le Row prenne la bonne taille
+                                  IntrinsicWidth(
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Pill avec année
+                                        if (displayReference.year != null)
+                                          MoviPill(
+                                            displayReference.year.toString(),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                          ),
+                                        // Pill avec type de contenu (Série ou Film) pour les playlists utilisateur
+                                        if (widget.playlist.type ==
+                                            LibraryPlaylistType
+                                                .userPlaylist) ...[
+                                          if (displayReference.year != null)
+                                            const SizedBox(width: 8),
+                                          MoviPill(
+                                            displayReference.type ==
+                                                    ContentType.series
+                                                ? AppLocalizations.of(
+                                                    context,
+                                                  )!.serie
+                                                : AppLocalizations.of(
+                                                    context,
+                                                  )!.moviesTitle,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                          ),
+                                        ],
+                                        // Espace entre année/type et rating
+                                        if ((displayReference.year != null ||
+                                                (widget.playlist.type ==
+                                                    LibraryPlaylistType
+                                                        .userPlaylist)) &&
+                                            displayReference.rating != null)
+                                          const SizedBox(width: 8),
+                                        // Rating pill
+                                        if (displayReference.rating != null)
+                                          MoviPill(
+                                            displayReference.rating!
+                                                .toStringAsFixed(1),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          if (canDelete) const SizedBox(width: 12),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      // Pills: année, rating, durée
-                      // Utiliser IntrinsicWidth pour que le Row prenne la bonne taille
-                      IntrinsicWidth(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Pill avec année
-                            if (displayReference.year != null)
-                              MoviPill(
-                                displayReference.year.toString(),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                              ),
-                            // Pill avec type de contenu (Série ou Film) pour les playlists utilisateur
-                            if (widget.playlist.type ==
-                                LibraryPlaylistType.userPlaylist) ...[
-                              if (displayReference.year != null)
-                                const SizedBox(width: 8),
-                              MoviPill(
-                                displayReference.type == ContentType.series
-                                    ? AppLocalizations.of(context)!.serie
-                                    : AppLocalizations.of(context)!.moviesTitle,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                              ),
-                            ],
-                            // Espace entre année/type et rating
-                            if ((displayReference.year != null ||
-                                    (widget.playlist.type ==
-                                        LibraryPlaylistType.userPlaylist)) &&
-                                displayReference.rating != null)
-                              const SizedBox(width: 8),
-                            // Rating pill
-                            if (displayReference.rating != null)
-                              MoviPill(
-                                displayReference.rating!.toStringAsFixed(1),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                              ),
                           ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
                         ),
                       );
                     },
@@ -1415,12 +1512,12 @@ class _LibraryPlaylistDetailPageState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!.errorGenericWithMessage(e.toString()),
+              AppLocalizations.of(
+                context,
+              )!.errorGenericWithMessage(e.toString()),
             ),
           ),
         );
@@ -1453,11 +1550,13 @@ class _LibraryPlaylistDetailPageState
           MoviTvActionMenuAction(
             label: l10n.playlistDeleteTitle,
             destructive: true,
-            onPressed: () => _showDeleteOtherItemDialog(context, ref, reference),
+            onPressed: () =>
+                _showDeleteOtherItemDialog(context, ref, reference),
           ),
           MoviTvActionMenuAction(
             label: l10n.actionAddToList,
-            onPressed: () => _showAddItemToPlaylistDialog(context, ref, reference),
+            onPressed: () =>
+                _showAddItemToPlaylistDialog(context, ref, reference),
           ),
         ],
         cancelLabel: l10n.actionCancel,
@@ -1521,7 +1620,8 @@ class _LibraryPlaylistDetailPageState
           ),
           MoviTvActionMenuAction(
             label: l10n.actionAddToList,
-            onPressed: () => _showAddItemToPlaylistDialog(context, ref, reference),
+            onPressed: () =>
+                _showAddItemToPlaylistDialog(context, ref, reference),
           ),
         ],
         cancelLabel: l10n.actionCancel,
@@ -1587,9 +1687,9 @@ class _LibraryPlaylistDetailPageState
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  AppLocalizations.of(context)!.errorLoadingWithMessage(
-                    error.toString(),
-                  ),
+                  AppLocalizations.of(
+                    context,
+                  )!.errorLoadingWithMessage(error.toString()),
                 ),
               ),
             );
@@ -1712,9 +1812,9 @@ class _LibraryPlaylistDetailPageState
                         // Logger l'erreur pour le debug
                         logger.log(
                           LogLevel.error,
-                          AppLocalizations.of(context)!.errorAddToPlaylist(
-                            e.toString(),
-                          ),
+                          AppLocalizations.of(
+                            context,
+                          )!.errorAddToPlaylist(e.toString()),
                           error: e,
                           stackTrace: stackTrace,
                           category: 'library_playlist_detail',
@@ -1760,9 +1860,9 @@ class _LibraryPlaylistDetailPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!.errorLoadingPlaylistsWithMessage(
-                e.toString(),
-              ),
+              AppLocalizations.of(
+                context,
+              )!.errorLoadingPlaylistsWithMessage(e.toString()),
             ),
           ),
         );
@@ -1924,12 +2024,12 @@ class _LibraryPlaylistDetailPageState
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!.errorGenericWithMessage(e.toString()),
+              AppLocalizations.of(
+                context,
+              )!.errorGenericWithMessage(e.toString()),
             ),
           ),
         );

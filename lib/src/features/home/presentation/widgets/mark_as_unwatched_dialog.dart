@@ -64,7 +64,9 @@ class _MarkAsUnwatchedSheetState extends State<_MarkAsUnwatchedSheet> {
 
   Future<void> _markAsUnwatched() async {
     Navigator.pop(context);
-    final historyRepo = widget.ref.read(hybridPlaybackHistoryRepositoryProvider);
+    final historyRepo = widget.ref.read(
+      hybridPlaybackHistoryRepositoryProvider,
+    );
     final userId = widget.ref.read(currentUserIdProvider);
     await historyRepo.remove(widget.contentId, widget.type, userId: userId);
     unawaited(

@@ -103,7 +103,8 @@ class AppStartupGate extends ConsumerWidget {
     }
 
     if (appUpdateState.hasError) {
-      final rawDetails = appUpdateState.error?.toString() ?? 'Unknown app update error';
+      final rawDetails =
+          appUpdateState.error?.toString() ?? 'Unknown app update error';
       final showDetails = !kReleaseMode || forceStartupDetails;
       debugPrint('[AppUpdate] error: $rawDetails');
       return _buildStartupMaterialApp(

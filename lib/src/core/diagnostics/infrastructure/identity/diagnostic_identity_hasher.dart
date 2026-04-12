@@ -36,10 +36,13 @@ final class DiagnosticIdentityHasher {
     final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
     final salt = base64UrlEncode(bytes);
     try {
-      await _secureStorage.put(key: _storageKey, payload: <String, dynamic>{
-        'salt': salt,
-        'createdAt': DateTime.now().toUtc().toIso8601String(),
-      });
+      await _secureStorage.put(
+        key: _storageKey,
+        payload: <String, dynamic>{
+          'salt': salt,
+          'createdAt': DateTime.now().toUtc().toIso8601String(),
+        },
+      );
     } on StorageException catch (error) {
       _debug('persist_generated_salt_failed', error);
     }
@@ -61,4 +64,3 @@ final class DiagnosticIdentityHasher {
     }());
   }
 }
-

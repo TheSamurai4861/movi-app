@@ -31,6 +31,7 @@ class MoviItemsList extends StatefulWidget {
     this.consumeLeadingEdgeLeftKey = false,
     this.horizontalFocusAlignment,
     this.verticalFocusAlignment = 0.5,
+    this.onItemKeyEvent,
   }) : assert(itemSpacing >= 0, 'itemSpacing must be non-negative');
 
   final String title;
@@ -72,6 +73,7 @@ class MoviItemsList extends StatefulWidget {
   final bool consumeLeadingEdgeLeftKey;
   final double? horizontalFocusAlignment;
   final double verticalFocusAlignment;
+  final KeyEventResult Function(int index, KeyEvent event)? onItemKeyEvent;
 
   @override
   State<MoviItemsList> createState() => _MoviItemsListState();
@@ -300,15 +302,27 @@ class _MoviItemsListState extends State<MoviItemsList> {
                           ? (widget.estimatedItemWidth! * 2)
                           : null,
                       itemCount: widget.items.length,
-                      itemBuilder: (context, i) => MoviEnsureVisibleOnFocus(
-                        isLeadingEdge: i == 0,
-                        isTrailingEdge: i == widget.items.length - 1,
-                        consumeBackwardEdgeKey:
-                            widget.consumeLeadingEdgeLeftKey,
-                        horizontalAlignment: widget.horizontalFocusAlignment,
-                        verticalAlignment: widget.verticalFocusAlignment,
-                        child: widget.items[i],
-                      ),
+                      itemBuilder: (context, i) {
+                        final child = MoviEnsureVisibleOnFocus(
+                          isLeadingEdge: i == 0,
+                          isTrailingEdge: i == widget.items.length - 1,
+                          consumeBackwardEdgeKey:
+                              widget.consumeLeadingEdgeLeftKey,
+                          horizontalAlignment: widget.horizontalFocusAlignment,
+                          verticalAlignment: widget.verticalFocusAlignment,
+                          child: widget.items[i],
+                        );
+                        final onItemKeyEvent = widget.onItemKeyEvent;
+                        if (onItemKeyEvent == null) {
+                          return child;
+                        }
+                        return Focus(
+                          canRequestFocus: false,
+                          skipTraversal: true,
+                          onKeyEvent: (_, event) => onItemKeyEvent(i, event),
+                          child: child,
+                        );
+                      },
                       separatorBuilder: (context, _) =>
                           SizedBox(width: widget.itemSpacing),
                     ),

@@ -37,4 +37,3 @@ final class DiagnosticExportRepository {
     return getApplicationDocumentsDirectory();
   }
 }
-

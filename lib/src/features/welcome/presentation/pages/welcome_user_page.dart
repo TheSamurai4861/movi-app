@@ -6,14 +6,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/router/app_route_paths.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_spacing.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/overlay_splash.dart';
@@ -173,6 +174,20 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
     return true;
   }
 
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
   Widget _buildWelcomeProfileChip({
     required Profile profile,
     required bool isSelected,
@@ -183,7 +198,6 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
       verticalAlignment: 0.22,
       child: MoviFocusableAction(
         focusNode: focusNode,
-        ensureVisibleVerticalAlignment: 0.22,
         onPressed: onTap,
         semanticLabel: profile.name,
         builder: (context, state) {
@@ -326,415 +340,455 @@ class _WelcomeUserPageState extends ConsumerState<WelcomeUserPage> {
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: _submitFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.welcomePrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => _submitFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'WelcomeUserRouteFocus',
-        child: Scaffold(
-          body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      WelcomeHeader(
-                        title: l10n.welcomeTitle,
-                        subtitle: l10n.welcomeSubtitle,
-                      ),
-                      if (launchRecovery?.isRetryable ?? false) ...[
-                        const SizedBox(height: AppSpacing.lg),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: MoviEnsureVisibleOnFocus(
-                            verticalAlignment: 0.18,
-                            child: Focus(
-                              canRequestFocus: false,
-                              onKeyEvent: (_, event) => _handleDirectionalKey(
-                                event,
-                                down: profilesAsync.maybeWhen(
-                                  data: (profiles) {
-                                    if (profiles.isEmpty) {
-                                      return _nameFocusNode;
-                                    }
-                                    _syncProfileFocusNodes(profiles.length);
-                                    return _profileFocusNodes.first;
-                                  },
-                                  orElse: () => null,
-                                ),
-                                blockLeft: true,
-                                blockRight: true,
-                                blockUp: true,
-                              ),
-                              child: LaunchRecoveryBanner(
-                                message: launchRecovery!.message,
-                                retryFocusNode: _retryFocusNode,
-                                onRetry: () {
-                                  ref
-                                      .read(
-                                        appLaunchOrchestratorProvider.notifier,
-                                      )
-                                      .reset();
-                                  context.go(AppRouteNames.launch);
-                                },
-                              ),
-                            ),
-                          ),
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'WelcomeUserPrimaryRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xl,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        WelcomeHeader(
+                          title: l10n.welcomeTitle,
+                          subtitle: l10n.welcomeSubtitle,
                         ),
-                      ],
-                      const SizedBox(height: AppSpacing.xl),
-                      profilesAsync.when(
-                        loading: () => const Padding(
-                          padding: EdgeInsets.only(top: AppSpacing.lg),
-                          child: CircularProgressIndicator(),
-                        ),
-                        error: (err, stackTrace) {
-                          final errString = err.toString();
-                          if (kDebugMode) {
-                            debugPrint('[WelcomeUserPage] Error: $errString');
-                          }
-
-                          // Pour les autres erreurs, afficher un message localisé
-                          return Padding(
+                        if (launchRecovery?.isRetryable ?? false) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.lg,
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  l10n.errorUnknown,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                            child: MoviEnsureVisibleOnFocus(
+                              verticalAlignment: 0.18,
+                              child: Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  down: profilesAsync.maybeWhen(
+                                    data: (profiles) {
+                                      if (profiles.isEmpty) {
+                                        return _nameFocusNode;
+                                      }
+                                      _syncProfileFocusNodes(profiles.length);
+                                      return _profileFocusNodes.first;
+                                    },
+                                    orElse: () => null,
                                   ),
-                                  textAlign: TextAlign.center,
+                                  blockLeft: true,
+                                  blockRight: true,
+                                  blockUp: true,
                                 ),
-                                if (kDebugMode) ...[
-                                  const SizedBox(height: AppSpacing.sm),
-                                  Text(
-                                    err.toString(),
-                                    style: TextStyle(
-                                      color: Theme.of(context).colorScheme.error
-                                          .withValues(alpha: 0.7),
-                                      fontSize: 12,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ],
+                                child: LaunchRecoveryBanner(
+                                  message: launchRecovery!.message,
+                                  retryFocusNode: _retryFocusNode,
+                                  onRetry: () {
+                                    ref
+                                        .read(
+                                          appLaunchOrchestratorProvider
+                                              .notifier,
+                                        )
+                                        .reset();
+                                    context.go(AppRouteNames.launch);
+                                  },
+                                ),
+                              ),
                             ),
-                          );
-                        },
-                        data: (profiles) {
-                          _syncProfileFocusNodes(profiles.length);
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Si des profils existent, on affiche un picker (pas de champ texte).
-                              if (profiles.isNotEmpty) ...[
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        for (
-                                          var index = 0;
-                                          index < profiles.length;
-                                          index++
-                                        ) ...[
-                                          Focus(
-                                            canRequestFocus: false,
-                                            onKeyEvent: (_, event) =>
-                                                _handleDirectionalKey(
-                                                  event,
-                                                  left: index > 0
-                                                      ? _profileFocusNodes[index -
-                                                            1]
-                                                      : null,
-                                                  right:
-                                                      index + 1 <
-                                                          profiles.length
-                                                      ? _profileFocusNodes[index +
-                                                            1]
-                                                      : null,
-                                                  up:
-                                                      launchRecovery
-                                                              ?.isRetryable ??
-                                                          false
-                                                      ? _retryFocusNode
-                                                      : null,
-                                                  down: _submitFocusNode,
-                                                  blockLeft: index == 0,
-                                                  blockRight:
-                                                      index ==
-                                                      profiles.length - 1,
-                                                ),
-                                            child: Padding(
-                                              padding: EdgeInsets.only(
-                                                right:
-                                                    index == profiles.length - 1
-                                                    ? 0
-                                                    : AppSpacing.lg,
-                                              ),
-                                              child: _buildWelcomeProfileChip(
-                                                profile: profiles[index],
-                                                isSelected:
-                                                    profiles[index].id ==
-                                                    selectedProfileId,
-                                                focusNode:
-                                                    _profileFocusNodes[index],
-                                                onTap: () => unawaited(
-                                                  _selectProfileWithGuard(
-                                                    profiles,
-                                                    selectedProfileId,
-                                                    profiles[index],
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.xl),
+                        FocusRegionScope(
+                          regionId: AppFocusRegionId.welcomeUserForm,
+                          binding: FocusRegionBinding(
+                            resolvePrimaryEntryNode: () => initialFocusNode,
+                            resolveFallbackEntryNode: () => _submitFocusNode,
+                          ),
+                          handleDirectionalExits: false,
+                          debugLabel: 'WelcomeUserFormRegion',
+                          child: profilesAsync.when(
+                            loading: () => const Padding(
+                              padding: EdgeInsets.only(top: AppSpacing.lg),
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (err, stackTrace) {
+                              final errString = err.toString();
+                              if (kDebugMode) {
+                                debugPrint(
+                                  '[WelcomeUserPage] Error: $errString',
+                                );
+                              }
+
+                              // Pour les autres erreurs, afficher un message localisé
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      l10n.errorUnknown,
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.error,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    if (kDebugMode) ...[
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Text(
+                                        err.toString(),
+                                        style: TextStyle(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .error
+                                              .withValues(alpha: 0.7),
+                                          fontSize: 12,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                            data: (profiles) {
+                              _syncProfileFocusNodes(profiles.length);
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Si des profils existent, on affiche un picker (pas de champ texte).
+                                  if (profiles.isNotEmpty) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.lg,
+                                      ),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: Row(
+                                          children: [
+                                            for (
+                                              var index = 0;
+                                              index < profiles.length;
+                                              index++
+                                            ) ...[
+                                              Focus(
+                                                canRequestFocus: false,
+                                                onKeyEvent: (_, event) =>
+                                                    _handleDirectionalKey(
+                                                      event,
+                                                      left: index > 0
+                                                          ? _profileFocusNodes[index -
+                                                                1]
+                                                          : null,
+                                                      right:
+                                                          index + 1 <
+                                                              profiles.length
+                                                          ? _profileFocusNodes[index +
+                                                                1]
+                                                          : null,
+                                                      up:
+                                                          launchRecovery
+                                                                  ?.isRetryable ??
+                                                              false
+                                                          ? _retryFocusNode
+                                                          : null,
+                                                      down: _submitFocusNode,
+                                                      blockLeft: index == 0,
+                                                      blockRight:
+                                                          index ==
+                                                          profiles.length - 1,
+                                                    ),
+                                                child: Padding(
+                                                  padding: EdgeInsets.only(
+                                                    right:
+                                                        index ==
+                                                            profiles.length - 1
+                                                        ? 0
+                                                        : AppSpacing.lg,
+                                                  ),
+                                                  child: _buildWelcomeProfileChip(
+                                                    profile: profiles[index],
+                                                    isSelected:
+                                                        profiles[index].id ==
+                                                        selectedProfileId,
+                                                    focusNode:
+                                                        _profileFocusNodes[index],
+                                                    onTap: () => unawaited(
+                                                      _selectProfileWithGuard(
+                                                        profiles,
+                                                        selectedProfileId,
+                                                        profiles[index],
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.xl),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                  ),
-                                  child: MoviEnsureVisibleOnFocus(
-                                    verticalAlignment: 0.22,
-                                    child: Focus(
-                                      canRequestFocus: false,
-                                      onKeyEvent: (_, event) =>
-                                          _handleDirectionalKey(
-                                            event,
-                                            up: _continueUpFocusNode(
-                                              profiles,
-                                              selectedProfileId,
-                                            ),
-                                            blockLeft: true,
-                                            blockRight: true,
-                                            blockDown: true,
-                                          ),
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: MoviPrimaryButton(
-                                          label: l10n.actionContinue,
-                                          focusNode: _submitFocusNode,
-                                          onPressed: () async {
-                                            if (profiles.isNotEmpty &&
-                                                selectedProfileId == null) {
-                                              final selected =
-                                                  await _selectProfileWithGuard(
-                                                    profiles,
-                                                    selectedProfileId,
-                                                    profiles.first,
-                                                  );
-                                              if (!selected) {
-                                                return;
-                                              }
-                                            }
-                                            if (!context.mounted) return;
-                                            ref
-                                                .read(
-                                                  appLaunchOrchestratorProvider
-                                                      .notifier,
-                                                )
-                                                .reset();
-                                            context.go(AppRouteNames.bootstrap);
-                                          },
+                                            ],
+                                          ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              ] else ...[
-                                // Aucun profil: on affiche l'input (création du premier profil)
-                                LabeledField(
-                                  label: l10n.labelUsername,
-                                  child: MoviEnsureVisibleOnFocus(
-                                    verticalAlignment: 0.22,
-                                    child: Focus(
-                                      canRequestFocus: false,
-                                      onKeyEvent: (_, event) =>
-                                          _handleDirectionalKey(
-                                            event,
-                                            up:
-                                                launchRecovery?.isRetryable ??
-                                                    false
-                                                ? _retryFocusNode
-                                                : null,
-                                            down: _submitFocusNode,
-                                            blockLeft: true,
-                                            blockRight: true,
-                                          ),
-                                      child: CallbackShortcuts(
-                                        bindings:
-                                            <ShortcutActivator, VoidCallback>{
-                                              const SingleActivator(
-                                                LogicalKeyboardKey.arrowDown,
-                                              ): () => _requestFocus(
-                                                _submitFocusNode,
-                                              ),
-                                              if (launchRecovery?.isRetryable ??
-                                                  false)
-                                                const SingleActivator(
-                                                  LogicalKeyboardKey.arrowUp,
-                                                ): () => _requestFocus(
-                                                  _retryFocusNode,
+                                    const SizedBox(height: AppSpacing.xl),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.lg,
+                                      ),
+                                      child: MoviEnsureVisibleOnFocus(
+                                        verticalAlignment: 0.22,
+                                        child: Focus(
+                                          canRequestFocus: false,
+                                          onKeyEvent: (_, event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up: _continueUpFocusNode(
+                                                  profiles,
+                                                  selectedProfileId,
                                                 ),
-                                            },
-                                        child: TextFormField(
-                                          controller: _nameCtrl,
-                                          focusNode: _nameFocusNode,
-                                          textInputAction: TextInputAction.done,
-                                          onFieldSubmitted: (_) =>
-                                              _submitFocusNode.requestFocus(),
-                                          decoration: InputDecoration(
-                                            hintText: l10n.hintUsername,
-                                            border: const OutlineInputBorder(),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.xl),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                  ),
-                                  child: MoviEnsureVisibleOnFocus(
-                                    verticalAlignment: 0.22,
-                                    child: Focus(
-                                      canRequestFocus: false,
-                                      onKeyEvent: (_, event) =>
-                                          _handleDirectionalKey(
-                                            event,
-                                            up: _nameFocusNode,
-                                            blockLeft: true,
-                                            blockRight: true,
-                                            blockDown: true,
-                                          ),
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: MoviPrimaryButton(
-                                          label: l10n.actionContinue,
-                                          focusNode: _submitFocusNode,
-                                          loading: state.isSaving,
-                                          onPressed: state.isSaving
-                                              ? null
-                                              : () async {
-                                                  final router = GoRouter.of(
-                                                    context,
-                                                  );
-                                                  final messenger =
-                                                      ScaffoldMessenger.of(
-                                                        context,
+                                                blockLeft: true,
+                                                blockRight: true,
+                                                blockDown: true,
+                                              ),
+                                          child: SizedBox(
+                                            width: double.infinity,
+                                            child: MoviPrimaryButton(
+                                              label: l10n.actionContinue,
+                                              focusNode: _submitFocusNode,
+                                              onPressed: () async {
+                                                if (profiles.isNotEmpty &&
+                                                    selectedProfileId == null) {
+                                                  final selected =
+                                                      await _selectProfileWithGuard(
+                                                        profiles,
+                                                        selectedProfileId,
+                                                        profiles.first,
                                                       );
-
-                                                  final fn = FirstName.tryParse(
-                                                    _nameCtrl.text,
-                                                  );
-
-                                                  if (fn == null) {
-                                                    messenger.showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          l10n.errorFillFields,
-                                                        ),
-                                                      ),
-                                                    );
+                                                  if (!selected) {
                                                     return;
                                                   }
-
-                                                  // La langue est déjà définie par l'appareil, pas besoin de la sauvegarder ici
-                                                  final currentLangCode = ref.read(
-                                                    asp.currentLanguageCodeProvider,
-                                                  );
-                                                  final lc =
-                                                      LanguageCode.tryParse(
-                                                        currentLangCode,
-                                                      ) ??
-                                                      LanguageCode.tryParse(
-                                                        'en',
-                                                      )!;
-
-                                                  final ok = await ref
-                                                      .read(
-                                                        userSettingsControllerProvider
-                                                            .notifier,
-                                                      )
-                                                      .save(
-                                                        UserSettings(
-                                                          firstName: fn,
-                                                          languageCode: lc,
-                                                        ),
-                                                      );
-
-                                                  if (!mounted) return;
-
-                                                  if (ok) {
-                                                    await _createFirstProfile(
-                                                      profileName: fn.value,
-                                                      profileColor:
-                                                          (accentColor
-                                                              .toARGB32() |
-                                                          0xFF000000),
-                                                    );
-                                                    ref.invalidate(
-                                                      profilesControllerProvider,
-                                                    );
-                                                    // Reset orchestrator pour relancer le bootstrap.
-                                                    ref
-                                                        .read(
-                                                          appLaunchOrchestratorProvider
-                                                              .notifier,
-                                                        )
-                                                        .reset();
-                                                    router.go(
-                                                      AppRouteNames.bootstrap,
-                                                    );
-                                                  }
-                                                },
+                                                }
+                                                if (!context.mounted) return;
+                                                ref
+                                                    .read(
+                                                      appLaunchOrchestratorProvider
+                                                          .notifier,
+                                                    )
+                                                    .reset();
+                                                context.go(
+                                                  AppRouteNames.bootstrap,
+                                                );
+                                              },
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                                if (errorText != null) ...[
-                                  const SizedBox(height: AppSpacing.sm),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.lg,
+                                  ] else ...[
+                                    // Aucun profil: on affiche l'input (création du premier profil)
+                                    LabeledField(
+                                      label: l10n.labelUsername,
+                                      child: MoviEnsureVisibleOnFocus(
+                                        verticalAlignment: 0.22,
+                                        child: Focus(
+                                          canRequestFocus: false,
+                                          onKeyEvent: (_, event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up:
+                                                    launchRecovery
+                                                            ?.isRetryable ??
+                                                        false
+                                                    ? _retryFocusNode
+                                                    : null,
+                                                down: _submitFocusNode,
+                                                blockLeft: true,
+                                                blockRight: true,
+                                              ),
+                                          child: CallbackShortcuts(
+                                            bindings:
+                                                <
+                                                  ShortcutActivator,
+                                                  VoidCallback
+                                                >{
+                                                  const SingleActivator(
+                                                    LogicalKeyboardKey
+                                                        .arrowDown,
+                                                  ): () => _requestFocus(
+                                                    _submitFocusNode,
+                                                  ),
+                                                  if (launchRecovery
+                                                          ?.isRetryable ??
+                                                      false)
+                                                    const SingleActivator(
+                                                      LogicalKeyboardKey
+                                                          .arrowUp,
+                                                    ): () => _requestFocus(
+                                                      _retryFocusNode,
+                                                    ),
+                                                },
+                                            child: TextFormField(
+                                              controller: _nameCtrl,
+                                              focusNode: _nameFocusNode,
+                                              textInputAction:
+                                                  TextInputAction.done,
+                                              onFieldSubmitted: (_) =>
+                                                  _submitFocusNode
+                                                      .requestFocus(),
+                                              decoration: InputDecoration(
+                                                hintText: l10n.hintUsername,
+                                                border:
+                                                    const OutlineInputBorder(),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    child: Text(
-                                      errorText,
-                                      style: const TextStyle(color: Colors.red),
+                                    const SizedBox(height: AppSpacing.xl),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.lg,
+                                      ),
+                                      child: MoviEnsureVisibleOnFocus(
+                                        verticalAlignment: 0.22,
+                                        child: Focus(
+                                          canRequestFocus: false,
+                                          onKeyEvent: (_, event) =>
+                                              _handleDirectionalKey(
+                                                event,
+                                                up: _nameFocusNode,
+                                                blockLeft: true,
+                                                blockRight: true,
+                                                blockDown: true,
+                                              ),
+                                          child: SizedBox(
+                                            width: double.infinity,
+                                            child: MoviPrimaryButton(
+                                              label: l10n.actionContinue,
+                                              focusNode: _submitFocusNode,
+                                              loading: state.isSaving,
+                                              onPressed: state.isSaving
+                                                  ? null
+                                                  : () async {
+                                                      final router =
+                                                          GoRouter.of(context);
+                                                      final messenger =
+                                                          ScaffoldMessenger.of(
+                                                            context,
+                                                          );
+
+                                                      final fn =
+                                                          FirstName.tryParse(
+                                                            _nameCtrl.text,
+                                                          );
+
+                                                      if (fn == null) {
+                                                        messenger.showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              l10n.errorFillFields,
+                                                            ),
+                                                          ),
+                                                        );
+                                                        return;
+                                                      }
+
+                                                      // La langue est déjà définie par l'appareil, pas besoin de la sauvegarder ici
+                                                      final currentLangCode =
+                                                          ref.read(
+                                                            asp.currentLanguageCodeProvider,
+                                                          );
+                                                      final lc =
+                                                          LanguageCode.tryParse(
+                                                            currentLangCode,
+                                                          ) ??
+                                                          LanguageCode.tryParse(
+                                                            'en',
+                                                          )!;
+
+                                                      final ok = await ref
+                                                          .read(
+                                                            userSettingsControllerProvider
+                                                                .notifier,
+                                                          )
+                                                          .save(
+                                                            UserSettings(
+                                                              firstName: fn,
+                                                              languageCode: lc,
+                                                            ),
+                                                          );
+
+                                                      if (!mounted) return;
+
+                                                      if (ok) {
+                                                        await _createFirstProfile(
+                                                          profileName: fn.value,
+                                                          profileColor:
+                                                              (accentColor
+                                                                  .toARGB32() |
+                                                              0xFF000000),
+                                                        );
+                                                        ref.invalidate(
+                                                          profilesControllerProvider,
+                                                        );
+                                                        // Reset orchestrator pour relancer le bootstrap.
+                                                        ref
+                                                            .read(
+                                                              appLaunchOrchestratorProvider
+                                                                  .notifier,
+                                                            )
+                                                            .reset();
+                                                        router.go(
+                                                          AppRouteNames
+                                                              .bootstrap,
+                                                        );
+                                                      }
+                                                    },
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    if (errorText != null) ...[
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: AppSpacing.lg,
+                                        ),
+                                        child: Text(
+                                          errorText,
+                                          style: const TextStyle(
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ],
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-                    ],
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

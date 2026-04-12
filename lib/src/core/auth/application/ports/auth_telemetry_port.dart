@@ -11,4 +11,3 @@ abstract interface class AuthTelemetryPort {
     String? detail,
   });
 }
-

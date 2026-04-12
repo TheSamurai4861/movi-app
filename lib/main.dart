@@ -61,8 +61,8 @@ Future<void> main(List<String> args) async {
   // - ProviderScope: Riverpod DI / state management.
   // - AppStartupGate: runs bootstrap logic before rendering MyApp.
   runApp(
-  AppRestart(
-    child: const ProviderScope(child: AppStartupGate(child: MyApp())),
-  ),
-);
+    AppRestart(
+      child: const ProviderScope(child: AppStartupGate(child: MyApp())),
+    ),
+  );
 }

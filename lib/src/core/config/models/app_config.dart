@@ -118,6 +118,12 @@ class AppConfig {
             other.featureFlags.enableEntryJourneyRoutingV2 &&
         featureFlags.enableDownloads == other.featureFlags.enableDownloads &&
         featureFlags.enableNewSearch == other.featureFlags.enableNewSearch &&
+        featureFlags.enableImageDiskCache ==
+            other.featureFlags.enableImageDiskCache &&
+        featureFlags.enableImageCachedNetworkPath ==
+            other.featureFlags.enableImageCachedNetworkPath &&
+        featureFlags.forceImageNetworkFallbackOnly ==
+            other.featureFlags.forceImageNetworkFallbackOnly &&
         metadata.version == other.metadata.version &&
         metadata.buildNumber == other.metadata.buildNumber &&
         metadata.supportEmail == other.metadata.supportEmail &&
@@ -168,6 +174,9 @@ class AppConfig {
     featureFlags.enableEntryJourneyRoutingV2,
     featureFlags.enableDownloads,
     featureFlags.enableNewSearch,
+    featureFlags.enableImageDiskCache,
+    featureFlags.enableImageCachedNetworkPath,
+    featureFlags.forceImageNetworkFallbackOnly,
     metadata.version,
     metadata.buildNumber,
     metadata.supportEmail,

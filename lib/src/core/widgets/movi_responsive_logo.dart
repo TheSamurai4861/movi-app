@@ -1,7 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:movi/src/core/images/image_loading_policy.dart';
+import 'package:movi/src/core/images/safe_image_cache_manager.dart';
+import 'package:movi/src/core/widgets/movi_network_image.dart';
 
 /// Affiche un logo TMDB (ou autre) avec une hauteur adaptative selon son ratio.
 ///
@@ -124,7 +128,14 @@ class _MoviResponsiveLogoState extends State<MoviResponsiveLogo> {
       // On garde un ratio inconnu => on utilisera les valeurs "tall/blocky".
       return;
     }
-    final provider = NetworkImage(widget.imageUrl);
+    final policy = ImageLoadingPolicyService.resolve();
+    final cacheManager = SafeImageCacheManager.tryGet(
+      enabled: policy.enableDiskCache,
+    );
+    final provider = CachedNetworkImageProvider(
+      widget.imageUrl,
+      cacheManager: cacheManager,
+    );
     final stream = provider.resolve(const ImageConfiguration());
     _stream = stream;
 
@@ -197,7 +208,7 @@ class _MoviResponsiveLogoState extends State<MoviResponsiveLogo> {
                         alignment: widget.alignment,
                         placeholderBuilder: (_) => const SizedBox.shrink(),
                       )
-                    : Image.network(
+                    : MoviNetworkImage(
                         widget.imageUrl,
                         fit: BoxFit.contain,
                         alignment: widget.alignment,

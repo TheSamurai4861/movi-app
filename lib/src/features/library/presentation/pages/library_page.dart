@@ -8,6 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
+import 'package:movi/src/core/images/image_loading_policy.dart';
+import 'package:movi/src/core/images/safe_image_cache_manager.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
@@ -17,8 +25,6 @@ import 'package:movi/src/features/library/presentation/widgets/library_filter_pi
 import 'package:movi/src/features/library/presentation/widgets/library_playlist_card.dart';
 import 'package:movi/src/features/library/presentation/widgets/library_premium_banner.dart';
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
-import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
-import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
@@ -40,6 +46,10 @@ class LibraryPage extends ConsumerStatefulWidget {
 
 class _LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
+  static const Duration _prefetchTimeout = Duration(seconds: 8);
+  static const int _maxPrefetchItems = 32;
+  static const int _maxPrefetchedUrlMemory = 900;
+
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   final _firstPlaylistFocusNode = FocusNode(debugLabel: 'LibraryFirstPlaylist');
@@ -49,26 +59,19 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   final _searchActionFocusNode = FocusNode(debugLabel: 'LibrarySearchAction');
   final _addActionFocusNode = FocusNode(debugLabel: 'LibraryAddAction');
   final List<FocusNode> _playlistFocusNodes = [];
-  late final ShellFocusCoordinator _shellFocusCoordinator;
 
   late final AnimationController _anim;
   late final Animation<double> _opacity;
   late final Animation<double> _slideY;
+  final Set<String> _prefetchedArtworkUrls = <String>{};
 
   bool _isSearchVisible = false;
+  ProviderSubscription<AsyncValue<List<LibraryPlaylistItem>>>?
+  _filteredPlaylistsSub;
 
   @override
   void initState() {
     super.initState();
-    _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    _shellFocusCoordinator.registerTabFocusBinding(
-      ShellTab.library,
-      ShellTabFocusBinding(
-        initialFocusNode: _firstPlaylistFocusNode,
-        fallbackFocusNode: _searchFocusNode,
-      ),
-    );
-
     _anim = AnimationController(
       duration: const Duration(milliseconds: 260),
       vsync: this,
@@ -80,14 +83,18 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       begin: -12.0,
       end: 0.0,
     ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOut));
+
+    _filteredPlaylistsSub = ref.listenManual(filteredLibraryPlaylistsProvider, (
+      _,
+      next,
+    ) {
+      next.whenData(_scheduleLibraryArtworkPrefetch);
+    }, fireImmediately: true);
   }
 
   @override
   void dispose() {
-    _shellFocusCoordinator.unregisterTabFocusBinding(
-      ShellTab.library,
-      _firstPlaylistFocusNode,
-    );
+    _filteredPlaylistsSub?.close();
     _disposePlaylistFocusNodes();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -99,6 +106,64 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     _addActionFocusNode.dispose();
     _anim.dispose();
     super.dispose();
+  }
+
+  void _scheduleLibraryArtworkPrefetch(List<LibraryPlaylistItem> playlists) {
+    final policy = ImageLoadingPolicyService.resolve();
+    final useDiskCachePath =
+        policy.enableDiskCache &&
+        policy.enableCachedNetworkPath &&
+        !policy.forceNetworkFallbackOnly;
+
+    final candidates = playlists
+        .where(
+          (playlist) =>
+              playlist.type == LibraryPlaylistType.actor ||
+              playlist.id.startsWith(LibraryConstants.sagaPrefix),
+        )
+        .map((playlist) => playlist.photo?.toString().trim())
+        .whereType<String>()
+        .where(
+          (url) =>
+              url.isNotEmpty &&
+              (url.startsWith('https://') || url.startsWith('http://')),
+        )
+        .take(_maxPrefetchItems);
+
+    for (final url in candidates) {
+      if (_prefetchedArtworkUrls.length > _maxPrefetchedUrlMemory) {
+        _prefetchedArtworkUrls.clear();
+      }
+      if (_prefetchedArtworkUrls.add(url)) {
+        unawaited(
+          _prefetchLibraryArtwork(url, useDiskCachePath: useDiskCachePath),
+        );
+      }
+    }
+  }
+
+  Future<void> _prefetchLibraryArtwork(
+    String url, {
+    required bool useDiskCachePath,
+  }) async {
+    if (useDiskCachePath) {
+      final cacheManager = SafeImageCacheManager.tryGet(enabled: true);
+      if (cacheManager != null) {
+        try {
+          await cacheManager.getSingleFile(url).timeout(_prefetchTimeout);
+          return;
+        } catch (_) {
+          // Fallback mémoire si le cache disque échoue.
+        }
+      }
+    }
+
+    if (!mounted) return;
+    try {
+      await precacheImage(NetworkImage(url), context).timeout(_prefetchTimeout);
+    } catch (_) {
+      // Aucun crash UI: le rendu principal garde ses fallbacks.
+    }
   }
 
   void _focusFirstPlaylist() {
@@ -122,7 +187,24 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   }
 
   void _focusSidebarMenu() {
-    _shellFocusCoordinator.focusSidebar();
+    ref
+        .read(focusOrchestratorProvider)
+        .resolveExit(AppFocusRegionId.libraryPrimary, DirectionalEdge.left);
+  }
+
+  FocusNode? _resolveLibraryFallbackFocusNode() {
+    if (_searchFocusNode.context != null && _searchFocusNode.canRequestFocus) {
+      return _searchFocusNode;
+    }
+    if (_searchActionFocusNode.context != null &&
+        _searchActionFocusNode.canRequestFocus) {
+      return _searchActionFocusNode;
+    }
+    if (_addActionFocusNode.context != null &&
+        _addActionFocusNode.canRequestFocus) {
+      return _addActionFocusNode;
+    }
+    return null;
   }
 
   void _focusSearchInput() {
@@ -998,407 +1080,427 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
       },
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.libraryPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => _firstPlaylistFocusNode,
+        resolveFallbackEntryNode: _resolveLibraryFallbackFocusNode,
+      ),
+      exitMap: FocusRegionExitMap({
+        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+      }),
+      debugLabel: 'LibraryPrimaryRegion',
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
 
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.navLibrary,
-                    style:
-                        theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ) ??
-                        const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-                if (isLargeScreen && (_isSearchVisible || _anim.value > 0)) ...[
-                  const SizedBox(width: 12),
-                  AnimatedBuilder(
-                    animation: _anim,
-                    builder: (context, _) {
-                      final width = 420 * _opacity.value;
-                      if (width <= 1) {
-                        return const SizedBox.shrink();
-                      }
-                      return ClipRect(
-                        child: SizedBox(
-                          width: width,
-                          child: Opacity(
-                            opacity: _opacity.value,
-                            child: Transform.translate(
-                              offset: Offset(18 * (1 - _opacity.value), 0),
-                              child: searchField,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-                if (!isLargeScreen)
-                  Focus(
-                    canRequestFocus: false,
-                    onKeyEvent: (_, event) => _handleSearchActionKey(event),
-                    child: IconButton(
-                      focusNode: _searchActionFocusNode,
-                      style: IconButton.styleFrom(
-                        backgroundColor: _isSearchVisible
-                            ? theme.colorScheme.primary.withValues(alpha: 0.2)
-                            : Colors.white.withValues(alpha: 0.08),
-                        padding: const EdgeInsets.all(10),
-                        shape: const CircleBorder(),
-                      ),
-                      icon: MoviAssetIcon(
-                        AppAssets.iconSearch,
-                        width: 24,
-                        height: 24,
-                        color: _isSearchVisible
-                            ? theme.colorScheme.primary
-                            : Colors.white,
-                      ),
-                      onPressed: _toggleSearch,
-                      tooltip: l10n.searchTitle,
-                    ),
-                  ),
-                if (!isLargeScreen) ...[
-                  const SizedBox(width: 6),
-                  Focus(
-                    canRequestFocus: false,
-                    onKeyEvent: (_, event) => _handleAddActionKey(event),
-                    child: IconButton(
-                      focusNode: _addActionFocusNode,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.08),
-                        padding: const EdgeInsets.all(10),
-                        shape: const CircleBorder(),
-                      ),
-                      icon: const MoviAssetIcon(
-                        AppAssets.iconPlus,
-                        width: 24,
-                        height: 24,
-                        color: Colors.white,
-                      ),
-                      onPressed: _showCreatePlaylistDialog,
-                      tooltip: l10n.createPlaylistTitle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          if (!isLargeScreen)
-            AnimatedBuilder(
-              animation: _anim,
-              builder: (context, _) {
-                if (!_isSearchVisible && _anim.value == 0) {
-                  return const SizedBox.shrink();
-                }
-
-                return Opacity(
-                  opacity: _opacity.value,
-                  child: Transform.translate(
-                    offset: Offset(0, _slideY.value),
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: 8,
-                        left: horizontalPadding,
-                        right: horizontalPadding,
-                      ),
-                      child: searchField,
-                    ),
-                  ),
-                );
-              },
-            ),
-
-          const SizedBox(height: 12),
-
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: LibraryFilterPills(
-                    activeFilter: filter,
-                    firstFilterFocusNode: _firstFilterFocusNode,
-                    clearFilterFocusNode: _clearFilterFocusNode,
-                    artistsFilterFocusNode: _artistsFilterFocusNode,
-                    onRequestSidebarFocus: _focusSidebarMenu,
-                    onRequestFirstPlaylistFocus: _focusFirstPlaylist,
-                    onRequestSearchActionFocus: () {
-                      if (_addActionFocusNode.context != null &&
-                          _addActionFocusNode.canRequestFocus) {
-                        _addActionFocusNode.requestFocus();
-                        return;
-                      }
-                      if (_searchActionFocusNode.context != null &&
-                          _searchActionFocusNode.canRequestFocus) {
-                        _searchActionFocusNode.requestFocus();
-                      }
-                    },
-                    onFilterChanged: (newFilter) {
-                      ref
-                          .read(libraryFilterProvider.notifier)
-                          .setFilter(newFilter);
-                    },
-                  ),
-                ),
-                if (isLargeScreen) ...[
-                  const SizedBox(width: 12),
-                  Focus(
-                    canRequestFocus: false,
-                    onKeyEvent: (_, event) => _handleAddActionKey(event),
-                    child: IconButton(
-                      focusNode: _addActionFocusNode,
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.08),
-                        padding: const EdgeInsets.all(10),
-                        shape: const CircleBorder(),
-                      ),
-                      icon: const MoviAssetIcon(
-                        AppAssets.iconPlus,
-                        width: 24,
-                        height: 24,
-                        color: Colors.white,
-                      ),
-                      onPressed: _showCreatePlaylistDialog,
-                      tooltip: l10n.createPlaylistTitle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          if (screenType != ScreenType.mobile) ...[
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: const LibraryPremiumBanner(),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          Expanded(
-            child: SyncableRefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(libraryPlaylistsProvider);
-              },
-              child: playlistsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(
-                  child: Text(
-                    AppLocalizations.of(
-                      context,
-                    )!.errorGenericWithMessage(error.toString()),
-                    style: TextStyle(color: theme.colorScheme.error),
-                    textAlign: TextAlign.center,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.navLibrary,
+                      style:
+                          theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
                   ),
-                ),
-                data: (playlists) {
-                  _syncPlaylistFocusNodes(playlists.length);
-
-                  if (playlists.isEmpty) {
-                    if (searchQuery.isNotEmpty) {
-                      return Center(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            24,
-                            horizontalPadding,
-                            24 + _libraryScrollBottomPadding(context),
-                          ),
-                          child: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.libraryNoResultsForQuery(searchQuery),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                  if (isLargeScreen &&
+                      (_isSearchVisible || _anim.value > 0)) ...[
+                    const SizedBox(width: 12),
+                    AnimatedBuilder(
+                      animation: _anim,
+                      builder: (context, _) {
+                        final width = 420 * _opacity.value;
+                        if (width <= 1) {
+                          return const SizedBox.shrink();
+                        }
+                        return ClipRect(
+                          child: SizedBox(
+                            width: width,
+                            child: Opacity(
+                              opacity: _opacity.value,
+                              child: Transform.translate(
+                                offset: Offset(18 * (1 - _opacity.value), 0),
+                                child: searchField,
+                              ),
                             ),
-                            textAlign: TextAlign.center,
                           ),
+                        );
+                      },
+                    ),
+                  ],
+                  if (!isLargeScreen)
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleSearchActionKey(event),
+                      child: IconButton(
+                        focusNode: _searchActionFocusNode,
+                        style: IconButton.styleFrom(
+                          backgroundColor: _isSearchVisible
+                              ? theme.colorScheme.primary.withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.08),
+                          padding: const EdgeInsets.all(10),
+                          shape: const CircleBorder(),
                         ),
-                      );
-                    }
-
-                    return ListView(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        0,
-                        horizontalPadding,
-                        _libraryScrollBottomPadding(context),
+                        icon: MoviAssetIcon(
+                          AppAssets.iconSearch,
+                          width: 24,
+                          height: 24,
+                          color: _isSearchVisible
+                              ? theme.colorScheme.primary
+                              : Colors.white,
+                        ),
+                        onPressed: _toggleSearch,
+                        tooltip: l10n.searchTitle,
                       ),
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.35,
-                          child: Center(
+                    ),
+                  if (!isLargeScreen) ...[
+                    const SizedBox(width: 6),
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleAddActionKey(event),
+                      child: IconButton(
+                        focusNode: _addActionFocusNode,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          padding: const EdgeInsets.all(10),
+                          shape: const CircleBorder(),
+                        ),
+                        icon: const MoviAssetIcon(
+                          AppAssets.iconPlus,
+                          width: 24,
+                          height: 24,
+                          color: Colors.white,
+                        ),
+                        onPressed: _showCreatePlaylistDialog,
+                        tooltip: l10n.createPlaylistTitle,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            if (!isLargeScreen)
+              AnimatedBuilder(
+                animation: _anim,
+                builder: (context, _) {
+                  if (!_isSearchVisible && _anim.value == 0) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Opacity(
+                    opacity: _opacity.value,
+                    child: Transform.translate(
+                      offset: Offset(0, _slideY.value),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: 8,
+                          left: horizontalPadding,
+                          right: horizontalPadding,
+                        ),
+                        child: searchField,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+            const SizedBox(height: 12),
+
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: LibraryFilterPills(
+                      activeFilter: filter,
+                      firstFilterFocusNode: _firstFilterFocusNode,
+                      clearFilterFocusNode: _clearFilterFocusNode,
+                      artistsFilterFocusNode: _artistsFilterFocusNode,
+                      onRequestSidebarFocus: _focusSidebarMenu,
+                      onRequestFirstPlaylistFocus: _focusFirstPlaylist,
+                      onRequestSearchActionFocus: () {
+                        if (_addActionFocusNode.context != null &&
+                            _addActionFocusNode.canRequestFocus) {
+                          _addActionFocusNode.requestFocus();
+                          return;
+                        }
+                        if (_searchActionFocusNode.context != null &&
+                            _searchActionFocusNode.canRequestFocus) {
+                          _searchActionFocusNode.requestFocus();
+                        }
+                      },
+                      onFilterChanged: (newFilter) {
+                        ref
+                            .read(libraryFilterProvider.notifier)
+                            .setFilter(newFilter);
+                      },
+                    ),
+                  ),
+                  if (isLargeScreen) ...[
+                    const SizedBox(width: 12),
+                    Focus(
+                      canRequestFocus: false,
+                      onKeyEvent: (_, event) => _handleAddActionKey(event),
+                      child: IconButton(
+                        focusNode: _addActionFocusNode,
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.08),
+                          padding: const EdgeInsets.all(10),
+                          shape: const CircleBorder(),
+                        ),
+                        icon: const MoviAssetIcon(
+                          AppAssets.iconPlus,
+                          width: 24,
+                          height: 24,
+                          color: Colors.white,
+                        ),
+                        onPressed: _showCreatePlaylistDialog,
+                        tooltip: l10n.createPlaylistTitle,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            if (screenType != ScreenType.mobile) ...[
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: const LibraryPremiumBanner(),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            Expanded(
+              child: SyncableRefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(libraryPlaylistsProvider);
+                },
+                child: playlistsAsync.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Center(
+                    child: Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.errorGenericWithMessage(error.toString()),
+                      style: TextStyle(color: theme.colorScheme.error),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  data: (playlists) {
+                    _syncPlaylistFocusNodes(playlists.length);
+
+                    if (playlists.isEmpty) {
+                      if (searchQuery.isNotEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              horizontalPadding,
+                              24,
+                              horizontalPadding,
+                              24 + _libraryScrollBottomPadding(context),
+                            ),
                             child: Text(
-                              l10n.libraryEmpty,
-                              style: theme.textTheme.bodyLarge?.copyWith(
+                              AppLocalizations.of(
+                                context,
+                              )!.libraryNoResultsForQuery(searchQuery),
+                              style: theme.textTheme.titleMedium?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
-                      ],
-                    );
-                  }
+                        );
+                      }
 
-                  if (!isLargeScreen) {
-                    return ListView.separated(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        0,
-                        horizontalPadding,
-                        _libraryScrollBottomPadding(context),
-                      ),
-                      itemCount: playlists.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final playlist = playlists[index];
-                        return Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) =>
-                              _handlePlaylistListDirection(index, event),
-                          child: LibraryPlaylistCard(
-                            title: playlist.title,
-                            itemCount: playlist.itemCount,
-                            type: playlist.type,
-                            isPinned: playlist.isPinned,
-                            photo: playlist.photo,
-                            showItemCount: !playlist.id.startsWith(
-                              LibraryConstants.sagaPrefix,
+                      return ListView(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          0,
+                          horizontalPadding,
+                          _libraryScrollBottomPadding(context),
+                        ),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(
+                            height: MediaQuery.of(context).size.height * 0.35,
+                            child: Center(
+                              child: Text(
+                                l10n.libraryEmpty,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
-                            focusNode: _playlistFocusNodes[index],
-                            onTap: () => _navigateToPlaylist(playlist),
-                            onLongPress:
-                                playlist.type ==
-                                        LibraryPlaylistType.userPlaylist &&
-                                    playlist.playlistId != null
-                                ? () =>
-                                      _showPlaylistMenu(context, ref, playlist)
-                                : null,
-                            onMorePressed:
-                                playlist.type ==
-                                        LibraryPlaylistType.userPlaylist &&
-                                    playlist.playlistId != null
-                                ? () =>
-                                      _showPlaylistMenu(context, ref, playlist)
-                                : null,
+                          ),
+                        ],
+                      );
+                    }
+
+                    if (!isLargeScreen) {
+                      return ListView.separated(
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          0,
+                          horizontalPadding,
+                          _libraryScrollBottomPadding(context),
+                        ),
+                        itemCount: playlists.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final playlist = playlists[index];
+                          return Focus(
+                            canRequestFocus: false,
+                            onKeyEvent: (_, event) =>
+                                _handlePlaylistListDirection(index, event),
+                            child: LibraryPlaylistCard(
+                              title: playlist.title,
+                              itemCount: playlist.itemCount,
+                              type: playlist.type,
+                              isPinned: playlist.isPinned,
+                              photo: playlist.photo,
+                              showItemCount: !playlist.id.startsWith(
+                                LibraryConstants.sagaPrefix,
+                              ),
+                              focusNode: _playlistFocusNodes[index],
+                              onTap: () => _navigateToPlaylist(playlist),
+                              onLongPress:
+                                  playlist.type ==
+                                          LibraryPlaylistType.userPlaylist &&
+                                      playlist.playlistId != null
+                                  ? () => _showPlaylistMenu(
+                                      context,
+                                      ref,
+                                      playlist,
+                                    )
+                                  : null,
+                              onMorePressed:
+                                  playlist.type ==
+                                          LibraryPlaylistType.userPlaylist &&
+                                      playlist.playlistId != null
+                                  ? () => _showPlaylistMenu(
+                                      context,
+                                      ref,
+                                      playlist,
+                                    )
+                                  : null,
+                            ),
+                          );
+                        },
+                      );
+                    }
+
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        final availableWidth =
+                            constraints.maxWidth - (horizontalPadding * 2);
+                        const gap = 24.0;
+                        const maxCardWidth = 240.0;
+                        const maxColumns = 8;
+
+                        final columns =
+                            ((availableWidth + gap) / (maxCardWidth + gap))
+                                .floor()
+                                .clamp(1, maxColumns);
+                        final gridWidth =
+                            (columns * maxCardWidth) + ((columns - 1) * gap);
+                        final cardWidth = maxCardWidth;
+
+                        return Align(
+                          alignment: Alignment.topLeft,
+                          child: SizedBox(
+                            width: gridWidth.clamp(0.0, availableWidth),
+                            child: FocusTraversalGroup(
+                              child: GridView.builder(
+                                padding: EdgeInsets.fromLTRB(
+                                  horizontalPadding,
+                                  10,
+                                  horizontalPadding,
+                                  _libraryScrollBottomPadding(context),
+                                ),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: columns,
+                                      mainAxisExtent: 286,
+                                      crossAxisSpacing: gap,
+                                      mainAxisSpacing: gap,
+                                    ),
+                                itemCount: playlists.length,
+                                itemBuilder: (context, index) {
+                                  final playlist = playlists[index];
+                                  return SizedBox(
+                                    width: cardWidth,
+                                    child: Focus(
+                                      canRequestFocus: false,
+                                      onKeyEvent: (_, event) =>
+                                          _handlePlaylistGridDirection(
+                                            context,
+                                            index,
+                                            columns,
+                                            event,
+                                          ),
+                                      child: LibraryPlaylistCard(
+                                        title: playlist.title,
+                                        itemCount: playlist.itemCount,
+                                        type: playlist.type,
+                                        isPinned: playlist.isPinned,
+                                        photo: playlist.photo,
+                                        layout:
+                                            LibraryPlaylistCardLayout.vertical,
+                                        isSaga: playlist.id.startsWith(
+                                          LibraryConstants.sagaPrefix,
+                                        ),
+                                        showItemCount: !playlist.id.startsWith(
+                                          LibraryConstants.sagaPrefix,
+                                        ),
+                                        focusNode: _playlistFocusNodes[index],
+                                        onTap: () =>
+                                            _navigateToPlaylist(playlist),
+                                        onLongPress:
+                                            playlist.type ==
+                                                    LibraryPlaylistType
+                                                        .userPlaylist &&
+                                                playlist.playlistId != null
+                                            ? () => _showPlaylistMenu(
+                                                context,
+                                                ref,
+                                                playlist,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         );
                       },
                     );
-                  }
-
-                  return LayoutBuilder(
-                    builder: (context, constraints) {
-                      final availableWidth =
-                          constraints.maxWidth - (horizontalPadding * 2);
-                      const gap = 24.0;
-                      const maxCardWidth = 240.0;
-                      const maxColumns = 8;
-
-                      final columns =
-                          ((availableWidth + gap) / (maxCardWidth + gap))
-                              .floor()
-                              .clamp(1, maxColumns);
-                      final gridWidth =
-                          (columns * maxCardWidth) + ((columns - 1) * gap);
-                      final cardWidth = maxCardWidth;
-
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: SizedBox(
-                          width: gridWidth.clamp(0.0, availableWidth),
-                          child: FocusTraversalGroup(
-                            child: GridView.builder(
-                              padding: EdgeInsets.fromLTRB(
-                                horizontalPadding,
-                                10,
-                                horizontalPadding,
-                                _libraryScrollBottomPadding(context),
-                              ),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: columns,
-                                    mainAxisExtent: 286,
-                                    crossAxisSpacing: gap,
-                                    mainAxisSpacing: gap,
-                                  ),
-                              itemCount: playlists.length,
-                              itemBuilder: (context, index) {
-                                final playlist = playlists[index];
-                                return SizedBox(
-                                  width: cardWidth,
-                                  child: Focus(
-                                    canRequestFocus: false,
-                                    onKeyEvent: (_, event) =>
-                                        _handlePlaylistGridDirection(
-                                          context,
-                                          index,
-                                          columns,
-                                          event,
-                                        ),
-                                    child: LibraryPlaylistCard(
-                                      title: playlist.title,
-                                      itemCount: playlist.itemCount,
-                                      type: playlist.type,
-                                      isPinned: playlist.isPinned,
-                                      photo: playlist.photo,
-                                      layout:
-                                          LibraryPlaylistCardLayout.vertical,
-                                      isSaga: playlist.id.startsWith(
-                                        LibraryConstants.sagaPrefix,
-                                      ),
-                                      showItemCount: !playlist.id.startsWith(
-                                        LibraryConstants.sagaPrefix,
-                                      ),
-                                      focusNode: _playlistFocusNodes[index],
-                                      onTap: () =>
-                                          _navigateToPlaylist(playlist),
-                                      onLongPress:
-                                          playlist.type ==
-                                                  LibraryPlaylistType
-                                                      .userPlaylist &&
-                                              playlist.playlistId != null
-                                          ? () => _showPlaylistMenu(
-                                              context,
-                                              ref,
-                                              playlist,
-                                            )
-                                          : null,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

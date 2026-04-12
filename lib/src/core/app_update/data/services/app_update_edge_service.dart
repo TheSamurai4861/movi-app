@@ -11,7 +11,9 @@ class AppUpdateEdgeService {
 
   final SupabaseClient _client;
 
-  Future<AppUpdateRemoteResponse> fetchDecision(AppUpdateContext context) async {
+  Future<AppUpdateRemoteResponse> fetchDecision(
+    AppUpdateContext context,
+  ) async {
     final checkedAt = DateTime.now().toUtc();
     final response = await _client.functions.invoke(
       functionName,

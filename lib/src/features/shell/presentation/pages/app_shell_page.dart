@@ -1,12 +1,14 @@
 // lib/src/features/shell/presentation/pages/app_shell_page.dart
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 // Shell
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
+import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
@@ -23,20 +25,6 @@ import 'package:movi/src/features/home/presentation/pages/home_page.dart';
 import 'package:movi/src/features/search/presentation/pages/search_page.dart';
 import 'package:movi/src/features/library/presentation/pages/library_page.dart';
 import 'package:movi/src/features/settings/presentation/pages/settings_page.dart';
-
-class _ShellFocusContentMarker extends InheritedWidget {
-  const _ShellFocusContentMarker({required super.child});
-
-  static bool contains(BuildContext? context) {
-    if (context == null) return false;
-    return context
-            .dependOnInheritedWidgetOfExactType<_ShellFocusContentMarker>() !=
-        null;
-  }
-
-  @override
-  bool updateShouldNotify(_ShellFocusContentMarker oldWidget) => false;
-}
 
 /// Page d'entrée du Shell : choisit le layout (mobile / large / TV),
 /// branche le controller, les shortcuts, les destinations (SVG + tooltips l10n)
@@ -82,83 +70,34 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
   late final ShellFocusCoordinator _shellFocusCoordinator;
   late final ShellScrollToTopController _scrollToTopController =
       ShellScrollToTopController();
-  var _focusListenerAttached = false;
 
   @override
   void initState() {
     super.initState();
     _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
     _shellFocusCoordinator.attachSidebar(_sidebarFocusNode);
-    _attachFocusListener();
-  }
-
-  @override
-  void deactivate() {
-    _detachFocusListener();
-    super.deactivate();
-  }
-
-  @override
-  void activate() {
-    super.activate();
-    _attachFocusListener();
   }
 
   @override
   void dispose() {
-    _detachFocusListener();
     _shellFocusCoordinator.detachSidebar(_sidebarFocusNode);
     _sidebarFocusNode.dispose();
     _scrollToTopController.dispose();
     super.dispose();
   }
 
-  void _attachFocusListener() {
-    if (_focusListenerAttached) return;
-    FocusManager.instance.addListener(_handlePrimaryFocusChanged);
-    _focusListenerAttached = true;
-  }
-
-  void _detachFocusListener() {
-    if (!_focusListenerAttached) return;
-    FocusManager.instance.removeListener(_handlePrimaryFocusChanged);
-    _focusListenerAttached = false;
-  }
-
-  void _handlePrimaryFocusChanged() {
-    if (!mounted || !context.mounted) return;
-
-    final focusedNode = FocusManager.instance.primaryFocus;
-    if (focusedNode == null || !focusedNode.canRequestFocus) {
-      return;
-    }
-    if (!_ShellFocusContentMarker.contains(focusedNode.context)) {
-      return;
-    }
-
-    if (_shellFocusCoordinator.isSidebarFocused) {
-      return;
-    }
-
-    final selectedTab = ref.read(selectedTabProvider);
-    _shellFocusCoordinator.rememberContentFocus(selectedTab, focusedNode);
-  }
-
-  bool _isTvMode(BuildContext context) {
-    // Override explicite (flag) en priorité (recommandé)
+  ScreenType _resolveScreenType(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final detected = ScreenTypeResolver.instance.resolve(
+      size.width,
+      size.height,
+    );
     final override = widget.forceTvMode;
-    if (override != null) return override;
-
-    // Fallback platform : heuristique simple (à affiner si tu ajoutes un vrai détecteur Android TV).
-    // On évite toute string/texte brut ici.
-    if (kIsWeb) return false;
-    final platform = defaultTargetPlatform;
-    if (platform == TargetPlatform.android) {
-      // Heuristique : grands écrans Android => potentiellement TV.
-      final shortestSide = MediaQuery.sizeOf(context).shortestSide;
-      return shortestSide >= 600;
+    if (override == true) return ScreenType.tv;
+    if (override == false && detected == ScreenType.tv) {
+      return ScreenType.desktop;
     }
-    return false;
+    return detected;
   }
 
   List<WidgetBuilder> _buildPageBuilders() {
@@ -222,8 +161,9 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
     final sidebarDestinations = buildSidebarDestinations(context);
     final pageBuilders = _buildPageBuilders();
 
-    final isLarge = MediaQuery.sizeOf(context).width >= widget.largeBreakpoint;
-    final isTv = isLarge && _isTvMode(context);
+    final screenType = _resolveScreenType(context);
+    final isLarge = screenType != ScreenType.mobile;
+    final isTv = screenType == ScreenType.tv;
     final selectedTab = shellTabFromIndex(selectedIndex);
     final focusCoordinator = ref.read(shellFocusCoordinatorProvider);
     void handleSidebarFocusedIndexChanged(int index) {
@@ -248,107 +188,103 @@ class _AppShellPageState extends ConsumerState<AppShellPage> {
 
     // Wrap global shortcuts (Ctrl+1..4 + Escape + Up/Down pour sidebar quand focus).
     // Pas de texte brut : pas de loadingLabel ici.
-    final shellBody = _ShellFocusContentMarker(
-      child: Focus(
-        onKeyEvent: (_, event) {
-          if (event is! KeyDownEvent) return KeyEventResult.ignored;
-          if (_isTextInputFocused()) return KeyEventResult.ignored;
+    final shellBody = Focus(
+      onKeyEvent: (_, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (_isTextInputFocused()) return KeyEventResult.ignored;
 
-          if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
-              focusCoordinator.isSidebarFocused) {
-            final targetIndex =
-                focusCoordinator.sidebarFocusedIndex ?? selectedIndex;
-            final targetTab = shellTabFromIndex(targetIndex);
-            final preferPrimaryEntry = targetTab == ShellTab.library;
-            if (targetIndex != selectedIndex) {
-              shellSelectIndex(ref, targetIndex);
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                if (preferPrimaryEntry) {
-                  _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
-                } else {
-                  _focusTabEntryWithRetry(focusCoordinator, targetTab);
-                }
-              });
-              return KeyEventResult.handled;
-            }
-            final focused = preferPrimaryEntry
-                ? focusCoordinator.focusTabPrimaryEntry(targetTab)
-                : focusCoordinator.focusTabEntry(targetTab);
-            if (!focused) {
+        if (event.logicalKey == LogicalKeyboardKey.arrowRight &&
+            focusCoordinator.isSidebarFocused) {
+          final targetIndex =
+              focusCoordinator.sidebarFocusedIndex ?? selectedIndex;
+          final targetTab = shellTabFromIndex(targetIndex);
+          final preferPrimaryEntry = targetTab == ShellTab.library;
+          if (targetIndex != selectedIndex) {
+            shellSelectIndex(ref, targetIndex);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
               if (preferPrimaryEntry) {
                 _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
               } else {
                 _focusTabEntryWithRetry(focusCoordinator, targetTab);
               }
+            });
+            return KeyEventResult.handled;
+          }
+          final focused = preferPrimaryEntry
+              ? focusCoordinator.focusTabPrimaryEntry(targetTab)
+              : focusCoordinator.focusTabEntry(targetTab);
+          if (!focused) {
+            if (preferPrimaryEntry) {
+              _focusPrimaryEntryWithRetry(focusCoordinator, targetTab);
+            } else {
+              _focusTabEntryWithRetry(focusCoordinator, targetTab);
             }
-            return KeyEventResult.handled;
           }
+          return KeyEventResult.handled;
+        }
 
-          if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
-              !focusCoordinator.isSidebarFocused) {
-            final focusedNode = FocusManager.instance.primaryFocus;
-            if (focusedNode == null) return KeyEventResult.ignored;
-            final moved = focusedNode.focusInDirection(TraversalDirection.left);
-            if (moved) return KeyEventResult.handled;
-            focusCoordinator.rememberContentFocus(selectedTab, focusedNode);
-            _sidebarFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          }
+        if (event.logicalKey == LogicalKeyboardKey.arrowLeft &&
+            !focusCoordinator.isSidebarFocused) {
+          final focusedNode = FocusManager.instance.primaryFocus;
+          if (focusedNode == null) return KeyEventResult.ignored;
+          final moved = focusedNode.focusInDirection(TraversalDirection.left);
+          if (moved) return KeyEventResult.handled;
+          focusCoordinator.resolveTabExit(selectedTab, DirectionalEdge.left);
+          return KeyEventResult.handled;
+        }
 
-          if (event.logicalKey == LogicalKeyboardKey.backspace &&
-              (selectedTab == ShellTab.home ||
-                  selectedTab == ShellTab.search ||
-                  selectedTab == ShellTab.library) &&
-              !focusCoordinator.isSidebarFocused) {
-            final focusedNode = FocusManager.instance.primaryFocus;
-            if (focusedNode == null) return KeyEventResult.ignored;
-            focusCoordinator.rememberContentFocus(selectedTab, focusedNode);
-            _sidebarFocusNode.requestFocus();
-            return KeyEventResult.handled;
-          }
+        if (event.logicalKey == LogicalKeyboardKey.backspace &&
+            (selectedTab == ShellTab.home ||
+                selectedTab == ShellTab.search ||
+                selectedTab == ShellTab.library) &&
+            !focusCoordinator.isSidebarFocused) {
+          final focusedNode = FocusManager.instance.primaryFocus;
+          if (focusedNode == null) return KeyEventResult.ignored;
+          focusCoordinator.resolveTabExit(selectedTab, DirectionalEdge.back);
+          return KeyEventResult.handled;
+        }
 
-          return KeyEventResult.ignored;
-        },
-        child: ShellShortcuts(
-          onSelectTab: (tab) => shellSelectTab(ref, tab),
-          child: isLarge
-              ? (isTv
-                    ? AppShellTvLayout(
-                        selectedIndex: selectedIndex,
-                        onNavTap: handleNavTap,
-                        destinations: sidebarDestinations,
-                        pageBuilders: pageBuilders,
-                        keepAliveIndices: keepAliveIndices,
-                        sidebarFocusNode: _sidebarFocusNode,
-                        scrollControllerForIndex:
-                            _scrollToTopController.controllerForIndex,
-                        sidebarLogo: widget.sidebarLogo,
-                        onSidebarFocusedIndexChanged:
-                            handleSidebarFocusedIndexChanged,
-                      )
-                    : AppShellLargeLayout(
-                        selectedIndex: selectedIndex,
-                        onNavTap: handleNavTap,
-                        destinations: sidebarDestinations,
-                        pageBuilders: pageBuilders,
-                        keepAliveIndices: keepAliveIndices,
-                        sidebarFocusNode: _sidebarFocusNode,
-                        scrollControllerForIndex:
-                            _scrollToTopController.controllerForIndex,
-                        sidebarLogo: widget.sidebarLogo,
-                        onSidebarFocusedIndexChanged:
-                            handleSidebarFocusedIndexChanged,
-                      ))
-              : AppShellMobileLayout(
-                  selectedIndex: selectedIndex,
-                  onNavTap: handleNavTap,
-                  destinations: sidebarDestinations,
-                  pageBuilders: pageBuilders,
-                  scrollControllerForIndex:
-                      _scrollToTopController.controllerForIndex,
-                ),
-        ),
+        return KeyEventResult.ignored;
+      },
+      child: ShellShortcuts(
+        onSelectTab: (tab) => shellSelectTab(ref, tab),
+        child: isLarge
+            ? (isTv
+                  ? AppShellTvLayout(
+                      selectedIndex: selectedIndex,
+                      onNavTap: handleNavTap,
+                      destinations: sidebarDestinations,
+                      pageBuilders: pageBuilders,
+                      keepAliveIndices: keepAliveIndices,
+                      sidebarFocusNode: _sidebarFocusNode,
+                      scrollControllerForIndex:
+                          _scrollToTopController.controllerForIndex,
+                      sidebarLogo: widget.sidebarLogo,
+                      onSidebarFocusedIndexChanged:
+                          handleSidebarFocusedIndexChanged,
+                    )
+                  : AppShellLargeLayout(
+                      selectedIndex: selectedIndex,
+                      onNavTap: handleNavTap,
+                      destinations: sidebarDestinations,
+                      pageBuilders: pageBuilders,
+                      keepAliveIndices: keepAliveIndices,
+                      sidebarFocusNode: _sidebarFocusNode,
+                      scrollControllerForIndex:
+                          _scrollToTopController.controllerForIndex,
+                      sidebarLogo: widget.sidebarLogo,
+                      onSidebarFocusedIndexChanged:
+                          handleSidebarFocusedIndexChanged,
+                    ))
+            : AppShellMobileLayout(
+                selectedIndex: selectedIndex,
+                onNavTap: handleNavTap,
+                destinations: sidebarDestinations,
+                pageBuilders: pageBuilders,
+                scrollControllerForIndex:
+                    _scrollToTopController.controllerForIndex,
+              ),
       ),
     );
 

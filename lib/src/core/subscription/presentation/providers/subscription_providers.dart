@@ -20,11 +20,15 @@ import 'package:movi/src/core/subscription/domain/repositories/subscription_repo
 import 'package:movi/src/core/subscription/subscription_module.dart';
 import 'package:movi/src/core/supabase/supabase_providers.dart';
 
-const bool _forcePremiumForTesting =
-    bool.fromEnvironment('FORCE_PREMIUM', defaultValue: false);
+const bool _forcePremiumForTesting = bool.fromEnvironment(
+  'FORCE_PREMIUM',
+  defaultValue: false,
+);
 
-const bool _allowForcePremiumInRelease =
-    bool.fromEnvironment('ALLOW_FORCE_PREMIUM_IN_RELEASE', defaultValue: false);
+const bool _allowForcePremiumInRelease = bool.fromEnvironment(
+  'ALLOW_FORCE_PREMIUM_IN_RELEASE',
+  defaultValue: false,
+);
 
 void _ensureSubscriptionModule(GetIt locator) {
   if (!locator.isRegistered<SubscriptionRepository>()) {
@@ -89,16 +93,15 @@ final currentSubscriptionProvider = FutureProvider<SubscriptionSnapshot>((ref) {
   return getCurrentSubscription().then((localSnapshot) async {
     // Test override: allow forcing Premium for beta builds.
     // Release builds require an explicit opt-in.
-    if (_forcePremiumForTesting && (!kReleaseMode || _allowForcePremiumInRelease)) {
+    if (_forcePremiumForTesting &&
+        (!kReleaseMode || _allowForcePremiumInRelease)) {
       return SubscriptionSnapshot(
         status: SubscriptionStatus.active,
         billingAvailability: localSnapshot.billingAvailability,
         entitlements: PremiumFeature.values
             .map(
-              (feature) => SubscriptionEntitlement(
-                feature: feature,
-                isActive: true,
-              ),
+              (feature) =>
+                  SubscriptionEntitlement(feature: feature, isActive: true),
             )
             .toList(growable: false),
         activePlanId: 'forced_premium_testing',

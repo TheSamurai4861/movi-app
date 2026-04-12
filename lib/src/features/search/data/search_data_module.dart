@@ -2,6 +2,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/features/iptv/application/iptv_catalog_reader.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_discovery_cache_data_source.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/shared/data/services/similarity/hybrid_similarity_service.dart';
@@ -9,7 +10,6 @@ import 'package:movi/src/shared/domain/services/playlist_tmdb_enrichment_service
 import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
 import 'package:movi/src/features/search/data/datasources/search_history_local_data_source.dart';
-import 'package:movi/src/features/search/data/datasources/search_local_data_source.dart';
 import 'package:movi/src/features/search/data/search_repository_impl.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
 import 'package:movi/src/features/search/domain/repositories/search_history_repository.dart';
@@ -36,17 +36,12 @@ class SearchDataModule {
         () => TmdbWatchProvidersRemoteDataSource(sl<TmdbClient>()),
       );
     }
-    if (!sl.isRegistered<SearchLocalDataSource>()) {
-      sl.registerLazySingleton<SearchLocalDataSource>(
-        () => SearchLocalDataSource(sl()),
-      );
-    }
     if (!sl.isRegistered<SearchRepository>()) {
       sl.registerLazySingleton<SearchRepository>(
         () => SearchRepositoryImpl(
           sl<TmdbSearchRemoteDataSource>(),
           sl<TmdbWatchProvidersRemoteDataSource>(),
-          sl<SearchLocalDataSource>(),
+          sl<TmdbDiscoveryCacheDataSource>(),
           sl<TmdbImageResolver>(),
           sl<IptvCatalogReader>(),
           sl<SimilarityService>(),

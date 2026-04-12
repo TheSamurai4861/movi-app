@@ -43,30 +43,28 @@ class PersonFilmographySection extends StatelessWidget {
             items: movies
                 .asMap()
                 .entries
-                .map(
-                  (entry) {
-                    final index = entry.key;
-                    final media = entry.value;
-                    final card = MoviMediaCard(
-                      media: media,
-                      focusNode: index == 0 ? firstMovieFocusNode : null,
-                      onTap: (m) => context.push(
-                        AppRouteNames.movie,
-                        extra: ContentRouteArgs.movie(m.id),
-                      ),
-                    );
-                    if (index != 0 || onFirstMovieKeyEvent == null) {
-                      return card;
-                    }
-                    return Focus(
-                      canRequestFocus: false,
-                      onKeyEvent: (_, event) =>
-                          onFirstMovieKeyEvent?.call(event) ??
-                          KeyEventResult.ignored,
-                      child: card,
-                    );
-                  },
-                )
+                .map((entry) {
+                  final index = entry.key;
+                  final media = entry.value;
+                  final card = MoviMediaCard(
+                    media: media,
+                    focusNode: index == 0 ? firstMovieFocusNode : null,
+                    onTap: (m) => context.push(
+                      AppRouteNames.movie,
+                      extra: ContentRouteArgs.movie(m.id),
+                    ),
+                  );
+                  if (index != 0 || onFirstMovieKeyEvent == null) {
+                    return card;
+                  }
+                  return Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) =>
+                        onFirstMovieKeyEvent?.call(event) ??
+                        KeyEventResult.ignored,
+                    child: card,
+                  );
+                })
                 .toList(growable: false),
           ),
         ],
@@ -82,29 +80,24 @@ class PersonFilmographySection extends StatelessWidget {
             items: shows
                 .asMap()
                 .entries
-                .map(
-                  (entry) {
-                    final index = entry.key;
-                    final media = entry.value;
-                    final card = MoviMediaCard(
-                      media: media,
-                      focusNode: index == 0 ? firstShowFocusNode : null,
-                      onTap: (m) => context.push(
-                        AppRouteNames.tv,
-                        extra: ContentRouteArgs.series(m.id),
-                      ),
-                    );
-                    return Focus(
-                      canRequestFocus: false,
-                      onKeyEvent: (_, event) =>
-                          _handleShowCardKeyEvent(
-                            event,
-                            isFirst: index == 0,
-                          ),
-                      child: card,
-                    );
-                  },
-                )
+                .map((entry) {
+                  final index = entry.key;
+                  final media = entry.value;
+                  final card = MoviMediaCard(
+                    media: media,
+                    focusNode: index == 0 ? firstShowFocusNode : null,
+                    onTap: (m) => context.push(
+                      AppRouteNames.tv,
+                      extra: ContentRouteArgs.series(m.id),
+                    ),
+                  );
+                  return Focus(
+                    canRequestFocus: false,
+                    onKeyEvent: (_, event) =>
+                        _handleShowCardKeyEvent(event, isFirst: index == 0),
+                    child: card,
+                  );
+                })
                 .toList(growable: false),
           ),
           const SizedBox(height: 32),

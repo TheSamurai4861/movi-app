@@ -30,7 +30,9 @@ class _VideoFitModeSelectionMenuState extends State<VideoFitModeSelectionMenu> {
   late final FocusNode _coverFocusNode = FocusNode(
     debugLabel: 'video_fit_cover',
   );
-  late final FocusNode _closeFocusNode = FocusNode(debugLabel: 'video_fit_close');
+  late final FocusNode _closeFocusNode = FocusNode(
+    debugLabel: 'video_fit_close',
+  );
 
   @override
   void dispose() {
@@ -188,8 +190,9 @@ class _VideoFitModeOptionTile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: isActive ? Colors.white : Colors.white70,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: selected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                 ),

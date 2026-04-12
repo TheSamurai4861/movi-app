@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/router/app_route_names.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
-import 'package:movi/src/features/settings/presentation/pages/xtream_source_test_page.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_network_profile_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_source_edit_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
-import 'package:movi/src/features/settings/presentation/widgets/xtream_route_policy_form_section.dart';
 
 class IptvSourceEditPage extends ConsumerStatefulWidget {
   const IptvSourceEditPage({super.key, required this.accountId});
@@ -120,104 +117,6 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
     }
   }
 
-  Future<void> _openNetworkProfiles() async {
-    await context.push(AppRouteNames.iptvNetworkProfiles);
-    if (!mounted) return;
-    ref.invalidate(routeProfilesProvider);
-  }
-
-  Future<void> _openSourceTest() async {
-    if (_serverCtrl.text.trim().isEmpty ||
-        _userCtrl.text.trim().isEmpty ||
-        _passCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Saisis URL, utilisateur et mot de passe avant le test.'),
-        ),
-      );
-      return;
-    }
-    final routeSelection = await _normalizeRouteSelection();
-    if (!mounted) return;
-    await context.push(
-      AppRouteNames.xtreamSourceTest,
-      extra: XtreamSourceTestPageArgs(
-        serverUrl: _serverCtrl.text.trim(),
-        username: _userCtrl.text.trim(),
-        password: _passCtrl.text,
-        preferredRouteProfileId: routeSelection.$1,
-        fallbackRouteProfileIds: routeSelection.$2,
-        accountId: widget.accountId,
-      ),
-    );
-    if (!mounted) return;
-    ref.invalidate(sourceConnectionPolicyProvider(widget.accountId));
-  }
-
-  Future<void> _pickFallbackProfiles(List<RouteProfile> profiles) async {
-    final current = Set<String>.from(_fallbackRouteProfileIds);
-    final candidates = profiles
-        .where((profile) => profile.id != _preferredRouteProfileId)
-        .toList(growable: false);
-    final selected = await showDialog<List<String>>(
-      context: context,
-      builder: (context) {
-        final temp = Set<String>.from(current);
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Profils de secours'),
-              content: SizedBox(
-                width: 420,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final profile in candidates)
-                        CheckboxListTile(
-                          value: temp.contains(profile.id),
-                          title: Text(profile.name),
-                          subtitle: Text(
-                            profile.kind == RouteProfileKind.defaultRoute
-                                ? 'systeme'
-                                : '${profile.proxyHost ?? '-'}:${profile.proxyPort ?? '-'}',
-                          ),
-                          onChanged: (checked) {
-                            setState(() {
-                              if (checked == true) {
-                                temp.add(profile.id);
-                              } else {
-                                temp.remove(profile.id);
-                              }
-                            });
-                          },
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Annuler'),
-                ),
-                FilledButton(
-                  onPressed: () =>
-                      Navigator.of(context).pop(temp.toList(growable: false)),
-                  child: const Text('Valider'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    if (selected == null || !mounted) return;
-    setState(() {
-      _fallbackRouteProfileIds = selected;
-    });
-  }
-
   Future<(String, List<String>)> _normalizeRouteSelection() async {
     final profiles = await ref.read(routeProfilesProvider.future);
     final ids = profiles.map((profile) => profile.id).toSet();
@@ -245,12 +144,9 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
     final passwordAsync = ref.watch(
       iptvAccountPasswordProvider(widget.accountId),
     );
-    final policyAsync = ref.watch(sourceConnectionPolicyProvider(widget.accountId));
-    final routeProfiles = ref.watch(routeProfilesProvider).maybeWhen(
-      data: (profiles) => profiles,
-      orElse: () => <RouteProfile>[RouteProfile.defaultProfile()],
+    final policyAsync = ref.watch(
+      sourceConnectionPolicyProvider(widget.accountId),
     );
-
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -297,11 +193,6 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                         error: (_, __) {},
                         loading: () {},
                       );
-                      final lastWorkingRouteProfileId = policyAsync.maybeWhen(
-                        data: (policy) => policy.lastWorkingRouteProfileId,
-                        orElse: () => null,
-                      );
-
                       return LayoutBuilder(
                         builder: (context, constraints) {
                           return SingleChildScrollView(
@@ -381,33 +272,6 @@ class _IptvSourceEditPageState extends ConsumerState<IptvSourceEditPage> {
                                               (v == null || v.isEmpty)
                                               ? l10n.validationRequired
                                               : null,
-                                        ),
-                                        const SizedBox(height: 20),
-                                        XtreamRoutePolicyFormSection(
-                                          profiles: routeProfiles,
-                                          preferredRouteProfileId:
-                                              _preferredRouteProfileId,
-                                          fallbackRouteProfileIds:
-                                              _fallbackRouteProfileIds,
-                                          lastWorkingRouteProfileId:
-                                              lastWorkingRouteProfileId,
-                                          onPreferredChanged: (value) {
-                                            final next =
-                                                value ?? RouteProfile.defaultId;
-                                            setState(() {
-                                              _preferredRouteProfileId = next;
-                                              _fallbackRouteProfileIds =
-                                                  _fallbackRouteProfileIds
-                                                      .where((id) => id != next)
-                                                      .toList(growable: false);
-                                            });
-                                          },
-                                          onEditFallbacks: () =>
-                                              _pickFallbackProfiles(routeProfiles),
-                                          onOpenNetworkProfiles:
-                                              _openNetworkProfiles,
-                                          onTestSource: _openSourceTest,
-                                          enabled: !state.isLoading,
                                         ),
                                         const SizedBox(height: 32),
                                         SizedBox(

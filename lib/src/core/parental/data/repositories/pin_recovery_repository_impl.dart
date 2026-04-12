@@ -38,7 +38,9 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
     }
 
     try {
-      final response = await _remote.requestCode(profileId: normalizedProfileId);
+      final response = await _remote.requestCode(
+        profileId: normalizedProfileId,
+      );
       return _mapResponse(response);
     } catch (error) {
       return PinRecoveryResult.failure(_mapError(error));
@@ -87,7 +89,10 @@ class PinRecoveryRepositoryImpl implements PinRecoveryRepository {
     PinRecoveryResponseDto response, {
     bool requireResetTokenOnSuccess = false,
   }) {
-    final status = _mapStatus(status: response.status, message: response.message);
+    final status = _mapStatus(
+      status: response.status,
+      message: response.message,
+    );
 
     if (status != PinRecoveryStatus.success) {
       return PinRecoveryResult.failure(status);

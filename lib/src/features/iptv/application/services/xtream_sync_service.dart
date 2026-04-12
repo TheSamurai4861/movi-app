@@ -209,11 +209,7 @@ class XtreamSyncService {
           }
         } catch (error, stack) {
           failedAccounts += 1;
-          _logger.error(
-            'Xtream sync failed for $safeAccountId',
-            error,
-            stack,
-          );
+          _logger.error('Xtream sync failed for $safeAccountId', error, stack);
         }
       }
 

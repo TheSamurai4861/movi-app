@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 typedef PlayerSeekTo = FutureOr<void> Function(Duration position);
-typedef ResumeTelemetry = void Function(String result, Map<String, Object?> ctx);
+typedef ResumeTelemetry =
+    void Function(String result, Map<String, Object?> ctx);
 
 /// Orchestrateur de reprise (MR-M2).
 ///
@@ -84,24 +85,18 @@ final class PlayerResumeOrchestrator {
     }
 
     if (reportedDuration <= Duration.zero) {
-      _telemetry?.call(
-        'wait_duration_zero',
-        <String, Object?>{
-          'resumeMs': resume.inMilliseconds,
-          'durationMs': reportedDuration.inMilliseconds,
-        },
-      );
+      _telemetry?.call('wait_duration_zero', <String, Object?>{
+        'resumeMs': resume.inMilliseconds,
+        'durationMs': reportedDuration.inMilliseconds,
+      });
       return;
     }
 
     if (reportedDuration < resume + _safetyMargin) {
-      _telemetry?.call(
-        'wait_duration_not_ready_for_resume',
-        <String, Object?>{
-          'resumeMs': resume.inMilliseconds,
-          'durationMs': reportedDuration.inMilliseconds,
-        },
-      );
+      _telemetry?.call('wait_duration_not_ready_for_resume', <String, Object?>{
+        'resumeMs': resume.inMilliseconds,
+        'durationMs': reportedDuration.inMilliseconds,
+      });
       return;
     }
 
@@ -109,38 +104,29 @@ final class PlayerResumeOrchestrator {
         ? reportedDuration - _safetyMargin
         : Duration.zero;
     if (maxSeek <= Duration.zero) {
-      _telemetry?.call(
-        'wait_duration_unstable',
-        <String, Object?>{
-          'resumeMs': resume.inMilliseconds,
-          'durationMs': reportedDuration.inMilliseconds,
-        },
-      );
+      _telemetry?.call('wait_duration_unstable', <String, Object?>{
+        'resumeMs': resume.inMilliseconds,
+        'durationMs': reportedDuration.inMilliseconds,
+      });
       return;
     }
 
     final target = resume <= maxSeek ? resume : maxSeek;
     if (target <= Duration.zero) {
-      _settle(
-        'skip_target_zero',
-        <String, Object?>{
-          'requestedMs': resume.inMilliseconds,
-          'durationMs': reportedDuration.inMilliseconds,
-        },
-      );
+      _settle('skip_target_zero', <String, Object?>{
+        'requestedMs': resume.inMilliseconds,
+        'durationMs': reportedDuration.inMilliseconds,
+      });
       return;
     }
 
     if (_seekIssued && _appliedTarget == target) {
-      _telemetry?.call(
-        'wait_position_confirmation',
-        <String, Object?>{
-          'requestedMs': resume.inMilliseconds,
-          'appliedMs': target.inMilliseconds,
-          'durationMs': reportedDuration.inMilliseconds,
-          'reseekAttempts': _reseekAttempts,
-        },
-      );
+      _telemetry?.call('wait_position_confirmation', <String, Object?>{
+        'requestedMs': resume.inMilliseconds,
+        'appliedMs': target.inMilliseconds,
+        'durationMs': reportedDuration.inMilliseconds,
+        'reseekAttempts': _reseekAttempts,
+      });
       return;
     }
 
@@ -167,28 +153,22 @@ final class PlayerResumeOrchestrator {
       final confirmedAt = _confirmedAt;
       if (confirmedAt == null) {
         _confirmedAt = now;
-        _telemetry?.call(
-          'applied_confirmed_candidate',
-          <String, Object?>{
-            'appliedMs': target.inMilliseconds,
-            'positionMs': reportedPosition.inMilliseconds,
-            'stableMs': _stableConfirmation.inMilliseconds,
-            'reseekAttempts': _reseekAttempts,
-          },
-        );
+        _telemetry?.call('applied_confirmed_candidate', <String, Object?>{
+          'appliedMs': target.inMilliseconds,
+          'positionMs': reportedPosition.inMilliseconds,
+          'stableMs': _stableConfirmation.inMilliseconds,
+          'reseekAttempts': _reseekAttempts,
+        });
         return;
       }
 
       if (now.difference(confirmedAt) >= _stableConfirmation) {
-        _settle(
-          'applied_confirmed',
-          <String, Object?>{
-            'appliedMs': target.inMilliseconds,
-            'positionMs': reportedPosition.inMilliseconds,
-            'stableMs': _stableConfirmation.inMilliseconds,
-            'reseekAttempts': _reseekAttempts,
-          },
-        );
+        _settle('applied_confirmed', <String, Object?>{
+          'appliedMs': target.inMilliseconds,
+          'positionMs': reportedPosition.inMilliseconds,
+          'stableMs': _stableConfirmation.inMilliseconds,
+          'reseekAttempts': _reseekAttempts,
+        });
       }
       return;
     }
@@ -197,15 +177,12 @@ final class PlayerResumeOrchestrator {
     _confirmedAt = null;
 
     if (_isTimedOut()) {
-      _settle(
-        'verify_timeout',
-        <String, Object?>{
-          'appliedMs': target.inMilliseconds,
-          'positionMs': reportedPosition.inMilliseconds,
-          'timeoutMs': _maxWait.inMilliseconds,
-          'reseekAttempts': _reseekAttempts,
-        },
-      );
+      _settle('verify_timeout', <String, Object?>{
+        'appliedMs': target.inMilliseconds,
+        'positionMs': reportedPosition.inMilliseconds,
+        'timeoutMs': _maxWait.inMilliseconds,
+        'reseekAttempts': _reseekAttempts,
+      });
       return;
     }
 
@@ -220,15 +197,12 @@ final class PlayerResumeOrchestrator {
       return;
     }
 
-    _telemetry?.call(
-      'wait_position_confirmation',
-      <String, Object?>{
-        'appliedMs': target.inMilliseconds,
-        'positionMs': reportedPosition.inMilliseconds,
-        'toleranceMs': _seekConfirmationTolerance.inMilliseconds,
-        'reseekAttempts': _reseekAttempts,
-      },
-    );
+    _telemetry?.call('wait_position_confirmation', <String, Object?>{
+      'appliedMs': target.inMilliseconds,
+      'positionMs': reportedPosition.inMilliseconds,
+      'toleranceMs': _seekConfirmationTolerance.inMilliseconds,
+      'reseekAttempts': _reseekAttempts,
+    });
   }
 
   bool get _hasRequestedResume {
@@ -247,28 +221,22 @@ final class PlayerResumeOrchestrator {
 
     try {
       await _seekTo(target);
-      _telemetry?.call(
-        'seek_issued',
-        <String, Object?>{
-          'reason': reason,
-          'appliedMs': target.inMilliseconds,
-          'durationMs': reportedDuration?.inMilliseconds,
-          'positionMs': reportedPosition?.inMilliseconds,
-          'reseekAttempts': _reseekAttempts,
-        },
-      );
+      _telemetry?.call('seek_issued', <String, Object?>{
+        'reason': reason,
+        'appliedMs': target.inMilliseconds,
+        'durationMs': reportedDuration?.inMilliseconds,
+        'positionMs': reportedPosition?.inMilliseconds,
+        'reseekAttempts': _reseekAttempts,
+      });
     } catch (e) {
-      _settle(
-        'seek_failed',
-        <String, Object?>{
-          'reason': reason,
-          'appliedMs': target.inMilliseconds,
-          'durationMs': reportedDuration?.inMilliseconds,
-          'positionMs': reportedPosition?.inMilliseconds,
-          'reseekAttempts': _reseekAttempts,
-          'errorType': kDebugMode ? e.runtimeType.toString() : null,
-        },
-      );
+      _settle('seek_failed', <String, Object?>{
+        'reason': reason,
+        'appliedMs': target.inMilliseconds,
+        'durationMs': reportedDuration?.inMilliseconds,
+        'positionMs': reportedPosition?.inMilliseconds,
+        'reseekAttempts': _reseekAttempts,
+        'errorType': kDebugMode ? e.runtimeType.toString() : null,
+      });
     }
   }
 
@@ -286,8 +254,8 @@ final class PlayerResumeOrchestrator {
   }
 
   bool _isWithinTolerance(Duration reportedPosition, Duration target) {
-    final deltaMs =
-        (reportedPosition.inMilliseconds - target.inMilliseconds).abs();
+    final deltaMs = (reportedPosition.inMilliseconds - target.inMilliseconds)
+        .abs();
     return deltaMs <= _seekConfirmationTolerance.inMilliseconds;
   }
 

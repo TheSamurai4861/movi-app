@@ -35,7 +35,8 @@ class ExportDiagnosticsSheet extends ConsumerStatefulWidget {
       _ExportDiagnosticsSheetState();
 }
 
-class _ExportDiagnosticsSheetState extends ConsumerState<ExportDiagnosticsSheet> {
+class _ExportDiagnosticsSheetState
+    extends ConsumerState<ExportDiagnosticsSheet> {
   bool _busy = false;
   String? _error;
   String? _success;
@@ -242,4 +243,3 @@ class _ExportDiagnosticsSheetState extends ConsumerState<ExportDiagnosticsSheet>
     );
   }
 }
-

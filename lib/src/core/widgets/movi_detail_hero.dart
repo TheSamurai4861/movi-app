@@ -18,6 +18,7 @@ class MoviDetailHeroScene extends StatelessWidget {
 
   static const double defaultMobileHeight = 400;
   static const double defaultWideHeight = 520;
+  static const double defaultWideHeightFactor = 0.7;
 
   final bool isWideLayout;
   final Widget background;
@@ -30,8 +31,12 @@ class MoviDetailHeroScene extends StatelessWidget {
     required bool isWideLayout,
     double mobileHeight = defaultMobileHeight,
     double wideHeight = defaultWideHeight,
+    double? screenHeight,
   }) {
-    return isWideLayout ? wideHeight : mobileHeight;
+    if (!isWideLayout) return mobileHeight;
+    if (wideHeight != defaultWideHeight) return wideHeight;
+    if (screenHeight == null || screenHeight <= 0) return wideHeight;
+    return screenHeight * defaultWideHeightFactor;
   }
 
   static MoviHeroOverlaySpec overlaySpecFor({required bool isWideLayout}) {
@@ -40,10 +45,12 @@ class MoviDetailHeroScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
     final heroHeight = heightFor(
       isWideLayout: isWideLayout,
       mobileHeight: mobileHeight,
       wideHeight: wideHeight,
+      screenHeight: screenHeight,
     );
 
     return SizedBox(

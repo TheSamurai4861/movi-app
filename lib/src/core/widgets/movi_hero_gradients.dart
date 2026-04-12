@@ -30,7 +30,7 @@ class MoviHeroOverlaySpec {
     topStops: [0.0, 0.22, 0.5, 0.78, 1.0],
     topOpacities: [1.0, 0.92, 0.58, 0.18, 0.0],
     bottomStops: [0.0, 0.16, 0.34, 0.56, 0.78, 1.0],
-    bottomOpacities: [0.10, 0.18, 0.30, 0.48, 0.72, 1.0],
+    bottomOpacities: [0.0, 0.18, 0.30, 0.48, 0.72, 1.0],
   );
 
   static const MoviHeroOverlaySpec homeWide = MoviHeroOverlaySpec(
@@ -51,7 +51,7 @@ class MoviHeroOverlaySpec {
     topStops: [0.0, 0.22, 0.5, 0.78, 1.0],
     topOpacities: [1.0, 0.92, 0.58, 0.18, 0.0],
     bottomStops: [0.0, 0.16, 0.34, 0.56, 0.78, 1.0],
-    bottomOpacities: [0.10, 0.18, 0.30, 0.48, 0.72, 1.0],
+    bottomOpacities: [0.0, 0.18, 0.30, 0.48, 0.72, 1.0],
     showGlobalTint: false,
     showTopFade: false,
     sideFadeEnabled: false,

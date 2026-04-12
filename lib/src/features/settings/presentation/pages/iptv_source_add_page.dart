@@ -14,12 +14,10 @@ import 'package:movi/src/core/widgets/movi_primary_button.dart';
 import 'package:movi/src/core/widgets/movi_subpage_back_title_header.dart';
 import 'package:movi/src/features/iptv/domain/entities/source_connection_models.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
-import 'package:movi/src/features/settings/presentation/pages/xtream_source_test_page.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_network_profile_providers.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_sources_providers.dart';
 import 'package:movi/src/features/settings/presentation/widgets/settings_content_width.dart';
-import 'package:movi/src/features/settings/presentation/widgets/xtream_route_policy_form_section.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
 import 'package:movi/src/core/storage/repositories/iptv_local_repository.dart';
 
@@ -46,6 +44,7 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
 
   bool _hasSubmitted = false;
   bool _obscurePassword = true;
+  bool _isHandlingBack = false;
   final IptvSourceType _sourceType = IptvSourceType.xtream;
   String _preferredRouteProfileId = RouteProfile.defaultId;
   List<String> _fallbackRouteProfileIds = const <String>[];
@@ -118,15 +117,29 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     return KeyEventResult.ignored;
   }
 
+  String? _determineFallbackRoute(BuildContext context) {
+    if (context.canPop()) {
+      return null;
+    }
+    return AppRouteNames.iptvSources;
+  }
+
   bool _handleBack(BuildContext context) {
-    if (!context.mounted) {
+    if (!context.mounted || _isHandlingBack) {
       return false;
     }
-    final navigator = Navigator.of(context);
-    if (!navigator.canPop()) {
-      return false;
+    _isHandlingBack = true;
+    final fallbackRoute = _determineFallbackRoute(context);
+    if (fallbackRoute == null) {
+      context.pop();
+    } else {
+      context.go(fallbackRoute);
     }
-    navigator.maybePop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _isHandlingBack = false;
+      }
+    });
     return true;
   }
 
@@ -204,60 +217,6 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
     }
   }
 
-  Future<void> _openNetworkProfiles() async {
-    await context.push(AppRouteNames.iptvNetworkProfiles);
-    if (!mounted) return;
-    ref.invalidate(routeProfilesProvider);
-  }
-
-  Future<void> _openSourceTest() async {
-    if (_serverCtrl.text.trim().isEmpty ||
-        _userCtrl.text.trim().isEmpty ||
-        _passCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Saisis URL, utilisateur et mot de passe avant le test.',
-          ),
-        ),
-      );
-      return;
-    }
-    final routeSelection = await _normalizeRouteSelection();
-    if (!mounted) return;
-    await context.push(
-      AppRouteNames.xtreamSourceTest,
-      extra: XtreamSourceTestPageArgs(
-        serverUrl: _serverCtrl.text.trim(),
-        username: _userCtrl.text.trim(),
-        password: _passCtrl.text,
-        preferredRouteProfileId: routeSelection.$1,
-        fallbackRouteProfileIds: routeSelection.$2,
-      ),
-    );
-  }
-
-  Future<void> _pickFallbackProfiles(List<RouteProfile> profiles) async {
-    final current = Set<String>.from(_fallbackRouteProfileIds);
-    final candidates = profiles
-        .where((profile) => profile.id != _preferredRouteProfileId)
-        .toList(growable: false);
-    final selected = await showDialog<List<String>>(
-      context: context,
-      builder: (dialogContext) {
-        return _FallbackProfilesDialog(
-          candidates: candidates,
-          initialSelectedIds: current,
-          triggerFocusNode: FocusManager.instance.primaryFocus,
-        );
-      },
-    );
-    if (selected == null || !mounted) return;
-    setState(() {
-      _fallbackRouteProfileIds = selected;
-    });
-  }
-
   Future<(String, List<String>)> _normalizeRouteSelection() async {
     final profiles = await ref.read(routeProfilesProvider.future);
     final ids = profiles.map((profile) => profile.id).toSet();
@@ -281,13 +240,6 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(iptvConnectControllerProvider);
-    final routeProfiles = ref
-        .watch(routeProfilesProvider)
-        .maybeWhen(
-          data: (profiles) => profiles,
-          orElse: () => <RouteProfile>[RouteProfile.defaultProfile()],
-        );
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -480,33 +432,6 @@ class _IptvSourceAddPageState extends ConsumerState<IptvSourceAddPage> {
                                               : null,
                                         ),
 
-                                        const SizedBox(height: 32),
-                                        XtreamRoutePolicyFormSection(
-                                          profiles: routeProfiles,
-                                          preferredRouteProfileId:
-                                              _preferredRouteProfileId,
-                                          fallbackRouteProfileIds:
-                                              _fallbackRouteProfileIds,
-                                          onPreferredChanged: (value) {
-                                            final next =
-                                                value ?? RouteProfile.defaultId;
-                                            setState(() {
-                                              _preferredRouteProfileId = next;
-                                              _fallbackRouteProfileIds =
-                                                  _fallbackRouteProfileIds
-                                                      .where((id) => id != next)
-                                                      .toList(growable: false);
-                                            });
-                                          },
-                                          onEditFallbacks: () =>
-                                              _pickFallbackProfiles(
-                                                routeProfiles,
-                                              ),
-                                          onOpenNetworkProfiles:
-                                              _openNetworkProfiles,
-                                          onTestSource: _openSourceTest,
-                                          enabled: !state.isLoading,
-                                        ),
                                         const SizedBox(height: 32),
                                         SizedBox(
                                           width: double.infinity,
@@ -711,101 +636,6 @@ class _UseSourceNowDialogState extends State<_UseSourceNowDialog> {
             focusNode: _useFocusNode,
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Utiliser'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FallbackProfilesDialog extends StatefulWidget {
-  const _FallbackProfilesDialog({
-    required this.candidates,
-    required this.initialSelectedIds,
-    this.triggerFocusNode,
-  });
-
-  final List<RouteProfile> candidates;
-  final Set<String> initialSelectedIds;
-  final FocusNode? triggerFocusNode;
-
-  @override
-  State<_FallbackProfilesDialog> createState() =>
-      _FallbackProfilesDialogState();
-}
-
-class _FallbackProfilesDialogState extends State<_FallbackProfilesDialog> {
-  late final Set<String> _selectedIds = Set<String>.from(
-    widget.initialSelectedIds,
-  );
-  late final FocusNode _cancelFocusNode = FocusNode(
-    debugLabel: 'AddSourceFallbackCancel',
-  );
-  late final FocusNode _confirmFocusNode = FocusNode(
-    debugLabel: 'AddSourceFallbackConfirm',
-  );
-
-  @override
-  void dispose() {
-    _cancelFocusNode.dispose();
-    _confirmFocusNode.dispose();
-    super.dispose();
-  }
-
-  String _subtitle(RouteProfile profile) {
-    return profile.kind == RouteProfileKind.defaultRoute
-        ? 'systeme'
-        : '${profile.proxyHost ?? '-'}:${profile.proxyPort ?? '-'}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final initialFocusNode = widget.candidates.isNotEmpty
-        ? _confirmFocusNode
-        : _cancelFocusNode;
-    return MoviOverlayFocusScope(
-      triggerFocusNode: widget.triggerFocusNode,
-      initialFocusNode: initialFocusNode,
-      fallbackFocusNode: _cancelFocusNode,
-      debugLabel: 'IptvSourceAddFallbackProfilesDialog',
-      child: AlertDialog(
-        title: const Text('Profils de secours'),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final profile in widget.candidates)
-                  CheckboxListTile(
-                    value: _selectedIds.contains(profile.id),
-                    title: Text(profile.name),
-                    subtitle: Text(_subtitle(profile)),
-                    onChanged: (checked) {
-                      setState(() {
-                        if (checked == true) {
-                          _selectedIds.add(profile.id);
-                        } else {
-                          _selectedIds.remove(profile.id);
-                        }
-                      });
-                    },
-                  ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            focusNode: _cancelFocusNode,
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            focusNode: _confirmFocusNode,
-            onPressed: () =>
-                Navigator.of(context).pop(_selectedIds.toList(growable: false)),
-            child: const Text('Valider'),
           ),
         ],
       ),

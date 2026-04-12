@@ -31,6 +31,7 @@ import 'package:movi/src/features/player/application/services/playback_selection
 import 'package:movi/src/features/player/domain/services/xtream_stream_url_builder.dart';
 import 'package:movi/src/features/playlist/domain/repositories/playlist_repository.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/services/enrichment_check_service.dart';
@@ -68,6 +69,7 @@ class MovieDataModule {
           sl<MovieLocalDataSource>(),
           sl<ContinueWatchingLocalRepository>(),
           sl<AppStateController>(),
+          sl<TmdbDetailCacheDataSource>(),
         ),
       );
     }
@@ -136,9 +138,8 @@ class MovieDataModule {
   static void _registerMovieUseCases() {
     if (!sl.isRegistered<FilterRecommendationsByIptvAvailability>()) {
       sl.registerLazySingleton<FilterRecommendationsByIptvAvailability>(
-        () => FilterRecommendationsByIptvAvailability(
-          sl<IptvLocalRepository>(),
-        ),
+        () =>
+            FilterRecommendationsByIptvAvailability(sl<IptvLocalRepository>()),
       );
     }
 
@@ -153,17 +154,13 @@ class MovieDataModule {
 
     if (!sl.isRegistered<GetMovieAvailabilityOnIptv>()) {
       sl.registerLazySingleton<GetMovieAvailabilityOnIptv>(
-        () => GetMovieAvailabilityOnIptv(
-          sl<IptvAvailabilityService>(),
-        ),
+        () => GetMovieAvailabilityOnIptv(sl<IptvAvailabilityService>()),
       );
     }
 
     if (!sl.isRegistered<MarkMovieAsSeen>()) {
       sl.registerLazySingleton<MarkMovieAsSeen>(
-        () => MarkMovieAsSeen(
-          sl<PlaybackHistoryRepository>(),
-        ),
+        () => MarkMovieAsSeen(sl<PlaybackHistoryRepository>()),
       );
     }
 
@@ -178,9 +175,7 @@ class MovieDataModule {
 
     if (!sl.isRegistered<AddMovieToPlaylist>()) {
       sl.registerLazySingleton<AddMovieToPlaylist>(
-        () => AddMovieToPlaylist(
-          sl<PlaylistRepository>(),
-        ),
+        () => AddMovieToPlaylist(sl<PlaylistRepository>()),
       );
     }
 

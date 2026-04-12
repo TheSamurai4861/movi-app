@@ -38,7 +38,7 @@ void main() {
   });
 
   test(
-    'falls back to the first available episode when resume target is stale',
+    'returns canonical resume target even when snapshots do not contain it',
     () {
       final plan = useCase(
         seriesId: '100088',
@@ -64,11 +64,73 @@ void main() {
       );
 
       expect(plan, isNotNull);
+      expect(plan?.season, 3);
+      expect(plan?.episode, 9);
+      expect(plan?.resumePosition, const Duration(minutes: 11));
+      expect(plan?.isResumeEligible, isTrue);
+      expect(plan?.reasonCode, ResumeReasonCode.applied);
+    },
+  );
+
+  test(
+    'keeps canonical resume target when season exists but episodes are not loaded yet',
+    () {
+      final plan = useCase(
+        seriesId: '100088',
+        seasonSnapshots: <EpisodePlaybackSeasonSnapshot>[
+          EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+            seasonNumber: 1,
+            episodeNumbers: const <int>[1, 2, 3],
+          ),
+          EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+            seasonNumber: 2,
+            episodeNumbers: const <int>[],
+          ),
+        ],
+        resumeState: const PlaybackHistoryEntry(
+          contentId: '100088',
+          type: ContentType.series,
+          title: 'The Last of Us',
+          season: 2,
+          episode: 4,
+          lastPosition: Duration(minutes: 9),
+          duration: Duration(minutes: 49),
+        ),
+      );
+
+      expect(plan, isNotNull);
+      expect(plan?.season, 2);
+      expect(plan?.episode, 4);
+      expect(plan?.resumePosition, const Duration(minutes: 9));
+      expect(plan?.isResumeEligible, isTrue);
+      expect(plan?.reasonCode, ResumeReasonCode.applied);
+    },
+  );
+
+  test(
+    'falls back to first available episode when resume target is absent',
+    () {
+      final plan = useCase(
+        seriesId: '100088',
+        seasonSnapshots: <EpisodePlaybackSeasonSnapshot>[
+          EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+            seasonNumber: 1,
+            episodeNumbers: const <int>[2, 3, 4],
+          ),
+          EpisodePlaybackSeasonSnapshot.fromEpisodeNumbers(
+            seasonNumber: 2,
+            episodeNumbers: const <int>[1, 2],
+          ),
+        ],
+        resumeState: null,
+      );
+
+      expect(plan, isNotNull);
       expect(plan?.season, 1);
       expect(plan?.episode, 2);
       expect(plan?.resumePosition, isNull);
       expect(plan?.isResumeEligible, isFalse);
-      expect(plan?.reasonCode, ResumeReasonCode.positionInvalid);
+      expect(plan?.reasonCode, ResumeReasonCode.noPosition);
     },
   );
 }

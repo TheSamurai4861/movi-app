@@ -15,7 +15,8 @@ class SubscriptionBootstrapper extends ConsumerStatefulWidget {
       _SubscriptionBootstrapperState();
 }
 
-class _SubscriptionBootstrapperState extends ConsumerState<SubscriptionBootstrapper>
+class _SubscriptionBootstrapperState
+    extends ConsumerState<SubscriptionBootstrapper>
     with WidgetsBindingObserver {
   static const Duration _minIntervalBetweenRefreshes = Duration(seconds: 15);
 
@@ -75,4 +76,3 @@ class _SubscriptionBootstrapperState extends ConsumerState<SubscriptionBootstrap
   @override
   Widget build(BuildContext context) => widget.child;
 }
-

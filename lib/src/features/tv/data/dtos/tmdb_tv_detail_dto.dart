@@ -20,6 +20,7 @@ class TmdbTvDetailDto {
     required this.recommendations,
     required this.isFullPayload,
     this.logoPngExhausted = false,
+    this.castExhausted = false,
   });
 
   factory TmdbTvDetailDto.fromJson(Map<String, dynamic> json) {
@@ -43,6 +44,7 @@ class TmdbTvDetailDto {
       preferredLang: preferredLang.isEmpty ? null : preferredLang,
     );
     final logoPngExhausted = json['__movi_logo_png_exhausted'] == true;
+    final castExhausted = json['__movi_cast_exhausted'] == true;
     final credits = json['credits'] as Map<String, dynamic>?;
     final cast = (credits?['cast'] as List<dynamic>? ?? const [])
         .map((item) => TmdbTvCastDto.fromJson(item as Map<String, dynamic>))
@@ -99,6 +101,7 @@ class TmdbTvDetailDto {
       recommendations: recommendations,
       isFullPayload: isFull,
       logoPngExhausted: logoPngExhausted,
+      castExhausted: castExhausted,
     );
   }
 
@@ -123,9 +126,13 @@ class TmdbTvDetailDto {
   /// Après un fetch TMDB complet : aucun logo PNG exploitable (évite refetch en boucle).
   final bool logoPngExhausted;
 
+  /// Après un fetch TMDB complet : aucun cast exploitable (évite refetch en boucle).
+  final bool castExhausted;
+
   TmdbTvDetailDto copyWith({
     String? logoPath,
     bool? logoPngExhausted,
+    bool? castExhausted,
   }) {
     return TmdbTvDetailDto(
       id: id,
@@ -146,6 +153,7 @@ class TmdbTvDetailDto {
       recommendations: recommendations,
       isFullPayload: isFullPayload,
       logoPngExhausted: logoPngExhausted ?? this.logoPngExhausted,
+      castExhausted: castExhausted ?? this.castExhausted,
     );
   }
 
@@ -182,6 +190,7 @@ class TmdbTvDetailDto {
       'results': recommendations.map((r) => r.toJson()).toList(),
     },
     '__movi_logo_png_exhausted': logoPngExhausted,
+    '__movi_cast_exhausted': castExhausted,
   };
 
   factory TmdbTvDetailDto.fromCache(Map<String, dynamic> json) =>

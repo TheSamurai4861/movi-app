@@ -5,6 +5,20 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:movi/src/core/storage/services/cache_policy.dart';
 
+class ContentCacheEntry {
+  const ContentCacheEntry({
+    required this.key,
+    required this.type,
+    required this.payload,
+    required this.updatedAt,
+  });
+
+  final String key;
+  final String type;
+  final Map<String, dynamic> payload;
+  final DateTime updatedAt;
+}
+
 class ContentCacheRepository {
   ContentCacheRepository(this._db);
 
@@ -57,16 +71,9 @@ class ContentCacheRepository {
   }
 
   Future<Map<String, dynamic>?> get(String key, {CachePolicy? policy}) async {
-    final rows = await _db.query(
-      'content_cache',
-      where: 'cache_key = ?',
-      whereArgs: [key],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    final updatedAt = DateTime.fromMillisecondsSinceEpoch(
-      rows.first['updated_at'] as int,
-    );
+    final entry = await getEntry(key);
+    if (entry == null) return null;
+    final updatedAt = entry.updatedAt;
     if (policy != null && policy.isExpired(updatedAt)) {
       await _runWrite(() {
         return _db.delete(
@@ -77,7 +84,7 @@ class ContentCacheRepository {
       });
       return null;
     }
-    return jsonDecode(rows.first['payload'] as String) as Map<String, dynamic>;
+    return entry.payload;
   }
 
   Future<Map<String, dynamic>?> getWithPolicy(
@@ -85,6 +92,23 @@ class ContentCacheRepository {
     CachePolicy policy,
   ) async {
     return get(key, policy: policy);
+  }
+
+  Future<ContentCacheEntry?> getEntry(String key) async {
+    final rows = await _db.query(
+      'content_cache',
+      where: 'cache_key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    final row = rows.first;
+    return ContentCacheEntry(
+      key: row['cache_key'] as String,
+      type: row['cache_type'] as String,
+      payload: jsonDecode(row['payload'] as String) as Map<String, dynamic>,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at'] as int),
+    );
   }
 
   Future<void> clearType(String type) async {

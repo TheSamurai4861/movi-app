@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
@@ -67,7 +70,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   final _showsRetryFocusNode = FocusNode(
     debugLabel: 'ProviderResultsShowsRetry',
   );
-  bool _didRequestInitialMovieFocus = false;
+  bool _didRequestInitialContentFocus = false;
   String? _moviesErrorMessage;
   String? _showsErrorMessage;
 
@@ -132,30 +135,40 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
   }
 
   bool _handleBack(BuildContext context) {
-    if (!context.mounted) return false;
-    final navigator = Navigator.of(context);
-    if (!navigator.canPop()) return false;
-    navigator.maybePop();
+    if (!context.mounted || !context.canPop()) return false;
+    context.pop();
     return true;
   }
 
   String? get _blockingErrorMessage =>
       _moviesErrorMessage ?? _showsErrorMessage;
 
-  void _requestInitialMovieFocusIfNeeded(BuildContext context) {
-    final screenType = ScreenTypeResolver.instance.resolve(
-      MediaQuery.of(context).size.width,
-      MediaQuery.of(context).size.height,
-    );
-    if (screenType != ScreenType.tv ||
-        _didRequestInitialMovieFocus ||
-        _movies.isEmpty) {
+  bool _enterRegion(
+    AppFocusRegionId regionId, {
+    bool restoreLastFocused = true,
+  }) {
+    return ref
+        .read(focusOrchestratorProvider)
+        .enterRegion(regionId, restoreLastFocused: restoreLastFocused);
+  }
+
+  void _requestInitialContentFocusIfNeeded() {
+    if (_didRequestInitialContentFocus) {
       return;
     }
-    _didRequestInitialMovieFocus = true;
+    if (_movies.isEmpty &&
+        _shows.isEmpty &&
+        _moviesErrorMessage == null &&
+        _showsErrorMessage == null) {
+      return;
+    }
+    _didRequestInitialContentFocus = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _firstMovieFocusNode.context == null) return;
-      _firstMovieFocusNode.requestFocus();
+      if (!mounted) return;
+      _enterRegion(
+        AppFocusRegionId.providerResultsPrimary,
+        restoreLastFocused: false,
+      );
     });
   }
 
@@ -357,6 +370,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       _isLoadingMovies = true;
       _moviesErrorMessage = null;
       if (!loadMore) {
+        _didRequestInitialContentFocus = false;
+      }
+      if (!loadMore) {
         _currentPageMovies = 1;
         _movies.clear();
         _hasMoreMovies = true;
@@ -436,6 +452,9 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
       _isLoadingShows = true;
       _showsErrorMessage = null;
       if (!loadMore) {
+        _didRequestInitialContentFocus = false;
+      }
+      if (!loadMore) {
         _currentPageShows = 1;
         _shows.clear();
         _hasMoreShows = true;
@@ -509,6 +528,83 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     }
   }
 
+  KeyEventResult _handlePageBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleHeaderKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (_movies.isNotEmpty || _moviesErrorMessage != null) {
+        _enterRegion(
+          AppFocusRegionId.providerResultsMovies,
+          restoreLastFocused: false,
+        );
+        return KeyEventResult.handled;
+      }
+      if (_shows.isNotEmpty || _showsErrorMessage != null) {
+        _enterRegion(
+          AppFocusRegionId.providerResultsSeries,
+          restoreLastFocused: false,
+        );
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleMoviesItemKey(int index, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _enterRegion(
+        AppFocusRegionId.providerResultsHeader,
+        restoreLastFocused: false,
+      );
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (_shows.isNotEmpty || _showsErrorMessage != null) {
+        _enterRegion(AppFocusRegionId.providerResultsSeries);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleShowsItemKey(int index, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      if (_movies.isNotEmpty || _moviesErrorMessage != null) {
+        _enterRegion(AppFocusRegionId.providerResultsMovies);
+      } else {
+        _enterRegion(
+          AppFocusRegionId.providerResultsHeader,
+          restoreLastFocused: false,
+        );
+      }
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.args == null) {
@@ -529,7 +625,7 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
     const backButtonSize = 35.0;
     final headerStartPadding = headerHorizontalPadding - backButtonFramePadding;
     final trailingHeaderSpacerWidth = backButtonSize + backButtonFramePadding;
-    _requestInitialMovieFocusIfNeeded(context);
+    _requestInitialContentFocusIfNeeded();
 
     final hasBlockingError =
         _movies.isEmpty &&
@@ -537,15 +633,6 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
         !_isLoadingMovies &&
         !_isLoadingShows &&
         _blockingErrorMessage != null;
-    final initialFocusNode = hasBlockingError
-        ? (_moviesErrorMessage != null
-              ? _moviesRetryFocusNode
-              : _showsRetryFocusNode)
-        : _movies.isNotEmpty
-        ? _firstMovieFocusNode
-        : _shows.isNotEmpty
-        ? _firstShowFocusNode
-        : _backFocusNode;
 
     Widget buildMovieCard(TmdbMovieSummaryDto movie) {
       final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
@@ -600,186 +687,272 @@ class _ProviderResultsPageState extends ConsumerState<ProviderResultsPage> {
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: _backFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.providerResultsPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () {
+            if (hasBlockingError) {
+              return _moviesErrorMessage != null
+                  ? _moviesRetryFocusNode
+                  : _showsRetryFocusNode;
+            }
+            if (_movies.isNotEmpty) {
+              return _firstMovieFocusNode;
+            }
+            if (_shows.isNotEmpty) {
+              return _firstShowFocusNode;
+            }
+            if (_moviesErrorMessage != null) {
+              return _moviesRetryFocusNode;
+            }
+            if (_showsErrorMessage != null) {
+              return _showsRetryFocusNode;
+            }
+            return _backFocusNode;
+          },
+          resolveFallbackEntryNode: () => _backFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'ProviderResultsRouteFocus',
-        child: Scaffold(
-          backgroundColor: colorScheme.surface,
-          body: SafeArea(
-            top: true,
-            bottom: false,
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsetsDirectional.fromSTEB(
-                    headerStartPadding,
-                    16,
-                    headerHorizontalPadding,
-                    0,
-                  ),
-                  child: Row(
-                    children: [
-                      MoviFocusableAction(
-                        focusNode: _backFocusNode,
-                        onPressed: () => _handleBack(context),
-                        semanticLabel: 'Retour',
-                        builder: (context, state) {
-                          return MoviFocusFrame(
-                            scale: state.focused ? 1.04 : 1,
-                            padding: const EdgeInsets.all(
-                              backButtonFramePadding,
-                            ),
-                            borderRadius: BorderRadius.circular(999),
-                            backgroundColor: state.focused
-                                ? Colors.white.withValues(alpha: 0.14)
-                                : Colors.transparent,
-                            child: SizedBox(
-                              width: backButtonSize,
-                              height: backButtonSize,
-                              child: const MoviAssetIcon(
-                                AppAssets.iconBack,
-                                color: Colors.white,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            providerName,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                            textAlign: TextAlign.center,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'ProviderResultsPrimary',
+        child: Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (_, event) => _handlePageBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: colorScheme.surface,
+            body: SafeArea(
+              top: true,
+              bottom: false,
+              child: Column(
+                children: [
+                  FocusRegionScope(
+                    regionId: AppFocusRegionId.providerResultsHeader,
+                    binding: FocusRegionBinding(
+                      resolvePrimaryEntryNode: () => _backFocusNode,
+                    ),
+                    handleDirectionalExits: false,
+                    debugLabel: 'ProviderResultsHeader',
+                    child: Focus(
+                      canRequestFocus: false,
+                      skipTraversal: true,
+                      onKeyEvent: (_, event) => _handleHeaderKey(event),
+                      child: Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                          headerStartPadding,
+                          16,
+                          headerHorizontalPadding,
+                          0,
                         ),
-                      ),
-                      SizedBox(width: trailingHeaderSpacerWidth),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: hasBlockingError
-                      ? Center(
-                          child: LaunchErrorPanel(
-                            message: _blockingErrorMessage!,
-                            retryLabel: l10n.actionRetry,
-                            onRetry: () {
-                              unawaited(_loadMovies());
-                              unawaited(_loadShows());
-                            },
-                            retryFocusNode: _moviesErrorMessage != null
-                                ? _moviesRetryFocusNode
-                                : _showsRetryFocusNode,
-                          ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 0),
+                        child: Row(
                           children: [
-                            if (_movies.isNotEmpty) ...[
-                              MoviItemsList(
-                                title: l10n.moviesTitle,
-                                subtitle: _movies.length > previewLimit
-                                    ? l10n.resultsCount(_movies.length)
-                                    : null,
-                                estimatedItemWidth: _previewCardWidth,
-                                estimatedItemHeight: _previewRailItemHeight,
-                                horizontalFocusAlignment: 0.18,
-                                titlePadding: 20,
-                                horizontalPadding:
-                                    const EdgeInsetsDirectional.only(
-                                      start: 20,
-                                      end: 20,
+                            MoviFocusableAction(
+                              focusNode: _backFocusNode,
+                              onPressed: () => _handleBack(context),
+                              semanticLabel: 'Retour',
+                              builder: (context, state) {
+                                return MoviFocusFrame(
+                                  scale: state.focused ? 1.04 : 1,
+                                  padding: const EdgeInsets.all(
+                                    backButtonFramePadding,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                  backgroundColor: state.focused
+                                      ? Colors.white.withValues(alpha: 0.14)
+                                      : Colors.transparent,
+                                  child: SizedBox(
+                                    width: backButtonSize,
+                                    height: backButtonSize,
+                                    child: const MoviAssetIcon(
+                                      AppAssets.iconBack,
+                                      color: Colors.white,
                                     ),
-                                items: [
-                                  ...moviesToShow.map(buildMovieCard),
-                                  if (_movies.length > previewLimit)
-                                    _buildSeeAllProviderCard(
-                                      title: l10n.moviesTitle,
-                                      type: MoviMediaType.movie,
-                                    ),
-                                ],
-                              ),
-                            ] else if (!_isLoadingMovies &&
-                                _moviesErrorMessage != null) ...[
-                              _ProviderSectionError(
-                                title: l10n.moviesTitle,
-                                message: _moviesErrorMessage!,
-                                retryLabel: l10n.actionRetry,
-                                onRetry: () {
-                                  unawaited(_loadMovies());
-                                },
-                                focusNode: _moviesRetryFocusNode,
-                              ),
-                            ],
-                            if (_shows.isNotEmpty) ...[
-                              MoviItemsList(
-                                title: l10n.seriesTitle,
-                                subtitle: _shows.length > previewLimit
-                                    ? l10n.resultsCount(_shows.length)
-                                    : null,
-                                estimatedItemWidth: _previewCardWidth,
-                                estimatedItemHeight: _previewRailItemHeight,
-                                horizontalFocusAlignment: 0.18,
-                                titlePadding: 20,
-                                horizontalPadding:
-                                    const EdgeInsetsDirectional.only(
-                                      start: 20,
-                                      end: 20,
-                                    ),
-                                items: [
-                                  ...showsToShow.map(buildShowCard),
-                                  if (_shows.length > previewLimit)
-                                    _buildSeeAllProviderCard(
-                                      title: l10n.seriesTitle,
-                                      type: MoviMediaType.series,
-                                    ),
-                                ],
-                              ),
-                            ] else if (!_isLoadingShows &&
-                                _showsErrorMessage != null) ...[
-                              _ProviderSectionError(
-                                title: l10n.seriesTitle,
-                                message: _showsErrorMessage!,
-                                retryLabel: l10n.actionRetry,
-                                onRetry: () {
-                                  unawaited(_loadShows());
-                                },
-                                focusNode: _showsRetryFocusNode,
-                              ),
-                            ],
-                            if (_movies.isEmpty &&
-                                _shows.isEmpty &&
-                                !_isLoadingMovies &&
-                                !_isLoadingShows &&
-                                !hasBlockingError)
-                              Center(
+                                  ),
+                                );
+                              },
+                            ),
+                            Expanded(
+                              child: Center(
                                 child: Text(
-                                  l10n.noResults,
-                                  style: const TextStyle(fontSize: 16),
+                                  providerName,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            if (_isLoadingMovies || _isLoadingShows)
-                              const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
+                            ),
+                            SizedBox(width: trailingHeaderSpacerWidth),
                           ],
                         ),
-                ),
-              ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: hasBlockingError
+                        ? Center(
+                            child: LaunchErrorPanel(
+                              message: _blockingErrorMessage!,
+                              retryLabel: l10n.actionRetry,
+                              onRetry: () {
+                                unawaited(_loadMovies());
+                                unawaited(_loadShows());
+                              },
+                              retryFocusNode: _moviesErrorMessage != null
+                                  ? _moviesRetryFocusNode
+                                  : _showsRetryFocusNode,
+                            ),
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            children: [
+                              FocusRegionScope(
+                                regionId:
+                                    AppFocusRegionId.providerResultsMovies,
+                                binding: FocusRegionBinding(
+                                  resolvePrimaryEntryNode: () {
+                                    if (_movies.isNotEmpty) {
+                                      return _firstMovieFocusNode;
+                                    }
+                                    if (_moviesErrorMessage != null) {
+                                      return _moviesRetryFocusNode;
+                                    }
+                                    return _backFocusNode;
+                                  },
+                                  resolveFallbackEntryNode: () =>
+                                      _backFocusNode,
+                                ),
+                                handleDirectionalExits: false,
+                                debugLabel: 'ProviderResultsMovies',
+                                child: Column(
+                                  children: [
+                                    if (_movies.isNotEmpty)
+                                      MoviItemsList(
+                                        title: l10n.moviesTitle,
+                                        subtitle: _movies.length > previewLimit
+                                            ? l10n.resultsCount(_movies.length)
+                                            : null,
+                                        estimatedItemWidth: _previewCardWidth,
+                                        estimatedItemHeight:
+                                            _previewRailItemHeight,
+                                        horizontalFocusAlignment: 0.18,
+                                        titlePadding: 20,
+                                        horizontalPadding:
+                                            const EdgeInsetsDirectional.only(
+                                              start: 20,
+                                              end: 20,
+                                            ),
+                                        onItemKeyEvent: _handleMoviesItemKey,
+                                        items: [
+                                          ...moviesToShow.map(buildMovieCard),
+                                          if (_movies.length > previewLimit)
+                                            _buildSeeAllProviderCard(
+                                              title: l10n.moviesTitle,
+                                              type: MoviMediaType.movie,
+                                            ),
+                                        ],
+                                      )
+                                    else if (!_isLoadingMovies &&
+                                        _moviesErrorMessage != null)
+                                      _ProviderSectionError(
+                                        title: l10n.moviesTitle,
+                                        message: _moviesErrorMessage!,
+                                        retryLabel: l10n.actionRetry,
+                                        onRetry: () {
+                                          unawaited(_loadMovies());
+                                        },
+                                        focusNode: _moviesRetryFocusNode,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              FocusRegionScope(
+                                regionId:
+                                    AppFocusRegionId.providerResultsSeries,
+                                binding: FocusRegionBinding(
+                                  resolvePrimaryEntryNode: () {
+                                    if (_shows.isNotEmpty) {
+                                      return _firstShowFocusNode;
+                                    }
+                                    if (_showsErrorMessage != null) {
+                                      return _showsRetryFocusNode;
+                                    }
+                                    return _backFocusNode;
+                                  },
+                                  resolveFallbackEntryNode: () =>
+                                      _backFocusNode,
+                                ),
+                                handleDirectionalExits: false,
+                                debugLabel: 'ProviderResultsSeries',
+                                child: Column(
+                                  children: [
+                                    if (_shows.isNotEmpty)
+                                      MoviItemsList(
+                                        title: l10n.seriesTitle,
+                                        subtitle: _shows.length > previewLimit
+                                            ? l10n.resultsCount(_shows.length)
+                                            : null,
+                                        estimatedItemWidth: _previewCardWidth,
+                                        estimatedItemHeight:
+                                            _previewRailItemHeight,
+                                        horizontalFocusAlignment: 0.18,
+                                        titlePadding: 20,
+                                        horizontalPadding:
+                                            const EdgeInsetsDirectional.only(
+                                              start: 20,
+                                              end: 20,
+                                            ),
+                                        onItemKeyEvent: _handleShowsItemKey,
+                                        items: [
+                                          ...showsToShow.map(buildShowCard),
+                                          if (_shows.length > previewLimit)
+                                            _buildSeeAllProviderCard(
+                                              title: l10n.seriesTitle,
+                                              type: MoviMediaType.series,
+                                            ),
+                                        ],
+                                      )
+                                    else if (!_isLoadingShows &&
+                                        _showsErrorMessage != null)
+                                      _ProviderSectionError(
+                                        title: l10n.seriesTitle,
+                                        message: _showsErrorMessage!,
+                                        retryLabel: l10n.actionRetry,
+                                        onRetry: () {
+                                          unawaited(_loadShows());
+                                        },
+                                        focusNode: _showsRetryFocusNode,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (_movies.isEmpty &&
+                                  _shows.isEmpty &&
+                                  !_isLoadingMovies &&
+                                  !_isLoadingShows &&
+                                  !hasBlockingError)
+                                Center(
+                                  child: Text(
+                                    l10n.noResults,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              if (_isLoadingMovies || _isLoadingShows)
+                                const Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

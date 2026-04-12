@@ -62,8 +62,7 @@ class IptvDataModule {
         () => XtreamRemoteDataSource(
           sl<NetworkExecutor>(),
           logger: sl<AppLogger>(),
-          userAgent:
-              'MOVI/${sl<AppConfig>().metadata.version} XtreamCatalog',
+          userAgent: 'MOVI/${sl<AppConfig>().metadata.version} XtreamCatalog',
         ),
       );
     }
@@ -72,7 +71,9 @@ class IptvDataModule {
       if (!sl.isRegistered<AuthRepository>()) {
         return IptvOwnerScope.localOwnerId;
       }
-      return IptvOwnerScope.normalize(sl<AuthRepository>().currentSession?.userId);
+      return IptvOwnerScope.normalize(
+        sl<AuthRepository>().currentSession?.userId,
+      );
     }
 
     if (!sl.isRegistered<RouteProfileRepository>()) {
@@ -100,7 +101,9 @@ class IptvDataModule {
     }
 
     if (!sl.isRegistered<PublicIpEchoService>()) {
-      sl.registerLazySingleton<PublicIpEchoService>(() => const PublicIpEchoService());
+      sl.registerLazySingleton<PublicIpEchoService>(
+        () => const PublicIpEchoService(),
+      );
     }
 
     if (!sl.isRegistered<XtreamRouteExecutionService>()) {

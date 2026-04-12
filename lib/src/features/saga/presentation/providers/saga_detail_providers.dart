@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
-import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
 import 'package:movi/src/features/saga/domain/entities/saga.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
@@ -12,13 +11,20 @@ import 'package:movi/src/features/saga/domain/usecases/get_saga_detail.dart';
 
 const double _sagaCompletedThreshold = 0.95;
 
+final sagaCoreProvider = FutureProvider.family<Saga, String>((
+  ref,
+  sagaId,
+) async {
+  final getSaga = ref.watch(slProvider)<GetSagaDetail>();
+  return getSaga(SagaId(sagaId));
+});
+
 /// Provider pour charger les détails d'une saga avec poster en langue null
 final sagaDetailProvider = FutureProvider.family<SagaDetailViewModel, String>((
   ref,
   sagaId,
 ) async {
-  final getSaga = ref.watch(slProvider)<GetSagaDetail>();
-  final saga = await getSaga(SagaId(sagaId));
+  final saga = await ref.watch(sagaCoreProvider(sagaId).future);
 
   // Récupérer le poster et backdrop en langue null
   Uri? posterWithNullLanguage;
@@ -135,11 +141,10 @@ Future<_SagaImages> _getImagesWithNullLanguage(int collectionId) async {
 /// Provider pour vérifier la disponibilité des films d'une saga dans la playlist (par sagaId)
 final sagaMoviesAvailabilityProvider =
     FutureProvider.family<Map<int, bool>, String>((ref, sagaId) async {
-      final sagaRepo = ref.watch(slProvider)<SagaRepository>();
       final iptvLocal = ref.watch(slProvider)<IptvLocalRepository>();
 
       try {
-        final saga = await sagaRepo.getSaga(SagaId(sagaId));
+        final saga = await ref.watch(sagaCoreProvider(sagaId).future);
         final availableIds = await iptvLocal.getAvailableTmdbIds(
           type: XtreamPlaylistItemType.movie,
         );
@@ -185,8 +190,7 @@ final sagaStartTargetProvider = FutureProvider.family<SagaStartTarget, String>((
   ref,
   sagaId,
 ) async {
-  final sagaRepo = ref.watch(slProvider)<SagaRepository>();
-  final saga = await sagaRepo.getSaga(SagaId(sagaId));
+  final saga = await ref.watch(sagaCoreProvider(sagaId).future);
   final historyRepo = ref.watch(slProvider)<HistoryLocalRepository>();
 
   final movies = saga.timeline

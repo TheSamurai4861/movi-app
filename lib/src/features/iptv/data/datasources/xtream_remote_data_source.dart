@@ -10,12 +10,9 @@ import 'package:movi/src/features/iptv/domain/failures/iptv_failures.dart';
 import 'package:movi/src/features/iptv/domain/value_objects/xtream_endpoint.dart';
 
 class XtreamRemoteDataSource {
-  XtreamRemoteDataSource(
-    this._executor, {
-    AppLogger? logger,
-    String? userAgent,
-  }) : _logger = logger,
-       _userAgent = userAgent;
+  XtreamRemoteDataSource(this._executor, {AppLogger? logger, String? userAgent})
+    : _logger = logger,
+      _userAgent = userAgent;
 
   final NetworkExecutor _executor;
   final AppLogger? _logger;
@@ -85,10 +82,8 @@ class XtreamRemoteDataSource {
         options: _buildOptions(action: 'get_series_info'),
         cancelToken: cancelToken,
       ),
-      mapper: (response) => _parseSeriesInfoResponse(
-        response,
-        endpoint: request.endpoint,
-      ),
+      mapper: (response) =>
+          _parseSeriesInfoResponse(response, endpoint: request.endpoint),
     );
   }
 
@@ -106,8 +101,11 @@ class XtreamRemoteDataSource {
         options: _buildOptions(action: action),
         cancelToken: cancelToken,
       ),
-      mapper: (response) =>
-          _parseCategoriesResponse(response, endpoint: request.endpoint, action: action),
+      mapper: (response) => _parseCategoriesResponse(
+        response,
+        endpoint: request.endpoint,
+        action: action,
+      ),
     );
   }
 
@@ -459,7 +457,8 @@ class XtreamRemoteDataSource {
   }
 
   String _normalizeContentType(Response<dynamic> response) {
-    final value = response.headers.value(Headers.contentTypeHeader) ?? 'unknown';
+    final value =
+        response.headers.value(Headers.contentTypeHeader) ?? 'unknown';
     final idx = value.indexOf(';');
     if (idx < 0) {
       return value.toLowerCase();

@@ -23,7 +23,9 @@ final class AuthLoggerTelemetryAdapter implements AuthTelemetryPort {
   }) {
     final op = currentOperationId();
     final opPart = op == null ? '' : ' opId=$op';
-    final reasonPart = reasonCode == null ? '' : ' reasonCode=${reasonCode.name}';
+    final reasonPart = reasonCode == null
+        ? ''
+        : ' reasonCode=${reasonCode.name}';
     final detailPart = detail == null ? '' : ' detail=$detail';
 
     final msg =
@@ -41,4 +43,3 @@ final class AuthLoggerTelemetryAdapter implements AuthTelemetryPort {
     }
   }
 }
-

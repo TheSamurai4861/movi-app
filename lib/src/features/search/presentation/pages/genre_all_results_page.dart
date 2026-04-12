@@ -2,12 +2,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/core/utils/navigation_helpers.dart';
@@ -53,6 +56,7 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
   final FocusNode _firstItemFocusNode = FocusNode(
     debugLabel: 'GenreAllFirstItem',
   );
+  bool _didRequestInitialGridFocus = false;
 
   final List<TmdbMovieSummaryDto> _movies = [];
   final List<TmdbTvSummaryDto> _shows = [];
@@ -227,8 +231,65 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     _currentPage = 1;
     _hasMore = true;
     _isLoading = false;
+    _didRequestInitialGridFocus = false;
     _movies.clear();
     _shows.clear();
+  }
+
+  bool _enterRegion(
+    AppFocusRegionId regionId, {
+    bool restoreLastFocused = true,
+  }) {
+    return ref
+        .read(focusOrchestratorProvider)
+        .enterRegion(regionId, restoreLastFocused: restoreLastFocused);
+  }
+
+  bool _handleBack() {
+    if (!context.mounted || !context.canPop()) {
+      return false;
+    }
+    context.pop();
+    return true;
+  }
+
+  KeyEventResult _handlePageBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack() ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleHeaderKey(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _enterRegion(AppFocusRegionId.genreAllGrid, restoreLastFocused: false);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _requestInitialGridFocusIfNeeded(int count) {
+    if (_didRequestInitialGridFocus || count == 0) {
+      return;
+    }
+    _didRequestInitialGridFocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _enterRegion(AppFocusRegionId.genreAllGrid, restoreLastFocused: false);
+    });
   }
 
   Future<List<TmdbMovieSummaryDto>> _filterMovieDtos({
@@ -276,158 +337,190 @@ class _GenreAllResultsPageState extends ConsumerState<GenreAllResultsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final imageResolver = ref.read(slProvider)<TmdbImageResolver>();
     final count = _isMovie ? _movies.length : _shows.length;
-    final initialFocusNode = count > 0 ? _firstItemFocusNode : _backFocusNode;
+    _requestInitialGridFocusIfNeeded(count);
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: initialFocusNode,
-        fallbackFocusNode: _backFocusNode,
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.genreAllPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () =>
+            count > 0 ? _firstItemFocusNode : _backFocusNode,
+        resolveFallbackEntryNode: () => _backFocusNode,
       ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!mounted) return false;
-        Navigator.of(context).maybePop();
-        return true;
-      },
-      debugLabel: 'GenreAllResultsRouteFocus',
-      child: Scaffold(
-        backgroundColor: colorScheme.surface,
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
-            children: [
-              MoviSubpageBackTitleHeader(
-                title: widget.args.genreName,
-                onBack: () => context.pop(),
-                focusNode: _backFocusNode,
-                pageHorizontalPadding: _pageHorizontalPadding,
-              ),
-              Expanded(
-                child: count == 0 && !_isLoading
-                    ? Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.noResults,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.only(bottom: 24),
-                        children: [
-                          NotificationListener<ScrollNotification>(
-                            onNotification: (notification) {
-                              if (!_hasMore || _isLoading) return false;
-                              if (notification is! ScrollUpdateNotification) {
-                                return false;
-                              }
-                              if (notification.dragDetails != null) {
-                                return false;
-                              }
-                              final delta = notification.scrollDelta;
-                              if (delta == null || delta <= 0) return false;
-                              if (notification.metrics.extentAfter > 320) {
-                                return false;
-                              }
-                              final now = DateTime.now().millisecondsSinceEpoch;
-                              if (now - _lastWheelLoadMs < 450) return false;
-                              _lastWheelLoadMs = now;
-                              unawaited(_loadMore());
-                              return false;
-                            },
-                            child: MoviMediaGrid(
-                              itemCount: count,
-                              firstItemFocusNode: _firstItemFocusNode,
-                              onExitUp: () {
-                                _backFocusNode.requestFocus();
-                                return true;
-                              },
-                              onExitDown: () {
-                                if (_hasMore && !_isLoading) {
-                                  unawaited(_loadMore());
-                                }
-                                return true;
-                              },
-                              pageHorizontalPadding: _pageHorizontalPadding,
-                              itemBuilder:
-                                  (
-                                    context,
-                                    index,
-                                    focusNode,
-                                    cardWidth,
-                                    posterHeight,
-                                  ) {
-                                    if (_isMovie) {
-                                      final movie = _movies[index];
-                                      final media = MoviMedia(
-                                        id: movie.id.toString(),
-                                        title: movie.title,
-                                        poster: imageResolver.poster(
-                                          movie.posterPath,
-                                        ),
-                                        year:
-                                            movie.releaseDate != null &&
-                                                movie.releaseDate!.length >= 4
-                                            ? int.tryParse(
-                                                movie.releaseDate!.substring(
-                                                  0,
-                                                  4,
-                                                ),
-                                              )
-                                            : null,
-                                        type: MoviMediaType.movie,
-                                      );
-                                      return MoviMediaCard(
-                                        media: media,
-                                        width: cardWidth,
-                                        height: posterHeight,
-                                        focusNode: focusNode,
-                                        onTap: (selectedMedia) =>
-                                            navigateToMovieDetail(
-                                              context,
-                                              ref,
-                                              ContentRouteArgs.movie(
-                                                selectedMedia.id,
-                                              ),
-                                            ),
-                                      );
-                                    }
-
-                                    final show = _shows[index];
-                                    final media = MoviMedia(
-                                      id: show.id.toString(),
-                                      title: show.name,
-                                      poster: imageResolver.poster(
-                                        show.posterPath,
-                                      ),
-                                      type: MoviMediaType.series,
-                                    );
-                                    return MoviMediaCard(
-                                      media: media,
-                                      width: cardWidth,
-                                      height: posterHeight,
-                                      focusNode: focusNode,
-                                      onTap: (selectedMedia) =>
-                                          navigateToTvDetail(
-                                            context,
-                                            ref,
-                                            ContentRouteArgs.series(
-                                              selectedMedia.id,
-                                            ),
-                                          ),
-                                    );
-                                  },
-                            ),
+      requestFocusOnMount: true,
+      handleDirectionalExits: false,
+      debugLabel: 'GenreAllResultsPrimary',
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (_, event) => _handlePageBackKey(event),
+        child: Scaffold(
+          backgroundColor: colorScheme.surface,
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                FocusRegionScope(
+                  regionId: AppFocusRegionId.genreAllHeader,
+                  binding: FocusRegionBinding(
+                    resolvePrimaryEntryNode: () => _backFocusNode,
+                  ),
+                  handleDirectionalExits: false,
+                  debugLabel: 'GenreAllResultsHeader',
+                  child: Focus(
+                    canRequestFocus: false,
+                    skipTraversal: true,
+                    onKeyEvent: (_, event) => _handleHeaderKey(event),
+                    child: MoviSubpageBackTitleHeader(
+                      title: widget.args.genreName,
+                      onBack: _handleBack,
+                      focusNode: _backFocusNode,
+                      pageHorizontalPadding: _pageHorizontalPadding,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: count == 0 && !_isLoading
+                      ? Center(
+                          child: Text(
+                            AppLocalizations.of(context)!.noResults,
+                            style: const TextStyle(fontSize: 16),
                           ),
-                          if (_isLoading) ...[
-                            const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator()),
-                            ),
-                          ],
-                        ],
-                      ),
-              ),
-            ],
+                        )
+                      : FocusRegionScope(
+                          regionId: AppFocusRegionId.genreAllGrid,
+                          binding: FocusRegionBinding(
+                            resolvePrimaryEntryNode: () => _firstItemFocusNode,
+                            resolveFallbackEntryNode: () => _backFocusNode,
+                          ),
+                          handleDirectionalExits: false,
+                          debugLabel: 'GenreAllResultsGrid',
+                          child: ListView(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            children: [
+                              NotificationListener<ScrollNotification>(
+                                onNotification: (notification) {
+                                  if (!_hasMore || _isLoading) return false;
+                                  if (notification
+                                      is! ScrollUpdateNotification) {
+                                    return false;
+                                  }
+                                  if (notification.dragDetails != null) {
+                                    return false;
+                                  }
+                                  final delta = notification.scrollDelta;
+                                  if (delta == null || delta <= 0) {
+                                    return false;
+                                  }
+                                  if (notification.metrics.extentAfter > 320) {
+                                    return false;
+                                  }
+                                  final now =
+                                      DateTime.now().millisecondsSinceEpoch;
+                                  if (now - _lastWheelLoadMs < 450) {
+                                    return false;
+                                  }
+                                  _lastWheelLoadMs = now;
+                                  unawaited(_loadMore());
+                                  return false;
+                                },
+                                child: MoviMediaGrid(
+                                  itemCount: count,
+                                  firstItemFocusNode: _firstItemFocusNode,
+                                  onExitUp: () => _enterRegion(
+                                    AppFocusRegionId.genreAllHeader,
+                                    restoreLastFocused: false,
+                                  ),
+                                  onExitDown: () {
+                                    if (_hasMore && !_isLoading) {
+                                      unawaited(_loadMore());
+                                    }
+                                    return true;
+                                  },
+                                  pageHorizontalPadding: _pageHorizontalPadding,
+                                  itemBuilder:
+                                      (
+                                        context,
+                                        index,
+                                        focusNode,
+                                        cardWidth,
+                                        posterHeight,
+                                      ) {
+                                        if (_isMovie) {
+                                          final movie = _movies[index];
+                                          final media = MoviMedia(
+                                            id: movie.id.toString(),
+                                            title: movie.title,
+                                            poster: imageResolver.poster(
+                                              movie.posterPath,
+                                            ),
+                                            year:
+                                                movie.releaseDate != null &&
+                                                    movie.releaseDate!.length >=
+                                                        4
+                                                ? int.tryParse(
+                                                    movie.releaseDate!
+                                                        .substring(0, 4),
+                                                  )
+                                                : null,
+                                            type: MoviMediaType.movie,
+                                          );
+                                          return MoviMediaCard(
+                                            media: media,
+                                            width: cardWidth,
+                                            height: posterHeight,
+                                            focusNode: focusNode,
+                                            onTap: (selectedMedia) =>
+                                                navigateToMovieDetail(
+                                                  context,
+                                                  ref,
+                                                  ContentRouteArgs.movie(
+                                                    selectedMedia.id,
+                                                  ),
+                                                ),
+                                          );
+                                        }
+
+                                        final show = _shows[index];
+                                        final media = MoviMedia(
+                                          id: show.id.toString(),
+                                          title: show.name,
+                                          poster: imageResolver.poster(
+                                            show.posterPath,
+                                          ),
+                                          type: MoviMediaType.series,
+                                        );
+                                        return MoviMediaCard(
+                                          media: media,
+                                          width: cardWidth,
+                                          height: posterHeight,
+                                          focusNode: focusNode,
+                                          onTap: (selectedMedia) =>
+                                              navigateToTvDetail(
+                                                context,
+                                                ref,
+                                                ContentRouteArgs.series(
+                                                  selectedMedia.id,
+                                                ),
+                                              ),
+                                        );
+                                      },
+                                ),
+                              ),
+                              if (_isLoading) ...[
+                                const Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

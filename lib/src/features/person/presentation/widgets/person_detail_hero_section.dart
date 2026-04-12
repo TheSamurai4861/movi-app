@@ -127,7 +127,7 @@ class PersonDetailHeroSection extends StatelessWidget {
     final mq = MediaQuery.of(context);
     final int rawPx = (mq.size.width * mq.devicePixelRatio).round();
     final int cacheWidth = rawPx.clamp(480, 1920);
-    return Image.network(
+    return MoviNetworkImage(
       photo.toString(),
       fit: BoxFit.cover,
       gaplessPlayback: true,

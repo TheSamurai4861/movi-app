@@ -118,7 +118,8 @@ class AppUpdateRemoteResponse {
     return AppUpdateRemoteResponse(
       status: _parseStatus(_readRequiredString(json, 'status').toLowerCase()),
       reasonCode:
-          _readOptionalString(json['reasonCode']) ?? 'app_update_cached_decision',
+          _readOptionalString(json['reasonCode']) ??
+          'app_update_cached_decision',
       currentVersion: _readRequiredString(json, 'currentVersion'),
       platform: _readRequiredString(json, 'platform'),
       checkedAt: checkedAt,
@@ -138,7 +139,9 @@ class AppUpdateRemoteResponse {
       if (decoded is Map<String, dynamic>) return decoded;
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     }
-    throw FormatException('Unexpected app update response: ${value.runtimeType}');
+    throw FormatException(
+      'Unexpected app update response: ${value.runtimeType}',
+    );
   }
 
   static String _readRequiredString(Map<String, dynamic> json, String key) {

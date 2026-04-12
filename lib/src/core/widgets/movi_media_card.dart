@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/src/core/widgets/movi_marquee_text.dart';
+import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 
 Widget _buildPosterImage(
@@ -29,16 +30,16 @@ Widget _buildPosterImage(
   if (source.isEmpty) return placeholder;
   final scheme = poster.scheme.toLowerCase();
   if (scheme == 'http' || scheme == 'https') {
-    return Image.network(
+    return MoviNetworkImage(
       poster.toString(),
       width: width,
       height: height,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => placeholder,
       gaplessPlayback: true,
       filterQuality: FilterQuality.low,
       cacheWidth: (width * 2).toInt(),
       cacheHeight: (height * 2).toInt(),
+      errorBuilder: (_, __, ___) => placeholder,
     );
   }
 

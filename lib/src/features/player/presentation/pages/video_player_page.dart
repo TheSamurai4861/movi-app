@@ -1459,9 +1459,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
               PlayerSubtitleFailureKind.unsupportedCodec =>
                 'Ce format de sous-titres n\'est pas supporte sur cet appareil.',
             };
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
           } catch (e) {
             // Ignorer les erreurs si le player a été disposé
           }
@@ -1901,8 +1901,9 @@ class _VideoPlayerPageState extends ConsumerState<VideoPlayerPage>
 
                     final screenWidth = constraints.maxWidth;
                     final screenHeight = constraints.maxHeight;
-                    final viewportAspectRatio =
-                        screenHeight > 0 ? screenWidth / screenHeight : 16 / 9;
+                    final viewportAspectRatio = screenHeight > 0
+                        ? screenWidth / screenHeight
+                        : 16 / 9;
                     final videoAspectRatio = _resolveCurrentVideoAspectRatio();
                     final scale = computeCoverScale(
                       viewportAspectRatio: viewportAspectRatio,

@@ -35,7 +35,10 @@ class PlaybackLaunchPlan extends Equatable {
     required Duration? position,
     required Duration? duration,
   }) {
-    final resolution = resolvePlaybackResume(position: position, duration: duration);
+    final resolution = resolvePlaybackResume(
+      position: position,
+      duration: duration,
+    );
     return PlaybackLaunchPlan(
       contentType: contentType,
       targetContentId: targetContentId,

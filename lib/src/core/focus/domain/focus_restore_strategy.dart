@@ -1,0 +1,1 @@
+enum FocusRestoreStrategy { restoreLastFocused, primaryOnly }

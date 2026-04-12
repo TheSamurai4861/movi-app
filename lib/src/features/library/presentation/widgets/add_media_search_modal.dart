@@ -92,19 +92,21 @@ class _AddMediaSearchModalState extends ConsumerState<AddMediaSearchModal> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.snackbarAddedToPlaylist),
+            content: Text(
+              AppLocalizations.of(context)!.snackbarAddedToPlaylist,
+            ),
             duration: Duration(seconds: 2),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context)!.errorGenericWithMessage(e.toString()),
+              AppLocalizations.of(
+                context,
+              )!.errorGenericWithMessage(e.toString()),
             ),
           ),
         );

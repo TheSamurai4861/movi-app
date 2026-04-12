@@ -80,7 +80,8 @@ class _PersonBiographySectionState extends State<PersonBiographySection> {
                       child: MoviFocusableAction(
                         behavior: HitTestBehavior.deferToChild,
                         focusNode: widget.expandFocusNode,
-                        onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                        onPressed: () =>
+                            setState(() => _isExpanded = !_isExpanded),
                         semanticLabel: _isExpanded
                             ? AppLocalizations.of(context)!.actionCollapse
                             : AppLocalizations.of(context)!.actionExpand,
@@ -104,7 +105,9 @@ class _PersonBiographySectionState extends State<PersonBiographySection> {
                                       ? AppLocalizations.of(
                                           context,
                                         )!.actionCollapse
-                                      : AppLocalizations.of(context)!.actionExpand,
+                                      : AppLocalizations.of(
+                                          context,
+                                        )!.actionExpand,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,

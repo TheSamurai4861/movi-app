@@ -35,7 +35,9 @@ class AppConfigFactory {
     }
 
     final network = flavor.network.copyWith(tmdbApiKey: tmdbKey);
-    final flags = featureOverrides ?? flavor.defaultFlags;
+    final flags = _applyFeatureFlagDefineOverrides(
+      featureOverrides ?? flavor.defaultFlags,
+    );
     final metadata = metadataOverride ?? flavor.metadata;
     final LoggingConfig logging = _defaultLoggingFor(flavor)..validate();
 
@@ -51,6 +53,36 @@ class AppConfigFactory {
     config.ensureValid();
     return config;
   }
+}
+
+FeatureFlags _applyFeatureFlagDefineOverrides(FeatureFlags base) {
+  const diskCacheRaw = String.fromEnvironment('IMAGES_ENABLE_DISK_CACHE');
+  const cachedPathRaw = String.fromEnvironment(
+    'IMAGES_ENABLE_CACHED_NETWORK_PATH',
+  );
+  const fallbackOnlyRaw = String.fromEnvironment(
+    'IMAGES_FORCE_NETWORK_FALLBACK_ONLY',
+  );
+
+  bool? parseNullableBool(String value) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    if (normalized == '1' || normalized == 'true') return true;
+    if (normalized == '0' || normalized == 'false') return false;
+    return null;
+  }
+
+  final diskCache = parseNullableBool(diskCacheRaw);
+  final cachedPath = parseNullableBool(cachedPathRaw);
+  final fallbackOnly = parseNullableBool(fallbackOnlyRaw);
+
+  return base.copyWith(
+    enableImageDiskCache: diskCache ?? base.enableImageDiskCache,
+    enableImageCachedNetworkPath:
+        cachedPath ?? base.enableImageCachedNetworkPath,
+    forceImageNetworkFallbackOnly:
+        fallbackOnly ?? base.forceImageNetworkFallbackOnly,
+  );
 }
 
 Future<AppConfig> loadAppConfig({

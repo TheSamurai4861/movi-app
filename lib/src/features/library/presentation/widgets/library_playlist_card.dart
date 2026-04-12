@@ -5,6 +5,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
 import 'package:movi/src/core/widgets/movi_asset_icon.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/core/widgets/movi_placeholder_card.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 
@@ -151,6 +152,7 @@ class LibraryPlaylistCard extends ConsumerWidget {
     bool isFocused = false,
   }) {
     final isActor = type == LibraryPlaylistType.actor;
+    final actorSize = width < height ? width : height;
     final decoration = BoxDecoration(
       shape: isActor ? BoxShape.circle : BoxShape.rectangle,
       borderRadius: isActor ? null : BorderRadius.circular(borderRadius),
@@ -172,18 +174,35 @@ class LibraryPlaylistCard extends ConsumerWidget {
       height: height,
       decoration: decoration,
       child: photo != null
-          ? ClipRRect(
-              borderRadius: isActor
-                  ? BorderRadius.circular(width / 2)
-                  : BorderRadius.circular(borderRadius),
-              child: Image.network(
-                photo!.toString(),
-                width: width,
-                height: height,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Center(child: _getIcon()),
-              ),
-            )
+          ? isActor
+                ? Center(
+                    child: SizedBox.square(
+                      dimension: actorSize,
+                      child: ClipOval(
+                        child: MoviNetworkImage(
+                          photo!.toString(),
+                          width: actorSize,
+                          fit: BoxFit.fitWidth,
+                          alignment: Alignment.center,
+                          errorBuilder: (_, __, ___) =>
+                              Center(child: _getIcon()),
+                        ),
+                      ),
+                    ),
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    child: MoviNetworkImage(
+                      photo!.toString(),
+                      width: width,
+                      height: height,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      cacheWidth: (width * 2).toInt(),
+                      cacheHeight: (height * 2).toInt(),
+                      errorBuilder: (_, __, ___) => Center(child: _getIcon()),
+                    ),
+                  )
           : Center(child: _getIcon()),
     );
   }

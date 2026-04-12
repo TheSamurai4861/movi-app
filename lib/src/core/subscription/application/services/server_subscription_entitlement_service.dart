@@ -113,4 +113,3 @@ class ServerSubscriptionEntitlementService {
     return const <PremiumFeature>{};
   }
 }
-

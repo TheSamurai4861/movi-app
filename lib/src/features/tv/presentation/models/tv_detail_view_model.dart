@@ -32,6 +32,42 @@ class TvDetailViewModel {
   final Uri? backdrop;
   final String language;
 
+  TvDetailViewModel copyWith({
+    String? title,
+    String? yearText,
+    String? seasonsCountText,
+    String? ratingText,
+    String? overviewText,
+    List<MoviPerson>? cast,
+    List<SeasonViewModel>? seasons,
+    Uri? logo,
+    bool clearLogo = false,
+    Uri? poster,
+    bool clearPoster = false,
+    Uri? posterBackground,
+    bool clearPosterBackground = false,
+    Uri? backdrop,
+    bool clearBackdrop = false,
+    String? language,
+  }) {
+    return TvDetailViewModel(
+      title: title ?? this.title,
+      yearText: yearText ?? this.yearText,
+      seasonsCountText: seasonsCountText ?? this.seasonsCountText,
+      ratingText: ratingText ?? this.ratingText,
+      overviewText: overviewText ?? this.overviewText,
+      cast: cast ?? this.cast,
+      seasons: seasons ?? this.seasons,
+      logo: clearLogo ? null : (logo ?? this.logo),
+      poster: clearPoster ? null : (poster ?? this.poster),
+      posterBackground: clearPosterBackground
+          ? null
+          : (posterBackground ?? this.posterBackground),
+      backdrop: clearBackdrop ? null : (backdrop ?? this.backdrop),
+      language: language ?? this.language,
+    );
+  }
+
   factory TvDetailViewModel.fromDomain({
     required TvShow detail,
     required String language,
@@ -40,29 +76,20 @@ class TvDetailViewModel {
     final locale = _parseLocale(language);
     final localizations = lookupAppLocalizations(locale);
 
-    final creators = detail.creators
+    final seenPersonIds = <String>{};
+    final cast = detail.cast
         .map(
           (p) => MoviPerson(
             id: p.id.value,
             name: p.name,
-            role: p.role ?? localizations.personRoleCreator,
+            role: (p.role == null || p.role!.trim().isEmpty)
+                ? localizations.personRoleActor
+                : p.role!,
             poster: p.photo,
           ),
         )
+        .where((person) => seenPersonIds.add(person.id))
         .toList(growable: false);
-
-    final castMembers = detail.cast
-        .map(
-          (p) => MoviPerson(
-            id: p.id.value,
-            name: p.name,
-            role: p.role ?? '-',
-            poster: p.photo,
-          ),
-        )
-        .toList(growable: false);
-
-    final cast = [...creators, ...castMembers];
 
     final seasons = detail.seasons
         .map(

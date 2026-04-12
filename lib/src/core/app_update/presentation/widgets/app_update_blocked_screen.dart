@@ -106,7 +106,9 @@ class _VersionSummary extends StatelessWidget {
     final theme = Theme.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.35,
+        ),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
@@ -114,14 +116,20 @@ class _VersionSummary extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _InfoRow(label: 'Version installée', value: decision.currentVersion),
+            _InfoRow(
+              label: 'Version installée',
+              value: decision.currentVersion,
+            ),
             if (decision.minSupportedVersion != null)
               _InfoRow(
                 label: 'Version minimale',
                 value: decision.minSupportedVersion!,
               ),
             if (decision.latestVersion != null)
-              _InfoRow(label: 'Dernière version', value: decision.latestVersion!),
+              _InfoRow(
+                label: 'Dernière version',
+                value: decision.latestVersion!,
+              ),
             _InfoRow(label: 'Plateforme', value: decision.platform),
           ],
         ),
@@ -143,9 +151,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(
-            child: Text(label, style: theme.textTheme.bodyMedium),
-          ),
+          Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
           const SizedBox(width: 12),
           Text(value, style: theme.textTheme.bodyMedium),
         ],

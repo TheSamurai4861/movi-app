@@ -34,13 +34,9 @@ final class LogFileReader {
       }
 
       final start = all.length - maxLines;
-      return LogReadResult(
-        lines: all.sublist(start),
-        droppedCount: start,
-      );
+      return LogReadResult(lines: all.sublist(start), droppedCount: start);
     } catch (_) {
       return const LogReadResult(lines: <String>[], droppedCount: 0);
     }
   }
 }
-

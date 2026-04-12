@@ -52,7 +52,8 @@ class PersonDetailActionsRow extends ConsumerWidget {
                   final allMedia = [...movies, ...shows];
                   if (allMedia.isNotEmpty) {
                     final random = Random();
-                    final randomMedia = allMedia[random.nextInt(allMedia.length)];
+                    final randomMedia =
+                        allMedia[random.nextInt(allMedia.length)];
                     context.push(
                       randomMedia.type == MoviMediaType.movie
                           ? AppRouteNames.movie

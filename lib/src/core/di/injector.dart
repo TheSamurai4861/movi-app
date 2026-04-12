@@ -19,6 +19,7 @@ import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/logging/logging_module.dart';
 import 'package:movi/src/core/network/config/network_module.dart';
 import 'package:movi/src/core/network/network.dart';
+import 'package:movi/src/core/images/app_image_cache_manager.dart';
 import 'package:movi/src/core/preferences/preferences.dart';
 import 'package:movi/src/core/parental/application/services/parental_session_service.dart';
 import 'package:movi/src/core/parental/data/datasources/pin_recovery_remote_data_source.dart';
@@ -79,6 +80,8 @@ import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/shared/data/services/iptv_content_resolver_impl.dart';
 import 'package:movi/src/shared/data/services/parental_tmdb_metadata_resolvers.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_discovery_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
@@ -488,6 +491,10 @@ void _registerTmdbInfrastructure() {
 }
 
 void _registerSharedServices() {
+  if (!sl.isRegistered<AppImageCacheManager>()) {
+    sl.registerSingleton<AppImageCacheManager>(AppImageCacheManager.instance);
+  }
+
   if (!sl.isRegistered<TmdbCacheDataSource>() &&
       sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
     sl.registerLazySingleton<TmdbCacheDataSource>(
@@ -499,6 +506,24 @@ void _registerSharedServices() {
   if (!sl.isRegistered<TmdbCacheStore>() &&
       sl.isRegistered<TmdbCacheDataSource>()) {
     sl.registerLazySingleton<TmdbCacheStore>(() => sl<TmdbCacheDataSource>());
+  }
+
+  if (!sl.isRegistered<TmdbDiscoveryCacheDataSource>() &&
+      sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
+    sl.registerLazySingleton<TmdbDiscoveryCacheDataSource>(
+      () => TmdbDiscoveryCacheDataSource(
+        sl<content_cache_repo.ContentCacheRepository>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<TmdbDetailCacheDataSource>() &&
+      sl.isRegistered<content_cache_repo.ContentCacheRepository>()) {
+    sl.registerLazySingleton<TmdbDetailCacheDataSource>(
+      () => TmdbDetailCacheDataSource(
+        sl<content_cache_repo.ContentCacheRepository>(),
+      ),
+    );
   }
 
   if (!sl.isRegistered<TmdbContentRatingRemoteDataSource>() &&

@@ -58,7 +58,8 @@ class RestartRequiredDialog extends StatelessWidget {
               const SizedBox(height: 24),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < _mobileActionsBreakpoint;
+                  final isNarrow =
+                      constraints.maxWidth < _mobileActionsBreakpoint;
 
                   final laterButton = SizedBox(
                     width: double.infinity,

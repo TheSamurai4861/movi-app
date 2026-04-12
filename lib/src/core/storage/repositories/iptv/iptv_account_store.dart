@@ -82,7 +82,10 @@ class IptvAccountStore {
     return rows.map(_parseStalkerAccountRow).toList(growable: false);
   }
 
-  Future<StalkerAccount?> getStalkerAccount(String id, {String? ownerId}) async {
+  Future<StalkerAccount?> getStalkerAccount(
+    String id, {
+    String? ownerId,
+  }) async {
     final rows = await _db.query(
       IptvStorageTables.stalkerAccounts,
       where: _withOptionalOwnerFilter('account_id = ?', ownerId),
@@ -103,8 +106,7 @@ class IptvAccountStore {
   }
 
   Future<Set<String>> resolveAccountIds(
-    Set<String>? requestedAccountIds,
-    {
+    Set<String>? requestedAccountIds, {
     String? ownerId,
   }) async {
     final xtreamAccounts = await getAccounts(ownerId: ownerId);
@@ -125,7 +127,10 @@ class IptvAccountStore {
     return ids;
   }
 
-  Future<void> _deleteAssociatedAccountData(String id, {String? ownerId}) async {
+  Future<void> _deleteAssociatedAccountData(
+    String id, {
+    String? ownerId,
+  }) async {
     await _db.delete(
       IptvStorageTables.playlistItems,
       where: _withOptionalOwnerFilter('account_id = ?', ownerId),

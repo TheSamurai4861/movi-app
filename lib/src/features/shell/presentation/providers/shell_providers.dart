@@ -2,6 +2,12 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/widgets.dart';
+import 'package:movi/src/core/focus/application/focus_orchestrator.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_restore_strategy.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/features/shell/presentation/navigation/shell_retention_policy.dart';
 import 'package:movi/src/features/shell/presentation/providers/shell_controller.dart';
@@ -35,31 +41,31 @@ final keepAliveIndicesProvider = Provider<Set<int>>((ref) {
   return ShellRetentionPolicy.keepAliveIndices();
 });
 
-class ShellTabFocusBinding {
-  const ShellTabFocusBinding({
-    required this.initialFocusNode,
-    this.fallbackFocusNode,
-  });
-
-  final FocusNode initialFocusNode;
-  final FocusNode? fallbackFocusNode;
-}
-
 class ShellFocusCoordinator {
-  final Map<ShellTab, ShellTabFocusBinding> _tabBindings =
-      <ShellTab, ShellTabFocusBinding>{};
-  final Map<ShellTab, FocusNode> _lastContentNodes = <ShellTab, FocusNode>{};
+  ShellFocusCoordinator({required FocusOrchestrator focusOrchestrator})
+    : _focusOrchestrator = focusOrchestrator;
+
+  final FocusOrchestrator _focusOrchestrator;
   FocusNode? _sidebarNode;
   int? _sidebarFocusedIndex;
 
   void attachSidebar(FocusNode node) {
     _sidebarNode = node;
+    _focusOrchestrator.registerRegion(
+      AppFocusRegionId.shellSidebar,
+      FocusRegionBinding(
+        resolvePrimaryEntryNode: () => node,
+        resolveFallbackEntryNode: () => node,
+        restoreStrategy: FocusRestoreStrategy.primaryOnly,
+      ),
+    );
   }
 
   void detachSidebar(FocusNode node) {
     if (identical(_sidebarNode, node)) {
       _sidebarNode = null;
       _sidebarFocusedIndex = null;
+      _focusOrchestrator.unregisterRegion(AppFocusRegionId.shellSidebar);
     }
   }
 
@@ -70,103 +76,42 @@ class ShellFocusCoordinator {
     _sidebarFocusedIndex = index;
   }
 
-  void registerTabFocusBinding(ShellTab tab, ShellTabFocusBinding binding) {
-    _tabBindings[tab] = binding;
-  }
-
-  void unregisterTabFocusBinding(ShellTab tab, FocusNode node) {
-    final binding = _tabBindings[tab];
-    if (binding == null) return;
-    if (identical(binding.initialFocusNode, node) ||
-        identical(binding.fallbackFocusNode, node)) {
-      _tabBindings.remove(tab);
-    }
-    final rememberedNode = _lastContentNodes[tab];
-    if (identical(rememberedNode, node)) {
-      _lastContentNodes.remove(tab);
-    }
-  }
-
-  void registerPreferredNode(ShellTab tab, FocusNode node) {
-    registerTabFocusBinding(
-      tab,
-      ShellTabFocusBinding(initialFocusNode: node, fallbackFocusNode: node),
+  bool focusSidebar() {
+    return _focusOrchestrator.enterRegion(
+      AppFocusRegionId.shellSidebar,
+      restoreLastFocused: false,
     );
   }
 
-  void unregisterPreferredNode(ShellTab tab, FocusNode node) {
-    unregisterTabFocusBinding(tab, node);
-  }
-
-  void rememberContentFocus(ShellTab tab, FocusNode node) {
-    if (!_canRequestFocus(node)) return;
-    _lastContentNodes[tab] = node;
-  }
-
-  bool focusSidebar() {
-    final node = _sidebarNode;
-    if (!_canRequestFocus(node)) return false;
-    node!.requestFocus();
-    return true;
-  }
-
   bool focusTabEntry(ShellTab tab) {
-    final rememberedNode = _lastContentNodes[tab];
-    if (_canRequestFocus(rememberedNode)) {
-      rememberedNode!.requestFocus();
-      return true;
-    }
-
-    final binding = _tabBindings[tab];
-    if (binding == null) return false;
-
-    if (_canRequestFocus(binding.initialFocusNode)) {
-      binding.initialFocusNode.requestFocus();
-      return true;
-    }
-
-    if (_canRequestFocus(binding.fallbackFocusNode)) {
-      binding.fallbackFocusNode!.requestFocus();
-      return true;
-    }
-
-    return false;
-  }
-
-  bool focusTabInitialEntry(ShellTab tab) {
-    final binding = _tabBindings[tab];
-    if (binding == null) return false;
-
-    if (_canRequestFocus(binding.initialFocusNode)) {
-      binding.initialFocusNode.requestFocus();
-      return true;
-    }
-
-    if (_canRequestFocus(binding.fallbackFocusNode)) {
-      binding.fallbackFocusNode!.requestFocus();
-      return true;
-    }
-
-    return false;
+    return _focusOrchestrator.enterRegion(_regionForTab(tab));
   }
 
   bool focusTabPrimaryEntry(ShellTab tab) {
-    final binding = _tabBindings[tab];
-    if (binding == null) return false;
-    if (_canRequestFocus(binding.initialFocusNode)) {
-      binding.initialFocusNode.requestFocus();
-      return true;
-    }
-    return false;
+    return _focusOrchestrator.enterRegion(
+      _regionForTab(tab),
+      restoreLastFocused: false,
+    );
   }
 
-  bool _canRequestFocus(FocusNode? node) {
-    return node != null && node.context != null && node.canRequestFocus;
+  bool resolveTabExit(ShellTab tab, DirectionalEdge edge) {
+    return _focusOrchestrator.resolveExit(_regionForTab(tab), edge);
+  }
+
+  AppFocusRegionId _regionForTab(ShellTab tab) {
+    return switch (tab) {
+      ShellTab.home => AppFocusRegionId.homePrimary,
+      ShellTab.search => AppFocusRegionId.searchInput,
+      ShellTab.library => AppFocusRegionId.libraryPrimary,
+      ShellTab.settings => AppFocusRegionId.settingsPrimary,
+    };
   }
 }
 
 final shellFocusCoordinatorProvider = Provider<ShellFocusCoordinator>((ref) {
-  return ShellFocusCoordinator();
+  return ShellFocusCoordinator(
+    focusOrchestrator: ref.watch(focusOrchestratorProvider),
+  );
 });
 
 /// Actions "façade" (optionnelles) : évite de répéter `.notifier` partout.

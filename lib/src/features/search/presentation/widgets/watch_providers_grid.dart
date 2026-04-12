@@ -10,6 +10,7 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
+import 'package:movi/src/core/widgets/movi_network_image.dart';
 import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/models/provider_results_args.dart';
@@ -259,7 +260,9 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.horizontalPadding,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: ConstrainedBox(
@@ -277,7 +280,9 @@ class _WatchProvidersGridState extends ConsumerState<WatchProvidersGrid> {
             ),
             const SizedBox(height: 16),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.horizontalPadding,
+              ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: ConstrainedBox(
@@ -394,85 +399,89 @@ class _WatchProviderCard extends ConsumerWidget {
       providerPopularMediaProvider(provider.providerId),
     );
 
-    return MoviFocusableAction(
-      focusNode: focusNode,
-      ensureVisibleVerticalAlignment: focusVerticalAlignment,
-      onPressed: () {
-        context.push(
-          AppRouteNames.providerResults,
-          extra: ProviderResultsArgs(
-            providerId: provider.providerId,
-            providerName: provider.providerName,
-          ),
-        );
-      },
-      semanticLabel: provider.providerName,
-      builder: (context, state) {
-        return MoviFocusFrame(
-          scale: state.focused ? 1.03 : 1,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
-                colors: [backgroundColor, _darkenColor(backgroundColor)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: state.focused ? Colors.white : Colors.transparent,
-                width: 2,
-              ),
+    return MoviEnsureVisibleOnFocus(
+      verticalAlignment: focusVerticalAlignment ?? 0.5,
+      child: MoviFocusableAction(
+        focusNode: focusNode,
+        onPressed: () {
+          context.push(
+            AppRouteNames.providerResults,
+            extra: ProviderResultsArgs(
+              providerId: provider.providerId,
+              providerName: provider.providerName,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  popularMediaAsync.when(
-                    data: (popularMedia) {
-                      if (popularMedia?.backdropUrl == null) {
-                        return const SizedBox.shrink();
-                      }
-                      return Positioned.fill(
-                        child: Image.network(
-                          popularMedia!.backdropUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                        ),
-                      );
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: backgroundColor.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(16),
+          );
+        },
+        semanticLabel: provider.providerName,
+        builder: (context, state) {
+          return MoviFocusFrame(
+            scale: state.focused ? 1.03 : 1,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                  colors: [backgroundColor, _darkenColor(backgroundColor)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: state.focused ? Colors.white : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    popularMediaAsync.when(
+                      data: (popularMedia) {
+                        if (popularMedia?.backdropUrl == null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Positioned.fill(
+                          child: MoviNetworkImage(
+                            popularMedia!.backdropUrl!,
+                            fit: BoxFit.cover,
+                            cacheWidth: 780,
+                            errorBuilder: (_, __, ___) =>
+                                const SizedBox.shrink(),
+                          ),
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
                     ),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        provider.providerName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: backgroundColor.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                  ),
-                ],
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          provider.providerName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

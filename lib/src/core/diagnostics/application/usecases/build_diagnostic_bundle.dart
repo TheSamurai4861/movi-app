@@ -97,18 +97,15 @@ final class BuildDiagnosticBundle {
       }
     }
 
-    final topCats =
-        categoryCounts.entries.toList()
-          ..sort((a, b) => b.value.compareTo(a.value));
+    final topCats = categoryCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
 
     return DiagnosticSummary(
       warnCount: warn,
       errorCount: error,
-      topCategories:
-          topCats.take(5).map((e) => e.key).toList(growable: false),
+      topCategories: topCats.take(5).map((e) => e.key).toList(growable: false),
       firstSeenUtcIso: first?.toUtc().toIso8601String(),
       lastSeenUtcIso: last?.toUtc().toIso8601String(),
     );
   }
 }
-

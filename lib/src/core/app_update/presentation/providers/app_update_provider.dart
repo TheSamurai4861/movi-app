@@ -6,7 +6,9 @@ import 'package:movi/src/core/di/injector.dart';
 import 'package:movi/src/core/startup/app_startup_provider.dart' as app_startup;
 import 'package:movi/src/core/startup/domain/startup_contracts.dart';
 
-final appUpdateDecisionProvider = FutureProvider<AppUpdateDecision>((ref) async {
+final appUpdateDecisionProvider = FutureProvider<AppUpdateDecision>((
+  ref,
+) async {
   final startupResult = await ref.watch(app_startup.appStartupProvider.future);
   if (startupResult.kind != StartupOutcomeKind.ready) {
     return AppUpdateDecision.allow(

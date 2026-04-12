@@ -70,8 +70,15 @@ class ContentReference extends Equatable {
       ')';
 
   @override
-  List<Object?> get props =>
-      <Object?>[id, title, type, poster, year, rating, librarySortTime];
+  List<Object?> get props => <Object?>[
+    id,
+    title,
+    type,
+    poster,
+    year,
+    rating,
+    librarySortTime,
+  ];
 }
 
 /// Wrapper permettant de distinguer

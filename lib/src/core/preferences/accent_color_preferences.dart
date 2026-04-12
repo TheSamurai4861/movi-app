@@ -97,7 +97,6 @@ class AccentColorPreferences {
     }
   }
 
-
   void _emitAccentColor(Color color) {
     if (_accentColorController.isClosed) return;
     _accentColorController.add(color);

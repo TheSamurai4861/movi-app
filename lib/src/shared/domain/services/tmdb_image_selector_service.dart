@@ -1,14 +1,13 @@
-/// Service utilitaire pour sélectionner les meilleures images TMDB
-/// (posters, logos) à partir des structures JSON renvoyées par l'API.
+/// Utility service to pick the best TMDB image variants for posters and logos.
 ///
-/// Règles :
-/// - Poster : priorité **no-lang** → **en** → meilleur score (`vote_average`).
-/// - Logo   : priorité **langue app** (si fournie) → **en** → **no-lang** →
-///   meilleur score, en privilégiant les logos "larges" (ratio >= 2.0).
+/// Rules:
+/// - Poster: no-language -> en -> highest vote_average.
+/// - Logo: preferred language -> en -> no-language -> highest vote_average,
+///   preferring wide logos (ratio >= 2.0).
 class TmdbImageSelectorService {
   const TmdbImageSelectorService._();
 
-  /// Sélectionne le meilleur `file_path` pour un poster.
+  /// Select the best `file_path` for a poster.
   static String? selectPosterPath(List<dynamic> posters) {
     if (posters.isEmpty) return null;
     String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
@@ -36,13 +35,11 @@ class TmdbImageSelectorService {
     return pathOf(list.first);
   }
 
-  /// Sélectionne le meilleur `file_path` pour un logo.
+  /// Select the best `file_path` for a logo.
   ///
-  /// [preferredLang] : code ISO 639-1 (ex. `fr` depuis `fr-FR`).
-  static String? selectLogoPath(
-    List<dynamic> logos, {
-    String? preferredLang,
-  }) {
+  /// [preferredLang] is an ISO 639-1 code (for example `fr` from `fr-FR`).
+  /// Priority is PNG first, then SVG fallback, with the same language order.
+  static String? selectLogoPath(List<dynamic> logos, {String? preferredLang}) {
     if (logos.isEmpty) return null;
     String? pathOf(Map<String, dynamic> m) => m['file_path']?.toString();
     num scoreOf(Map<String, dynamic> m) => (m['vote_average'] as num?) ?? 0;
@@ -82,42 +79,65 @@ class TmdbImageSelectorService {
       return p.endsWith('.png');
     }
 
-    String? pickLang(String? iso639) {
+    bool isSvg(Map<String, dynamic> m) {
+      final p = pathOf(m)?.toLowerCase() ?? '';
+      return p.endsWith('.svg');
+    }
+
+    String? pickLangByFormat(
+      String? iso639,
+      bool Function(Map<String, dynamic>) formatFilter,
+    ) {
       final List<Map<String, dynamic>> filtered;
       if (iso639 == null) {
-        filtered = list
-            .where((m) {
-              final s = m['iso_639_1']?.toString().trim();
-              return s == null || s.isEmpty;
-            })
-            .toList();
+        filtered = list.where((m) {
+          final s = m['iso_639_1']?.toString().trim();
+          return s == null || s.isEmpty;
+        }).toList();
       } else {
         final iso = iso639.toLowerCase();
         filtered = list
             .where((m) => m['iso_639_1']?.toString().toLowerCase() == iso)
             .toList();
       }
-      // Règle stricte : on ne retourne que des PNG.
-      final pngOnly = filtered.where(isPng).toList();
-      if (pngOnly.isEmpty) return null;
-      final picked = preferWide(pngOnly);
+      final typed = filtered.where(formatFilter).toList();
+      if (typed.isEmpty) return null;
+      final picked = preferWide(typed);
       return picked.isEmpty ? null : pathOf(picked.first);
     }
 
     if (pref.isNotEmpty) {
-      final p = pickLang(pref);
+      final p = pickLangByFormat(pref, isPng);
       if (p != null) return p;
     }
 
-    final enPick = pickLang('en');
+    final enPick = pickLangByFormat('en', isPng);
     if (enPick != null) return enPick;
 
-    final noLangPick = pickLang(null);
+    final noLangPick = pickLangByFormat(null, isPng);
     if (noLangPick != null) return noLangPick;
 
-    // Dernier recours : n'importe quel PNG ; sinon aucun logo.
+    if (pref.isNotEmpty) {
+      final p = pickLangByFormat(pref, isSvg);
+      if (p != null) return p;
+    }
+
+    final enSvgPick = pickLangByFormat('en', isSvg);
+    if (enSvgPick != null) return enSvgPick;
+
+    final noLangSvgPick = pickLangByFormat(null, isSvg);
+    if (noLangSvgPick != null) return noLangSvgPick;
+
     final anyPng = list.where(isPng).toList();
-    if (anyPng.isEmpty) return null;
-    return pathOf(sortByScore(anyPng).first);
+    if (anyPng.isNotEmpty) {
+      return pathOf(sortByScore(anyPng).first);
+    }
+
+    final anySvg = list.where(isSvg).toList();
+    if (anySvg.isNotEmpty) {
+      return pathOf(sortByScore(anySvg).first);
+    }
+
+    return null;
   }
 }

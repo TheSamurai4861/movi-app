@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -69,5 +70,28 @@ void main() {
 
     expect(find.text(l10n.profilePinEditLabel), findsOneWidget);
     expect(find.text(l10n.profilePinSaved), findsOneWidget);
+  });
+
+  testWidgets('does not close dialog when pressing backspace in name field', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(buildHarness());
+    await tester.pumpAndSettle();
+
+    final nameField = find.byType(TextField).first;
+    await tester.tap(nameField);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(nameField, 'Alex');
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CreateProfileDialog), findsOneWidget);
+    expect(tester.widget<TextField>(nameField).controller!.text, 'Ale');
   });
 }

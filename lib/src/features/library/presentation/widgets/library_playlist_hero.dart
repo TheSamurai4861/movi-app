@@ -42,10 +42,11 @@ class LibraryPlaylistHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Size screenSize = MediaQuery.of(context).size;
     if (isLargeScreen) {
       final cs = Theme.of(context).colorScheme;
       return SizedBox(
-        height: 500,
+        height: screenSize.height * 0.5,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
@@ -54,6 +55,7 @@ class LibraryPlaylistHero extends StatelessWidget {
               poster: playlist.photo?.toString(),
               backdrop: backdrop,
               placeholderType: _placeholderType(),
+              fit: BoxFit.cover,
               imageStrategy: MoviHeroImageStrategy.backdropFirst,
             ),
             Positioned.fill(
@@ -84,7 +86,7 @@ class LibraryPlaylistHero extends StatelessWidget {
             const Positioned(
               left: 0,
               right: 0,
-              bottom: 0,
+              bottom: -1,
               child: _BottomOverlay(height: 200),
             ),
             Positioned(
@@ -374,7 +376,8 @@ class _HeroTopBarState extends State<_HeroTopBar> {
     debugLabel: 'PlaylistHeroMore',
   )..canRequestFocus = false;
 
-  FocusNode get _backFocusNode => widget.backFocusNode ?? _internalBackFocusNode;
+  FocusNode get _backFocusNode =>
+      widget.backFocusNode ?? _internalBackFocusNode;
 
   @override
   void dispose() {

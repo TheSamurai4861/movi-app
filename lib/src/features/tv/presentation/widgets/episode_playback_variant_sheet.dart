@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/features/player/domain/entities/playback_variant.dart';
-import 'package:movi/src/core/widgets/movi_focusable.dart';
 
 class EpisodePlaybackVariantSheet extends StatelessWidget {
   const EpisodePlaybackVariantSheet({
@@ -18,11 +17,9 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
     required String episodeTitle,
     required List<PlaybackVariant> variants,
   }) {
-    return showModalBottomSheet<PlaybackVariant>(
+    return showCupertinoModalPopup<PlaybackVariant>(
       context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (context) => EpisodePlaybackVariantSheet(
+      builder: (sheetContext) => EpisodePlaybackVariantSheet(
         episodeTitle: episodeTitle,
         variants: variants,
       ),
@@ -31,66 +28,22 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final titleStyle = theme.textTheme.titleLarge;
     final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            episodeTitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: titleStyle,
-          ),
-          const SizedBox(height: 12),
-          Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: variants.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final variant = variants[index];
-                final label = _buildVariantTitle(variant, index, l10n);
-                return MoviFocusableAction(
-                  autofocus: index == 0,
-                  semanticLabel: label,
-                  onPressed: () => Navigator.of(context).pop(variant),
-                  builder: (context, state) {
-                    return MoviFocusFrame(
-                      scale: state.focused ? 1.01 : 1,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 12,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      backgroundColor: state.focused
-                          ? Colors.white.withValues(alpha: 0.10)
-                          : Colors.transparent,
-                      borderColor: state.focused
-                          ? Colors.white.withValues(alpha: 0.55)
-                          : Colors.white.withValues(alpha: 0.10),
-                      borderWidth: state.focused ? 2 : 1,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        label,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+    return CupertinoActionSheet(
+      title: Text(episodeTitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+      actions: List<Widget>.generate(variants.length, (index) {
+        final variant = variants[index];
+        final label = _buildVariantTitle(variant, index, l10n);
+        return CupertinoActionSheetAction(
+          key: Key('episode_variant_$index'),
+          onPressed: () => Navigator.of(context).pop<PlaybackVariant>(variant),
+          child: Text(label, maxLines: 3, overflow: TextOverflow.ellipsis),
+        );
+      }),
+      cancelButton: CupertinoActionSheetAction(
+        isDefaultAction: true,
+        onPressed: () => Navigator.of(context).pop<PlaybackVariant?>(null),
+        child: Text(l10n.actionCancel),
       ),
     );
   }
@@ -113,4 +66,3 @@ class EpisodePlaybackVariantSheet extends StatelessWidget {
     return l10n.playbackVariantFallbackLabel(index + 1);
   }
 }
-

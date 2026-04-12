@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/features/category_browser/presentation/models/category_args.dart';
 import 'package:movi/src/features/category_browser/presentation/providers/category_providers.dart';
@@ -27,6 +31,18 @@ class _CategoryPageState extends ConsumerState<CategoryPage> {
   final FocusNode _retryFocusNode = FocusNode(debugLabel: 'CategoryRetry');
   int _lastWheelLoadMs = 0;
 
+  KeyEventResult _handleBackKeyEvent(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!mounted) return KeyEventResult.ignored;
+      Navigator.of(context).maybePop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   void dispose() {
     _backFocusNode.dispose();
@@ -50,41 +66,44 @@ class _CategoryPageState extends ConsumerState<CategoryPage> {
         ? _firstItemFocusNode
         : _backFocusNode;
 
-    return MoviRouteFocusBoundary(
-      restorePolicy: MoviFocusRestorePolicy(
-        initialFocusNode: initialFocusNode,
-        fallbackFocusNode: _backFocusNode,
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.categoryPrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => initialFocusNode,
+        resolveFallbackEntryNode: () => _backFocusNode,
       ),
-      requestInitialFocusOnMount: true,
-      onUnhandledBack: () {
-        if (!mounted) return false;
-        Navigator.of(context).maybePop();
-        return true;
-      },
-      debugLabel: 'CategoryRouteFocus',
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
-            children: [
-              CategoryHeader(
-                title: title,
-                onBack: () => Navigator.of(context).maybePop(),
-                backFocusNode: _backFocusNode,
-              ),
-              Expanded(
-                child: SyncableRefreshIndicator(
-                  onRefresh: () async {
-                    if (visibleKey != null) {
-                      ref.invalidate(categoryControllerProvider(visibleKey));
-                    }
-                  },
-                  child: _buildBody(context, ref, categoryState),
+      exitMap: FocusRegionExitMap({
+        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+      }),
+      requestFocusOnMount: true,
+      debugLabel: 'CategoryRegion',
+      child: Focus(
+        canRequestFocus: false,
+        onKeyEvent: (_, event) => _handleBackKeyEvent(event, context),
+        child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                CategoryHeader(
+                  title: title,
+                  onBack: () => Navigator.of(context).maybePop(),
+                  backFocusNode: _backFocusNode,
                 ),
-              ),
-            ],
+                Expanded(
+                  child: SyncableRefreshIndicator(
+                    onRefresh: () async {
+                      if (visibleKey != null) {
+                        ref.invalidate(categoryControllerProvider(visibleKey));
+                      }
+                    },
+                    child: _buildBody(context, ref, categoryState),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

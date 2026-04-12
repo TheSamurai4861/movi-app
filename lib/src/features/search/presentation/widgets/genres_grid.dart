@@ -47,6 +47,7 @@ class GenresGrid extends ConsumerStatefulWidget {
 
 class _GenresGridState extends ConsumerState<GenresGrid> {
   final Map<String, FocusNode> _genreFocusNodes = <String, FocusNode>{};
+  int? _lastAppliedFocusRequestId;
 
   ScreenType _screenTypeFor(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -163,16 +164,18 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
   void _applyPendingFocusRequest({
     required List<TmdbGenre> movieGenres,
     required List<TmdbGenre> seriesGenres,
+    int attempt = 0,
   }) {
     final requestColumn = widget.focusRequestColumn;
     if (widget.focusRequestId == null || requestColumn == null) return;
     if (movieGenres.isEmpty && seriesGenres.isEmpty) return;
+    if (_lastAppliedFocusRequestId == widget.focusRequestId) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       if (movieGenres.isNotEmpty) {
         final targetIndex = math.min(requestColumn, movieGenres.length - 1);
-        _requestGenreFocus(
+        final focused = _requestGenreFocus(
           movieGenres[targetIndex],
           useExternalFirstFocusNode: _isOverallFirst(
             _GenreSection.movie,
@@ -180,10 +183,40 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
             movieGenres,
           ),
         );
+        if (focused) {
+          final node = _focusNodeFor(
+            movieGenres[targetIndex],
+            useExternalFirstFocusNode: _isOverallFirst(
+              _GenreSection.movie,
+              targetIndex,
+              movieGenres,
+            ),
+          );
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            if (node.hasFocus) {
+              _lastAppliedFocusRequestId = widget.focusRequestId;
+              return;
+            }
+            if (attempt >= 4) return;
+            _applyPendingFocusRequest(
+              movieGenres: movieGenres,
+              seriesGenres: seriesGenres,
+              attempt: attempt + 1,
+            );
+          });
+          return;
+        }
+        if (attempt >= 4) return;
+        _applyPendingFocusRequest(
+          movieGenres: movieGenres,
+          seriesGenres: seriesGenres,
+          attempt: attempt + 1,
+        );
         return;
       }
       final targetIndex = math.min(requestColumn, seriesGenres.length - 1);
-      _requestGenreFocus(
+      final focused = _requestGenreFocus(
         seriesGenres[targetIndex],
         useExternalFirstFocusNode: _isOverallFirst(
           _GenreSection.series,
@@ -191,7 +224,45 @@ class _GenresGridState extends ConsumerState<GenresGrid> {
           movieGenres,
         ),
       );
+      if (focused) {
+        final node = _focusNodeFor(
+          seriesGenres[targetIndex],
+          useExternalFirstFocusNode: _isOverallFirst(
+            _GenreSection.series,
+            targetIndex,
+            movieGenres,
+          ),
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (node.hasFocus) {
+            _lastAppliedFocusRequestId = widget.focusRequestId;
+            return;
+          }
+          if (attempt >= 4) return;
+          _applyPendingFocusRequest(
+            movieGenres: movieGenres,
+            seriesGenres: seriesGenres,
+            attempt: attempt + 1,
+          );
+        });
+        return;
+      }
+      if (attempt >= 4) return;
+      _applyPendingFocusRequest(
+        movieGenres: movieGenres,
+        seriesGenres: seriesGenres,
+        attempt: attempt + 1,
+      );
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant GenresGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusRequestId != oldWidget.focusRequestId) {
+      _lastAppliedFocusRequestId = null;
+    }
   }
 
   KeyEventResult _handleGenreKey({
@@ -527,56 +598,58 @@ class _GenreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MoviFocusableAction(
-      focusNode: focusNode,
-      ensureVisibleVerticalAlignment: focusVerticalAlignment,
-      onPressed: onTap,
-      semanticLabel: genre.name,
-      builder: (context, state) {
-        return MoviFocusFrame(
-          scale: state.focused ? 1.03 : 1,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
-                colors: [accent, darkenColor(accent)],
+    return MoviEnsureVisibleOnFocus(
+      verticalAlignment: focusVerticalAlignment ?? 0.5,
+      child: MoviFocusableAction(
+        focusNode: focusNode,
+        onPressed: onTap,
+        semanticLabel: genre.name,
+        builder: (context, state) {
+          return MoviFocusFrame(
+            scale: state.focused ? 1.03 : 1,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                  colors: [accent, darkenColor(accent)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: state.focused ? Colors.white : Colors.transparent,
+                  width: 2,
+                ),
               ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: state.focused ? Colors.white : Colors.transparent,
-                width: 2,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(color: accent.withValues(alpha: 0.5)),
-                  Align(
-                    alignment: Alignment.bottomLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        genre.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Container(color: accent.withValues(alpha: 0.5)),
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          genre.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

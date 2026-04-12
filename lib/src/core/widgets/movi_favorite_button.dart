@@ -55,15 +55,12 @@ class _MoviFavoriteButtonState extends State<MoviFavoriteButton> {
   @override
   Widget build(BuildContext context) {
     const duration = Duration(milliseconds: 300);
-    final focusedBg =
-        widget.focusedBackgroundColor ?? const Color(0x80000000);
+    final focusedBg = widget.focusedBackgroundColor ?? const Color(0x80000000);
     final effectiveFocusedBorder =
         widget.focusedBorderColor ?? Colors.transparent;
     final effectiveUnfocusedBorder =
         widget.unfocusedBorderColor ?? Colors.transparent;
-    final backgroundColor = _focused
-        ? focusedBg
-        : Colors.transparent;
+    final backgroundColor = _focused ? focusedBg : Colors.transparent;
 
     return Semantics(
       button: true,

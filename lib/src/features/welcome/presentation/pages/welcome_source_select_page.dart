@@ -43,6 +43,7 @@ class _WelcomeSourceSelectPageState
     debugLabel: 'WelcomeSourceSelectAddSource',
   );
   final List<FocusNode> _accountFocusNodes = <FocusNode>[];
+  bool _isHandlingBack = false;
 
   @override
   void dispose() {
@@ -58,7 +59,9 @@ class _WelcomeSourceSelectPageState
   void _syncAccountFocusNodes(int count) {
     while (_accountFocusNodes.length < count) {
       _accountFocusNodes.add(
-        FocusNode(debugLabel: 'WelcomeSourceSelectItem${_accountFocusNodes.length}'),
+        FocusNode(
+          debugLabel: 'WelcomeSourceSelectItem${_accountFocusNodes.length}',
+        ),
       );
     }
     while (_accountFocusNodes.length > count) {
@@ -78,13 +81,23 @@ class _WelcomeSourceSelectPageState
     return AppRouteNames.iptvSources;
   }
 
-  void _handleBack(BuildContext context) {
+  bool _handleBack(BuildContext context) {
+    if (!context.mounted || _isHandlingBack) {
+      return false;
+    }
+    _isHandlingBack = true;
     final fallbackRoute = _determineFallbackRoute(context);
     if (fallbackRoute == null) {
       context.pop();
     } else {
       context.go(fallbackRoute);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _isHandlingBack = false;
+      }
+    });
+    return true;
   }
 
   bool _requestFocus(FocusNode node) {
@@ -164,9 +177,7 @@ class _WelcomeSourceSelectPageState
         ),
         requestInitialFocusOnMount: true,
         onUnhandledBack: () {
-          if (!context.mounted) return false;
-          _handleBack(context);
-          return true;
+          return _handleBack(context);
         },
         debugLabel: 'WelcomeSourceSelectRouteFocus',
         child: Scaffold(
@@ -256,7 +267,9 @@ class _WelcomeSourceSelectPageState
                         if (accounts.isEmpty) {
                           return Center(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -272,7 +285,8 @@ class _WelcomeSourceSelectPageState
                                       onKeyEvent: (_, event) =>
                                           _handleDirectionalKey(
                                             event,
-                                            up: launchRecovery?.isRetryable ??
+                                            up:
+                                                launchRecovery?.isRetryable ??
                                                     false
                                                 ? _retryFocusNode
                                                 : _backFocusNode,
@@ -285,9 +299,7 @@ class _WelcomeSourceSelectPageState
                                         onPressed: () => context.go(
                                           AppRouteNames.welcomeSources,
                                         ),
-                                        child: const Text(
-                                          'Ajouter une source',
-                                        ),
+                                        child: const Text('Ajouter une source'),
                                       ),
                                     ),
                                   ),
@@ -313,9 +325,12 @@ class _WelcomeSourceSelectPageState
 
                             await prefs.setSelectedSourceId(account.id);
 
-                            final appStateController =
-                                ref.read(appStateControllerProvider);
-                            appStateController.setActiveIptvSources({account.id});
+                            final appStateController = ref.read(
+                              appStateControllerProvider,
+                            );
+                            appStateController.setActiveIptvSources({
+                              account.id,
+                            });
 
                             try {
                               await pushUserPreferencesIfSignedIn(

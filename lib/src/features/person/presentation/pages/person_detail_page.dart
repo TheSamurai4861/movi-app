@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/responsive/application/services/screen_type_resolver.dart';
 import 'package:movi/src/core/responsive/domain/entities/screen_type.dart';
 import 'package:movi/src/core/utils/app_assets.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/widgets/widgets.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
 import 'package:movi/l10n/app_localizations.dart';
@@ -112,7 +115,9 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
   bool _isTransitioningFromLoading = true;
   final ScrollController _scrollController = ScrollController();
   final FocusNode _backFocusNode = FocusNode(debugLabel: 'PersonDetailBack');
-  final FocusNode _primaryActionFocusNode = FocusNode(debugLabel: 'PersonDetailPrimaryAction');
+  final FocusNode _primaryActionFocusNode = FocusNode(
+    debugLabel: 'PersonDetailPrimaryAction',
+  );
   final FocusNode _favoriteActionFocusNode = FocusNode(
     debugLabel: 'PersonDetailFavoriteAction',
   );
@@ -149,6 +154,18 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
     }
     node.requestFocus();
     return true;
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      if (!mounted || !context.mounted) return KeyEventResult.ignored;
+      context.pop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   void _focusPrimaryActionAndScrollTop() {
@@ -319,108 +336,116 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
         .toList(growable: false);
 
     return SwipeBackWrapper(
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: _primaryActionFocusNode,
-          fallbackFocusNode: _backFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.personDetailPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => _primaryActionFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () {
-          if (!mounted || !context.mounted) return false;
-          context.pop();
-          return true;
-        },
-        debugLabel: 'PersonDetailRouteFocus',
-        child: Scaffold(
-        backgroundColor: cs.surface,
-        body: SafeArea(
-          top: true,
-          bottom: true,
-          child: AnimatedOpacity(
-            opacity: _isTransitioningFromLoading ? 0.0 : 1.0,
-            duration: const Duration(milliseconds: 300),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (isWideLayout)
-                          Builder(
-                            builder: (headerContext) =>
-                                MoviVerticalEnsureVisibleTarget(
-                                  targetContext: headerContext,
-                                  child: _buildDesktopHeader(
-                                    context,
-                                    horizontalPadding: horizontalPadding,
+        exitMap: FocusRegionExitMap({
+          DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        }),
+        requestFocusOnMount: true,
+        debugLabel: 'PersonDetailRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            backgroundColor: cs.surface,
+            body: SafeArea(
+              top: true,
+              bottom: true,
+              child: AnimatedOpacity(
+                opacity: _isTransitioningFromLoading ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (isWideLayout)
+                              Builder(
+                                builder: (headerContext) =>
+                                    MoviVerticalEnsureVisibleTarget(
+                                      targetContext: headerContext,
+                                      child: _buildDesktopHeader(
+                                        context,
+                                        horizontalPadding: horizontalPadding,
+                                        movies: movies,
+                                        shows: shows,
+                                      ),
+                                    ),
+                              )
+                            else
+                              PersonDetailHeroSection(
+                                photo: widget.vm.photo,
+                                name: widget.vm.name,
+                                moviesCount: widget.vm.moviesCount,
+                                showsCount: widget.vm.showsCount,
+                                backFocusNode: _backFocusNode,
+                                height: heroHeight,
+                              ),
+                            Padding(
+                              padding: EdgeInsetsDirectional.only(
+                                start: horizontalPadding,
+                                end: horizontalPadding,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const SizedBox(height: 16),
+                                  if (!isWideLayout) ...[
+                                    PersonDetailActionsRow(
+                                      personId: widget.personId,
+                                      movies: movies,
+                                      shows: shows,
+                                      primaryActionFocusNode:
+                                          _primaryActionFocusNode,
+                                      favoriteActionFocusNode:
+                                          _favoriteActionFocusNode,
+                                      onPrimaryActionKeyEvent:
+                                          _handlePrimaryActionKey,
+                                      onFavoriteActionKeyEvent:
+                                          _handleFavoriteActionKey,
+                                    ),
+                                    const SizedBox(height: 32),
+                                  ],
+                                  if (widget.vm.biography != null &&
+                                      widget.vm.biography!.isNotEmpty) ...[
+                                    PersonBiographySection(
+                                      biography: widget.vm.biography!,
+                                      expandFocusNode:
+                                          _biographyExpandFocusNode,
+                                      onExpandKeyEvent:
+                                          _handleBiographyExpandKey,
+                                    ),
+                                    const SizedBox(height: 32),
+                                  ],
+                                  PersonFilmographySection(
                                     movies: movies,
                                     shows: shows,
+                                    firstMovieFocusNode: _firstMovieFocusNode,
+                                    firstShowFocusNode: _firstShowFocusNode,
+                                    onFirstMovieKeyEvent: _handleFirstMovieKey,
+                                    onFirstShowKeyEvent: _handleFirstShowKey,
                                   ),
-                                ),
-                          )
-                        else
-                          PersonDetailHeroSection(
-                            photo: widget.vm.photo,
-                            name: widget.vm.name,
-                            moviesCount: widget.vm.moviesCount,
-                            showsCount: widget.vm.showsCount,
-                            backFocusNode: _backFocusNode,
-                            height: heroHeight,
-                          ),
-                        Padding(
-                          padding: EdgeInsetsDirectional.only(
-                            start: horizontalPadding,
-                            end: horizontalPadding,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 16),
-                              if (!isWideLayout) ...[
-                                PersonDetailActionsRow(
-                                  personId: widget.personId,
-                                  movies: movies,
-                                  shows: shows,
-                                  primaryActionFocusNode: _primaryActionFocusNode,
-                                  favoriteActionFocusNode: _favoriteActionFocusNode,
-                                  onPrimaryActionKeyEvent: _handlePrimaryActionKey,
-                                  onFavoriteActionKeyEvent:
-                                      _handleFavoriteActionKey,
-                                ),
-                                const SizedBox(height: 32),
-                              ],
-                              if (widget.vm.biography != null &&
-                                  widget.vm.biography!.isNotEmpty) ...[
-                                PersonBiographySection(
-                                  biography: widget.vm.biography!,
-                                  expandFocusNode: _biographyExpandFocusNode,
-                                  onExpandKeyEvent: _handleBiographyExpandKey,
-                                ),
-                                const SizedBox(height: 32),
-                              ],
-                              PersonFilmographySection(
-                                movies: movies,
-                                shows: shows,
-                                firstMovieFocusNode: _firstMovieFocusNode,
-                                firstShowFocusNode: _firstShowFocusNode,
-                                onFirstMovieKeyEvent: _handleFirstMovieKey,
-                                onFirstShowKeyEvent: _handleFirstShowKey,
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-      )
     );
   }
 
@@ -564,7 +589,7 @@ class _PersonDetailContentState extends State<_PersonDetailContent> {
         borderRadius: BorderRadius.zero,
       );
     } else {
-      child = Image.network(
+      child = MoviNetworkImage(
         photo.toString(),
         fit: BoxFit.cover,
         cacheWidth: 880,

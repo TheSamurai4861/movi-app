@@ -2,10 +2,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/profile/domain/entities/profile.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
@@ -53,6 +57,7 @@ class _ProviderAllResultsPageState
   );
   final FocusNode _retryFocusNode = FocusNode(debugLabel: 'ProviderAllRetry');
   String? _errorMessage;
+  bool _didRequestInitialGridFocus = false;
 
   @override
   void initState() {
@@ -97,14 +102,10 @@ class _ProviderAllResultsPageState
   }
 
   bool _handleBack(BuildContext context) {
-    if (!context.mounted) {
+    if (!context.mounted || !context.canPop()) {
       return false;
     }
-    final navigator = Navigator.of(context);
-    if (!navigator.canPop()) {
-      return false;
-    }
-    navigator.maybePop();
+    context.pop();
     return true;
   }
 
@@ -193,8 +194,63 @@ class _ProviderAllResultsPageState
     _currentPage = 1;
     _hasMore = true;
     _isLoading = false;
+    _didRequestInitialGridFocus = false;
     _movies.clear();
     _shows.clear();
+  }
+
+  bool _enterRegion(
+    AppFocusRegionId regionId, {
+    bool restoreLastFocused = true,
+  }) {
+    return ref
+        .read(focusOrchestratorProvider)
+        .enterRegion(regionId, restoreLastFocused: restoreLastFocused);
+  }
+
+  KeyEventResult _handlePageBackKey(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleHeaderKey(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      if (_errorMessage != null && _movies.isEmpty && _shows.isEmpty) {
+        _retryFocusNode.requestFocus();
+        return KeyEventResult.handled;
+      }
+      _enterRegion(AppFocusRegionId.providerAllGrid, restoreLastFocused: false);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+        event.logicalKey == LogicalKeyboardKey.arrowRight ||
+        event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  void _requestInitialGridFocusIfNeeded(int itemsCount) {
+    if (_didRequestInitialGridFocus || itemsCount == 0) {
+      return;
+    }
+    _didRequestInitialGridFocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _enterRegion(AppFocusRegionId.providerAllGrid, restoreLastFocused: false);
+    });
   }
 
   Future<List<MovieSummary>> _filterMovies(
@@ -259,11 +315,7 @@ class _ProviderAllResultsPageState
         : _shows.length;
     final hasBlockingError =
         itemsCount == 0 && _errorMessage != null && !_isLoading;
-    final initialFocusNode = hasBlockingError
-        ? _retryFocusNode
-        : itemsCount > 0
-        ? _firstItemFocusNode
-        : _backFocusNode;
+    _requestInitialGridFocusIfNeeded(itemsCount);
 
     return PopScope(
       canPop: false,
@@ -271,182 +323,227 @@ class _ProviderAllResultsPageState
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: _backFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.providerAllPrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => hasBlockingError
+              ? _retryFocusNode
+              : itemsCount > 0
+              ? _firstItemFocusNode
+              : _backFocusNode,
+          resolveFallbackEntryNode: () => _backFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'ProviderAllResultsRouteFocus',
-        child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          body: SafeArea(
-            top: true,
-            bottom: false,
-            child: Column(
-              children: [
-                MoviSubpageBackTitleHeader(
-                  title: title,
-                  onBack: () => _handleBack(context),
-                  focusNode: _backFocusNode,
-                  pageHorizontalPadding: _pageHorizontalPadding,
-                ),
-                Expanded(
-                  child: hasBlockingError
-                      ? Center(
-                          child: LaunchErrorPanel(
-                            message: _errorMessage!,
-                            retryLabel: l10n.actionRetry,
-                            onRetry: () {
-                              unawaited(_retryLoad());
-                            },
-                            retryFocusNode: _retryFocusNode,
-                          ),
-                        )
-                      : itemsCount == 0 && !_isLoading
-                      ? Center(
-                          child: Text(
-                            l10n.noResults,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          children: [
-                            NotificationListener<ScrollNotification>(
-                              onNotification: (notification) {
-                                if (!_hasMore || _isLoading) return false;
-                                if (notification is! ScrollUpdateNotification) {
-                                  return false;
-                                }
-                                if (notification.dragDetails != null) {
-                                  return false;
-                                }
-                                final delta = notification.scrollDelta;
-                                if (delta == null || delta <= 0) return false;
-                                if (notification.metrics.extentAfter > 320) {
-                                  return false;
-                                }
-                                final now =
-                                    DateTime.now().millisecondsSinceEpoch;
-                                if (now - _lastWheelLoadMs < 450) return false;
-                                _lastWheelLoadMs = now;
-                                unawaited(_loadMore());
-                                return false;
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'ProviderAllResultsPrimary',
+        child: Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: (_, event) => _handlePageBackKey(event),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: SafeArea(
+              top: true,
+              bottom: false,
+              child: Column(
+                children: [
+                  FocusRegionScope(
+                    regionId: AppFocusRegionId.providerAllHeader,
+                    binding: FocusRegionBinding(
+                      resolvePrimaryEntryNode: () => _backFocusNode,
+                      resolveFallbackEntryNode: () =>
+                          hasBlockingError ? _retryFocusNode : _backFocusNode,
+                    ),
+                    handleDirectionalExits: false,
+                    debugLabel: 'ProviderAllResultsHeader',
+                    child: Focus(
+                      canRequestFocus: false,
+                      skipTraversal: true,
+                      onKeyEvent: (_, event) => _handleHeaderKey(event),
+                      child: MoviSubpageBackTitleHeader(
+                        title: title,
+                        onBack: () => _handleBack(context),
+                        focusNode: _backFocusNode,
+                        pageHorizontalPadding: _pageHorizontalPadding,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: hasBlockingError
+                        ? Center(
+                            child: LaunchErrorPanel(
+                              message: _errorMessage!,
+                              retryLabel: l10n.actionRetry,
+                              onRetry: () {
+                                unawaited(_retryLoad());
                               },
-                              child: MoviMediaGrid(
-                                itemCount: itemsCount,
-                                firstItemFocusNode: _firstItemFocusNode,
-                                onExitUp: () {
-                                  _backFocusNode.requestFocus();
-                                  return true;
-                                },
-                                onExitDown: () {
-                                  if (_errorMessage != null) {
-                                    _retryFocusNode.requestFocus();
-                                    return true;
-                                  }
-                                  if (_hasMore && !_isLoading) {
-                                    unawaited(_loadMore());
-                                  }
-                                  return true;
-                                },
-                                pageHorizontalPadding: _pageHorizontalPadding,
-                                itemBuilder:
-                                    (
-                                      context,
-                                      index,
-                                      focusNode,
-                                      cardWidth,
-                                      posterHeight,
-                                    ) {
-                                      if (widget.type == MoviMediaType.movie) {
-                                        final movie = _movies[index];
-                                        final media = MoviMedia(
-                                          id: movie.id.toString(),
-                                          title: movie.title.value,
-                                          poster: movie.poster,
-                                          year: movie.releaseYear,
-                                          type: MoviMediaType.movie,
-                                        );
-                                        return MoviMediaCard(
-                                          media: media,
-                                          width: cardWidth,
-                                          height: posterHeight,
-                                          focusNode: focusNode,
-                                          onTap: (selectedMedia) =>
-                                              navigateToMovieDetail(
-                                                context,
-                                                ref,
-                                                ContentRouteArgs.movie(
-                                                  selectedMedia.id,
-                                                ),
-                                              ),
-                                        );
-                                      }
-
-                                      final show = _shows[index];
-                                      final media = MoviMedia(
-                                        id: show.id.toString(),
-                                        title: show.title.value,
-                                        poster: show.poster,
-                                        type: MoviMediaType.series,
-                                      );
-                                      return MoviMediaCard(
-                                        media: media,
-                                        width: cardWidth,
-                                        height: posterHeight,
-                                        focusNode: focusNode,
-                                        onTap: (selectedMedia) =>
-                                            navigateToTvDetail(
-                                              context,
-                                              ref,
-                                              ContentRouteArgs.series(
-                                                selectedMedia.id,
-                                              ),
-                                            ),
-                                      );
-                                    },
-                              ),
+                              retryFocusNode: _retryFocusNode,
                             ),
-                            if (_errorMessage != null) ...[
-                              const SizedBox(height: 16),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                ),
-                                child: Text(
-                                  _errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(color: Colors.redAccent),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Center(
-                                child: MoviPrimaryButton(
-                                  label: l10n.actionRetry,
-                                  onPressed: () {
-                                    unawaited(_retryLoad());
+                          )
+                        : itemsCount == 0 && !_isLoading
+                        ? Center(
+                            child: Text(
+                              l10n.noResults,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          )
+                        : FocusRegionScope(
+                            regionId: AppFocusRegionId.providerAllGrid,
+                            binding: FocusRegionBinding(
+                              resolvePrimaryEntryNode: () =>
+                                  _firstItemFocusNode,
+                              resolveFallbackEntryNode: () => _backFocusNode,
+                            ),
+                            handleDirectionalExits: false,
+                            debugLabel: 'ProviderAllResultsGrid',
+                            child: ListView(
+                              padding: const EdgeInsets.only(bottom: 24),
+                              children: [
+                                NotificationListener<ScrollNotification>(
+                                  onNotification: (notification) {
+                                    if (!_hasMore || _isLoading) return false;
+                                    if (notification
+                                        is! ScrollUpdateNotification) {
+                                      return false;
+                                    }
+                                    if (notification.dragDetails != null) {
+                                      return false;
+                                    }
+                                    final delta = notification.scrollDelta;
+                                    if (delta == null || delta <= 0) {
+                                      return false;
+                                    }
+                                    if (notification.metrics.extentAfter >
+                                        320) {
+                                      return false;
+                                    }
+                                    final now =
+                                        DateTime.now().millisecondsSinceEpoch;
+                                    if (now - _lastWheelLoadMs < 450) {
+                                      return false;
+                                    }
+                                    _lastWheelLoadMs = now;
+                                    unawaited(_loadMore());
+                                    return false;
                                   },
-                                  focusNode: _retryFocusNode,
-                                  expand: false,
+                                  child: MoviMediaGrid(
+                                    itemCount: itemsCount,
+                                    firstItemFocusNode: _firstItemFocusNode,
+                                    onExitUp: () => _enterRegion(
+                                      AppFocusRegionId.providerAllHeader,
+                                      restoreLastFocused: false,
+                                    ),
+                                    onExitDown: () {
+                                      if (_errorMessage != null) {
+                                        _retryFocusNode.requestFocus();
+                                        return true;
+                                      }
+                                      if (_hasMore && !_isLoading) {
+                                        unawaited(_loadMore());
+                                      }
+                                      return true;
+                                    },
+                                    pageHorizontalPadding:
+                                        _pageHorizontalPadding,
+                                    itemBuilder:
+                                        (
+                                          context,
+                                          index,
+                                          focusNode,
+                                          cardWidth,
+                                          posterHeight,
+                                        ) {
+                                          if (widget.type ==
+                                              MoviMediaType.movie) {
+                                            final movie = _movies[index];
+                                            final media = MoviMedia(
+                                              id: movie.id.toString(),
+                                              title: movie.title.value,
+                                              poster: movie.poster,
+                                              year: movie.releaseYear,
+                                              type: MoviMediaType.movie,
+                                            );
+                                            return MoviMediaCard(
+                                              media: media,
+                                              width: cardWidth,
+                                              height: posterHeight,
+                                              focusNode: focusNode,
+                                              onTap: (selectedMedia) =>
+                                                  navigateToMovieDetail(
+                                                    context,
+                                                    ref,
+                                                    ContentRouteArgs.movie(
+                                                      selectedMedia.id,
+                                                    ),
+                                                  ),
+                                            );
+                                          }
+
+                                          final show = _shows[index];
+                                          final media = MoviMedia(
+                                            id: show.id.toString(),
+                                            title: show.title.value,
+                                            poster: show.poster,
+                                            type: MoviMediaType.series,
+                                          );
+                                          return MoviMediaCard(
+                                            media: media,
+                                            width: cardWidth,
+                                            height: posterHeight,
+                                            focusNode: focusNode,
+                                            onTap: (selectedMedia) =>
+                                                navigateToTvDetail(
+                                                  context,
+                                                  ref,
+                                                  ContentRouteArgs.series(
+                                                    selectedMedia.id,
+                                                  ),
+                                                ),
+                                          );
+                                        },
+                                  ),
                                 ),
-                              ),
-                            ],
-                            if (_isLoading) ...[
-                              const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                ),
-              ],
+                                if (_errorMessage != null) ...[
+                                  const SizedBox(height: 16),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                    ),
+                                    child: Text(
+                                      _errorMessage!,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(color: Colors.redAccent),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Center(
+                                    child: MoviPrimaryButton(
+                                      label: l10n.actionRetry,
+                                      onPressed: () {
+                                        unawaited(_retryLoad());
+                                      },
+                                      focusNode: _retryFocusNode,
+                                      expand: false,
+                                    ),
+                                  ),
+                                ],
+                                if (_isLoading) ...[
+                                  const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

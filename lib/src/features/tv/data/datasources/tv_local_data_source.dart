@@ -8,9 +8,7 @@ class TvLocalDataSource {
 
   final ContentCacheRepository _cacheRepository;
   final LocalePreferences _localePreferences;
-  static const CachePolicy _detailPolicy = CachePolicy(
-    ttl: Duration(hours: 24),
-  );
+  static const CachePolicy _detailPolicy = CachePolicy(ttl: Duration(days: 7));
   static const CachePolicy _seasonPolicy = CachePolicy(
     ttl: Duration(hours: 12),
   );

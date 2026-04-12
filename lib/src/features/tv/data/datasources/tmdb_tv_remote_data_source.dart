@@ -71,6 +71,7 @@ class TmdbTvRemoteDataSource {
       if (lang.isEmpty || lang == 'en') return 'null,en';
       return '$lang,en,null';
     }
+
     final preferredImageLang = (language ?? '').split('-').first.toLowerCase();
 
     final json = await _client.getJson(
@@ -131,6 +132,7 @@ class TmdbTvRemoteDataSource {
       if (lang.isEmpty || lang == 'en') return 'null,en';
       return '$lang,en,null';
     }
+
     final preferredImageLang = (language ?? '').split('-').first.toLowerCase();
 
     logger.debug(

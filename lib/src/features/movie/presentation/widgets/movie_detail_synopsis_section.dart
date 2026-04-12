@@ -49,13 +49,15 @@ class _MovieDetailSynopsisSectionState
                             ignoring: true,
                             child: Container(
                               height: 41,
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Color(0x00000000),
-                                    Color(0xFF141414),
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.surface.withValues(alpha: 0),
+                                    Theme.of(context).colorScheme.surface,
                                   ],
                                 ),
                               ),

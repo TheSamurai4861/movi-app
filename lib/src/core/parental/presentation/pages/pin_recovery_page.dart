@@ -36,6 +36,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
   final FocusNode _resetFocusNode = FocusNode(debugLabel: 'PinRecoveryReset');
   final FocusNode _resendFocusNode = FocusNode(debugLabel: 'PinRecoveryResend');
   ProviderSubscription<PinRecoveryUiState>? _pinRecoverySub;
+  bool _isHandlingBack = false;
 
   @override
   void initState() {
@@ -55,7 +56,7 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          Navigator.of(context).maybePop(true);
+          _handleBack(context, result: true);
         });
       },
       fireImmediately: false,
@@ -119,15 +120,23 @@ class _PinRecoveryPageState extends ConsumerState<PinRecoveryPage> {
     return KeyEventResult.ignored;
   }
 
-  bool _handleBack(BuildContext context) {
-    if (!context.mounted) {
+  bool _handleBack(BuildContext context, {Object? result}) {
+    if (!context.mounted || _isHandlingBack) {
       return false;
     }
+
     final navigator = Navigator.of(context);
     if (!navigator.canPop()) {
       return false;
     }
-    navigator.maybePop();
+
+    _isHandlingBack = true;
+    navigator.pop(result);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _isHandlingBack = false;
+      }
+    });
     return true;
   }
 

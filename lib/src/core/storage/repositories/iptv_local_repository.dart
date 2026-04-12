@@ -18,10 +18,8 @@ import 'package:movi/src/features/iptv/domain/entities/xtream_playlist_settings.
 /// Repository local pour la persistance des comptes et playlists IPTV.
 /// Implémentation basée sur `sqflite` avec conversions typées et garde-fous.
 class IptvLocalRepository {
-  IptvLocalRepository(
-    Database db, {
-    String? Function()? ownerIdProvider,
-  }) : _ownerIdProvider = ownerIdProvider,
+  IptvLocalRepository(Database db, {String? Function()? ownerIdProvider})
+    : _ownerIdProvider = ownerIdProvider,
       _accountStore = IptvAccountStore(db),
       _episodeStore = IptvEpisodeStore(db),
       _playlistStore = IptvPlaylistStore(
@@ -84,11 +82,8 @@ class IptvLocalRepository {
   // Méthodes Stalker
   // ============================================================================
 
-  Future<void> saveStalkerAccount(StalkerAccount account) =>
-      _accountStore.saveStalkerAccount(
-        ownerId: _currentOwnerId,
-        account: account,
-      );
+  Future<void> saveStalkerAccount(StalkerAccount account) => _accountStore
+      .saveStalkerAccount(ownerId: _currentOwnerId, account: account);
 
   Future<List<StalkerAccount>> getStalkerAccounts({
     bool includeAllOwners = false,

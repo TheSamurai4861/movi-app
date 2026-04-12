@@ -136,7 +136,11 @@ class _MovieDetailCastSectionState
                         role: person.role,
                         photo: person.poster,
                       );
-                      navigateToPersonDetail(context, ref, person: personSummary);
+                      navigateToPersonDetail(
+                        context,
+                        ref,
+                        person: personSummary,
+                      );
                     },
                   ),
                 ),

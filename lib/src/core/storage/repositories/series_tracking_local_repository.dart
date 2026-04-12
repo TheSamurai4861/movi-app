@@ -129,24 +129,20 @@ class SeriesTrackingLocalRepository {
   }) async {
     final db = await _db;
     final now = DateTime.now().millisecondsSinceEpoch;
-    await db.insert(
-      'tracked_series',
-      {
-        'series_id': seriesId,
-        'user_id': userId,
-        'title': title,
-        'poster': poster?.toString(),
-        'last_known_season': latestEpisode?.seasonNumber,
-        'last_known_episode': latestEpisode?.episodeNumber,
-        'last_known_air_date': latestEpisode?.airDate?.millisecondsSinceEpoch,
-        'last_checked_at': now,
-        'has_new_episode': 0,
-        'last_notified_season': null,
-        'last_notified_episode': null,
-        'last_notified_at': null,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('tracked_series', {
+      'series_id': seriesId,
+      'user_id': userId,
+      'title': title,
+      'poster': poster?.toString(),
+      'last_known_season': latestEpisode?.seasonNumber,
+      'last_known_episode': latestEpisode?.episodeNumber,
+      'last_known_air_date': latestEpisode?.airDate?.millisecondsSinceEpoch,
+      'last_checked_at': now,
+      'has_new_episode': 0,
+      'last_notified_season': null,
+      'last_notified_episode': null,
+      'last_notified_at': null,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> untrackSeries(String seriesId, {required String userId}) async {
@@ -187,7 +183,11 @@ class SeriesTrackingLocalRepository {
         'last_known_episode': latestEpisode.episodeNumber,
         'last_known_air_date': latestEpisode.airDate?.millisecondsSinceEpoch,
         'last_checked_at': now,
-        'has_new_episode': hasNewEpisode ? 1 : current.hasNewEpisode ? 1 : 0,
+        'has_new_episode': hasNewEpisode
+            ? 1
+            : current.hasNewEpisode
+            ? 1
+            : 0,
         'last_notified_season': shouldNotify
             ? latestEpisode.seasonNumber
             : current.lastNotifiedSeason,

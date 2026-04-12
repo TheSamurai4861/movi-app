@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
+import 'package:movi/src/core/focus/presentation/focus_overlay_scope.dart';
 
 /// Focus boundary dedicated to dialogs, sheets and temporary overlays.
 ///
 /// It requests an explicit entry node when mounted, traps focus inside the
-/// overlay subtree and restores focus to the original trigger when the overlay
-/// is removed.
-class MoviOverlayFocusScope extends StatefulWidget {
+/// overlay subtree and restores focus through the shared overlay policy when
+/// the overlay is removed.
+class MoviOverlayFocusScope extends StatelessWidget {
   const MoviOverlayFocusScope({
     super.key,
     required this.child,
@@ -24,68 +23,13 @@ class MoviOverlayFocusScope extends StatefulWidget {
   final String? debugLabel;
 
   @override
-  State<MoviOverlayFocusScope> createState() => _MoviOverlayFocusScopeState();
-}
-
-class _MoviOverlayFocusScopeState extends State<MoviOverlayFocusScope> {
-  late final FocusScopeNode _focusScopeNode = FocusScopeNode(
-    debugLabel: widget.debugLabel ?? 'MoviOverlayFocusScope',
-  );
-
-  @override
-  void dispose() {
-    final triggerFocusNode = widget.triggerFocusNode;
-    final fallbackFocusNode = widget.fallbackFocusNode;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentPrimaryFocus = FocusManager.instance.primaryFocus;
-      // If another overlay already owns focus, do not steal it back.
-      if (currentPrimaryFocus != null &&
-          !_isNodeInScope(currentPrimaryFocus, _focusScopeNode)) {
-        return;
-      }
-      if (_requestFocusIfValid(triggerFocusNode)) {
-        return;
-      }
-      _requestFocusIfValid(fallbackFocusNode);
-    });
-    _focusScopeNode.dispose();
-    super.dispose();
-  }
-
-  bool _requestFocusIfValid(FocusNode? node) {
-    if (node == null || node.context == null || !node.canRequestFocus) {
-      return false;
-    }
-    node.requestFocus();
-    return true;
-  }
-
-  bool _isNodeInScope(FocusNode node, FocusScopeNode scope) {
-    FocusNode? cursor = node;
-    while (cursor != null) {
-      if (identical(cursor, scope)) {
-        return true;
-      }
-      cursor = cursor.parent;
-    }
-    return false;
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FocusScope(
-      node: _focusScopeNode,
-      autofocus: true,
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: widget.initialFocusNode,
-          fallbackFocusNode: widget.fallbackFocusNode,
-          restoreFocusOnReturn: false,
-        ),
-        requestInitialFocusOnMount: true,
-        debugLabel: widget.debugLabel,
-        child: widget.child,
-      ),
+    return FocusOverlayScope(
+      initialFocusNode: initialFocusNode,
+      fallbackFocusNode: fallbackFocusNode,
+      triggerFocusNode: triggerFocusNode,
+      debugLabel: debugLabel,
+      child: child,
     );
   }
 }

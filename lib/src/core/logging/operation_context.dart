@@ -5,8 +5,7 @@ import 'dart:async';
 const Object operationIdZoneKey = Object();
 
 /// Returns the current correlation id if present.
-String? currentOperationId() =>
-    Zone.current[operationIdZoneKey] as String?;
+String? currentOperationId() => Zone.current[operationIdZoneKey] as String?;
 
 /// Generate a short, locally-unique operation id.
 String generateOperationId({String prefix = 'op'}) {
@@ -24,4 +23,3 @@ T runWithOperationId<T>(
   final id = operationId ?? generateOperationId(prefix: prefix);
   return runZoned(body, zoneValues: <Object?, Object?>{operationIdZoneKey: id});
 }
-

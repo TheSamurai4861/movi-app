@@ -7,13 +7,14 @@ class MovieLocalDataSource {
   final ContentCacheRepository _cacheRepository;
   static const _movieDetailType = 'movie_detail';
   static const _recommendationsType = 'movie_recommendations';
-  static const CachePolicy _detailPolicy = CachePolicy(
+  static const CachePolicy _detailPolicy = CachePolicy(ttl: Duration(days: 7));
+  static const CachePolicy _recommendationPolicy = CachePolicy(
     ttl: Duration(hours: 24),
   );
-  static const CachePolicy _recommendationPolicy = CachePolicy(
-    ttl: Duration(hours: 6),
+  static const CachePolicy _detailDefaultPolicy = CachePolicy(
+    ttl: Duration(days: 7),
   );
-  static const CachePolicy _defaultPolicy = CachePolicy(
+  static const CachePolicy _recommendationDefaultPolicy = CachePolicy(
     ttl: Duration(hours: 24),
   );
 
@@ -52,7 +53,7 @@ class MovieLocalDataSource {
   }) async {
     final cached = await _cacheRepository.getWithPolicy(
       'movie:$lang:$movieId:detail',
-      policy ?? _defaultPolicy,
+      policy ?? _detailDefaultPolicy,
     );
     if (cached == null) return null;
     return TmdbMovieDetailDto.fromCache(cached);
@@ -102,7 +103,7 @@ class MovieLocalDataSource {
   }) async {
     final cached = await _cacheRepository.getWithPolicy(
       'movie:$lang:$movieId:reco',
-      policy ?? _defaultPolicy,
+      policy ?? _recommendationDefaultPolicy,
     );
     if (cached == null) return null;
     final items = (cached['items'] as List<dynamic>? ?? const [])

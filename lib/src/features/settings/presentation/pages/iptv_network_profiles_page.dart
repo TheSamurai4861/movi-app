@@ -74,10 +74,10 @@ class IptvNetworkProfilesPage extends ConsumerWidget {
                           onEdit: profile.isDefault
                               ? null
                               : () => _showProfileDialog(
-                                    context,
-                                    ref,
-                                    profile: profile,
-                                  ),
+                                  context,
+                                  ref,
+                                  profile: profile,
+                                ),
                           onDelete: profile.isDefault
                               ? null
                               : () => controller.deleteProfile(profile.id),
@@ -106,10 +106,7 @@ class IptvNetworkProfilesPage extends ConsumerWidget {
     await showDialog<void>(
       context: context,
       builder: (context) {
-        return _RouteProfileDialog(
-          profile: profile,
-          credentials: creds,
-        );
+        return _RouteProfileDialog(profile: profile, credentials: creds);
       },
     );
   }
@@ -183,7 +180,10 @@ class _RouteProfileCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: profile.enabled
                       ? const Color(0xFF2160AB)
@@ -198,10 +198,7 @@ class _RouteProfileCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(color: Colors.white70),
-          ),
+          Text(subtitle, style: const TextStyle(color: Colors.white70)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -223,16 +220,14 @@ class _RouteProfileCard extends StatelessWidget {
 }
 
 class _RouteProfileDialog extends ConsumerStatefulWidget {
-  const _RouteProfileDialog({
-    this.profile,
-    this.credentials,
-  });
+  const _RouteProfileDialog({this.profile, this.credentials});
 
   final RouteProfile? profile;
   final RouteProfileCredentials? credentials;
 
   @override
-  ConsumerState<_RouteProfileDialog> createState() => _RouteProfileDialogState();
+  ConsumerState<_RouteProfileDialog> createState() =>
+      _RouteProfileDialogState();
 }
 
 class _RouteProfileDialogState extends ConsumerState<_RouteProfileDialog> {
@@ -309,7 +304,10 @@ class _RouteProfileDialogState extends ConsumerState<_RouteProfileDialog> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
-              _Field(controller: _userCtrl, label: 'Username proxy (optionnel)'),
+              _Field(
+                controller: _userCtrl,
+                label: 'Username proxy (optionnel)',
+              ),
               const SizedBox(height: 12),
               _Field(
                 controller: _passCtrl,

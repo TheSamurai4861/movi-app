@@ -7,6 +7,7 @@ import 'package:movi/src/core/di/di.dart';
 import 'package:movi/src/core/logging/logger.dart';
 import 'package:movi/src/core/performance/domain/performance_diagnostic_logger.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
+import 'package:movi/src/core/widgets/movi_detail_hero.dart';
 import 'package:movi/src/features/home/presentation/providers/home_providers.dart'
     as hp;
 import 'package:movi/src/features/movie/presentation/models/movie_detail_view_model.dart';
@@ -484,6 +485,122 @@ void main() {
     ); // flush delayed UI timers
     expect(find.text('Watch'), findsOneWidget);
     expect(find.byKey(const Key('movie_change_version_button')), findsNothing);
+  });
+
+  testWidgets('Mobile hero shows top actions and keeps watch CTA in hero', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final logger = _SilentLogger();
+    sl.registerSingleton<AppLogger>(logger);
+    sl.registerSingleton<PerformanceDiagnosticLogger>(
+      PerformanceDiagnosticLogger(logger),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        currentProfileProvider.overrideWithValue(null),
+        mdp.movieDetailControllerProvider.overrideWith(
+          (ref, movieId) async => _movieViewModel(),
+        ),
+        mdp.moviePlaybackSelectionProvider.overrideWith(
+          (ref, args) async => PlaybackSelectionDecision(
+            disposition: PlaybackSelectionDisposition.autoPlay,
+            reason: PlaybackSelectionReason.singlePlayableVariant,
+            rankedVariants: <PlaybackVariant>[_variant('Salon', '1')],
+            selectedVariant: _variant('Salon', '1'),
+          ),
+        ),
+        mdp.movieAvailabilityOnIptvProvider.overrideWith(
+          (ref, movieId) async => true,
+        ),
+        mdp.movieIsFavoriteProvider.overrideWith((ref, movieId) async => false),
+        hp.mediaHistoryProvider.overrideWith((ref, args) async => null),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final router = _buildRouter(onPlayerOpened: (_) {});
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byType(MoviDetailHeroTopBar), findsOneWidget);
+    expect(find.byType(MoviDetailHeroActionButton), findsNWidgets(2));
+    expect(find.text('Watch'), findsOneWidget);
+    expect(find.byType(MoviePlaybackVariantSheet), findsNothing);
+    await tester.pump(const Duration(milliseconds: 60));
+  });
+
+  testWidgets('Desktop layout keeps top hero actions visible', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final logger = _SilentLogger();
+    sl.registerSingleton<AppLogger>(logger);
+    sl.registerSingleton<PerformanceDiagnosticLogger>(
+      PerformanceDiagnosticLogger(logger),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        currentProfileProvider.overrideWithValue(null),
+        mdp.movieDetailControllerProvider.overrideWith(
+          (ref, movieId) async => _movieViewModel(),
+        ),
+        mdp.moviePlaybackSelectionProvider.overrideWith(
+          (ref, args) async => PlaybackSelectionDecision(
+            disposition: PlaybackSelectionDisposition.autoPlay,
+            reason: PlaybackSelectionReason.singlePlayableVariant,
+            rankedVariants: <PlaybackVariant>[_variant('Salon', '1')],
+            selectedVariant: _variant('Salon', '1'),
+          ),
+        ),
+        mdp.movieAvailabilityOnIptvProvider.overrideWith(
+          (ref, movieId) async => true,
+        ),
+        mdp.movieIsFavoriteProvider.overrideWith((ref, movieId) async => false),
+        hp.mediaHistoryProvider.overrideWith((ref, args) async => null),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final router = _buildRouter(onPlayerOpened: (_) {});
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(find.byType(MoviDetailHeroTopBar), findsOneWidget);
+    expect(find.byType(MoviDetailHeroActionButton), findsNWidgets(2));
+    await tester.pump(const Duration(milliseconds: 60));
   });
 }
 

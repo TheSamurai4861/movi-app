@@ -1,7 +1,10 @@
 // lib/src/features/search/presentation/providers/search_providers.dart
 import 'package:dio/dio.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/images/image_loading_policy.dart';
+import 'package:movi/src/core/images/safe_image_cache_manager.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/iptv/iptv.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
@@ -16,6 +19,7 @@ import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
 import 'package:movi/src/shared/data/services/tmdb_client.dart';
+import 'package:movi/src/shared/data/services/tmdb_discovery_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
 import 'package:movi/src/features/search/domain/usecases/load_watch_providers.dart';
 import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
@@ -23,6 +27,7 @@ import 'package:movi/src/features/search/domain/entities/tmdb_genre.dart';
 import 'package:movi/src/core/profile/presentation/providers/current_profile_provider.dart';
 import 'package:movi/src/core/parental/parental.dart' as parental;
 import 'package:movi/src/core/parental/domain/services/genre_maturity_checker.dart';
+import 'package:movi/src/core/utils/unawaited.dart';
 
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   final locator = ref.watch(slProvider);
@@ -152,6 +157,17 @@ final watchProvidersRemoteDataSourceProvider =
       return locator<TmdbWatchProvidersRemoteDataSource>();
     });
 
+final tmdbDiscoveryCacheProvider = Provider<TmdbDiscoveryCacheDataSource>((
+  ref,
+) {
+  final locator = ref.watch(slProvider);
+  return locator<TmdbDiscoveryCacheDataSource>();
+});
+
+const _providerGridPrefetchTimeout = Duration(seconds: 8);
+const _providerGridPrefetchedUrlMax = 400;
+final Set<String> _providerGridPrefetchedUrls = <String>{};
+
 /// IDs des fournisseurs de streaming dans l'ordre souhaité
 const _providerOrder = [
   8, // Netflix
@@ -264,6 +280,7 @@ final providerPopularMediaProvider =
       try {
         final client = ref.watch(slProvider)<TmdbClient>();
         final imageResolver = ref.watch(slProvider)<TmdbImageResolver>();
+        final cache = ref.watch(tmdbDiscoveryCacheProvider);
         final language = ref.watch(asp.currentLanguageCodeProvider);
         final profile = ref.watch(currentProfileProvider);
         final cancelToken = CancelToken();
@@ -283,69 +300,84 @@ final providerPopularMediaProvider =
           return null;
         }
 
-        // Essayer d'abord les films
-        final moviesJson = await client.getJson(
-          'discover/movie',
-          query: {
-            'with_watch_providers': providerId.toString(),
-            'watch_region': 'FR',
-            'page': 1,
-            'sort_by': 'popularity.desc', // Tri par popularité décroissante
-          },
+        final cached = await cache.getCachedProviderPopularMedia(
+          providerId: providerId,
+          region: 'FR',
+          language: language,
+        );
+        if (cached.isFresh && cached.value != null) {
+          _prefetchProviderGridImages(
+            posterUrl: cached.value!.posterUrl,
+            backdropUrl: cached.value!.backdropUrl,
+          );
+          return PopularMediaPoster(
+            posterUrl: cached.value!.posterUrl,
+            backdropUrl: cached.value!.backdropUrl,
+            isMovie: cached.value!.isMovie,
+          );
+        }
+        if (cached.isStale && cached.value != null) {
+          unawaited(() async {
+            final refreshed = await _refreshProviderPopularMedia(
+              client: client,
+              imageResolver: imageResolver,
+              providerId: providerId,
+              language: language,
+              cancelToken: CancelToken(),
+            );
+            if (refreshed != null) {
+              await cache.putProviderPopularMedia(
+                TmdbProviderPopularMediaCacheEntry(
+                  posterUrl: refreshed.posterUrl,
+                  backdropUrl: refreshed.backdropUrl,
+                  isMovie: refreshed.isMovie,
+                ),
+                providerId: providerId,
+                region: 'FR',
+                language: language,
+              );
+              _prefetchProviderGridImages(
+                posterUrl: refreshed.posterUrl,
+                backdropUrl: refreshed.backdropUrl,
+              );
+              ref.invalidateSelf();
+            }
+          }());
+          _prefetchProviderGridImages(
+            posterUrl: cached.value!.posterUrl,
+            backdropUrl: cached.value!.backdropUrl,
+          );
+          return PopularMediaPoster(
+            posterUrl: cached.value!.posterUrl,
+            backdropUrl: cached.value!.backdropUrl,
+            isMovie: cached.value!.isMovie,
+          );
+        }
+
+        final remote = await _refreshProviderPopularMedia(
+          client: client,
+          imageResolver: imageResolver,
+          providerId: providerId,
           language: language,
           cancelToken: cancelToken,
         );
-
-        final movieResults = moviesJson['results'] as List<dynamic>? ?? [];
-        if (movieResults.isNotEmpty) {
-          final firstMovie = movieResults.first as Map<String, dynamic>?;
-          final posterPath = firstMovie?['poster_path'] as String?;
-          final backdropPath = firstMovie?['backdrop_path'] as String?;
-          if (posterPath != null && posterPath.isNotEmpty) {
-            final posterUrl = imageResolver.poster(posterPath);
-            final backdropUrl = backdropPath != null && backdropPath.isNotEmpty
-                ? imageResolver.backdrop(backdropPath).toString()
-                : null;
-            return PopularMediaPoster(
-              posterUrl: posterUrl.toString(),
-              backdropUrl: backdropUrl,
-              isMovie: true,
-            );
-          }
+        if (remote != null) {
+          await cache.putProviderPopularMedia(
+            TmdbProviderPopularMediaCacheEntry(
+              posterUrl: remote.posterUrl,
+              backdropUrl: remote.backdropUrl,
+              isMovie: remote.isMovie,
+            ),
+            providerId: providerId,
+            region: 'FR',
+            language: language,
+          );
+          _prefetchProviderGridImages(
+            posterUrl: remote.posterUrl,
+            backdropUrl: remote.backdropUrl,
+          );
         }
-
-        // Si aucun film trouvé, essayer les séries
-        final tvJson = await client.getJson(
-          'discover/tv',
-          query: {
-            'with_watch_providers': providerId.toString(),
-            'watch_region': 'FR',
-            'page': 1,
-            'sort_by': 'popularity.desc', // Tri par popularité décroissante
-          },
-          language: language,
-          cancelToken: cancelToken,
-        );
-
-        final tvResults = tvJson['results'] as List<dynamic>? ?? [];
-        if (tvResults.isNotEmpty) {
-          final firstTv = tvResults.first as Map<String, dynamic>?;
-          final posterPath = firstTv?['poster_path'] as String?;
-          final backdropPath = firstTv?['backdrop_path'] as String?;
-          if (posterPath != null && posterPath.isNotEmpty) {
-            final posterUrl = imageResolver.poster(posterPath);
-            final backdropUrl = backdropPath != null && backdropPath.isNotEmpty
-                ? imageResolver.backdrop(backdropPath).toString()
-                : null;
-            return PopularMediaPoster(
-              posterUrl: posterUrl.toString(),
-              backdropUrl: backdropUrl,
-              isMovie: false,
-            );
-          }
-        }
-
-        return null;
+        return remote;
       } catch (_) {
         return null;
       }
@@ -358,6 +390,7 @@ final providerPopularMediaProvider =
 /// - `genre/tv/list`
 final tmdbGenresProvider = FutureProvider<TmdbGenres>((ref) async {
   final client = ref.watch(slProvider)<TmdbClient>();
+  final cache = ref.watch(tmdbDiscoveryCacheProvider);
   final language = ref.watch(asp.currentLanguageCodeProvider);
   final profile = ref.watch(currentProfileProvider);
   final classifier = ref.watch(
@@ -403,14 +436,174 @@ final tmdbGenresProvider = FutureProvider<TmdbGenres>((ref) async {
     return filtered;
   }
 
+  TmdbGenres filterGenres(TmdbGenres genres) {
+    return TmdbGenres(
+      movie: parseGenres(<String, dynamic>{
+        'genres': genres.movie
+            .map((g) => <String, dynamic>{'id': g.id, 'name': g.name})
+            .toList(growable: false),
+      }, ContentType.movie),
+      series: parseGenres(<String, dynamic>{
+        'genres': genres.series
+            .map((g) => <String, dynamic>{'id': g.id, 'name': g.name})
+            .toList(growable: false),
+      }, ContentType.series),
+    );
+  }
+
+  final cached = await cache.getCachedGenres(language: language);
+  if (cached.isFresh && cached.value != null) {
+    return filterGenres(cached.value!);
+  }
+  if (cached.isStale && cached.value != null) {
+    unawaited(() async {
+      final remote = await _refreshGenres(client: client, language: language);
+      await cache.putGenres(remote, language: language);
+      ref.invalidateSelf();
+    }());
+    return filterGenres(cached.value!);
+  }
+
+  final remote = await _refreshGenres(client: client, language: language);
+  await cache.putGenres(remote, language: language);
+  return filterGenres(remote);
+});
+
+Future<PopularMediaPoster?> _refreshProviderPopularMedia({
+  required TmdbClient client,
+  required TmdbImageResolver imageResolver,
+  required int providerId,
+  required String language,
+  required CancelToken cancelToken,
+}) async {
+  final moviesJson = await client.getJson(
+    'discover/movie',
+    query: {
+      'with_watch_providers': providerId.toString(),
+      'watch_region': 'FR',
+      'page': 1,
+      'sort_by': 'popularity.desc',
+    },
+    language: language,
+    cancelToken: cancelToken,
+  );
+
+  final movieResults = moviesJson['results'] as List<dynamic>? ?? [];
+  if (movieResults.isNotEmpty) {
+    final firstMovie = movieResults.first as Map<String, dynamic>?;
+    final posterPath = firstMovie?['poster_path'] as String?;
+    final backdropPath = firstMovie?['backdrop_path'] as String?;
+    if (posterPath != null && posterPath.isNotEmpty) {
+      final posterUrl = imageResolver.poster(posterPath);
+      final backdropUrl = backdropPath != null && backdropPath.isNotEmpty
+          ? imageResolver.backdrop(backdropPath).toString()
+          : null;
+      return PopularMediaPoster(
+        posterUrl: posterUrl.toString(),
+        backdropUrl: backdropUrl,
+        isMovie: true,
+      );
+    }
+  }
+
+  final tvJson = await client.getJson(
+    'discover/tv',
+    query: {
+      'with_watch_providers': providerId.toString(),
+      'watch_region': 'FR',
+      'page': 1,
+      'sort_by': 'popularity.desc',
+    },
+    language: language,
+    cancelToken: cancelToken,
+  );
+
+  final tvResults = tvJson['results'] as List<dynamic>? ?? [];
+  if (tvResults.isNotEmpty) {
+    final firstTv = tvResults.first as Map<String, dynamic>?;
+    final posterPath = firstTv?['poster_path'] as String?;
+    final backdropPath = firstTv?['backdrop_path'] as String?;
+    if (posterPath != null && posterPath.isNotEmpty) {
+      final posterUrl = imageResolver.poster(posterPath);
+      final backdropUrl = backdropPath != null && backdropPath.isNotEmpty
+          ? imageResolver.backdrop(backdropPath).toString()
+          : null;
+      return PopularMediaPoster(
+        posterUrl: posterUrl.toString(),
+        backdropUrl: backdropUrl,
+        isMovie: false,
+      );
+    }
+  }
+
+  return null;
+}
+
+void _prefetchProviderGridImages({String? posterUrl, String? backdropUrl}) {
+  final policy = ImageLoadingPolicyService.resolve();
+  if (!policy.enableDiskCache ||
+      !policy.enableCachedNetworkPath ||
+      policy.forceNetworkFallbackOnly) {
+    return;
+  }
+  final cacheManager = SafeImageCacheManager.tryGet(enabled: true);
+  if (cacheManager == null) return;
+
+  final urls = <String>[
+    if (backdropUrl != null) backdropUrl.trim(),
+    if (posterUrl != null) posterUrl.trim(),
+  ].where((url) => url.startsWith('https://') || url.startsWith('http://'));
+
+  for (final url in urls) {
+    if (_providerGridPrefetchedUrls.length > _providerGridPrefetchedUrlMax) {
+      _providerGridPrefetchedUrls.clear();
+    }
+    if (!_providerGridPrefetchedUrls.add(url)) continue;
+    unawaited(_warmProviderGridUrl(cacheManager, url));
+  }
+}
+
+Future<void> _warmProviderGridUrl(
+  BaseCacheManager cacheManager,
+  String url,
+) async {
+  try {
+    await cacheManager.getSingleFile(url).timeout(_providerGridPrefetchTimeout);
+  } catch (_) {
+    // Le rendu principal gère déjà ses fallbacks.
+  }
+}
+
+Future<TmdbGenres> _refreshGenres({
+  required TmdbClient client,
+  required String language,
+}) async {
+  List<TmdbGenre> parse(Map<String, dynamic> json, ContentType type) {
+    final raw = json['genres'];
+    if (raw is! List) return const <TmdbGenre>[];
+    return raw
+        .whereType<Map>()
+        .map((item) {
+          final id = item['id'];
+          final name = item['name'];
+          final parsedId = id is int ? id : int.tryParse(id?.toString() ?? '');
+          final parsedName = name?.toString().trim() ?? '';
+          if (parsedId == null || parsedName.isEmpty) {
+            return null;
+          }
+          return TmdbGenre(id: parsedId, name: parsedName, type: type);
+        })
+        .whereType<TmdbGenre>()
+        .toList(growable: false);
+  }
+
   final movieJson = await client.getJson(
     'genre/movie/list',
     language: language,
   );
   final tvJson = await client.getJson('genre/tv/list', language: language);
-
   return TmdbGenres(
-    movie: parseGenres(movieJson, ContentType.movie),
-    series: parseGenres(tvJson, ContentType.series),
+    movie: parse(movieJson, ContentType.movie),
+    series: parse(tvJson, ContentType.series),
   );
-});
+}

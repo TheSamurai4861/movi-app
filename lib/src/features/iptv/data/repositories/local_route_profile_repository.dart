@@ -24,7 +24,9 @@ class LocalRouteProfileRepository implements RouteProfileRepository {
       orderBy: 'updated_at DESC, name COLLATE NOCASE ASC',
     );
 
-    final profiles = <RouteProfile>[RouteProfile.defaultProfile(ownerId: _ownerId)];
+    final profiles = <RouteProfile>[
+      RouteProfile.defaultProfile(ownerId: _ownerId),
+    ];
     profiles.addAll(rows.map(_parseRow));
     return profiles;
   }
@@ -66,22 +68,18 @@ class LocalRouteProfileRepository implements RouteProfileRepository {
       updatedAt: profile.updatedAt,
     );
 
-    await _db.insert(
-      'iptv_route_profiles',
-      <String, Object?>{
-        'id': normalized.id,
-        'owner_id': normalized.ownerId,
-        'name': normalized.name,
-        'kind': normalized.kind.name,
-        'proxy_scheme': normalized.proxyScheme,
-        'proxy_host': normalized.proxyHost,
-        'proxy_port': normalized.proxyPort,
-        'enabled': normalized.enabled ? 1 : 0,
-        'created_at': normalized.createdAt.millisecondsSinceEpoch,
-        'updated_at': normalized.updatedAt.millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await _db.insert('iptv_route_profiles', <String, Object?>{
+      'id': normalized.id,
+      'owner_id': normalized.ownerId,
+      'name': normalized.name,
+      'kind': normalized.kind.name,
+      'proxy_scheme': normalized.proxyScheme,
+      'proxy_host': normalized.proxyHost,
+      'proxy_port': normalized.proxyPort,
+      'enabled': normalized.enabled ? 1 : 0,
+      'created_at': normalized.createdAt.millisecondsSinceEpoch,
+      'updated_at': normalized.updatedAt.millisecondsSinceEpoch,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
 
     return normalized;
   }
@@ -100,8 +98,7 @@ class LocalRouteProfileRepository implements RouteProfileRepository {
   RouteProfile _parseRow(Map<String, Object?> row) {
     final createdAtMs = (row['created_at'] as int?) ?? 0;
     final updatedAtMs = (row['updated_at'] as int?) ?? createdAtMs;
-    final kindName =
-        (row['kind'] as String?) ?? RouteProfileKind.proxy.name;
+    final kindName = (row['kind'] as String?) ?? RouteProfileKind.proxy.name;
     final kind = RouteProfileKind.values.firstWhere(
       (candidate) => candidate.name == kindName,
       orElse: () => RouteProfileKind.proxy,

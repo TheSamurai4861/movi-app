@@ -64,7 +64,8 @@ class XtreamRouteExecutionService {
 
     final orderedIds = <String>[
       preferred.trim().isEmpty ? RouteProfile.defaultId : preferred.trim(),
-      if (lastWorking != null && lastWorking.trim().isNotEmpty) lastWorking.trim(),
+      if (lastWorking != null && lastWorking.trim().isNotEmpty)
+        lastWorking.trim(),
       ...fallbacks.map((id) => id.trim()).where((id) => id.isNotEmpty),
     ];
 
@@ -156,7 +157,10 @@ class XtreamRouteExecutionService {
           'profile=${profile.id} kind=${profile.kind.name} result=success',
           category: 'IPTV',
         );
-        return XtreamRouteExecutionResult<T>(value: result, routeProfile: profile);
+        return XtreamRouteExecutionResult<T>(
+          value: result,
+          routeProfile: profile,
+        );
       } on XtreamRouteExecutionFailure catch (failure) {
         lastFailure = failure;
         _logFailure(
@@ -211,10 +215,7 @@ class XtreamRouteExecutionService {
         XtreamRouteExecutionFailure(
           'Xtream route execution exhausted without result',
           errorKind: SourceProbeErrorKind.unknown,
-          context: <String, Object?>{
-            'action': action,
-            'host': endpoint.host,
-          },
+          context: <String, Object?>{'action': action, 'host': endpoint.host},
         );
   }
 
@@ -262,7 +263,11 @@ class XtreamRouteExecutionService {
       proxyConfiguration: await _proxyConfigurationForProfile(profile),
     );
     final dio = factory.create();
-    final executor = NetworkExecutor(dio, logger: _logger, defaultMaxConcurrent: 4);
+    final executor = NetworkExecutor(
+      dio,
+      logger: _logger,
+      defaultMaxConcurrent: 4,
+    );
     return XtreamRemoteDataSource(
       executor,
       logger: _logger,
@@ -295,21 +300,14 @@ class XtreamRouteExecutionService {
 
     final creds = await _credentialsStore.read(profile.id);
     final proxyUri = creds == null
-        ? Uri(
-            scheme: scheme,
-            host: host,
-            port: port,
-          )
+        ? Uri(scheme: scheme, host: host, port: port)
         : Uri(
             scheme: scheme,
             host: host,
             port: port,
             userInfo: '${creds.username}:${creds.password}',
           );
-    return DioProxyConfiguration(
-      httpProxy: proxyUri,
-      httpsProxy: proxyUri,
-    );
+    return DioProxyConfiguration(httpProxy: proxyUri, httpsProxy: proxyUri);
   }
 
   XtreamRouteExecutionFailure _mapFailure(
@@ -331,7 +329,8 @@ class XtreamRouteExecutionService {
         SourceProbeErrorKind.providerIpBlocked,
       ServerFailure() => SourceProbeErrorKind.httpDenied,
       XtreamBlockedResponseFailure() => SourceProbeErrorKind.providerIpBlocked,
-      XtreamInvalidResponseFailure() => SourceProbeErrorKind.invalidResponseFormat,
+      XtreamInvalidResponseFailure() =>
+        SourceProbeErrorKind.invalidResponseFormat,
       AuthFailure() => SourceProbeErrorKind.authInvalidCredentials,
       XtreamRouteExecutionFailure(errorKind: final errorKind) => errorKind,
       _ => SourceProbeErrorKind.unknown,
@@ -345,7 +344,11 @@ class XtreamRouteExecutionService {
       stackTrace: failure.stackTrace,
       context: <String, Object?>{
         ...?failure.context,
-        ..._failureContext(action: action, profile: profile, endpoint: endpoint),
+        ..._failureContext(
+          action: action,
+          profile: profile,
+          endpoint: endpoint,
+        ),
       },
     );
   }

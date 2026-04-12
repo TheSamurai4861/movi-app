@@ -26,7 +26,9 @@ class MovieMetadataResolverAdapter implements MovieMetadataResolver {
   final AppLogger _logger;
 
   @override
-  Future<MovieMetadataResolution?> resolveByTitle(String normalizedTitle) async {
+  Future<MovieMetadataResolution?> resolveByTitle(
+    String normalizedTitle,
+  ) async {
     final normalizedQuery = _normalize(normalizedTitle);
     if (normalizedQuery.isEmpty) {
       return null;
@@ -42,7 +44,8 @@ class MovieMetadataResolverAdapter implements MovieMetadataResolver {
 
       final exactMatches = resolvableCandidates
           .where(
-            (candidate) => _normalize(candidate.summary.title.display) == normalizedQuery,
+            (candidate) =>
+                _normalize(candidate.summary.title.display) == normalizedQuery,
           )
           .toList(growable: false);
 
@@ -91,10 +94,7 @@ class MovieMetadataResolverAdapter implements MovieMetadataResolver {
       }
 
       candidates.add(
-        _ResolvableMovieCandidate(
-          summary: summary,
-          tmdbId: tmdbId,
-        ),
+        _ResolvableMovieCandidate(summary: summary, tmdbId: tmdbId),
       );
     }
 

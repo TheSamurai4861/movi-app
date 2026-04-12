@@ -1,4 +1,3 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';

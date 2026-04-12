@@ -14,6 +14,7 @@ import 'package:movi/src/features/movie/domain/usecases/filter_recommendations_b
 import 'package:movi/src/features/settings/presentation/providers/user_settings_providers.dart';
 import 'package:movi/src/features/library/presentation/providers/library_providers.dart';
 import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
 import 'package:movi/src/shared/data/services/xtream_lookup_service.dart';
 import 'package:movi/src/shared/domain/services/tmdb_id_resolver_service.dart';
 import 'package:movi/src/features/saga/domain/repositories/saga_repository.dart';
@@ -48,6 +49,7 @@ final movieRepositoryProvider = Provider<MovieRepository>((ref) {
     ref.watch(movieLocalDataSourceProvider),
     ref.watch(continueWatchingLocalRepositoryProvider),
     ref.watch(appStateControllerProvider),
+    ref.watch(slProvider)<TmdbDetailCacheDataSource>(),
     userId: userId,
   );
 });
@@ -197,6 +199,23 @@ final movieDetailControllerProvider =
 
       final repo = ref.watch(movieRepositoryProvider);
       final id = MovieId(movieId);
+      if (repo is MovieRepositoryImpl) {
+        final t0 = DateTime.now();
+        final bundle = await repo.loadMovieDetailBundle(id);
+        final t1 = DateTime.now();
+        final filterReco = locator<FilterRecommendationsByIptvAvailability>();
+        final filtered = await filterReco(bundle.recommendations);
+        logger.debug(
+          'movie_detail fetch id=$movieId lang=$lang durations: bundle=${t1.difference(t0).inMilliseconds}ms',
+          category: 'movie_detail',
+        );
+        return MovieDetailViewModel.fromDomain(
+          detail: bundle.detail,
+          credits: bundle.credits,
+          recommendations: filtered,
+          language: lang,
+        );
+      }
       final t0 = DateTime.now();
       final detail = await repo.getMovie(id);
       final t1 = DateTime.now();
@@ -261,6 +280,23 @@ Future<MovieDetailViewModel> _loadXtreamMovieDetail(
   if (foundTmdbId != null) {
     try {
       final id = MovieId(foundTmdbId.toString());
+      if (repo is MovieRepositoryImpl) {
+        final t0 = DateTime.now();
+        final bundle = await repo.loadMovieDetailBundle(id);
+        final t1 = DateTime.now();
+        final filterReco = locator<FilterRecommendationsByIptvAvailability>();
+        final filtered = await filterReco(bundle.recommendations);
+        logger.debug(
+          'xtream movie_detail TMDB match id=$movieId tmdbId=$foundTmdbId lang=$language durations: bundle=${t1.difference(t0).inMilliseconds}ms',
+          category: 'movie_detail',
+        );
+        return MovieDetailViewModel.fromDomain(
+          detail: bundle.detail,
+          credits: bundle.credits,
+          recommendations: filtered,
+          language: language,
+        );
+      }
       final t0 = DateTime.now();
       final detail = await repo.getMovie(id);
       final t1 = DateTime.now();

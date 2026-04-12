@@ -64,8 +64,8 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
       onDidReceiveBackgroundNotificationResponse: moviNotificationTapBackground,
     );
 
-    final androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
     await androidPlugin?.createNotificationChannel(_seriesNotificationChannel);
@@ -99,15 +99,15 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
     if (alreadyEnabled) return true;
 
     if (Platform.isAndroid) {
-      final androidPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
       return await androidPlugin?.requestNotificationsPermission() ?? false;
     }
 
-    final darwinPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
+    final darwinPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >();
     return await darwinPlugin?.requestPermissions(
@@ -127,15 +127,15 @@ class FlutterLocalNotificationGateway implements LocalNotificationGateway {
     await initialize();
 
     if (Platform.isAndroid) {
-      final androidPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
+      final androidPlugin = _plugin
+          .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
           >();
       return await androidPlugin?.areNotificationsEnabled() ?? false;
     }
 
-    final darwinPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
+    final darwinPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >();
     final granted = await darwinPlugin?.checkPermissions();

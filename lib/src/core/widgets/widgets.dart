@@ -6,6 +6,7 @@ export 'movi_items_list.dart';
 export 'movi_marquee_text.dart';
 export 'movi_media_card.dart';
 export 'movi_media_grid.dart';
+export 'movi_network_image.dart';
 export 'movi_person_card.dart';
 export 'movi_pill.dart';
 export 'movi_placeholder_card.dart';

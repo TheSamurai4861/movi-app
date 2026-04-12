@@ -82,23 +82,23 @@ class _MoviTrackSeriesButtonState extends State<MoviTrackSeriesButton> {
               scale: _focused ? 1.05 : 1,
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              padding: widget.focusPadding,
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(widget.size / 2),
-                border: Border.all(
-                  color: _focused
-                      ? effectiveFocusedBorder
-                      : effectiveUnfocusedBorder,
-                  width: widget.borderWidth,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                padding: widget.focusPadding,
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(widget.size / 2),
+                  border: Border.all(
+                    color: _focused
+                        ? effectiveFocusedBorder
+                        : effectiveUnfocusedBorder,
+                    width: widget.borderWidth,
+                  ),
                 ),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
                     AnimatedOpacity(
                       duration: duration,
                       curve: Curves.easeInOut,

@@ -9,8 +9,8 @@ import 'package:movi/src/features/search/domain/entities/watch_provider.dart';
 import 'package:movi/src/features/search/domain/repositories/search_repository.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_search_remote_data_source.dart';
 import 'package:movi/src/features/search/data/datasources/tmdb_watch_providers_remote_data_source.dart';
-import 'package:movi/src/features/search/data/datasources/search_local_data_source.dart';
 import 'package:movi/src/features/search/data/dtos/tmdb_watch_provider_dto.dart';
+import 'package:movi/src/shared/data/services/tmdb_discovery_cache_data_source.dart';
 import 'package:movi/src/shared/domain/value_objects/media_title.dart';
 import 'package:movi/src/shared/domain/services/similarity_service.dart';
 import 'package:movi/src/shared/domain/services/playlist_tmdb_enrichment_service.dart';
@@ -25,7 +25,7 @@ class SearchRepositoryImpl implements SearchRepository {
   SearchRepositoryImpl(
     this._remote,
     this._watchProvidersRemote,
-    this._local,
+    this._discoveryCache,
     this._images,
     this._catalogReader,
     this._similarity,
@@ -36,7 +36,7 @@ class SearchRepositoryImpl implements SearchRepository {
 
   final TmdbSearchRemoteDataSource _remote;
   final TmdbWatchProvidersRemoteDataSource _watchProvidersRemote;
-  final SearchLocalDataSource _local;
+  final TmdbDiscoveryCacheDataSource _discoveryCache;
   final TmdbImageResolver _images;
   final IptvCatalogReader _catalogReader;
   final SimilarityService _similarity;
@@ -192,15 +192,24 @@ class SearchRepositoryImpl implements SearchRepository {
 
   @override
   Future<List<WatchProvider>> getWatchProviders(String region) async {
-    final cached = await _local.getWatchProviders(region);
-    if (cached != null) {
-      return cached.map(_mapWatchProvider).toList();
+    final language = _languageCode;
+    final cached = await _discoveryCache.getCachedWatchProviders(
+      region: region,
+      language: language,
+    );
+    if (cached.value != null) {
+      return cached.value!.map(_mapWatchProvider).toList(growable: false);
     }
 
     final remote = await _watchProvidersRemote.fetchWatchProviders(
+      language: language,
       watchRegion: region,
     );
-    await _local.cacheWatchProviders(region, remote);
+    await _discoveryCache.putWatchProviders(
+      remote,
+      region: region,
+      language: language,
+    );
 
     return remote.map(_mapWatchProvider).toList();
   }
@@ -296,6 +305,15 @@ class SearchRepositoryImpl implements SearchRepository {
       seasonCount: null,
       status: null,
     );
+  }
+
+  String get _languageCode {
+    final locale = _appState.preferredLocale;
+    final country = locale.countryCode;
+    if (country == null || country.isEmpty) {
+      return locale.languageCode;
+    }
+    return '${locale.languageCode}-$country';
   }
 
   Future<ContentReference> _enrichIptvReferenceForSearch(

@@ -37,7 +37,10 @@ final routeProfileCredentialsProvider =
     });
 
 final sourceConnectionPolicyProvider =
-    FutureProvider.family<SourceConnectionPolicy, String>((ref, accountId) async {
+    FutureProvider.family<SourceConnectionPolicy, String>((
+      ref,
+      accountId,
+    ) async {
       final repository = ref.watch(sourceConnectionPolicyRepositoryProvider);
       final normalizedAccountId = accountId.trim();
       final policy = await repository.getPolicy(
@@ -53,18 +56,12 @@ final sourceConnectionPolicyProvider =
     });
 
 class NetworkProfileEditState {
-  const NetworkProfileEditState({
-    this.isLoading = false,
-    this.error,
-  });
+  const NetworkProfileEditState({this.isLoading = false, this.error});
 
   final bool isLoading;
   final String? error;
 
-  NetworkProfileEditState copyWith({
-    bool? isLoading,
-    String? error,
-  }) {
+  NetworkProfileEditState copyWith({bool? isLoading, String? error}) {
     return NetworkProfileEditState(
       isLoading: isLoading ?? this.isLoading,
       error: error,
@@ -254,9 +251,7 @@ class XtreamSourceProbeController extends Notifier<XtreamSourceProbeState> {
       state = XtreamSourceProbeState(result: result);
       return result;
     } catch (error) {
-      state = XtreamSourceProbeState(
-        error: error.toString(),
-      );
+      state = XtreamSourceProbeState(error: error.toString());
       return null;
     }
   }

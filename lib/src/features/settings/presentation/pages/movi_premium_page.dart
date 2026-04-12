@@ -41,10 +41,7 @@ class MoviPremiumPage extends ConsumerWidget {
                   onBack: () => context.pop(),
                 ),
                 const SizedBox(height: 12),
-                _PremiumIntro(
-                  accent: accent,
-                  localizer: localizer,
-                ),
+                _PremiumIntro(accent: accent, localizer: localizer),
                 const SizedBox(height: 12),
                 _BenefitsExpanded(localizer: localizer, accent: accent),
                 const SizedBox(height: 16),
@@ -227,11 +224,7 @@ class _DesktopOffersPreview extends StatelessWidget {
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        annual,
-        const SizedBox(height: 12),
-        monthly,
-      ],
+      children: [annual, const SizedBox(height: 12), monthly],
     );
   }
 }
@@ -301,11 +294,7 @@ class _BenefitsExpanded extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 18,
-                    color: accent,
-                  ),
+                  Icon(Icons.check_circle_outline, size: 18, color: accent),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -334,10 +323,7 @@ class _BenefitsExpanded extends StatelessWidget {
           children: [
             Row(
               children: [
-                _SectionIcon(
-                  icon: Icons.stars_rounded,
-                  accent: accent,
-                ),
+                _SectionIcon(icon: Icons.stars_rounded, accent: accent),
                 const SizedBox(width: 10),
                 Text('Avantages', style: theme.textTheme.titleLarge),
               ],
@@ -381,7 +367,9 @@ class _CurrentPlanCompact extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(title, style: theme.textTheme.titleMedium)),
+                Expanded(
+                  child: Text(title, style: theme.textTheme.titleMedium),
+                ),
                 MoviPill(badgeLabel),
               ],
             ),
@@ -433,7 +421,10 @@ class _OffersCompact extends StatelessWidget {
 
     if (isInitialLoading) {
       items.add(const Center(child: CircularProgressIndicator()));
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: items);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items,
+      );
     }
 
     if (offers.isEmpty) {
@@ -444,7 +435,10 @@ class _OffersCompact extends StatelessWidget {
           twoColumns: useDesktopLayout,
         ),
       );
-      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: items);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items,
+      );
     }
 
     items.addAll(
@@ -463,7 +457,10 @@ class _OffersCompact extends StatelessWidget {
       ),
     );
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: items);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items,
+    );
   }
 }
 
@@ -535,7 +532,8 @@ class _OfferCompactCard extends StatelessWidget {
                   color: cs.onSurfaceVariant,
                 ),
               ),
-            ] else if (billingLine != null && billingLine!.trim().isNotEmpty) ...[
+            ] else if (billingLine != null &&
+                billingLine!.trim().isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
                 billingLine!,

@@ -59,10 +59,5 @@ SanitizedPlaybackProgress sanitizePlaybackProgress({
     );
   }
 
-  return SanitizedPlaybackProgress(
-    position: p,
-    duration: d,
-    reasonCode: 'ok',
-  );
+  return SanitizedPlaybackProgress(position: p, duration: d, reasonCode: 'ok');
 }
-

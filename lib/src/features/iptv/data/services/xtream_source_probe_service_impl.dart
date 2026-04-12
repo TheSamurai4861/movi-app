@@ -128,14 +128,17 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
     final last = attempts.isEmpty ? null : attempts.last;
     return SourceProbeResult(
       sourceKind: SourceKind.xtream,
-      routeProfileId: profiles.isEmpty ? RouteProfile.defaultId : profiles.last.id,
+      routeProfileId: profiles.isEmpty
+          ? RouteProfile.defaultId
+          : profiles.last.id,
       routeProfileKind: profiles.isEmpty
           ? RouteProfileKind.defaultRoute
           : profiles.last.kind,
       isValid: false,
       attempts: attempts,
       errorKind: last?.errorKind ?? SourceProbeErrorKind.unknown,
-      errorMessage: last?.errorMessage ?? 'Source Xtream invalide ou inaccessible.',
+      errorMessage:
+          last?.errorMessage ?? 'Source Xtream invalide ou inaccessible.',
       publicIp: last?.publicIp,
     );
   }
@@ -179,9 +182,9 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
         );
       }
 
-      await InternetAddress.lookup(endpoint.host).timeout(
-        const Duration(seconds: 5),
-      );
+      await InternetAddress.lookup(
+        endpoint.host,
+      ).timeout(const Duration(seconds: 5));
       return ProbeAttemptResult(
         routeProfileId: profile.id,
         routeProfileKind: profile.kind,
@@ -227,7 +230,9 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
         : endpoint.host;
     final port = profile.kind == RouteProfileKind.proxy
         ? profile.proxyPort
-        : (endpoint.uri.hasPort ? endpoint.uri.port : _defaultPort(endpoint.uri.scheme));
+        : (endpoint.uri.hasPort
+              ? endpoint.uri.port
+              : _defaultPort(endpoint.uri.scheme));
     if (host == null || host.isEmpty || port == null || port <= 0) {
       return ProbeAttemptResult(
         routeProfileId: profile.id,
@@ -255,7 +260,9 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
         status: ProbeAttemptStatus.success,
         latencyMs: sw.elapsedMilliseconds,
         publicIp: publicIp,
-        proxyLabel: profile.kind == RouteProfileKind.proxy ? '$host:$port' : null,
+        proxyLabel: profile.kind == RouteProfileKind.proxy
+            ? '$host:$port'
+            : null,
       );
     } on SocketException catch (error) {
       return ProbeAttemptResult(
@@ -265,7 +272,8 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
         status: ProbeAttemptStatus.failed,
         latencyMs: sw.elapsedMilliseconds,
         publicIp: publicIp,
-        errorKind: error.osError?.message.toLowerCase().contains('refused') == true
+        errorKind:
+            error.osError?.message.toLowerCase().contains('refused') == true
             ? SourceProbeErrorKind.tcpRefused
             : SourceProbeErrorKind.routeBlocked,
         errorMessage: error.message,
@@ -302,7 +310,11 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
           validateStatus: (_) => true,
         ),
       );
-      final snippet = _sanitizeSnippet(response.data, username: null, password: null);
+      final snippet = _sanitizeSnippet(
+        response.data,
+        username: null,
+        password: null,
+      );
       final status = response.statusCode ?? 0;
       if (status >= 400) {
         return ProbeAttemptResult(
@@ -377,16 +389,17 @@ class XtreamSourceProbeServiceImpl implements SourceProbeService {
           password: request.password,
         ),
         isTerminalFailureResult: (auth) => !auth.isAuthorized,
-        terminalFailureFactory: (_, matchedProfile) => XtreamRouteExecutionFailure(
-          'Identifiants Xtream invalides.',
-          errorKind: SourceProbeErrorKind.authInvalidCredentials,
-          code: 'xtream_auth_invalid_credentials',
-          context: <String, Object?>{
-            'routeProfileId': matchedProfile.id,
-            'routeProfileKind': matchedProfile.kind.name,
-            'host': endpoint.host,
-          },
-        ),
+        terminalFailureFactory: (_, matchedProfile) =>
+            XtreamRouteExecutionFailure(
+              'Identifiants Xtream invalides.',
+              errorKind: SourceProbeErrorKind.authInvalidCredentials,
+              code: 'xtream_auth_invalid_credentials',
+              context: <String, Object?>{
+                'routeProfileId': matchedProfile.id,
+                'routeProfileKind': matchedProfile.kind.name,
+                'host': endpoint.host,
+              },
+            ),
       );
       return ProbeAttemptResult(
         routeProfileId: result.routeProfile.id,

@@ -9,10 +9,11 @@ import 'package:go_router/go_router.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
-import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
-import 'package:movi/src/core/focus/movi_focus_restore_policy.dart';
-import 'package:movi/src/core/focus/movi_route_focus_boundary.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/startup/presentation/widgets/launch_recovery_banner.dart';
 import 'package:movi/src/core/state/app_state_provider.dart' as asp;
@@ -20,6 +21,7 @@ import 'package:movi/src/core/utils/app_spacing.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
 import 'package:movi/src/core/widgets/movi_focusable.dart';
 import 'package:movi/src/core/widgets/movi_primary_button.dart';
+import 'package:movi/src/features/iptv/data/datasources/supabase_iptv_sources_repository.dart';
 import 'package:movi/src/features/iptv/data/services/iptv_credentials_edge_service.dart';
 import 'package:movi/src/features/settings/presentation/providers/iptv_connect_providers.dart';
 import 'package:movi/src/features/welcome/presentation/providers/bootstrap_providers.dart';
@@ -65,6 +67,7 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   bool _loadingSources = false;
   String? _sourcesError;
   bool _obscurePassword = true;
+  bool _isHandlingBack = false;
   List<SupabaseIptvSourceEntity> _sources = const <SupabaseIptvSourceEntity>[];
 
   // Animation pour le bouton refresh
@@ -146,6 +149,26 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
     return true;
   }
 
+  bool _enterFocusRegion(AppFocusRegionId regionId) {
+    return ref
+        .read(focusOrchestratorProvider)
+        .enterRegion(regionId, restoreLastFocused: false);
+  }
+
+  KeyEventResult _handleRouteBackKey(KeyEvent event, BuildContext context) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.goBack ||
+        event.logicalKey == LogicalKeyboardKey.escape ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      return _handleBack(context)
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
+    return KeyEventResult.ignored;
+  }
+
   KeyEventResult _handleDirectionalKey(
     KeyEvent event, {
     FocusNode? left,
@@ -194,12 +217,21 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
   }
 
   bool _handleBack(BuildContext context) {
+    if (!context.mounted || _isHandlingBack) {
+      return false;
+    }
+    _isHandlingBack = true;
     final fallbackRoute = _determineFallbackRoute(context);
     if (fallbackRoute == null) {
       context.pop();
     } else {
       context.go(fallbackRoute);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _isHandlingBack = false;
+      }
+    });
     return true;
   }
 
@@ -504,396 +536,436 @@ class _WelcomeSourcePageState extends ConsumerState<WelcomeSourcePage>
         if (didPop) return;
         _handleBack(context);
       },
-      child: MoviRouteFocusBoundary(
-        restorePolicy: MoviFocusRestorePolicy(
-          initialFocusNode: initialFocusNode,
-          fallbackFocusNode: _submitFocusNode,
+      child: FocusRegionScope(
+        regionId: AppFocusRegionId.welcomePrimary,
+        binding: FocusRegionBinding(
+          resolvePrimaryEntryNode: () => initialFocusNode,
+          resolveFallbackEntryNode: () => _submitFocusNode,
         ),
-        requestInitialFocusOnMount: true,
-        onUnhandledBack: () => _handleBack(context),
-        debugLabel: 'WelcomeSourceRouteFocus',
-        child: Scaffold(
-          body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: AppSpacing.xl,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      WelcomeHeader(
-                        title: l10n.welcomeSourceTitle,
-                        subtitle: l10n.welcomeSourceSubtitle,
-                      ),
-                      if (launchRecovery?.isRetryable ?? false) ...[
-                        const SizedBox(height: AppSpacing.md),
-                        MoviEnsureVisibleOnFocus(
-                          verticalAlignment: 0.18,
-                          child: Focus(
-                            canRequestFocus: false,
-                            onKeyEvent: (_, event) => _handleDirectionalKey(
-                              event,
-                              down: _shouldDisplaySavedSourcesSection
-                                  ? (_sourcesError != null
-                                        ? _sourcesErrorRetryFocusNode
-                                        : hasSavedSources
-                                        ? _savedSourceFocusNodes.first
-                                        : _refreshFocusNode)
-                                  : _nameFocusNode,
-                              blockLeft: true,
-                              blockRight: true,
-                              blockUp: true,
-                            ),
-                            child: LaunchRecoveryBanner(
-                              message: launchRecovery!.message,
-                              retryFocusNode: _retryFocusNode,
-                              onRetry: () {
-                                ref
-                                    .read(
-                                      appLaunchOrchestratorProvider.notifier,
-                                    )
-                                    .reset();
-                                context.go(AppRouteNames.launch);
-                              },
-                            ),
-                          ),
+        requestFocusOnMount: true,
+        handleDirectionalExits: false,
+        debugLabel: 'WelcomeSourcePrimaryRegion',
+        child: Focus(
+          canRequestFocus: false,
+          onKeyEvent: (_, event) => _handleRouteBackKey(event, context),
+          child: Scaffold(
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.xl,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        WelcomeHeader(
+                          title: l10n.welcomeSourceTitle,
+                          subtitle: l10n.welcomeSourceSubtitle,
                         ),
-                      ],
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // ---------------- Sources Supabase ----------------
-                      // Afficher seulement si Supabase est disponible
-                      if (_shouldDisplaySavedSourcesSection) ...[
-                        _SectionHeader(
-                          title: 'Sources sauvegardées',
-                          forceRow: true,
-                          trailing: AnimatedBuilder(
-                            animation: _refreshAnimation,
-                            builder: (context, child) {
-                              return Transform.rotate(
-                                angle:
-                                    _refreshAnimation.value *
-                                    2 *
-                                    3.14159, // Rotation complète
-                                child: Focus(
-                                  canRequestFocus: false,
-                                  onKeyEvent: (_, event) =>
-                                      _handleDirectionalKey(
-                                        event,
-                                        up: launchRecovery?.isRetryable ?? false
-                                            ? _retryFocusNode
-                                            : null,
-                                        down: hasSavedSources
-                                            ? _savedSourceFocusNodes.first
-                                            : _nameFocusNode,
-                                        blockLeft: true,
-                                        blockRight: true,
-                                      ),
-                                  child: IconButton(
-                                    focusNode: _refreshFocusNode,
-                                    tooltip: 'Rafraîchir',
-                                    onPressed: isBusy
-                                        ? null
-                                        : () => unawaited(
-                                            _loadSupabaseSources(
-                                              animateRefreshButton: true,
-                                            ),
-                                          ),
-                                    icon: Icon(
-                                      Icons.refresh,
-                                      color: accentColor,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-
-                        if (_loadingSources)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: CircularProgressIndicator(),
-                          )
-                        else if (_sourcesError != null)
+                        if (launchRecovery?.isRetryable ?? false) ...[
+                          const SizedBox(height: AppSpacing.md),
                           MoviEnsureVisibleOnFocus(
-                            verticalAlignment: 0.22,
+                            verticalAlignment: 0.18,
                             child: Focus(
                               canRequestFocus: false,
                               onKeyEvent: (_, event) => _handleDirectionalKey(
                                 event,
-                                up: launchRecovery?.isRetryable ?? false
-                                    ? _retryFocusNode
-                                    : _refreshFocusNode,
-                                down: _nameFocusNode,
+                                down: _shouldDisplaySavedSourcesSection
+                                    ? (_sourcesError != null
+                                          ? _sourcesErrorRetryFocusNode
+                                          : hasSavedSources
+                                          ? _savedSourceFocusNodes.first
+                                          : _refreshFocusNode)
+                                    : _nameFocusNode,
                                 blockLeft: true,
                                 blockRight: true,
+                                blockUp: true,
                               ),
-                              child: _ErrorBox(
-                                message: _sourcesError!,
-                                retryFocusNode: _sourcesErrorRetryFocusNode,
-                                onRetry: () =>
-                                    unawaited(_loadSupabaseSources()),
+                              child: LaunchRecoveryBanner(
+                                message: launchRecovery!.message,
+                                retryFocusNode: _retryFocusNode,
+                                onRetry: () {
+                                  ref
+                                      .read(
+                                        appLaunchOrchestratorProvider.notifier,
+                                      )
+                                      .reset();
+                                  context.go(AppRouteNames.launch);
+                                },
                               ),
                             ),
-                          )
-                        else if (_sources.isEmpty)
-                          const _InfoBox(
-                            message:
-                                'Aucune source trouvée sur Supabase. Ajoute/active une source ci-dessous.',
-                          )
-                        else
-                          _SourcesList(
-                            sources: _sources,
-                            selectedId: _selectedSourceId,
-                            focusNodes: _savedSourceFocusNodes,
-                            focusVerticalAlignment: 0.22,
-                            onFirstItemUp: () => _requestFocus(
-                              launchRecovery?.isRetryable ?? false
-                                  ? _retryFocusNode
-                                  : _refreshFocusNode,
-                            ),
-                            onLastItemDown: () => _requestFocus(_nameFocusNode),
-                            onSelect: _selectSource,
                           ),
-
+                        ],
                         const SizedBox(height: AppSpacing.lg),
-                      ],
 
-                      // ---------------- Activation ----------------
-                      _SectionHeader(title: 'Activer une source'),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      MoviEnsureVisibleOnFocus(
-                        verticalAlignment: 0.22,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _shouldDisplaySavedSourcesSection
-                                ? (_sourcesError != null
-                                      ? _sourcesErrorRetryFocusNode
-                                      : hasSavedSources
-                                      ? _savedSourceFocusNodes.last
-                                      : _refreshFocusNode)
-                                : launchRecovery?.isRetryable ?? false
-                                ? _retryFocusNode
-                                : null,
-                            down: _serverFocusNode,
-                            blockLeft: true,
-                            blockRight: true,
-                          ),
-                          child: CallbackShortcuts(
-                            bindings: <ShortcutActivator, VoidCallback>{
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowDown,
-                              ): () =>
-                                  _requestFocus(_serverFocusNode),
-                            },
-                            child: TextField(
-                              controller: _nameCtrl,
-                              focusNode: _nameFocusNode,
-                              enabled: !isBusy,
-                              textInputAction: TextInputAction.next,
-                              onSubmitted: (_) =>
-                                  _serverFocusNode.requestFocus(),
-                              decoration: const InputDecoration(
-                                labelText: 'Nom de la source',
-                                hintText: 'Mon IPTV',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      MoviEnsureVisibleOnFocus(
-                        verticalAlignment: 0.22,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _nameFocusNode,
-                            down: _userFocusNode,
-                            blockLeft: true,
-                            blockRight: true,
-                          ),
-                          child: CallbackShortcuts(
-                            bindings: <ShortcutActivator, VoidCallback>{
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowUp,
-                              ): () =>
-                                  _requestFocus(_nameFocusNode),
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowDown,
-                              ): () =>
-                                  _requestFocus(_userFocusNode),
-                            },
-                            child: TextField(
-                              controller: _serverCtrl,
-                              focusNode: _serverFocusNode,
-                              enabled: !isBusy,
-                              textInputAction: TextInputAction.next,
-                              onSubmitted: (_) => _userFocusNode.requestFocus(),
-                              decoration: const InputDecoration(
-                                labelText: 'Server URL',
-                                hintText: 'https://example.com:port',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      MoviEnsureVisibleOnFocus(
-                        verticalAlignment: 0.22,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _serverFocusNode,
-                            down: _passFocusNode,
-                            blockLeft: true,
-                            blockRight: true,
-                          ),
-                          child: CallbackShortcuts(
-                            bindings: <ShortcutActivator, VoidCallback>{
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowUp,
-                              ): () =>
-                                  _requestFocus(_serverFocusNode),
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowDown,
-                              ): () =>
-                                  _requestFocus(_passFocusNode),
-                            },
-                            child: TextField(
-                              controller: _userCtrl,
-                              focusNode: _userFocusNode,
-                              enabled: !isBusy,
-                              textInputAction: TextInputAction.next,
-                              onSubmitted: (_) => _passFocusNode.requestFocus(),
-                              decoration: const InputDecoration(
-                                labelText: 'Username',
-                                border: OutlineInputBorder(),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      MoviEnsureVisibleOnFocus(
-                        verticalAlignment: 0.22,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _userFocusNode,
-                            right: _passwordToggleFocusNode,
-                            down: _submitFocusNode,
-                            blockLeft: true,
-                          ),
-                          child: CallbackShortcuts(
-                            bindings: <ShortcutActivator, VoidCallback>{
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowUp,
-                              ): () =>
-                                  _requestFocus(_userFocusNode),
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowRight,
-                              ): () =>
-                                  _requestFocus(_passwordToggleFocusNode),
-                              const SingleActivator(
-                                LogicalKeyboardKey.arrowDown,
-                              ): () =>
-                                  _requestFocus(_submitFocusNode),
-                            },
-                            child: TextField(
-                              controller: _passCtrl,
-                              focusNode: _passFocusNode,
-                              enabled: !isBusy,
-                              obscureText: _obscurePassword,
-                              textInputAction: TextInputAction.done,
-                              onSubmitted: (_) =>
-                                  _submitFocusNode.requestFocus(),
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                border: const OutlineInputBorder(),
-                                suffixIcon: Padding(
-                                  padding: const EdgeInsets.only(right: 12),
+                        // ---------------- Sources Supabase ----------------
+                        // Afficher seulement si Supabase est disponible
+                        if (_shouldDisplaySavedSourcesSection) ...[
+                          _SectionHeader(
+                            title: 'Sources sauvegardées',
+                            forceRow: true,
+                            trailing: AnimatedBuilder(
+                              animation: _refreshAnimation,
+                              builder: (context, child) {
+                                return Transform.rotate(
+                                  angle:
+                                      _refreshAnimation.value *
+                                      2 *
+                                      3.14159, // Rotation complète
                                   child: Focus(
                                     canRequestFocus: false,
                                     onKeyEvent: (_, event) =>
                                         _handleDirectionalKey(
                                           event,
-                                          left: _passFocusNode,
-                                          down: _submitFocusNode,
-                                          up: _userFocusNode,
+                                          up:
+                                              launchRecovery?.isRetryable ??
+                                                  false
+                                              ? _retryFocusNode
+                                              : null,
+                                          down: hasSavedSources
+                                              ? _savedSourceFocusNodes.first
+                                              : _nameFocusNode,
+                                          blockLeft: true,
                                           blockRight: true,
                                         ),
                                     child: IconButton(
-                                      focusNode: _passwordToggleFocusNode,
+                                      focusNode: _refreshFocusNode,
+                                      tooltip: 'Rafraîchir',
+                                      onPressed: isBusy
+                                          ? null
+                                          : () => unawaited(
+                                              _loadSupabaseSources(
+                                                animateRefreshButton: true,
+                                              ),
+                                            ),
                                       icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
+                                        Icons.refresh,
+                                        color: accentColor,
                                       ),
-                                      onPressed: () => setState(
-                                        () => _obscurePassword =
-                                            !_obscurePassword,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+
+                          if (_loadingSources)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: CircularProgressIndicator(),
+                            )
+                          else if (_sourcesError != null)
+                            MoviEnsureVisibleOnFocus(
+                              verticalAlignment: 0.22,
+                              child: Focus(
+                                canRequestFocus: false,
+                                onKeyEvent: (_, event) => _handleDirectionalKey(
+                                  event,
+                                  up: launchRecovery?.isRetryable ?? false
+                                      ? _retryFocusNode
+                                      : _refreshFocusNode,
+                                  down: _nameFocusNode,
+                                  blockLeft: true,
+                                  blockRight: true,
+                                ),
+                                child: _ErrorBox(
+                                  message: _sourcesError!,
+                                  retryFocusNode: _sourcesErrorRetryFocusNode,
+                                  onRetry: () =>
+                                      unawaited(_loadSupabaseSources()),
+                                ),
+                              ),
+                            )
+                          else if (_sources.isEmpty)
+                            const _InfoBox(
+                              message:
+                                  'Aucune source trouvée sur Supabase. Ajoute/active une source ci-dessous.',
+                            )
+                          else
+                            FocusRegionScope(
+                              regionId: AppFocusRegionId.welcomeSavedSources,
+                              binding: FocusRegionBinding(
+                                resolvePrimaryEntryNode: () =>
+                                    _savedSourceFocusNodes.isNotEmpty
+                                    ? _savedSourceFocusNodes.first
+                                    : _sourcesErrorRetryFocusNode,
+                                resolveFallbackEntryNode: () =>
+                                    _refreshFocusNode,
+                              ),
+                              handleDirectionalExits: false,
+                              debugLabel: 'WelcomeSavedSourcesRegion',
+                              child: _SourcesList(
+                                sources: _sources,
+                                selectedId: _selectedSourceId,
+                                focusNodes: _savedSourceFocusNodes,
+                                focusVerticalAlignment: 0.22,
+                                onFirstItemUp: () => _requestFocus(
+                                  launchRecovery?.isRetryable ?? false
+                                      ? _retryFocusNode
+                                      : _refreshFocusNode,
+                                ),
+                                onLastItemDown: () => _enterFocusRegion(
+                                  AppFocusRegionId.welcomeSourceForm,
+                                ),
+                                onSelect: _selectSource,
+                              ),
+                            ),
+
+                          const SizedBox(height: AppSpacing.lg),
+                        ],
+
+                        // ---------------- Activation ----------------
+                        FocusRegionScope(
+                          regionId: AppFocusRegionId.welcomeSourceForm,
+                          binding: FocusRegionBinding(
+                            resolvePrimaryEntryNode: () => _nameFocusNode,
+                            resolveFallbackEntryNode: () => _submitFocusNode,
+                          ),
+                          handleDirectionalExits: false,
+                          debugLabel: 'WelcomeSourceFormRegion',
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _SectionHeader(title: 'Activer une source'),
+                              const SizedBox(height: AppSpacing.sm),
+                              MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: _shouldDisplaySavedSourcesSection
+                                            ? (_sourcesError != null
+                                                  ? _sourcesErrorRetryFocusNode
+                                                  : hasSavedSources
+                                                  ? _savedSourceFocusNodes.last
+                                                  : _refreshFocusNode)
+                                            : launchRecovery?.isRetryable ??
+                                                  false
+                                            ? _retryFocusNode
+                                            : null,
+                                        down: _serverFocusNode,
+                                        blockLeft: true,
+                                        blockRight: true,
+                                      ),
+                                  child: CallbackShortcuts(
+                                    bindings: <ShortcutActivator, VoidCallback>{
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowDown,
+                                      ): () =>
+                                          _requestFocus(_serverFocusNode),
+                                    },
+                                    child: TextField(
+                                      controller: _nameCtrl,
+                                      focusNode: _nameFocusNode,
+                                      enabled: !isBusy,
+                                      textInputAction: TextInputAction.next,
+                                      onSubmitted: (_) =>
+                                          _serverFocusNode.requestFocus(),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Nom de la source',
+                                        hintText: 'Mon IPTV',
+                                        border: OutlineInputBorder(),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
+                              const SizedBox(height: AppSpacing.sm),
+                              MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: _nameFocusNode,
+                                        down: _userFocusNode,
+                                        blockLeft: true,
+                                        blockRight: true,
+                                      ),
+                                  child: CallbackShortcuts(
+                                    bindings: <ShortcutActivator, VoidCallback>{
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowUp,
+                                      ): () =>
+                                          _requestFocus(_nameFocusNode),
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowDown,
+                                      ): () =>
+                                          _requestFocus(_userFocusNode),
+                                    },
+                                    child: TextField(
+                                      controller: _serverCtrl,
+                                      focusNode: _serverFocusNode,
+                                      enabled: !isBusy,
+                                      textInputAction: TextInputAction.next,
+                                      onSubmitted: (_) =>
+                                          _userFocusNode.requestFocus(),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Server URL',
+                                        hintText: 'https://example.com:port',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: _serverFocusNode,
+                                        down: _passFocusNode,
+                                        blockLeft: true,
+                                        blockRight: true,
+                                      ),
+                                  child: CallbackShortcuts(
+                                    bindings: <ShortcutActivator, VoidCallback>{
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowUp,
+                                      ): () =>
+                                          _requestFocus(_serverFocusNode),
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowDown,
+                                      ): () =>
+                                          _requestFocus(_passFocusNode),
+                                    },
+                                    child: TextField(
+                                      controller: _userCtrl,
+                                      focusNode: _userFocusNode,
+                                      enabled: !isBusy,
+                                      textInputAction: TextInputAction.next,
+                                      onSubmitted: (_) =>
+                                          _passFocusNode.requestFocus(),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Username',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: _userFocusNode,
+                                        right: _passwordToggleFocusNode,
+                                        down: _submitFocusNode,
+                                        blockLeft: true,
+                                      ),
+                                  child: CallbackShortcuts(
+                                    bindings: <ShortcutActivator, VoidCallback>{
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowUp,
+                                      ): () =>
+                                          _requestFocus(_userFocusNode),
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowRight,
+                                      ): () => _requestFocus(
+                                        _passwordToggleFocusNode,
+                                      ),
+                                      const SingleActivator(
+                                        LogicalKeyboardKey.arrowDown,
+                                      ): () =>
+                                          _requestFocus(_submitFocusNode),
+                                    },
+                                    child: TextField(
+                                      controller: _passCtrl,
+                                      focusNode: _passFocusNode,
+                                      enabled: !isBusy,
+                                      obscureText: _obscurePassword,
+                                      textInputAction: TextInputAction.done,
+                                      onSubmitted: (_) =>
+                                          _submitFocusNode.requestFocus(),
+                                      decoration: InputDecoration(
+                                        labelText: 'Password',
+                                        border: const OutlineInputBorder(),
+                                        suffixIcon: Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 12,
+                                          ),
+                                          child: Focus(
+                                            canRequestFocus: false,
+                                            onKeyEvent: (_, event) =>
+                                                _handleDirectionalKey(
+                                                  event,
+                                                  left: _passFocusNode,
+                                                  down: _submitFocusNode,
+                                                  up: _userFocusNode,
+                                                  blockRight: true,
+                                                ),
+                                            child: IconButton(
+                                              focusNode:
+                                                  _passwordToggleFocusNode,
+                                              icon: Icon(
+                                                _obscurePassword
+                                                    ? Icons.visibility_off
+                                                    : Icons.visibility,
+                                              ),
+                                              onPressed: () => setState(
+                                                () => _obscurePassword =
+                                                    !_obscurePassword,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              if (connectState.warning != null &&
+                                  connectState.supabasePolicy !=
+                                      IptvConnectSupabasePolicy.localOnly) ...[
+                                _InfoBox(message: connectState.warning!),
+                                const SizedBox(height: AppSpacing.sm),
+                              ],
+                              MoviEnsureVisibleOnFocus(
+                                verticalAlignment: 0.22,
+                                child: Focus(
+                                  canRequestFocus: false,
+                                  onKeyEvent: (_, event) =>
+                                      _handleDirectionalKey(
+                                        event,
+                                        up: _passFocusNode,
+                                        blockLeft: true,
+                                        blockRight: true,
+                                        blockDown: true,
+                                      ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: MoviPrimaryButton(
+                                      label: 'Activer',
+                                      focusNode: _submitFocusNode,
+                                      onPressed: isBusy ? null : _activate,
+                                      loading: connectState.isLoading,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xl),
+                              const WelcomeFaqRow(),
+                            ],
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: AppSpacing.md),
-
-                      if (connectState.warning != null &&
-                          connectState.supabasePolicy !=
-                              IptvConnectSupabasePolicy.localOnly) ...[
-                        _InfoBox(message: connectState.warning!),
-                        const SizedBox(height: AppSpacing.sm),
                       ],
-
-                      MoviEnsureVisibleOnFocus(
-                        verticalAlignment: 0.22,
-                        child: Focus(
-                          canRequestFocus: false,
-                          onKeyEvent: (_, event) => _handleDirectionalKey(
-                            event,
-                            up: _passFocusNode,
-                            blockLeft: true,
-                            blockRight: true,
-                            blockDown: true,
-                          ),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: MoviPrimaryButton(
-                              label: 'Activer',
-                              focusNode: _submitFocusNode,
-                              onPressed: isBusy ? null : _activate,
-                              loading: connectState.isLoading,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: AppSpacing.xl),
-                      const WelcomeFaqRow(),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -1009,35 +1081,39 @@ class _SourcesList extends StatelessWidget {
                 }
                 return KeyEventResult.ignored;
               },
-              child: MoviFocusableAction(
-                focusNode: index < focusNodes.length ? focusNodes[index] : null,
-                ensureVisibleVerticalAlignment: focusVerticalAlignment,
-                onPressed: () => onSelect(sources[index]),
-                semanticLabel: sources[index].name,
-                builder: (context, state) {
-                  return MoviFocusFrame(
-                    scale: state.focused ? 1.01 : 1,
-                    borderRadius: BorderRadius.circular(18),
-                    child: ListTile(
-                      onTap: () => onSelect(sources[index]),
-                      title: Text(
-                        sources[index].name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              child: MoviEnsureVisibleOnFocus(
+                verticalAlignment: focusVerticalAlignment,
+                child: MoviFocusableAction(
+                  focusNode: index < focusNodes.length
+                      ? focusNodes[index]
+                      : null,
+                  onPressed: () => onSelect(sources[index]),
+                  semanticLabel: sources[index].name,
+                  builder: (context, state) {
+                    return MoviFocusFrame(
+                      scale: state.focused ? 1.01 : 1,
+                      borderRadius: BorderRadius.circular(18),
+                      child: ListTile(
+                        onTap: () => onSelect(sources[index]),
+                        title: Text(
+                          sources[index].name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          sources[index].expiresAt != null
+                              ? 'Expire: ${_formatDateOnly(context, sources[index].expiresAt!)}'
+                              : 'Aucune date d’expiration',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: selectedId == sources[index].id
+                            ? const Icon(Icons.check_circle)
+                            : const Icon(Icons.circle_outlined),
                       ),
-                      subtitle: Text(
-                        sources[index].expiresAt != null
-                            ? 'Expire: ${_formatDateOnly(context, sources[index].expiresAt!)}'
-                            : 'Aucune date d’expiration',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: selectedId == sources[index].id
-                          ? const Icon(Icons.check_circle)
-                          : const Icon(Icons.circle_outlined),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
         ],

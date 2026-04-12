@@ -42,7 +42,8 @@ class MoviMediaGrid extends StatefulWidget {
     FocusNode focusNode,
     double cardWidth,
     double posterHeight,
-  ) itemBuilder;
+  )
+  itemBuilder;
   final double pageHorizontalPadding;
   final double cardWidth;
   final double posterHeight;
@@ -91,8 +92,10 @@ class _MoviMediaGridState extends State<MoviMediaGrid> {
         _itemFocusNodes[0] = firstItem;
         final wasInjectedByOldWidget =
             previousFirstItem != null && identical(previous, previousFirstItem);
-        final isInjectedByNewWidget =
-            identical(previous, widget.firstItemFocusNode);
+        final isInjectedByNewWidget = identical(
+          previous,
+          widget.firstItemFocusNode,
+        );
         if (!wasInjectedByOldWidget && !isInjectedByNewWidget) {
           previous.dispose();
         }

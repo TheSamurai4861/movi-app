@@ -230,7 +230,6 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
 
   Future<void> _delete() async {
     final l10n = AppLocalizations.of(context)!;
-    final size = MediaQuery.of(context).size;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -238,8 +237,8 @@ class _ManageProfileDialogState extends ConsumerState<ManageProfileDialog> {
         backgroundColor: const Color(0xFF1C1C1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         insetPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: size.width - 40),
+        child: ModalContentWidth(
+          maxWidth: 520,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             child: Column(

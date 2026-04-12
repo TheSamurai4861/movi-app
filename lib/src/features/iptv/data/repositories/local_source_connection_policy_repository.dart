@@ -34,7 +34,9 @@ class LocalSourceConnectionPolicyRepository
   }
 
   @override
-  Future<SourceConnectionPolicy> savePolicy(SourceConnectionPolicy policy) async {
+  Future<SourceConnectionPolicy> savePolicy(
+    SourceConnectionPolicy policy,
+  ) async {
     final normalized = SourceConnectionPolicy(
       ownerId: _ownerId,
       accountId: policy.accountId.trim(),

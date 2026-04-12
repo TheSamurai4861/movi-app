@@ -45,6 +45,11 @@ class HomeLayoutConstants {
   static const Duration heroRotationDuration = Duration(seconds: 9);
   static const Duration heroFadeDuration = Duration(milliseconds: 800);
   static const double heroSynopsisHeight = 80.0;
+  static const double heroMobileStackHeightFactor = 0.58;
+  static const double heroMobileTopActionsTopInset = 70.0;
+  static const double heroMobileContentBottomInset = 16.0;
+  static const double heroMobileLogoHeight = 100.0;
+  static const double heroMobileLogoWidthFactor = 0.8;
 
   // Seuils de progression pour "en cours"
   static const double minProgressThreshold = 0.05; // 5% minimum pour "en cours"

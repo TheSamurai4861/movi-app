@@ -7,6 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:movi/l10n/app_localizations.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/router/router.dart';
 import 'package:movi/src/core/subscription/subscription.dart';
 import 'package:movi/src/core/utils/navigation_helpers.dart';
@@ -17,10 +23,8 @@ import 'package:movi/src/features/search/presentation/providers/search_history_p
 import 'package:movi/src/features/search/presentation/providers/search_providers.dart';
 import 'package:movi/src/features/search/presentation/widgets/genres_grid.dart';
 import 'package:movi/src/features/search/presentation/widgets/watch_providers_grid.dart';
-import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
 import 'package:movi/src/shared/presentation/router/content_route_args.dart';
 import 'package:movi/src/shared/presentation/ui_models/ui_models.dart';
-import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 
 /// SearchPage (version "content-only" pour être hostée par le Shell).
 ///
@@ -123,23 +127,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return switch (_screenTypeFor(context)) {
       ScreenType.mobile => 20,
       ScreenType.tablet => 20,
-      ScreenType.desktop => 0,
-      ScreenType.tv => 0,
+      ScreenType.desktop => 30,
+      ScreenType.tv => 30,
     };
   }
 
   @override
   void initState() {
     super.initState();
-    final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    shellFocusCoordinator.registerTabFocusBinding(
-      ShellTab.search,
-      ShellTabFocusBinding(
-        initialFocusNode: _focusNode,
-        fallbackFocusNode: _focusNode,
-      ),
-    );
-
     // Charger l’historique une fois.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -182,11 +177,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
   @override
   void dispose() {
-    final shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    shellFocusCoordinator.unregisterTabFocusBinding(
-      ShellTab.search,
-      _focusNode,
-    );
     HardwareKeyboard.instance.removeHandler(_handleSearchKeyboard);
     _historyHideTimer?.cancel();
     _textCtrl.removeListener(_onTextChangedLocal);
@@ -212,15 +202,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return true;
   }
 
-  bool _focusSidebarAndRemember() {
-    final coordinator = ref.read(shellFocusCoordinatorProvider);
-    final focusedNode = FocusManager.instance.primaryFocus;
-    if (focusedNode != null &&
-        focusedNode.canRequestFocus &&
-        focusedNode.context != null) {
-      coordinator.rememberContentFocus(ShellTab.search, focusedNode);
-    }
-    return coordinator.focusSidebar();
+  bool _enterRegion(
+    AppFocusRegionId regionId, {
+    bool restoreLastFocused = true,
+  }) {
+    return ref
+        .read(focusOrchestratorProvider)
+        .enterRegion(regionId, restoreLastFocused: restoreLastFocused);
+  }
+
+  bool _resolveExitFromRegion(AppFocusRegionId regionId) {
+    return ref
+        .read(focusOrchestratorProvider)
+        .resolveExit(regionId, DirectionalEdge.left);
   }
 
   void _setSearchInputActivated(bool activated) {
@@ -255,17 +249,21 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     });
   }
 
-  bool _focusFirstSearchResult() {
-    if (_tryRequestFocus(_firstMovieResultFocusNode)) {
-      return true;
+  AppFocusRegionId? _firstAvailableResultsRegion() {
+    final state = ref.read(searchControllerProvider);
+    if (state.movies.isNotEmpty) {
+      return AppFocusRegionId.searchResultsMovies;
     }
-    if (_tryRequestFocus(_firstShowResultFocusNode)) {
-      return true;
+    if (state.shows.isNotEmpty) {
+      return AppFocusRegionId.searchResultsSeries;
     }
-    if (_tryRequestFocus(_firstPersonResultFocusNode)) {
-      return true;
+    if (state.people.isNotEmpty) {
+      return AppFocusRegionId.searchResultsPeople;
     }
-    return _tryRequestFocus(_firstSagaResultFocusNode);
+    if (state.sagas.isNotEmpty) {
+      return AppFocusRegionId.searchResultsSagas;
+    }
+    return null;
   }
 
   bool _hasHistoryItems() {
@@ -274,22 +272,51 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         .maybeWhen(data: (items) => items.isNotEmpty, orElse: () => false);
   }
 
-  void _focusSearchContentBelow({bool preferHistory = false}) {
-    if (!_hasQuery) {
-      if (preferHistory && _tryRequestFocus(_firstHistoryItemFocusNode)) {
-        return;
-      }
-      if (_tryRequestFocus(_firstProviderFocusNode)) {
-        return;
-      }
-      if (_tryRequestFocus(_firstGenreFocusNode)) {
-        return;
-      }
-      if (_tryRequestFocus(_firstHistoryItemFocusNode)) {
-        return;
+  bool _focusFirstSearchResult({bool restoreLastFocused = false}) {
+    final regionId = _firstAvailableResultsRegion();
+    if (regionId == null) {
+      return false;
+    }
+    return _enterRegion(regionId, restoreLastFocused: restoreLastFocused);
+  }
+
+  bool _enterFirstAvailableRegionBelow({bool preferHistory = false}) {
+    final hasHistoryItems = _hasHistoryItems();
+    final showHistory =
+        !_hasQuery &&
+        hasHistoryItems &&
+        ((_focusNode.hasFocus && hasHistoryItems) ||
+            _historySectionHasFocus ||
+            _historyVisibilityLock);
+    final showWatchProviders = ref
+        .read(
+          canAccessPremiumFeatureProvider(
+            PremiumFeature.extendedDiscoveryDetails,
+          ),
+        )
+        .maybeWhen(data: (value) => value, orElse: () => false);
+
+    final candidates = <AppFocusRegionId>[
+      if (!_hasQuery && preferHistory && showHistory)
+        AppFocusRegionId.searchHistory,
+      if (!_hasQuery && showWatchProviders) AppFocusRegionId.searchProviders,
+      if (!_hasQuery) AppFocusRegionId.searchGenres,
+      if (!_hasQuery && !preferHistory && showHistory)
+        AppFocusRegionId.searchHistory,
+      if (_hasQuery && _firstAvailableResultsRegion() != null)
+        _firstAvailableResultsRegion()!,
+    ];
+
+    for (final regionId in candidates) {
+      if (_enterRegion(regionId, restoreLastFocused: false)) {
+        return true;
       }
     }
-    if (_focusFirstSearchResult()) {
+    return false;
+  }
+
+  void _focusSearchContentBelow({bool preferHistory = false}) {
+    if (_enterFirstAvailableRegionBelow(preferHistory: preferHistory)) {
       return;
     }
     FocusScope.of(context).nextFocus();
@@ -303,7 +330,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _focusSidebarAndRemember();
+        _resolveExitFromRegion(AppFocusRegionId.searchInput);
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -410,7 +437,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             constraints: BoxConstraints(maxWidth: contentMaxWidth),
             child: Text(
               l10n.searchTitle,
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ) ??
+                          const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
             ),
           ),
         ),
@@ -428,7 +461,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               clearFocusNode: _clearFocusNode,
               hintText: l10n.searchHint,
               clearTooltip: l10n.clear,
-              onArrowLeft: _focusSidebarAndRemember,
+              onArrowLeft: () {
+                _resolveExitFromRegion(AppFocusRegionId.searchInput);
+              },
               onArrowUp: _noop,
               onArrowDown: () =>
                   _focusSearchContentBelow(preferHistory: hasHistoryItems),
@@ -478,128 +513,182 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     ];
 
     Widget buildResultsList() {
+      Widget section(Widget child) {
+        return Builder(
+          builder: (sectionContext) => MoviVerticalEnsureVisibleTarget(
+            targetContext: sectionContext,
+            child: child,
+          ),
+        );
+      }
+
       return ListView(
         padding: EdgeInsets.zero,
         children: [
           ...searchHeaderChildren,
           if (state.movies.isNotEmpty) ...[
             const SizedBox(height: 16),
-            MoviItemsList(
-              title: l10n.moviesTitle,
-              subtitle: l10n.resultsCount(state.movies.length),
-              estimatedItemWidth: 150,
-              estimatedItemHeight: 300,
-              verticalFocusAlignment: _focusVerticalAlignment,
-              titlePadding: horizontalPadding,
-              horizontalPadding: resultsListPadding,
-              items: state.movies
-                  .take(10)
-                  .toList()
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => _AnimatedMovieCard(
-                      media: MoviMedia(
-                        id: entry.value.id.value,
-                        title: entry.value.title.display,
-                        poster: entry.value.poster,
-                        year: entry.value.releaseYear,
-                        type: MoviMediaType.movie,
-                      ),
-                      onTap: (mm) => navigateToMovieDetail(
-                        context,
-                        ref,
-                        ContentRouteArgs.movie(mm.id),
-                      ),
-                      focusNode: entry.key == 0
-                          ? _firstMovieResultFocusNode
-                          : null,
-                      onFirstLeft: entry.key == 0
-                          ? _focusSidebarAndRemember
-                          : null,
-                      delay: Duration(milliseconds: entry.key * 100),
-                    ),
-                  )
-                  .toList(growable: false),
+            FocusRegionScope(
+              regionId: AppFocusRegionId.searchResultsMovies,
+              binding: FocusRegionBinding(
+                resolvePrimaryEntryNode: () => _firstMovieResultFocusNode,
+              ),
+              exitMap: FocusRegionExitMap({
+                DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+                DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+              }),
+              debugLabel: 'SearchMoviesRegion',
+              child: section(
+                MoviItemsList(
+                  title: l10n.moviesTitle,
+                  subtitle: l10n.resultsCount(state.movies.length),
+                  estimatedItemWidth: 150,
+                  estimatedItemHeight: 300,
+                  verticalFocusAlignment: _focusVerticalAlignment,
+                  titlePadding: horizontalPadding,
+                  horizontalPadding: resultsListPadding,
+                  items: state.movies
+                      .take(10)
+                      .toList()
+                      .asMap()
+                      .entries
+                      .map(
+                        (entry) => _AnimatedMovieCard(
+                          media: MoviMedia(
+                            id: entry.value.id.value,
+                            title: entry.value.title.display,
+                            poster: entry.value.poster,
+                            year: entry.value.releaseYear,
+                            type: MoviMediaType.movie,
+                          ),
+                          onTap: (mm) => navigateToMovieDetail(
+                            context,
+                            ref,
+                            ContentRouteArgs.movie(mm.id),
+                          ),
+                          focusNode: entry.key == 0
+                              ? _firstMovieResultFocusNode
+                              : null,
+                          onFirstLeft: entry.key == 0
+                              ? () => _resolveExitFromRegion(
+                                  AppFocusRegionId.searchResultsMovies,
+                                )
+                              : null,
+                          delay: Duration(milliseconds: entry.key * 100),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
             ),
           ],
           if (state.shows.isNotEmpty) ...[
             const SizedBox(height: 16),
-            MoviItemsList(
-              title: l10n.seriesTitle,
-              subtitle: l10n.resultsCount(state.shows.length),
-              estimatedItemWidth: 150,
-              estimatedItemHeight: 300,
-              verticalFocusAlignment: _focusVerticalAlignment,
-              titlePadding: horizontalPadding,
-              horizontalPadding: resultsListPadding,
-              items: state.shows
-                  .take(10)
-                  .toList()
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => _AnimatedMovieCard(
-                      media: MoviMedia(
-                        id: entry.value.id.value,
-                        title: entry.value.title.display,
-                        poster: entry.value.poster,
-                        type: MoviMediaType.series,
-                      ),
-                      onTap: (mm) => navigateToTvDetail(
-                        context,
-                        ref,
-                        ContentRouteArgs.series(mm.id),
-                      ),
-                      focusNode: entry.key == 0
-                          ? _firstShowResultFocusNode
-                          : null,
-                      onFirstLeft: entry.key == 0
-                          ? _focusSidebarAndRemember
-                          : null,
-                      delay: Duration(milliseconds: entry.key * 100),
-                    ),
-                  )
-                  .toList(growable: false),
+            FocusRegionScope(
+              regionId: AppFocusRegionId.searchResultsSeries,
+              binding: FocusRegionBinding(
+                resolvePrimaryEntryNode: () => _firstShowResultFocusNode,
+              ),
+              exitMap: FocusRegionExitMap({
+                DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+                DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+              }),
+              debugLabel: 'SearchSeriesRegion',
+              child: section(
+                MoviItemsList(
+                  title: l10n.seriesTitle,
+                  subtitle: l10n.resultsCount(state.shows.length),
+                  estimatedItemWidth: 150,
+                  estimatedItemHeight: 300,
+                  verticalFocusAlignment: _focusVerticalAlignment,
+                  titlePadding: horizontalPadding,
+                  horizontalPadding: resultsListPadding,
+                  items: state.shows
+                      .take(10)
+                      .toList()
+                      .asMap()
+                      .entries
+                      .map(
+                        (entry) => _AnimatedMovieCard(
+                          media: MoviMedia(
+                            id: entry.value.id.value,
+                            title: entry.value.title.display,
+                            poster: entry.value.poster,
+                            type: MoviMediaType.series,
+                          ),
+                          onTap: (mm) => navigateToTvDetail(
+                            context,
+                            ref,
+                            ContentRouteArgs.series(mm.id),
+                          ),
+                          focusNode: entry.key == 0
+                              ? _firstShowResultFocusNode
+                              : null,
+                          onFirstLeft: entry.key == 0
+                              ? () => _resolveExitFromRegion(
+                                  AppFocusRegionId.searchResultsSeries,
+                                )
+                              : null,
+                          delay: Duration(milliseconds: entry.key * 100),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
             ),
           ],
           if (state.people.isNotEmpty) ...[
             const SizedBox(height: 16),
-            MoviItemsList(
-              title: l10n.searchPeopleTitle,
-              subtitle: l10n.resultsCount(state.people.length),
-              estimatedItemWidth: 150,
-              estimatedItemHeight: 300,
-              verticalFocusAlignment: _focusVerticalAlignment,
-              titlePadding: horizontalPadding,
-              horizontalPadding: resultsListPadding,
-              items: state.people
-                  .take(10)
-                  .toList()
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => _AnimatedPersonCard(
-                      person: MoviPerson(
-                        id: entry.value.id.value,
-                        name: entry.value.name,
-                        poster: entry.value.photo,
-                        role: l10n.personRoleActor,
-                      ),
-                      onTap: (p) => context.push(
-                        AppRouteNames.person,
-                        extra: entry.value,
-                      ),
-                      focusNode: entry.key == 0
-                          ? _firstPersonResultFocusNode
-                          : null,
-                      onFirstLeft: entry.key == 0
-                          ? _focusSidebarAndRemember
-                          : null,
-                      delay: Duration(milliseconds: entry.key * 100),
-                    ),
-                  )
-                  .toList(growable: false),
+            FocusRegionScope(
+              regionId: AppFocusRegionId.searchResultsPeople,
+              binding: FocusRegionBinding(
+                resolvePrimaryEntryNode: () => _firstPersonResultFocusNode,
+              ),
+              exitMap: FocusRegionExitMap({
+                DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+                DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+              }),
+              debugLabel: 'SearchPeopleRegion',
+              child: section(
+                MoviItemsList(
+                  title: l10n.searchPeopleTitle,
+                  subtitle: l10n.resultsCount(state.people.length),
+                  estimatedItemWidth: 150,
+                  estimatedItemHeight: 300,
+                  verticalFocusAlignment: _focusVerticalAlignment,
+                  titlePadding: horizontalPadding,
+                  horizontalPadding: resultsListPadding,
+                  items: state.people
+                      .take(10)
+                      .toList()
+                      .asMap()
+                      .entries
+                      .map(
+                        (entry) => _AnimatedPersonCard(
+                          person: MoviPerson(
+                            id: entry.value.id.value,
+                            name: entry.value.name,
+                            poster: entry.value.photo,
+                            role: l10n.personRoleActor,
+                          ),
+                          onTap: (p) => context.push(
+                            AppRouteNames.person,
+                            extra: entry.value,
+                          ),
+                          focusNode: entry.key == 0
+                              ? _firstPersonResultFocusNode
+                              : null,
+                          onFirstLeft: entry.key == 0
+                              ? () => _resolveExitFromRegion(
+                                  AppFocusRegionId.searchResultsPeople,
+                                )
+                              : null,
+                          delay: Duration(milliseconds: entry.key * 100),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
             ),
           ],
           if (state.sagas.isNotEmpty) ...[
@@ -614,32 +703,50 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     if (filteredSagas.isEmpty) {
                       return const SizedBox.shrink();
                     }
-                    return MoviItemsList(
-                      title: l10n.searchSagasTitle,
-                      subtitle: l10n.resultsCount(filteredSagas.length),
-                      estimatedItemWidth: 150,
-                      estimatedItemHeight: 300,
-                      verticalFocusAlignment: _focusVerticalAlignment,
-                      titlePadding: horizontalPadding,
-                      horizontalPadding: resultsListPadding,
-                      items: filteredSagas
-                          .take(10)
-                          .toList()
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => _AnimatedSagaCard(
-                              saga: entry.value,
-                              focusNode: entry.key == 0
-                                  ? _firstSagaResultFocusNode
-                                  : null,
-                              onFirstLeft: entry.key == 0
-                                  ? _focusSidebarAndRemember
-                                  : null,
-                              delay: Duration(milliseconds: entry.key * 100),
-                            ),
-                          )
-                          .toList(growable: false),
+                    return FocusRegionScope(
+                      regionId: AppFocusRegionId.searchResultsSagas,
+                      binding: FocusRegionBinding(
+                        resolvePrimaryEntryNode: () =>
+                            _firstSagaResultFocusNode,
+                      ),
+                      exitMap: FocusRegionExitMap({
+                        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+                        DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+                      }),
+                      debugLabel: 'SearchSagasRegion',
+                      child: section(
+                        MoviItemsList(
+                          title: l10n.searchSagasTitle,
+                          subtitle: l10n.resultsCount(filteredSagas.length),
+                          estimatedItemWidth: 150,
+                          estimatedItemHeight: 300,
+                          verticalFocusAlignment: _focusVerticalAlignment,
+                          titlePadding: horizontalPadding,
+                          horizontalPadding: resultsListPadding,
+                          items: filteredSagas
+                              .take(10)
+                              .toList()
+                              .asMap()
+                              .entries
+                              .map(
+                                (entry) => _AnimatedSagaCard(
+                                  saga: entry.value,
+                                  focusNode: entry.key == 0
+                                      ? _firstSagaResultFocusNode
+                                      : null,
+                                  onFirstLeft: entry.key == 0
+                                      ? () => _resolveExitFromRegion(
+                                          AppFocusRegionId.searchResultsSagas,
+                                        )
+                                      : null,
+                                  delay: Duration(
+                                    milliseconds: entry.key * 100,
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                      ),
                     );
                   },
                   loading: () => const SizedBox.shrink(),
@@ -667,120 +774,201 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       );
     }
 
-    return Material(
-      color: Colors.transparent,
-      child: SizedBox.expand(
-        child: !_hasQuery
-            ? ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ...searchHeaderChildren,
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 340),
-                    curve: Curves.easeInOutCubic,
-                    alignment: Alignment.topCenter,
-                    child: showHistory
-                        ? Padding(
-                            padding: const EdgeInsets.only(bottom: 32),
-                            child: _SearchHistoryList(
-                              horizontalPadding: horizontalPadding,
-                              maxContentWidth: historyMaxWidth,
-                              useWideLayout: useDesktopLayout,
-                              firstItemFocusNode: _firstHistoryItemFocusNode,
-                              focusVerticalAlignment: _focusVerticalAlignment,
-                              onFocusChange: (hasFocus) {
-                                if (_historySectionHasFocus == hasFocus) {
-                                  return;
-                                }
-                                setState(() {
-                                  _historySectionHasFocus = hasFocus;
-                                });
-                              },
-                              onSelect: (q) {
-                                _textCtrl.text = q;
-                                _textCtrl
-                                    .selection = TextSelection.fromPosition(
-                                  TextPosition(offset: _textCtrl.text.length),
-                                );
-                                _scheduleResultsAutoFocus(q);
-                                ctrl.setQueryImmediate(q);
-                                FocusScope.of(context).unfocus();
-                              },
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                  if (showWatchProviders)
-                    WatchProvidersGrid(
-                      horizontalPadding: horizontalPadding,
-                      maxContentWidth: gridMaxWidth,
-                      firstItemFocusNode: _firstProviderFocusNode,
-                      onFirstItemLeft: _focusSidebarAndRemember,
-                      onLastRowDown: _focusNearestGenreFromProviders,
-                      focusVerticalAlignment: _focusVerticalAlignment,
-                      focusRequestId: _providerFocusRequestId,
-                      focusRequestColumn: _providerFocusRequestColumn,
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.searchInput,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => _focusNode,
+        resolveFallbackEntryNode: () => _clearFocusNode,
+      ),
+      exitMap: FocusRegionExitMap({
+        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+      }),
+      debugLabel: 'SearchPageRegion',
+      child: Material(
+        color: Colors.transparent,
+        child: SizedBox.expand(
+          child: !_hasQuery
+              ? ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    ...searchHeaderChildren,
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 340),
+                      curve: Curves.easeInOutCubic,
+                      alignment: Alignment.topCenter,
+                      child: showHistory
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: 32),
+                              child: FocusRegionScope(
+                                regionId: AppFocusRegionId.searchHistory,
+                                binding: FocusRegionBinding(
+                                  resolvePrimaryEntryNode: () =>
+                                      _firstHistoryItemFocusNode,
+                                ),
+                                exitMap: FocusRegionExitMap({
+                                  DirectionalEdge.left:
+                                      AppFocusRegionId.shellSidebar,
+                                  DirectionalEdge.back:
+                                      AppFocusRegionId.shellSidebar,
+                                }),
+                                debugLabel: 'SearchHistoryRegion',
+                                child: Builder(
+                                  builder: (sectionContext) =>
+                                      MoviVerticalEnsureVisibleTarget(
+                                        targetContext: sectionContext,
+                                        child: _SearchHistoryList(
+                                          horizontalPadding: horizontalPadding,
+                                          maxContentWidth: historyMaxWidth,
+                                          useWideLayout: useDesktopLayout,
+                                          firstItemFocusNode:
+                                              _firstHistoryItemFocusNode,
+                                          focusVerticalAlignment:
+                                              _focusVerticalAlignment,
+                                          onFocusChange: (hasFocus) {
+                                            if (_historySectionHasFocus ==
+                                                hasFocus) {
+                                              return;
+                                            }
+                                            setState(() {
+                                              _historySectionHasFocus =
+                                                  hasFocus;
+                                            });
+                                          },
+                                          onSelect: (q) {
+                                            _textCtrl.text = q;
+                                            _textCtrl.selection =
+                                                TextSelection.fromPosition(
+                                                  TextPosition(
+                                                    offset:
+                                                        _textCtrl.text.length,
+                                                  ),
+                                                );
+                                            _scheduleResultsAutoFocus(q);
+                                            ctrl.setQueryImmediate(q);
+                                            FocusScope.of(context).unfocus();
+                                          },
+                                        ),
+                                      ),
+                                ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                  if (showWatchProviders) const SizedBox(height: 32),
-                  GenresGrid(
-                    horizontalPadding: horizontalPadding,
-                    maxContentWidth: gridMaxWidth,
-                    firstItemFocusNode: _firstGenreFocusNode,
-                    onFirstItemLeft: _focusSidebarAndRemember,
-                    onFirstRowUp: showWatchProviders
-                        ? _focusNearestProviderFromGenres
-                        : null,
-                    focusRequestId: _genreFocusRequestId,
-                    focusRequestColumn: _genreFocusRequestColumn,
-                    focusVerticalAlignment: _focusVerticalAlignment,
-                  ),
-                  const SizedBox(height: 125),
-                ],
-              )
-            : state.isLoading
-            ? ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ...searchHeaderChildren,
-                  const SizedBox(height: 120),
-                  const Center(child: CircularProgressIndicator()),
-                  const SizedBox(height: 100),
-                ],
-              )
-            : state.error != null
-            ? ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  ...searchHeaderChildren,
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: horizontalPadding,
-                    ),
-                    child: Text(
-                      state.error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontWeight: FontWeight.w500,
+                    if (showWatchProviders)
+                      FocusRegionScope(
+                        regionId: AppFocusRegionId.searchProviders,
+                        binding: FocusRegionBinding(
+                          resolvePrimaryEntryNode: () =>
+                              _firstProviderFocusNode,
+                        ),
+                        exitMap: FocusRegionExitMap({
+                          DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+                          DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+                        }),
+                        debugLabel: 'SearchProvidersRegion',
+                        child: Builder(
+                          builder: (sectionContext) =>
+                              MoviVerticalEnsureVisibleTarget(
+                                targetContext: sectionContext,
+                                child: WatchProvidersGrid(
+                                  horizontalPadding: horizontalPadding,
+                                  maxContentWidth: gridMaxWidth,
+                                  firstItemFocusNode: _firstProviderFocusNode,
+                                  onFirstItemLeft: () => _resolveExitFromRegion(
+                                    AppFocusRegionId.searchProviders,
+                                  ),
+                                  onLastRowDown:
+                                      _focusNearestGenreFromProviders,
+                                  focusVerticalAlignment:
+                                      _focusVerticalAlignment,
+                                  focusRequestId: _providerFocusRequestId,
+                                  focusRequestColumn:
+                                      _providerFocusRequestColumn,
+                                ),
+                              ),
+                        ),
                       ),
-                      textAlign: TextAlign.center,
+                    if (showWatchProviders) const SizedBox(height: 32),
+                    FocusRegionScope(
+                      regionId: AppFocusRegionId.searchGenres,
+                      binding: FocusRegionBinding(
+                        resolvePrimaryEntryNode: () => _firstGenreFocusNode,
+                      ),
+                      exitMap: FocusRegionExitMap({
+                        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+                        DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+                      }),
+                      debugLabel: 'SearchGenresRegion',
+                      child: Builder(
+                        builder: (sectionContext) =>
+                            MoviVerticalEnsureVisibleTarget(
+                              targetContext: sectionContext,
+                              child: GenresGrid(
+                                horizontalPadding: horizontalPadding,
+                                maxContentWidth: gridMaxWidth,
+                                firstItemFocusNode: _firstGenreFocusNode,
+                                onFirstItemLeft: () => _resolveExitFromRegion(
+                                  AppFocusRegionId.searchGenres,
+                                ),
+                                onFirstRowUp: showWatchProviders
+                                    ? _focusNearestProviderFromGenres
+                                    : null,
+                                focusRequestId: _genreFocusRequestId,
+                                focusRequestColumn: _genreFocusRequestColumn,
+                                focusVerticalAlignment: _focusVerticalAlignment,
+                              ),
+                            ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 100),
-                ],
-              )
-            : RefreshIndicator(
-                onRefresh: () async {
-                  final q = _textCtrl.text.trim();
-                  if (q.length < 3) {
-                    await ref
-                        .read(searchHistoryControllerProvider.notifier)
-                        .refresh();
-                    return;
-                  }
-                  ctrl.setQuery(q);
-                },
-                child: buildResultsList(),
-              ),
+                    const SizedBox(height: 125),
+                  ],
+                )
+              : state.isLoading
+              ? ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    ...searchHeaderChildren,
+                    const SizedBox(height: 120),
+                    const Center(child: CircularProgressIndicator()),
+                    const SizedBox(height: 100),
+                  ],
+                )
+              : state.error != null
+              ? ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    ...searchHeaderChildren,
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
+                      child: Text(
+                        state.error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 100),
+                  ],
+                )
+              : RefreshIndicator(
+                  onRefresh: () async {
+                    final q = _textCtrl.text.trim();
+                    if (q.length < 3) {
+                      await ref
+                          .read(searchHistoryControllerProvider.notifier)
+                          .refresh();
+                      return;
+                    }
+                    ctrl.setQuery(q);
+                  },
+                  child: buildResultsList(),
+                ),
+        ),
       ),
     );
   }
@@ -1537,7 +1725,7 @@ class _SagaCard extends ConsumerWidget {
 
     final scheme = poster.scheme.toLowerCase();
     if (scheme == 'http' || scheme == 'https') {
-      return Image.network(
+      return MoviNetworkImage(
         poster.toString(),
         width: width,
         height: height,

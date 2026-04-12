@@ -11,9 +11,10 @@ import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
 import 'package:movi/src/features/tv/presentation/providers/tv_detail_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/media_id.dart';
 
-final seriesTrackingRepositoryProvider = Provider<SeriesTrackingLocalRepository>(
-  (ref) => SeriesTrackingLocalRepository(),
-);
+final seriesTrackingRepositoryProvider =
+    Provider<SeriesTrackingLocalRepository>(
+      (ref) => SeriesTrackingLocalRepository(),
+    );
 
 final class SeriesTrackingState {
   const SeriesTrackingState({
@@ -28,7 +29,9 @@ final class SeriesTrackingState {
 final seriesTrackingStateProvider =
     FutureProvider.family<SeriesTrackingState, String>((ref, seriesId) async {
       final hasPremium = await ref.watch(
-        canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+        canAccessPremiumFeatureProvider(
+          PremiumFeature.seriesEpisodeTracking,
+        ).future,
       );
       if (!hasPremium) {
         return const SeriesTrackingState(
@@ -46,19 +49,21 @@ final seriesTrackingStateProvider =
       );
     });
 
-final seriesIsTrackedProvider = FutureProvider.family<bool, String>(
-  (ref, seriesId) async {
-    final state = await ref.watch(seriesTrackingStateProvider(seriesId).future);
-    return state.isTracked;
-  },
-);
+final seriesIsTrackedProvider = FutureProvider.family<bool, String>((
+  ref,
+  seriesId,
+) async {
+  final state = await ref.watch(seriesTrackingStateProvider(seriesId).future);
+  return state.isTracked;
+});
 
-final seriesHasNewEpisodeProvider = FutureProvider.family<bool, String>(
-  (ref, seriesId) async {
-    final state = await ref.watch(seriesTrackingStateProvider(seriesId).future);
-    return state.hasNewEpisode;
-  },
-);
+final seriesHasNewEpisodeProvider = FutureProvider.family<bool, String>((
+  ref,
+  seriesId,
+) async {
+  final state = await ref.watch(seriesTrackingStateProvider(seriesId).future);
+  return state.hasNewEpisode;
+});
 
 final seriesTrackingToggleProvider =
     NotifierProvider<SeriesTrackingToggleNotifier, void>(
@@ -75,7 +80,9 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
     Uri? poster,
   }) async {
     final hasPremium = await ref.read(
-      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      canAccessPremiumFeatureProvider(
+        PremiumFeature.seriesEpisodeTracking,
+      ).future,
     );
     if (!hasPremium) return;
 
@@ -111,7 +118,9 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
 
   Future<void> refreshTrackedSeriesStatus(String seriesId) async {
     final hasPremium = await ref.read(
-      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      canAccessPremiumFeatureProvider(
+        PremiumFeature.seriesEpisodeTracking,
+      ).future,
     );
     if (!hasPremium) return;
 
@@ -145,7 +154,9 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
 
   Future<void> refreshFavoriteSeriesStatuses() async {
     final hasPremium = await ref.read(
-      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      canAccessPremiumFeatureProvider(
+        PremiumFeature.seriesEpisodeTracking,
+      ).future,
     );
     if (!hasPremium) return;
 
@@ -158,7 +169,9 @@ class SeriesTrackingToggleNotifier extends Notifier<void> {
 
   Future<void> refreshAllTrackedSeriesStatuses() async {
     final hasPremium = await ref.read(
-      canAccessPremiumFeatureProvider(PremiumFeature.seriesEpisodeTracking).future,
+      canAccessPremiumFeatureProvider(
+        PremiumFeature.seriesEpisodeTracking,
+      ).future,
     );
     if (!hasPremium) return;
 

@@ -11,7 +11,8 @@ class SuppressedRemoteIptvSourcesPreferences {
     this.storageKey = defaultStorageKey,
   }) : _storage = storage;
 
-  static const String defaultStorageKey = 'prefs.suppressed_remote_iptv_sources';
+  static const String defaultStorageKey =
+      'prefs.suppressed_remote_iptv_sources';
 
   final SecureStorageRepository _storage;
   final String storageKey;
@@ -39,8 +40,9 @@ class SuppressedRemoteIptvSourcesPreferences {
     }
 
     final accounts = await _readAccounts();
-    final ids = Set<String>.from(accounts[normalizedAccountId] ?? const <String>{})
-      ..add(normalizedLocalId);
+    final ids = Set<String>.from(
+      accounts[normalizedAccountId] ?? const <String>{},
+    )..add(normalizedLocalId);
     accounts[normalizedAccountId] = ids;
     await _writeAccounts(accounts);
   }
@@ -56,8 +58,9 @@ class SuppressedRemoteIptvSourcesPreferences {
     }
 
     final accounts = await _readAccounts();
-    final ids = Set<String>.from(accounts[normalizedAccountId] ?? const <String>{})
-      ..remove(normalizedLocalId);
+    final ids = Set<String>.from(
+      accounts[normalizedAccountId] ?? const <String>{},
+    )..remove(normalizedLocalId);
     if (ids.isEmpty) {
       accounts.remove(normalizedAccountId);
     } else {
@@ -81,7 +84,9 @@ class SuppressedRemoteIptvSourcesPreferences {
         .toSet();
 
     final accounts = await _readAccounts();
-    final current = Set<String>.from(accounts[normalizedAccountId] ?? const <String>{});
+    final current = Set<String>.from(
+      accounts[normalizedAccountId] ?? const <String>{},
+    );
     final retained = current.intersection(normalizedRemoteIds);
 
     if (retained.length == current.length) {
@@ -119,7 +124,10 @@ class SuppressedRemoteIptvSourcesPreferences {
         continue;
       }
 
-      final ids = rawIds.map((value) => _normalize(value?.toString())).whereType<String>().toSet();
+      final ids = rawIds
+          .map((value) => _normalize(value?.toString()))
+          .whereType<String>()
+          .toSet();
       if (ids.isNotEmpty) {
         result[accountId] = ids;
       }

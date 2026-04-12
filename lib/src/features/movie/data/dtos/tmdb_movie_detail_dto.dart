@@ -213,7 +213,10 @@ class TmdbMovieDetailDto {
 
     // Règle stricte : n'utiliser que des PNG (le CDN TMDB peut ne pas servir les SVG).
     final pngOnly = list
-        .where((m) => (_stringOr(m['file_path']) ?? '').toLowerCase().endsWith('.png'))
+        .where(
+          (m) =>
+              (_stringOr(m['file_path']) ?? '').toLowerCase().endsWith('.png'),
+        )
         .toList(growable: false);
     if (pngOnly.isEmpty) return null;
 

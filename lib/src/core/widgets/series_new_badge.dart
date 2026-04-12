@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SeriesNewBadge extends StatelessWidget {
-  const SeriesNewBadge({
-    super.key,
-    required this.backgroundColor,
-  });
+  const SeriesNewBadge({super.key, required this.backgroundColor});
 
   final Color backgroundColor;
 

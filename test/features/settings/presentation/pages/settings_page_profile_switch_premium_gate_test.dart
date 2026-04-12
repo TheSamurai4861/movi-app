@@ -8,6 +8,11 @@ import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/auth/domain/entities/auth_models.dart';
 import 'package:movi/src/core/auth/presentation/providers/auth_providers.dart';
 import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/focus/application/default_focus_orchestrator.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/presentation/focus_orchestrator_provider.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/preferences/accent_color_preferences.dart';
 import 'package:movi/src/core/preferences/iptv_sync_preferences.dart';
 import 'package:movi/src/core/preferences/locale_preferences.dart';
@@ -99,7 +104,6 @@ void main() {
         Profile(id: 'p2', accountId: 'a', name: 'Bob', color: 0xFF2160AB),
       ],
     );
-
     final container = ProviderContainer(
       overrides: [
         profilesControllerProvider.overrideWith(() => fakeProfiles),
@@ -153,9 +157,13 @@ void main() {
         Profile(id: 'p2', accountId: 'a', name: 'Bob', color: 0xFF2160AB),
       ],
     );
+    final focusOrchestrator = DefaultFocusOrchestrator();
+    final sidebarFocusNode = FocusNode(debugLabel: 'ShellSidebarTest');
+    addTearDown(sidebarFocusNode.dispose);
 
     final container = ProviderContainer(
       overrides: [
+        focusOrchestratorProvider.overrideWithValue(focusOrchestrator),
         profilesControllerProvider.overrideWith(() => fakeProfiles),
         selectedProfileIdProvider.overrideWithValue('p1'),
         canAccessPremiumFeatureProvider.overrideWith(
@@ -179,7 +187,24 @@ void main() {
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const SettingsPage(),
+          home: Scaffold(
+            body: Row(
+              children: [
+                FocusRegionScope(
+                  regionId: AppFocusRegionId.shellSidebar,
+                  binding: FocusRegionBinding(
+                    resolvePrimaryEntryNode: () => sidebarFocusNode,
+                    resolveFallbackEntryNode: () => sidebarFocusNode,
+                  ),
+                  child: Focus(
+                    focusNode: sidebarFocusNode,
+                    child: const SizedBox(width: 72, height: 72),
+                  ),
+                ),
+                const Expanded(child: SettingsPage()),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -198,7 +223,24 @@ void main() {
       FocusManager.instance.primaryFocus?.debugLabel,
       contains('SettingsFirstProfile'),
     );
+    expect(
+      focusOrchestrator.isRegionRegistered(AppFocusRegionId.shellSidebar),
+      isTrue,
+    );
+    expect(
+      focusOrchestrator.isRegionRegistered(AppFocusRegionId.settingsPrimary),
+      isTrue,
+    );
 
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('ShellSidebarTest'),
+    );
+
+    firstProfileAction.focusNode!.requestFocus();
+    await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     expect(

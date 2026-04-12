@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movi/l10n/app_localizations.dart';
 import 'package:movi/src/core/config/providers/config_provider.dart';
+import 'package:movi/src/core/focus/domain/app_focus_region_id.dart';
+import 'package:movi/src/core/focus/domain/directional_edge.dart';
+import 'package:movi/src/core/focus/domain/focus_region_binding.dart';
+import 'package:movi/src/core/focus/domain/focus_region_exit_map.dart';
+import 'package:movi/src/core/focus/presentation/focus_region_scope.dart';
 import 'package:movi/src/core/logging/logging.dart';
 import 'package:movi/src/core/utils/utils.dart';
 import 'package:movi/src/core/utils/unawaited.dart';
@@ -20,8 +25,6 @@ import 'package:movi/src/features/home/presentation/widgets/home_iptv_section.da
 import 'package:movi/src/features/home/presentation/widgets/home_loading_overlay.dart';
 import 'package:movi/src/features/home/presentation/widgets/home_layout_constants.dart';
 import 'package:movi/src/features/home/presentation/widgets/mark_as_unwatched_dialog.dart';
-import 'package:movi/src/features/shell/presentation/navigation/shell_destinations.dart';
-import 'package:movi/src/features/shell/presentation/providers/shell_providers.dart';
 import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
 
 /// Layout desktop pour la page d'accueil.
@@ -143,7 +146,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   final FocusNode _heroMoviesFilterFocusNode = FocusNode(
     debugLabel: 'HomeHeroMoviesFilter',
   );
-  late final ShellFocusCoordinator _shellFocusCoordinator;
   bool get _allowLegacyHeroOverlayPrecache =>
       defaultTargetPlatform != TargetPlatform.windows;
   String? _lastLoggedHeroBuildSignature;
@@ -209,13 +211,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   @override
   void initState() {
     super.initState();
-    _shellFocusCoordinator = ref.read(shellFocusCoordinatorProvider);
-    _shellFocusCoordinator.registerTabFocusBinding(
-      ShellTab.home,
-      ShellTabFocusBinding(
-        initialFocusNode: _heroPrimaryActionFocusNode,
-      ),
-    );
     _logHomeHeroDebug('init_state');
     _heroPrimaryActionFocusNode.addListener(_heroPrimaryActionFocusListener);
     _requestInitialHeroFocus();
@@ -258,7 +253,9 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
       return;
     }
     final controller = PrimaryScrollController.maybeOf(context);
-    if (controller == null || !controller.hasClients || controller.offset <= 0) {
+    if (controller == null ||
+        !controller.hasClients ||
+        controller.offset <= 0) {
       return;
     }
     controller.animateTo(
@@ -271,10 +268,6 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
   @override
   void dispose() {
     _heroPrimaryActionFocusNode.removeListener(_heroPrimaryActionFocusListener);
-    _shellFocusCoordinator.unregisterTabFocusBinding(
-      ShellTab.home,
-      _heroPrimaryActionFocusNode,
-    );
     _heroPrimaryActionFocusNode.dispose();
     _heroMoviesFilterFocusNode.dispose();
     super.dispose();
@@ -371,84 +364,96 @@ class _HomeDesktopContentState extends ConsumerState<HomeDesktopContent> {
         .where((entry) => _matchesIptvFilter(entry.value, iptvFilter))
         .toList(growable: false);
 
-    return Stack(
-      children: [
-        SyncableRefreshIndicator(
-          onRefresh: () async {
-            await Future.wait([
-              controller.refresh(),
-              ref.refresh(hp.homeInProgressProvider.future),
-            ]);
-          },
-          child: CustomScrollView(
-            slivers: [
-              if (state.error != null)
-                const SliverToBoxAdapter(child: HomeErrorBanner()),
+    return FocusRegionScope(
+      regionId: AppFocusRegionId.homePrimary,
+      binding: FocusRegionBinding(
+        resolvePrimaryEntryNode: () => _heroPrimaryActionFocusNode,
+        resolveFallbackEntryNode: () => _heroMoviesFilterFocusNode,
+      ),
+      exitMap: FocusRegionExitMap({
+        DirectionalEdge.left: AppFocusRegionId.shellSidebar,
+        DirectionalEdge.back: AppFocusRegionId.shellSidebar,
+      }),
+      debugLabel: 'HomePrimaryRegion',
+      child: Stack(
+        children: [
+          SyncableRefreshIndicator(
+            onRefresh: () async {
+              await Future.wait([
+                controller.refresh(),
+                ref.refresh(hp.homeInProgressProvider.future),
+              ]);
+            },
+            child: CustomScrollView(
+              slivers: [
+                if (state.error != null)
+                  const SliverToBoxAdapter(child: HomeErrorBanner()),
 
-              if (!disableHero) ...[
-                HomeHeroSection(
-                  heroItems: state.hero,
-                  primaryActionFocusNode: _heroPrimaryActionFocusNode,
-                  moviesFilterFocusNode: _heroMoviesFilterFocusNode,
-                  onLoadingChanged: (isLoading) {
-                    if (mounted && _isHeroLoadingMeta != isLoading) {
-                      _logHomeHeroDebug(
-                        'hero_loading_changed',
-                        context: <String, Object?>{'isLoading': isLoading},
-                      );
-                      setState(() {
-                        _isHeroLoadingMeta = isLoading;
-                      });
-                    }
-                  },
-                ),
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: HomeLayoutConstants.sectionGap),
-                ),
-              ],
-
-              HomeContinueWatchingSection(
-                onMarkAsUnwatched: showMarkAsUnwatchedDialog,
-                applyHeroTransition:
-                    !disableHero && !firstSectionNeedsHeroTransition,
-              ),
-
-              const HomeContinueWatchingSpacer(),
-
-              if (state.isLoading && state.iptvLists.isEmpty)
-                SliverToBoxAdapter(
-                  child: HomeIptvLoadingSections(
-                    applyHeroTransition: firstSectionNeedsHeroTransition,
-                  ),
-                )
-              else if (state.iptvLists.isEmpty)
-                SliverToBoxAdapter(
-                  child: HomeNoIptvSourcesMessage(
-                    applyHeroTransition: firstSectionNeedsHeroTransition,
-                  ),
-                )
-              else ...[
-                for (var i = 0; i < iptvEntries.length; i++) ...[
-                  SliverToBoxAdapter(
-                    child: HomeIptvSection(
-                      categoryTitle: iptvEntries[i].key,
-                      items: iptvEntries[i].value,
-                      applyHeroTransition:
-                          firstSectionNeedsHeroTransition && i == 0,
-                    ),
+                if (!disableHero) ...[
+                  HomeHeroSection(
+                    heroItems: state.hero,
+                    primaryActionFocusNode: _heroPrimaryActionFocusNode,
+                    moviesFilterFocusNode: _heroMoviesFilterFocusNode,
+                    onLoadingChanged: (isLoading) {
+                      if (mounted && _isHeroLoadingMeta != isLoading) {
+                        _logHomeHeroDebug(
+                          'hero_loading_changed',
+                          context: <String, Object?>{'isLoading': isLoading},
+                        );
+                        setState(() {
+                          _isHeroLoadingMeta = isLoading;
+                        });
+                      }
+                    },
                   ),
                   const SliverToBoxAdapter(
                     child: SizedBox(height: HomeLayoutConstants.sectionGap),
                   ),
                 ],
-              ],
 
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+                HomeContinueWatchingSection(
+                  onMarkAsUnwatched: showMarkAsUnwatchedDialog,
+                  applyHeroTransition:
+                      !disableHero && !firstSectionNeedsHeroTransition,
+                ),
+
+                const HomeContinueWatchingSpacer(),
+
+                if (state.isLoading && state.iptvLists.isEmpty)
+                  SliverToBoxAdapter(
+                    child: HomeIptvLoadingSections(
+                      applyHeroTransition: firstSectionNeedsHeroTransition,
+                    ),
+                  )
+                else if (state.iptvLists.isEmpty)
+                  SliverToBoxAdapter(
+                    child: HomeNoIptvSourcesMessage(
+                      applyHeroTransition: firstSectionNeedsHeroTransition,
+                    ),
+                  )
+                else ...[
+                  for (var i = 0; i < iptvEntries.length; i++) ...[
+                    SliverToBoxAdapter(
+                      child: HomeIptvSection(
+                        categoryTitle: iptvEntries[i].key,
+                        items: iptvEntries[i].value,
+                        applyHeroTransition:
+                            firstSectionNeedsHeroTransition && i == 0,
+                      ),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: HomeLayoutConstants.sectionGap),
+                    ),
+                  ],
+                ],
+
+                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              ],
+            ),
           ),
-        ),
-        HomeLoadingOverlay(show: showLoadingOverlay),
-      ],
+          HomeLoadingOverlay(show: showLoadingOverlay),
+        ],
+      ),
     );
   }
 }

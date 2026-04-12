@@ -8,6 +8,8 @@ class TmdbSagaRemoteDataSource {
   final TmdbClient _client;
   final LocalePreferences _locale;
 
+  String get currentLanguageCode => _locale.languageCode;
+
   Future<TmdbSagaDetailDto> fetchSaga(int id, {String? language}) async {
     final json = await _client.getJson(
       'collection/$id',

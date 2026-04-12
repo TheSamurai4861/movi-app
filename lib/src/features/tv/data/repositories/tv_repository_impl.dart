@@ -1,42 +1,35 @@
-// lib/src/features/tv/data/repositories/tv_repository_impl.dart
 import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
-import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
-import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
-import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
-import 'package:movi/src/shared/domain/entities/person_summary.dart';
-import 'package:movi/src/shared/domain/value_objects/media_id.dart';
-import 'package:movi/src/shared/domain/value_objects/media_title.dart';
-import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
-import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
-import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/core/logging/logger.dart';
+import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/core/storage/storage.dart';
 import 'package:movi/src/features/tv/data/datasources/tmdb_tv_remote_data_source.dart';
-import 'package:movi/src/core/state/app_state_controller.dart';
 import 'package:movi/src/features/tv/data/datasources/tv_local_data_source.dart';
 import 'package:movi/src/features/tv/data/dtos/tmdb_tv_detail_dto.dart';
 import 'package:movi/src/features/tv/data/dtos/tmdb_tv_season_detail_dto.dart';
-import 'package:movi/src/core/logging/logger.dart';
-import 'package:movi/src/core/di/di.dart';
+import 'package:movi/src/features/tv/domain/entities/tv_show.dart';
+import 'package:movi/src/features/tv/domain/repositories/tv_repository.dart';
 import 'package:movi/src/shared/data/services/tmdb_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_detail_cache_data_source.dart';
+import 'package:movi/src/shared/data/services/tmdb_image_resolver.dart';
+import 'package:movi/src/shared/domain/entities/person_summary.dart';
 import 'package:movi/src/shared/domain/services/tmdb_image_selector_service.dart';
+import 'package:movi/src/shared/domain/value_objects/content_rating.dart';
+import 'package:movi/src/shared/domain/value_objects/content_reference.dart';
+import 'package:movi/src/shared/domain/value_objects/media_id.dart';
+import 'package:movi/src/shared/domain/value_objects/media_title.dart';
+import 'package:movi/src/shared/domain/value_objects/synopsis.dart';
 
-/// Implémentation du repository TV.
-/// Stratégie:
-/// - **Lite-first** pour les listes (popular/search via remote summaries)
-/// - **Full-on-demand** pour la fiche (fetchShowFull + saisons)
-/// - **Cache local** (TvLocalDataSource) pour show/season si disponible
-/// - Mapping strict, images via [TmdbImageResolver]
 class TvRepositoryImpl implements TvRepository {
-  /// Prédicat « cache tv_detail suffisant pour éviter un nouveau fetchShowFull ».
-  ///
-  /// Le cast / recommandations ne prouvent pas que les logos TMDB ont été résolus.
   @visibleForTesting
   static bool cacheSatisfiesFullShowLoad(TmdbTvDetailDto cached) {
-    return cached.logoPath != null || cached.logoPngExhausted;
+    final hasLogoData = cached.logoPath != null || cached.logoPngExhausted;
+    final hasCastData = cached.cast.isNotEmpty || cached.castExhausted;
+    return hasLogoData && hasCastData;
   }
 
   TvRepositoryImpl(
@@ -47,8 +40,10 @@ class TvRepositoryImpl implements TvRepository {
     this._continueWatching,
     this._appState,
     this._tmdbCache, {
+    required TmdbDetailCacheDataSource detailCache,
     String? userId,
-  }) : _userId = userId ?? 'default';
+  }) : _detailCache = detailCache,
+       _userId = userId ?? 'default';
 
   final TmdbTvRemoteDataSource _remote;
   final TmdbImageResolver _images;
@@ -57,12 +52,13 @@ class TvRepositoryImpl implements TvRepository {
   final ContinueWatchingLocalRepository _continueWatching;
   final AppStateController _appState;
   final TmdbCacheDataSource _tmdbCache;
+  final TmdbDetailCacheDataSource _detailCache;
   final String _userId;
+  final Map<String, Future<void>> _backgroundRefreshes =
+      <String, Future<void>>{};
 
-  // Concurrence bornée pour le chargement des saisons (évite de spam TMDB)
   static const int _maxConcurrentSeasons = 4;
 
-  /// Code de langue basé sur la locale courante (`fr-FR`, `en-US`, ou `en`).
   String get _languageCode {
     final locale = _appState.preferredLocale;
     final country = locale.countryCode;
@@ -72,7 +68,6 @@ class TvRepositoryImpl implements TvRepository {
     return '${locale.languageCode}-$country';
   }
 
-  /// Extrait l'ID numérique d'un SeriesId, gérant les formats "xtream:ID" et "ID".
   int _extractNumericId(SeriesId id) {
     final value = id.value;
     if (value.startsWith('xtream:')) {
@@ -83,90 +78,38 @@ class TvRepositoryImpl implements TvRepository {
 
   @override
   Future<TvShow> getShow(SeriesId id) async {
-    final logger = sl<AppLogger>();
-    final int showId = _extractNumericId(id);
-    logger.debug(
-      '📺 [REPO] getShow() démarré pour showId=$showId',
-      category: 'tv_repository',
-    );
-
-    // 1) Détail complet (cache → réseau)
-    logger.debug(
-      '📺 [REPO] Chargement détail complet pour showId=$showId...',
-      category: 'tv_repository',
-    );
-    final detailStartTime = DateTime.now();
-    final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
-    final detailDuration = DateTime.now().difference(detailStartTime);
-    logger.debug(
-      '📺 [REPO] Détail complet chargé pour showId=$showId en ${detailDuration.inMilliseconds}ms (${detail.seasons.length} saisons)',
-      category: 'tv_repository',
-    );
-
-    // 2) Détails de saisons (cache → réseau) avec concurrence bornée
-    logger.debug(
-      '📺 [REPO] Chargement détails saisons pour showId=$showId (${detail.seasons.length} saisons)...',
-      category: 'tv_repository',
-    );
-    final seasonsStartTime = DateTime.now();
-    final Map<int, TmdbTvSeasonDetailDto> seasonDetails =
-        await _loadSeasonsBatched(showId, detail.seasons);
-    final seasonsDuration = DateTime.now().difference(seasonsStartTime);
-    logger.debug(
-      '📺 [REPO] Détails saisons chargés pour showId=$showId en ${seasonsDuration.inMilliseconds}ms (${seasonDetails.length} saisons)',
-      category: 'tv_repository',
-    );
-
-    // 3) Mapping
-    logger.debug(
-      '📺 [REPO] Mapping pour showId=$showId...',
-      category: 'tv_repository',
-    );
-    final result = _mapShow(detail, seasonDetails);
-    logger.debug(
-      '📺 [REPO] getShow() terminé pour showId=$showId',
-      category: 'tv_repository',
-    );
-    return result;
+    final showId = _extractNumericId(id);
+    final detail = await _loadShowDtoFull(showId);
+    final seasonDetails = await _loadSeasonsBatched(showId, detail.seasons);
+    return _mapShow(detail, seasonDetails);
   }
 
   @override
   Future<TvShow> getShowLite(SeriesId id) async {
-    final int showId = _extractNumericId(id);
-
-    // 1) Détail complet (cache → réseau)
-    final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
-
-    // 2) Mapping avec saisons vides (sans épisodes)
+    final showId = _extractNumericId(id);
+    final detail = await _loadShowDtoLite(showId);
     return _mapShowLite(detail);
   }
 
   @override
   Future<List<Season>> getSeasons(SeriesId id) async {
-    final int showId = _extractNumericId(id);
-    final TmdbTvDetailDto detail = await _loadShowDtoFull(showId);
-    final Map<int, TmdbTvSeasonDetailDto> seasonDetails =
-        await _loadSeasonsBatched(showId, detail.seasons);
+    final showId = _extractNumericId(id);
+    final detail = await _loadShowDtoFull(showId);
+    final seasonDetails = await _loadSeasonsBatched(showId, detail.seasons);
     return _mapSeasons(detail.seasons, seasonDetails);
   }
 
   @override
   Future<List<Episode>> getEpisodes(SeriesId id, SeasonId seasonId) async {
-    final int showId = _extractNumericId(id);
-    final int seasonNumber = int.parse(seasonId.value);
-    final TmdbTvSeasonDetailDto season = await _loadSeasonDto(
-      showId,
-      seasonNumber,
-    );
+    final showId = _extractNumericId(id);
+    final seasonNumber = int.parse(seasonId.value);
+    final season = await _loadSeasonDto(showId, seasonNumber);
     return _mapEpisodes(season);
   }
 
   @override
   Future<List<TvShowSummary>> getFeaturedShows() async {
-    // Popular = payload léger (résumés) → parfait pour la Home
-    final List<TmdbTvSummaryDto> popular = await _remote.fetchPopular(
-      language: _languageCode,
-    );
+    final popular = await _remote.fetchPopular(language: _languageCode);
     return popular
         .map(_mapSummary)
         .whereType<TvShowSummary>()
@@ -213,10 +156,7 @@ class TvRepositoryImpl implements TvRepository {
 
   @override
   Future<List<TvShowSummary>> searchShows(String query) async {
-    final List<TmdbTvSummaryDto> results = await _remote.searchShows(
-      query,
-      language: _languageCode,
-    );
+    final results = await _remote.searchShows(query, language: _languageCode);
     return results
         .map(_mapSummary)
         .whereType<TvShowSummary>()
@@ -229,8 +169,9 @@ class TvRepositoryImpl implements TvRepository {
 
   @override
   Future<void> refreshMetadata(SeriesId id) async {
-    final int showId = _extractNumericId(id);
+    final showId = _extractNumericId(id);
     await _local.clearShowDetail(showId);
+    await _detailCache.clearTvShow(showId, language: _languageCode);
   }
 
   @override
@@ -252,14 +193,11 @@ class TvRepositoryImpl implements TvRepository {
     }
   }
 
-  // --------- Chargement & cache ---------
-
-  /// Réutilise le cache TMDB du hero (clé `tmdb_tv_detail_*`) si la fiche n’a pas de logo.
   Future<TmdbTvDetailDto?> _tryMergeLogoFromHeroCache(
     int showId,
     TmdbTvDetailDto cached,
   ) async {
-    if (cached.logoPath != null || cached.logoPngExhausted) return null;
+    if (cached.logoPath != null) return null;
     try {
       final heroJson = await _tmdbCache.getTvDetail(
         showId,
@@ -282,217 +220,253 @@ class TvRepositoryImpl implements TvRepository {
     }
   }
 
+  Future<TmdbTvDetailDto> _loadShowDtoLite(int showId) async {
+    final logger = sl<AppLogger>();
+    final cachedLite = await _detailCache.getCachedTvDetailLite(
+      showId: showId,
+      language: _languageCode,
+    );
+    if (cachedLite.isFresh) {
+      _logCache(logger, 'tv_detail_lite', 'cache_hit_fresh', showId);
+      return cachedLite.value!;
+    }
+    if (cachedLite.isStale) {
+      _logCache(logger, 'tv_detail_lite', 'cache_hit_stale', showId);
+      _scheduleBackgroundShowRefresh(showId, full: false);
+      return cachedLite.value!;
+    }
+
+    final cachedFull = await _detailCache.getCachedTvDetailFull(
+      showId: showId,
+      language: _languageCode,
+    );
+    if (cachedFull.value != null) {
+      _logCache(
+        logger,
+        'tv_detail_lite',
+        cachedFull.isFresh ? 'cache_hit_fresh' : 'cache_hit_stale',
+        showId,
+        source: 'full_cache',
+      );
+      if (cachedFull.isStale) {
+        _scheduleBackgroundShowRefresh(showId, full: false);
+      }
+      await _persistShowDetailLite(cachedFull.value!);
+      return cachedFull.value!;
+    }
+
+    final legacy = await _local.getShowDetail(showId);
+    if (legacy != null) {
+      _logCache(
+        logger,
+        'tv_detail_lite',
+        'cache_hit_fresh',
+        showId,
+        source: 'legacy',
+      );
+      await _persistShowDetailLite(legacy);
+      return legacy;
+    }
+
+    _logCache(logger, 'tv_detail_lite', 'cache_miss', showId);
+    return _fetchAndPersistShowLite(showId);
+  }
+
   Future<TmdbTvDetailDto> _loadShowDtoFull(int showId) async {
     final logger = sl<AppLogger>();
-    logger.debug(
-      '📺 [REPO] _loadShowDtoFull() démarré pour showId=$showId',
-      category: 'tv_repository',
+    final cached = await _detailCache.getCachedTvDetailFull(
+      showId: showId,
+      language: _languageCode,
     );
-
-    // Essaye cache local (peut déjà contenir un "full")
-    logger.debug(
-      '📺 [REPO] Vérification cache local pour showId=$showId...',
-      category: 'tv_repository',
-    );
-    final cacheStartTime = DateTime.now();
-    TmdbTvDetailDto? cached = await _local.getShowDetail(showId);
-    final cacheDuration = DateTime.now().difference(cacheStartTime);
-    logger.debug(
-      '📺 [REPO] Cache local vérifié pour showId=$showId en ${cacheDuration.inMilliseconds}ms (cached=${cached != null})',
-      category: 'tv_repository',
-    );
-
-    if (cached != null) {
-      final merged = await _tryMergeLogoFromHeroCache(showId, cached);
+    if (cached.isFresh) {
+      final merged = await _tryMergeLogoFromHeroCache(showId, cached.value!);
       if (merged != null) {
-        await _local.saveShowDetail(merged);
-        cached = merged;
-      }
-
-      if (TvRepositoryImpl.cacheSatisfiesFullShowLoad(cached)) {
-        logger.debug(
-          '📺 [REPO] Cache FULL trouvé pour showId=$showId, retour immédiat',
-          category: 'tv_repository',
+        await _persistShowDetailLite(merged);
+        await _persistShowDetailFull(merged);
+        _logCache(
+          logger,
+          'tv_detail_full',
+          'cache_hit_fresh',
+          showId,
+          source: 'full_cache_logo_merged',
         );
-        return cached;
+        return merged;
       }
-      logger.debug(
-        '📺 [REPO] Cache PARTIEL trouvé pour showId=$showId, chargement depuis TMDB nécessaire',
-        category: 'tv_repository',
-      );
-    } else {
-      logger.debug(
-        '📺 [REPO] Aucun cache trouvé pour showId=$showId, chargement depuis TMDB',
-        category: 'tv_repository',
-      );
+      _logCache(logger, 'tv_detail_full', 'cache_hit_fresh', showId);
+      return cached.value!;
+    }
+    if (cached.isStale) {
+      final merged = await _tryMergeLogoFromHeroCache(showId, cached.value!);
+      if (merged != null) {
+        await _persistShowDetailLite(merged);
+        await _persistShowDetailFull(merged);
+        _logCache(
+          logger,
+          'tv_detail_full',
+          'cache_hit_stale',
+          showId,
+          source: 'full_cache_logo_merged',
+        );
+        _scheduleBackgroundShowRefresh(showId, full: true);
+        return merged;
+      }
+      _logCache(logger, 'tv_detail_full', 'cache_hit_stale', showId);
+      _scheduleBackgroundShowRefresh(showId, full: true);
+      return cached.value!;
     }
 
-    // Sinon, charge en "full" depuis TMDB
-    logger.debug(
-      '📺 [REPO] Appel _remote.fetchShowFull() pour showId=$showId, language=${_appState.preferredLocale}...',
-      category: 'tv_repository',
-    );
-    final remoteStartTime = DateTime.now();
-    final CancelToken token = CancelToken();
-    logger.debug(
-      '📺 [REPO] Début attente fetchShowFull avec timeout 10s pour showId=$showId...',
-      category: 'tv_repository',
-    );
-    try {
-      // Annuler le token immédiatement en cas de timeout pour libérer la queue
-      final remote = await _remote
-          .fetchShowFull(showId, language: _languageCode, cancelToken: token)
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              final elapsed = DateTime.now().difference(remoteStartTime);
-              logger.log(
-                LogLevel.warn,
-                '📺 [REPO] ⚠️ TIMEOUT lors de fetchShowFull pour showId=$showId après ${elapsed.inSeconds}s (timeout=10s), annulation requête',
-                category: 'tv_repository',
-              );
-              // Annuler le token immédiatement pour libérer la queue NetworkExecutor
-              if (!token.isCancelled) {
-                token.cancel('Timeout après 10s');
-              }
-              throw TimeoutException('Timeout fetchShowFull après 10s');
-            },
-          );
-      final remoteDuration = DateTime.now().difference(remoteStartTime);
-      logger.debug(
-        '📺 [REPO] fetchShowFull réussi pour showId=$showId en ${remoteDuration.inMilliseconds}ms',
-        category: 'tv_repository',
-      );
-
-      // Sauvegarde (remplace/complète)
-      logger.debug(
-        '📺 [REPO] Sauvegarde cache pour showId=$showId...',
-        category: 'tv_repository',
-      );
-      final saveStartTime = DateTime.now();
-      final toPersist = remote.logoPath == null
-          ? remote.copyWith(logoPngExhausted: true)
-          : remote;
-      await _local.saveShowDetail(toPersist);
-      final saveDuration = DateTime.now().difference(saveStartTime);
-      logger.debug(
-        '📺 [REPO] Cache sauvegardé pour showId=$showId en ${saveDuration.inMilliseconds}ms',
-        category: 'tv_repository',
-      );
-      logger.debug(
-        '📺 [REPO] _loadShowDtoFull() terminé pour showId=$showId',
-        category: 'tv_repository',
-      );
-      return toPersist;
-    } on TimeoutException catch (e, st) {
-      logger.log(
-        LogLevel.warn,
-        '📺 [REPO] Timeout dans _loadShowDtoFull pour showId=$showId: $e',
-        category: 'tv_repository',
-        error: e,
-        stackTrace: st,
-      );
-      rethrow;
-    } catch (e, st) {
-      logger.log(
-        LogLevel.warn,
-        '📺 [REPO] Erreur dans _loadShowDtoFull pour showId=$showId: $e',
-        category: 'tv_repository',
-        error: e,
-        stackTrace: st,
-      );
-      rethrow;
+    TmdbTvDetailDto? legacy = await _local.getShowDetail(showId);
+    if (legacy != null) {
+      final merged = await _tryMergeLogoFromHeroCache(showId, legacy);
+      if (merged != null) {
+        legacy = merged;
+      }
+      if (cacheSatisfiesFullShowLoad(legacy)) {
+        _logCache(
+          logger,
+          'tv_detail_full',
+          'cache_hit_fresh',
+          showId,
+          source: 'legacy',
+        );
+        await _persistShowDetailLite(legacy);
+        await _persistShowDetailFull(legacy);
+        return legacy;
+      }
     }
+
+    _logCache(logger, 'tv_detail_full', 'cache_miss', showId);
+    return _fetchAndPersistShowFull(showId);
+  }
+
+  Future<TmdbTvDetailDto> _fetchAndPersistShowLite(int showId) async {
+    final logger = sl<AppLogger>();
+    final token = CancelToken();
+    final start = DateTime.now();
+    final remote = await _remote
+        .fetchShowWithImages(
+          showId,
+          language: _languageCode,
+          cancelToken: token,
+        )
+        .timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            if (!token.isCancelled) {
+              token.cancel('Timeout after 10s');
+            }
+            throw TimeoutException('Timeout fetchShowWithImages after 10s');
+          },
+        );
+    await _persistShowDetailLite(remote);
+    logger.debug(
+      'background_refresh_completed resource=tv_detail_lite showId=$showId lang=$_languageCode durationMs=${DateTime.now().difference(start).inMilliseconds}',
+      category: 'tv_repository',
+    );
+    return remote;
+  }
+
+  Future<TmdbTvDetailDto> _fetchAndPersistShowFull(int showId) async {
+    final logger = sl<AppLogger>();
+    final token = CancelToken();
+    final start = DateTime.now();
+    final remote = await _remote
+        .fetchShowFull(showId, language: _languageCode, cancelToken: token)
+        .timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            if (!token.isCancelled) {
+              token.cancel('Timeout after 10s');
+            }
+            throw TimeoutException('Timeout fetchShowFull after 10s');
+          },
+        );
+    final toPersist = remote.copyWith(
+      logoPngExhausted: remote.logoPath == null
+          ? true
+          : remote.logoPngExhausted,
+      castExhausted: remote.cast.isEmpty ? true : remote.castExhausted,
+    );
+    await _persistShowDetailLite(toPersist);
+    await _persistShowDetailFull(toPersist);
+    logger.debug(
+      'background_refresh_completed resource=tv_detail_full showId=$showId lang=$_languageCode durationMs=${DateTime.now().difference(start).inMilliseconds}',
+      category: 'tv_repository',
+    );
+    return toPersist;
+  }
+
+  Future<void> _persistShowDetailLite(TmdbTvDetailDto dto) async {
+    await _detailCache.putTvDetailLite(dto, language: _languageCode);
+    await _local.saveShowDetail(dto);
+  }
+
+  Future<void> _persistShowDetailFull(TmdbTvDetailDto dto) async {
+    await _detailCache.putTvDetailFull(dto, language: _languageCode);
+    await _local.saveShowDetail(dto);
+  }
+
+  void _scheduleBackgroundShowRefresh(int showId, {required bool full}) {
+    final logger = sl<AppLogger>();
+    final resource = full ? 'tv_detail_full' : 'tv_detail_lite';
+    final key = '$resource:$showId:$_languageCode';
+    if (_backgroundRefreshes.containsKey(key)) return;
+
+    _logCache(logger, resource, 'background_refresh_started', showId);
+    final future = () async {
+      try {
+        if (full) {
+          await _fetchAndPersistShowFull(showId);
+        } else {
+          await _fetchAndPersistShowLite(showId);
+        }
+      } catch (error, stackTrace) {
+        logger.log(
+          LogLevel.warn,
+          'background_refresh_failed resource=$resource showId=$showId lang=$_languageCode',
+          category: 'tv_repository',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      } finally {
+        _backgroundRefreshes.remove(key);
+      }
+    }();
+    _backgroundRefreshes[key] = future;
+    unawaited(future);
   }
 
   Future<Map<int, TmdbTvSeasonDetailDto>> _loadSeasonsBatched(
     int showId,
     List<TmdbTvSeasonDto> seasons,
   ) async {
-    final logger = sl<AppLogger>();
-    logger.debug(
-      '📺 [REPO] _loadSeasonsBatched() démarré pour showId=$showId, ${seasons.length} saisons',
-      category: 'tv_repository',
-    );
-
-    // Trie par numéro et ignore les numéros négatifs (cas spéciaux)
     final filtered = seasons.where((s) => s.seasonNumber >= 0).toList()
       ..sort((a, b) => a.seasonNumber.compareTo(b.seasonNumber));
 
-    logger.debug(
-      '📺 [REPO] ${filtered.length} saisons à charger pour showId=$showId (maxConcurrent=$_maxConcurrentSeasons)',
-      category: 'tv_repository',
-    );
-
     final results = <int, TmdbTvSeasonDetailDto>{};
-    // Exécute par batches pour limiter la concurrence
-    List<Future<void>> batch = [];
-    int batchNumber = 0;
-    int seasonIndex = 0;
+    List<Future<void>> batch = <Future<void>>[];
     for (final season in filtered) {
-      seasonIndex++;
-      logger.debug(
-        '📺 [REPO] Ajout saison ${season.seasonNumber} au batch pour showId=$showId ($seasonIndex/${filtered.length})',
-        category: 'tv_repository',
-      );
-      batch.add(
-        _loadSeasonDto(showId, season.seasonNumber)
-            .then((dto) {
-              results[season.seasonNumber] = dto;
-              logger.debug(
-                '📺 [REPO] Saison ${season.seasonNumber} chargée pour showId=$showId',
-                category: 'tv_repository',
-              );
-            })
-            .catchError((e, st) {
-              logger.log(
-                LogLevel.warn,
-                '📺 [REPO] Erreur lors du chargement de la saison ${season.seasonNumber} pour showId=$showId: $e',
-                category: 'tv_repository',
-                error: e,
-                stackTrace: st,
-              );
-            }),
-      );
+      batch.add(() async {
+        try {
+          final dto = await _loadSeasonDto(showId, season.seasonNumber);
+          results[season.seasonNumber] = dto;
+        } catch (_) {}
+      }());
       if (batch.length >= _maxConcurrentSeasons) {
-        batchNumber++;
-        logger.debug(
-          '📺 [REPO] Attente batch $batchNumber pour showId=$showId (${batch.length} saisons)',
-          category: 'tv_repository',
-        );
-        final batchStartTime = DateTime.now();
         await Future.wait(batch);
-        final batchDuration = DateTime.now().difference(batchStartTime);
-        logger.debug(
-          '📺 [REPO] Batch $batchNumber terminé pour showId=$showId en ${batchDuration.inMilliseconds}ms',
-          category: 'tv_repository',
-        );
-        batch = [];
+        batch = <Future<void>>[];
       }
     }
     if (batch.isNotEmpty) {
-      batchNumber++;
-      logger.debug(
-        '📺 [REPO] Attente batch final $batchNumber pour showId=$showId (${batch.length} saisons)',
-        category: 'tv_repository',
-      );
-      final batchStartTime = DateTime.now();
       await Future.wait(batch);
-      final batchDuration = DateTime.now().difference(batchStartTime);
-      logger.debug(
-        '📺 [REPO] Batch final $batchNumber terminé pour showId=$showId en ${batchDuration.inMilliseconds}ms',
-        category: 'tv_repository',
-      );
     }
 
-    // Complète avec placeholders si manque
-    for (final s in filtered) {
-      results.putIfAbsent(s.seasonNumber, () => _emptySeasonDetail(s));
+    for (final season in filtered) {
+      results.putIfAbsent(
+        season.seasonNumber,
+        () => _emptySeasonDetail(season),
+      );
     }
-    logger.debug(
-      '📺 [REPO] _loadSeasonsBatched() terminé pour showId=$showId, ${results.length} saisons chargées',
-      category: 'tv_repository',
-    );
     return results;
   }
 
@@ -501,87 +475,148 @@ class TvRepositoryImpl implements TvRepository {
     int seasonNumber,
   ) async {
     final logger = sl<AppLogger>();
-    logger.debug(
-      '📺 [REPO] _loadSeasonDto() démarré pour showId=$showId, season=$seasonNumber',
-      category: 'tv_repository',
+    final cached = await _detailCache.getCachedTvSeasonDetail(
+      showId: showId,
+      seasonNumber: seasonNumber,
+      language: _languageCode,
     );
-
-    logger.debug(
-      '📺 [REPO] Vérification cache saison pour showId=$showId, season=$seasonNumber...',
-      category: 'tv_repository',
-    );
-    final cached = await _local.getSeason(showId, seasonNumber);
-    if (cached != null) {
-      logger.debug(
-        '📺 [REPO] Cache trouvé pour showId=$showId, season=$seasonNumber',
-        category: 'tv_repository',
+    if (cached.isFresh) {
+      _logCache(
+        logger,
+        'tv_season_detail',
+        'cache_hit_fresh',
+        showId,
+        seasonNumber: seasonNumber,
       );
-      return cached;
+      return cached.value!;
+    }
+    if (cached.isStale) {
+      _logCache(
+        logger,
+        'tv_season_detail',
+        'cache_hit_stale',
+        showId,
+        seasonNumber: seasonNumber,
+      );
+      _scheduleBackgroundSeasonRefresh(showId, seasonNumber);
+      return cached.value!;
     }
 
-    logger.debug(
-      '📺 [REPO] Appel _remote.fetchSeason() pour showId=$showId, season=$seasonNumber...',
-      category: 'tv_repository',
-    );
-    final fetchStartTime = DateTime.now();
-    final CancelToken token = CancelToken();
-    try {
-      final remote = await _remote
-          .fetchSeason(
-            showId,
-            seasonNumber,
-            language: _languageCode,
-            cancelToken: token,
-          )
-          .timeout(
-            const Duration(seconds: 15),
-            onTimeout: () {
-              logger.log(
-                LogLevel.warn,
-                '📺 [REPO] Timeout lors de fetchSeason pour showId=$showId, season=$seasonNumber (15s)',
-                category: 'tv_repository',
-              );
-              throw TimeoutException('Timeout fetchSeason après 15s');
-            },
-          );
-      final fetchDuration = DateTime.now().difference(fetchStartTime);
-      logger.debug(
-        '📺 [REPO] fetchSeason réussi pour showId=$showId, season=$seasonNumber en ${fetchDuration.inMilliseconds}ms',
-        category: 'tv_repository',
+    final legacy = await _local.getSeason(showId, seasonNumber);
+    if (legacy != null) {
+      _logCache(
+        logger,
+        'tv_season_detail',
+        'cache_hit_fresh',
+        showId,
+        seasonNumber: seasonNumber,
+        source: 'legacy',
       );
-
-      logger.debug(
-        '📺 [REPO] Sauvegarde cache saison pour showId=$showId, season=$seasonNumber...',
-        category: 'tv_repository',
-      );
-      await _local.saveSeason(showId, seasonNumber, remote);
-      logger.debug(
-        '📺 [REPO] _loadSeasonDto() terminé pour showId=$showId, season=$seasonNumber',
-        category: 'tv_repository',
-      );
-      return remote;
-    } on TimeoutException catch (e, st) {
-      logger.log(
-        LogLevel.warn,
-        '📺 [REPO] Timeout dans _loadSeasonDto pour showId=$showId, season=$seasonNumber: $e',
-        category: 'tv_repository',
-        error: e,
-        stackTrace: st,
-      );
-      rethrow;
-    } catch (e, st) {
-      logger.log(
-        LogLevel.warn,
-        '📺 [REPO] Erreur dans _loadSeasonDto pour showId=$showId, season=$seasonNumber: $e',
-        category: 'tv_repository',
-        error: e,
-        stackTrace: st,
-      );
-      rethrow;
+      await _persistSeason(showId, seasonNumber, legacy);
+      return legacy;
     }
+
+    _logCache(
+      logger,
+      'tv_season_detail',
+      'cache_miss',
+      showId,
+      seasonNumber: seasonNumber,
+    );
+    return _fetchAndPersistSeason(showId, seasonNumber);
   }
 
-  // --------- Mapping ---------
+  Future<TmdbTvSeasonDetailDto> _fetchAndPersistSeason(
+    int showId,
+    int seasonNumber,
+  ) async {
+    final token = CancelToken();
+    final remote = await _remote
+        .fetchSeason(
+          showId,
+          seasonNumber,
+          language: _languageCode,
+          cancelToken: token,
+        )
+        .timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            if (!token.isCancelled) {
+              token.cancel('Timeout after 15s');
+            }
+            throw TimeoutException('Timeout fetchSeason after 15s');
+          },
+        );
+    await _persistSeason(showId, seasonNumber, remote);
+    return remote;
+  }
+
+  Future<void> _persistSeason(
+    int showId,
+    int seasonNumber,
+    TmdbTvSeasonDetailDto dto,
+  ) async {
+    await _detailCache.putTvSeasonDetail(
+      dto,
+      showId: showId,
+      seasonNumber: seasonNumber,
+      language: _languageCode,
+    );
+    await _local.saveSeason(showId, seasonNumber, dto);
+  }
+
+  void _scheduleBackgroundSeasonRefresh(int showId, int seasonNumber) {
+    final logger = sl<AppLogger>();
+    final key = 'tv_season_detail:$showId:$seasonNumber:$_languageCode';
+    if (_backgroundRefreshes.containsKey(key)) return;
+    _logCache(
+      logger,
+      'tv_season_detail',
+      'background_refresh_started',
+      showId,
+      seasonNumber: seasonNumber,
+    );
+    final future = () async {
+      try {
+        await _fetchAndPersistSeason(showId, seasonNumber);
+        _logCache(
+          logger,
+          'tv_season_detail',
+          'background_refresh_completed',
+          showId,
+          seasonNumber: seasonNumber,
+        );
+      } catch (error, stackTrace) {
+        logger.log(
+          LogLevel.warn,
+          'background_refresh_failed resource=tv_season_detail showId=$showId seasonNumber=$seasonNumber lang=$_languageCode',
+          category: 'tv_repository',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      } finally {
+        _backgroundRefreshes.remove(key);
+      }
+    }();
+    _backgroundRefreshes[key] = future;
+    unawaited(future);
+  }
+
+  void _logCache(
+    AppLogger logger,
+    String resource,
+    String event,
+    int showId, {
+    int? seasonNumber,
+    String? source,
+  }) {
+    logger.debug(
+      '$event resource=$resource showId=$showId'
+      '${seasonNumber == null ? '' : ' seasonNumber=$seasonNumber'}'
+      ' lang=$_languageCode${source == null ? '' : ' source=$source'}',
+      category: 'tv_repository',
+    );
+  }
 
   TvShow _mapShow(
     TmdbTvDetailDto dto,
@@ -597,9 +632,9 @@ class TvRepositoryImpl implements TvRepository {
     }
 
     final posterBackground =
-        _images.poster(dto.posterBackground, size: 'original') ?? poster;
+        _images.poster(dto.posterBackground, size: 'w780') ?? poster;
 
-    final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'w1280');
     final logo = _images.logo(dto.logoPath, size: 'w500');
 
     return TvShow(
@@ -642,9 +677,9 @@ class TvRepositoryImpl implements TvRepository {
     }
 
     final posterBackground =
-        _images.poster(dto.posterBackground, size: 'original') ?? poster;
+        _images.poster(dto.posterBackground, size: 'w780') ?? poster;
 
-    final backdrop = _images.backdrop(dto.backdropPath, size: 'original');
+    final backdrop = _images.backdrop(dto.backdropPath, size: 'w1280');
     final logo = _images.logo(dto.logoPath, size: 'w500');
 
     return TvShow(
@@ -752,8 +787,6 @@ class TvRepositoryImpl implements TvRepository {
       seasonCount: null,
       status: null,
     );
-    // NOTE: si besoin, on pourrait enrichir rapidement seasonCount/status
-    // via un hit "lite" mais ce n’est pas requis pour la Home.
   }
 
   PersonSummary _mapCast(TmdbTvCastDto cast) {
@@ -783,7 +816,6 @@ class TvRepositoryImpl implements TvRepository {
     }
   }
 
-  // Heuristique simple basée sur la note TMDB → catégorisation locale
   ContentRating? _mapRating(double? voteAverage) {
     if (voteAverage == null) return null;
     if (voteAverage >= 8.0) return ContentRating.pg13;
